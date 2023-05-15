@@ -1,15 +1,15 @@
 //! Test cases for new rustup UI
 
-use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::this_host_triple;
 use rustup::utils::raw;
 use rustup_macros::integration_test as test;
 
-use crate::mock::{
+use rustup::test::mock::{
     self,
     clitools::{self, Config, Scenario},
 };
@@ -579,7 +579,7 @@ fn recursive_cargo() {
             // The solution here is to copy from the "mock" `cargo.exe` into
             // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
             // needing to build another executable just for this test.
-            let output = config.run("rustup", &["which", "cargo"], &[]);
+            let output = config.run("rustup", ["which", "cargo"], &[]);
             let real_mock_cargo = output.stdout.trim();
             let cargo_bin_path = config.cargodir.join("bin");
             let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
@@ -1069,14 +1069,10 @@ fn show_toolchain_env() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "default", "nightly"]);
-            let mut cmd = clitools::cmd(config, "rustup", ["show"]);
-            clitools::env(config, &mut cmd);
-            cmd.env("RUSTUP_TOOLCHAIN", "nightly");
-            let out = cmd.output().unwrap();
-            assert!(out.status.success());
-            let stdout = String::from_utf8(out.stdout).unwrap();
+            let out = config.run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")]);
+            assert!(out.ok);
             assert_eq!(
-                &stdout,
+                &out.stdout,
                 for_host_and_home!(
                     config,
                     r"Default host: {0}
@@ -1323,13 +1319,12 @@ fn toolchain_update_is_like_update() {
 #[test]
 fn toolchain_uninstall_is_like_uninstall() {
     test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        });
+        config.expect_ok(&["rustup", "default", "none"]);
         config.expect_ok(&["rustup", "uninstall", "nightly"]);
-        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
-        clitools::env(config, &mut cmd);
-        let out = cmd.output().unwrap();
-        assert!(out.status.success());
-        let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(!stdout.contains(for_host!("'nightly-2015-01-01-{}'")));
+        config.expect_not_stdout_ok(&["rustup", "show"], for_host!("'nightly-{}'"));
     });
 }
 
@@ -1446,20 +1441,67 @@ fn env_override_path() {
                 .join("toolchains")
                 .join(format!("nightly-{}", this_host_triple()));
 
-            let mut cmd = clitools::cmd(config, "rustc", ["--version"]);
-            clitools::env(config, &mut cmd);
-            cmd.env("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap());
-
-            let out = cmd.output().unwrap();
-            assert!(String::from_utf8(out.stdout)
-                .unwrap()
-                .contains("hash-nightly-2"));
+            let out = config.run(
+                "rustc",
+                ["--version"],
+                &[("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap())],
+            );
+            assert!(out.ok);
+            assert!(out.stdout.contains("hash-nightly-2"));
         })
     });
 }
 
 #[test]
-fn plus_override_path() {
+fn plus_override_relpath_is_not_supported() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+
+            let toolchain_path = Path::new("..")
+                .join(config.rustupdir.rustupdir.file_name().unwrap())
+                .join("toolchains")
+                .join(format!("nightly-{}", this_host_triple()));
+            config.expect_err(
+                &[
+                    "rustc",
+                    format!("+{}", toolchain_path.to_str().unwrap()).as_str(),
+                    "--version",
+                ],
+                "error: relative path toolchain",
+            );
+        })
+    });
+}
+
+#[test]
+fn run_with_relpath_is_not_supported() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+
+            let toolchain_path = Path::new("..")
+                .join(config.rustupdir.rustupdir.file_name().unwrap())
+                .join("toolchains")
+                .join(format!("nightly-{}", this_host_triple()));
+            config.expect_err(
+                &[
+                    "rustup",
+                    "run",
+                    toolchain_path.to_str().unwrap(),
+                    "rustc",
+                    "--version",
+                ],
+                "relative path toolchain",
+            );
+        })
+    });
+}
+
+#[test]
+fn plus_override_abspath_is_supported() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "default", "stable"]);
@@ -1468,17 +1510,38 @@ fn plus_override_path() {
             let toolchain_path = config
                 .rustupdir
                 .join("toolchains")
-                .join(format!("nightly-{}", this_host_triple()));
-            config.expect_stdout_ok(
-                &[
-                    "rustup",
-                    "run",
-                    toolchain_path.to_str().unwrap(),
-                    "rustc",
-                    "--version",
-                ],
-                "hash-nightly-2",
-            );
+                .join(format!("nightly-{}", this_host_triple()))
+                .canonicalize()
+                .unwrap();
+            config.expect_ok(&[
+                "rustc",
+                format!("+{}", toolchain_path.to_str().unwrap()).as_str(),
+                "--version",
+            ]);
+        })
+    });
+}
+
+#[test]
+fn run_with_abspath_is_supported() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+
+            let toolchain_path = config
+                .rustupdir
+                .join("toolchains")
+                .join(format!("nightly-{}", this_host_triple()))
+                .canonicalize()
+                .unwrap();
+            config.expect_ok(&[
+                "rustup",
+                "run",
+                toolchain_path.to_str().unwrap(),
+                "rustc",
+                "--version",
+            ]);
         })
     });
 }
@@ -1536,7 +1599,7 @@ fn proxy_override_path() {
 }
 
 #[test]
-fn file_override_path_relative() {
+fn file_override_path_relative_not_supported() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "default", "stable"]);
@@ -1580,7 +1643,7 @@ fn file_override_path_relative() {
             let ephemeral = config.current_dir().join("ephemeral");
             fs::create_dir_all(&ephemeral).unwrap();
             config.change_dir(&ephemeral, &|config| {
-                config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+                config.expect_err(&["rustc", "--version"], "relative path toolchain");
             });
         })
     });
@@ -1965,13 +2028,25 @@ fn plus_override_beats_file_override() {
 }
 
 #[test]
-fn bad_file_override() {
+fn file_override_not_installed_custom() {
     test(&|config| {
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "gumbo").unwrap();
 
-        config.expect_err(&["rustc", "--version"], "invalid toolchain name: 'gumbo'");
+        config.expect_err(&["rustc", "--version"], "custom and not installed");
+    });
+}
+
+#[test]
+fn bad_file_override() {
+    test(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        // invalid name - cannot specify no toolchain in a toolchain file
+        raw::write_file(&toolchain_file, "none").unwrap();
+
+        config.expect_err(&["rustc", "--version"], "invalid toolchain name 'none'");
     });
 }
 
@@ -1984,6 +2059,7 @@ fn valid_override_settings() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             raw::write_file(&toolchain_file, "nightly").unwrap();
             config.expect_ok(&["rustc", "--version"]);
+            // Special case: same version as is installed is permitted.
             raw::write_file(&toolchain_file, for_host!("nightly-{}")).unwrap();
             config.expect_ok(&["rustc", "--version"]);
             let fullpath = config
@@ -2006,17 +2082,17 @@ fn valid_override_settings() {
 
 #[test]
 fn file_override_with_target_info() {
+    // Target info is not portable between machines, so we reject toolchain
+    // files that include it.
     test(&|config| {
-        config.with_scenario(Scenario::SimpleV2, &|config| {
-            let cwd = config.current_dir();
-            let toolchain_file = cwd.join("rust-toolchain");
-            raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
 
-            config.expect_err(
-                &["rustc", "--version"],
-                "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'",
-            );
-        })
+        config.expect_err(
+            &["rustc", "--version"],
+            "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'",
+        );
     });
 }
 
@@ -2034,15 +2110,10 @@ fn docs_with_path() {
             let path = format!("share{MAIN_SEPARATOR}doc{MAIN_SEPARATOR}rust{MAIN_SEPARATOR}html");
             assert!(String::from_utf8(out.stdout).unwrap().contains(&path));
 
-            let mut cmd = clitools::cmd(
-                config,
-                "rustup",
-                ["doc", "--path", "--toolchain", "nightly"],
+            config.expect_stdout_ok(
+                &["rustup", "doc", "--path", "--toolchain", "nightly"],
+                "nightly",
             );
-            clitools::env(config, &mut cmd);
-
-            let out = cmd.output().unwrap();
-            assert!(String::from_utf8(out.stdout).unwrap().contains("nightly"));
         })
     });
 }
@@ -2088,13 +2159,11 @@ fn docs_missing() {
 #[test]
 fn docs_custom() {
     test(&|config| {
-        config.with_scenario(Scenario::SimpleV2, &|config| {
-            let path = config.customdir.join("custom-1");
-            let path = path.to_string_lossy();
-            config.expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
-            config.expect_ok(&["rustup", "default", "custom"]);
-            config.expect_stdout_ok(&["rustup", "doc", "--path"], "custom");
-        })
+        let path = config.customdir.join("custom-1");
+        let path = path.to_string_lossy();
+        config.expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
+        config.expect_ok(&["rustup", "default", "custom"]);
+        config.expect_stdout_ok(&["rustup", "doc", "--path"], "custom");
     });
 }
 
@@ -2132,7 +2201,7 @@ fn non_utf8_arg() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             let out = config.run(
                 "rustc",
-                &[
+                [
                     OsString::from("--echo-args".to_string()),
                     OsString::from("echoed non-utf8 arg:".to_string()),
                     OsString::from_wide(&[0xd801, 0xd801]),
@@ -2158,7 +2227,7 @@ fn non_utf8_toolchain() {
                 &[OsStr::from_bytes(b"+\xc3\x28")],
                 &[("RUST_BACKTRACE", "1")],
             );
-            assert!(out.stderr.contains("toolchain '�(' is not installed"));
+            assert!(out.stderr.contains("toolchain '�(' is not installable"));
         })
     });
 }
@@ -2174,10 +2243,10 @@ fn non_utf8_toolchain() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             let out = config.run(
                 "rustc",
-                &[OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
+                [OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
                 &[("RUST_BACKTRACE", "1")],
             );
-            assert!(out.stderr.contains("toolchain '��' is not installed"));
+            assert!(out.stderr.contains("toolchain '��' is not installable"));
         })
     });
 }

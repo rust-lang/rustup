@@ -2,7 +2,7 @@
 
 1. Fork it!
 2. Create your feature branch: `git checkout -b my-new-feature`
-3. Test it: `cargo test`
+3. Test it: `cargo test --features=test`
 4. Lint it: `cargo +beta clippy --all --all-targets -- -D warnings`
 > We use `cargo clippy` to ensure high-quality code and to enforce a set of best practices for Rust programming. However, not all lints provided by `cargo clippy` are relevant or applicable to our project.
 > We may choose to ignore some lints if they are unstable, experimental, or specific to our project.
@@ -312,7 +312,7 @@ And [look in Jaeger for a trace](http://localhost:16686/search?service=rustup).
 
 The custom macro `rustup_macros::test` adds a prelude and suffix to each test to
 ensure that there is a tracing context setup, that the test function is a span,
-and that the spans from the test are flushed. Build with features=otel to
+and that the spans from the test are flushed. Build with features=otel,test to
 use this feature.
 
 ### Adding instrumentation

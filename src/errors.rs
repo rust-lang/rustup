@@ -2,14 +2,19 @@
 
 use std::ffi::OsString;
 use std::fmt::Debug;
-use std::io::{self, Write};
+#[cfg(not(windows))]
+use std::io;
+use std::io::Write;
 use std::path::PathBuf;
 
 use thiserror::Error as ThisError;
 use url::Url;
 
-use crate::currentprocess::process;
-use crate::dist::manifest::{Component, Manifest};
+use crate::{currentprocess::process, dist::dist::ToolchainDesc};
+use crate::{
+    dist::manifest::{Component, Manifest},
+    toolchain::names::{PathBasedToolchainName, ToolchainName},
+};
 
 const TOOLSTATE_MSG: &str =
     "If you require these components, please install and use the latest successful build version,\n\
@@ -25,7 +30,7 @@ const TOOLSTATE_MSG: &str =
 pub struct OperationError(pub anyhow::Error);
 
 #[derive(ThisError, Debug)]
-pub enum RustupError {
+pub(crate) enum RustupError {
     #[error("partially downloaded file may have been damaged and was removed, please try again")]
     BrokenPartialFile,
     #[error("component download failed for {0}")]
@@ -36,17 +41,13 @@ pub enum RustupError {
     ComponentMissingFile { name: String, path: PathBuf },
     #[error("could not create {name} directory: '{}'", .path.display())]
     CreatingDirectory { name: &'static str, path: PathBuf },
-    #[error("unable to read the PGP key '{}'", .path.display())]
-    InvalidPgpKey {
-        path: PathBuf,
-        source: anyhow::Error,
-    },
     #[error("invalid toolchain name: '{0}'")]
     InvalidToolchainName(String),
     #[error("could not create link from '{}' to '{}'", .src.display(), .dest.display())]
     LinkingFile { src: PathBuf, dest: PathBuf },
     #[error("Unable to proceed. Could not locate working directory.")]
     LocatingWorkingDir,
+    #[cfg(not(windows))]
     #[error("failed to set permissions for '{}'", .p.display())]
     SettingPermissions { p: PathBuf, source: io::Error },
     #[error("checksum failed for '{url}', expected: '{expected}', calculated: '{calculated}'")]
@@ -59,14 +60,16 @@ pub enum RustupError {
     ComponentConflict { name: String, path: PathBuf },
     #[error("toolchain '{0}' does not support components")]
     ComponentsUnsupported(String),
+    #[error("toolchain '{0}' does not support components (v1 manifest)")]
+    ComponentsUnsupportedV1(String),
     #[error("component manifest for '{0}' is corrupt")]
     CorruptComponent(String),
     #[error("could not download file from '{url}' to '{}'", .path.display())]
     DownloadingFile { url: Url, path: PathBuf },
     #[error("could not download file from '{url}' to '{}'", .path.display())]
     DownloadNotExists { url: Url, path: PathBuf },
-    #[error("Missing manifest in toolchain '{}'", .name)]
-    MissingManifest { name: String },
+    #[error("Missing manifest in toolchain '{}'", .0)]
+    MissingManifest(ToolchainDesc),
     #[error("server sent a broken manifest: missing package for component {0}")]
     MissingPackageForComponent(String),
     #[error("could not read {name} directory: '{}'", .path.display())]
@@ -88,24 +91,26 @@ pub enum RustupError {
     #[error("toolchain '{0}' is not installable")]
     ToolchainNotInstallable(String),
     #[error("toolchain '{0}' is not installed")]
-    ToolchainNotInstalled(String),
+    ToolchainNotInstalled(ToolchainName),
+    #[error("path '{0}' not found")]
+    PathToolchainNotInstalled(PathBasedToolchainName),
     #[error(
         "rustup could not choose a version of {} to run, because one wasn't specified explicitly, and no default is configured.\n{}",
         process().name().unwrap_or_else(|| "Rust".into()),
         "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
     )]
     ToolchainNotSelected,
-    #[error("toolchain '{}' does not contain component {}{}{}", .name, .component, if let Some(suggestion) = .suggestion {
+    #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, if let Some(suggestion) = .suggestion {
         format!("; did you mean '{suggestion}'?")
     } else {
         "".to_string()
     }, if .component.contains("rust-std") {
         format!("\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html{}",
-            if name.contains("nightly") { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
+            if desc.channel == "nightly" { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
         )
     } else { "".to_string() })]
     UnknownComponent {
-        name: String,
+        desc: ToolchainDesc,
         component: String,
         suggestion: Option<String>,
     },
@@ -115,6 +120,8 @@ pub enum RustupError {
     UnsupportedVersion(String),
     #[error("could not write {name} file: '{}'", .path.display())]
     WritingFile { name: &'static str, path: PathBuf },
+    #[error("I/O Error")]
+    IOError(#[from] std::io::Error),
 }
 
 fn remove_component_msg(cs: &Component, manifest: &Manifest, toolchain: &str) -> String {

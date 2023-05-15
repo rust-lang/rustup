@@ -1,36 +1,36 @@
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-use crate::dist::temp;
-use crate::utils::notify::NotificationLevel;
+use crate::{
+    dist::{dist::ToolchainDesc, temp},
+    toolchain::names::ToolchainName,
+    utils::notify::NotificationLevel,
+};
 
 #[derive(Debug)]
-pub enum Notification<'a> {
+pub(crate) enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
-    SetDefaultToolchain(&'a str),
+    SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
     SetProfile(&'a str),
     SetSelfUpdate(&'a str),
-    LookingForToolchain(&'a str),
+    LookingForToolchain(&'a ToolchainDesc),
     ToolchainDirectory(&'a Path, &'a str),
     UpdatingToolchain(&'a str),
     InstallingToolchain(&'a str),
     InstalledToolchain(&'a str),
-    UsingExistingToolchain(&'a str),
-    UninstallingToolchain(&'a str),
-    UninstalledToolchain(&'a str),
-    ToolchainNotInstalled(&'a str),
+    UsingExistingToolchain(&'a ToolchainDesc),
+    UninstallingToolchain(&'a ToolchainName),
+    UninstalledToolchain(&'a ToolchainName),
     UpdateHashMatches,
     UpgradingMetadata(&'a str, &'a str),
     MetadataUpgradeNotNeeded(&'a str),
-    WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a anyhow::Error),
     UpgradeRemovesToolchains,
-    MissingFileDuringSelfUninstall(PathBuf),
     PlainVerboseMessage(&'a str),
     /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
     DuplicateToolchainFile {
@@ -64,7 +64,6 @@ impl<'a> Notification<'a> {
             Temp(n) => n.level(),
             ToolchainDirectory(_, _)
             | LookingForToolchain(_)
-            | WritingMetadataVersion(_)
             | InstallingToolchain(_)
             | UpdatingToolchain(_)
             | ReadMetadataVersion(_)
@@ -78,13 +77,10 @@ impl<'a> Notification<'a> {
             | UsingExistingToolchain(_)
             | UninstallingToolchain(_)
             | UninstalledToolchain(_)
-            | ToolchainNotInstalled(_)
             | UpgradingMetadata(_, _)
             | MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
-            UpgradeRemovesToolchains
-            | MissingFileDuringSelfUninstall(_)
-            | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
+            UpgradeRemovesToolchains | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
 }
@@ -96,8 +92,8 @@ impl<'a> Display for Notification<'a> {
             Install(n) => n.fmt(f),
             Utils(n) => n.fmt(f),
             Temp(n) => n.fmt(f),
-            SetDefaultToolchain("none") => write!(f, "default toolchain unset"),
-            SetDefaultToolchain(name) => write!(f, "default toolchain set to '{name}'"),
+            SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
+            SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),
             SetOverrideToolchain(path, name) => write!(
                 f,
                 "override toolchain for '{}' set to '{}'",
@@ -114,7 +110,6 @@ impl<'a> Display for Notification<'a> {
             UsingExistingToolchain(name) => write!(f, "using existing install for '{name}'"),
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{name}'"),
             UninstalledToolchain(name) => write!(f, "toolchain '{name}' uninstalled"),
-            ToolchainNotInstalled(name) => write!(f, "no toolchain installed for '{name}'"),
             UpdateHashMatches => write!(f, "toolchain is already up to date"),
             UpgradingMetadata(from_ver, to_ver) => write!(
                 f,
@@ -123,17 +118,11 @@ impl<'a> Display for Notification<'a> {
             MetadataUpgradeNotNeeded(ver) => {
                 write!(f, "nothing to upgrade: metadata version is already '{ver}'")
             }
-            WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{ver}'"),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{ver}'"),
             NonFatalError(e) => write!(f, "{e}"),
             UpgradeRemovesToolchains => write!(
                 f,
                 "this upgrade will remove all existing toolchains. you will need to reinstall them"
-            ),
-            MissingFileDuringSelfUninstall(p) => write!(
-                f,
-                "expected file does not exist to uninstall: {}",
-                p.display()
             ),
             PlainVerboseMessage(r) => write!(f, "{r}"),
             DuplicateToolchainFile {

@@ -5,12 +5,12 @@ use std::io::Write;
 use std::process::Stdio;
 
 use rustup::for_host;
-use rustup::test::this_host_triple;
-use rustup::test::with_saved_path;
+use rustup::test::{
+    mock::clitools::{self, set_current_dist_date, Config, SanitizedOutput, Scenario},
+    this_host_triple, with_saved_path,
+};
 use rustup::utils::raw;
 use rustup_macros::integration_test as test;
-
-use crate::mock::clitools::{self, set_current_dist_date, Config, SanitizedOutput, Scenario};
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
     run_input_with_env(config, args, input, &[])
@@ -526,7 +526,7 @@ fn install_stops_if_rustc_exists() {
     clitools::test(Scenario::SimpleV2, &|config| {
         let out = config.run(
             "rustup-init",
-            &["--no-modify-path"],
+            ["--no-modify-path"],
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("PATH", temp_dir_path),
@@ -556,7 +556,7 @@ fn install_stops_if_cargo_exists() {
     clitools::test(Scenario::SimpleV2, &|config| {
         let out = config.run(
             "rustup-init",
-            &["--no-modify-path"],
+            ["--no-modify-path"],
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("PATH", temp_dir_path),
@@ -586,7 +586,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
     clitools::test(Scenario::SimpleV2, &|config| {
         let out = config.run(
             "rustup-init",
-            &["-y", "--no-modify-path"],
+            ["-y", "--no-modify-path"],
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("PATH", temp_dir_path),

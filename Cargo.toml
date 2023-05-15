@@ -41,6 +41,9 @@ otel = [
     "dep:tokio",
 ]
 
+# Exports code dependent on private interfaces for the integration test suite
+test = ["dep:once_cell", "dep:walkdir"]
+
 # Sorted by alphabetic order
 [dependencies]
 anyhow.workspace = true
@@ -48,21 +51,19 @@ cfg-if = "1.0"
 chrono = "0.4"
 clap = { version = "3", features = ["wrap_help"] }
 clap_complete = "3"
+derivative.workspace = true
 download = { path = "download", default-features = false }
 effective-limits = "0.5.5"
 enum-map = "2.5.0"
 flate2 = "1"
+fs_at.workspace = true
 git-testament = "0.2"
 home = "0.5.4"
 lazy_static.workspace = true
 libc = "0.2"
 num_cpus = "1.15"
-once_cell.workspace = true
+once_cell = { workspace = true, optional = true }
 opener = "0.6.0"
-# Used by `curl` or `reqwest` backend although it isn't imported by our rustup :
-# this allows controlling the vendoring status without exposing the presence of
-# the download crate.
-openssl = { version = "0.10", optional = true }
 opentelemetry = { workspace = true, optional = true }
 opentelemetry-otlp = { workspace = true, optional = true }
 pulldown-cmark = { version = "0.9", default-features = false }
@@ -78,8 +79,7 @@ sharded-slab = "0.1.1"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile.workspace = true
-# FIXME(issue #1818, #1826, and friends)
-term = "=0.5.1"
+term = "=0.5.1" # FIXME(issue #1818, #1826, and friends)
 thiserror.workspace = true
 threadpool = "1"
 tokio = { workspace = true, optional = true }
@@ -91,8 +91,16 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 tracing.workspace = true
 url.workspace = true
 wait-timeout = "0.2"
+walkdir = { workspace = true, optional = true }
 xz2 = "0.1.3"
 zstd = "0.12"
+
+[dependencies.openssl]
+# Used by `curl` or `reqwest` backend although it isn't imported by our rustup :
+# this allows controlling the vendoring status without exposing the presence of
+# the download crate.
+optional = true
+version = "0.10"
 
 [dependencies.retry]
 default-features = false
@@ -133,13 +141,28 @@ features = [
 ]
 version = "0.3"
 
+[target."cfg(windows)".dependencies.windows-sys]
+features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_Security",
+    "Win32_System_Kernel",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+]
+version = "0.45.0"
+
+
 [dev-dependencies]
 enum-map = "2.5.0"
 once_cell.workspace = true
+proptest.workspace = true
 rustup-macros.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 trycmd = "0.14.13"
-walkdir = "2"
 
 [build-dependencies]
 lazy_static = "1"
@@ -150,18 +173,24 @@ members = ["download", "rustup-macros"]
 
 [workspace.dependencies]
 anyhow = "1.0.69"
+derivative = "2.2.0"
+fs_at = "0.1.6"
 lazy_static = "1"
 once_cell = "1.17.1"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.11.0" }
+proptest = "1.1.0"
 rustup-macros = { path = "rustup-macros" }
 tempfile = "3.5"
 thiserror = "1.0"
-tokio = { version = "1.26.0", default-features = false }
+tokio = { version = "1.26.0", default-features = false, features = [
+    "rt-multi-thread",
+] }
 tracing = "0.1"
 tracing-opentelemetry = { version = "0.18.0" }
 tracing-subscriber = "0.3.16"
 url = "2.3"
+walkdir = "2"
 
 [lib]
 name = "rustup"
@@ -174,3 +203,7 @@ lto = true
 # Reduce build time by setting proc-macro crates non optimized.
 [profile.release.build-override]
 opt-level = 0
+
+[package.metadata.cargo-all-features]
+# Building with no web backend will error.
+always_include_features = ["reqwest-backend", "reqwest-rustls-tls"]

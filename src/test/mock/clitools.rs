@@ -1,35 +1,38 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::env;
-use std::env::consts::EXE_SUFFIX;
-use std::ffi::OsStr;
-use std::fs;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
-use std::time::Instant;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    env::{self, consts::EXE_SUFFIX},
+    ffi::OsStr,
+    fmt::Debug,
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::Command,
+    sync::{Arc, RwLock, RwLockWriteGuard},
+    time::Instant,
+};
 
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
-use rustup::test::const_dist_dir;
 use url::Url;
 
-use rustup::cli::rustup_mode;
-use rustup::currentprocess;
-use rustup::test as rustup_test;
-use rustup::test::this_host_triple;
-use rustup::utils::{raw, utils};
+use crate::cli::rustup_mode;
+use crate::currentprocess;
+use crate::test as rustup_test;
+use crate::test::const_dist_dir;
+use crate::test::this_host_triple;
+use crate::utils::{raw, utils};
 
-use crate::mock::dist::{
-    change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
-    MockTargetedPackage,
+use super::{
+    dist::{
+        change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer,
+        MockPackage, MockTargetedPackage,
+    },
+    topical_doc_data, MockComponentBuilder, MockFile, MockInstallerBuilder,
 };
-use crate::mock::topical_doc_data;
-use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 /// The configuration used by the tests in this module
 #[derive(Debug)]
@@ -169,7 +172,7 @@ impl ConstState {
                 Some(ref path) => Ok(path.clone()),
 
                 None => {
-                    let dist_path = self.const_dist_dir.path().join(format!("{:?}", s));
+                    let dist_path = self.const_dist_dir.path().join(format!("{s:?}"));
                     create_mock_dist_server(&dist_path, s);
                     *lock = Some(dist_path.clone());
                     Ok(dist_path)
@@ -257,7 +260,7 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
         fn link_or_copy(
             original: &Path,
             link: &Path,
-            lock: &mut RwLockWriteGuard<usize>,
+            lock: &mut RwLockWriteGuard<'_, usize>,
         ) -> io::Result<()> {
             **lock += 1;
             if **lock < MAX_TESTS_PER_RUSTUP_EXE {
@@ -285,10 +288,10 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
-    config.run("rustup", &["set", "default-host", &this_host_triple()], &[]);
+    config.run("rustup", ["set", "default-host", &this_host_triple()], &[]);
 
     // Set the auto update mode to disable, as most tests do not want to update rustup itself during the test.
-    config.run("rustup", &["set", "auto-self-update", "disable"], &[]);
+    config.run("rustup", ["set", "auto-self-update", "disable"], &[]);
 
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
@@ -302,7 +305,7 @@ pub fn test(s: Scenario, f: &dyn Fn(&mut Config)) {
     // Things we might cache or what not
 
     // Mutable dist server - working toward elimination
-    let test_dist_dir = rustup::test::test_dist_dir().unwrap();
+    let test_dist_dir = crate::test::test_dist_dir().unwrap();
     create_mock_dist_server(test_dist_dir.path(), s);
 
     // Things that are just about the test itself
@@ -509,6 +512,8 @@ impl Config {
         }
     }
 
+    /// Expect an ok status
+    #[track_caller]
     pub fn expect_ok(&mut self, args: &[&str]) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok {
@@ -518,6 +523,8 @@ impl Config {
         }
     }
 
+    /// Expect an err status and a string in stderr
+    #[track_caller]
     pub fn expect_err(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if out.ok || !out.stderr.contains(expected) {
@@ -528,6 +535,8 @@ impl Config {
         }
     }
 
+    /// Expect an ok status and a string in stdout
+    #[track_caller]
     pub fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || !out.stdout.contains(expected) {
@@ -538,6 +547,7 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || out.stdout.contains(expected) {
@@ -548,6 +558,7 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || out.stderr.contains(expected) {
@@ -558,6 +569,7 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if out.ok || out.stderr.contains(expected) {
@@ -568,6 +580,8 @@ impl Config {
         }
     }
 
+    /// Expect an ok status and a string in stderr
+    #[track_caller]
     pub fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || !out.stderr.contains(expected) {
@@ -578,6 +592,8 @@ impl Config {
         }
     }
 
+    /// Expect an exact strings on stdout/stderr with an ok status code
+    #[track_caller]
     pub fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || out.stdout != stdout || out.stderr != stderr {
@@ -591,6 +607,8 @@ impl Config {
         }
     }
 
+    /// Expect an exact strings on stdout/stderr with an error status code
+    #[track_caller]
     pub fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if out.ok || out.stdout != stdout || out.stderr != stderr {
@@ -610,6 +628,7 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
@@ -621,6 +640,7 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
         let out1 = self.run(args1[0], &args1[1..], &[]);
         let out2 = self.run(args2[0], &args2[1..], &[]);
@@ -633,8 +653,9 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_component_executable(&self, cmd: &str) {
-        let out1 = self.run(cmd, &["--version"], &[]);
+        let out1 = self.run(cmd, ["--version"], &[]);
         if !out1.ok {
             print_command(&[cmd, "--version"], &out1);
             println!("expected.ok: true");
@@ -642,8 +663,9 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn expect_component_not_executable(&self, cmd: &str) {
-        let out1 = self.run(cmd, &["--version"], &[]);
+        let out1 = self.run(cmd, ["--version"], &[]);
         if out1.ok {
             print_command(&[cmd, "--version"], &out1);
             println!("expected.ok: false");
@@ -653,15 +675,15 @@ impl Config {
 
     pub fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
     where
-        I: IntoIterator<Item = A> + Clone,
+        I: IntoIterator<Item = A> + Clone + Debug,
         A: AsRef<OsStr>,
     {
         let inprocess = allow_inprocess(name, args.clone());
         let start = Instant::now();
         let out = if inprocess {
-            self.run_inprocess(name, args, env)
+            self.run_inprocess(name, args.clone(), env)
         } else {
-            self.run_subprocess(name, args, env)
+            self.run_subprocess(name, args.clone(), env)
         };
         let duration = Instant::now() - start;
         let output = SanitizedOutput {
@@ -670,6 +692,7 @@ impl Config {
             stderr: String::from_utf8(out.stderr).unwrap(),
         };
 
+        println!("ran: {} {:?}", name, args);
         println!("inprocess: {inprocess}");
         println!("status: {:?}", out.status);
         println!("duration: {:.3}s", duration.as_secs_f32());
@@ -712,7 +735,7 @@ impl Config {
         let ec = match process_res {
             Ok(process_res) => process_res,
             Err(e) => {
-                currentprocess::with(tp.clone(), || rustup::cli::common::report_error(&e));
+                currentprocess::with(tp.clone(), || crate::cli::common::report_error(&e));
                 utils::ExitCode(1)
             }
         };
@@ -723,6 +746,7 @@ impl Config {
         }
     }
 
+    #[track_caller]
     pub fn run_subprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
     where
         I: IntoIterator<Item = A>,
@@ -770,7 +794,7 @@ pub fn set_current_dist_date(config: &Config, date: &str) {
     }
 }
 
-pub(crate) fn print_command(args: &[&str], out: &SanitizedOutput) {
+pub fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
         if arg.contains(' ') {
@@ -785,7 +809,7 @@ pub(crate) fn print_command(args: &[&str], out: &SanitizedOutput) {
     print_indented("out.stderr", &out.stderr);
 }
 
-pub(crate) fn print_indented(heading: &str, text: &str) {
+pub fn print_indented(heading: &str, text: &str) {
     let mut lines = text.lines().count();
     // The standard library treats `a\n` and `a` as both being one line.
     // This is confusing when the test fails because of a missing newline.

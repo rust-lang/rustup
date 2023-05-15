@@ -5,11 +5,12 @@ use std::str;
 use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
-use rustup::test::this_host_triple;
+use rustup::test::{
+    mock::clitools::{self, set_current_dist_date, Config, Scenario},
+    this_host_triple,
+};
 use rustup::utils::utils;
 use rustup_macros::integration_test as test;
-
-use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::test(Scenario::SimpleV2, f);
@@ -25,13 +26,13 @@ fn smoke_test() {
 #[test]
 fn version_mentions_rustc_version_confusion() {
     setup(&|config| {
-        let out = config.run("rustup", &vec!["--version"], &[]);
+        let out = config.run("rustup", vec!["--version"], &[]);
         assert!(out.ok);
         assert!(out
             .stderr
             .contains("This is the version for the rustup toolchain manager"));
 
-        let out = config.run("rustup", &vec!["+nightly", "--version"], &[]);
+        let out = config.run("rustup", vec!["+nightly", "--version"], &[]);
         assert!(out.ok);
         assert!(out
             .stderr
@@ -43,7 +44,7 @@ fn version_mentions_rustc_version_confusion() {
 fn no_colors_in_piped_error_output() {
     setup(&|config| {
         let args: Vec<&str> = vec![];
-        let out = config.run("rustc", &args, &[]);
+        let out = config.run("rustc", args, &[]);
         assert!(!out.ok);
         assert!(!out.stderr.contains('\x1b'));
     });
@@ -53,7 +54,7 @@ fn no_colors_in_piped_error_output() {
 fn rustc_with_bad_rustup_toolchain_env_var() {
     setup(&|config| {
         let args: Vec<&str> = vec![];
-        let out = config.run("rustc", &args, &[("RUSTUP_TOOLCHAIN", "bogus")]);
+        let out = config.run("rustc", args, &[("RUSTUP_TOOLCHAIN", "bogus")]);
         assert!(!out.ok);
         assert!(out.stderr.contains("toolchain 'bogus' is not installed"));
     });
@@ -64,15 +65,15 @@ fn custom_invalid_names() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "toolchain", "link", "nightly", "foo"],
-            for_host!("invalid custom toolchain name: 'nightly-{0}'"),
+            "invalid custom toolchain name 'nightly'",
         );
         config.expect_err(
             &["rustup", "toolchain", "link", "beta", "foo"],
-            for_host!("invalid custom toolchain name: 'beta-{0}'"),
+            "invalid custom toolchain name 'beta'",
         );
         config.expect_err(
             &["rustup", "toolchain", "link", "stable", "foo"],
-            for_host!("invalid custom toolchain name: 'stable-{0}'"),
+            "invalid custom toolchain name 'stable'",
         );
     });
 }
@@ -82,15 +83,15 @@ fn custom_invalid_names_with_archive_dates() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "toolchain", "link", "nightly-2015-01-01", "foo"],
-            for_host!("invalid custom toolchain name: 'nightly-2015-01-01-{0}'"),
+            "invalid custom toolchain name 'nightly-2015-01-01'",
         );
         config.expect_err(
             &["rustup", "toolchain", "link", "beta-2015-01-01", "foo"],
-            for_host!("invalid custom toolchain name: 'beta-2015-01-01-{0}'"),
+            "invalid custom toolchain name 'beta-2015-01-01'",
         );
         config.expect_err(
             &["rustup", "toolchain", "link", "stable-2015-01-01", "foo"],
-            for_host!("invalid custom toolchain name: 'stable-2015-01-01-{0}'"),
+            "invalid custom toolchain name 'stable-2015-01-01'",
         );
     });
 }
@@ -532,7 +533,7 @@ fn run_rls_when_not_installed() {
         config.expect_err(
             &["rls", "--version"],
             &format!(
-                "'rls{}' is not installed for the toolchain 'stable-{}'\nTo install, run `rustup component add rls`",
+                "'rls{}' is not installed for the toolchain 'stable-{}'.\nTo install, run `rustup component add rls`",
                 EXE_SUFFIX,
                 this_host_triple(),
             ),
@@ -611,7 +612,7 @@ fn rename_rls_list() {
         config.expect_ok(&["rustup", "update"]);
         config.expect_ok(&["rustup", "component", "add", "rls"]);
 
-        let out = config.run("rustup", &["component", "list"], &[]);
+        let out = config.run("rustup", ["component", "list"], &[]);
         assert!(out.ok);
         assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
     });
@@ -627,7 +628,7 @@ fn rename_rls_preview_list() {
         config.expect_ok(&["rustup", "update"]);
         config.expect_ok(&["rustup", "component", "add", "rls-preview"]);
 
-        let out = config.run("rustup", &["component", "list"], &[]);
+        let out = config.run("rustup", ["component", "list"], &[]);
         assert!(out.ok);
         assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
     });
@@ -679,7 +680,7 @@ fn toolchain_broken_symlink() {
         fs::symlink_dir(src, dst).unwrap();
     }
 
-    setup(&|config| {
+    clitools::test(Scenario::None, &|config| {
         // We artificially create a broken symlink toolchain -- but this can also happen "legitimately"
         // by having a proper toolchain there, using "toolchain link", and later removing the directory.
         fs::create_dir(config.rustupdir.join("toolchains")).unwrap();
@@ -697,11 +698,9 @@ fn toolchain_broken_symlink() {
 info: toolchain 'test' uninstalled
 ",
         );
-        config.expect_ok_ex(
+        config.expect_stderr_ok(
             &["rustup", "toolchain", "uninstall", "test"],
-            "",
-            r"info: no toolchain installed for 'test'
-",
+            "no toolchain installed for 'test'",
         );
     });
 }
@@ -900,7 +899,7 @@ fn which_asking_uninstalled_toolchain() {
         );
         config.expect_err(
             &["rustup", "which", "--toolchain=nightly", "rustc"],
-            "toolchain 'nightly' is not installed",
+            for_host!("toolchain 'nightly-{}' is not installed"),
         );
     });
 }

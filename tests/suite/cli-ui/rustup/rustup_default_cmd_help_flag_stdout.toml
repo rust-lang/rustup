@@ -8,8 +8,8 @@ USAGE:
     rustup[EXE] default [toolchain]
 
 ARGS:
-    <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information
-                   see `rustup help toolchain`
+    <toolchain>    'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom
+                   toolchain name. For more information see `rustup help toolchain`
 
 OPTIONS:
     -h, --help    Print help information

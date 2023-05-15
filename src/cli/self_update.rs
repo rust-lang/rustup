@@ -32,6 +32,7 @@
 
 #[cfg(unix)]
 mod shell;
+#[cfg(feature = "test")]
 pub(crate) mod test;
 #[cfg(unix)]
 mod unix;
@@ -57,26 +58,33 @@ use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 use same_file::Handle;
 
-use super::common::{self, ignorable_error, report_error, Confirm};
-use super::errors::*;
-use super::markdown::md;
-use super::term2;
-use crate::cli::term2::Terminal;
-use crate::dist::dist::{self, Profile, TargetTriple};
-use crate::process;
-use crate::toolchain::{DistributableToolchain, Toolchain};
-use crate::utils::utils;
-use crate::utils::Notification;
-use crate::{Cfg, UpdateStatus};
-use crate::{DUP_TOOLS, TOOLS};
+use crate::{
+    cli::{
+        common::{self, ignorable_error, report_error, Confirm, PackageUpdate},
+        errors::*,
+        markdown::md,
+        term2::{self, Terminal},
+    },
+    dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
+    install::UpdateStatus,
+    process,
+    toolchain::{
+        distributable::DistributableToolchain,
+        names::{MaybeOfficialToolchainName, ResolvableToolchainName, ToolchainName},
+        toolchain::Toolchain,
+    },
+    utils::{utils, Notification},
+    Cfg, DUP_TOOLS, TOOLS,
+};
+
 use os::*;
 pub(crate) use os::{delete_rustup_and_cargo_home, run_update, self_replace};
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 
-pub struct InstallOpts<'a> {
+pub(crate) struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
-    pub default_toolchain: Option<String>,
+    pub default_toolchain: Option<MaybeOfficialToolchainName>,
     pub profile: String,
     pub no_modify_path: bool,
     pub no_update_toolchain: bool,
@@ -439,7 +447,7 @@ pub(crate) fn install(
         }
         utils::create_rustup_home()?;
         maybe_install_rust(
-            opts.default_toolchain.as_deref(),
+            opts.default_toolchain,
             &opts.profile,
             opts.default_host_triple.as_deref(),
             !opts.no_update_toolchain,
@@ -587,17 +595,14 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
             .as_ref()
             .map(|s| dist::TargetTriple::new(s))
             .unwrap_or_else(TargetTriple::from_host_or_build);
-        let toolchain_to_use = match &opts.default_toolchain {
-            None => "stable",
-            Some(s) if s == "none" => "stable",
-            Some(s) => s,
+        let partial_channel = match &opts.default_toolchain {
+            None | Some(MaybeOfficialToolchainName::None) => {
+                ResolvableToolchainName::try_from("stable")?
+            }
+            Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
-        let partial_channel = dist::PartialToolchainDesc::from_str(toolchain_to_use)?;
-        let resolved = partial_channel.resolve(&host_triple)?.to_string();
-        debug!(
-            "Successfully resolved installation toolchain as: {}",
-            resolved
-        );
+        let resolved = partial_channel.resolve(&host_triple)?;
+        debug!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     })()
     .map_err(|e: Box<dyn std::error::Error>| {
@@ -606,7 +611,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
              If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
              Valid host triples look something like: {}",
             e,
-            dist::TargetTriple::from_host_or_build()
+            TargetTriple::from_host_or_build()
         )
     })?;
     Ok(())
@@ -667,8 +672,9 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
             .map(|s| TargetTriple::new(s))
             .unwrap_or_else(TargetTriple::from_host_or_build),
         opts.default_toolchain
-            .as_deref()
-            .unwrap_or("stable (default)"),
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or("stable (default)".into()),
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
@@ -691,10 +697,14 @@ fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
             .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string()),
     )?);
 
-    opts.default_toolchain = Some(common::question_str(
+    opts.default_toolchain = Some(MaybeOfficialToolchainName::try_from(common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
-        opts.default_toolchain.as_deref().unwrap_or("stable"),
-    )?);
+        &opts
+            .default_toolchain
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or("stable".into()),
+    )?)?);
 
     opts.profile = common::question_str(
         &format!(
@@ -805,7 +815,7 @@ pub(crate) fn install_proxies() -> Result<()> {
 }
 
 fn maybe_install_rust(
-    toolchain: Option<&str>,
+    toolchain: Option<MaybeOfficialToolchainName>,
     profile_str: &str,
     default_host_triple: Option<&str>,
     update_existing_toolchain: bool,
@@ -825,29 +835,44 @@ fn maybe_install_rust(
         components,
         targets,
     )?;
-    if let Some(toolchain) = toolchain {
-        if toolchain.exists() {
+    if let Some(ref desc) = toolchain {
+        let status = if Toolchain::exists(&cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
-        }
-        let distributable = DistributableToolchain::new(&toolchain)?;
-        let status = distributable.install_from_dist(true, false, components, targets, None)?;
-        let toolchain_str = toolchain.name().to_owned();
-        toolchain.cfg().set_default(&toolchain_str)?;
+            // If we have a partial install we might not be able to read content here. We could:
+            // - fail and folk have to delete the partially present toolchain to recover
+            // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
+            // - delete the partial install and start over
+            // For now, we error.
+            let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
+            toolchain.update(components, targets, cfg.get_profile()?)?
+        } else {
+            DistributableToolchain::install(
+                &cfg,
+                desc,
+                components,
+                targets,
+                cfg.get_profile()?,
+                true,
+            )?
+            .0
+        };
+
+        cfg.set_default(Some(&desc.into()))?;
         writeln!(process().stdout())?;
-        common::show_channel_update(toolchain.cfg(), &toolchain_str, Ok(status))?;
+        common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
     }
     Ok(())
 }
 
-fn _install_selection<'a>(
-    cfg: &'a mut Cfg,
-    toolchain_opt: Option<&str>,
+fn _install_selection(
+    cfg: &mut Cfg,
+    toolchain_opt: Option<MaybeOfficialToolchainName>,
     profile_str: &str,
     default_host_triple: Option<&str>,
     update_existing_toolchain: bool,
     components: &[&str],
     targets: &[&str],
-) -> Result<Option<Toolchain<'a>>> {
+) -> Result<Option<ToolchainDesc>> {
     cfg.set_profile(profile_str)?;
 
     if let Some(default_host_triple) = default_host_triple {
@@ -868,39 +893,54 @@ fn _install_selection<'a>(
     // a toolchain (updating if it's already present) and then if neither of
     // those are true, we have a user who doesn't mind, and already has an
     // install, so we leave their setup alone.
-    Ok(if toolchain_opt == Some("none") {
-        info!("skipping toolchain installation");
-        if !components.is_empty() {
-            warn!(
-                "ignoring requested component{}: {}",
-                if components.len() == 1 { "" } else { "s" },
-                components.join(", ")
-            );
-        }
-        if !targets.is_empty() {
-            warn!(
-                "ignoring requested target{}: {}",
-                if targets.len() == 1 { "" } else { "s" },
-                targets.join(", ")
-            );
-        }
-        writeln!(process().stdout())?;
-        None
-    } else if user_specified_something
-        || (update_existing_toolchain && cfg.find_default()?.is_none())
-    {
-        Some(match toolchain_opt {
-            Some(s) => cfg.get_toolchain(s, false)?,
-            None => match cfg.find_default()? {
-                Some(t) => t,
-                None => cfg.get_toolchain("stable", false)?,
-            },
-        })
-    } else {
-        info!("updating existing rustup installation - leaving toolchains alone");
-        writeln!(process().stdout())?;
-        None
-    })
+    Ok(
+        if matches!(toolchain_opt, Some(MaybeOfficialToolchainName::None)) {
+            info!("skipping toolchain installation");
+            if !components.is_empty() {
+                warn!(
+                    "ignoring requested component{}: {}",
+                    if components.len() == 1 { "" } else { "s" },
+                    components.join(", ")
+                );
+            }
+            if !targets.is_empty() {
+                warn!(
+                    "ignoring requested target{}: {}",
+                    if targets.len() == 1 { "" } else { "s" },
+                    targets.join(", ")
+                );
+            }
+            writeln!(process().stdout())?;
+            None
+        } else if user_specified_something
+            || (update_existing_toolchain && cfg.find_default()?.is_none())
+        {
+            match toolchain_opt {
+                Some(s) => {
+                    let toolchain_name = match s {
+                        MaybeOfficialToolchainName::None => unreachable!(),
+                        MaybeOfficialToolchainName::Some(n) => n,
+                    };
+                    Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
+                }
+                None => match cfg.get_default()? {
+                    // Default is installable
+                    Some(ToolchainName::Official(t)) => Some(t),
+                    // Default is custom, presumably from a prior install. Do nothing.
+                    Some(ToolchainName::Custom(_)) => None,
+                    None => Some(
+                        "stable"
+                            .parse::<PartialToolchainDesc>()?
+                            .resolve(&cfg.get_default_host_triple()?)?,
+                    ),
+                },
+            }
+        } else {
+            info!("updating existing rustup installation - leaving toolchains alone");
+            writeln!(process().stdout())?;
+            None
+        },
+    )
 }
 
 pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
@@ -1047,11 +1087,19 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
                 }
             };
 
-            let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Updated(version)));
+            let _ = common::show_channel_update(
+                cfg,
+                PackageUpdate::Rustup,
+                Ok(UpdateStatus::Updated(version)),
+            );
             return run_update(&setup_path);
         }
         None => {
-            let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Unchanged));
+            let _ = common::show_channel_update(
+                cfg,
+                PackageUpdate::Rustup,
+                Ok(UpdateStatus::Unchanged),
+            );
             // Try again in case we emitted "tool `{}` is already installed" last time.
             install_proxies()?
         }
@@ -1239,7 +1287,7 @@ mod tests {
     use rustup_macros::unit_test as test;
 
     use crate::cli::common;
-    use crate::dist::dist::ToolchainDesc;
+    use crate::dist::dist::PartialToolchainDesc;
     use crate::test::{test_dir, with_rustup_home, Env};
     use crate::{currentprocess, for_host};
 
@@ -1257,7 +1305,11 @@ mod tests {
                 // callbacks rather than output to the tp sink.
                 let mut cfg = common::set_globals(false, false).unwrap();
                 assert_eq!(
-                    "stable",
+                    "stable"
+                        .parse::<PartialToolchainDesc>()
+                        .unwrap()
+                        .resolve(&cfg.get_default_host_triple().unwrap())
+                        .unwrap(),
                     super::_install_selection(
                         &mut cfg,
                         None,      // No toolchain specified
@@ -1269,10 +1321,6 @@ mod tests {
                     )
                     .unwrap() // result
                     .unwrap() // option
-                    .name()
-                    .parse::<ToolchainDesc>()
-                    .unwrap()
-                    .channel
                 );
                 Ok(())
             })?;

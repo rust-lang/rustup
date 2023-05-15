@@ -8,15 +8,20 @@ use std::process::Command;
 
 use remove_dir_all::remove_dir_all;
 
-use rustup::test::{this_host_triple, with_saved_path};
-use rustup::utils::{raw, utils};
-use rustup::{for_host, Notification, DUP_TOOLS, TOOLS};
-use rustup_macros::integration_test as test;
-
-use crate::mock::{
-    clitools::{self, output_release_file, self_update_setup, Config, Scenario},
-    dist::calc_hash,
+use retry::{
+    delay::{jitter, Fibonacci},
+    retry, OperationResult,
 };
+use rustup::test::{
+    mock::{
+        clitools::{self, output_release_file, self_update_setup, Config, Scenario},
+        dist::calc_hash,
+    },
+    this_host_triple, with_saved_path,
+};
+use rustup::utils::{raw, utils};
+use rustup::{for_host, DUP_TOOLS, TOOLS};
+use rustup_macros::integration_test as test;
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -254,21 +259,30 @@ fn uninstall_self_delete_works() {
 // file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[test]
 fn uninstall_doesnt_leave_gc_file() {
-    use std::thread;
-    use std::time::Duration;
-
     setup_empty_installed(&|config| {
         config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
-
-        // The gc removal happens after rustup terminates. Give it a moment.
-        thread::sleep(Duration::from_millis(100));
-
         let parent = config.cargodir.parent().unwrap();
-        // Actually, there just shouldn't be any files here
-        for dirent in fs::read_dir(parent).unwrap() {
-            let dirent = dirent.unwrap();
-            println!("{}", dirent.path().display());
-            panic!();
+
+        // The gc removal happens after rustup terminates. Typically under
+        // 100ms, but during the contention of test suites can be substantially
+        // longer while still succeeding.
+
+        #[derive(thiserror::Error, Debug)]
+        #[error("garbage remaining: {:?}", .0)]
+        struct GcErr(Vec<String>);
+
+        match retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+            let garbage = fs::read_dir(parent)
+                .unwrap()
+                .map(|d| d.unwrap().path().to_string_lossy().to_string())
+                .collect::<Vec<_>>();
+            match garbage.len() {
+                0 => OperationResult::Ok(()),
+                _ => OperationResult::Retry(GcErr(garbage)),
+            }
+        }) {
+            Ok(_) => (),
+            Err(e) => panic!("{e}"),
         }
     })
 }
@@ -345,7 +359,7 @@ fn update_bogus_version() {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         config.expect_err(
             &["rustup", "update", "1.0.0-alpha"],
-            "could not download nonexistent rust version `1.0.0-alpha`",
+            "Invalid value \"1.0.0-alpha\" for '<toolchain>...': invalid toolchain name: '1.0.0-alpha'",
         );
     });
 }
@@ -660,7 +674,7 @@ fn rustup_init_works_with_weird_names() {
     clitools::test(Scenario::SimpleV2, &|config| {
         let old = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
         let new = config.exedir.join(format!("rustup-init(2){EXE_SUFFIX}"));
-        utils::rename_file("test", &old, &new, &|_: Notification<'_>| {}).unwrap();
+        fs::rename(old, new).unwrap();
         config.expect_ok(&["rustup-init(2)", "-y", "--no-modify-path"]);
         let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         assert!(rustup.exists());
@@ -688,7 +702,7 @@ fn install_but_rustup_sh_is_installed() {
 fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
     clitools::test(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
-        let out = config.run("rustup-init", &["-y", "--no-modify-path"], &[]);
+        let out = config.run("rustup-init", ["-y", "--no-modify-path"], &[]);
         assert!(out.ok);
         assert!(out
             .stderr
@@ -709,7 +723,7 @@ fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
         config.create_rustup_sh_metadata();
         let out = config.run(
             "rustup-init",
-            &["-y", "--no-modify-path"],
+            ["-y", "--no-modify-path"],
             &[("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS", "yes")],
         );
         assert!(out.ok);
@@ -728,7 +742,10 @@ fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
 
 #[test]
 fn rls_proxy_set_up_after_install() {
-    setup_installed(&|config| {
+    clitools::test(Scenario::None, &|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        });
         config.expect_err(
             &["rls", "--version"],
             &format!(

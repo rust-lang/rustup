@@ -1,6 +1,9 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
+#[cfg(test)]
+mod tests;
+
 use std::path::Path;
 
 use anyhow::{anyhow, bail, Context, Result};

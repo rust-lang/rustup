@@ -2,22 +2,23 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use rustup::dist::component::Transaction;
-use rustup::dist::dist::DEFAULT_DIST_SERVER;
-use rustup::dist::prefix::InstallPrefix;
-use rustup::dist::temp;
-use rustup::dist::Notification;
-use rustup::utils::raw as utils_raw;
-use rustup::utils::utils;
-use rustup::RustupError;
-use rustup_macros::integration_test as test;
+use rustup_macros::unit_test as test;
+
+use crate::dist::component::Transaction;
+use crate::dist::dist::DEFAULT_DIST_SERVER;
+use crate::dist::prefix::InstallPrefix;
+use crate::dist::temp;
+use crate::dist::Notification;
+use crate::utils::raw as utils_raw;
+use crate::utils::utils;
+use crate::RustupError;
 
 #[test]
 fn add_file() {
     let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -45,7 +46,7 @@ fn add_file_then_rollback() {
     let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -73,7 +74,7 @@ fn add_file_that_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -104,7 +105,7 @@ fn copy_file() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -131,7 +132,7 @@ fn copy_file_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -158,7 +159,7 @@ fn copy_file_that_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -194,7 +195,7 @@ fn copy_dir() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -228,7 +229,7 @@ fn copy_dir_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -262,7 +263,7 @@ fn copy_dir_that_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -293,7 +294,7 @@ fn remove_file() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -318,7 +319,7 @@ fn remove_file_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -343,7 +344,7 @@ fn remove_file_that_not_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -370,7 +371,7 @@ fn remove_dir() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -396,7 +397,7 @@ fn remove_dir_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -422,7 +423,7 @@ fn remove_dir_that_not_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
@@ -449,7 +450,7 @@ fn write_file() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -476,7 +477,7 @@ fn write_file_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -500,7 +501,7 @@ fn write_file_that_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -531,7 +532,7 @@ fn modify_file_that_not_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -555,7 +556,7 @@ fn modify_file_that_exists() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -579,7 +580,7 @@ fn modify_file_that_not_exists_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -601,7 +602,7 @@ fn modify_file_that_exists_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -628,7 +629,7 @@ fn modify_twice_then_rollback() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -655,7 +656,7 @@ fn do_multiple_op_transaction(rollback: bool) {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -756,7 +757,7 @@ fn rollback_failure_keeps_going() {
         Box::new(|_| ()),
     );
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefixdir.path());
 
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);

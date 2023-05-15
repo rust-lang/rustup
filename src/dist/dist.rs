@@ -12,16 +12,21 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use thiserror::Error as ThisError;
 
-use crate::dist::download::DownloadCfg;
-use crate::dist::manifest::{Component, Manifest as ManifestV2};
-use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
-use crate::dist::notifications::*;
-use crate::dist::prefix::InstallPrefix;
-use crate::dist::temp;
 pub(crate) use crate::dist::triple::*;
-use crate::errors::RustupError;
-use crate::process;
-use crate::utils::utils;
+use crate::{
+    dist::{
+        download::DownloadCfg,
+        manifest::{Component, Manifest as ManifestV2},
+        manifestation::{Changes, Manifestation, UpdateStatus},
+        notifications::*,
+        prefix::InstallPrefix,
+        temp,
+    },
+    errors::RustupError,
+    process,
+    toolchain::names::ToolchainName,
+    utils::utils,
+};
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
@@ -83,11 +88,13 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 }
 
 #[derive(Debug, ThisError)]
-enum DistError {
+pub(crate) enum DistError {
     #[error("{}", components_missing_msg(.0, .1, .2))]
     ToolchainComponentsMissing(Vec<Component>, Box<ManifestV2>, String),
     #[error("no release found for '{0}'")]
     MissingReleaseForToolchain(String),
+    #[error("invalid toolchain name: '{0}'")]
+    InvalidOfficialName(String),
 }
 
 #[derive(Debug, PartialEq)]
@@ -102,7 +109,7 @@ struct ParsedToolchainDesc {
 // 'stable-msvc' to work. Partial target triples though are parsed
 // from a hardcoded set of known triples, whereas target triples
 // are nearly-arbitrary strings.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
     // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
@@ -113,7 +120,10 @@ pub struct PartialToolchainDesc {
 // Fully-resolved toolchain descriptors. These always have full target
 // triples attached to them and are used for canonical identification,
 // such as naming their installation directory.
-#[derive(Debug, Clone)]
+//
+// as strings they look like stable-x86_64-pc-windows-msvc or
+/// 1.55-x86_64-pc-windows-msvc
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ToolchainDesc {
     // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
@@ -426,6 +436,7 @@ impl FromStr for PartialToolchainDesc {
 }
 
 impl PartialToolchainDesc {
+    /// Create a toolchain desc using input_host to fill in missing fields
     pub(crate) fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
         let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
@@ -534,13 +545,14 @@ impl ToolchainDesc {
     }
 }
 
-// A little convenience for just parsing a channel name or archived channel name
-pub(crate) fn validate_channel_name(name: &str) -> Result<()> {
-    let toolchain = PartialToolchainDesc::from_str(name)?;
-    if toolchain.has_triple() {
-        Err(anyhow!(format!("target triple in channel name '{name}'")))
-    } else {
-        Ok(())
+impl TryFrom<&ToolchainName> for ToolchainDesc {
+    type Error = DistError;
+
+    fn try_from(value: &ToolchainName) -> std::result::Result<Self, Self::Error> {
+        match value {
+            ToolchainName::Custom(n) => Err(DistError::InvalidOfficialName(n.str().into())),
+            ToolchainName::Official(n) => Ok(n.clone()),
+        }
     }
 }
 
@@ -650,7 +662,7 @@ pub(crate) fn valid_profile_names() -> String {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[cfg_attr(feature = "otel", tracing::instrument(err, skip_all, fields(profile=format!("{profile:?}"), prefix=prefix.path().to_string_lossy().to_string())))]
 pub(crate) fn update_from_dist(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
@@ -789,7 +801,7 @@ fn update_from_dist_(
                         // no need to even print anything for missing nightlies,
                         // since we don't really "skip" them
                     }
-                    None => {
+                    _ => {
                         // All other errors break the loop
                         break Err(e);
                     }

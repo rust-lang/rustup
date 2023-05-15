@@ -47,7 +47,7 @@ static LIST_ENVS: &[&str] = &[
     "musl",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartialTargetTriple {
     pub arch: Option<String>,
     pub os: Option<String>,

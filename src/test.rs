@@ -1,5 +1,8 @@
 #![allow(clippy::box_default)]
 //! Test support module; public to permit use from integration tests.
+
+pub mod mock;
+
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
