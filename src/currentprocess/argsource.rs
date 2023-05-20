@@ -52,6 +52,7 @@ impl<T: From<String>> Iterator for VecArgs<T> {
     }
 }
 
+#[cfg(feature = "test")]
 impl ArgSource for super::TestProcess {
     fn args(&self) -> Box<dyn Iterator<Item = String>> {
         Box::new(VecArgs::<String>::from(&self.args))
