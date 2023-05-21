@@ -73,6 +73,7 @@ impl Stdin for TestStdin {
     }
 }
 
+#[cfg(feature = "test")]
 impl StdinSource for super::TestProcess {
     fn stdin(&self) -> Box<dyn Stdin> {
         Box::new(TestStdin(self.stdin.clone()))
@@ -193,12 +194,14 @@ impl Isatty for TestWriter {
     }
 }
 
+#[cfg(feature = "test")]
 impl StdoutSource for super::TestProcess {
     fn stdout(&self) -> Box<dyn Writer> {
         Box::new(TestWriter(self.stdout.clone()))
     }
 }
 
+#[cfg(feature = "test")]
 impl StderrSource for super::TestProcess {
     fn stderr(&self) -> Box<dyn Writer> {
         Box::new(TestWriter(self.stderr.clone()))

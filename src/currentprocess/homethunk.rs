@@ -1,16 +1,16 @@
 /// Adapts currentprocess to the trait home::Env
 use std::ffi::OsString;
 use std::io;
+#[cfg(feature = "test")]
 use std::ops::Deref;
 use std::path::PathBuf;
 
 use home::env as home;
 
-use super::CurrentDirSource;
 use super::HomeProcess;
 use super::OSProcess;
-use super::TestProcess;
-use super::VarSource;
+#[cfg(feature = "test")]
+use super::{CurrentDirSource, TestProcess, VarSource};
 
 impl home::Env for Box<dyn HomeProcess + 'static> {
     fn home_dir(&self) -> Option<PathBuf> {
@@ -24,6 +24,7 @@ impl home::Env for Box<dyn HomeProcess + 'static> {
     }
 }
 
+#[cfg(feature = "test")]
 impl home::Env for TestProcess {
     fn home_dir(&self) -> Option<PathBuf> {
         self.var("HOME").ok().map(|v| v.into())

@@ -20,6 +20,7 @@ impl VarSource for super::OSProcess {
     }
 }
 
+#[cfg(feature = "test")]
 impl VarSource for super::TestProcess {
     fn var(&self, key: &str) -> std::result::Result<String, env::VarError> {
         match self.var_os(key) {

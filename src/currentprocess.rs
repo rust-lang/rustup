@@ -1,15 +1,20 @@
 use std::boxed::Box;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::default::Default;
 use std::fmt::Debug;
-use std::io::Cursor;
 use std::panic;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Once;
-use std::sync::{Arc, Mutex};
+#[cfg(feature = "test")]
+use std::{
+    collections::HashMap,
+    io::Cursor,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 use home::env as home;
+#[cfg(feature = "test")]
 use rand::{thread_rng, Rng};
 
 pub(crate) mod argsource;
@@ -204,7 +209,7 @@ impl ProcessSource for OSProcess {
 }
 
 // ------------ test process ----------------
-
+#[cfg(feature = "test")]
 #[derive(Clone, Debug, Default)]
 pub struct TestProcess {
     pub cwd: PathBuf,
@@ -216,6 +221,7 @@ pub struct TestProcess {
     pub stderr: TestWriterInner,
 }
 
+#[cfg(feature = "test")]
 impl TestProcess {
     pub fn new<P: AsRef<Path>, A: AsRef<str>>(
         cwd: P,
@@ -257,6 +263,7 @@ impl TestProcess {
     }
 }
 
+#[cfg(feature = "test")]
 impl ProcessSource for TestProcess {
     fn id(&self) -> u64 {
         self.id
