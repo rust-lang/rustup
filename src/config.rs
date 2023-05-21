@@ -660,6 +660,22 @@ impl Cfg {
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+        self.find_toolchain(path, true)
+    }
+
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    pub(crate) fn find_override_toolchain_or_default(
+        &self,
+        path: &Path,
+    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+        self.find_toolchain(path, false)
+    }
+
+    fn find_toolchain(
+        &self,
+        path: &Path,
+        install_if_missing: bool,
+    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         let (toolchain, components, targets, reason, profile) =
             match self.find_override_config(path)? {
                 Some((
@@ -688,7 +704,7 @@ impl Cfg {
                 let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
                 let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
                 let toolchain = match DistributableToolchain::new(self, desc.clone()) {
-                    Err(RustupError::ToolchainNotInstalled(_)) => {
+                    Err(RustupError::ToolchainNotInstalled(_)) if install_if_missing => {
                         DistributableToolchain::install(
                             self,
                             &desc,
@@ -700,7 +716,9 @@ impl Cfg {
                         .1
                     }
                     Ok(mut distributable) => {
-                        if !distributable.components_exist(&components, &targets)? {
+                        if install_if_missing
+                            && !distributable.components_exist(&components, &targets)?
+                        {
                             distributable.update(
                                 &components,
                                 &targets,

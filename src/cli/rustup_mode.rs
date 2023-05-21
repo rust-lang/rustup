@@ -1069,8 +1069,8 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
-    // XXX: we may want a find_without_install capability for show.
-    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
+    // Retrieve the active toolchain but do not install it
+    let active_toolchain = cfg.find_override_toolchain_or_default(&cwd);
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
