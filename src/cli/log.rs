@@ -3,6 +3,7 @@ use std::io::Write;
 use term2::Terminal;
 
 use super::term2;
+use crate::currentprocess::varsource::VarSource;
 use crate::process;
 
 macro_rules! warn {

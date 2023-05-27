@@ -14,6 +14,11 @@ use term2::Terminal;
 
 use super::self_update;
 use super::term2;
+use crate::currentprocess::argsource::ArgSource;
+use crate::currentprocess::{
+    filesource::{StdinSource, StdoutSource},
+    varsource::VarSource,
+};
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;

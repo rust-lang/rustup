@@ -5,6 +5,7 @@ use anyhow::{bail, Context, Result};
 
 use super::install_bins;
 use super::shell;
+use crate::currentprocess::varsource::VarSource;
 use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;

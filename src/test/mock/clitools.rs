@@ -724,25 +724,20 @@ impl Config {
                     .into_boxed_str(),
             );
         }
-        let tp = Box::new(currentprocess::TestProcess::new(
-            &*self.workdir.borrow(),
-            &arg_strings,
-            vars,
-            "",
-        ));
-        let process_res = currentprocess::with(tp.clone(), rustup_mode::main);
+        let tp = currentprocess::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
+        let process_res = currentprocess::with(tp.clone().into(), rustup_mode::main);
         // convert Err's into an ec
         let ec = match process_res {
             Ok(process_res) => process_res,
             Err(e) => {
-                currentprocess::with(tp.clone(), || crate::cli::common::report_error(&e));
+                currentprocess::with(tp.clone().into(), || crate::cli::common::report_error(&e));
                 utils::ExitCode(1)
             }
         };
         Output {
             status: Some(ec.0),
-            stderr: (*tp).get_stderr(),
-            stdout: (*tp).get_stdout(),
+            stderr: tp.get_stderr(),
+            stdout: tp.get_stdout(),
         }
     }
 

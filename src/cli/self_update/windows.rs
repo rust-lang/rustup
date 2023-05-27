@@ -13,6 +13,7 @@ use super::super::errors::*;
 use super::common;
 use super::{install_bins, InstallOpts};
 use crate::cli::download_tracker::DownloadTracker;
+use crate::currentprocess::{filesource::StdoutSource, varsource::VarSource};
 use crate::dist::dist::TargetTriple;
 use crate::process;
 use crate::utils::utils;
@@ -747,9 +748,9 @@ mod tests {
     #[test]
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
-        let tp = Box::new(currentprocess::TestProcess::default());
+        let tp = currentprocess::TestProcess::default();
         with_saved_path(&mut || {
-            currentprocess::with(tp.clone(), || {
+            currentprocess::with(tp.clone().into(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
                     .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
@@ -777,9 +778,9 @@ mod tests {
         use std::io;
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
-        let tp = Box::new(currentprocess::TestProcess::default());
+        let tp = currentprocess::TestProcess::default();
         with_saved_path(&mut || {
-            currentprocess::with(tp.clone(), || {
+            currentprocess::with(tp.clone().into(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
                     .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
@@ -812,15 +813,15 @@ mod tests {
     #[test]
     fn windows_doesnt_mess_with_a_non_string_path() {
         // This writes an error, so we want a sink for it.
-        let tp = Box::new(currentprocess::TestProcess {
+        let tp = currentprocess::TestProcess {
             vars: [("HOME".to_string(), "/unused".to_string())]
                 .iter()
                 .cloned()
                 .collect(),
             ..Default::default()
-        });
+        };
         with_saved_path(&mut || {
-            currentprocess::with(tp.clone(), || {
+            currentprocess::with(tp.clone().into(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
                     .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
@@ -847,9 +848,9 @@ mod tests {
     #[test]
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
-        let tp = Box::new(currentprocess::TestProcess::default());
+        let tp = currentprocess::TestProcess::default();
         with_saved_path(&mut || {
-            currentprocess::with(tp.clone(), || {
+            currentprocess::with(tp.clone().into(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
                     .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)

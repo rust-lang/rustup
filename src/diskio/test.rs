@@ -23,11 +23,11 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
     let work_dir = test_dir()?;
     let mut vars = HashMap::new();
     vars.insert("RUSTUP_IO_THREADS".to_string(), io_threads.to_string());
-    let tp = Box::new(currentprocess::TestProcess {
+    let tp = currentprocess::TestProcess {
         vars,
         ..Default::default()
-    });
-    currentprocess::with(tp, || -> Result<()> {
+    };
+    currentprocess::with(tp.into(), || -> Result<()> {
         let mut written = 0;
         let mut file_finished = false;
         let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024)?;
@@ -97,11 +97,11 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
     let work_dir = test_dir()?;
     let mut vars = HashMap::new();
     vars.insert("RUSTUP_IO_THREADS".to_string(), io_threads.to_string());
-    let tp = Box::new(currentprocess::TestProcess {
+    let tp = currentprocess::TestProcess {
         vars,
         ..Default::default()
-    });
-    currentprocess::with(tp, || -> Result<()> {
+    };
+    currentprocess::with(tp.into(), || -> Result<()> {
         let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024)?;
         let mut chunk = io_executor.get_buffer(10);
         chunk.extend(b"0123456789");

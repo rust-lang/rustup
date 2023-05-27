@@ -3,7 +3,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::process;
+use crate::{currentprocess::varsource::VarSource, process};
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
@@ -54,12 +54,12 @@ mod tests {
             "PATH",
             env::join_paths(vec!["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
         );
-        let tp = Box::new(currentprocess::TestProcess {
+        let tp = currentprocess::TestProcess {
             vars,
             ..Default::default()
-        });
+        };
         with_saved_path(&mut || {
-            currentprocess::with(tp.clone(), || {
+            currentprocess::with(tp.clone().into(), || {
                 let mut path_entries = vec![];
                 let mut cmd = Command::new("test");
 

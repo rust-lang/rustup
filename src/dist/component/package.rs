@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, bail, Context, Result};
 use tar::EntryType;
 
+use crate::currentprocess::{filesource::StderrSource, varsource::VarSource};
 use crate::diskio::{get_executor, CompletedIo, Executor, FileBuffer, Item, Kind, IO_CHUNK_SIZE};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;

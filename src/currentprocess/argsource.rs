@@ -4,6 +4,9 @@ use std::env;
 use std::ffi::OsString;
 use std::marker::PhantomData;
 
+use enum_dispatch::enum_dispatch;
+
+#[enum_dispatch]
 pub trait ArgSource {
     fn args(&self) -> Box<dyn Iterator<Item = String>>;
     fn args_os(&self) -> Box<dyn Iterator<Item = OsString>>;

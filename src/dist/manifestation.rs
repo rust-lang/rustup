@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::NoDelay;
 use retry::{retry, OperationResult};
 
+use crate::currentprocess::varsource::VarSource;
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };

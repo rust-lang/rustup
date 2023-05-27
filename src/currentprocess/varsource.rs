@@ -3,6 +3,9 @@
 use std::env;
 use std::ffi::OsString;
 
+use enum_dispatch::enum_dispatch;
+
+#[enum_dispatch]
 pub trait VarSource {
     // In order to support dyn dispatch we use concrete types rather than the
     // stdlib signature.

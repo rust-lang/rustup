@@ -65,6 +65,7 @@ use crate::{
         markdown::md,
         term2::{self, Terminal},
     },
+    currentprocess::{filesource::StdoutSource, varsource::VarSource},
     dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     install::UpdateStatus,
     process,
@@ -1296,11 +1297,11 @@ mod tests {
         with_rustup_home(|home| {
             let mut vars = HashMap::new();
             home.apply(&mut vars);
-            let tp = Box::new(currentprocess::TestProcess {
+            let tp = currentprocess::TestProcess {
                 vars,
                 ..Default::default()
-            });
-            currentprocess::with(tp.clone(), || -> Result<()> {
+            };
+            currentprocess::with(tp.clone().into(), || -> Result<()> {
                 // TODO: we could pass in a custom cfg to get notification
                 // callbacks rather than output to the tp sink.
                 let mut cfg = common::set_globals(false, false).unwrap();
@@ -1343,11 +1344,11 @@ info: default host triple is {0}
         let cargo_home = root_dir.path().join("cargo");
         let mut vars = HashMap::new();
         vars.env("CARGO_HOME", cargo_home.to_string_lossy().to_string());
-        let tp = Box::new(currentprocess::TestProcess {
+        let tp = currentprocess::TestProcess {
             vars,
             ..Default::default()
-        });
-        currentprocess::with(tp, || -> Result<()> {
+        };
+        currentprocess::with(tp.into(), || -> Result<()> {
             super::install_bins().unwrap();
             Ok(())
         })

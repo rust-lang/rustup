@@ -14,6 +14,7 @@ use thiserror::Error as ThisError;
 
 pub(crate) use crate::dist::triple::*;
 use crate::{
+    currentprocess::varsource::VarSource,
     dist::{
         download::DownloadCfg,
         manifest::{Component, Manifest as ManifestV2},
@@ -27,7 +28,6 @@ use crate::{
     toolchain::names::ToolchainName,
     utils::utils,
 };
-
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
 // Deprecated
