@@ -62,6 +62,7 @@ system.
 | i686-linux-android            | Yes        | Two   | No     | No         |
 | x86_64-linux-android          | Yes        | Two   | No     | No         |
 | riscv64gc-unknown-linux-gnu   | Yes        | ---   | No     | No         |
+| loongarch64-unknown-linux-gnu | Yes        | Two   | No     | No         |
 | ----------------------------- | ---------- | ----- | ------ | ---------- |
 | aarch64-apple-darwin          | Yes        | Two   | Yes    | Yes        |
 | x86_64-apple-darwin           | No         | One   | Yes    | Yes        |
