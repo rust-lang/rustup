@@ -269,7 +269,7 @@ pub mod reqwest_be {
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
-    #[cfg(feature = "reqwest-rustls-tls")]
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-default-tls"))]
     use lazy_static::lazy_static;
     use reqwest::blocking::{Client, ClientBuilder, Response};
     use reqwest::{header, Proxy};
