@@ -130,6 +130,17 @@ pub(crate) enum RustupError {
         target: TargetTriple,
         suggestion: Option<String>,
     },
+    #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
+    if let Some(suggestion) = .suggestion {
+        format!("; did you mean '{suggestion}'?")
+    } else {
+        "".to_string()
+    })]
+    TargetNotInstalled {
+        desc: ToolchainDesc,
+        target: TargetTriple,
+        suggestion: Option<String>,
+    },
     #[error("unknown metadata version: '{0}'")]
     UnknownMetadataVersion(String),
     #[error("manifest version '{0}' is not supported")]
