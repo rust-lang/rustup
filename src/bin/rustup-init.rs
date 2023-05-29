@@ -70,42 +70,27 @@ async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
         };
         use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
-        // Background submission requires a runtime, and since we're probably
-        // going to want async eventually, we just use tokio.
-        let threaded_rt = tokio::runtime::Runtime::new()?;
-
-        let result = threaded_rt.block_on(async {
-            global::set_text_map_propagator(TraceContextPropagator::new());
-            let tracer = opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(
-                    opentelemetry_otlp::new_exporter()
-                        .tonic()
-                        .with_timeout(Duration::from_secs(3)),
-                )
-                .with_trace_config(
-                    trace::config()
-                        .with_sampler(Sampler::AlwaysOn)
-                        .with_resource(Resource::new(vec![KeyValue::new(
-                            "service.name",
-                            "rustup",
-                        )])),
-                )
-                .install_batch(opentelemetry_sdk::runtime::Tokio)?;
-            let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
-            let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-            let subscriber = Registry::default().with(env_filter).with(telemetry);
-            tracing::subscriber::set_global_default(subscriber)?;
-            let result = run_rustup();
-            // We're tracing, so block until all spans are exported.
-            opentelemetry::global::shutdown_tracer_provider();
-            result
-        });
-        // default runtime behaviour is to block until nothing is running;
-        // instead we supply a timeout, as we're either already errored and are
-        // reporting back without care for lost threads etc... or everything
-        // completed.
-        threaded_rt.shutdown_timeout(Duration::from_millis(5));
+        global::set_text_map_propagator(TraceContextPropagator::new());
+        let tracer = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .tonic()
+                    .with_timeout(Duration::from_secs(3)),
+            )
+            .with_trace_config(
+                trace::config()
+                    .with_sampler(Sampler::AlwaysOn)
+                    .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
+            )
+            .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+        let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
+        let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+        let subscriber = Registry::default().with(env_filter).with(telemetry);
+        tracing::subscriber::set_global_default(subscriber)?;
+        let result = run_rustup();
+        // We're tracing, so block until all spans are exported.
+        opentelemetry::global::shutdown_tracer_provider();
         result
     }
 }
