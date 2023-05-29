@@ -77,6 +77,8 @@ pub fn unit_test(
     .into()
 }
 
+// False positive from clippy :/
+#[allow(clippy::redundant_clone)]
 fn test_inner(mod_path: String, mut input: ItemFn) -> syn::Result<TokenStream> {
     if input.sig.asyncness.is_some() {
         let before_ident = format!("{}::before_test_async", mod_path);
