@@ -32,7 +32,11 @@ use cwdsource::*;
 use filesource::*;
 use varsource::*;
 
-/// An abstraction for the current process
+/// An abstraction for the current process.
+///
+/// This acts as a clonable proxy to the global state provided by some key OS
+/// interfaces - it is a zero cost abstraction. For the test variant it manages
+/// a mutex and takes out locks to ensure consistency.
 ///
 /// This provides replacements env::arg*, env::var*, and the standard files
 /// io::std* with traits that are customisable for tests. As a result any macros
