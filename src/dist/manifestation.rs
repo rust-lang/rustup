@@ -173,27 +173,36 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let downloaded_file = retry(NoDelay.take(max_retries), || {
-                match download_cfg.download(&url_url, &hash) {
-                    Ok(f) => OperationResult::Ok(f),
-                    Err(e) => {
-                        match e.downcast_ref::<RustupError>() {
-                            Some(RustupError::BrokenPartialFile) => {
-                                (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                                return OperationResult::Retry(OperationError(e));
-                            }
-                            Some(RustupError::DownloadingFile { .. }) => {
-                                (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                                return OperationResult::Retry(OperationError(e));
-                            }
-                            Some(_) => return OperationResult::Err(OperationError(e)),
-                            None => (),
-                        };
-                        OperationResult::Err(OperationError(e))
-                    }
-                }
-            })
-            .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
+            let downloaded_file =
+                retry(
+                    NoDelay.take(max_retries),
+                    || match crate::utils::utils::run_future(download_cfg.download(&url_url, &hash))
+                    {
+                        Ok(f) => OperationResult::Ok(f),
+                        Err(e) => {
+                            match e.downcast_ref::<RustupError>() {
+                                Some(RustupError::BrokenPartialFile) => {
+                                    (download_cfg.notify_handler)(Notification::RetryingDownload(
+                                        &url,
+                                    ));
+                                    return OperationResult::Retry(OperationError(e));
+                                }
+                                Some(RustupError::DownloadingFile { .. }) => {
+                                    (download_cfg.notify_handler)(Notification::RetryingDownload(
+                                        &url,
+                                    ));
+                                    return OperationResult::Retry(OperationError(e));
+                                }
+                                Some(_) => return OperationResult::Err(OperationError(e)),
+                                None => (),
+                            };
+                            OperationResult::Err(OperationError(e))
+                        }
+                    },
+                )
+                .with_context(|| {
+                    RustupError::ComponentDownloadFailed(component.name(new_manifest))
+                })?;
 
             things_downloaded.push(hash);
 
