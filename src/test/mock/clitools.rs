@@ -16,6 +16,7 @@ use std::{
 
 use enum_map::{enum_map, Enum, EnumMap};
 use once_cell::sync::Lazy;
+use tokio::runtime::Builder;
 use url::Url;
 
 use crate::cli::rustup_mode;
@@ -722,7 +723,13 @@ impl Config {
             );
         }
         let tp = currentprocess::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
-        let process_res = currentprocess::with(tp.clone().into(), rustup_mode::main);
+        let mut builder = Builder::new_multi_thread();
+        builder
+            .enable_all()
+            .worker_threads(2)
+            .max_blocking_threads(2);
+        let process_res =
+            currentprocess::with_runtime(tp.clone().into(), builder, rustup_mode::main());
         // convert Err's into an ec
         let ec = match process_res {
             Ok(process_res) => process_res,
