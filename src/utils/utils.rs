@@ -151,10 +151,16 @@ pub fn download_file(
     hasher: Option<&mut Sha256>,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    download_file_with_resume(url, path, hasher, false, &notify_handler)
+    run_future(download_file_with_resume(
+        url,
+        path,
+        hasher,
+        false,
+        &notify_handler,
+    ))
 }
 
-pub(crate) fn download_file_with_resume(
+pub(crate) async fn download_file_with_resume(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
@@ -162,13 +168,7 @@ pub(crate) fn download_file_with_resume(
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::DownloadError as DEK;
-    match run_future(download_file_(
-        url,
-        path,
-        hasher,
-        resume_from_partial,
-        notify_handler,
-    )) {
+    match download_file_(url, path, hasher, resume_from_partial, notify_handler).await {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {

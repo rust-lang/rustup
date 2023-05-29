@@ -71,13 +71,13 @@ impl<'a> DownloadCfg<'a> {
 
         let mut hasher = Sha256::new();
 
-        if let Err(e) = utils::download_file_with_resume(
+        if let Err(e) = utils::run_future(utils::download_file_with_resume(
             url,
             &partial_file_path,
             Some(&mut hasher),
             true,
             &|n| (self.notify_handler)(n.into()),
-        ) {
+        )) {
             let err = Err(e);
             if partial_file_existed {
                 return err.context(RustupError::BrokenPartialFile);
