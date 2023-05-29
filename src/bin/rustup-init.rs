@@ -26,22 +26,29 @@ use rustup::cli::rustup_mode;
 #[cfg(windows)]
 use rustup::cli::self_update;
 use rustup::cli::setup_mode;
-use rustup::currentprocess::{process, varsource::VarSource, with, OSProcess};
+use rustup::currentprocess::{process, varsource::VarSource, with_runtime, OSProcess};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::is_proxyable_tools;
 use rustup::utils::utils;
+use tokio::runtime::Builder;
 
 fn main() {
     #[cfg(windows)]
     pre_rustup_main_init();
 
-    let process = OSProcess::default();
-    with(process.into(), || match maybe_trace_rustup() {
-        Err(e) => {
-            common::report_error(&e);
-            std::process::exit(1);
+    let process = OSProcess::new();
+    let mut builder = Builder::new_multi_thread();
+    builder.enable_all();
+    with_runtime(process.into(), builder, {
+        async {
+            match maybe_trace_rustup() {
+                Err(e) => {
+                    common::report_error(&e);
+                    std::process::exit(1);
+                }
+                Ok(utils::ExitCode(c)) => std::process::exit(c),
+            }
         }
-        Ok(utils::ExitCode(c)) => std::process::exit(c),
     });
 }
 

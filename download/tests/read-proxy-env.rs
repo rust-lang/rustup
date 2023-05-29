@@ -9,7 +9,7 @@ use std::thread;
 use std::time::Duration;
 
 use env_proxy::for_url;
-use reqwest::{blocking::Client, Proxy};
+use reqwest::{Client, Proxy};
 use url::Url;
 
 static SERIALISE_TESTS: Mutex<()> = Mutex::new(());
@@ -27,8 +27,8 @@ fn scrub_env() {
 }
 
 // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
-#[test]
-fn read_basic_proxy_params() {
+#[tokio::test]
+async fn read_basic_proxy_params() {
     let _guard = SERIALISE_TESTS
         .lock()
         .expect("Unable to lock the test guard");
@@ -42,8 +42,8 @@ fn read_basic_proxy_params() {
 }
 
 // Tests to verify if socks feature is available and being used
-#[test]
-fn socks_proxy_request() {
+#[tokio::test]
+async fn socks_proxy_request() {
     static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
     let _guard = SERIALISE_TESTS
         .lock()
@@ -68,7 +68,7 @@ fn socks_proxy_request() {
         .timeout(Duration::from_secs(1))
         .build()
         .unwrap();
-    let res = client.get(url.as_str()).send();
+    let res = client.get(url.as_str()).send().await;
 
     if let Err(e) = res {
         let s = e.source().unwrap();
