@@ -38,7 +38,7 @@ impl<'a> DownloadCfg<'a> {
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
-    pub(crate) fn download(&self, url: &Url, hash: &str) -> Result<File> {
+    pub(crate) async fn download(&self, url: &Url, hash: &str) -> Result<File> {
         utils::ensure_dir_exists(
             "Download Directory",
             self.download_dir,
@@ -71,13 +71,15 @@ impl<'a> DownloadCfg<'a> {
 
         let mut hasher = Sha256::new();
 
-        if let Err(e) = utils::run_future(utils::download_file_with_resume(
+        if let Err(e) = utils::download_file_with_resume(
             url,
             &partial_file_path,
             Some(&mut hasher),
             true,
             &|n| (self.notify_handler)(n.into()),
-        )) {
+        )
+        .await
+        {
             let err = Err(e);
             if partial_file_existed {
                 return err.context(RustupError::BrokenPartialFile);
