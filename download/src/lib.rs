@@ -123,6 +123,8 @@ pub async fn download_to_path_with_backend_(
         } else {
             0
         };
+
+        // TODO: blocking call
         let mut possible_partial = OpenOptions::new()
             .write(true)
             .create(true)
