@@ -1,5 +1,6 @@
 use std::env;
 use std::fs::{self, File};
+use std::future::Future;
 use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
@@ -9,6 +10,8 @@ use home::env as home;
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 use sha2::Sha256;
+use tokio::runtime::Handle;
+use tokio::task;
 use url::Url;
 
 use crate::currentprocess::{
@@ -256,12 +259,35 @@ fn download_file_(
         (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
     };
     notify_handler(notification);
-    let res =
-        download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback));
+    let res = run_future(download_to_path_with_backend(
+        backend,
+        url,
+        path,
+        resume_from_partial,
+        Some(callback),
+    ));
 
     notify_handler(Notification::DownloadFinished);
 
     res
+}
+
+/// Temporary thunk to support asyncifying from underneath.
+pub(crate) fn run_future<F, R, E>(f: F) -> Result<R, E>
+where
+    F: Future<Output = Result<R, E>>,
+    E: std::convert::From<std::io::Error>,
+{
+    match Handle::try_current() {
+        Ok(current) => {
+            // hide the asyncness for now.
+            task::block_in_place(|| current.block_on(f))
+        }
+        Err(_) => {
+            // Make a runtime to hide the asyncness.
+            tokio::runtime::Runtime::new()?.block_on(f)
+        }
+    }
 }
 
 pub(crate) fn parse_url(url: &str) -> Result<Url> {
