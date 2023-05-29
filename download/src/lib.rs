@@ -50,7 +50,7 @@ pub enum Event<'a> {
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
 
-fn download_with_backend(
+async fn download_with_backend(
     backend: Backend,
     url: &Url,
     resume_from: u64,
@@ -58,26 +58,7 @@ fn download_with_backend(
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Reqwest(tls) => {
-            // reqwest is async; this function is sync.
-            match Handle::try_current() {
-                Ok(current) => {
-                    // hide the asyncness for now.
-                    task::block_in_place(|| {
-                        current.block_on(reqwest_be::download(url, resume_from, callback, tls))
-                    })
-                }
-                Err(_) => {
-                    // Make a runtime to hide the asyncness.
-                    tokio::runtime::Runtime::new()?.block_on(reqwest_be::download(
-                        url,
-                        resume_from,
-                        callback,
-                        tls,
-                    ))
-                }
-            }
-        }
+        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls).await,
     }
 }
 
@@ -145,17 +126,43 @@ pub fn download_to_path_with_backend(
 
         let file = RefCell::new(file);
 
-        download_with_backend(backend, url, resume_from, &|event| {
-            if let Event::DownloadDataReceived(data) = event {
-                file.borrow_mut()
-                    .write_all(data)
-                    .context("unable to write download to disk")?;
+        match Handle::try_current() {
+            Ok(current) => {
+                // hide the asyncness for now.
+                task::block_in_place(|| {
+                    current.block_on(download_with_backend(backend, url, resume_from, &|event| {
+                        if let Event::DownloadDataReceived(data) = event {
+                            file.borrow_mut()
+                                .write_all(data)
+                                .context("unable to write download to disk")?;
+                        }
+                        match callback {
+                            Some(cb) => cb(event),
+                            None => Ok(()),
+                        }
+                    }))
+                })
             }
-            match callback {
-                Some(cb) => cb(event),
-                None => Ok(()),
+            Err(_) => {
+                // Make a runtime to hide the asyncness.
+                tokio::runtime::Runtime::new()?.block_on(download_with_backend(
+                    backend,
+                    url,
+                    resume_from,
+                    &|event| {
+                        if let Event::DownloadDataReceived(data) = event {
+                            file.borrow_mut()
+                                .write_all(data)
+                                .context("unable to write download to disk")?;
+                        }
+                        match callback {
+                            Some(cb) => cb(event),
+                            None => Ok(()),
+                        }
+                    },
+                ))
             }
-        })?;
+        }?;
 
         file.borrow_mut()
             .sync_data()
