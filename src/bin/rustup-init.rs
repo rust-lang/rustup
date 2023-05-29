@@ -41,7 +41,7 @@ fn main() {
     builder.enable_all();
     with_runtime(process.into(), builder, {
         async {
-            match maybe_trace_rustup() {
+            match maybe_trace_rustup().await {
                 Err(e) => {
                     common::report_error(&e);
                     std::process::exit(1);
@@ -52,7 +52,7 @@ fn main() {
     });
 }
 
-fn maybe_trace_rustup() -> Result<utils::ExitCode> {
+async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
     #[cfg(not(feature = "otel"))]
     {
         run_rustup()
