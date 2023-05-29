@@ -55,7 +55,7 @@ fn main() {
 async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
     #[cfg(not(feature = "otel"))]
     {
-        run_rustup()
+        run_rustup().await
     }
     #[cfg(feature = "otel")]
     {
@@ -88,7 +88,7 @@ async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
         let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
         let subscriber = Registry::default().with(env_filter).with(telemetry);
         tracing::subscriber::set_global_default(subscriber)?;
-        let result = run_rustup();
+        let result = run_rustup().await;
         // We're tracing, so block until all spans are exported.
         opentelemetry::global::shutdown_tracer_provider();
         result
@@ -96,7 +96,7 @@ async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-fn run_rustup() -> Result<utils::ExitCode> {
+async fn run_rustup() -> Result<utils::ExitCode> {
     if let Ok(dir) = process().var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
     }
