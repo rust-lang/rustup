@@ -10,8 +10,8 @@ use download::*;
 mod support;
 use crate::support::{serve_file, tmp_dir, write_file};
 
-#[test]
-fn resume_partial_from_file_url() {
+#[tokio::test]
+async fn resume_partial_from_file_url() {
     let tmpdir = tmp_dir();
     let from_path = tmpdir.path().join("download-source");
     write_file(&from_path, "xxx45");
@@ -27,13 +27,14 @@ fn resume_partial_from_file_url() {
         true,
         None,
     )
+    .await
     .expect("Test download failed");
 
     assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
 }
 
-#[test]
-fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
+#[tokio::test]
+async fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
     let tmpdir = tmp_dir();
     let target_path = tmpdir.path().join("downloaded");
     write_file(&target_path, "123");
@@ -72,6 +73,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
             Ok(())
         }),
     )
+    .await
     .expect("Test download failed");
 
     assert!(callback_partial.into_inner());

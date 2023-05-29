@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::Context;
 pub use anyhow::Result;
-use tokio::{runtime::Handle, task};
+use std::fs::remove_file;
 use url::Url;
 
 mod errors;
@@ -62,7 +62,30 @@ async fn download_with_backend(
     }
 }
 
-pub fn download_to_path_with_backend(
+pub async fn download_to_path_with_backend(
+    backend: Backend,
+    url: &Url,
+    path: &Path,
+    resume_from_partial: bool,
+    callback: Option<DownloadCallback<'_>>,
+) -> Result<()> {
+    let Err(err) =
+        download_to_path_with_backend_(backend, url, path, resume_from_partial, callback).await
+    else {
+        return Ok(());
+    };
+
+    // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
+    Err(
+        if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
+            file_err.context(err)
+        } else {
+            err
+        },
+    )
+}
+
+pub async fn download_to_path_with_backend_(
     backend: Backend,
     url: &Url,
     path: &Path,
@@ -70,114 +93,79 @@ pub fn download_to_path_with_backend(
     callback: Option<DownloadCallback<'_>>,
 ) -> Result<()> {
     use std::cell::RefCell;
-    use std::fs::remove_file;
     use std::fs::OpenOptions;
     use std::io::{Read, Seek, SeekFrom, Write};
 
-    || -> Result<()> {
-        let (file, resume_from) = if resume_from_partial {
-            let possible_partial = OpenOptions::new().read(true).open(path);
+    let (file, resume_from) = if resume_from_partial {
+        // TODO: blocking call
+        let possible_partial = OpenOptions::new().read(true).open(path);
 
-            let downloaded_so_far = if let Ok(mut partial) = possible_partial {
-                if let Some(cb) = callback {
-                    cb(Event::ResumingPartialDownload)?;
+        let downloaded_so_far = if let Ok(mut partial) = possible_partial {
+            if let Some(cb) = callback {
+                cb(Event::ResumingPartialDownload)?;
 
-                    let mut buf = vec![0; 32768];
-                    let mut downloaded_so_far = 0;
-                    loop {
-                        let n = partial.read(&mut buf)?;
-                        downloaded_so_far += n as u64;
-                        if n == 0 {
-                            break;
-                        }
-                        cb(Event::DownloadDataReceived(&buf[..n]))?;
+                let mut buf = vec![0; 32768];
+                let mut downloaded_so_far = 0;
+                loop {
+                    let n = partial.read(&mut buf)?;
+                    downloaded_so_far += n as u64;
+                    if n == 0 {
+                        break;
                     }
-
-                    downloaded_so_far
-                } else {
-                    let file_info = partial.metadata()?;
-                    file_info.len()
+                    cb(Event::DownloadDataReceived(&buf[..n]))?;
                 }
-            } else {
-                0
-            };
 
-            let mut possible_partial = OpenOptions::new()
+                downloaded_so_far
+            } else {
+                let file_info = partial.metadata()?;
+                file_info.len()
+            }
+        } else {
+            0
+        };
+        let mut possible_partial = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(path)
+            .context("error opening file for download")?;
+
+        possible_partial.seek(SeekFrom::End(0))?;
+
+        (possible_partial, downloaded_so_far)
+    } else {
+        (
+            OpenOptions::new()
                 .write(true)
                 .create(true)
-                .truncate(false)
+                .truncate(true)
                 .open(path)
-                .context("error opening file for download")?;
+                .context("error creating file for download")?,
+            0,
+        )
+    };
 
-            possible_partial.seek(SeekFrom::End(0))?;
+    let file = RefCell::new(file);
 
-            (possible_partial, downloaded_so_far)
-        } else {
-            (
-                OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .truncate(true)
-                    .open(path)
-                    .context("error creating file for download")?,
-                0,
-            )
-        };
-
-        let file = RefCell::new(file);
-
-        match Handle::try_current() {
-            Ok(current) => {
-                // hide the asyncness for now.
-                task::block_in_place(|| {
-                    current.block_on(download_with_backend(backend, url, resume_from, &|event| {
-                        if let Event::DownloadDataReceived(data) = event {
-                            file.borrow_mut()
-                                .write_all(data)
-                                .context("unable to write download to disk")?;
-                        }
-                        match callback {
-                            Some(cb) => cb(event),
-                            None => Ok(()),
-                        }
-                    }))
-                })
-            }
-            Err(_) => {
-                // Make a runtime to hide the asyncness.
-                tokio::runtime::Runtime::new()?.block_on(download_with_backend(
-                    backend,
-                    url,
-                    resume_from,
-                    &|event| {
-                        if let Event::DownloadDataReceived(data) = event {
-                            file.borrow_mut()
-                                .write_all(data)
-                                .context("unable to write download to disk")?;
-                        }
-                        match callback {
-                            Some(cb) => cb(event),
-                            None => Ok(()),
-                        }
-                    },
-                ))
-            }
-        }?;
-
-        file.borrow_mut()
-            .sync_data()
-            .context("unable to sync download to disk")?;
-
-        Ok(())
-    }()
-    .map_err(|e| {
-        // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
-        if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
-            file_err.context(e)
-        } else {
-            e
+    // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
+    download_with_backend(backend, url, resume_from, &|event| {
+        if let Event::DownloadDataReceived(data) = event {
+            file.borrow_mut()
+                .write_all(data)
+                .context("unable to write download to disk")?;
+        }
+        match callback {
+            Some(cb) => cb(event),
+            None => Ok(()),
         }
     })
+    .await?;
+
+    file.borrow_mut()
+        .sync_data()
+        .context("unable to sync download to disk")?;
+
+    Ok::<(), anyhow::Error>(())
 }
 
 #[cfg(all(not(feature = "reqwest-backend"), not(feature = "curl-backend")))]
