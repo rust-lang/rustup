@@ -70,11 +70,25 @@ impl<'a> DistributableToolchain<'a> {
                 component = wildcard_component;
             } else {
                 let config = manifestation.read_config()?.unwrap_or_default();
+                let suggestion =
+                    self.get_component_suggestion(&component, &config, &manifest, false);
+                // Check if the target is supported.
+                if !targ_pkg
+                    .components
+                    .iter()
+                    .any(|c| c.target() == component.target())
+                {
+                    return Err(RustupError::UnknownTarget {
+                        desc: self.desc.clone(),
+                        target: component.target.expect("component target should be known"),
+                        suggestion,
+                    }
+                    .into());
+                }
                 return Err(RustupError::UnknownComponent {
                     desc: self.desc.clone(),
                     component: component.description(&manifest),
-                    suggestion: self
-                        .get_component_suggestion(&component, &config, &manifest, false),
+                    suggestion,
                 }
                 .into());
             }

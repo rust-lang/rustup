@@ -752,9 +752,9 @@ fn add_target_bogus() {
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_err(
             &["rustup", "target", "add", "bogus"],
-            "does not contain component 'rust-std' for target 'bogus'\n\
-                note: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html\n\
-                help: consider using `cargo build -Z build-std` instead",
+            "does not support target 'bogus'\n\
+            note: you can see a list of supported targets with `rustc --print=target-list`\n\
+            note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html",
         );
     });
 }
