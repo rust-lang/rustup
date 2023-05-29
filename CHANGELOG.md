@@ -1,5 +1,132 @@
 # Changelog
 
+## [1.26.0] - unreleased
+
+This version of Rustup involves a significant number of internal refactors, both in terms
+of the Rustup code and its tests.
+
+The headlines for this release are:
+
+1. Add [rust-analyzer] as a [proxy] of rustup. Now you can call `rust-analyzer` and it will
+   be proxied to the rust-analyzer component for the current toolchain.
+2. Bump the [clap] dependency from 2.x to 3.x. It's a major version bump, so there are some
+   help text changes, but the command line interface is unchanged.
+3. Remove experimental GPG signature validation and the `rustup show keys` command. Due to its
+   experimental status, validating the integrity of downloaded binaries did not rely on it, and there was no option to abort the installation if a signature mismatch happened.
+   Multiple problems with its implementation were discovered in the recent months, which led to the decision to remove the experimental code. The team is working on the design of a new signature validation scheme, which will be implemented in the future.
+
+In addition to a lot of work on the codebase itself, due to the length of time since the last
+release this one has a record number of contributors and we thank you all for your efforts and time.
+
+Rather than list every single merged PR since the last release, we have pulled out
+a number of highlights to include in this changelog entry. For everything else,
+please review the repository.
+
+### Added
+
+- Added `rust-analyzer` as a proxy of rustup [pr#3022]
+- Added DisplayVersion for rustup to registry on Windows [pr#3047]
+- Build Rustup for Windows arm64 on stable [pr#3232]
+- Added `up` as an alias of the `update` command [pr#3044]
+- Added details of each setting in the toolchain file in the documentation [pr#3067]
+- Added automatic resume flag when retrying download with curl [pr#3089]
+- Added UI tests for rustup [pr#3209]
+
+### Changed
+
+- Bump the `clap` dependency from 2.x to 3.x [pr#3064]
+- Remove GPG signature support [pr#3277]
+- Don't add toolchain bin to PATH on Windows [pr#3178]
+- Remove use of hard links to symlinks on macOS [pr#3137]
+- Avoid deduplicate PATH entries added during build [pr#2848]
+- The toolchain name cannot be left blank [pr#2993]
+- Correctly propagate subshell failures in rustup-init.sh [pr#3012]
+- Enhanced warning message for Rust installation already present [pr#3038]
+- Improved error message when there is an error caused by override file [pr#3041]
+- Explain [proxy] in terminology documentation [pr#3091]
+- Recommend tracking `Cargo.lock` with rust-toolchain file [pr#3054]
+- Fix RUSTUP_PERMIT_COPY_RENAME condition so it is actually used [pr#3292]
+- Bump a lot of dependencies to their latest versions [pr#renovate-bot]
+
+[rust-analyzer]: https://github.com/rust-lang/rust-analyzer
+[proxy]: https://rust-lang.github.io/rustup/concepts/proxies.html
+[clap]: https://crates.io/crates/clap
+[pr#3022]: https://github.com/rust-lang/rustup/pull/3022
+[pr#3047]: https://github.com/rust-lang/rustup/pull/3047
+[pr#3232]: https://github.com/rust-lang/rustup/pull/3232
+[pr#3044]: https://github.com/rust-lang/rustup/pull/3044
+[pr#3067]: https://github.com/rust-lang/rustup/pull/3067
+[pr#3089]: https://github.com/rust-lang/rustup/pull/3089
+[pr#3209]: https://github.com/rust-lang/rustup/pull/3209
+[pr#3064]: https://github.com/rust-lang/rustup/pull/3064
+[pr#3277]: https://github.com/rust-lang/rustup/pull/3277
+[pr#3178]: https://github.com/rust-lang/rustup/pull/3178
+[pr#3137]: https://github.com/rust-lang/rustup/pull/3137
+[pr#2848]: https://github.com/rust-lang/rustup/pull/2848
+[pr#2993]: https://github.com/rust-lang/rustup/pull/2993
+[pr#3012]: https://github.com/rust-lang/rustup/pull/3012
+[pr#3038]: https://github.com/rust-lang/rustup/pull/3038
+[pr#3041]: https://github.com/rust-lang/rustup/pull/3041
+[pr#3091]: https://github.com/rust-lang/rustup/pull/3091
+[pr#3054]: https://github.com/rust-lang/rustup/pull/3054
+[pr#3292]: https://github.com/rust-lang/rustup/pull/3292
+[pr#renovate-bot]: https://github.com/rust-lang/rustup/pulls?q=is:pr+author:app/renovate+is:merged
+
+Thanks go to:
+
+- Daniel Silverstone (kinnison)
+- Sabrina Jewson (SabrinaJewson)
+- Robert Collins (rbtcollins)
+- chansuke (chansuke)
+- Shamil (shamilsan)
+- Oli Lalonde (olalonde)
+- 二手掉包工程师 (hi-rustin)
+- Eric Huss (ehuss)
+- J Balint BIRO (jbalintbiro)
+- Easton Pillay (jedieaston)
+- zhaixiaojuan (zhaixiaojuan)
+- Chris Denton (ChrisDenton)
+- Martin Geisler (mgeisler)
+- Lucio Franco (LucioFranco)
+- Nicholas Bishop (nicholasbishop)
+- SADIK KUZU (sadikkuzu)
+- darkyshiny (darkyshiny)
+- René Dudfield (illume)
+- Noritada Kobayashi (noritada)
+- Mohammad AlSaleh (MoSal)
+- Dustin Martin (dmartin)
+- Ville Skyttä (scop)
+- Tshepang Mbambo (tshepang)
+- Illia Bobyr (ilya-bobyr)
+- Vincent Rischmann (vrischmann)
+- Alexander (Alovchin91)
+- Daniel Brotsky (brotskydotcom)
+- zohnannor (zohnannor)
+- Joshua Nelson (jyn514)
+- Prikshit Gautam (gautamprikshit1)
+- Dylan Thacker-Smith (dylanahsmith)
+- Jan David (jdno)
+- Aurora (lilith13666)
+- Pietro Albini (pietroalbini)
+- Renovate Bot (renovate-bot)
+
+## [1.25.2] - 2023-02-01
+
+This version of Rustup changes the signature verification code to continue
+accepting Rust's release signature key, which previously caused warnings due to
+a time-based check.
+
+Note that signature verification in Rustup is still an experimental feature,
+and there is intentionally no way to enforce signature verification due to the
+feature being incomplete.
+
+Thanks go to:
+
+- Pietro Albini
+- Daniel Silverstone
+
+[1.25.2]: https://github.com/rust-lang/rustup/release/tag/1.25.2
+
 ## [1.25.1] - 2022-07-12
 
 This version of Rustup reverts a single PR from 1.25.1 and tidies a couple of internal
@@ -134,7 +261,7 @@ Thanks go to:
 
 ## [1.24.3] - 2021-05-31
 
-This patch release focusses around resolving some regressions in behaviour in
+This patch release focuses around resolving some regressions in behaviour in
 the 1.24.x series. One problem, related to accounting for the release of data
 blocks in the unpack slab allocator, fixed in [pr#2779], would manifest in the
 installer [hanging during installation][issue#2774]. A second, fixed in
@@ -430,7 +557,7 @@ subsequently `1.48.1` were released, a `rustup update` would update your `1.48`
 from `1.48.0` to `1.48.1`.
 
 As always, there were more changes than described below, thanks to everyone
-who contributed to this release. Hilights for this release are detailed below,
+who contributed to this release. Highlights for this release are detailed below,
 but you can always see the full list of changes via the Git repository.
 
 ### Added
@@ -1315,7 +1442,7 @@ Tryzelaar, Ricardo Martins, Артём Павлов [Artyom Pavlov]
 - [Add PATH in post-install message when not modifying PATH](https://github.com/rust-lang/rustup/pull/1126)
 - [Cleanup download-related code in the rustup_dist crate](https://github.com/rust-lang/rustup/pull/1131)
 - [Increase Rust detection timeout to 3 seconds](https://github.com/rust-lang/rustup/pull/1130)
-- [Supress confusing NotADirectory error and show override missing](https://github.com/rust-lang/rustup/pull/1128)
+- [Suppress confusing NotADirectory error and show override missing](https://github.com/rust-lang/rustup/pull/1128)
 - [Don't try to update archive toolchains](https://github.com/rust-lang/rustup/pull/1121)
 - [Exit successfully on "update not yet available"](https://github.com/rust-lang/rustup/pull/1120)
 - [Add a message when removing a component](https://github.com/rust-lang/rustup/pull/1119)

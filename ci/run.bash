@@ -20,6 +20,7 @@ case "$TARGET" in
   mips* ) ;;
   riscv* ) ;;
   s390x* ) ;;
+  loongarch* ) ;;
   aarch64-pc-windows-msvc ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
@@ -30,13 +31,15 @@ if [ "$TARGET" = arm-linux-androideabi ]; then
   export CFLAGS='-march=armv7'
 fi
 
-cargo build --locked --release --target "$TARGET" "${FEATURES[@]}"
-
-runtest () {
-  cargo test --locked --release --target "$TARGET" "${FEATURES[@]}" "$@"
+target_cargo() {
+    cmd="$1"
+    shift
+    cargo "${cmd}" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
-run_download_pkg_test() {
+target_cargo build
+
+download_pkg_test() {
   features=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
   case "$TARGET" in
     # these platforms aren't supported by ring:
@@ -44,26 +47,39 @@ run_download_pkg_test() {
     mips* ) ;;
     riscv* ) ;;
     s390x* ) ;;
+    loongarch* ) ;;
     aarch64-pc-windows-msvc ) ;;
     # default case, build with rustls enabled
     * ) features+=('--features' 'reqwest-rustls-tls') ;;
   esac
 
-  cargo test --locked --release --target "$TARGET" "${features[@]}" -p download
+  cargo "$1" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${features[@]}" -p download
+}
+
+# Machines have 7GB of RAM, and our target/ contents is large enough that
+# thrashing will occur if we build-run-build-run rather than
+# build-build-build-run-run-run. Since this is used soley for non-release
+# artifacts, we try to keep features consistent across the builds, whether for
+# docs/test/runs etc.
+build_test() {
+  cmd="$1"
+  shift
+  download_pkg_test "${cmd}"
+  if [ "build" = "${cmd}" ]; then
+    target_cargo "${cmd}" --workspace --all-targets --features test
+  else
+    #  free runners have 2 or 3(mac) cores
+    target_cargo "${cmd}" --workspace --features test --tests -- --test-threads 2
+  fi
+
+  if [ "build" != "${cmd}" ]; then
+    target_cargo "${cmd}" --doc --workspace --features test
+  fi
+
 }
 
 if [ -z "$SKIP_TESTS" ]; then
-  cargo run --locked --release --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
-  run_download_pkg_test 
-  runtest --bin rustup-init
-  runtest --lib --all
-  runtest --doc --all
-
-  runtest --test dist -- --test-threads 1
-
-  find tests -maxdepth 1 -type f ! -path '*/dist.rs' -name '*.rs' \
-  | sed -e 's@^tests/@@;s@\.rs$@@g' \
-  | while read -r test; do
-    runtest --test "${test}"
-  done
+  cargo run --locked --profile "$BUILD_PROFILE" --features test --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
+  build_test build
+  build_test test
 fi

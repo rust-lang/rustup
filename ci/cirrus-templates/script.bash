@@ -1,4 +1,4 @@
-#!/bin/bash                                                                                            
+#!/bin/bash
 
 set -ex
 
@@ -26,6 +26,7 @@ echo "Install Rustup using ./rustup-init.sh"
 
 sh rustup-init.sh --default-toolchain=stable --profile=minimal -y
 # It's the equivalent of `source`
+# shellcheck source=src/cli/self_update/env.sh
 source "$HOME"/.cargo/env
 
 echo "========="
@@ -41,4 +42,6 @@ unset SKIP_TESTS
 export LIBZ_SYS_STATIC=1
 export CARGO_BUILD_JOBS=1
 export TARGET="x86_64-unknown-freebsd"
+# TODO: This should be split into two as the other jobs are.
+export BUILD_PROFILE="release"
 bash ci/run.bash

@@ -15,7 +15,7 @@ use crate::utils::utils;
 pub(crate) const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];
 pub(crate) const DEFAULT_METADATA_VERSION: &str = "12";
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettingsFile {
     path: PathBuf,
     cache: RefCell<Option<Settings>>,
@@ -72,7 +72,7 @@ impl SettingsFile {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Settings {
     pub version: String,
     pub default_host_triple: Option<String>,
@@ -143,7 +143,7 @@ impl Settings {
     }
 
     pub(crate) fn stringify(self) -> String {
-        toml::Value::Table(self.into_toml()).to_string()
+        self.into_toml().to_string()
     }
 
     pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {

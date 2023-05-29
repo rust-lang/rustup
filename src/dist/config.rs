@@ -48,7 +48,7 @@ impl Config {
     }
 
     pub(crate) fn stringify(self) -> String {
-        toml::Value::Table(self.into_toml()).to_string()
+        self.into_toml().to_string()
     }
 
     fn toml_to_components(arr: toml::value::Array, path: &str) -> Result<Vec<Component>> {
@@ -56,7 +56,7 @@ impl Config {
 
         for (i, v) in arr.into_iter().enumerate() {
             if let toml::Value::Table(t) = v {
-                let path = format!("{}[{}]", path, i);
+                let path = format!("{path}[{i}]");
                 result.push(Component::from_toml(t, &path, false)?);
             }
         }

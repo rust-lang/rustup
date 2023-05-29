@@ -1,0 +1,20 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:base"
+    ],
+    "labels": [
+        "dependencies"
+    ],
+    "lockFileMaintenance": {
+        "enabled": true
+    },
+    "prCreation": "not-pending",
+    "rangeStrategy": "replace",
+    "stabilityDays": 3,
+    "github-actions": {
+        "fileMatch": [
+            "^ci\\/.*/[^/]+\\.ya?ml$"
+        ]
+    }
+}

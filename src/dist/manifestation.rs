@@ -1,13 +1,15 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
+#[cfg(test)]
+mod tests;
+
 use std::path::Path;
 
 use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::NoDelay;
 use retry::{retry, OperationResult};
 
-use crate::config::PgpPublicKey;
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
@@ -61,7 +63,7 @@ impl Changes {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Eq)]
 pub enum UpdateStatus {
     Changed,
     Unchanged,
@@ -360,6 +362,7 @@ impl Manifestation {
         }
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument)]
     pub fn load_manifest(&self) -> Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
         let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
@@ -378,7 +381,6 @@ impl Manifestation {
         update_hash: Option<&Path>,
         temp_cfg: &temp::Cfg,
         notify_handler: &dyn Fn(Notification<'_>),
-        pgp_keys: &[PgpPublicKey],
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -414,7 +416,6 @@ impl Manifestation {
             download_dir: &dld_dir,
             temp_cfg,
             notify_handler,
-            pgp_keys,
         };
 
         let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;

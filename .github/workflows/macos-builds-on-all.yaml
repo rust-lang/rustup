@@ -10,6 +10,7 @@ on:
     branches:
       - master
       - stable
+      - renovate/*
   schedule:
     - cron: "30 0 * * 1" # Every Monday at half past midnight UTC
 
@@ -22,8 +23,14 @@ jobs:
         target:
           - x86_64-apple-darwin
           - aarch64-apple-darwin
+        mode:
+          - dev
+          - release
+        include:
+          - target: x86_64-apple-darwin
+            run_tests: YES
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -43,8 +50,12 @@ jobs:
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
           echo "SKIP_TESTS=" >> $GITHUB_ENV
           echo "LZMA_API_STATIC=1" >> $GITHUB_ENV
+      - name: Skip tests
+        if: matrix.run_tests == '' || matrix.mode == 'release'
+        run: |
+          echo "SKIP_TESTS=yes" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -53,14 +64,14 @@ jobs:
       - name: Get rustc commit hash
         id: cargo-target-cache
         run: |
-          echo "::set-output name=rust_hash::$(rustc -Vv | grep commit-hash | awk '{print $2}')"
+          echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-3
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-3
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -75,16 +86,16 @@ jobs:
           # Use nightly for now
           rustup toolchain install --profile=minimal nightly
           rustup default nightly
-
-          # Can't run tests: cross-compiling
-          echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         if: matrix.target == 'aarch64-apple-darwin'
       - name: Ensure we have our goal target installed
         run: |
           rustup target install "$TARGET"
       - name: Run a full build and test
+        env:
+          BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Dump dynamic link targets
+        if: matrix.mode == 'release'
         run: |
           otool -L target/${TARGET}/release/rustup-init
           if otool -L target/${TARGET}/release/rustup-init | grep -q -F /usr/local/; then
@@ -92,28 +103,29 @@ jobs:
             exit 1
           fi
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v2
+        if: matrix.mode == 'release'
+        uses: actions/upload-artifact@v3
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
       - name: Acquire the AWS tooling
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           pip3 install awscli
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Prepare the dist
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           bash ci/prepare-deploy.bash
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Deploy build to dev-static dist tree for release team
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           aws s3 cp --recursive deploy/ s3://dev-static-rust-lang-org/rustup/
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean

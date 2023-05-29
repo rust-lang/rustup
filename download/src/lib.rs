@@ -47,12 +47,14 @@ fn download_with_backend(
     }
 }
 
+type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
+
 pub fn download_to_path_with_backend(
     backend: Backend,
     url: &Url,
     path: &Path,
     resume_from_partial: bool,
-    callback: Option<&dyn Fn(Event<'_>) -> Result<()>>,
+    callback: Option<DownloadCallback<'_>>,
 ) -> Result<()> {
     use std::cell::RefCell;
     use std::fs::remove_file;
@@ -136,6 +138,9 @@ pub fn download_to_path_with_backend(
         }
     })
 }
+
+#[cfg(all(not(feature = "reqwest-backend"), not(feature = "curl-backend")))]
+compile_error!("Must enable at least one backend");
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
@@ -254,10 +259,17 @@ pub mod curl {
 
 #[cfg(feature = "reqwest-backend")]
 pub mod reqwest_be {
+    #[cfg(all(
+        not(feature = "reqwest-rustls-tls"),
+        not(feature = "reqwest-default-tls")
+    ))]
+    compile_error!("Must select a reqwest TLS backend");
+
     use std::io;
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-default-tls"))]
     use lazy_static::lazy_static;
     use reqwest::blocking::{Client, ClientBuilder, Response};
     use reqwest::{header, Proxy};
@@ -373,7 +385,7 @@ pub mod reqwest_be {
         let mut req = client.get(url.as_str());
 
         if resume_from != 0 {
-            req = req.header(header::RANGE, format!("bytes={}-", resume_from));
+            req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
 
         Ok(req.send()?)
@@ -390,7 +402,7 @@ pub mod reqwest_be {
         if url.scheme() == "file" {
             let src = url
                 .to_file_path()
-                .map_err(|_| DownloadError::Message(format!("bogus file url: '{}'", url)))?;
+                .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
             if !src.is_file() {
                 // Because some of rustup's logic depends on checking
                 // the error when a downloaded file doesn't exist, make

@@ -3,6 +3,7 @@
 [Introduction](index.md)
 - [Installation](installation/index.md)
     - [Windows](installation/windows.md)
+        - [MSVC Prerequistes](installation/windows-msvc.md)
     - [Other installation methods](installation/other.md)
     - [Package managers](installation/package-managers.md)
 - [Concepts](concepts/index.md)

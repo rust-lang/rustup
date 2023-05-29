@@ -1,5 +1,8 @@
 [package]
-authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>", "Diggory Blake <diggsey@googlemail.com>"]
+authors = [
+    "Daniel Silverstone <dsilvers@digital-scurf.org>",
+    "Diggory Blake <diggsey@googlemail.com>",
+]
 build = "build.rs"
 description = "Manage multiple rust installations with ease"
 edition = "2021"
@@ -9,11 +12,16 @@ license = "MIT OR Apache-2.0"
 name = "rustup"
 readme = "README.md"
 repository = "https://github.com/rust-lang/rustup"
-version = "1.25.1"
+version = "1.26.0"
 
 [features]
 curl-backend = ["download/curl-backend"]
-default = ["curl-backend", "reqwest-backend", "reqwest-default-tls", "reqwest-rustls-tls"]
+default = [
+    "curl-backend",
+    "reqwest-backend",
+    "reqwest-default-tls",
+    "reqwest-rustls-tls",
+]
 
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
@@ -24,97 +32,165 @@ reqwest-rustls-tls = ["download/reqwest-rustls-tls"]
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
 
+# Include an Opentelemetry sink for tracing events
+otel = [
+    "dep:opentelemetry-otlp",
+    "dep:tracing-opentelemetry",
+    "dep:tracing-subscriber",
+    "dep:opentelemetry",
+    "dep:tokio",
+]
+
+# Exports code dependent on private interfaces for the integration test suite
+test = ["dep:once_cell", "dep:walkdir"]
+
 # Sorted by alphabetic order
 [dependencies]
-anyhow = "1.0.31"
+anyhow.workspace = true
 cfg-if = "1.0"
 chrono = "0.4"
-clap = {version = "2", features = ["wrap_help"]}
-download = {path = "download", default-features = false}
-effective-limits = "0.5.3"
-enum-map = "2.0.3"
+clap = { version = "3", features = ["wrap_help"] }
+clap_complete = "3"
+derivative.workspace = true
+download = { path = "download", default-features = false }
+effective-limits = "0.5.5"
+enum-map = "2.5.0"
 flate2 = "1"
+fs_at.workspace = true
 git-testament = "0.2"
 home = "0.5.4"
-lazy_static = "1"
+lazy_static.workspace = true
 libc = "0.2"
-num_cpus = "1.13"
-opener = "0.5.0"
-# Used by `curl` or `reqwest` backend although it isn't imported
-# by our rustup.
-openssl = {version = "0.10", optional = true}
-pulldown-cmark = {version = "0.8", default-features = false}
+num_cpus = "1.15"
+once_cell = { workspace = true, optional = true }
+opener = "0.6.0"
+opentelemetry = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+pulldown-cmark = { version = "0.9", default-features = false }
 rand = "0.8"
 regex = "1"
-remove_dir_all = "0.7.0"
+remove_dir_all = { version = "0.8.1", features = ["parallel"] }
 same-file = "1"
 scopeguard = "1"
 semver = "1.0"
-serde = {version = "1.0", features = ["derive"]}
-sequoia-openpgp = { version = "1.5", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
 sharded-slab = "0.1.1"
 strsim = "0.10"
 tar = "0.4.26"
-tempfile = "3.1"
-# FIXME(issue #1818, #1826, and friends)
-term = "=0.5.1"
-thiserror = "1.0"
+tempfile.workspace = true
+term = "=0.5.1" # FIXME(issue #1818, #1826, and friends)
+thiserror.workspace = true
 threadpool = "1"
-toml = "0.5"
-url = "2.1"
+tokio = { workspace = true, optional = true }
+toml = "0.7"
+tracing-opentelemetry = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true, features = [
+    "env-filter",
+] }
+tracing.workspace = true
+url.workspace = true
 wait-timeout = "0.2"
+walkdir = { workspace = true, optional = true }
 xz2 = "0.1.3"
-zstd = "0.11"
+zstd = "0.12"
+
+[dependencies.openssl]
+# Used by `curl` or `reqwest` backend although it isn't imported by our rustup :
+# this allows controlling the vendoring status without exposing the presence of
+# the download crate.
+optional = true
+version = "0.10"
 
 [dependencies.retry]
 default-features = false
 features = ["random"]
-version = "1.2.1"
+version = "2.0.0"
 
 [dependencies.rs_tracing]
 features = ["rs_tracing"]
-version = "1.0.1"
+version = "1.1.0"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.8"
+winreg = "0.50"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
-  "combaseapi",
-  "errhandlingapi",
-  "fileapi",
-  "handleapi",
-  "ioapiset",
-  "jobapi",
-  "jobapi2",
-  "minwindef",
-  "processthreadsapi",
-  "psapi",
-  "shlobj",
-  "shtypes",
-  "synchapi",
-  "sysinfoapi",
-  "tlhelp32",
-  "userenv",
-  "winbase",
-  "winerror",
-  "winioctl",
-  "winnt",
-  "winuser",
+    "combaseapi",
+    "errhandlingapi",
+    "fileapi",
+    "handleapi",
+    "ioapiset",
+    "jobapi",
+    "jobapi2",
+    "minwindef",
+    "processthreadsapi",
+    "psapi",
+    "shlobj",
+    "shtypes",
+    "synchapi",
+    "sysinfoapi",
+    "tlhelp32",
+    "userenv",
+    "winbase",
+    "winerror",
+    "winioctl",
+    "winnt",
+    "winuser",
 ]
 version = "0.3"
 
+[target."cfg(windows)".dependencies.windows-sys]
+features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_Security",
+    "Win32_System_Kernel",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+]
+version = "0.48.0"
+
+
 [dev-dependencies]
-walkdir = "2"
+enum-map = "2.5.0"
+once_cell.workspace = true
+proptest.workspace = true
+rustup-macros.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+trycmd = "0.14.13"
 
 [build-dependencies]
 lazy_static = "1"
 regex = "1"
 
 [workspace]
-members = ["download"]
+members = ["download", "rustup-macros"]
+
+[workspace.dependencies]
+anyhow = "1.0.69"
+derivative = "2.2.0"
+fs_at = "0.1.6"
+lazy_static = "1"
+once_cell = "1.17.1"
+opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.11.0" }
+proptest = "1.1.0"
+rustup-macros = { path = "rustup-macros" }
+tempfile = "3.5"
+thiserror = "1.0"
+tokio = { version = "1.26.0", default-features = false, features = [
+    "rt-multi-thread",
+] }
+tracing = "0.1"
+tracing-opentelemetry = { version = "0.18.0" }
+tracing-subscriber = "0.3.16"
+url = "2.3"
+walkdir = "2"
 
 [lib]
 name = "rustup"
@@ -128,3 +204,6 @@ lto = true
 [profile.release.build-override]
 opt-level = 0
 
+[package.metadata.cargo-all-features]
+# Building with no web backend will error.
+always_include_features = ["reqwest-backend", "reqwest-rustls-tls"]

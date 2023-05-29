@@ -66,7 +66,7 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     if v == INSTALLER_VERSION {
         Ok(())
     } else {
-        Err(anyhow!(format!("unsupported installer version: {}", v)))
+        Err(anyhow!(format!("unsupported installer version: {v}")))
     }
 }
 
@@ -208,7 +208,7 @@ fn unpack_ram(
     };
 
     if minimum_ram > unpack_ram {
-        panic!("RUSTUP_UNPACK_RAM must be larger than {}", minimum_ram);
+        panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
     } else {
         unpack_ram
     }
@@ -284,10 +284,10 @@ enum DirStatus {
     Pending(Vec<Item>),
 }
 
-fn unpack_without_first_dir<'a, R: Read>(
+fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
-    notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+    notify_handler: Option<&dyn Fn(Notification<'_>)>,
 ) -> Result<()> {
     let entries = archive.entries()?;
     let effective_max_ram = match effective_limits::memory_limit() {
@@ -347,10 +347,10 @@ fn unpack_without_first_dir<'a, R: Read>(
 
         /// true if either no sender_entry was provided, or the incremental file
         /// has been fully dispatched.
-        fn flush_ios<'a, R: std::io::Read, P: AsRef<Path>>(
+        fn flush_ios<R: std::io::Read, P: AsRef<Path>>(
             io_executor: &mut dyn Executor,
             directories: &mut HashMap<PathBuf, DirStatus>,
-            mut sender_entry: Option<&mut SenderEntry<'a, '_, R>>,
+            mut sender_entry: Option<&mut SenderEntry<'_, '_, R>>,
             full_path: P,
         ) -> Result<bool> {
             let mut result = sender_entry.is_none();
@@ -445,7 +445,7 @@ fn unpack_without_first_dir<'a, R: Read>(
                     Item::write_file(full_path.clone(), mode, content)
                 }
             }
-            _ => bail!(format!("tar entry kind '{:?}' is not supported", kind)),
+            _ => bail!(format!("tar entry kind '{kind:?}' is not supported")),
         };
 
         let item = loop {

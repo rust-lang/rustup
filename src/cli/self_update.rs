@@ -32,6 +32,7 @@
 
 #[cfg(unix)]
 mod shell;
+#[cfg(feature = "test")]
 pub(crate) mod test;
 #[cfg(unix)]
 mod unix;
@@ -57,26 +58,33 @@ use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 use same_file::Handle;
 
-use super::common::{self, ignorable_error, report_error, Confirm};
-use super::errors::*;
-use super::markdown::md;
-use super::term2;
-use crate::cli::term2::Terminal;
-use crate::dist::dist::{self, Profile, TargetTriple};
-use crate::process;
-use crate::toolchain::{DistributableToolchain, Toolchain};
-use crate::utils::utils;
-use crate::utils::Notification;
-use crate::{Cfg, UpdateStatus};
-use crate::{DUP_TOOLS, TOOLS};
+use crate::{
+    cli::{
+        common::{self, ignorable_error, report_error, Confirm, PackageUpdate},
+        errors::*,
+        markdown::md,
+        term2::{self, Terminal},
+    },
+    dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
+    install::UpdateStatus,
+    process,
+    toolchain::{
+        distributable::DistributableToolchain,
+        names::{MaybeOfficialToolchainName, ResolvableToolchainName, ToolchainName},
+        toolchain::Toolchain,
+    },
+    utils::{utils, Notification},
+    Cfg, DUP_TOOLS, TOOLS,
+};
+
 use os::*;
 pub(crate) use os::{delete_rustup_and_cargo_home, run_update, self_replace};
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 
-pub struct InstallOpts<'a> {
+pub(crate) struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
-    pub default_toolchain: Option<String>,
+    pub default_toolchain: Option<MaybeOfficialToolchainName>,
     pub profile: String,
     pub no_modify_path: bool,
     pub no_update_toolchain: bool,
@@ -89,7 +97,7 @@ pub(crate) const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
 pub(crate) const NEVER_SELF_UPDATE: bool = false;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelfUpdateMode {
     Enable,
     Disable,
@@ -280,26 +288,17 @@ later, but they don't seem to be installed.
 
 #[cfg(windows)]
 static MSVC_MANUAL_INSTALL_MESSAGE: &str = r#"
-You can acquire the build tools by installing Microsoft
-Visual C++ Build Tools 2019 which provides just the Visual C++ build
-tools:
-
-    https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
-Check its box for "Desktop development with C++" which will ensure that
-the Windows 10 SDK is selected.  If your locale language is not English,
-then additionally check the box for English under Language packs.
-Or minimally, use the tab "Individual Components" and select these items:
-
-    "MSVC - VS 2019 C++ x64/x86 build tools"
-    and
-    "Windows 10 SDK"
-
-Alternately, you can install Visual Studio 2019, Visual Studio 2017,
-Visual Studio 2015, or Visual Studio 2013 and during install select
-the "C++ tools":
+You can acquire the build tools by installing Microsoft Visual Studio.
 
     https://visualstudio.microsoft.com/downloads/
+
+Check the box for "Desktop development with C++" which will ensure that the
+needed components are installed. If your locale language is not English,
+then additionally check the box for English under Language packs.
+
+For more details see:
+
+    https://rust-lang.github.io/rustup/installation/windows-msvc.html
 
 _Install the C++ build tools before proceeding_.
 
@@ -448,7 +447,7 @@ pub(crate) fn install(
         }
         utils::create_rustup_home()?;
         maybe_install_rust(
-            opts.default_toolchain.as_deref(),
+            opts.default_toolchain,
             &opts.profile,
             opts.default_host_triple.as_deref(),
             !opts.no_update_toolchain,
@@ -523,8 +522,8 @@ fn rustc_or_cargo_exists_in_path() -> Result<()> {
         let paths = env::split_paths(&paths).filter(ignore_paths);
 
         for path in paths {
-            let rustc = path.join(format!("rustc{}", EXE_SUFFIX));
-            let cargo = path.join(format!("cargo{}", EXE_SUFFIX));
+            let rustc = path.join(format!("rustc{EXE_SUFFIX}"));
+            let cargo = path.join(format!("cargo{EXE_SUFFIX}"));
 
             if rustc.exists() || cargo.exists() {
                 return Err(anyhow!("{}", path.to_str().unwrap().to_owned()));
@@ -596,17 +595,14 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
             .as_ref()
             .map(|s| dist::TargetTriple::new(s))
             .unwrap_or_else(TargetTriple::from_host_or_build);
-        let toolchain_to_use = match &opts.default_toolchain {
-            None => "stable",
-            Some(s) if s == "none" => "stable",
-            Some(s) => s,
+        let partial_channel = match &opts.default_toolchain {
+            None | Some(MaybeOfficialToolchainName::None) => {
+                ResolvableToolchainName::try_from("stable")?
+            }
+            Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
-        let partial_channel = dist::PartialToolchainDesc::from_str(toolchain_to_use)?;
-        let resolved = partial_channel.resolve(&host_triple)?.to_string();
-        debug!(
-            "Successfully resolved installation toolchain as: {}",
-            resolved
-        );
+        let resolved = partial_channel.resolve(&host_triple)?;
+        debug!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     })()
     .map_err(|e: Box<dyn std::error::Error>| {
@@ -615,7 +611,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
              If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
              Valid host triples look something like: {}",
             e,
-            dist::TargetTriple::from_host_or_build()
+            TargetTriple::from_host_or_build()
         )
     })?;
     Ok(())
@@ -676,8 +672,9 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
             .map(|s| TargetTriple::new(s))
             .unwrap_or_else(TargetTriple::from_host_or_build),
         opts.default_toolchain
-            .as_deref()
-            .unwrap_or("stable (default)"),
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or("stable (default)".into()),
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
@@ -700,10 +697,14 @@ fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
             .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string()),
     )?);
 
-    opts.default_toolchain = Some(common::question_str(
+    opts.default_toolchain = Some(MaybeOfficialToolchainName::try_from(common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
-        opts.default_toolchain.as_deref().unwrap_or("stable"),
-    )?);
+        &opts
+            .default_toolchain
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or("stable".into()),
+    )?)?);
 
     opts.profile = common::question_str(
         &format!(
@@ -721,7 +722,7 @@ fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
 fn install_bins() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
     let this_exe_path = utils::current_exe()?;
-    let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
+    let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
     utils::ensure_dir_exists("bin", &bin_path, &|_: Notification<'_>| {})?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
@@ -736,7 +737,7 @@ fn install_bins() -> Result<()> {
 
 pub(crate) fn install_proxies() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
-    let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
+    let rustup_path = bin_path.join(&format!("rustup{EXE_SUFFIX}"));
 
     let rustup = Handle::from_path(&rustup_path)?;
 
@@ -765,7 +766,7 @@ pub(crate) fn install_proxies() -> Result<()> {
     // `tool_handles` later on. This'll allow us, afterwards, to actually
     // overwrite all the previous hard links with new ones.
     for tool in TOOLS {
-        let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path = bin_path.join(&format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             tool_handles.push(handle);
             if rustup == *tool_handles.last().unwrap() {
@@ -776,7 +777,7 @@ pub(crate) fn install_proxies() -> Result<()> {
     }
 
     for tool in DUP_TOOLS {
-        let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path = bin_path.join(&format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             // Like above, don't clobber anything that's already hardlinked to
             // avoid extraneous errors from being returned.
@@ -814,7 +815,7 @@ pub(crate) fn install_proxies() -> Result<()> {
 }
 
 fn maybe_install_rust(
-    toolchain: Option<&str>,
+    toolchain: Option<MaybeOfficialToolchainName>,
     profile_str: &str,
     default_host_triple: Option<&str>,
     update_existing_toolchain: bool,
@@ -834,29 +835,44 @@ fn maybe_install_rust(
         components,
         targets,
     )?;
-    if let Some(toolchain) = toolchain {
-        if toolchain.exists() {
+    if let Some(ref desc) = toolchain {
+        let status = if Toolchain::exists(&cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
-        }
-        let distributable = DistributableToolchain::new(&toolchain)?;
-        let status = distributable.install_from_dist(true, false, components, targets, None)?;
-        let toolchain_str = toolchain.name().to_owned();
-        toolchain.cfg().set_default(&toolchain_str)?;
+            // If we have a partial install we might not be able to read content here. We could:
+            // - fail and folk have to delete the partially present toolchain to recover
+            // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
+            // - delete the partial install and start over
+            // For now, we error.
+            let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
+            toolchain.update(components, targets, cfg.get_profile()?)?
+        } else {
+            DistributableToolchain::install(
+                &cfg,
+                desc,
+                components,
+                targets,
+                cfg.get_profile()?,
+                true,
+            )?
+            .0
+        };
+
+        cfg.set_default(Some(&desc.into()))?;
         writeln!(process().stdout())?;
-        common::show_channel_update(toolchain.cfg(), &toolchain_str, Ok(status))?;
+        common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
     }
     Ok(())
 }
 
-fn _install_selection<'a>(
-    cfg: &'a mut Cfg,
-    toolchain_opt: Option<&str>,
+fn _install_selection(
+    cfg: &mut Cfg,
+    toolchain_opt: Option<MaybeOfficialToolchainName>,
     profile_str: &str,
     default_host_triple: Option<&str>,
     update_existing_toolchain: bool,
     components: &[&str],
     targets: &[&str],
-) -> Result<Option<Toolchain<'a>>> {
+) -> Result<Option<ToolchainDesc>> {
     cfg.set_profile(profile_str)?;
 
     if let Some(default_host_triple) = default_host_triple {
@@ -877,39 +893,54 @@ fn _install_selection<'a>(
     // a toolchain (updating if it's already present) and then if neither of
     // those are true, we have a user who doesn't mind, and already has an
     // install, so we leave their setup alone.
-    Ok(if toolchain_opt == Some("none") {
-        info!("skipping toolchain installation");
-        if !components.is_empty() {
-            warn!(
-                "ignoring requested component{}: {}",
-                if components.len() == 1 { "" } else { "s" },
-                components.join(", ")
-            );
-        }
-        if !targets.is_empty() {
-            warn!(
-                "ignoring requested target{}: {}",
-                if targets.len() == 1 { "" } else { "s" },
-                targets.join(", ")
-            );
-        }
-        writeln!(process().stdout())?;
-        None
-    } else if user_specified_something
-        || (update_existing_toolchain && cfg.find_default()?.is_none())
-    {
-        Some(match toolchain_opt {
-            Some(s) => cfg.get_toolchain(s, false)?,
-            None => match cfg.find_default()? {
-                Some(t) => t,
-                None => cfg.get_toolchain("stable", false)?,
-            },
-        })
-    } else {
-        info!("updating existing rustup installation - leaving toolchains alone");
-        writeln!(process().stdout())?;
-        None
-    })
+    Ok(
+        if matches!(toolchain_opt, Some(MaybeOfficialToolchainName::None)) {
+            info!("skipping toolchain installation");
+            if !components.is_empty() {
+                warn!(
+                    "ignoring requested component{}: {}",
+                    if components.len() == 1 { "" } else { "s" },
+                    components.join(", ")
+                );
+            }
+            if !targets.is_empty() {
+                warn!(
+                    "ignoring requested target{}: {}",
+                    if targets.len() == 1 { "" } else { "s" },
+                    targets.join(", ")
+                );
+            }
+            writeln!(process().stdout())?;
+            None
+        } else if user_specified_something
+            || (update_existing_toolchain && cfg.find_default()?.is_none())
+        {
+            match toolchain_opt {
+                Some(s) => {
+                    let toolchain_name = match s {
+                        MaybeOfficialToolchainName::None => unreachable!(),
+                        MaybeOfficialToolchainName::Some(n) => n,
+                    };
+                    Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
+                }
+                None => match cfg.get_default()? {
+                    // Default is installable
+                    Some(ToolchainName::Official(t)) => Some(t),
+                    // Default is custom, presumably from a prior install. Do nothing.
+                    Some(ToolchainName::Custom(_)) => None,
+                    None => Some(
+                        "stable"
+                            .parse::<PartialToolchainDesc>()?
+                            .resolve(&cfg.get_default_host_triple()?)?,
+                    ),
+                },
+            }
+        } else {
+            info!("updating existing rustup installation - leaving toolchains alone");
+            writeln!(process().stdout())?;
+            None
+        },
+    )
 }
 
 pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
@@ -921,10 +952,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 
     let cargo_home = utils::cargo_home()?;
 
-    if !cargo_home
-        .join(&format!("bin/rustup{}", EXE_SUFFIX))
-        .exists()
-    {
+    if !cargo_home.join(&format!("bin/rustup{EXE_SUFFIX}")).exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 
@@ -978,8 +1006,8 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     let tools = TOOLS
         .iter()
         .chain(DUP_TOOLS.iter())
-        .map(|t| format!("{}{}", t, EXE_SUFFIX));
-    let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
+        .map(|t| format!("{t}{EXE_SUFFIX}"));
+    let tools: Vec<_> = tools.chain(vec![format!("rustup{EXE_SUFFIX}")]).collect();
     let bin_dir = cargo_home.join("bin");
     let diriter = fs::read_dir(&bin_dir).map_err(|e| CLIError::ReadDirError {
         p: bin_dir.clone(),
@@ -1059,11 +1087,19 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
                 }
             };
 
-            let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Updated(version)));
+            let _ = common::show_channel_update(
+                cfg,
+                PackageUpdate::Rustup,
+                Ok(UpdateStatus::Updated(version)),
+            );
             return run_update(&setup_path);
         }
         None => {
-            let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Unchanged));
+            let _ = common::show_channel_update(
+                cfg,
+                PackageUpdate::Rustup,
+                Ok(UpdateStatus::Unchanged),
+            );
             // Try again in case we emitted "tool `{}` is already installed" last time.
             install_proxies()?
         }
@@ -1100,8 +1136,8 @@ fn parse_new_rustup_version(version: String) -> String {
 
 pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
-    let rustup_path = cargo_home.join(&format!("bin{}rustup{}", MAIN_SEPARATOR, EXE_SUFFIX));
-    let setup_path = cargo_home.join(&format!("bin{}rustup-init{}", MAIN_SEPARATOR, EXE_SUFFIX));
+    let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
+    let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
@@ -1141,10 +1177,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     }
 
     // Get download URL
-    let url = format!(
-        "{}/archive/{}/{}/rustup-init{}",
-        update_root, available_version, triple, EXE_SUFFIX
-    );
+    let url = format!("{update_root}/archive/{available_version}/{triple}/rustup-init{EXE_SUFFIX}");
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
@@ -1169,7 +1202,7 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
         .context("error creating temp directory")?;
 
     // Parse the release file.
-    let release_file_url = format!("{}/release-stable.toml", update_root);
+    let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
     utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
@@ -1185,8 +1218,7 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
         .ok_or_else(|| anyhow!("invalid schema key in rustup release file"))?;
     if schema != "1" {
         return Err(anyhow!(format!(
-            "unknown schema version '{}' in rustup release file",
-            schema
+            "unknown schema version '{schema}' in rustup release file"
         )));
     }
 
@@ -1215,20 +1247,21 @@ pub(crate) fn check_rustup_update() -> Result<()> {
         let _ = t.fg(term2::color::YELLOW);
         write!(t, "Update available")?;
         let _ = t.reset();
-        writeln!(t, " : {} -> {}", current_version, available_version)?;
+        writeln!(t, " : {current_version} -> {available_version}")?;
     } else {
         let _ = t.fg(term2::color::GREEN);
         write!(t, "Up to date")?;
         let _ = t.reset();
-        writeln!(t, " : {}", current_version)?;
+        writeln!(t, " : {current_version}")?;
     }
 
     Ok(())
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub(crate) fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
-    let setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+    let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
     if setup.exists() {
         utils::remove_file("setup", &setup)?;
@@ -1240,7 +1273,7 @@ pub(crate) fn cleanup_self_updater() -> Result<()> {
 pub(crate) fn valid_self_update_modes() -> String {
     SelfUpdateMode::modes()
         .iter()
-        .map(|s| format!("'{}'", s))
+        .map(|s| format!("'{s}'"))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -1251,8 +1284,10 @@ mod tests {
 
     use anyhow::Result;
 
+    use rustup_macros::unit_test as test;
+
     use crate::cli::common;
-    use crate::dist::dist::ToolchainDesc;
+    use crate::dist::dist::PartialToolchainDesc;
     use crate::test::{test_dir, with_rustup_home, Env};
     use crate::{currentprocess, for_host};
 
@@ -1270,7 +1305,11 @@ mod tests {
                 // callbacks rather than output to the tp sink.
                 let mut cfg = common::set_globals(false, false).unwrap();
                 assert_eq!(
-                    "stable",
+                    "stable"
+                        .parse::<PartialToolchainDesc>()
+                        .unwrap()
+                        .resolve(&cfg.get_default_host_triple().unwrap())
+                        .unwrap(),
                     super::_install_selection(
                         &mut cfg,
                         None,      // No toolchain specified
@@ -1282,10 +1321,6 @@ mod tests {
                     )
                     .unwrap() // result
                     .unwrap() // option
-                    .name()
-                    .parse::<ToolchainDesc>()
-                    .unwrap()
-                    .channel
                 );
                 Ok(())
             })?;

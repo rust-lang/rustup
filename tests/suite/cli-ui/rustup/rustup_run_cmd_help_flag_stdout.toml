@@ -1,0 +1,34 @@
+args = ["run", "--help"]
+bin.name = "rustup"
+stderr = ""
+stdout = """
+...
+Run a command with an environment configured for a given toolchain
+
+USAGE:
+    rustup[EXE] run [OPTIONS] <toolchain> <command>...
+
+ARGS:
+    <toolchain>     Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
+                    name, or an absolute path. For more information see `rustup help toolchain`
+    <command>...    
+
+OPTIONS:
+        --install    Install the requested toolchain if needed
+    -h, --help       Print help information
+
+DISCUSSION:
+    Configures an environment to use the given toolchain and then runs
+    the specified program. The command may be any program, not just
+    rustc or cargo. This can be used for testing arbitrary toolchains
+    without setting an override.
+
+    Commands explicitly proxied by `rustup` (such as `rustc` and
+    `cargo`) also have a shorthand for this available. The toolchain
+    can be set by using `+toolchain` as the first argument. These are
+    equivalent:
+
+        $ cargo +nightly build
+
+        $ rustup run nightly cargo build
+"""

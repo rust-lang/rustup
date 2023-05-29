@@ -298,7 +298,7 @@ pub(crate) trait Executor {
         self.dispatch(item)
     }
 
-    /// Actually dispatch a operation.
+    /// Actually dispatch an operation.
     /// This is called by the default execute() implementation and
     /// should not be called directly.
     fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
@@ -342,7 +342,7 @@ pub(crate) fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F)
                     write_file(&item.full_path, contents, item.mode)
                 }
                 FileBuffer::Threaded(ref mut contents) => {
-                    write_file(&item.full_path, &contents, item.mode)
+                    write_file(&item.full_path, contents, item.mode)
                 }
             }
         }

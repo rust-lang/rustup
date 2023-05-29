@@ -1,0 +1,13 @@
+bin.name = "rustup"
+args = ["show","home","--help"]
+stdout = """
+...
+Display the computed value of RUSTUP_HOME
+
+USAGE:
+    rustup[EXE] show home
+
+OPTIONS:
+    -h, --help    Print help information
+"""
+stderr = ""

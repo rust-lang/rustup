@@ -3,6 +3,7 @@
 /Cargo.lock
 /.settings
 /.idea/
+/.vscode/
 *~
 /**/target
 /home

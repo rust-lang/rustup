@@ -1,13 +1,17 @@
-use std::ffi::OsStr;
-use std::io;
-use std::process::{self, Command};
+use std::{
+    ffi::OsStr,
+    fmt::Debug,
+    io,
+    process::{self, Command},
+};
 
 use anyhow::{Context, Result};
 
 use crate::errors::*;
 use crate::utils::utils::ExitCode;
 
-pub(crate) fn run_command_for_dir<S: AsRef<OsStr>>(
+#[cfg_attr(feature = "otel", tracing::instrument(err))]
+pub(crate) fn run_command_for_dir<S: AsRef<OsStr> + Debug>(
     mut cmd: Command,
     arg0: &str,
     args: &[S],

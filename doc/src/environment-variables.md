@@ -4,9 +4,10 @@
   root `rustup` folder, used for storing installed toolchains and
   configuration options.
 
-- `RUSTUP_TOOLCHAIN` (default: none) If set, will [override] the toolchain
-  used for all rust tool invocations. A toolchain with this name should be
-  installed, or invocations will fail.
+- `RUSTUP_TOOLCHAIN` (default: none) If set, will [override] the toolchain used
+  for all rust tool invocations. A toolchain with this name should be installed,
+  or invocations will fail. This can specify custom toolchains, installable
+  toolchains, or the absolute path to a toolchain.
 
 - `RUSTUP_DIST_SERVER` (default: `https://static.rust-lang.org`) Sets the root
   URL for downloading static resources related to Rust. You can change this to
@@ -35,7 +36,7 @@
   `RUST_BACKTRACE` is set.
 
 - `RUSTUP_PERMIT_COPY_RENAME` *unstable* When set, allows rustup to fall-back
-  to copying files if attempts to `rename` result in an cross-device link
+  to copying files if attempts to `rename` result in cross-device link
   errors. These errors occur on OverlayFS, which is used by [Docker][dc]. This
   feature sacrifices some transactions protections and may be removed at any
   point. Linux only.

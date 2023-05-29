@@ -1,0 +1,14 @@
+bin.name = "rustup"
+args = ["self","uninstall","--help"]
+stdout = """
+...
+Uninstall rustup.
+
+USAGE:
+    rustup[EXE] self uninstall [OPTIONS]
+
+OPTIONS:
+    -y            
+    -h, --help    Print help information
+"""
+stderr = ""

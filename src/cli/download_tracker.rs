@@ -211,7 +211,7 @@ impl DownloadTracker {
                     ),
                 };
 
-                let _ = write!(self.term, "{}", output);
+                let _ = write!(self.term, "{output}");
                 // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
                 let _ = self.term.flush();
                 self.displayed_charcount = Some(output.chars().count());
@@ -250,10 +250,10 @@ impl fmt::Display for Display {
             return f.write_str("Unknown");
         }
         match format_dhms(secs) {
-            (0, 0, 0, s) => write!(f, "{:2.0}s", s),
-            (0, 0, m, s) => write!(f, "{:2.0}m {:2.0}s", m, s),
-            (0, h, m, s) => write!(f, "{:2.0}h {:2.0}m {:2.0}s", h, m, s),
-            (d, h, m, s) => write!(f, "{:3.0}d {:2.0}h {:2.0}m {:2.0}s", d, h, m, s),
+            (0, 0, 0, s) => write!(f, "{s:2.0}s"),
+            (0, 0, m, s) => write!(f, "{m:2.0}m {s:2.0}s"),
+            (0, h, m, s) => write!(f, "{h:2.0}h {m:2.0}m {s:2.0}s"),
+            (d, h, m, s) => write!(f, "{d:3.0}d {h:2.0}h {m:2.0}m {s:2.0}s"),
         }
     }
 }
@@ -268,7 +268,10 @@ fn format_dhms(sec: u64) -> (u64, u8, u8, u8) {
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use super::format_dhms;
+
     #[test]
     fn download_tracker_format_dhms_test() {
         assert_eq!(format_dhms(2), (0, 0, 0, 2));

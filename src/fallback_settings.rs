@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 
 use crate::utils::utils;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Default)]
 pub struct FallbackSettings {
     pub default_toolchain: Option<String>,
 }

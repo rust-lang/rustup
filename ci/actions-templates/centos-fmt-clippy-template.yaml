@@ -11,6 +11,7 @@ on:
     branches:
       - master
       - stable
+      - renovate/*
   schedule:
     - cron: "30 0 * * 1" # Every Monday at half past midnight
 
@@ -21,7 +22,8 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - name: Clone repo
+        uses: actions/checkout@v3
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -39,7 +41,7 @@ jobs:
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -48,10 +50,10 @@ jobs:
       - name: Get rustc commit hash
         id: cargo-target-cache
         run: |
-          echo "::set-output name=rust_hash::$(rustc -Vv | grep commit-hash | awk '{print $2}')"
+          echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ runner.os }}-cargo-clippy-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -70,6 +72,10 @@ jobs:
         run: |
           rustup component add rustfmt
           rustup component add clippy
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
       - name: Run the centos check within the docker image
         run: |
           docker run \
@@ -78,18 +84,18 @@ jobs:
             --tty \
             --init \
             --rm \
-            centos:6 \
+            centos:7 \
             sh ./ci/raw_init.sh
       - name: Run shell checks
         run: |
-          shellcheck -s dash -- rustup-init.sh
-          git ls-files -- '*.sh' | xargs shellcheck -s dash -e SC1090
-          git ls-files -- '*.bash' | xargs shellcheck -s bash -e SC1090
+          shellcheck -x -s dash -- rustup-init.sh
+          git ls-files -- '*.sh' | xargs shellcheck -x -s dash
+          git ls-files -- '*.bash' | xargs shellcheck -x -s bash
       - name: Run formatting checks
         run: |
           cargo fmt --all --check
       - name: Run cargo check and clippy
         run: |
-          cargo check --all --all-targets
+          cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --all --all-targets
+          cargo clippy --all --all-targets --features test

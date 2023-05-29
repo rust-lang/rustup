@@ -5,3 +5,4 @@ authors = ["The Rust Project Developers"]
 [output.html]
 git-repository-url = "https://github.com/rust-lang/rustup/tree/master/doc"
 site-url = "https://rust-lang.github.io/rustup/"
+edit-url-template = "https://github.com/rust-lang/rustup/edit/master/doc/{path}"

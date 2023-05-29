@@ -259,6 +259,7 @@ fn has_windows_sdk_libs() -> bool {
 }
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     use std::process::Stdio;
 
@@ -457,7 +458,7 @@ fn _remove_from_path(old_path: Vec<u16>, path_str: Vec<u16>) -> Option<Vec<u16>>
         .position(|path| path == path_str)?;
     // If there's a trailing semicolon (likely, since we probably added one
     // during install), include that in the substring to remove. We don't search
-    // for that to find the string, because if its the last string in the path,
+    // for that to find the string, because if it's the last string in the path,
     // there may not be.
     let mut len = path_str.len();
     if old_path.get(idx + path_str.len()) == Some(&(b';' as u16)) {
@@ -634,7 +635,7 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = utils::cargo_home()?;
     // The rustup.exe bin
-    let rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
+    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
 
     // The directory containing CARGO_HOME
     let work_path = cargo_home
@@ -644,7 +645,7 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     // Generate a unique name for the files we're about to move out
     // of CARGO_HOME.
     let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
+    let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
     // Copy rustup (probably this process's exe) to the gc exe
     utils::copy_file(&rustup_path, &gc_exe)?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
@@ -703,6 +704,8 @@ mod tests {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
+    use rustup_macros::unit_test as test;
+
     use crate::currentprocess;
     use crate::test::with_saved_path;
 
@@ -745,7 +748,7 @@ mod tests {
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
         let tp = Box::new(currentprocess::TestProcess::default());
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
@@ -775,7 +778,7 @@ mod tests {
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
         let tp = Box::new(currentprocess::TestProcess::default());
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
@@ -800,7 +803,7 @@ mod tests {
                 match reg_value {
                     Ok(_) => panic!("key not deleted"),
                     Err(ref e) if e.kind() == io::ErrorKind::NotFound => {}
-                    Err(ref e) => panic!("error {}", e),
+                    Err(ref e) => panic!("error {e}"),
                 }
             })
         });
@@ -816,7 +819,7 @@ mod tests {
                 .collect(),
             ..Default::default()
         });
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
@@ -845,7 +848,7 @@ mod tests {
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
         let tp = Box::new(currentprocess::TestProcess::default());
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root

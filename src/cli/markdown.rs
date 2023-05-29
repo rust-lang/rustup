@@ -48,7 +48,7 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
         }
 
         // Write the word
-        let _ = write!(self.w, "{}", word);
+        let _ = write!(self.w, "{word}");
         self.pos += word_len;
     }
     fn write_space(&mut self) {
@@ -123,7 +123,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
             Tag::Paragraph => {
                 self.wrapper.write_line();
             }
-            Tag::Heading(_level) => {
+            Tag::Heading(_level, _identifier, _classes) => {
                 self.push_attr(Attr::Bold);
                 self.wrapper.write_line();
             }
@@ -160,7 +160,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
             Tag::Paragraph => {
                 self.wrapper.write_line();
             }
-            Tag::Heading(_level) => {
+            Tag::Heading(_level, _identifier, _classes) => {
                 self.wrapper.write_line();
                 self.pop_attr();
             }

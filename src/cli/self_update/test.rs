@@ -2,7 +2,6 @@
 
 use std::sync::Mutex;
 
-use lazy_static::lazy_static;
 #[cfg(not(unix))]
 use winreg::{
     enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE},
@@ -36,11 +35,9 @@ fn restore_path(p: Option<RegValue>) {
 }
 
 /// Support testing of code that mutates global path state
-pub fn with_saved_path(f: &dyn Fn()) {
+pub fn with_saved_path(f: &mut dyn FnMut()) {
     // Lock protects concurrent mutation of registry
-    lazy_static! {
-        static ref LOCK: Mutex<()> = Mutex::new(());
-    }
+    static LOCK: Mutex<()> = Mutex::new(());
     let _g = LOCK.lock();
 
     // On windows these tests mess with the user's PATH. Save

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
+use rustup_macros::unit_test as test;
+
 use crate::test::test_dir;
 
 use super::{get_executor, Executor, Item, Kind};
@@ -156,21 +158,21 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
 }
 
 #[test]
-fn test_incremental_file_immediate() -> Result<()> {
-    test_incremental_file("1")
+fn test_incremental_file_immediate() {
+    test_incremental_file("1").unwrap()
 }
 
 #[test]
-fn test_incremental_file_threaded() -> Result<()> {
-    test_incremental_file("2")
+fn test_incremental_file_threaded() {
+    test_incremental_file("2").unwrap()
 }
 
 #[test]
-fn test_complete_file_immediate() -> Result<()> {
-    test_complete_file("1")
+fn test_complete_file_immediate() {
+    test_complete_file("1").unwrap()
 }
 
 #[test]
-fn test_complete_file_threaded() -> Result<()> {
-    test_complete_file("2")
+fn test_complete_file_threaded() {
+    test_complete_file("2").unwrap()
 }

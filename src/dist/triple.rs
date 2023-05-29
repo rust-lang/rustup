@@ -47,7 +47,7 @@ static LIST_ENVS: &[&str] = &[
     "musl",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartialTargetTriple {
     pub arch: Option<String>,
     pub os: Option<String>,
@@ -67,7 +67,7 @@ impl PartialTargetTriple {
         // Prepending `-` makes this next regex easier since
         // we can count  on all triple components being
         // delineated by it.
-        let name = format!("-{}", name);
+        let name = format!("-{name}");
         lazy_static! {
             static ref PATTERN: String = format!(
                 r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
@@ -97,7 +97,10 @@ impl PartialTargetTriple {
 
 #[cfg(test)]
 mod test {
+    use rustup_macros::unit_test as test;
+
     use super::*;
+
     #[test]
     fn test_partial_target_triple_new() {
         let success_cases = vec![
@@ -118,8 +121,7 @@ mod test {
             let partial_target_triple = PartialTargetTriple::new(input);
             assert!(
                 partial_target_triple.is_some(),
-                "expected `{}` to create some partial target triple; got None",
-                input
+                "expected `{input}` to create some partial target triple; got None"
             );
 
             let expected = PartialTargetTriple {
@@ -128,12 +130,7 @@ mod test {
                 env: env.map(String::from),
             };
 
-            assert_eq!(
-                partial_target_triple.unwrap(),
-                expected,
-                "input: `{}`",
-                input
-            );
+            assert_eq!(partial_target_triple.unwrap(), expected, "input: `{input}`");
         }
 
         let failure_cases = vec![
@@ -154,9 +151,7 @@ mod test {
             let partial_target_triple = PartialTargetTriple::new(input);
             assert!(
                 partial_target_triple.is_none(),
-                "expected `{}` to be `None`, was: `{:?}`",
-                input,
-                partial_target_triple
+                "expected `{input}` to be `None`, was: `{partial_target_triple:?}`"
             );
         }
     }

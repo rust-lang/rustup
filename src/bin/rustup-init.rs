@@ -30,7 +30,7 @@ use rustup::utils::utils;
 
 fn main() {
     let process = OSProcess::default();
-    with(Box::new(process), || match run_rustup() {
+    with(Box::new(process), || match maybe_trace_rustup() {
         Err(e) => {
             common::report_error(&e);
             std::process::exit(1);
@@ -39,6 +39,65 @@ fn main() {
     });
 }
 
+fn maybe_trace_rustup() -> Result<utils::ExitCode> {
+    #[cfg(not(feature = "otel"))]
+    {
+        run_rustup()
+    }
+    #[cfg(feature = "otel")]
+    {
+        use std::time::Duration;
+
+        use opentelemetry::sdk::{
+            trace::{self, Sampler},
+            Resource,
+        };
+        use opentelemetry::KeyValue;
+        use opentelemetry::{global, sdk::propagation::TraceContextPropagator};
+        use opentelemetry_otlp::WithExportConfig;
+        use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
+
+        // Background submission requires a runtime, and since we're probably
+        // going to want async eventually, we just use tokio.
+        let threaded_rt = tokio::runtime::Runtime::new()?;
+
+        let result = threaded_rt.block_on(async {
+            global::set_text_map_propagator(TraceContextPropagator::new());
+            let tracer = opentelemetry_otlp::new_pipeline()
+                .tracing()
+                .with_exporter(
+                    opentelemetry_otlp::new_exporter()
+                        .tonic()
+                        .with_timeout(Duration::from_secs(3)),
+                )
+                .with_trace_config(
+                    trace::config()
+                        .with_sampler(Sampler::AlwaysOn)
+                        .with_resource(Resource::new(vec![KeyValue::new(
+                            "service.name",
+                            "rustup",
+                        )])),
+                )
+                .install_batch(opentelemetry::runtime::Tokio)?;
+            let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
+            let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+            let subscriber = Registry::default().with(env_filter).with(telemetry);
+            tracing::subscriber::set_global_default(subscriber)?;
+            let result = run_rustup();
+            // We're tracing, so block until all spans are exported.
+            opentelemetry::global::shutdown_tracer_provider();
+            result
+        });
+        // default runtime behaviour is to block until nothing is running;
+        // instead we supply a timeout, as we're either already errored and are
+        // reporting back without care for lost threads etc... or everything
+        // completed.
+        threaded_rt.shutdown_timeout(Duration::from_millis(5));
+        result
+    }
+}
+
+#[cfg_attr(feature = "otel", tracing::instrument)]
 fn run_rustup() -> Result<utils::ExitCode> {
     if let Ok(dir) = process().var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
@@ -50,6 +109,7 @@ fn run_rustup() -> Result<utils::ExitCode> {
     result
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(err))]
 fn run_rustup_inner() -> Result<utils::ExitCode> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.

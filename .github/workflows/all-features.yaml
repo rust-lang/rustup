@@ -1,0 +1,46 @@
+name: AllFeatures (PR)
+
+# This is an additional workflow to test building with all feature combinations.
+# Unlike our main workflows, this doesn't self-test the rustup install scripts,
+# nor run on the rust docker images. This permits a smaller workflow without the
+# templating and so on.
+
+on:
+  pull_request:
+    branches:
+      - "*"
+      - renovate/*
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Might add more targets in future.
+        target:
+          - x86_64-unknown-linux-gnu
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+      - name: Install rustup stable
+        run: rustup toolchain install stable --profile minimal
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: "3.x"
+      - name: Set environment variables appropriately for the build
+        run: |
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+      - name: Install cargo-all-features
+        run: cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
+      - name: Ensure we have our goal target installed
+        run: |
+          rustup target install "$TARGET"
+      - name: Build every combination
+        run: |
+          cargo check-all-features --root-only

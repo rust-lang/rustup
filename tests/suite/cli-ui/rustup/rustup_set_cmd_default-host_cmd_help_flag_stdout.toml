@@ -1,0 +1,16 @@
+bin.name = "rustup"
+args = ["set","default-host","--help"]
+stdout = """
+...
+The triple used to identify toolchains when not specified
+
+USAGE:
+    rustup[EXE] set default-host <host_triple>
+
+ARGS:
+    <host_triple>    
+
+OPTIONS:
+    -h, --help    Print help information
+"""
+stderr = ""

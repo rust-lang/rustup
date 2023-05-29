@@ -74,7 +74,7 @@ impl<'a> Display for Notification<'a> {
             CreatingDirectory(name, path) => {
                 write!(f, "creating {} directory: '{}'", name, path.display())
             }
-            Error(e) => write!(f, "error: '{}'", e),
+            Error(e) => write!(f, "error: '{e}'"),
             LinkingDirectory(_, dest) => write!(f, "linking directory from: '{}'", dest.display()),
             CopyingDirectory(src, _) => write!(f, "copying directory from: '{}'", src.display()),
             RemovingDirectory(name, path) => {
@@ -91,8 +91,8 @@ impl<'a> Display for Notification<'a> {
                 "using up to {} of RAM to unpack components",
                 units::Size::new(*size, units::Unit::B, units::UnitMode::Norm)
             ),
-            DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
-            DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
+            DownloadingFile(url, _) => write!(f, "downloading file from: '{url}'"),
+            DownloadContentLengthReceived(len) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
             DownloadPushUnit(_) => Ok(()),
             DownloadPopUnit => Ok(()),

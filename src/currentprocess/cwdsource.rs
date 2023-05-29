@@ -15,6 +15,7 @@ impl CurrentDirSource for super::OSProcess {
     }
 }
 
+#[cfg(feature = "test")]
 impl CurrentDirSource for super::TestProcess {
     fn current_dir(&self) -> io::Result<PathBuf> {
         Ok(self.cwd.clone())

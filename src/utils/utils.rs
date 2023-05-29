@@ -1,4 +1,3 @@
-use std::cmp::Ord;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
@@ -42,13 +41,6 @@ where
     })
 }
 
-pub(crate) fn open_file(name: &'static str, path: &Path) -> Result<File> {
-    File::open(path).with_context(|| RustupError::ReadingFile {
-        name,
-        path: PathBuf::from(path),
-    })
-}
-
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     fs::read_to_string(path).with_context(|| RustupError::ReadingFile {
         name,
@@ -76,14 +68,14 @@ pub(crate) fn write_line(
     path: &Path,
     line: &str,
 ) -> Result<()> {
-    writeln!(file, "{}", line).with_context(|| RustupError::WritingFile {
+    writeln!(file, "{line}").with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
 }
 
 pub(crate) fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
-    write!(file, "{}", s).with_context(|| RustupError::WritingFile {
+    write!(file, "{s}").with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
@@ -255,7 +247,7 @@ fn download_file_(
 }
 
 pub(crate) fn parse_url(url: &str) -> Result<Url> {
-    Url::parse(url).with_context(|| format!("failed to parse url: {}", url))
+    Url::parse(url).with_context(|| format!("failed to parse url: {url}"))
 }
 
 pub(crate) fn assert_is_file(path: &Path) -> Result<()> {
@@ -293,7 +285,15 @@ where
 }
 
 pub(crate) fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
-    if hardlink_file(src, dest).is_err() {
+    // Some mac filesystems can do hardlinks to symlinks, some can't.
+    // See rust-lang/rustup#3136 for why it's better never to use them.
+    #[cfg(target_os = "macos")]
+    let force_symlink = fs::symlink_metadata(src)
+        .map(|m| m.file_type().is_symlink())
+        .unwrap_or(false);
+    #[cfg(not(target_os = "macos"))]
+    let force_symlink = false;
+    if force_symlink || hardlink_file(src, dest).is_err() {
         symlink_file(src, dest)?;
     }
     Ok(())
@@ -401,9 +401,7 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
 pub(crate) fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
     let result = remove_file(name, path);
     if let Err(err) = &result {
-        if let Some(retry::Error::Operation { error: e, .. }) =
-            err.downcast_ref::<retry::Error<io::Error>>()
-        {
+        if let Some(retry::Error { error: e, .. }) = err.downcast_ref::<retry::Error<io::Error>>() {
             if e.kind() == io::ErrorKind::NotFound {
                 return Ok(());
             }
@@ -510,7 +508,7 @@ pub(crate) fn create_rustup_home() -> Result<()> {
     }
 
     let home = rustup_home_in_user_dir()?;
-    fs::create_dir_all(&home).context("unable to create ~/.rustup")?;
+    fs::create_dir_all(home).context("unable to create ~/.rustup")?;
 
     Ok(())
 }
@@ -535,40 +533,6 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
         None => path.to_owned(),
         Some(_) => path[4..].to_owned(),
     }
-}
-
-pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut [T]) {
-    use semver::{BuildMetadata, Prerelease, Version};
-
-    fn special_version(ord: u64, s: &str) -> Version {
-        Version {
-            major: 0,
-            minor: 0,
-            patch: 0,
-            pre: Prerelease::new(&format!("pre.{}.{}", ord, s.replace('_', "-"))).unwrap(),
-            build: BuildMetadata::EMPTY,
-        }
-    }
-
-    fn toolchain_sort_key(s: &str) -> Version {
-        if s.starts_with("stable") {
-            special_version(0, s)
-        } else if s.starts_with("beta") {
-            special_version(1, s)
-        } else if s.starts_with("nightly") {
-            special_version(2, s)
-        } else {
-            Version::parse(&s.replace('_', "-")).unwrap_or_else(|_| special_version(3, s))
-        }
-    }
-
-    v.sort_by(|a, b| {
-        let a_str: &str = a.as_ref();
-        let b_str: &str = b.as_ref();
-        let a_key = toolchain_sort_key(a_str);
-        let b_key = toolchain_sort_key(b_str);
-        a_key.cmp(&b_key)
-    });
 }
 
 #[cfg(target_os = "linux")]
@@ -621,9 +585,8 @@ where
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]
-                io::ErrorKind::Other
-                    if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
-                        && Some(EXDEV) == e.raw_os_error() =>
+                _ if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
+                    && Some(EXDEV) == e.raw_os_error() =>
                 {
                     match copy_and_delete(name, src, dest, notify_handler) {
                         Ok(()) => OperationResult::Ok(()),
@@ -743,34 +706,9 @@ pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use super::*;
-
-    #[test]
-    fn test_toolchain_sort() {
-        let expected = vec![
-            "stable-x86_64-unknown-linux-gnu",
-            "beta-x86_64-unknown-linux-gnu",
-            "nightly-x86_64-unknown-linux-gnu",
-            "1.0.0-x86_64-unknown-linux-gnu",
-            "1.2.0-x86_64-unknown-linux-gnu",
-            "1.8.0-x86_64-unknown-linux-gnu",
-            "1.10.0-x86_64-unknown-linux-gnu",
-        ];
-
-        let mut v = vec![
-            "1.8.0-x86_64-unknown-linux-gnu",
-            "1.0.0-x86_64-unknown-linux-gnu",
-            "nightly-x86_64-unknown-linux-gnu",
-            "stable-x86_64-unknown-linux-gnu",
-            "1.10.0-x86_64-unknown-linux-gnu",
-            "beta-x86_64-unknown-linux-gnu",
-            "1.2.0-x86_64-unknown-linux-gnu",
-        ];
-
-        toolchain_sort(&mut v);
-
-        assert_eq!(expected, v);
-    }
 
     #[test]
     fn test_remove_file() {

@@ -1,0 +1,19 @@
+bin.name = "rustup"
+args = ["set","--help"]
+stdout = """
+...
+Alter rustup settings
+
+USAGE:
+    rustup[EXE] set <SUBCOMMAND>
+
+OPTIONS:
+    -h, --help    Print help information
+
+SUBCOMMANDS:
+    default-host        The triple used to identify toolchains when not specified
+    profile             The default components installed
+    auto-self-update    The rustup auto self update mode
+    help                Print this message or the help of the given subcommand(s)
+"""
+stderr = ""

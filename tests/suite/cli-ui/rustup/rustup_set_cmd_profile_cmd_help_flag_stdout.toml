@@ -1,0 +1,16 @@
+bin.name = "rustup"
+args = ["set","profile","--help"]
+stdout = """
+...
+The default components installed
+
+USAGE:
+    rustup[EXE] set profile <profile-name>
+
+ARGS:
+    <profile-name>    [default: default] [possible values: minimal, default, complete]
+
+OPTIONS:
+    -h, --help    Print help information
+"""
+stderr = ""

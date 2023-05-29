@@ -1,0 +1,13 @@
+bin.name = "rustup"
+args = ["show","profile","--help"]
+stdout = """
+...
+Show the current profile
+
+USAGE:
+    rustup[EXE] show profile
+
+OPTIONS:
+    -h, --help    Print help information
+"""
+stderr = ""

@@ -48,8 +48,8 @@ pub(crate) static TOOLCHAIN_HELP: &str = r"DISCUSSION:
     installation of the Rust compiler. `rustup` supports multiple
     types of toolchains. The most basic track the official release
     channels: 'stable', 'beta' and 'nightly'; but `rustup` can also
-    install toolchains from the official archives, for alternate host
-    platforms, and from local builds.
+    install specific toolchains from the official archives, toolchains for
+    alternate host platforms, and from local builds ('custom toolchains').
 
     Standard release channel toolchain names have the following form:
 
@@ -87,10 +87,12 @@ pub(crate) static TOOLCHAIN_HELP: &str = r"DISCUSSION:
 
 pub(crate) static TOOLCHAIN_LINK_HELP: &str = r"DISCUSSION:
     'toolchain' is the custom name to be assigned to the new toolchain.
-    Any name is permitted as long as it does not fully match an initial
-    substring of a standard release channel. For example, you can use
-    the names 'latest' or '2017-04-01' but you cannot use 'stable' or
-    'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.
+    Any name is permitted as long as:
+    - it does not include '/' or '\' except as the last character
+    - it is not equal to 'none'
+    - it does not fully match an initialsubstring of a standard release channel.
+    For example, you can use the names 'latest' or '2017-04-01' but you cannot
+    use 'stable' or 'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.
 
     'path' specifies the directory where the binaries and libraries for
     the custom toolchain can be found. For example, when used for
@@ -278,8 +280,18 @@ pub(crate) static COMPLETIONS_HELP: &str = r#"DISCUSSION:
 
         $ rustup completions zsh cargo > ~/.zfunc/_cargo"#;
 
-pub(crate) static TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
+pub(crate) static OFFICIAL_TOOLCHAIN_ARG_HELP: &str =
+    "Toolchain name, such as 'stable', 'nightly', \
                                        or '1.8.0'. For more information see `rustup \
+                                       help toolchain`";
+pub(crate) static RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
+                                       '1.8.0', or a custom toolchain name, or an absolute path. For more \
+                                       information see `rustup help toolchain`";
+pub(crate) static RESOLVABLE_TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
+                                       '1.8.0', or a custom toolchain name. For more information see `rustup \
+                                       help toolchain`";
+pub(crate) static MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP: &str = "'none', a toolchain name, such as 'stable', 'nightly', \
+                                       '1.8.0', or a custom toolchain name. For more information see `rustup \
                                        help toolchain`";
 
 pub(crate) static TOPIC_ARG_HELP: &str = "Topic such as 'core', 'fn', 'usize', 'eprintln!', \

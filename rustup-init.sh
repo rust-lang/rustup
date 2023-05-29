@@ -22,30 +22,51 @@ set -u
 # If RUSTUP_UPDATE_ROOT is unset or empty, default it.
 RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 
-#XXX: If you change anything here, please make the same changes in setup_mode.rs
+# NOTICE: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
-    cat 1>&2 <<EOF
-rustup-init 1.25.1 (48d233f65 2022-07-12)
+    cat <<EOF
+rustup-init 1.26.0 (577bf51ae 2023-04-05)
 The installer for rustup
 
 USAGE:
-    rustup-init [FLAGS] [OPTIONS]
-
-FLAGS:
-    -v, --verbose           Enable verbose output
-    -q, --quiet             Disable progress output
-    -y                      Disable confirmation prompt.
-        --no-modify-path    Don't configure the PATH environment variable
-    -h, --help              Prints help information
-    -V, --version           Prints version information
+    rustup-init [OPTIONS]
 
 OPTIONS:
-        --default-host <default-host>              Choose a default host triple
-        --default-toolchain <default-toolchain>    Choose a default toolchain to install
-        --default-toolchain none                   Do not install any toolchains
-        --profile [minimal|default|complete]       Choose a profile
-    -c, --component <components>...                Component name to also install
-    -t, --target <targets>...                      Target name to also install
+    -v, --verbose
+            Enable verbose output
+
+    -q, --quiet
+            Disable progress output
+
+    -y
+            Disable confirmation prompt.
+
+        --default-host <default-host>
+            Choose a default host triple
+
+        --default-toolchain <default-toolchain>
+            Choose a default toolchain to install. Use 'none' to not install any toolchains at all
+
+        --profile <profile>
+            [default: default] [possible values: minimal, default, complete]
+
+    -c, --component <components>...
+            Component name to also install
+
+    -t, --target <targets>...
+            Target name to also install
+
+        --no-update-default-toolchain
+            Don't update any existing default toolchain after install
+
+        --no-modify-path
+            Don't configure the PATH environment variable
+
+    -h, --help
+            Print help information
+
+    -V, --version
+            Print version information
 EOF
 }
 
@@ -597,7 +618,7 @@ check_help_for() {
     esac
 
     for _arg in "$@"; do
-        if ! "$_cmd" --help $_category | grep -q -- "$_arg"; then
+        if ! "$_cmd" --help "$_category" | grep -q -- "$_arg"; then
             return 1
         fi
     done

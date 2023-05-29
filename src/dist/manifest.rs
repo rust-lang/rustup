@@ -22,9 +22,19 @@ use crate::dist::dist::{PartialTargetTriple, Profile, TargetTriple};
 use crate::errors::*;
 use crate::utils::toml_utils::*;
 
+use super::{config::Config, dist::ToolchainDesc};
+
 pub(crate) const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
 
-#[derive(Clone, Debug, PartialEq)]
+/// Used by the `installed_components` function
+pub(crate) struct ComponentStatus {
+    pub component: Component,
+    pub name: String,
+    pub installed: bool,
+    pub available: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Manifest {
     manifest_version: String,
     pub date: String,
@@ -34,25 +44,25 @@ pub struct Manifest {
     profiles: HashMap<Profile, Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Package {
     pub version: String,
     pub targets: PackageTargets,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PackageTargets {
     Wildcard(TargetedPackage),
     Targeted(HashMap<TargetTriple, TargetedPackage>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TargetedPackage {
     pub bins: Vec<(CompressionKind, HashedBinary)>,
     pub components: Vec<Component>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompressionKind {
     GZip,
     XZ,
@@ -77,7 +87,7 @@ impl CompressionKind {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HashedBinary {
     pub url: String,
     pub hash: String,
@@ -117,7 +127,7 @@ impl Manifest {
         Ok(manifest)
     }
     pub fn stringify(self) -> String {
-        toml::Value::Table(self.into_toml()).to_string()
+        self.into_toml().to_string()
     }
 
     pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
@@ -244,7 +254,7 @@ impl Manifest {
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages
             .get(name)
-            .ok_or_else(|| anyhow!(format!("package not found: '{}'", name)))
+            .ok_or_else(|| anyhow!(format!("package not found: '{name}'")))
     }
 
     pub(crate) fn get_rust_version(&self) -> Result<&str> {
@@ -277,7 +287,7 @@ impl Manifest {
         let profile = self
             .profiles
             .get(&profile)
-            .ok_or_else(|| anyhow!(format!("profile not found: '{}'", profile)))?;
+            .ok_or_else(|| anyhow!(format!("profile not found: '{profile}'")))?;
 
         let rust_pkg = self.get_package("rust")?.get_target(Some(target))?;
         let result = profile
@@ -328,8 +338,7 @@ impl Manifest {
         for name in self.renames.values() {
             if !self.packages.contains_key(name) {
                 bail!(format!(
-                    "server sent a broken manifest: missing package for the target of a rename {}",
-                    name
+                    "server sent a broken manifest: missing package for the target of a rename {name}"
                 ));
             }
         }
@@ -345,6 +354,57 @@ impl Manifest {
             c.pkg = r.clone();
             c
         })
+    }
+
+    /// Determine installed components from an installed manifest.
+    pub(crate) fn query_components(
+        &self,
+        desc: &ToolchainDesc,
+        config: &Config,
+    ) -> Result<Vec<ComponentStatus>> {
+        // Return all optional components of the "rust" package for the
+        // toolchain's target triple.
+        let mut res = Vec::new();
+
+        let rust_pkg = self
+            .packages
+            .get("rust")
+            .expect("manifest should contain a rust package");
+        let targ_pkg = rust_pkg
+            .targets
+            .get(&desc.target)
+            .expect("installed manifest should have a known target");
+
+        for component in &targ_pkg.components {
+            let installed = component.contained_within(&config.components);
+
+            let component_target = TargetTriple::new(&component.target());
+
+            // Get the component so we can check if it is available
+            let component_pkg = self
+                .get_package(component.short_name_in_manifest())
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "manifest should contain component {}",
+                        &component.short_name(self)
+                    )
+                });
+            let component_target_pkg = component_pkg
+                .targets
+                .get(&component_target)
+                .expect("component should have target toolchain");
+
+            res.push(ComponentStatus {
+                component: component.clone(),
+                name: component.name(self),
+                installed,
+                available: component_target_pkg.available(),
+            });
+        }
+
+        res.sort_by(|a, b| a.component.cmp(&b.component));
+
+        Ok(res)
     }
 }
 
@@ -405,8 +465,8 @@ impl Package {
                 if let Some(t) = target {
                     tpkgs
                         .get(t)
-                        .ok_or_else(|| anyhow!(format!("target '{}' not found in channel.  \
-                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets", t)))
+                        .ok_or_else(|| anyhow!(format!("target '{t}' not found in channel.  \
+                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets")))
                 } else {
                     Err(anyhow!("no target specified"))
                 }
@@ -498,7 +558,7 @@ impl TargetedPackage {
 
         for (i, v) in arr.into_iter().enumerate() {
             if let toml::Value::Table(t) = v {
-                let path = format!("{}[{}]", path, i);
+                let path = format!("{path}[{i}]");
                 result.push(Component::from_toml(t, &path, is_extension)?);
             }
         }
@@ -585,7 +645,7 @@ impl Component {
     pub(crate) fn name(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("{}-{}", pkg, t)
+            format!("{pkg}-{t}")
         } else {
             pkg
         }
@@ -600,9 +660,9 @@ impl Component {
     pub(crate) fn description(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("'{}' for target '{}'", pkg, t)
+            format!("'{pkg}' for target '{t}'")
         } else {
-            format!("'{}'", pkg)
+            format!("'{pkg}'")
         }
     }
     pub fn short_name_in_manifest(&self) -> &String {
@@ -611,7 +671,7 @@ impl Component {
     pub(crate) fn name_in_manifest(&self) -> String {
         let pkg = self.short_name_in_manifest();
         if let Some(ref t) = self.target {
-            format!("{}-{}", pkg, t)
+            format!("{pkg}-{t}")
         } else {
             pkg.to_string()
         }
@@ -644,5 +704,118 @@ impl Component {
                 .iter()
                 .any(|other| other.pkg == self.pkg && other.target.is_none())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dist::dist::TargetTriple;
+    use crate::dist::manifest::Manifest;
+    use crate::RustupError;
+
+    // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
+    static EXAMPLE: &str = include_str!("manifest/tests/channel-rust-nightly-example.toml");
+    // From brson's live build-rust-manifest.py script
+    static EXAMPLE2: &str = include_str!("manifest/tests/channel-rust-nightly-example2.toml");
+
+    #[test]
+    fn parse_smoke_test() {
+        let x86_64_unknown_linux_gnu = TargetTriple::new("x86_64-unknown-linux-gnu");
+        let x86_64_unknown_linux_musl = TargetTriple::new("x86_64-unknown-linux-musl");
+
+        let pkg = Manifest::parse(EXAMPLE).unwrap();
+
+        pkg.get_package("rust").unwrap();
+        pkg.get_package("rustc").unwrap();
+        pkg.get_package("cargo").unwrap();
+        pkg.get_package("rust-std").unwrap();
+        pkg.get_package("rust-docs").unwrap();
+
+        let rust_pkg = pkg.get_package("rust").unwrap();
+        assert!(rust_pkg.version.contains("1.3.0"));
+
+        let rust_target_pkg = rust_pkg
+            .get_target(Some(&x86_64_unknown_linux_gnu))
+            .unwrap();
+        assert!(rust_target_pkg.available());
+        assert_eq!(rust_target_pkg.bins[0].1.url, "example.com");
+        assert_eq!(rust_target_pkg.bins[0].1.hash, "...");
+
+        let component = &rust_target_pkg.components[0];
+        assert_eq!(component.short_name_in_manifest(), "rustc");
+        assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_gnu));
+
+        let component = &rust_target_pkg.components[4];
+        assert_eq!(component.short_name_in_manifest(), "rust-std");
+        assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_musl));
+
+        let docs_pkg = pkg.get_package("rust-docs").unwrap();
+        let docs_target_pkg = docs_pkg
+            .get_target(Some(&x86_64_unknown_linux_gnu))
+            .unwrap();
+        assert_eq!(docs_target_pkg.bins[0].1.url, "example.com");
+    }
+
+    #[test]
+    fn renames() {
+        let manifest = Manifest::parse(EXAMPLE2).unwrap();
+        assert_eq!(1, manifest.renames.len());
+        assert_eq!(manifest.renames["cargo-old"], "cargo");
+        assert_eq!(1, manifest.reverse_renames.len());
+        assert_eq!(manifest.reverse_renames["cargo"], "cargo-old");
+    }
+
+    #[test]
+    fn parse_round_trip() {
+        let original = Manifest::parse(EXAMPLE).unwrap();
+        let serialized = original.clone().stringify();
+        let new = Manifest::parse(&serialized).unwrap();
+        assert_eq!(original, new);
+
+        let original = Manifest::parse(EXAMPLE2).unwrap();
+        let serialized = original.clone().stringify();
+        let new = Manifest::parse(&serialized).unwrap();
+        assert_eq!(original, new);
+    }
+
+    #[test]
+    fn validate_components_have_corresponding_packages() {
+        let manifest = r#"
+manifest-version = "2"
+date = "2015-10-10"
+[pkg.rust]
+  version = "rustc 1.3.0 (9a92aaf19 2015-09-15)"
+  [pkg.rust.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "example.com"
+    hash = "..."
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+      pkg = "rustc"
+      target = "x86_64-unknown-linux-gnu"
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+      pkg = "rust-std"
+      target = "x86_64-unknown-linux-musl"
+[pkg.rustc]
+  version = "rustc 1.3.0 (9a92aaf19 2015-09-15)"
+  [pkg.rustc.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "example.com"
+    hash = "..."
+"#;
+
+        let err = Manifest::parse(manifest).unwrap_err();
+
+        match err.downcast::<RustupError>().unwrap() {
+            RustupError::MissingPackageForComponent(_) => {}
+            _ => panic!(),
+        }
+    }
+
+    // #248
+    #[test]
+    fn manifest_can_contain_unknown_targets() {
+        let manifest = EXAMPLE.replace("x86_64-unknown-linux-gnu", "mycpu-myvendor-myos");
+
+        assert!(Manifest::parse(&manifest).is_ok());
     }
 }

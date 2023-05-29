@@ -4,14 +4,15 @@
     clippy::type_complexity,
     clippy::upper_case_acronyms, // see https://github.com/rust-lang/rust-clippy/issues/6974
     clippy::vec_init_then_push, // uses two different styles of initialization
+    clippy::box_default, // its ugly and outside of inner loops irrelevant 
+    clippy::result_large_err, // 288 bytes is our 'large' variant today, which is unlikely to be a performance problem
 )]
 #![recursion_limit = "1024"]
 
-pub use crate::config::*;
+pub(crate) use crate::config::*;
 use crate::currentprocess::*;
 pub use crate::errors::*;
-pub use crate::notifications::*;
-use crate::toolchain::*;
+pub(crate) use crate::notifications::*;
 pub(crate) use crate::utils::toml_utils;
 use anyhow::{anyhow, Result};
 
@@ -52,7 +53,7 @@ pub fn is_proxyable_tools(tool: &str) -> Result<()> {
             TOOLS
                 .iter()
                 .chain(DUP_TOOLS.iter())
-                .map(|s| format!("'{}'", s))
+                .map(|s| format!("'{s}'"))
                 .collect::<Vec<_>>()
                 .join(", ")
         )))
@@ -94,12 +95,15 @@ mod fallback_settings;
 mod install;
 pub mod notifications;
 mod settings;
+#[cfg(feature = "test")]
 pub mod test;
 mod toolchain;
 pub mod utils;
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use crate::{is_proxyable_tools, DUP_TOOLS, TOOLS};
 
     #[test]
