@@ -1,11 +1,12 @@
-use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Debug;
-use std::io::{self, IsTerminal};
+use std::future::Future;
+use std::io;
 use std::panic;
 use std::path::PathBuf;
 use std::sync::Once;
+use std::{cell::RefCell, io::IsTerminal};
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
@@ -135,13 +136,7 @@ pub fn with<F, R>(process: Process, f: F) -> R
 where
     F: FnOnce() -> R,
 {
-    HOOK_INSTALLED.call_once(|| {
-        let orig_hook = panic::take_hook();
-        panic::set_hook(Box::new(move |info| {
-            clear_process();
-            orig_hook(info);
-        }));
-    });
+    ensure_hook();
 
     PROCESS.with(|p| {
         if let Some(old_p) = &*p.borrow() {
@@ -149,6 +144,78 @@ where
         }
         *p.borrow_mut() = Some(process);
         let result = f();
+        *p.borrow_mut() = None;
+        result
+    })
+}
+
+fn ensure_hook() {
+    HOOK_INSTALLED.call_once(|| {
+        let orig_hook = panic::take_hook();
+        panic::set_hook(Box::new(move |info| {
+            clear_process();
+            orig_hook(info);
+        }));
+    });
+}
+
+/// Run a function in the context of a process definition and a tokio runtime.
+///
+/// The process state is injected into a thread-local in every work thread of
+/// the runtime, but this requires access to the runtime builder, so this
+/// function must be the one to create the runtime.
+pub fn with_runtime<'a, R>(
+    process: Process,
+    mut runtime_builder: tokio::runtime::Builder,
+    fut: impl Future<Output = R> + 'a,
+) -> R {
+    ensure_hook();
+
+    let start_process = process.clone();
+    let unpark_process = process.clone();
+    let runtime = runtime_builder
+        // propagate to blocking threads
+        .on_thread_start(move || {
+            // assign the process persistently to the thread local.
+            PROCESS.with(|p| {
+                if let Some(old_p) = &*p.borrow() {
+                    panic!("current process already set {old_p:?}");
+                }
+                *p.borrow_mut() = Some(start_process.clone());
+                // Thread exits will clear the process.
+            });
+        })
+        .on_thread_stop(move || {
+            PROCESS.with(|p| {
+                *p.borrow_mut() = None;
+            });
+        })
+        // propagate to async worker threads
+        .on_thread_unpark(move || {
+            // assign the process persistently to the thread local.
+            PROCESS.with(|p| {
+                if let Some(old_p) = &*p.borrow() {
+                    panic!("current process already set {old_p:?}");
+                }
+                *p.borrow_mut() = Some(unpark_process.clone());
+                // Thread exits will clear the process.
+            });
+        })
+        .on_thread_park(move || {
+            PROCESS.with(|p| {
+                *p.borrow_mut() = None;
+            });
+        })
+        .build()
+        .unwrap();
+
+    // The current thread doesn't get hooks run on it.
+    PROCESS.with(move |p| {
+        if let Some(old_p) = &*p.borrow() {
+            panic!("current process already set {old_p:?}");
+        }
+        *p.borrow_mut() = Some(process);
+        let result = runtime.block_on(fut);
         *p.borrow_mut() = None;
         result
     })
@@ -233,6 +300,7 @@ impl TestProcess {
             stderr: Arc::new(Mutex::new(Vec::new())),
         }
     }
+
     fn new_id() -> u64 {
         let low_bits: u64 = std::process::id() as u64;
         let mut rng = thread_rng();

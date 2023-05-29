@@ -5,6 +5,7 @@ use std::path::Path;
 
 use anyhow::Context;
 pub use anyhow::Result;
+use tokio::{runtime::Handle, task};
 use url::Url;
 
 mod errors;
@@ -57,7 +58,26 @@ fn download_with_backend(
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
+        Backend::Reqwest(tls) => {
+            // reqwest is async; this function is sync.
+            match Handle::try_current() {
+                Ok(current) => {
+                    // hide the asyncness for now.
+                    task::block_in_place(|| {
+                        current.block_on(reqwest_be::download(url, resume_from, callback, tls))
+                    })
+                }
+                Err(_) => {
+                    // Make a runtime to hide the asyncness.
+                    tokio::runtime::Runtime::new()?.block_on(reqwest_be::download(
+                        url,
+                        resume_from,
+                        callback,
+                        tls,
+                    ))
+                }
+            }
+        }
     }
 }
 
@@ -285,15 +305,15 @@ pub mod reqwest_be {
     use anyhow::{anyhow, Context, Result};
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-default-tls"))]
     use once_cell::sync::Lazy;
-    use reqwest::blocking::{Client, ClientBuilder, Response};
-    use reqwest::{header, Proxy};
+    use reqwest::{header, Client, ClientBuilder, Proxy, Response};
+    use tokio_stream::StreamExt;
     use url::Url;
 
     use super::Event;
     use super::TlsBackend;
     use crate::errors::*;
 
-    pub fn download(
+    pub async fn download(
         url: &Url,
         resume_from: u64,
         callback: &dyn Fn(Event<'_>) -> Result<()>,
@@ -304,31 +324,26 @@ pub mod reqwest_be {
             return Ok(());
         }
 
-        let mut res = request(url, resume_from, tls).context("failed to make network request")?;
+        let res = request(url, resume_from, tls)
+            .await
+            .context("failed to make network request")?;
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
             return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
         }
 
-        let buffer_size = 0x10000;
-        let mut buffer = vec![0u8; buffer_size];
-
-        if let Some(len) = res.headers().get(header::CONTENT_LENGTH) {
-            // TODO possible issues during unwrap?
-            let len = len.to_str().unwrap().parse::<u64>().unwrap() + resume_from;
+        if let Some(len) = res.content_length() {
+            let len = len + resume_from;
             callback(Event::DownloadContentLengthReceived(len))?;
         }
 
-        loop {
-            let bytes_read = io::Read::read(&mut res, &mut buffer)?;
-
-            if bytes_read != 0 {
-                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-            } else {
-                return Ok(());
-            }
+        let mut stream = res.bytes_stream();
+        while let Some(item) = stream.next().await {
+            let bytes = item?;
+            callback(Event::DownloadDataReceived(&bytes))?;
         }
+        Ok(())
     }
 
     fn client_generic() -> ClientBuilder {
@@ -377,7 +392,7 @@ pub mod reqwest_be {
         env_proxy::for_url(url).to_url()
     }
 
-    fn request(
+    async fn request(
         url: &Url,
         resume_from: u64,
         backend: TlsBackend,
@@ -402,7 +417,7 @@ pub mod reqwest_be {
             req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
 
-        Ok(req.send()?)
+        Ok(req.send().await?)
     }
 
     fn download_from_file_url(
