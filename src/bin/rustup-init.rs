@@ -100,7 +100,7 @@ async fn run_rustup() -> Result<utils::ExitCode> {
     if let Ok(dir) = process().var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
     }
-    let result = run_rustup_inner();
+    let result = run_rustup_inner().await;
     if process().var("RUSTUP_TRACE_DIR").is_ok() {
         close_trace_file!();
     }
@@ -108,7 +108,7 @@ async fn run_rustup() -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(err))]
-fn run_rustup_inner() -> Result<utils::ExitCode> {
+async fn run_rustup_inner() -> Result<utils::ExitCode> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard()?;
