@@ -526,7 +526,7 @@ enum SetSubcmd {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
-pub fn main() -> Result<utils::ExitCode> {
+pub async fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
     use clap::error::ErrorKind::*;
