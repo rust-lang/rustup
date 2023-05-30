@@ -1208,7 +1208,12 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Download new version
     info!("downloading self-update");
-    utils::download_file(&download_url, &setup_path, None, &|_| ())?;
+    utils::run_future(utils::download_file(
+        &download_url,
+        &setup_path,
+        None,
+        &|_| (),
+    ))?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
@@ -1227,7 +1232,12 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
+    utils::run_future(utils::download_file(
+        &release_file_url,
+        &release_file,
+        None,
+        &|_| (),
+    ))?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml: toml::Value =
         toml::from_str(&release_toml_str).context("unable to parse rustup release file")?;
