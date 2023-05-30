@@ -184,14 +184,19 @@ pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall
     download_tracker.lock().unwrap().download_finished();
 
     info!("downloading Visual Studio installer");
-    utils::download_file(&visual_studio_url, &visual_studio, None, &move |n| {
-        download_tracker
-            .lock()
-            .unwrap()
-            .handle_notification(&crate::Notification::Install(
-                crate::dist::Notification::Utils(n),
-            ));
-    })?;
+    utils::run_future(utils::download_file(
+        &visual_studio_url,
+        &visual_studio,
+        None,
+        &move |n| {
+            download_tracker
+                .lock()
+                .unwrap()
+                .handle_notification(&crate::Notification::Install(
+                    crate::dist::Notification::Utils(n),
+                ));
+        },
+    ))?;
 
     // Run the installer. Arguments are documented at:
     // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio
