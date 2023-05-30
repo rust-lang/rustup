@@ -169,7 +169,7 @@ pub(crate) enum ContinueInstall {
 ///
 /// Returns `Ok(ContinueInstall::No)` if installing Visual Studio was successful
 /// but the rustup install should not be continued at this time.
-pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall> {
+pub(crate) async fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall> {
     // download the installer
     let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
 
@@ -183,16 +183,12 @@ pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall
     download_tracker.lock().unwrap().download_finished();
 
     info!("downloading Visual Studio installer");
-    utils::run_future(utils::download_file(
-        &visual_studio_url,
-        &visual_studio,
-        None,
-        &move |n| {
-            download_tracker.lock().unwrap().handle_notification(
-                &crate::notifications::Notification::Install(crate::dist::Notification::Utils(n)),
-            );
-        },
-    ))?;
+    utils::download_file(&visual_studio_url, &visual_studio, None, &move |n| {
+        download_tracker.lock().unwrap().handle_notification(
+            &crate::notifications::Notification::Install(crate::dist::Notification::Utils(n)),
+        );
+    })
+    .await?;
 
     // Run the installer. Arguments are documented at:
     // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio
