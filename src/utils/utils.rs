@@ -145,19 +145,13 @@ where
     })
 }
 
-pub fn download_file(
+pub async fn download_file(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    run_future(download_file_with_resume(
-        url,
-        path,
-        hasher,
-        false,
-        &notify_handler,
-    ))
+    download_file_with_resume(url, path, hasher, false, &notify_handler).await
 }
 
 pub(crate) async fn download_file_with_resume(

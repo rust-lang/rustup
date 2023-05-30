@@ -130,9 +130,9 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        utils::download_file(&hash_url, &hash_file, None, &|n| {
+        utils::run_future(utils::download_file(&hash_url, &hash_file, None, &|n| {
             (self.notify_handler)(n.into())
-        })?;
+        }))?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
@@ -170,9 +170,9 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        utils::download_file(&url, &file, Some(&mut hasher), &|n| {
+        utils::run_future(utils::download_file(&url, &file, Some(&mut hasher), &|n| {
             (self.notify_handler)(n.into())
-        })?;
+        }))?;
         let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {

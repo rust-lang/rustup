@@ -443,7 +443,12 @@ fn update_from_dist(
     // Download the dist manifest and place it into the installation prefix
     let manifest_url = make_manifest_url(dist_server, toolchain)?;
     let manifest_file = tmp_cx.new_file()?;
-    utils::download_file(&manifest_url, &manifest_file, None, &|_| {})?;
+    utils::run_future(utils::download_file(
+        &manifest_url,
+        &manifest_file,
+        None,
+        &|_| {},
+    ))?;
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let manifest = Manifest::parse(&manifest_str)?;
 
