@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -181,13 +180,14 @@ pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall
         .context("error creating temp directory")?;
 
     let visual_studio = tempdir.path().join("vs_setup.exe");
-    let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(true));
-    download_tracker.borrow_mut().download_finished();
+    let download_tracker = DownloadTracker::new_with_display_progress(true);
+    download_tracker.lock().unwrap().download_finished();
 
     info!("downloading Visual Studio installer");
     utils::download_file(&visual_studio_url, &visual_studio, None, &move |n| {
         download_tracker
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .handle_notification(&crate::Notification::Install(
                 crate::dist::Notification::Utils(n),
             ));
