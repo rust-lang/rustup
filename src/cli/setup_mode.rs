@@ -154,5 +154,5 @@ pub fn main() -> Result<utils::ExitCode> {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 
-    self_update::install(no_prompt, verbose, quiet, opts)
+    utils::run_future(self_update::install(no_prompt, verbose, quiet, opts))
 }

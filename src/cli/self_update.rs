@@ -356,9 +356,10 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
 }
 
 /// Installing is a simple matter of copying the running binary to
-/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
-/// and adding `CARGO_HOME`/bin to PATH.
-pub(crate) fn install(
+/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it, and adding
+/// `CARGO_HOME`/bin to PATH by dropping shell scripts around the place, except
+/// on windows, and also we need a linker on Windows...
+pub(crate) async fn install(
     no_prompt: bool,
     verbose: bool,
     quiet: bool,
@@ -393,7 +394,7 @@ pub(crate) fn install(
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
             match windows::choose_vs_install()? {
                 Some(VsInstallPlan::Automatic) => {
-                    match utils::run_future(try_install_msvc(&opts)) {
+                    match try_install_msvc(&opts).await {
                         Err(e) => {
                             // Make sure the console doesn't exit before the user can
                             // see the error and give the option to continue anyway.
