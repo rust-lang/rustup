@@ -5,6 +5,7 @@ use anyhow::Result;
 use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
+    currentprocess::argsource::ArgSource,
     toolchain::names::{LocalToolchainName, ResolvableLocalToolchainName},
     utils::utils::{self, ExitCode},
     Cfg,

@@ -11,7 +11,7 @@ pub(crate) use term::color;
 pub(crate) use term::Attr;
 pub(crate) use term::Terminal;
 
-use crate::currentprocess::filesource::{Isatty, Writer};
+use crate::currentprocess::filesource::{Isatty, StderrSource, StdoutSource, Writer};
 use crate::process;
 
 mod termhack {

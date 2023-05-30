@@ -10,7 +10,7 @@ use retry::{retry, OperationResult};
 use sha2::Sha256;
 use url::Url;
 
-// use crate::currentprocess::cwdsource::CurrentDirSource;
+use crate::currentprocess::{cwdsource::CurrentDirSource, varsource::VarSource};
 use crate::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;

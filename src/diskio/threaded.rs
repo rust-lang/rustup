@@ -14,6 +14,7 @@ use enum_map::{enum_map, Enum, EnumMap};
 use sharded_slab::pool::{OwnedRef, OwnedRefMut};
 
 use super::{perform, CompletedIo, Executor, Item};
+use crate::currentprocess::varsource::VarSource;
 use crate::utils::notifications::Notification;
 use crate::utils::units::Unit;
 

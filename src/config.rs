@@ -13,6 +13,7 @@ use thiserror::Error as ThisError;
 
 use crate::{
     cli::self_update::SelfUpdateMode,
+    currentprocess::varsource::VarSource,
     dist::{
         dist::{self, PartialToolchainDesc, Profile, ToolchainDesc},
         download::DownloadCfg,

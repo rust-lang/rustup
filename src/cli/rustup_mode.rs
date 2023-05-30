@@ -21,6 +21,11 @@ use crate::{
         topical_doc,
     },
     command,
+    currentprocess::{
+        argsource::ArgSource,
+        filesource::{StderrSource, StdoutSource},
+        varsource::VarSource,
+    },
     dist::{
         dist::{PartialToolchainDesc, Profile, TargetTriple},
         manifest::{Component, ComponentStatus},

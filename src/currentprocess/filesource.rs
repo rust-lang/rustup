@@ -1,6 +1,8 @@
 use std::io::{self, BufRead, Cursor, Read, Result, Write};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use enum_dispatch::enum_dispatch;
+
 use crate::utils::tty;
 
 /// Stand-in for std::io::Stdin
@@ -13,6 +15,7 @@ pub trait Stdin {
 pub trait StdinLock: Read + BufRead {}
 
 /// Stand-in for std::io::stdin
+#[enum_dispatch]
 pub trait StdinSource {
     fn stdin(&self) -> Box<dyn Stdin>;
 }
@@ -95,6 +98,7 @@ pub trait Writer: Write + Isatty + Send {
 }
 
 /// Stand-in for std::io::stdout
+#[enum_dispatch]
 pub trait StdoutSource {
     fn stdout(&self) -> Box<dyn Writer>;
 }
@@ -102,6 +106,7 @@ pub trait StdoutSource {
 // -------------- stderr -------------------------------
 
 /// Stand-in for std::io::stderr
+#[enum_dispatch]
 pub trait StderrSource {
     fn stderr(&self) -> Box<dyn Writer>;
 }

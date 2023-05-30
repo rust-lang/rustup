@@ -558,12 +558,13 @@ fn setup_from_dist_server(
     };
 
     currentprocess::with(
-        Box::new(currentprocess::TestProcess::new(
+        currentprocess::TestProcess::new(
             env::current_dir().unwrap(),
             &["rustup"],
             HashMap::default(),
             "",
-        )),
+        )
+        .into(),
         || f(url, &toolchain, &prefix, &download_cfg, &temp_cfg),
     );
 }

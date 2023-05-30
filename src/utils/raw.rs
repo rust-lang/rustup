@@ -11,7 +11,7 @@ use std::str;
 use libc;
 
 #[cfg(not(windows))]
-use crate::process;
+use crate::{currentprocess::varsource::VarSource, process};
 
 pub(crate) fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,

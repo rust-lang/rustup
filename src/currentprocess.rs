@@ -1,7 +1,10 @@
 use std::boxed::Box;
 use std::cell::RefCell;
 use std::default::Default;
+use std::env;
+use std::ffi::OsString;
 use std::fmt::Debug;
+use std::io;
 use std::panic;
 use std::path::PathBuf;
 use std::sync::Once;
@@ -13,22 +16,27 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use enum_dispatch::enum_dispatch;
 use home::env as home;
 #[cfg(feature = "test")]
 use rand::{thread_rng, Rng};
 
-pub(crate) mod argsource;
-pub(crate) mod cwdsource;
-pub(crate) mod filesource;
+pub mod argsource;
+pub mod cwdsource;
+pub mod filesource;
 mod homethunk;
-pub(crate) mod varsource;
+pub mod varsource;
 
 use argsource::*;
 use cwdsource::*;
 use filesource::*;
 use varsource::*;
 
-/// An abstraction for the current process
+/// An abstraction for the current process.
+///
+/// This acts as a clonable proxy to the global state provided by some key OS
+/// interfaces - it is a zero cost abstraction. For the test variant it manages
+/// a mutex and takes out locks to ensure consistency.
 ///
 /// This provides replacements env::arg*, env::var*, and the standard files
 /// io::std* with traits that are customisable for tests. As a result any macros
@@ -58,32 +66,10 @@ use varsource::*;
 /// needing to thread trait parameters across the entire code base: none of the
 /// methods are in performance critical loops (except perhaps progress bars -
 /// and even there we should be doing debouncing and managing update rates).
-/// The real trait is CurrentProcess; HomeProcess is a single trait because
-/// Box<T> only allows autotraits to be added to it; so we use a subtrait to add
-/// home::Env in.
-pub trait HomeProcess: CurrentProcess + home::Env {
-    fn clone_boxed(&self) -> Box<dyn HomeProcess>;
-}
-
-// Machinery for Cloning boxes
-
-impl<T> HomeProcess for T
-where
-    T: 'static + CurrentProcess + home::Env + Clone,
-{
-    fn clone_boxed(&self) -> Box<dyn HomeProcess + 'static> {
-        Box::new(T::clone(self))
-    }
-}
-
-impl Clone for Box<dyn HomeProcess + 'static> {
-    fn clone(&self) -> Self {
-        HomeProcess::clone_boxed(self.as_ref())
-    }
-}
-
+#[enum_dispatch]
 pub trait CurrentProcess:
-    ArgSource
+    home::Env
+    + ArgSource
     + CurrentDirSource
     + VarSource
     + StdoutSource
@@ -92,31 +78,28 @@ pub trait CurrentProcess:
     + ProcessSource
     + Debug
 {
-    fn clone_boxed(&self) -> Box<dyn CurrentProcess>;
-
-    fn name(&self) -> Option<String>;
 }
 
-// Machinery for Cloning boxes
+/// Allows concrete types for the currentprocess abstraction.
+#[derive(Clone, Debug)]
+#[enum_dispatch(
+    CurrentProcess,
+    ArgSource,
+    CurrentDirSource,
+    VarSource,
+    StdoutSource,
+    StderrSource,
+    StdinSource,
+    ProcessSource
+)]
+pub enum Process {
+    OSProcess(OSProcess),
+    #[cfg(feature = "test")]
+    TestProcess(TestProcess),
+}
 
-impl<T> CurrentProcess for T
-where
-    T: 'static
-        + Clone
-        + Debug
-        + ArgSource
-        + CurrentDirSource
-        + VarSource
-        + StdoutSource
-        + StderrSource
-        + StdinSource
-        + ProcessSource,
-{
-    fn clone_boxed(&self) -> Box<dyn CurrentProcess + 'static> {
-        Box::new(T::clone(self))
-    }
-
-    fn name(&self) -> Option<String> {
+impl Process {
+    pub fn name(&self) -> Option<String> {
         let arg0 = match self.var("RUSTUP_FORCE_ARG0") {
             Ok(v) => Some(v),
             Err(_) => self.args().next(),
@@ -130,19 +113,13 @@ where
     }
 }
 
-impl Clone for Box<dyn CurrentProcess + 'static> {
-    fn clone(&self) -> Self {
-        self.as_ref().clone_boxed()
-    }
-}
-
 /// Obtain the current instance of CurrentProcess
-pub fn process() -> Box<dyn CurrentProcess> {
-    CurrentProcess::clone_boxed(&*home_process())
+pub fn process() -> Process {
+    home_process()
 }
 
 /// Obtain the current instance of HomeProcess
-pub(crate) fn home_process() -> Box<dyn HomeProcess> {
+pub(crate) fn home_process() -> Process {
     match PROCESS.with(|p| p.borrow().clone()) {
         None => panic!("No process instance"),
         Some(p) => p,
@@ -155,7 +132,7 @@ static HOOK_INSTALLED: Once = Once::new();
 ///
 /// If the function panics, the process definition *in that thread* is cleared
 /// by an implicitly installed global panic hook.
-pub fn with<F, R>(process: Box<dyn HomeProcess>, f: F) -> R
+pub fn with<F, R>(process: Process, f: F) -> R
 where
     F: FnOnce() -> R,
 {
@@ -184,11 +161,11 @@ fn clear_process() {
 }
 
 thread_local! {
-    pub(crate) static PROCESS:RefCell<Option<Box<dyn HomeProcess>>> = RefCell::new(None);
+    pub(crate) static PROCESS:RefCell<Option<Process>> = RefCell::new(None);
 }
 
 // PID related things
-
+#[enum_dispatch]
 pub trait ProcessSource {
     /// Returns a unique id for the process.
     ///
@@ -287,7 +264,7 @@ mod tests {
             HashMap::default(),
             "",
         );
-        with(Box::new(proc.clone()), || {
+        with(proc.clone().into(), || {
             assert_eq!(proc.id(), process().id(), "{:?} != {:?}", proc, process())
         });
     }

@@ -4,6 +4,9 @@ use std::env;
 use std::io;
 use std::path::PathBuf;
 
+use enum_dispatch::enum_dispatch;
+
+#[enum_dispatch]
 pub trait CurrentDirSource {
     fn current_dir(&self) -> io::Result<PathBuf>;
 }
