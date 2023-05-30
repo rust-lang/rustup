@@ -122,5 +122,5 @@ pub fn main() -> Result<utils::ExitCode> {
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    self_update::install(no_prompt, verbose, quiet, opts)
+    utils::run_future(self_update::install(no_prompt, verbose, quiet, opts))
 }
