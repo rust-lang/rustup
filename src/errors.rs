@@ -10,7 +10,10 @@ use std::path::PathBuf;
 use thiserror::Error as ThisError;
 use url::Url;
 
-use crate::{currentprocess::process, dist::dist::ToolchainDesc};
+use crate::{
+    currentprocess::process,
+    dist::dist::{TargetTriple, ToolchainDesc},
+};
 use crate::{
     dist::manifest::{Component, Manifest},
     toolchain::names::{PathBasedToolchainName, ToolchainName},
@@ -112,6 +115,30 @@ pub(crate) enum RustupError {
     UnknownComponent {
         desc: ToolchainDesc,
         component: String,
+        suggestion: Option<String>,
+    },
+    #[error("toolchain '{}' does not support target '{}'{}\n\
+    note: you can see a list of supported targets with `rustc --print=target-list`\n\
+    note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html", .desc, .target,
+    if let Some(suggestion) = .suggestion {
+        format!("; did you mean '{suggestion}'?")
+    } else {
+        "".to_string()
+    })]
+    UnknownTarget {
+        desc: ToolchainDesc,
+        target: TargetTriple,
+        suggestion: Option<String>,
+    },
+    #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
+    if let Some(suggestion) = .suggestion {
+        format!("; did you mean '{suggestion}'?")
+    } else {
+        "".to_string()
+    })]
+    TargetNotInstalled {
+        desc: ToolchainDesc,
+        target: TargetTriple,
         suggestion: Option<String>,
     },
     #[error("unknown metadata version: '{0}'")]

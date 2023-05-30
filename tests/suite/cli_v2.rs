@@ -752,9 +752,9 @@ fn add_target_bogus() {
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_err(
             &["rustup", "target", "add", "bogus"],
-            "does not contain component 'rust-std' for target 'bogus'\n\
-                note: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html\n\
-                help: consider using `cargo build -Z build-std` instead",
+            "does not support target 'bogus'\n\
+            note: you can see a list of supported targets with `rustc --print=target-list`\n\
+            note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html",
         );
     });
 }
@@ -866,7 +866,7 @@ fn remove_target_not_installed() {
         config.expect_err(
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
             &format!(
-                "toolchain 'nightly-{}' does not contain component 'rust-std' for target '{}'",
+                "toolchain 'nightly-{}' does not have target '{}' installed",
                 this_host_triple(),
                 clitools::CROSS_ARCH1
             ),
@@ -896,7 +896,7 @@ fn remove_target_bogus() {
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_err(
             &["rustup", "target", "remove", "bogus"],
-            "does not contain component 'rust-std' for target 'bogus'",
+            "does not have target 'bogus' installed",
         );
     });
 }
@@ -941,7 +941,7 @@ fn remove_target_again() {
         config.expect_err(
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
             &format!(
-                "toolchain 'nightly-{}' does not contain component 'rust-std' for target '{}'",
+                "toolchain 'nightly-{}' does not have target '{}' installed",
                 this_host_triple(),
                 clitools::CROSS_ARCH1
             ),
