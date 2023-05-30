@@ -399,7 +399,7 @@ pub(crate) fn install(
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
             match windows::choose_vs_install()? {
                 Some(VsInstallPlan::Automatic) => {
-                    match try_install_msvc(&opts) {
+                    match utils::run_future(try_install_msvc(&opts)) {
                         Err(e) => {
                             // Make sure the console doesn't exit before the user can
                             // see the error and give the option to continue anyway.
