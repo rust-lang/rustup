@@ -1,10 +1,9 @@
 use std::fmt;
 use std::io::Write;
-use term2::Terminal;
 
-use super::term2;
-use crate::currentprocess::varsource::VarSource;
-use crate::process;
+use crate::currentprocess::{
+    filesource::StderrSource, process, terminalsource, varsource::VarSource,
+};
 
 macro_rules! warn {
     ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
@@ -25,52 +24,52 @@ macro_rules! debug {
 }
 
 pub(crate) fn warn_fmt(args: fmt::Arguments<'_>) {
-    let mut t = term2::stderr();
-    let _ = t.fg(term2::color::YELLOW);
-    let _ = t.attr(term2::Attr::Bold);
-    let _ = write!(t, "warning: ");
+    let mut t = process().stderr().terminal();
+    let _ = t.fg(terminalsource::Color::Yellow);
+    let _ = t.attr(terminalsource::Attr::Bold);
+    let _ = write!(t.lock(), "warning: ");
     let _ = t.reset();
-    let _ = t.write_fmt(args);
-    let _ = writeln!(t);
+    let _ = t.lock().write_fmt(args);
+    let _ = writeln!(t.lock());
 }
 
 pub(crate) fn err_fmt(args: fmt::Arguments<'_>) {
-    let mut t = term2::stderr();
-    let _ = t.fg(term2::color::RED);
-    let _ = t.attr(term2::Attr::Bold);
-    let _ = write!(t, "error: ");
+    let mut t = process().stderr().terminal();
+    let _ = t.fg(terminalsource::Color::Red);
+    let _ = t.attr(terminalsource::Attr::Bold);
+    let _ = write!(t.lock(), "error: ");
     let _ = t.reset();
-    let _ = t.write_fmt(args);
-    let _ = writeln!(t);
+    let _ = t.lock().write_fmt(args);
+    let _ = writeln!(t.lock());
 }
 
 pub(crate) fn info_fmt(args: fmt::Arguments<'_>) {
-    let mut t = term2::stderr();
-    let _ = t.attr(term2::Attr::Bold);
-    let _ = write!(t, "info: ");
+    let mut t = process().stderr().terminal();
+    let _ = t.attr(terminalsource::Attr::Bold);
+    let _ = write!(t.lock(), "info: ");
     let _ = t.reset();
-    let _ = t.write_fmt(args);
-    let _ = writeln!(t);
+    let _ = t.lock().write_fmt(args);
+    let _ = writeln!(t.lock());
 }
 
 pub(crate) fn verbose_fmt(args: fmt::Arguments<'_>) {
-    let mut t = term2::stderr();
-    let _ = t.fg(term2::color::MAGENTA);
-    let _ = t.attr(term2::Attr::Bold);
-    let _ = write!(t, "verbose: ");
+    let mut t = process().stderr().terminal();
+    let _ = t.fg(terminalsource::Color::Magenta);
+    let _ = t.attr(terminalsource::Attr::Bold);
+    let _ = write!(t.lock(), "verbose: ");
     let _ = t.reset();
-    let _ = t.write_fmt(args);
-    let _ = writeln!(t);
+    let _ = t.lock().write_fmt(args);
+    let _ = writeln!(t.lock());
 }
 
 pub(crate) fn debug_fmt(args: fmt::Arguments<'_>) {
     if process().var("RUSTUP_DEBUG").is_ok() {
-        let mut t = term2::stderr();
-        let _ = t.fg(term2::color::BLUE);
-        let _ = t.attr(term2::Attr::Bold);
-        let _ = write!(t, "debug: ");
+        let mut t = process().stderr().terminal();
+        let _ = t.fg(terminalsource::Color::Blue);
+        let _ = t.attr(terminalsource::Attr::Bold);
+        let _ = write!(t.lock(), "debug: ");
         let _ = t.reset();
-        let _ = t.write_fmt(args);
-        let _ = writeln!(t);
+        let _ = t.lock().write_fmt(args);
+        let _ = writeln!(t.lock());
     }
 }

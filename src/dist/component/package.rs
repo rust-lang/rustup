@@ -457,7 +457,7 @@ fn unpack_without_first_dir<R: Read>(
                         // Tar has item before containing directory
                         // Complain about this so we can see if these exist.
                         writeln!(
-                            process().stderr(),
+                            process().stderr().lock(),
                             "Unexpected: missing parent '{}' for '{}'",
                             parent.display(),
                             entry.path()?.display()

@@ -23,14 +23,17 @@ use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 use winreg::{RegKey, RegValue};
 
 pub(crate) fn ensure_prompt() -> Result<()> {
-    writeln!(process().stdout(),)?;
-    writeln!(process().stdout(), "Press the Enter key to continue.")?;
+    writeln!(process().stdout().lock(),)?;
+    writeln!(
+        process().stdout().lock(),
+        "Press the Enter key to continue."
+    )?;
     common::read_line()?;
     Ok(())
 }
 
 fn choice(max: u8) -> Result<Option<u8>> {
-    write!(process().stdout(), ">")?;
+    write!(process().stdout().lock(), ">")?;
 
     let _ = std::io::stdout().flush();
     let input = common::read_line()?;
@@ -40,30 +43,33 @@ fn choice(max: u8) -> Result<Option<u8>> {
         _ => None,
     };
 
-    writeln!(process().stdout())?;
+    writeln!(process().stdout().lock())?;
     Ok(r)
 }
 
 pub(crate) fn choose_vs_install() -> Result<Option<VsInstallPlan>> {
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "\n1) Quick install via the Visual Studio Community installer"
     )?;
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "   (free for individuals, academic uses, and open source)."
     )?;
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "\n2) Manually install the prerequisites"
     )?;
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "   (for enterprise and advanced users)."
     )?;
-    writeln!(process().stdout(), "\n3) Don't install the prerequisites")?;
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
+        "\n3) Don't install the prerequisites"
+    )?;
+    writeln!(
+        process().stdout().lock(),
         "   (if you're targeting the GNU ABI).\n"
     )?;
 
@@ -71,7 +77,7 @@ pub(crate) fn choose_vs_install() -> Result<Option<VsInstallPlan>> {
         if let Some(n) = choice(3)? {
             break n;
         }
-        writeln!(process().stdout(), "Select option 1, 2 or 3")?;
+        writeln!(process().stdout().lock(), "Select option 1, 2 or 3")?;
     };
     let plan = match choice {
         1 => Some(VsInstallPlan::Automatic),

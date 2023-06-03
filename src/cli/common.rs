@@ -10,13 +10,12 @@ use std::{cmp, env};
 use anyhow::{anyhow, Context, Result};
 use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
-use term2::Terminal;
 
 use super::self_update;
-use super::term2;
-use crate::currentprocess::argsource::ArgSource;
 use crate::currentprocess::{
+    argsource::ArgSource,
     filesource::{StdinSource, StdoutSource},
+    terminalsource,
     varsource::VarSource,
 };
 use crate::utils::notifications as util_notifications;
@@ -32,7 +31,7 @@ use crate::{Cfg, Notification};
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
 pub(crate) fn confirm(question: &str, default: bool) -> Result<bool> {
-    write!(process().stdout(), "{question} ")?;
+    write!(process().stdout().lock(), "{question} ")?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
@@ -43,7 +42,7 @@ pub(crate) fn confirm(question: &str, default: bool) -> Result<bool> {
         _ => false,
     };
 
-    writeln!(process().stdout())?;
+    writeln!(process().stdout().lock())?;
 
     Ok(r)
 }
@@ -55,11 +54,14 @@ pub(crate) enum Confirm {
 }
 
 pub(crate) fn confirm_advanced() -> Result<Confirm> {
-    writeln!(process().stdout())?;
-    writeln!(process().stdout(), "1) Proceed with installation (default)")?;
-    writeln!(process().stdout(), "2) Customize installation")?;
-    writeln!(process().stdout(), "3) Cancel installation")?;
-    write!(process().stdout(), ">")?;
+    writeln!(process().stdout().lock())?;
+    writeln!(
+        process().stdout().lock(),
+        "1) Proceed with installation (default)"
+    )?;
+    writeln!(process().stdout().lock(), "2) Customize installation")?;
+    writeln!(process().stdout().lock(), "3) Cancel installation")?;
+    write!(process().stdout().lock(), ">")?;
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;
@@ -70,17 +72,17 @@ pub(crate) fn confirm_advanced() -> Result<Confirm> {
         _ => Confirm::No,
     };
 
-    writeln!(process().stdout())?;
+    writeln!(process().stdout().lock())?;
 
     Ok(r)
 }
 
 pub(crate) fn question_str(question: &str, default: &str) -> Result<String> {
-    writeln!(process().stdout(), "{question} [{default}]")?;
+    writeln!(process().stdout().lock(), "{question} [{default}]")?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    writeln!(process().stdout())?;
+    writeln!(process().stdout().lock())?;
 
     if input.is_empty() {
         Ok(default.to_string())
@@ -91,12 +93,12 @@ pub(crate) fn question_str(question: &str, default: &str) -> Result<String> {
 
 pub(crate) fn question_bool(question: &str, default: bool) -> Result<bool> {
     let default_text = if default { "(Y/n)" } else { "(y/N)" };
-    writeln!(process().stdout(), "{question} {default_text}")?;
+    writeln!(process().stdout().lock(), "{question} {default_text}")?;
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    writeln!(process().stdout())?;
+    writeln!(process().stdout().lock())?;
 
     if input.is_empty() {
         Ok(default)
@@ -212,10 +214,10 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
         let (banner, color) = match &result {
-            Ok(UpdateStatus::Installed) => ("installed", Some(term2::color::GREEN)),
-            Ok(UpdateStatus::Updated(_)) => ("updated", Some(term2::color::GREEN)),
+            Ok(UpdateStatus::Installed) => ("installed", Some(terminalsource::Color::Green)),
+            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminalsource::Color::Green)),
             Ok(UpdateStatus::Unchanged) => ("unchanged", None),
-            Err(_) => ("update failed", Some(term2::color::RED)),
+            Err(_) => ("update failed", Some(terminalsource::Color::Red)),
         };
 
         let (previous_version, version) = match &pkg {
@@ -253,7 +255,7 @@ fn show_channel_updates(
         Ok((pkg, banner, width, color, version, previous_version))
     });
 
-    let mut t = term2::stdout();
+    let mut t = process().stdout().terminal();
 
     let data: Vec<_> = data.collect::<Result<_>>()?;
     let max_width = data
@@ -263,20 +265,20 @@ fn show_channel_updates(
     for (pkg, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
-        let _ = write!(t, "  {padding}");
-        let _ = t.attr(term2::Attr::Bold);
+        let _ = write!(t.lock(), "  {padding}");
+        let _ = t.attr(terminalsource::Attr::Bold);
         if let Some(color) = color {
             let _ = t.fg(color);
         }
-        let _ = write!(t, "{pkg} {banner}");
+        let _ = write!(t.lock(), "{pkg} {banner}");
         let _ = t.reset();
-        let _ = write!(t, " - {version}");
+        let _ = write!(t.lock(), " - {version}");
         if let Some(previous_version) = previous_version {
-            let _ = write!(t, " (from {previous_version})");
+            let _ = write!(t.lock(), " (from {previous_version})");
         }
-        let _ = writeln!(t);
+        let _ = writeln!(t.lock());
     }
-    let _ = writeln!(t);
+    let _ = writeln!(t.lock());
 
     Ok(())
 }
@@ -294,7 +296,7 @@ pub(crate) fn update_all_channels(
 
     let show_channel_updates = || {
         if !toolchains.is_empty() {
-            writeln!(process().stdout())?;
+            writeln!(process().stdout().lock())?;
 
             let t = toolchains
                 .into_iter()
@@ -374,7 +376,7 @@ where
 }
 
 pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<utils::ExitCode> {
-    let mut t = term2::stdout();
+    let mut t = process().stdout().terminal();
     let manifestation = distributable.get_manifestation()?;
     let config = manifestation.read_config()?.unwrap_or_default();
     let manifest = distributable.get_manifest()?;
@@ -387,11 +389,11 @@ pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<
                 .as_ref()
                 .expect("rust-std should have a target");
             if component.installed {
-                let _ = t.attr(term2::Attr::Bold);
-                let _ = writeln!(t, "{target} (installed)");
+                let _ = t.attr(terminalsource::Attr::Bold);
+                let _ = writeln!(t.lock(), "{target} (installed)");
                 let _ = t.reset();
             } else if component.available {
-                let _ = writeln!(t, "{target}");
+                let _ = writeln!(t.lock(), "{target}");
             }
         }
     }
@@ -402,7 +404,7 @@ pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<
 pub(crate) fn list_installed_targets(
     distributable: DistributableToolchain<'_>,
 ) -> Result<utils::ExitCode> {
-    let mut t = term2::stdout();
+    let t = process().stdout();
     let manifestation = distributable.get_manifestation()?;
     let config = manifestation.read_config()?.unwrap_or_default();
     let manifest = distributable.get_manifest()?;
@@ -415,7 +417,7 @@ pub(crate) fn list_installed_targets(
                 .as_ref()
                 .expect("rust-std should have a target");
             if component.installed {
-                writeln!(t, "{target}")?;
+                writeln!(t.lock(), "{target}")?;
             }
         }
     }
@@ -425,7 +427,8 @@ pub(crate) fn list_installed_targets(
 pub(crate) fn list_components(
     distributable: DistributableToolchain<'_>,
 ) -> Result<utils::ExitCode> {
-    let mut t = term2::stdout();
+    let mut t = process().stdout().terminal();
+
     let manifestation = distributable.get_manifestation()?;
     let config = manifestation.read_config()?.unwrap_or_default();
     let manifest = distributable.get_manifest()?;
@@ -433,11 +436,11 @@ pub(crate) fn list_components(
     for component in components {
         let name = component.name;
         if component.installed {
-            t.attr(term2::Attr::Bold)?;
-            writeln!(t, "{name} (installed)")?;
+            t.attr(terminalsource::Attr::Bold)?;
+            writeln!(t.lock(), "{name} (installed)")?;
             t.reset()?;
         } else if component.available {
-            writeln!(t, "{name}")?;
+            writeln!(t.lock(), "{name}")?;
         }
     }
 
@@ -445,7 +448,7 @@ pub(crate) fn list_components(
 }
 
 pub(crate) fn list_installed_components(distributable: DistributableToolchain<'_>) -> Result<()> {
-    let mut t = term2::stdout();
+    let t = process().stdout();
     let manifestation = distributable.get_manifestation()?;
     let config = manifestation.read_config()?.unwrap_or_default();
     let manifest = distributable.get_manifest()?;
@@ -453,7 +456,7 @@ pub(crate) fn list_installed_components(distributable: DistributableToolchain<'_
 
     for component in components {
         if component.installed {
-            writeln!(t, "{}", component.name)?;
+            writeln!(t.lock(), "{}", component.name)?;
         }
     }
     Ok(())
@@ -478,7 +481,7 @@ fn print_toolchain_path(
         String::new()
     };
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "{}{}{}{}",
         &toolchain,
         if_default,
@@ -496,7 +499,7 @@ pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCod
         .map(Into::into)
         .collect::<Vec<_>>();
     if toolchains.is_empty() {
-        writeln!(process().stdout(), "no installed toolchains")?;
+        writeln!(process().stdout().lock(), "no installed toolchains")?;
     } else {
         let def_toolchain_name = cfg.get_default()?.map(|t| (&t).into());
         let cwd = utils::current_dir()?;
@@ -534,7 +537,7 @@ pub(crate) fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
     let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
 
     if overrides.is_empty() {
-        writeln!(process().stdout(), "no overrides")?;
+        writeln!(process().stdout().lock(), "no overrides")?;
     } else {
         let mut any_not_exist = false;
         for (k, v) in overrides {
@@ -543,7 +546,7 @@ pub(crate) fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
                 any_not_exist = true;
             }
             writeln!(
-                process().stdout(),
+                process().stdout().lock(),
                 "{:<40}\t{:<20}",
                 utils::format_path_for_display(&k)
                     + if dir_exists { "" } else { " (not a directory)" },
@@ -551,7 +554,7 @@ pub(crate) fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
             )?
         }
         if any_not_exist {
-            writeln!(process().stdout())?;
+            writeln!(process().stdout().lock())?;
             info!(
                 "you may remove overrides for non-existent directories with
 `rustup override unset --nonexistent`"
@@ -576,43 +579,51 @@ pub(crate) fn version() -> &'static str {
 pub(crate) fn dump_testament() -> Result<utils::ExitCode> {
     use git_testament::GitModification::*;
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "Rustup version renders as: {}",
         version()
     )?;
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "Current crate version: {}",
         env!("CARGO_PKG_VERSION")
     )?;
     if TESTAMENT.branch_name.is_some() {
         writeln!(
-            process().stdout(),
+            process().stdout().lock(),
             "Built from branch: {}",
             TESTAMENT.branch_name.unwrap()
         )?;
     } else {
-        writeln!(process().stdout(), "Branch information missing")?;
+        writeln!(process().stdout().lock(), "Branch information missing")?;
     }
-    writeln!(process().stdout(), "Commit info: {}", TESTAMENT.commit)?;
+    writeln!(
+        process().stdout().lock(),
+        "Commit info: {}",
+        TESTAMENT.commit
+    )?;
     if TESTAMENT.modifications.is_empty() {
-        writeln!(process().stdout(), "Working tree is clean")?;
+        writeln!(process().stdout().lock(), "Working tree is clean")?;
     } else {
         for fmod in TESTAMENT.modifications {
             match fmod {
-                Added(f) => writeln!(process().stdout(), "Added: {}", String::from_utf8_lossy(f))?,
+                Added(f) => writeln!(
+                    process().stdout().lock(),
+                    "Added: {}",
+                    String::from_utf8_lossy(f)
+                )?,
                 Removed(f) => writeln!(
-                    process().stdout(),
+                    process().stdout().lock(),
                     "Removed: {}",
                     String::from_utf8_lossy(f)
                 )?,
                 Modified(f) => writeln!(
-                    process().stdout(),
+                    process().stdout().lock(),
                     "Modified: {}",
                     String::from_utf8_lossy(f)
                 )?,
                 Untracked(f) => writeln!(
-                    process().stdout(),
+                    process().stdout().lock(),
                     "Untracked: {}",
                     String::from_utf8_lossy(f)
                 )?,

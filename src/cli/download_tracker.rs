@@ -3,11 +3,8 @@ use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use term::Terminal;
-
-use super::term2;
+use crate::currentprocess::{filesource::StdoutSource, process, terminalsource};
 use crate::dist::Notification as In;
-use crate::utils::tty;
 use crate::utils::units::{Size, Unit, UnitMode};
 use crate::utils::Notification as Un;
 use crate::Notification;
@@ -31,11 +28,7 @@ pub(crate) struct DownloadTracker {
     last_sec: Option<Instant>,
     /// Time stamp of the start of the download
     start_sec: Option<Instant>,
-    /// The terminal we write the information to.
-    /// XXX: Could be a term trait, but with #1818 on the horizon that
-    ///      is a pointless change to make - better to let that transition
-    ///      happen and take stock after that.
-    term: term2::StdoutTerminal,
+    term: terminalsource::ColorableTerminal,
     /// Whether we displayed progress for the download or not.
     ///
     /// If the download is quick enough, we don't have time to
@@ -61,7 +54,7 @@ impl DownloadTracker {
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
             start_sec: None,
             last_sec: None,
-            term: term2::stdout(),
+            term: process().stdout().terminal(),
             displayed_charcount: None,
             units: vec![Unit::B],
             display_progress: true,
@@ -81,7 +74,7 @@ impl DownloadTracker {
                 true
             }
             Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
-                if tty::stdout_isatty() {
+                if process().stdout().is_a_tty() {
                     self.data_received(data.len());
                 }
                 true
@@ -139,7 +132,7 @@ impl DownloadTracker {
         if self.displayed_charcount.is_some() {
             // Display the finished state
             self.display();
-            let _ = writeln!(self.term);
+            let _ = writeln!(self.term.lock());
         }
         self.prepare_for_new_download();
     }
@@ -178,8 +171,8 @@ impl DownloadTracker {
                     // This is not ideal as very narrow terminals might mess up,
                     // but it is more likely to succeed until term's windows console
                     // fixes whatever's up with delete_line().
-                    let _ = write!(self.term, "{}", " ".repeat(n));
-                    let _ = self.term.flush();
+                    let _ = write!(self.term.lock(), "{}", " ".repeat(n));
+                    let _ = self.term.lock().flush();
                     let _ = self.term.carriage_return();
                 }
 
@@ -211,9 +204,9 @@ impl DownloadTracker {
                     ),
                 };
 
-                let _ = write!(self.term, "{output}");
+                let _ = write!(self.term.lock(), "{output}");
                 // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
-                let _ = self.term.flush();
+                let _ = self.term.lock().flush();
                 self.displayed_charcount = Some(output.chars().count());
             }
         }

@@ -3,7 +3,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use enum_dispatch::enum_dispatch;
 
-use crate::utils::tty;
+use crate::currentprocess::process;
+
+use super::terminalsource::{ColorableTerminal, StreamSelector};
 
 /// Stand-in for std::io::Stdin
 pub trait Stdin {
@@ -21,12 +23,14 @@ pub trait StdinSource {
 }
 
 // ----------------- OS support for stdin -----------------
+
 impl StdinLock for io::StdinLock<'_> {}
 
 impl Stdin for io::Stdin {
     fn lock(&self) -> Box<dyn StdinLock + '_> {
         Box::new(io::Stdin::lock(self))
     }
+
     fn read_line(&self, buf: &mut String) -> Result<usize> {
         io::Stdin::read_line(self, buf)
     }
@@ -85,19 +89,27 @@ impl StdinSource for super::TestProcess {
 
 // -------------- stdout -------------------------------
 
-pub trait Isatty {
-    fn isatty(&self) -> bool;
-}
-
-/// Stand-in for std::io::StdoutLock
+/// This is a stand-in for [`std::io::StdoutLock`] and [`std::io::StderrLock`].
 pub trait WriterLock: Write {}
 
-/// Stand-in for std::io::Stdout
-pub trait Writer: Write + Isatty + Send {
+/// This is a stand-in for [`std::io::Stdout`] or [`std::io::Stderr`].
+/// TODO: remove Sync.
+pub trait Writer: Write + Send + Sync {
+    /// This is a stand-in for [`std::io::Stdout::lock`] or [`std::io::Stderr::lock`].
     fn lock(&self) -> Box<dyn WriterLock + '_>;
+
+    /// Query whether a TTY is present. Used in download_tracker - we may want
+    /// to remove this entirely with a better progress bar system (in favour of
+    /// filtering in the Terminal layer?)
+    fn is_a_tty(&self) -> bool;
+
+    /// Construct a terminal on this writer.
+    fn terminal(&self) -> ColorableTerminal;
 }
 
-/// Stand-in for std::io::stdout
+// -------------- stdout -------------------------------
+
+/// Stand-in for [`std::io::stdout`].
 #[enum_dispatch]
 pub trait StdoutSource {
     fn stdout(&self) -> Box<dyn Writer>;
@@ -105,7 +117,7 @@ pub trait StdoutSource {
 
 // -------------- stderr -------------------------------
 
-/// Stand-in for std::io::stderr
+/// Stand-in for std::io::stderr.
 #[enum_dispatch]
 pub trait StderrSource {
     fn stderr(&self) -> Box<dyn Writer>;
@@ -116,14 +128,20 @@ pub trait StderrSource {
 impl WriterLock for io::StdoutLock<'_> {}
 
 impl Writer for io::Stdout {
+    fn is_a_tty(&self) -> bool {
+        match process() {
+            crate::currentprocess::Process::OSProcess(p) => p.stdout_is_a_tty,
+            #[cfg(feature = "test")]
+            crate::currentprocess::Process::TestProcess(_) => unreachable!(),
+        }
+    }
+
     fn lock(&self) -> Box<dyn WriterLock + '_> {
         Box::new(io::Stdout::lock(self))
     }
-}
 
-impl Isatty for io::Stdout {
-    fn isatty(&self) -> bool {
-        tty::stdout_isatty()
+    fn terminal(&self) -> ColorableTerminal {
+        ColorableTerminal::new(StreamSelector::Stdout)
     }
 }
 
@@ -136,14 +154,20 @@ impl StdoutSource for super::OSProcess {
 impl WriterLock for io::StderrLock<'_> {}
 
 impl Writer for io::Stderr {
+    fn is_a_tty(&self) -> bool {
+        match process() {
+            crate::currentprocess::Process::OSProcess(p) => p.stderr_is_a_tty,
+            #[cfg(feature = "test")]
+            crate::currentprocess::Process::TestProcess(_) => unreachable!(),
+        }
+    }
+
     fn lock(&self) -> Box<dyn WriterLock + '_> {
         Box::new(io::Stderr::lock(self))
     }
-}
 
-impl Isatty for io::Stderr {
-    fn isatty(&self) -> bool {
-        tty::stderr_isatty()
+    fn terminal(&self) -> ColorableTerminal {
+        ColorableTerminal::new(StreamSelector::Stderr)
     }
 }
 
@@ -155,7 +179,7 @@ impl StderrSource for super::OSProcess {
 
 // ----------------------- test support for writers ------------------
 
-struct TestWriterLock<'a> {
+pub(super) struct TestWriterLock<'a> {
     inner: MutexGuard<'a, Vec<u8>>,
 }
 
@@ -171,18 +195,40 @@ impl Write for TestWriterLock<'_> {
     }
 }
 
-pub(crate) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
+#[cfg(feature = "test")]
+pub(super) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
+/// A thread-safe test file handle that pretends to be e.g. stdout.
+#[derive(Clone)]
+#[cfg(feature = "test")]
+pub(super) struct TestWriter(TestWriterInner);
 
-struct TestWriter(TestWriterInner);
-
-impl Writer for TestWriter {
-    fn lock(&self) -> Box<dyn WriterLock + '_> {
-        Box::new(TestWriterLock {
+#[cfg(feature = "test")]
+impl TestWriter {
+    pub(super) fn lock(&self) -> TestWriterLock<'_> {
+        // The stream can be locked even if a test thread paniced: its state
+        // will be ok
+        TestWriterLock {
             inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
-        })
+        }
     }
 }
 
+#[cfg(feature = "test")]
+impl Writer for TestWriter {
+    fn is_a_tty(&self) -> bool {
+        false
+    }
+
+    fn lock(&self) -> Box<dyn WriterLock + '_> {
+        Box::new(self.lock())
+    }
+
+    fn terminal(&self) -> ColorableTerminal {
+        ColorableTerminal::new(StreamSelector::TestWriter(self.clone()))
+    }
+}
+
+#[cfg(feature = "test")]
 impl Write for TestWriter {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         self.lock().write(buf)
@@ -190,12 +236,6 @@ impl Write for TestWriter {
 
     fn flush(&mut self) -> Result<()> {
         Ok(())
-    }
-}
-
-impl Isatty for TestWriter {
-    fn isatty(&self) -> bool {
-        false
     }
 }
 
