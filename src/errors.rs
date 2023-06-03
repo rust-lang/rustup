@@ -103,11 +103,7 @@ pub(crate) enum RustupError {
         "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
     )]
     ToolchainNotSelected,
-    #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, if let Some(suggestion) = .suggestion {
-        format!("; did you mean '{suggestion}'?")
-    } else {
-        "".to_string()
-    }, if .component.contains("rust-std") {
+    #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, suggest_message(.suggestion), if .component.contains("rust-std") {
         format!("\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html{}",
             if desc.channel == "nightly" { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
         )
@@ -120,22 +116,14 @@ pub(crate) enum RustupError {
     #[error("toolchain '{}' does not support target '{}'{}\n\
     note: you can see a list of supported targets with `rustc --print=target-list`\n\
     note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html", .desc, .target,
-    if let Some(suggestion) = .suggestion {
-        format!("; did you mean '{suggestion}'?")
-    } else {
-        "".to_string()
-    })]
+    suggest_message(.suggestion))]
     UnknownTarget {
         desc: ToolchainDesc,
         target: TargetTriple,
         suggestion: Option<String>,
     },
     #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
-    if let Some(suggestion) = .suggestion {
-        format!("; did you mean '{suggestion}'?")
-    } else {
-        "".to_string()
-    })]
+    suggest_message(.suggestion))]
     TargetNotInstalled {
         desc: ToolchainDesc,
         target: TargetTriple,
@@ -149,6 +137,14 @@ pub(crate) enum RustupError {
     WritingFile { name: &'static str, path: PathBuf },
     #[error("I/O Error")]
     IOError(#[from] std::io::Error),
+}
+
+fn suggest_message(suggestion: &Option<String>) -> String {
+    if let Some(suggestion) = suggestion {
+        format!("; did you mean '{}'?", suggestion)
+    } else {
+        String::new()
+    }
 }
 
 fn remove_component_msg(cs: &Component, manifest: &Manifest, toolchain: &str) -> String {
