@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::fmt;
 use std::io::Write;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::currentprocess::{filesource::StdoutSource, process, terminalsource};
@@ -13,6 +14,9 @@ use crate::Notification;
 const DOWNLOAD_TRACK_COUNT: usize = 5;
 
 /// Tracks download progress and displays information about it to a terminal.
+///
+/// *not* safe for tracking concurrent downloads yet - it is basically undefined
+/// what will happen.
 pub(crate) struct DownloadTracker {
     /// Content-Length of the to-be downloaded object.
     content_len: Option<usize>,
@@ -46,8 +50,8 @@ pub(crate) struct DownloadTracker {
 
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
-    pub(crate) fn new() -> Self {
-        Self {
+    pub(crate) fn new_with_display_progress(display_progress: bool) -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(Self {
             content_len: None,
             total_downloaded: 0,
             downloaded_this_sec: 0,
@@ -57,13 +61,8 @@ impl DownloadTracker {
             term: process().stdout().terminal(),
             displayed_charcount: None,
             units: vec![Unit::B],
-            display_progress: true,
-        }
-    }
-
-    pub(crate) fn with_display_progress(mut self, display_progress: bool) -> Self {
-        self.display_progress = display_progress;
-        self
+            display_progress: display_progress,
+        }))
     }
 
     pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {

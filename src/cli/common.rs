@@ -1,5 +1,6 @@
 //! Just a dumping ground for cli stuff
 
+use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, ErrorKind, Write};
@@ -12,6 +13,7 @@ use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
 
 use super::self_update;
+use crate::cli::download_tracker::DownloadTracker;
 use crate::currentprocess::{
     argsource::ArgSource,
     filesource::{StdinSource, StdoutSource},
@@ -168,18 +170,14 @@ impl NotifyOnConsole {
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
 pub(crate) fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
-    use std::cell::RefCell;
-
-    use super::download_tracker::DownloadTracker;
-
-    let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(!quiet));
+    let download_tracker = DownloadTracker::new_with_display_progress(!quiet);
     let console_notifier = RefCell::new(NotifyOnConsole {
         verbose,
         ..Default::default()
     });
 
     Cfg::from_env(Arc::new(move |n: Notification<'_>| {
-        if download_tracker.borrow_mut().handle_notification(&n) {
+        if download_tracker.lock().unwrap().handle_notification(&n) {
             return;
         }
         console_notifier.borrow_mut().handle(n);
