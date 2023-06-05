@@ -192,7 +192,7 @@ tokio = { version = "1.26.0", default-features = false, features = [
 tracing = "0.1"
 tracing-opentelemetry = { version = "0.18.0" }
 tracing-subscriber = "0.3.16"
-url = "2.3"
+url = "2.4"
 walkdir = "2"
 
 [lib]
