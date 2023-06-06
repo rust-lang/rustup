@@ -48,7 +48,7 @@ test = ["dep:once_cell", "dep:walkdir"]
 [dependencies]
 anyhow.workspace = true
 cfg-if = "1.0"
-chrono = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "3", features = ["wrap_help"] }
 clap_complete = "3"
 derivative.workspace = true
