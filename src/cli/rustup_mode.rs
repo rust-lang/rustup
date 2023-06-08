@@ -1586,12 +1586,18 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     };
 
     let topical_path: PathBuf;
+    let cached_path: String;
+    let mut has_docs_data_link = false;
 
-    let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
+    let doc_url = if let Some((short, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
+        if let Some(topic) = m.get_one::<String>("topic") {
+            has_docs_data_link = true;
+            cached_path = format!("{}/{}", short, topic);
+            cached_path.as_str()
+        } else { path }
+    } else if let Some(topic) = m.get_one::<String>("topic") {
         topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
         topical_path.to_str().unwrap()
-    } else if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
-        path
     } else {
         "index.html"
     };
@@ -1601,7 +1607,15 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else {
-        toolchain.open_docs(doc_url)?;
+        if has_docs_data_link {
+            let url_path_buf = toolchain.doc_path(doc_url)?;
+            let url_path = format!("file:///{}", url_path_buf.to_str().unwrap());
+            let doc_path = Path::new(&url_path);
+            utils::open_browser(doc_path)?
+
+        } else {
+            toolchain.open_docs(doc_url)?;
+        }
         Ok(utils::ExitCode(0))
     }
 }
