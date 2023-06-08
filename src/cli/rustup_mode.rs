@@ -1589,18 +1589,21 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let cached_path: String;
     let mut has_docs_data_link = false;
 
-    let doc_url = if let Some((short, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
-        if let Some(topic) = m.get_one::<String>("topic") {
-            has_docs_data_link = true;
-            cached_path = format!("{}/{}", short, topic);
-            cached_path.as_str()
-        } else { path }
-    } else if let Some(topic) = m.get_one::<String>("topic") {
-        topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
-        topical_path.to_str().unwrap()
-    } else {
-        "index.html"
-    };
+    let doc_url =
+        if let Some((short, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
+            if let Some(topic) = m.get_one::<String>("topic") {
+                has_docs_data_link = true;
+                cached_path = format!("{}/{}", short, topic);
+                cached_path.as_str()
+            } else {
+                path
+            }
+        } else if let Some(topic) = m.get_one::<String>("topic") {
+            topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
+            topical_path.to_str().unwrap()
+        } else {
+            "index.html"
+        };
 
     if m.get_flag("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
@@ -1612,7 +1615,6 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             let url_path = format!("file:///{}", url_path_buf.to_str().unwrap());
             let doc_path = Path::new(&url_path);
             utils::open_browser(doc_path)?
-
         } else {
             toolchain.open_docs(doc_url)?;
         }
