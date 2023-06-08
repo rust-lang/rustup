@@ -61,7 +61,7 @@ impl DownloadTracker {
             term: process().stdout().terminal(),
             displayed_charcount: None,
             units: vec![Unit::B],
-            display_progress: display_progress,
+            display_progress,
         }))
     }
 
