@@ -11,7 +11,7 @@ by platform:
   toolchains by default this can be modified at install time, either
   interactively, with the `--default-host` flag, or after installation
   via `rustup set default-host`.
-* On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your shell. This
+* On Unix, run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` in your shell. This
   downloads and runs [`rustup-init.sh`], which in turn downloads and runs the
   correct version of the `rustup-init` executable for your platform.
 
@@ -22,11 +22,11 @@ by platform:
 Some examples:
 
 ```console
-$ curl https://sh.rustup.rs -sSf | sh -s -- --help
-$ curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
-$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
-$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
-$ curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchain nightly
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --help
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain nightly
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain nightly
 ```
 
 If you prefer you can directly download `rustup-init` for the platform of your
