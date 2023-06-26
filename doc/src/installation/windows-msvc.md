@@ -1,4 +1,4 @@
-# MSVC prerequistes
+# MSVC prerequisites
 
 To compile programs into an exe file, Rust requires a linker, libraries and Windows API import libraries.
 For `msvc` targets these can be acquired through Visual Studio.
