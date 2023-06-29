@@ -62,7 +62,7 @@ git-testament = "0.2"
 home = "0.5.4"
 lazy_static.workspace = true
 libc = "0.2"
-num_cpus = "1.15"
+num_cpus = "1.16"
 once_cell = { workspace = true, optional = true }
 opener = "0.6.0"
 opentelemetry = { workspace = true, optional = true }
