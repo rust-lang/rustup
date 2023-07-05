@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 
+use crate::currentprocess::{filesource::StdoutSource, process};
 use crate::dist::Notification as In;
-use crate::utils::tty;
 use crate::utils::Notification as Un;
 use crate::Notification;
 
