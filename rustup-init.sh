@@ -240,6 +240,67 @@ get_endianness() {
     fi
 }
 
+# Detect the Linux/LoongArch UAPI flavor, with all errors being non-fatal.
+# Returns 0 or 234 in case of successful detection, 1 otherwise (/tmp being
+# noexec, or other causes).
+check_loongarch_uapi() {
+    need_cmd base64
+
+    local _tmp
+    if ! _tmp="$(ensure mktemp)"; then
+        return 1
+    fi
+
+    # Minimal Linux/LoongArch UAPI detection, exiting with 0 in case of
+    # upstream ("new world") UAPI, and 234 (-EINVAL truncated) in case of
+    # old-world (as deployed on several early commercial Linux distributions
+    # for LoongArch).
+    #
+    # See https://gist.github.com/xen0n/5ee04aaa6cecc5c7794b9a0c3b65fc7f for
+    # source to this helper binary.
+    ignore base64 -d > "$_tmp" <<EOF
+f0VMRgIBAQAAAAAAAAAAAAIAAgEBAAAAeAAgAAAAAABAAAAAAAAAAAAAAAAAAAAAQQAAAEAAOAAB
+AAAAAAAAAAEAAAAFAAAAAAAAAAAAAAAAACAAAAAAAAAAIAAAAAAAJAAAAAAAAAAkAAAAAAAAAAAA
+AQAAAAAABCiAAwUAFQAGABUAByCAAwsYggMAACsAC3iBAwAAKwAxen0n
+EOF
+
+    ignore chmod u+x "$_tmp"
+    if [ ! -x "$_tmp" ]; then
+        ignore rm "$_tmp"
+        return 1
+    fi
+
+    "$_tmp"
+    local _retval=$?
+
+    ignore rm "$_tmp"
+    return "$_retval"
+}
+
+ensure_loongarch_uapi() {
+    check_loongarch_uapi
+    case $? in
+        0)
+            return 0
+            ;;
+        234)
+            echo >&2
+            echo 'Your Linux kernel does not provide the ABI required by this Rust' >&2
+            echo 'distribution.  Please check with your OS provider for how to obtain a' >&2
+            echo 'compatible Rust package for your system.' >&2
+            echo >&2
+            exit 1
+            ;;
+        *)
+            echo "Warning: Cannot determine current system's ABI flavor, continuing anyway." >&2
+            echo >&2
+            echo 'Note that the official Rust distribution only works with the upstream' >&2
+            echo 'kernel ABI.  Installation will fail if your running kernel happens to be' >&2
+            echo 'incompatible.' >&2
+            ;;
+    esac
+}
+
 get_architecture() {
     local _ostype _cputype _bitness _arch _clibtype
     _ostype="$(uname -s)"
@@ -393,6 +454,7 @@ get_architecture() {
             ;;
         loongarch64)
             _cputype=loongarch64
+            ensure_loongarch_uapi
             ;;
         *)
             err "unknown CPU type: $_cputype"
