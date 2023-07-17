@@ -2178,7 +2178,7 @@ fn non_utf8_arg() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             let out = config.run(
                 "rustc",
-                &[
+                [
                     OsStr::new("--echo-args"),
                     OsStr::new("echoed non-utf8 arg:"),
                     OsStr::from_bytes(b"\xc3\x28"),
@@ -2224,7 +2224,7 @@ fn non_utf8_toolchain() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             let out = config.run(
                 "rustc",
-                &[OsStr::from_bytes(b"+\xc3\x28")],
+                [OsStr::from_bytes(b"+\xc3\x28")],
                 &[("RUST_BACKTRACE", "1")],
             );
             assert!(out.stderr.contains("toolchain '�(' is not installable"));
