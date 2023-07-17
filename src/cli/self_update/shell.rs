@@ -195,7 +195,7 @@ impl UnixShell for Zsh {
         self.rcfiles()
             .into_iter()
             .filter(|env| env.is_file())
-            .chain(self.rcfiles().into_iter())
+            .chain(self.rcfiles())
             .take(1)
             .collect()
     }

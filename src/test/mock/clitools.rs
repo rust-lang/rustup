@@ -1194,14 +1194,11 @@ fn build_mock_channel(
     // Convert the mock installers to mock package definitions for the
     // mock dist server
     let mut all = MockChannelContent::default();
-    all.std.extend(
-        vec![
-            (std, host_triple.clone()),
-            (cross_std1, CROSS_ARCH1.to_string()),
-            (cross_std2, CROSS_ARCH2.to_string()),
-        ]
-        .into_iter(),
-    );
+    all.std.extend(vec![
+        (std, host_triple.clone()),
+        (cross_std1, CROSS_ARCH1.to_string()),
+        (cross_std2, CROSS_ARCH2.to_string()),
+    ]);
     all.rustc.push((rustc, host_triple.clone()));
     all.cargo.push((cargo, host_triple.clone()));
 

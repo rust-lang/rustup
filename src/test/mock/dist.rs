@@ -131,7 +131,7 @@ impl MockDistServer {
             let mut hashes = HashMap::new();
             for package in &channel.packages {
                 let new_hashes = self.build_package(channel, package, enable_xz, enable_zst);
-                hashes.extend(new_hashes.into_iter());
+                hashes.extend(new_hashes);
             }
             for v in vs {
                 match *v {
