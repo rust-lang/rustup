@@ -175,7 +175,7 @@ impl UnixShell for Zsh {
     fn does_exist(&self) -> bool {
         // zsh has to either be the shell or be callable for zsh setup.
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh"))
-            || matches!(utils::find_cmd(&["zsh"]), Some(_))
+            || utils::find_cmd(&["zsh"]).is_some()
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
