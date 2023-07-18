@@ -4,8 +4,9 @@
     clippy::type_complexity,
     clippy::upper_case_acronyms, // see https://github.com/rust-lang/rust-clippy/issues/6974
     clippy::vec_init_then_push, // uses two different styles of initialization
-    clippy::box_default, // its ugly and outside of inner loops irrelevant 
+    clippy::box_default, // its ugly and outside of inner loops irrelevant
     clippy::result_large_err, // 288 bytes is our 'large' variant today, which is unlikely to be a performance problem
+    clippy::arc_with_non_send_sync, // will get resolved as we move further into async
 )]
 #![recursion_limit = "1024"]
 

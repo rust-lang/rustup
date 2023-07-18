@@ -52,7 +52,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.env(
             "PATH",
-            env::join_paths(vec!["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
+            env::join_paths(["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
         );
         let tp = currentprocess::TestProcess {
             vars,
@@ -84,7 +84,7 @@ mod tests {
                         OsStr::new("PATH"),
                         Some(
                             env::join_paths(
-                                vec![
+                                [
                                     "/home/z/.cargo/bin",
                                     "/home/a/.cargo/bin",
                                     "/home/b/.cargo/bin"
