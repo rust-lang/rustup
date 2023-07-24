@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use derivative::Derivative;
 use serde::Deserialize;
 use thiserror::Error as ThisError;
+use toml::Table;
 
 use crate::{
     cli::self_update::SelfUpdateMode,
@@ -57,6 +58,21 @@ impl OverrideFile {
     }
 }
 
+#[derive(Deserialize)]
+struct CargoToml {
+    package: CargoPackageSection,
+    #[serde(flatten)]
+    __skip__: Table,
+}
+
+#[derive(Deserialize)]
+struct CargoPackageSection {
+    #[serde(rename = "rust-version")]
+    rust_version: Option<String>,
+    #[serde(flatten)]
+    __skip__: Table,
+}
+
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 struct ToolchainSection {
     channel: Option<String>,
@@ -102,6 +118,7 @@ pub(crate) enum OverrideReason {
     CommandLine,
     OverrideDB(PathBuf),
     ToolchainFile(PathBuf),
+    CargoRustVersion(PathBuf),
 }
 
 impl Display for OverrideReason {
@@ -111,6 +128,7 @@ impl Display for OverrideReason {
             Self::CommandLine => write!(f, "overridden by +toolchain on the command line"),
             Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
+            Self::CargoRustVersion(path) => write!(f, "overridden by '{}'", path.display()),
         }
     }
 }
@@ -501,6 +519,10 @@ impl Cfg {
                     "the toolchain file at '{}' specifies an uninstalled toolchain",
                     utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
                 ),
+                OverrideReason::CargoRustVersion(ref path) => format!(
+                    "the Cargo.toml at '{}' specifies an uninstalled toolchain",
+                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
+                ),
             };
 
             let override_cfg = OverrideCfg::from_file(self, file)?;
@@ -620,6 +642,17 @@ impl Cfg {
                 return Ok(Some((override_file, reason)));
             }
 
+            // Finally, look for `package.rust-version` in `Cargo.toml`
+            let path_cargo_toml = d.join("Cargo.toml");
+            if let Ok(content) = utils::read_file("cargo file", &path_cargo_toml) {
+                if let Ok(Some(override_file)) = Self::parse_cargo_toml(content) {
+                    return Ok(Some((
+                        override_file,
+                        OverrideReason::CargoRustVersion(path_cargo_toml),
+                    )));
+                }
+            }
+
             dir = d.parent();
         }
 
@@ -654,6 +687,14 @@ impl Cfg {
                 }
             }
         }
+    }
+
+    fn parse_cargo_toml<S: AsRef<str>>(contents: S) -> Result<Option<OverrideFile>> {
+        let contents = contents.as_ref();
+        Ok(toml::from_str::<CargoToml>(contents)?
+            .package
+            .rust_version
+            .map(|ver| ver.into()))
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
@@ -1183,5 +1224,31 @@ channel = nightly
             result.unwrap_err().downcast::<OverrideFileConfigError>(),
             Ok(OverrideFileConfigError::Parsing)
         ));
+    }
+
+    #[test]
+    fn parse_cargo_toml() {
+        let contents = r#"[package]
+name = "hello_world"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.56"
+
+[dependencies]
+"#;
+
+        let result = Cfg::parse_cargo_toml(contents);
+        assert_eq!(
+            result.unwrap().unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("1.56".into()),
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                }
+            }
+        );
     }
 }
