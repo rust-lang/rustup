@@ -21,7 +21,11 @@ jobs:
           mkdir mdbook
           curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.6/mdbook-v0.4.6-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
           echo "`pwd`/mdbook" >> $GITHUB_PATH
-      - name: Build book
+      - name: Build user-guide
         run: |
           cd doc/user-guide
+          mdbook build
+      - name: Build dev-guide
+        run: |
+          cd doc/dev-guide
           mdbook build

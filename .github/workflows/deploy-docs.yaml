@@ -6,8 +6,11 @@ on:
       - stable
       - master
 
-# Builds docs for both stable and master branches.
-# stable is placed in the root of the gh-pages branch, while master is placed at /devel
+# Builds all docs for both stable and master branches.
+# In the gh-pages branch, we place:
+# stable user-guide at /
+# master user-guide at /devel
+# master dev-guide at /dev-guide
 
 jobs:
   doc:
@@ -36,6 +39,10 @@ jobs:
           cd doc/user-guide
           mdbook build
           mv book ${{ runner.temp }}/book/devel
+          # Build dev-guide for master
+          cd ../dev-guide
+          mdbook build
+          mv book ${{ runner.temp }}/book/dev-guide
       - name: Deploy to GitHub
         run: |
           cd ${{ runner.temp }}/book

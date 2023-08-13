@@ -21,7 +21,7 @@ documentation on installing and using Rustup.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for information on contributing to Rustup.
+See [**The Rustup dev guide**](https://rust-lang.github.io/rustup/dev-guide) for information on contributing to Rustup.
 
 ## License
 
