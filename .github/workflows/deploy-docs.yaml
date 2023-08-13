@@ -6,6 +6,9 @@ on:
       - stable
       - master
 
+# Builds docs for both stable and master branches.
+# stable is placed in the root of the gh-pages branch, while master is placed at /devel
+
 jobs:
   doc:
     name: Documentation
@@ -21,11 +24,16 @@ jobs:
           echo "`pwd`/mdbook" >> $GITHUB_PATH
       - name: Build book
         run: |
+          # Build for stable
           git checkout stable
-          cd doc
+          # Support both old and new directory structure during the transition
+          cd doc/user-guide || cd doc
           mdbook build
           mv book ${{ runner.temp }}
+          # Build for master
+          cd $(git rev-parse --show-toplevel)
           git checkout master
+          cd doc/user-guide
           mdbook build
           mv book ${{ runner.temp }}/book/devel
       - name: Deploy to GitHub
