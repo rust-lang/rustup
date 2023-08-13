@@ -29,6 +29,9 @@ use rustup::is_proxyable_tools;
 use rustup::utils::utils;
 
 fn main() {
+    #[cfg(windows)]
+    pre_rustup_main_init();
+
     let process = OSProcess::default();
     with(process.into(), || match maybe_trace_rustup() {
         Err(e) => {
@@ -162,4 +165,22 @@ fn do_recursion_guard() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Windows pre-main security mitigations.
+///
+/// This attempts to defend against malicious DLLs that may sit alongside
+/// rustup-init in the user's download folder.
+#[cfg(windows)]
+pub fn pre_rustup_main_init() {
+    use winapi::um::libloaderapi::{SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_SYSTEM32};
+    // Default to loading delay loaded DLLs from the system directory.
+    // For DLLs loaded at load time, this relies on the `delayload` linker flag.
+    // This is only necessary prior to Windows 10 RS1. See build.rs for details.
+    unsafe {
+        let result = SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32);
+        // SetDefaultDllDirectories should never fail if given valid arguments.
+        // But just to be safe and to catch mistakes, assert that it succeeded.
+        assert_ne!(result, 0);
+    }
 }
