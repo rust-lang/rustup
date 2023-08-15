@@ -988,14 +988,14 @@ fn try_update_from_dist_(
 
             *fetched = m.date.clone();
 
-            return match manifestation.update(
+            return match utils::run_future(manifestation.update(
                 &m,
                 changes,
                 force_update,
                 &download,
                 &toolchain.manifest_name(),
                 true,
-            ) {
+            )) {
                 Ok(status) => match status {
                     UpdateStatus::Unchanged => Ok(None),
                     UpdateStatus::Changed => Ok(Some(hash)),

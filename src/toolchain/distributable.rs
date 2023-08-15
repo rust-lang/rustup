@@ -16,6 +16,7 @@ use crate::{
     },
     install::{InstallMethod, UpdateStatus},
     notifications::Notification,
+    utils::utils,
     RustupError,
 };
 
@@ -103,14 +104,14 @@ impl<'a> DistributableToolchain<'a> {
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        manifestation.update(
+        utils::run_future(manifestation.update(
             &manifest,
             changes,
             false,
             &download_cfg,
             &self.desc.manifest_name(),
             false,
-        )?;
+        ))?;
 
         Ok(())
     }
@@ -501,14 +502,14 @@ impl<'a> DistributableToolchain<'a> {
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        manifestation.update(
+        utils::run_future(manifestation.update(
             &manifest,
             changes,
             false,
             &download_cfg,
             &self.desc.manifest_name(),
             false,
-        )?;
+        ))?;
 
         Ok(())
     }

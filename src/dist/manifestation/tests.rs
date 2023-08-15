@@ -466,14 +466,14 @@ fn update_from_dist(
         remove_components: remove.to_owned(),
     };
 
-    manifestation.update(
+    utils::run_future(manifestation.update(
         &manifest,
         changes,
         force,
         download_cfg,
         &toolchain.manifest_name(),
         true,
-    )
+    ))
 }
 
 fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url> {
