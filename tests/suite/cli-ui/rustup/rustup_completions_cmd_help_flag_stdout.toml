@@ -4,15 +4,14 @@ stdout = """
 ...
 Generate tab-completion scripts for your shell
 
-USAGE:
-    rustup[EXE] completions [ARGS]
+Usage: rustup[EXE] completions [shell] [command]
 
-ARGS:
-    <shell>      [possible values: bash, elvish, fish, powershell, zsh]
-    <command>    [possible values: rustup, cargo]
+Arguments:
+  [shell]    [possible values: bash, elvish, fish, powershell, zsh]
+  [command]  [possible values: rustup, cargo]
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 
 DISCUSSION:
     Enable tab completion for Bash, Fish, Zsh, or PowerShell
@@ -118,7 +117,7 @@ DISCUSSION:
     completions into our profile simply use
 
         PS C:/> rustup completions powershell >>
-${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
+        ${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
 
     CARGO:
 

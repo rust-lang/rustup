@@ -4,15 +4,14 @@ stdout = """
 ...
 Set the default toolchain
 
-USAGE:
-    rustup[EXE] default [toolchain]
+Usage: rustup[EXE] default [toolchain]
 
-ARGS:
-    <toolchain>    'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom
-                   toolchain name. For more information see `rustup help toolchain`
+Arguments:
+  [toolchain]  'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
+               name. For more information see `rustup help toolchain`
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 
 DISCUSSION:
     Sets the default toolchain to the one specified. If the toolchain

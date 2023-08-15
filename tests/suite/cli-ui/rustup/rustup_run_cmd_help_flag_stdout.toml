@@ -5,17 +5,16 @@ stdout = """
 ...
 Run a command with an environment configured for a given toolchain
 
-USAGE:
-    rustup[EXE] run [OPTIONS] <toolchain> <command>...
+Usage: rustup[EXE] run [OPTIONS] <toolchain> <command>...
 
-ARGS:
-    <toolchain>     Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
-                    name, or an absolute path. For more information see `rustup help toolchain`
-    <command>...    
+Arguments:
+  <toolchain>   Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain name, or
+                an absolute path. For more information see `rustup help toolchain`
+  <command>...  
 
-OPTIONS:
-        --install    Install the requested toolchain if needed
-    -h, --help       Print help information
+Options:
+      --install  Install the requested toolchain if needed
+  -h, --help     Print help
 
 DISCUSSION:
     Configures an environment to use the given toolchain and then runs

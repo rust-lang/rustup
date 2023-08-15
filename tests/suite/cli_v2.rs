@@ -797,7 +797,7 @@ fn cannot_add_empty_named_custom_toolchain() {
         let path = path.to_string_lossy();
         config.expect_err(
             &["rustup", "toolchain", "link", "", &path],
-            "Invalid value \"\" for '<toolchain>': invalid toolchain name ''",
+            "invalid value '' for '<toolchain>': invalid toolchain name ''",
         );
     });
 }

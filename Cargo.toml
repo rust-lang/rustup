@@ -49,8 +49,8 @@ test = ["dep:once_cell", "dep:walkdir"]
 anyhow.workspace = true
 cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
-clap = { version = "3", features = ["deprecated", "wrap_help"] }
-clap_complete = "3"
+clap = { version = "4", features = ["wrap_help"] }
+clap_complete = "4"
 derivative.workspace = true
 download = { path = "download", default-features = false }
 effective-limits = "0.5.5"

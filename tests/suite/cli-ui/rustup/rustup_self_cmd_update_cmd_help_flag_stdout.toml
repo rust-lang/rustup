@@ -4,10 +4,9 @@ stdout = """
 ...
 Download and install updates to rustup
 
-USAGE:
-    rustup[EXE] self update
+Usage: rustup[EXE] self update
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 """
 stderr = ""
