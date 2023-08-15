@@ -19,6 +19,8 @@ pub(super) enum StreamSelector {
     Stderr,
     #[cfg(feature = "test")]
     TestWriter(TestWriter),
+    #[cfg(feature = "test")]
+    TestTtyWriter(TestWriter),
 }
 
 impl StreamSelector {
@@ -36,6 +38,8 @@ impl StreamSelector {
             },
             #[cfg(feature = "test")]
             StreamSelector::TestWriter(_) => false,
+            #[cfg(feature = "test")]
+            StreamSelector::TestTtyWriter(_) => true,
         }
     }
 }
@@ -55,7 +59,7 @@ pub struct ColorableTerminal {
 enum TerminalInner {
     StandardStream(StandardStream, ColorSpec),
     #[cfg(feature = "test")]
-    TestWriter(TestWriter),
+    TestWriter(TestWriter, ColorChoice),
 }
 
 pub struct ColorableTerminalLocked {
@@ -94,7 +98,9 @@ impl ColorableTerminal {
                 TerminalInner::StandardStream(StandardStream::stderr(choice), ColorSpec::new())
             }
             #[cfg(feature = "test")]
-            StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w),
+            StreamSelector::TestWriter(w) | StreamSelector::TestTtyWriter(w) => {
+                TerminalInner::TestWriter(w, choice)
+            }
         };
         ColorableTerminal {
             inner: Arc::new(Mutex::new(inner)),
@@ -122,7 +128,7 @@ impl ColorableTerminal {
                     TerminalInnerLocked::StandardStream(locked)
                 }
                 #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w) => TerminalInnerLocked::TestWriter(w.lock()),
+                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.lock()),
             });
             // ColorableTerminalLocked { inner, guard, locked }
             uninit.assume_init()
@@ -136,7 +142,7 @@ impl ColorableTerminal {
                 s.set_color(spec)
             }
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_) => Ok(()),
+            TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
 
@@ -147,7 +153,7 @@ impl ColorableTerminal {
                 s.set_color(spec)
             }
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_) => Ok(()),
+            TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
 
@@ -161,7 +167,7 @@ impl ColorableTerminal {
                 s.set_color(spec)
             }
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_) => Ok(()),
+            TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
 
@@ -169,7 +175,7 @@ impl ColorableTerminal {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, _color) => s.reset(),
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_) => Ok(()),
+            TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
 
@@ -177,7 +183,7 @@ impl ColorableTerminal {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, _color) => s.write(b"\r")?,
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w) => w.write(b"\r")?,
+            TerminalInner::TestWriter(w, _) => w.write(b"\r")?,
         };
         Ok(())
     }
@@ -194,7 +200,7 @@ impl io::Write for ColorableTerminal {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, _) => s.write(buf),
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w) => w.write(buf),
+            TerminalInner::TestWriter(w, _) => w.write(buf),
         }
     }
 
@@ -202,7 +208,7 @@ impl io::Write for ColorableTerminal {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, _) => s.flush(),
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w) => w.flush(),
+            TerminalInner::TestWriter(w, _) => w.flush(),
         }
     }
 }
@@ -222,5 +228,58 @@ impl io::Write for ColorableTerminalLocked {
             #[cfg(feature = "test")]
             TerminalInnerLocked::TestWriter(w) => w.flush(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use rustup_macros::unit_test as test;
+
+    use super::*;
+    use crate::{currentprocess, test::Env};
+
+    #[test]
+    fn term_color_choice() {
+        fn assert_color_choice(env_val: &str, stream: StreamSelector, color_choice: ColorChoice) {
+            let mut vars = HashMap::new();
+            vars.env("RUSTUP_TERM_COLOR", env_val);
+            let tp = currentprocess::TestProcess {
+                vars,
+                ..Default::default()
+            };
+            currentprocess::with(tp.into(), || {
+                let term = ColorableTerminal::new(stream);
+                let inner = term.inner.lock().unwrap();
+                assert!(matches!(
+                    &*inner,
+                    &TerminalInner::TestWriter(_, choice) if choice == color_choice
+                ));
+            });
+        }
+
+        assert_color_choice(
+            "always",
+            StreamSelector::TestWriter(Default::default()),
+            ColorChoice::Always,
+        );
+        assert_color_choice(
+            "never",
+            StreamSelector::TestWriter(Default::default()),
+            ColorChoice::Never,
+        );
+        // tty + `auto` enables the colors.
+        assert_color_choice(
+            "auto",
+            StreamSelector::TestTtyWriter(Default::default()),
+            ColorChoice::Auto,
+        );
+        // non-tty + `auto` does not enable the colors.
+        assert_color_choice(
+            "auto",
+            StreamSelector::TestWriter(Default::default()),
+            ColorChoice::Never,
+        );
     }
 }
