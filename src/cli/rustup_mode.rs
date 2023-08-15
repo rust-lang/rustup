@@ -1443,12 +1443,12 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = m.get_one::<CustomToolchainName>("toolchain").unwrap();
     let path = m.get_one::<String>("path").unwrap();
     cfg.ensure_toolchains_dir()?;
-    crate::toolchain::custom::CustomToolchain::install_from_dir(
+    utils::run_future(crate::toolchain::custom::CustomToolchain::install_from_dir(
         cfg,
         Path::new(path),
         toolchain,
         true,
-    )?;
+    ))?;
     Ok(utils::ExitCode(0))
 }
 
