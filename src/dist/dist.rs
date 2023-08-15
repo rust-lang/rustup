@@ -724,7 +724,7 @@ pub(crate) fn update_from_dist(
         std::fs::remove_file(update_hash.unwrap())?;
     }
 
-    let res = update_from_dist_(
+    let res = utils::run_future(update_from_dist_(
         download,
         update_hash,
         toolchain,
@@ -735,7 +735,7 @@ pub(crate) fn update_from_dist(
         old_date,
         components,
         targets,
-    );
+    ));
 
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
@@ -746,7 +746,7 @@ pub(crate) fn update_from_dist(
     res
 }
 
-fn update_from_dist_(
+async fn update_from_dist_(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
@@ -802,7 +802,7 @@ fn update_from_dist_(
     };
 
     loop {
-        match utils::run_future(try_update_from_dist_(
+        match try_update_from_dist_(
             download,
             update_hash,
             &toolchain,
@@ -812,7 +812,9 @@ fn update_from_dist_(
             components,
             targets,
             &mut fetched,
-        )) {
+        )
+        .await
+        {
             Ok(v) => break Ok(v),
             Err(e) => {
                 if !backtrack {
