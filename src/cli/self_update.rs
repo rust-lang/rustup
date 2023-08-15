@@ -1098,7 +1098,7 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
         Permit => {}
     }
 
-    match prepare_update()? {
+    match utils::run_future(prepare_update())? {
         Some(setup_path) => {
             let version = match get_new_rustup_version(&setup_path) {
                 Some(new_version) => parse_new_rustup_version(new_version),
@@ -1153,7 +1153,7 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
+pub(crate) async fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
@@ -1188,7 +1188,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Get available version
     info!("checking for self-update");
-    let available_version = utils::run_future(get_available_rustup_version())?;
+    let available_version = get_available_rustup_version().await?;
 
     // If up-to-date
     if available_version == current_version {
@@ -1203,12 +1203,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Download new version
     info!("downloading self-update");
-    utils::run_future(utils::download_file(
-        &download_url,
-        &setup_path,
-        None,
-        &|_| (),
-    ))?;
+    utils::download_file(&download_url, &setup_path, None, &|_| ()).await?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
