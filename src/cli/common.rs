@@ -363,7 +363,7 @@ where
         SelfUpdatePermission::Permit => {}
     }
 
-    let setup_path = self_update::prepare_update()?;
+    let setup_path = utils::run_future(self_update::prepare_update())?;
 
     before_restart()?;
 
