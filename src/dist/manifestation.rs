@@ -98,7 +98,10 @@ impl Manifestation {
     /// distribution manifest to "rustlib/rustup-dist.toml" and a
     /// configuration containing the component name-target pairs to
     /// "rustlib/rustup-config.toml".
-    pub fn update(
+    ///
+    /// It is *not* safe to run two updates concurrently. See
+    /// https://github.com/rust-lang/rustup/issues/988 for the details.
+    pub async fn update(
         &self,
         new_manifest: &Manifest,
         changes: Changes,
@@ -172,7 +175,7 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let downloaded_file = utils::run_future(RetryIf::spawn(
+            let downloaded_file = RetryIf::spawn(
                 FixedInterval::from_millis(0).take(max_retries),
                 || download_cfg.download(&url_url, &hash),
                 |e: &anyhow::Error| {
@@ -186,7 +189,8 @@ impl Manifestation {
                         _ => false,
                     }
                 },
-            ))
+            )
+            .await
             .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
