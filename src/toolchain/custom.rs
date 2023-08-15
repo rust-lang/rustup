@@ -29,14 +29,16 @@ impl CustomToolchain {
         utils::assert_is_file(&pathbuf)?;
 
         if link {
-            InstallMethod::Link {
-                src: &utils::to_absolute(src)?,
-                dest,
-                cfg,
-            }
-            .install()?;
+            utils::run_future(
+                InstallMethod::Link {
+                    src: &utils::to_absolute(src)?,
+                    dest,
+                    cfg,
+                }
+                .install(),
+            )?;
         } else {
-            InstallMethod::Copy { src, dest, cfg }.install()?;
+            utils::run_future(InstallMethod::Copy { src, dest, cfg }.install())?;
         }
         Ok(Self)
     }
