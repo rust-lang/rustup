@@ -83,7 +83,9 @@ impl ColorableTerminal {
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
     pub(super) fn new(stream: StreamSelector) -> Self {
-        let env_override = process().var("RUSTUP_TERM_COLOR");
+        let env_override = process()
+            .var("RUSTUP_TERM_COLOR")
+            .map(|it| it.to_lowercase());
         let choice = match env_override.as_deref() {
             Ok("always") => ColorChoice::Always,
             Ok("never") => ColorChoice::Never,
@@ -260,24 +262,24 @@ mod tests {
         }
 
         assert_color_choice(
-            "always",
+            "aLWayS",
             StreamSelector::TestWriter(Default::default()),
             ColorChoice::Always,
         );
         assert_color_choice(
-            "never",
+            "neVer",
             StreamSelector::TestWriter(Default::default()),
             ColorChoice::Never,
         );
         // tty + `auto` enables the colors.
         assert_color_choice(
-            "auto",
+            "AutO",
             StreamSelector::TestTtyWriter(Default::default()),
             ColorChoice::Auto,
         );
         // non-tty + `auto` does not enable the colors.
         assert_color_choice(
-            "auto",
+            "aUTo",
             StreamSelector::TestWriter(Default::default()),
             ColorChoice::Never,
         );
