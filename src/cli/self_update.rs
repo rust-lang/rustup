@@ -869,7 +869,7 @@ fn maybe_install_rust(
             // - delete the partial install and start over
             // For now, we error.
             let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
-            toolchain.update(components, targets, cfg.get_profile()?)?
+            utils::run_future(toolchain.update(components, targets, cfg.get_profile()?))?
         } else {
             DistributableToolchain::install(
                 &cfg,

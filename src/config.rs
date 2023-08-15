@@ -798,11 +798,11 @@ impl Cfg {
             }
             Ok(mut distributable) => {
                 if !distributable.components_exist(&components, &targets)? {
-                    distributable.update(
+                    utils::run_future(distributable.update(
                         &components,
                         &targets,
                         profile.unwrap_or(Profile::Default),
-                    )?;
+                    ))?;
                 }
                 distributable
             }
