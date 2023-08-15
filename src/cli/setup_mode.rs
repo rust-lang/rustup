@@ -74,7 +74,7 @@ struct RustupInit {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub fn main() -> Result<utils::ExitCode> {
+pub async fn main() -> Result<utils::ExitCode> {
     use clap::error::ErrorKind;
 
     let RustupInit {
@@ -122,5 +122,5 @@ pub fn main() -> Result<utils::ExitCode> {
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    utils::run_future(self_update::install(no_prompt, verbose, quiet, opts))
+    self_update::install(no_prompt, verbose, quiet, opts).await
 }
