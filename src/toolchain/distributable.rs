@@ -372,13 +372,14 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn update(
+    pub(crate) async fn update(
         &mut self,
         components: &[&str],
         targets: &[&str],
         profile: Profile,
     ) -> anyhow::Result<UpdateStatus> {
-        utils::run_future(self.update_extra(components, targets, profile, true, false))
+        self.update_extra(components, targets, profile, true, false)
+            .await
     }
 
     /// Update a toolchain with control over the channel behaviour
