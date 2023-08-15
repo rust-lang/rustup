@@ -125,7 +125,7 @@ async fn run_rustup_inner() -> Result<utils::ExitCode> {
             // name. Browsers rename duplicates to
             // e.g. rustup-setup(2), and this allows all variations
             // to work.
-            setup_mode::main()
+            setup_mode::main().await
         }
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where

@@ -1,5 +1,7 @@
 use anyhow::Result;
-use clap::{builder::PossibleValuesParser, value_parser, Arg, ArgAction, Command};
+use clap::{
+    builder::PossibleValuesParser, error::ErrorKind, value_parser, Arg, ArgAction, Command,
+};
 
 use crate::{
     cli::{
@@ -14,9 +16,7 @@ use crate::{
 };
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub fn main() -> Result<utils::ExitCode> {
-    use clap::error::ErrorKind;
-
+pub async fn main() -> Result<utils::ExitCode> {
     let args: Vec<_> = process().args().collect();
     let arg1 = args.get(1).map(|a| &**a);
 
@@ -154,5 +154,5 @@ pub fn main() -> Result<utils::ExitCode> {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 
-    utils::run_future(self_update::install(no_prompt, verbose, quiet, opts))
+    self_update::install(no_prompt, verbose, quiet, opts).await
 }
