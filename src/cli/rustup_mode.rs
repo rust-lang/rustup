@@ -1002,7 +1002,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
         }
         if self_update {
-            common::self_update(|| Ok(utils::ExitCode(0)))?;
+            utils::run_future(common::self_update(|| Ok(utils::ExitCode(0))))?;
         }
     } else {
         common::update_all_channels(cfg, self_update, m.get_flag("force"))?;
