@@ -898,7 +898,7 @@ fn try_update_from_dist_(
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
-    match dl_v2_manifest(
+    match utils::run_future(dl_v2_manifest(
         download,
         // Even if manifest has not changed, we must continue to install requested components.
         // So if components or targets is not empty, we skip passing `update_hash` so that
@@ -909,7 +909,7 @@ fn try_update_from_dist_(
             None
         },
         toolchain,
-    ) {
+    )) {
         Ok(Some((m, hash))) => {
             (download.notify_handler)(Notification::DownloadedManifest(
                 &m.date,
@@ -1012,7 +1012,7 @@ fn try_update_from_dist_(
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = match dl_v1_manifest(download, toolchain) {
+    let manifest = match utils::run_future(dl_v1_manifest(download, toolchain)) {
         Ok(m) => m,
         Err(any) => {
             enum Cases {
@@ -1068,13 +1068,16 @@ fn try_update_from_dist_(
     }
 }
 
-pub(crate) fn dl_v2_manifest(
+pub(crate) async fn dl_v2_manifest(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    match utils::run_future(download.download_and_check(&manifest_url, update_hash, ".toml")) {
+    match download
+        .download_and_check(&manifest_url, update_hash, ".toml")
+        .await
+    {
         Ok(manifest_dl) => {
             // Downloaded ok!
             let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl {
@@ -1097,7 +1100,10 @@ pub(crate) fn dl_v2_manifest(
     }
 }
 
-fn dl_v1_manifest(download: DownloadCfg<'_>, toolchain: &ToolchainDesc) -> Result<Vec<String>> {
+async fn dl_v1_manifest(
+    download: DownloadCfg<'_>,
+    toolchain: &ToolchainDesc,
+) -> Result<Vec<String>> {
     let root_url = toolchain.package_dir(download.dist_root);
 
     if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
@@ -1111,7 +1117,7 @@ fn dl_v1_manifest(download: DownloadCfg<'_>, toolchain: &ToolchainDesc) -> Resul
     }
 
     let manifest_url = toolchain.manifest_v1_url(download.dist_root);
-    let manifest_dl = utils::run_future(download.download_and_check(&manifest_url, None, ""))?;
+    let manifest_dl = download.download_and_check(&manifest_url, None, "").await?;
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let urls = manifest_str
