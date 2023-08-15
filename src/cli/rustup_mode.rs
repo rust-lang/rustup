@@ -214,7 +214,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("man", m) => man(cfg, m)?,
             ("self", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("update", _) => self_update::update(cfg)?,
+                    ("update", _) => utils::run_future(self_update::update(cfg))?,
                     ("uninstall", m) => self_uninstall(m)?,
                     _ => unreachable!(),
                 },
