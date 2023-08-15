@@ -7,8 +7,7 @@ mod tests;
 use std::path::Path;
 
 use anyhow::{anyhow, bail, Context, Result};
-use retry::delay::NoDelay;
-use retry::{retry, OperationResult};
+use tokio_retry::{strategy::FixedInterval, RetryIf};
 
 use crate::currentprocess::{process, varsource::VarSource};
 use crate::dist::component::{
@@ -21,7 +20,7 @@ use crate::dist::manifest::{Component, CompressionKind, Manifest, TargetedPackag
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::errors::{OperationError, RustupError};
+use crate::errors::RustupError;
 use crate::utils::utils;
 
 pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
@@ -173,36 +172,22 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let downloaded_file =
-                retry(
-                    NoDelay.take(max_retries),
-                    || match crate::utils::utils::run_future(download_cfg.download(&url_url, &hash))
-                    {
-                        Ok(f) => OperationResult::Ok(f),
-                        Err(e) => {
-                            match e.downcast_ref::<RustupError>() {
-                                Some(RustupError::BrokenPartialFile) => {
-                                    (download_cfg.notify_handler)(Notification::RetryingDownload(
-                                        &url,
-                                    ));
-                                    return OperationResult::Retry(OperationError(e));
-                                }
-                                Some(RustupError::DownloadingFile { .. }) => {
-                                    (download_cfg.notify_handler)(Notification::RetryingDownload(
-                                        &url,
-                                    ));
-                                    return OperationResult::Retry(OperationError(e));
-                                }
-                                Some(_) => return OperationResult::Err(OperationError(e)),
-                                None => (),
-                            };
-                            OperationResult::Err(OperationError(e))
+            let downloaded_file = utils::run_future(RetryIf::spawn(
+                FixedInterval::from_millis(0).take(max_retries),
+                || download_cfg.download(&url_url, &hash),
+                |e: &anyhow::Error| {
+                    // retry only known retriable cases
+                    match e.downcast_ref::<RustupError>() {
+                        Some(RustupError::BrokenPartialFile)
+                        | Some(RustupError::DownloadingFile { .. }) => {
+                            (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
+                            true
                         }
-                    },
-                )
-                .with_context(|| {
-                    RustupError::ComponentDownloadFailed(component.name(new_manifest))
-                })?;
+                        _ => false,
+                    }
+                },
+            ))
+            .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
 
