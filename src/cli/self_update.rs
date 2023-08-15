@@ -1193,7 +1193,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Get available version
     info!("checking for self-update");
-    let available_version = get_available_rustup_version()?;
+    let available_version = utils::run_future(get_available_rustup_version())?;
 
     // If up-to-date
     if available_version == current_version {
@@ -1221,7 +1221,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     Ok(Some(setup_path))
 }
 
-pub(crate) fn get_available_rustup_version() -> Result<String> {
+async fn get_available_rustup_version() -> Result<String> {
     let update_root = update_root();
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
@@ -1232,12 +1232,7 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::run_future(utils::download_file(
-        &release_file_url,
-        &release_file,
-        None,
-        &|_| (),
-    ))?;
+    utils::download_file(&release_file_url, &release_file, None, &|_| ()).await?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml: toml::Value =
         toml::from_str(&release_toml_str).context("unable to parse rustup release file")?;
@@ -1270,7 +1265,7 @@ pub(crate) fn check_rustup_update() -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = get_available_rustup_version()?;
+    let available_version = utils::run_future(get_available_rustup_version())?;
 
     let _ = t.attr(terminalsource::Attr::Bold);
     write!(t.lock(), "rustup - ")?;
