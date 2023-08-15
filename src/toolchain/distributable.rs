@@ -338,20 +338,22 @@ impl<'a> DistributableToolchain<'a> {
         let hash_path = cfg.get_hash_file(desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
-        let status = InstallMethod::Dist {
-            cfg,
-            desc,
-            profile,
-            update_hash,
-            dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n.into())),
-            force,
-            allow_downgrade: false,
-            exists: false,
-            old_date_version: None,
-            components,
-            targets,
-        }
-        .install()?;
+        let status = utils::run_future(
+            InstallMethod::Dist {
+                cfg,
+                desc,
+                profile,
+                update_hash,
+                dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n.into())),
+                force,
+                allow_downgrade: false,
+                exists: false,
+                old_date_version: None,
+                components,
+                targets,
+            }
+            .install(),
+        )?;
         Ok((status, Self::new(cfg, desc.clone())?))
     }
 
@@ -407,22 +409,24 @@ impl<'a> DistributableToolchain<'a> {
         let hash_path = self.cfg.get_hash_file(&self.desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
-        InstallMethod::Dist {
-            cfg: self.cfg,
-            desc: &self.desc,
-            profile,
-            update_hash,
-            dl_cfg: self
-                .cfg
-                .download_cfg(&|n| (self.cfg.notify_handler)(n.into())),
-            force,
-            allow_downgrade,
-            exists: true,
-            old_date_version,
-            components,
-            targets,
-        }
-        .install()
+        utils::run_future(
+            InstallMethod::Dist {
+                cfg: self.cfg,
+                desc: &self.desc,
+                profile,
+                update_hash,
+                dl_cfg: self
+                    .cfg
+                    .download_cfg(&|n| (self.cfg.notify_handler)(n.into())),
+                force,
+                allow_downgrade,
+                exists: true,
+                old_date_version,
+                components,
+                targets,
+            }
+            .install(),
+        )
     }
 
     pub fn recursion_error(&self, binary_lossy: String) -> Result<Infallible, anyhow::Error> {

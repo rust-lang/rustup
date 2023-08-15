@@ -59,7 +59,7 @@ pub(crate) enum InstallMethod<'a> {
 impl<'a> InstallMethod<'a> {
     // Install a toolchain
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn install(&self) -> Result<UpdateStatus> {
+    pub(crate) async fn install(&self) -> Result<UpdateStatus> {
         let nh = self.cfg().notify_handler.clone();
         match self {
             InstallMethod::Copy { .. }
@@ -72,9 +72,11 @@ impl<'a> InstallMethod<'a> {
         }
 
         (self.cfg().notify_handler)(RootNotification::ToolchainDirectory(&self.dest_path()));
-        let updated = utils::run_future(self.run(&self.dest_path(), &|n| {
-            (self.cfg().notify_handler)(n.into())
-        }))?;
+        let updated = self
+            .run(&self.dest_path(), &|n| {
+                (self.cfg().notify_handler)(n.into())
+            })
+            .await?;
 
         let status = match updated {
             false => {
