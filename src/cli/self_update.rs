@@ -1254,13 +1254,13 @@ async fn get_available_rustup_version() -> Result<String> {
     Ok(String::from(available_version))
 }
 
-pub(crate) fn check_rustup_update() -> Result<()> {
+pub(crate) async fn check_rustup_update() -> Result<()> {
     let mut t = process().stdout().terminal();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = utils::run_future(get_available_rustup_version())?;
+    let available_version = get_available_rustup_version().await?;
 
     let _ = t.attr(terminalsource::Attr::Bold);
     write!(t.lock(), "rustup - ")?;

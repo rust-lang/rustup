@@ -779,7 +779,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    check_rustup_update()?;
+    utils::run_future(check_rustup_update())?;
 
     Ok(utils::ExitCode(0))
 }
@@ -870,7 +870,7 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
     }
 
     if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update()?;
+        utils::run_future(check_rustup_update())?;
     }
 
     if self_update::NEVER_SELF_UPDATE {
