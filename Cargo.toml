@@ -85,6 +85,7 @@ tempfile.workspace = true
 termcolor.workspace = true
 thiserror.workspace = true
 threadpool = "1"
+tokio-retry.workspace = true
 tokio.workspace = true
 toml = "0.8"
 tracing-opentelemetry = { workspace = true, optional = true }
@@ -176,6 +177,7 @@ tokio = { version = "1.26.0", default-features = false, features = [
     "macros",
     "rt-multi-thread",
 ] }
+tokio-retry = { version = "0.3.0" }
 tokio-stream = { version = "0.1.14" }
 tracing = "0.1"
 tracing-opentelemetry = "0.22.0"
