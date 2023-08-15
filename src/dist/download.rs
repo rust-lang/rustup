@@ -126,13 +126,14 @@ impl<'a> DownloadCfg<'a> {
         Ok(())
     }
 
-    fn download_hash(&self, url: &str) -> Result<String> {
+    async fn download_hash(&self, url: &str) -> Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        utils::run_future(utils::download_file(&hash_url, &hash_file, None, &|n| {
+        utils::download_file(&hash_url, &hash_file, None, &|n| {
             (self.notify_handler)(n.into())
-        }))?;
+        })
+        .await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
@@ -148,7 +149,7 @@ impl<'a> DownloadCfg<'a> {
         update_hash: Option<&Path>,
         ext: &str,
     ) -> Result<Option<(temp::File<'a>, String)>> {
-        let hash = self.download_hash(url_str)?;
+        let hash = utils::run_future(self.download_hash(url_str))?;
         let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 
         if let Some(hash_file) = update_hash {
