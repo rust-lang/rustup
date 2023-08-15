@@ -108,7 +108,6 @@ impl<'a> DistributableToolchain<'a> {
             changes,
             false,
             &download_cfg,
-            &download_cfg.notify_handler,
             &self.desc.manifest_name(),
             false,
         )?;
@@ -500,7 +499,6 @@ impl<'a> DistributableToolchain<'a> {
             changes,
             false,
             &download_cfg,
-            &download_cfg.notify_handler,
             &self.desc.manifest_name(),
             false,
         )?;

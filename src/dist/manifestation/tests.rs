@@ -466,7 +466,6 @@ fn update_from_dist(
         changes,
         force,
         download_cfg,
-        download_cfg.notify_handler,
         &toolchain.manifest_name(),
         true,
     )
