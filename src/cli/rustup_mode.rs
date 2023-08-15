@@ -253,7 +253,8 @@ pub(crate) fn cli() -> Command<'static> {
         .about("The Rust toolchain installer")
         .after_help(RUSTUP_HELP)
         .global_setting(AppSettings::DeriveDisplayOrder)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(true)
+        .arg_required_else_help(true)
         .arg(
             verbose_arg("Enable verbose output"),
         )
@@ -400,7 +401,8 @@ pub(crate) fn cli() -> Command<'static> {
             Command::new("toolchain")
                 .about("Modify or query the installed toolchains")
                 .after_help(TOOLCHAIN_HELP)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list")
                         .about("List installed toolchains")
@@ -508,7 +510,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("target")
                 .about("Modify a toolchain's supported targets")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list")
                         .about("List installed and available targets")
@@ -571,7 +574,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("component")
                 .about("Modify a toolchain's installed components")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list")
                         .about("List installed and available components")
@@ -630,7 +634,8 @@ pub(crate) fn cli() -> Command<'static> {
             Command::new("override")
                 .about("Modify directory toolchain overrides")
                 .after_help(OVERRIDE_HELP)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list").about("List directory toolchain overrides"),
                 )
@@ -763,7 +768,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("self")
                 .about("Modify the rustup installation")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(Command::new("update").about("Download and install updates to rustup"))
                 .subcommand(
                     Command::new("uninstall")
@@ -777,7 +783,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("set")
                 .about("Alter rustup settings")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("default-host")
                         .about("The triple used to identify toolchains when not specified")
