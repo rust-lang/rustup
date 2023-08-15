@@ -895,7 +895,13 @@ impl Cfg {
 
         // Update toolchains and collect the results
         let channels = channels.map(|(desc, mut distributable)| {
-            let st = distributable.update_extra(&[], &[], profile, force_update, false);
+            let st = utils::run_future(distributable.update_extra(
+                &[],
+                &[],
+                profile,
+                force_update,
+                false,
+            ));
 
             if let Err(ref e) = st {
                 (self.notify_handler)(Notification::NonFatalError(e));
