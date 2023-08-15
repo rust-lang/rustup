@@ -828,7 +828,7 @@ fn update_from_dist_(
     };
 
     loop {
-        match try_update_from_dist_(
+        match utils::run_future(try_update_from_dist_(
             download,
             update_hash,
             &toolchain,
@@ -838,7 +838,7 @@ fn update_from_dist_(
             components,
             targets,
             &mut fetched,
-        ) {
+        )) {
             Ok(v) => break Ok(v),
             Err(e) => {
                 if !backtrack {
@@ -908,7 +908,7 @@ fn update_from_dist_(
     }
 }
 
-fn try_update_from_dist_(
+async fn try_update_from_dist_(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
@@ -924,7 +924,7 @@ fn try_update_from_dist_(
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
-    match utils::run_future(dl_v2_manifest(
+    match dl_v2_manifest(
         download,
         // Even if manifest has not changed, we must continue to install requested components.
         // So if components or targets is not empty, we skip passing `update_hash` so that
@@ -935,7 +935,9 @@ fn try_update_from_dist_(
             None
         },
         toolchain,
-    )) {
+    )
+    .await
+    {
         Ok(Some((m, hash))) => {
             (download.notify_handler)(Notification::DownloadedManifest(
                 &m.date,
@@ -988,14 +990,17 @@ fn try_update_from_dist_(
 
             *fetched = m.date.clone();
 
-            return match utils::run_future(manifestation.update(
-                &m,
-                changes,
-                force_update,
-                &download,
-                &toolchain.manifest_name(),
-                true,
-            )) {
+            return match manifestation
+                .update(
+                    &m,
+                    changes,
+                    force_update,
+                    &download,
+                    &toolchain.manifest_name(),
+                    true,
+                )
+                .await
+            {
                 Ok(status) => match status {
                     UpdateStatus::Unchanged => Ok(None),
                     UpdateStatus::Changed => Ok(Some(hash)),
@@ -1038,7 +1043,7 @@ fn try_update_from_dist_(
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = match utils::run_future(dl_v1_manifest(download, toolchain)) {
+    let manifest = match dl_v1_manifest(download, toolchain).await {
         Ok(m) => m,
         Err(any) => {
             enum Cases {
@@ -1069,12 +1074,14 @@ fn try_update_from_dist_(
             }
         }
     };
-    let result = utils::run_future(manifestation.update_v1(
-        &manifest,
-        update_hash,
-        download.temp_cfg,
-        &download.notify_handler,
-    ));
+    let result = manifestation
+        .update_v1(
+            &manifest,
+            update_hash,
+            download.temp_cfg,
+            &download.notify_handler,
+        )
+        .await;
     // inspect, determine what context to add, then process afterwards.
     let mut download_not_exists = false;
     match &result {
