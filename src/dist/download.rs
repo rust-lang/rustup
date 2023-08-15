@@ -143,13 +143,13 @@ impl<'a> DownloadCfg<'a> {
     /// and if they match, the download is skipped.
     /// Verifies the signature found at the same url with a `.asc` suffix, and prints a
     /// warning when the signature does not verify, or is not found.
-    pub(crate) fn download_and_check(
+    pub(crate) async fn download_and_check(
         &self,
         url_str: &str,
         update_hash: Option<&Path>,
         ext: &str,
     ) -> Result<Option<(temp::File<'a>, String)>> {
-        let hash = utils::run_future(self.download_hash(url_str))?;
+        let hash = self.download_hash(url_str).await?;
         let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 
         if let Some(hash_file) = update_hash {
@@ -171,9 +171,10 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        utils::run_future(utils::download_file(&url, &file, Some(&mut hasher), &|n| {
+        utils::download_file(&url, &file, Some(&mut hasher), &|n| {
             (self.notify_handler)(n.into())
-        }))?;
+        })
+        .await?;
         let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {
