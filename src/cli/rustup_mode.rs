@@ -860,7 +860,7 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
             }
         }
         if self_update {
-            common::self_update(|| Ok(utils::ExitCode(0)))?;
+            utils::run_future(common::self_update(|| Ok(utils::ExitCode(0))))?;
         }
     } else {
         common::update_all_channels(cfg, self_update, opts.force)?;
