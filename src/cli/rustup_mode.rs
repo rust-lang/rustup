@@ -1250,14 +1250,16 @@ fn toolchain_link(cfg: &Cfg, dest: &CustomToolchainName, src: &Path) -> Result<u
     utils::assert_is_file(&pathbuf)?;
 
     if true {
-        InstallMethod::Link {
-            src: &utils::to_absolute(src)?,
-            dest,
-            cfg,
-        }
-        .install()?;
+        utils::run_future(
+            InstallMethod::Link {
+                src: &utils::to_absolute(src)?,
+                dest,
+                cfg,
+            }
+            .install(),
+        )?;
     } else {
-        InstallMethod::Copy { src, dest, cfg }.install()?;
+        utils::run_future(InstallMethod::Copy { src, dest, cfg }.install())?;
     }
 
     Ok(utils::ExitCode(0))
