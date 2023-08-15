@@ -750,7 +750,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     for channel in channels {
         let (name, distributable) = channel;
         let current_version = distributable.show_version()?;
-        let dist_version = distributable.show_dist_version()?;
+        let dist_version = utils::run_future(distributable.show_dist_version())?;
         let _ = t.attr(terminalsource::Attr::Bold);
         write!(t.lock(), "{name} - ")?;
         match (current_version, dist_version) {

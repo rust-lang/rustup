@@ -525,17 +525,15 @@ impl<'a> DistributableToolchain<'a> {
         Ok(())
     }
 
-    pub fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
+    pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
         let update_hash = self.cfg.get_hash_file(&self.desc, false)?;
         let notify_handler =
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        match utils::run_future(crate::dist::dist::dl_v2_manifest(
-            download_cfg,
-            Some(&update_hash),
-            &self.desc,
-        ))? {
+        match crate::dist::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc)
+            .await?
+        {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
