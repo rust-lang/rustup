@@ -17,14 +17,12 @@
             "^ci\\/.*/[^/]+\\.ya?ml$"
         ]
     },
-    {
-        "packageRules": [
-            {
-                "matchPackagePatterns": [
-                    "opentelemetry"
-                ],
-                "groupName": "opentelemetry"
-            }
-        ]
-    }
+    "packageRules": [
+        {
+            "matchPackagePatterns": [
+                "opentelemetry"
+            ],
+            "groupName": "opentelemetry"
+        }
+    ]
 }
