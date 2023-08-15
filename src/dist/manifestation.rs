@@ -432,7 +432,7 @@ impl Manifestation {
             notify_handler,
         };
 
-        let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;
+        let dl = utils::run_future(dlcfg.download_and_check(&url, update_hash, ".tar.gz"))?;
         if dl.is_none() {
             return Ok(None);
         };

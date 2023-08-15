@@ -1074,7 +1074,7 @@ pub(crate) fn dl_v2_manifest(
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    match download.download_and_check(&manifest_url, update_hash, ".toml") {
+    match utils::run_future(download.download_and_check(&manifest_url, update_hash, ".toml")) {
         Ok(manifest_dl) => {
             // Downloaded ok!
             let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl {
@@ -1111,7 +1111,7 @@ fn dl_v1_manifest(download: DownloadCfg<'_>, toolchain: &ToolchainDesc) -> Resul
     }
 
     let manifest_url = toolchain.manifest_v1_url(download.dist_root);
-    let manifest_dl = download.download_and_check(&manifest_url, None, "")?;
+    let manifest_dl = utils::run_future(download.download_and_check(&manifest_url, None, ""))?;
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let urls = manifest_str
