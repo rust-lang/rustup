@@ -379,7 +379,7 @@ impl Manifestation {
     }
 
     /// Installation using the legacy v1 manifest format
-    pub(crate) fn update_v1(
+    pub(crate) async fn update_v1(
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
@@ -422,7 +422,9 @@ impl Manifestation {
             notify_handler,
         };
 
-        let dl = utils::run_future(dlcfg.download_and_check(&url, update_hash, ".tar.gz"))?;
+        let dl = dlcfg
+            .download_and_check(&url, update_hash, ".tar.gz")
+            .await?;
         if dl.is_none() {
             return Ok(None);
         };

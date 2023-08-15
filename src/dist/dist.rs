@@ -1069,12 +1069,12 @@ fn try_update_from_dist_(
             }
         }
     };
-    let result = manifestation.update_v1(
+    let result = utils::run_future(manifestation.update_v1(
         &manifest,
         update_hash,
         download.temp_cfg,
         &download.notify_handler,
-    );
+    ));
     // inspect, determine what context to add, then process afterwards.
     let mut download_not_exists = false;
     match &result {
