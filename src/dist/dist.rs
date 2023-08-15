@@ -703,7 +703,7 @@ pub(crate) fn valid_profile_names() -> String {
 //
 // Returns the manifest's hash if anything changed.
 #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all, fields(profile=format!("{profile:?}"), prefix=prefix.path().to_string_lossy().to_string())))]
-pub(crate) fn update_from_dist(
+pub(crate) async fn update_from_dist(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
@@ -724,7 +724,7 @@ pub(crate) fn update_from_dist(
         std::fs::remove_file(update_hash.unwrap())?;
     }
 
-    let res = utils::run_future(update_from_dist_(
+    let res = update_from_dist_(
         download,
         update_hash,
         toolchain,
@@ -735,7 +735,8 @@ pub(crate) fn update_from_dist(
         old_date,
         components,
         targets,
-    ));
+    )
+    .await;
 
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
