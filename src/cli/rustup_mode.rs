@@ -679,7 +679,7 @@ pub async fn main() -> Result<utils::ExitCode> {
         #[cfg(not(windows))]
         RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
         RustupSubcmd::Self_ { subcmd } => match subcmd {
-            SelfSubcmd::Update => self_update::update(cfg),
+            SelfSubcmd::Update => self_update::update(cfg).await,
             SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },

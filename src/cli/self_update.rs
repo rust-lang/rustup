@@ -1081,7 +1081,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
-pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
+pub(crate) async fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
     use common::SelfUpdatePermission::*;
@@ -1104,7 +1104,7 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
         Permit => {}
     }
 
-    match utils::run_future(prepare_update())? {
+    match prepare_update().await? {
         Some(setup_path) => {
             let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
                 err!("failed to get rustup version");
