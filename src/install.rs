@@ -72,9 +72,9 @@ impl<'a> InstallMethod<'a> {
         }
 
         (self.cfg().notify_handler)(RootNotification::ToolchainDirectory(&self.dest_path()));
-        let updated = self.run(&self.dest_path(), &|n| {
+        let updated = utils::run_future(self.run(&self.dest_path(), &|n| {
             (self.cfg().notify_handler)(n.into())
-        })?;
+        }))?;
 
         let status = match updated {
             false => {
@@ -102,7 +102,7 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    fn run(&self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
+    async fn run(&self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -136,7 +136,7 @@ impl<'a> InstallMethod<'a> {
                 ..
             } => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = utils::run_future(dist::update_from_dist(
+                let maybe_new_hash = dist::update_from_dist(
                     *dl_cfg,
                     update_hash.as_deref(),
                     desc,
@@ -147,7 +147,8 @@ impl<'a> InstallMethod<'a> {
                     old_date_version.as_ref().map(|dv| dv.0.as_str()),
                     components,
                     targets,
-                ))?;
+                )
+                .await?;
 
                 if let Some(hash) = maybe_new_hash {
                     if let Some(hash_file) = update_hash {
