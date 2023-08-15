@@ -832,9 +832,13 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
                 cfg,
                 desc.clone(),
             ) {
-                Ok(mut d) => {
-                    d.update_extra(&components, &targets, profile, force, allow_downgrade)?
-                }
+                Ok(mut d) => utils::run_future(d.update_extra(
+                    &components,
+                    &targets,
+                    profile,
+                    force,
+                    allow_downgrade,
+                ))?,
                 Err(RustupError::ToolchainNotInstalled(_)) => {
                     crate::toolchain::distributable::DistributableToolchain::install(
                         cfg,

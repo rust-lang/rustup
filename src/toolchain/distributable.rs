@@ -378,12 +378,12 @@ impl<'a> DistributableToolchain<'a> {
         targets: &[&str],
         profile: Profile,
     ) -> anyhow::Result<UpdateStatus> {
-        self.update_extra(components, targets, profile, true, false)
+        utils::run_future(self.update_extra(components, targets, profile, true, false))
     }
 
     /// Update a toolchain with control over the channel behaviour
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn update_extra(
+    pub(crate) async fn update_extra(
         &mut self,
         components: &[&str],
         targets: &[&str],
@@ -409,24 +409,23 @@ impl<'a> DistributableToolchain<'a> {
         let hash_path = self.cfg.get_hash_file(&self.desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
-        utils::run_future(
-            InstallMethod::Dist {
-                cfg: self.cfg,
-                desc: &self.desc,
-                profile,
-                update_hash,
-                dl_cfg: self
-                    .cfg
-                    .download_cfg(&|n| (self.cfg.notify_handler)(n.into())),
-                force,
-                allow_downgrade,
-                exists: true,
-                old_date_version,
-                components,
-                targets,
-            }
-            .install(),
-        )
+        InstallMethod::Dist {
+            cfg: self.cfg,
+            desc: &self.desc,
+            profile,
+            update_hash,
+            dl_cfg: self
+                .cfg
+                .download_cfg(&|n| (self.cfg.notify_handler)(n.into())),
+            force,
+            allow_downgrade,
+            exists: true,
+            old_date_version,
+            components,
+            targets,
+        }
+        .install()
+        .await
     }
 
     pub fn recursion_error(&self, binary_lossy: String) -> Result<Infallible, anyhow::Error> {
