@@ -786,14 +786,14 @@ impl Cfg {
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
         let toolchain = match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled(_)) => {
-                DistributableToolchain::install(
+                utils::run_future(DistributableToolchain::install(
                     self,
                     &toolchain,
                     &components,
                     &targets,
                     profile.unwrap_or(Profile::Default),
                     false,
-                )?
+                ))?
                 .1
             }
             Ok(mut distributable) => {
@@ -944,14 +944,14 @@ impl Cfg {
                 match DistributableToolchain::new(self, desc.clone()) {
                     Err(RustupError::ToolchainNotInstalled(_)) => {
                         if install_if_missing {
-                            DistributableToolchain::install(
+                            utils::run_future(DistributableToolchain::install(
                                 self,
                                 desc,
                                 &[],
                                 &[],
                                 self.get_profile()?,
                                 true,
-                            )?;
+                            ))?;
                         }
                     }
                     o => {
