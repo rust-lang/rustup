@@ -46,7 +46,7 @@ impl<'a> DistributableToolchain<'a> {
         &self.desc
     }
 
-    pub(crate) fn add_component(&self, mut component: Component) -> anyhow::Result<()> {
+    pub(crate) async fn add_component(&self, mut component: Component) -> anyhow::Result<()> {
         // TODO: take multiple components?
         let manifestation = self.get_manifestation()?;
         let manifest = self.get_manifest()?;
@@ -104,14 +104,16 @@ impl<'a> DistributableToolchain<'a> {
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        utils::run_future(manifestation.update(
-            &manifest,
-            changes,
-            false,
-            &download_cfg,
-            &self.desc.manifest_name(),
-            false,
-        ))?;
+        manifestation
+            .update(
+                &manifest,
+                changes,
+                false,
+                &download_cfg,
+                &self.desc.manifest_name(),
+                false,
+            )
+            .await?;
 
         Ok(())
     }

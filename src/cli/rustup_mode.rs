@@ -1331,7 +1331,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             Some(TargetTriple::new(&target)),
             false,
         );
-        distributable.add_component(new_component)?;
+        utils::run_future(distributable.add_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1389,7 +1389,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     for component in m.get_many::<String>("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        distributable.add_component(new_component)?;
+        utils::run_future(distributable.add_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
