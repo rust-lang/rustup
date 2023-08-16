@@ -184,7 +184,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(target_list(cfg, m))?,
                     ("add", m) => target_add(cfg, m)?,
-                    ("remove", m) => target_remove(cfg, m)?,
+                    ("remove", m) => utils::run_future(target_remove(cfg, m))?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
@@ -1341,7 +1341,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
@@ -1366,7 +1366,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             warn!("after removing the last target, no build targets will be available");
         }
         let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        utils::run_future(distributable.remove_component(new_component))?;
+        distributable.remove_component(new_component)?;
     }
 
     Ok(utils::ExitCode(0))
