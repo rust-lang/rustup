@@ -1151,7 +1151,7 @@ fn target_add(
             Some(TargetTriple::new(target)),
             false,
         );
-        distributable.add_component(new_component)?;
+        utils::run_future(distributable.add_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1213,7 +1213,7 @@ fn component_add(
 
     for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
-        distributable.add_component(new_component)?;
+        utils::run_future(distributable.add_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
