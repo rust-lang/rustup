@@ -167,7 +167,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             },
             ("install", m) => deprecated("toolchain install", cfg, m, update)?,
             ("update", m) => update(cfg, m)?,
-            ("check", _) => check_updates(cfg)?,
+            ("check", _) => utils::run_future(check_updates(cfg))?,
             ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
             ("default", m) => default_(cfg, m)?,
             ("toolchain", c) => match c.subcommand() {
@@ -879,14 +879,14 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
+async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
     let channels = cfg.list_channels()?;
 
     for channel in channels {
         let (name, distributable) = channel;
         let current_version = distributable.show_version()?;
-        let dist_version = utils::run_future(distributable.show_dist_version())?;
+        let dist_version = distributable.show_dist_version().await?;
         let _ = t.attr(terminalsource::Attr::Bold);
         write!(t.lock(), "{name} - ")?;
         match (current_version, dist_version) {
@@ -915,7 +915,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    utils::run_future(check_rustup_update())?;
+    check_rustup_update().await?;
 
     Ok(utils::ExitCode(0))
 }
