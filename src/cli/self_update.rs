@@ -871,14 +871,14 @@ fn maybe_install_rust(
             let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
             utils::run_future(toolchain.update(components, targets, cfg.get_profile()?))?
         } else {
-            DistributableToolchain::install(
+            utils::run_future(DistributableToolchain::install(
                 &cfg,
                 desc,
                 components,
                 targets,
                 cfg.get_profile()?,
                 true,
-            )?
+            ))?
             .0
         };
 

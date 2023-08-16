@@ -327,7 +327,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn install(
+    pub(crate) async fn install(
         cfg: &'a Cfg,
         desc: &'_ ToolchainDesc,
         components: &[&str],
@@ -338,22 +338,21 @@ impl<'a> DistributableToolchain<'a> {
         let hash_path = cfg.get_hash_file(desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
-        let status = utils::run_future(
-            InstallMethod::Dist {
-                cfg,
-                desc,
-                profile,
-                update_hash,
-                dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n.into())),
-                force,
-                allow_downgrade: false,
-                exists: false,
-                old_date_version: None,
-                components,
-                targets,
-            }
-            .install(),
-        )?;
+        let status = InstallMethod::Dist {
+            cfg,
+            desc,
+            profile,
+            update_hash,
+            dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n.into())),
+            force,
+            allow_downgrade: false,
+            exists: false,
+            old_date_version: None,
+            components,
+            targets,
+        }
+        .install()
+        .await?;
         Ok((status, Self::new(cfg, desc.clone())?))
     }
 
@@ -367,7 +366,15 @@ impl<'a> DistributableToolchain<'a> {
             (cfg.notify_handler)(Notification::UsingExistingToolchain(desc));
             Ok(UpdateStatus::Unchanged)
         } else {
-            Ok(Self::install(cfg, desc, &[], &[], cfg.get_profile()?, false)?.0)
+            Ok(utils::run_future(Self::install(
+                cfg,
+                desc,
+                &[],
+                &[],
+                cfg.get_profile()?,
+                false,
+            ))?
+            .0)
         }
     }
 
