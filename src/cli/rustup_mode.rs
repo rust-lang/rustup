@@ -638,7 +638,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 toolchain,
                 installed,
             } => handle_epipe(target_list(cfg, toolchain, installed)),
-            TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
+            TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain).await,
             TargetSubcmd::Remove { target, toolchain } => {
                 target_remove(cfg, target, toolchain).await
             }
@@ -1112,7 +1112,7 @@ fn target_list(
     )
 }
 
-fn target_add(
+async fn target_add(
     cfg: &Cfg,
     mut targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
@@ -1155,7 +1155,7 @@ fn target_add(
             Some(TargetTriple::new(target)),
             false,
         );
-        utils::run_future(distributable.add_component(new_component))?;
+        distributable.add_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
