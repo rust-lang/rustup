@@ -1362,7 +1362,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             warn!("after removing the last target, no build targets will be available");
         }
         let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        distributable.remove_component(new_component)?;
+        utils::run_future(distributable.remove_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1410,7 +1410,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     for component in m.get_many::<String>("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        distributable.remove_component(new_component)?;
+        utils::run_future(distributable.remove_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
