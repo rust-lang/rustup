@@ -595,7 +595,7 @@ pub async fn main() -> Result<utils::ExitCode> {
 
     match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(),
-        RustupSubcmd::Install { opts } => update(cfg, opts),
+        RustupSubcmd::Install { opts } => update(cfg, opts).await,
         RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
             None => show(cfg, verbose),
@@ -611,18 +611,21 @@ pub async fn main() -> Result<utils::ExitCode> {
             no_self_update,
             force,
             force_non_host,
-        } => update(
-            cfg,
-            UpdateOpts {
-                toolchain,
-                no_self_update,
-                force,
-                force_non_host,
-                ..UpdateOpts::default()
-            },
-        ),
+        } => {
+            update(
+                cfg,
+                UpdateOpts {
+                    toolchain,
+                    no_self_update,
+                    force,
+                    force_non_host,
+                    ..UpdateOpts::default()
+                },
+            )
+            .await
+        }
         RustupSubcmd::Toolchain { subcmd } => match subcmd {
-            ToolchainSubcmd::Install { opts } => update(cfg, opts),
+            ToolchainSubcmd::Install { opts } => update(cfg, opts).await,
             ToolchainSubcmd::List { verbose } => {
                 handle_epipe(common::list_toolchains(cfg, verbose))
             }
@@ -791,7 +794,7 @@ async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
+async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
@@ -839,24 +842,20 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
                 cfg,
                 desc.clone(),
             ) {
-                Ok(mut d) => utils::run_future(d.update_extra(
-                    &components,
-                    &targets,
-                    profile,
-                    force,
-                    allow_downgrade,
-                ))?,
+                Ok(mut d) => {
+                    d.update_extra(&components, &targets, profile, force, allow_downgrade)
+                        .await?
+                }
                 Err(RustupError::ToolchainNotInstalled(_)) => {
-                    utils::run_future(
-                        crate::toolchain::distributable::DistributableToolchain::install(
-                            cfg,
-                            &desc,
-                            &components,
-                            &targets,
-                            profile,
-                            force,
-                        ),
-                    )?
+                    crate::toolchain::distributable::DistributableToolchain::install(
+                        cfg,
+                        &desc,
+                        &components,
+                        &targets,
+                        profile,
+                        force,
+                    )
+                    .await?
                     .0
                 }
                 Err(e) => Err(e)?,
@@ -873,17 +872,17 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
             }
         }
         if self_update {
-            utils::run_future(common::self_update(|| Ok(utils::ExitCode(0))))?;
+            common::self_update(|| Ok(utils::ExitCode(0))).await?;
         }
     } else {
-        utils::run_future(common::update_all_channels(cfg, self_update, opts.force))?;
+        common::update_all_channels(cfg, self_update, opts.force).await?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
     }
 
     if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
-        utils::run_future(check_rustup_update())?;
+        check_rustup_update().await?;
     }
 
     if self_update::NEVER_SELF_UPDATE {
