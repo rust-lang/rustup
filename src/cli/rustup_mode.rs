@@ -631,7 +631,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             }
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         },
-        RustupSubcmd::Check => check_updates(cfg),
+        RustupSubcmd::Check => check_updates(cfg).await,
         RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
         RustupSubcmd::Target { subcmd } => match subcmd {
             TargetSubcmd::List {
@@ -749,14 +749,14 @@ fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Resul
     Ok(utils::ExitCode(0))
 }
 
-fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
+async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
     let channels = cfg.list_channels()?;
 
     for channel in channels {
         let (name, distributable) = channel;
         let current_version = distributable.show_version()?;
-        let dist_version = utils::run_future(distributable.show_dist_version())?;
+        let dist_version = distributable.show_dist_version().await?;
         let _ = t.attr(terminalsource::Attr::Bold);
         write!(t.lock(), "{name} - ")?;
         match (current_version, dist_version) {
@@ -785,7 +785,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    utils::run_future(check_rustup_update())?;
+    check_rustup_update().await?;
 
     Ok(utils::ExitCode(0))
 }
