@@ -183,7 +183,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("target", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(target_list(cfg, m))?,
-                    ("add", m) => target_add(cfg, m)?,
+                    ("add", m) => utils::run_future(target_add(cfg, m))?,
                     ("remove", m) => utils::run_future(target_remove(cfg, m))?,
                     _ => unreachable!(),
                 },
@@ -1286,7 +1286,7 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     }
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
@@ -1335,7 +1335,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             Some(TargetTriple::new(&target)),
             false,
         );
-        utils::run_future(distributable.add_component(new_component))?;
+        distributable.add_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
