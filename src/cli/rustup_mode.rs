@@ -191,14 +191,16 @@ pub async fn main() -> Result<utils::ExitCode> {
                 },
                 None => handle_epipe(show(cfg, c))?,
             },
-            ("install", m) => deprecated("toolchain install", cfg, m, update)?,
-            ("update", m) => update(cfg, m)?,
+            ("install", m) => utils::run_future(async {
+                deprecated_async("toolchain install", cfg, m, update).await
+            })?,
+            ("update", m) => utils::run_future(update(cfg, m))?,
             ("check", _) => utils::run_future(check_updates(cfg))?,
             ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
             ("default", m) => utils::run_future(default_(cfg, m))?,
             ("toolchain", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("install", m) => update(cfg, m)?,
+                    ("install", m) => utils::run_future(update(cfg, m))?,
                     ("list", m) => handle_epipe(toolchain_list(cfg, m))?,
                     ("link", m) => utils::run_future(toolchain_link(cfg, m))?,
                     ("uninstall", m) => toolchain_remove(cfg, m)?,
@@ -944,7 +946,7 @@ async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
@@ -1000,24 +1002,20 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                 cfg,
                 desc.clone(),
             ) {
-                Ok(mut d) => utils::run_future(d.update_extra(
-                    &components,
-                    &targets,
-                    profile,
-                    force,
-                    allow_downgrade,
-                ))?,
+                Ok(mut d) => {
+                    d.update_extra(&components, &targets, profile, force, allow_downgrade)
+                        .await?
+                }
                 Err(RustupError::ToolchainNotInstalled(_)) => {
-                    utils::run_future(
-                        crate::toolchain::distributable::DistributableToolchain::install(
-                            cfg,
-                            &desc,
-                            &components,
-                            &targets,
-                            profile,
-                            force,
-                        ),
-                    )?
+                    crate::toolchain::distributable::DistributableToolchain::install(
+                        cfg,
+                        &desc,
+                        &components,
+                        &targets,
+                        profile,
+                        force,
+                    )
+                    .await?
                     .0
                 }
                 Err(e) => Err(e)?,
@@ -1034,21 +1032,17 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
         }
         if self_update {
-            utils::run_future(common::self_update(|| Ok(utils::ExitCode(0))))?;
+            common::self_update(|| Ok(utils::ExitCode(0))).await?;
         }
     } else {
-        utils::run_future(common::update_all_channels(
-            cfg,
-            self_update,
-            m.get_flag("force"),
-        ))?;
+        common::update_all_channels(cfg, self_update, m.get_flag("force")).await?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents(&cfg.download_dir);
         cfg.temp_cfg.clean();
     }
 
     if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
-        utils::run_future(check_rustup_update())?;
+        check_rustup_update().await?;
     }
 
     if self_update::NEVER_SELF_UPDATE {
