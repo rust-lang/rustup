@@ -16,7 +16,7 @@ Options:
       --install  Install the requested toolchain if needed
   -h, --help     Print help
 
-DISCUSSION:
+Discussion:
     Configures an environment to use the given toolchain and then runs
     the specified program. The command may be any program, not just
     rustc or cargo. This can be used for testing arbitrary toolchains

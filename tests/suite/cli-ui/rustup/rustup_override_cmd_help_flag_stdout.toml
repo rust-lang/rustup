@@ -15,7 +15,7 @@ Commands:
 Options:
   -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     Overrides configure Rustup to use a specific toolchain when
     running in a specific directory.
 

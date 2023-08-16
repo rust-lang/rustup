@@ -13,7 +13,7 @@ Arguments:
 Options:
   -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     Sets the default toolchain to the one specified. If the toolchain
     is not already installed then it is installed first.
 """

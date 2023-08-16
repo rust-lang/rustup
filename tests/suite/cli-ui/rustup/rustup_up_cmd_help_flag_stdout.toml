@@ -17,7 +17,7 @@ Options:
                         https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
   -h, --help            Print help
 
-DISCUSSION:
+Discussion:
     With no toolchain specified, the `update` command updates each of
     the installed toolchains from the official release channels, then
     updates rustup itself.

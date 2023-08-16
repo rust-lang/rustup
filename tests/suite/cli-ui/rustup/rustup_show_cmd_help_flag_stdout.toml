@@ -16,7 +16,7 @@ Options:
   -v, --verbose  Enable verbose output with rustc information for all installed toolchains
   -h, --help     Print help
 
-DISCUSSION:
+Discussion:
     Shows the name of the active toolchain and the version of `rustc`.
 
     If the active toolchain has installed support for additional

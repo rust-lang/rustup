@@ -16,7 +16,7 @@ Commands:
 Options:
   -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     Many `rustup` commands deal with *toolchains*, a single
     installation of the Rust compiler. `rustup` supports multiple
     types of toolchains. The most basic track the official release

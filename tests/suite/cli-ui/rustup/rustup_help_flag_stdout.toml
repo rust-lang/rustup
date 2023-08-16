@@ -35,7 +35,7 @@ Options:
   -h, --help     Print help
   -V, --version  Print version
 
-DISCUSSION:
+Discussion:
     Rustup installs The Rust Programming Language from the official
     release channels, enabling you to easily switch between stable,
     beta, and nightly compilers and keep them updated. It makes

@@ -34,7 +34,7 @@ Options:
       --embedded-book          The Embedded Rust Book
   -h, --help                   Print help
 
-DISCUSSION:
+Discussion:
     Opens the documentation for the currently active toolchain with
     the default browser.
 

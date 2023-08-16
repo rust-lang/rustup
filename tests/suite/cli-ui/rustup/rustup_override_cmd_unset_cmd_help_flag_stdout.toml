@@ -11,7 +11,7 @@ Options:
       --nonexistent  Remove override toolchain for all nonexistent directories
   -h, --help         Print help
 
-DISCUSSION:
+Discussion:
     If `--path` argument is present, removes the override toolchain
     for the specified directory. If `--nonexistent` argument is
     present, removes the override toolchain for all nonexistent

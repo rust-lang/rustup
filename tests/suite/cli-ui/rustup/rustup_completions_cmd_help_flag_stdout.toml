@@ -13,7 +13,7 @@ Arguments:
 Options:
   -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     Enable tab completion for Bash, Fish, Zsh, or PowerShell
     The script is output on `stdout`, allowing one to re-direct the
     output to the file of their choosing. Where you place the file
@@ -24,7 +24,7 @@ DISCUSSION:
     Here are some common set ups for the three supported shells under
     Unix and similar operating systems (such as GNU/Linux).
 
-    BASH:
+    Bash:
 
     Completion files are commonly stored in `/etc/bash_completion.d/` for
     system-wide commands, but can be stored in
@@ -37,7 +37,7 @@ DISCUSSION:
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
 
-    BASH (macOS/Homebrew):
+    Bash (macOS/Homebrew):
 
     Homebrew stores bash completion files within the Homebrew directory.
     With the `bash-completion` brew formula installed, run the command:
@@ -45,7 +45,7 @@ DISCUSSION:
         $ mkdir -p $(brew --prefix)/etc/bash_completion.d
         $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
 
-    FISH:
+    Fish:
 
     Fish completion files are commonly stored in
     `$HOME/.config/fish/completions`. Run the command:
@@ -56,7 +56,7 @@ DISCUSSION:
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
 
-    ZSH:
+    Zsh:
 
     ZSH completions are commonly stored in any directory listed in
     your `$fpath` variable. To use these completions, you must either
@@ -86,7 +86,7 @@ DISCUSSION:
 
     for the new completions to take effect.
 
-    CUSTOM LOCATIONS:
+    Custom locations:
 
     Alternatively, you could save these files to the place of your
     choosing, such as a custom directory inside your $HOME. Doing so
@@ -94,7 +94,7 @@ DISCUSSION:
     inside your login script. Consult your shells documentation for
     how to add such directives.
 
-    POWERSHELL:
+    PowerShell:
 
     The powershell completion scripts require PowerShell v5.0+ (which
     comes with Windows 10, but can be downloaded separately for windows 7
@@ -119,18 +119,18 @@ DISCUSSION:
         PS C:/> rustup completions powershell >>
         ${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
 
-    CARGO:
+    Cargo:
 
     Rustup can also generate a completion script for `cargo`. The script output
     by `rustup` will source the completion script distributed with your default
     toolchain. Not all shells are currently supported. Here are examples for
     the currently supported shells.
 
-    BASH:
+    Bash:
 
         $ rustup completions bash cargo >> ~/.local/share/bash-completion/completions/cargo
 
-    ZSH:
+    Zsh:
 
         $ rustup completions zsh cargo > ~/.zfunc/_cargo
 """

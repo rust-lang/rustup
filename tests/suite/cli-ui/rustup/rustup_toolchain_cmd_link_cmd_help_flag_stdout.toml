@@ -13,7 +13,7 @@ Arguments:
 Options:
   -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     'toolchain' is the custom name to be assigned to the new toolchain.
     Any name is permitted as long as:
     - it does not include '/' or '/' except as the last character
