@@ -350,7 +350,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub fn install_if_not_installed(
+    pub async fn install_if_not_installed(
         cfg: &'a Cfg,
         desc: &'a ToolchainDesc,
     ) -> anyhow::Result<UpdateStatus> {
@@ -359,15 +359,11 @@ impl<'a> DistributableToolchain<'a> {
             (cfg.notify_handler)(Notification::UsingExistingToolchain(desc));
             Ok(UpdateStatus::Unchanged)
         } else {
-            Ok(utils::run_future(Self::install(
-                cfg,
-                desc,
-                &[],
-                &[],
-                cfg.get_profile()?,
-                false,
-            ))?
-            .0)
+            Ok(
+                Self::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
+                    .await?
+                    .0,
+            )
         }
     }
 

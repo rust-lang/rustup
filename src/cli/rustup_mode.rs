@@ -853,7 +853,9 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-                let status = DistributableToolchain::install_if_not_installed(cfg, &desc)?;
+                let status = utils::run_future(DistributableToolchain::install_if_not_installed(
+                    cfg, &desc,
+                ))?;
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
