@@ -1013,7 +1013,11 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             utils::run_future(common::self_update(|| Ok(utils::ExitCode(0))))?;
         }
     } else {
-        common::update_all_channels(cfg, self_update, m.get_flag("force"))?;
+        utils::run_future(common::update_all_channels(
+            cfg,
+            self_update,
+            m.get_flag("force"),
+        ))?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents(&cfg.download_dir);
         cfg.temp_cfg.clean();
