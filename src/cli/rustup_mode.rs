@@ -191,18 +191,16 @@ pub async fn main() -> Result<utils::ExitCode> {
                 },
                 None => handle_epipe(show(cfg, c))?,
             },
-            ("install", m) => utils::run_future(async {
-                deprecated_async("toolchain install", cfg, m, update).await
-            })?,
-            ("update", m) => utils::run_future(update(cfg, m))?,
-            ("check", _) => utils::run_future(check_updates(cfg))?,
+            ("install", m) => deprecated_async("toolchain install", cfg, m, update).await?,
+            ("update", m) => update(cfg, m).await?,
+            ("check", _) => check_updates(cfg).await?,
             ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
-            ("default", m) => utils::run_future(default_(cfg, m))?,
+            ("default", m) => default_(cfg, m).await?,
             ("toolchain", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("install", m) => utils::run_future(update(cfg, m))?,
+                    ("install", m) => update(cfg, m).await?,
                     ("list", m) => handle_epipe(toolchain_list(cfg, m))?,
-                    ("link", m) => utils::run_future(toolchain_link(cfg, m))?,
+                    ("link", m) => toolchain_link(cfg, m).await?,
                     ("uninstall", m) => toolchain_remove(cfg, m)?,
                     _ => unreachable!(),
                 },
@@ -211,8 +209,8 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("target", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(target_list(cfg, m))?,
-                    ("add", m) => utils::run_future(target_add(cfg, m))?,
-                    ("remove", m) => utils::run_future(target_remove(cfg, m))?,
+                    ("add", m) => target_add(cfg, m).await?,
+                    ("remove", m) => target_remove(cfg, m).await?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
@@ -220,8 +218,8 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("component", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(component_list(cfg, m))?,
-                    ("add", m) => utils::run_future(component_add(cfg, m))?,
-                    ("remove", m) => utils::run_future(component_remove(cfg, m))?,
+                    ("add", m) => component_add(cfg, m).await?,
+                    ("remove", m) => component_remove(cfg, m).await?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
@@ -229,7 +227,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("override", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", _) => handle_epipe(common::list_overrides(cfg))?,
-                    ("set", m) => utils::run_future(override_add(cfg, m))?,
+                    ("set", m) => override_add(cfg, m).await?,
                     ("unset", m) => override_remove(cfg, m)?,
                     _ => unreachable!(),
                 },
@@ -242,7 +240,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("man", m) => man(cfg, m)?,
             ("self", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("update", _) => utils::run_future(self_update::update(cfg))?,
+                    ("update", _) => self_update::update(cfg).await?,
                     ("uninstall", m) => self_uninstall(m)?,
                     _ => unreachable!(),
                 },
