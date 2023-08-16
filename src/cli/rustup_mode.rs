@@ -201,7 +201,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("override", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", _) => handle_epipe(common::list_overrides(cfg))?,
-                    ("set", m) => override_add(cfg, m)?,
+                    ("set", m) => utils::run_future(override_add(cfg, m))?,
                     ("unset", m) => override_remove(cfg, m)?,
                     _ => unreachable!(),
                 },
@@ -1468,7 +1468,7 @@ fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain_name = m.get_one::<ResolvableToolchainName>("toolchain").unwrap();
     let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
 
@@ -1483,15 +1483,10 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         Err(e @ RustupError::ToolchainNotInstalled(_)) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
-                let status = utils::run_future(DistributableToolchain::install(
-                    cfg,
-                    desc,
-                    &[],
-                    &[],
-                    cfg.get_profile()?,
-                    false,
-                ))?
-                .0;
+                let status =
+                    DistributableToolchain::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
+                        .await?
+                        .0;
                 writeln!(process().stdout().lock())?;
                 common::show_channel_update(
                     cfg,
