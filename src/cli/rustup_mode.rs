@@ -658,7 +658,7 @@ pub async fn main() -> Result<utils::ExitCode> {
         RustupSubcmd::Override { subcmd } => match subcmd {
             OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
             OverrideSubcmd::Set { toolchain, path } => {
-                override_add(cfg, toolchain, path.as_deref())
+                override_add(cfg, toolchain, path.as_deref()).await
             }
             OverrideSubcmd::Unset { path, nonexistent } => {
                 override_remove(cfg, path.as_deref(), nonexistent)
@@ -1281,7 +1281,7 @@ fn toolchain_remove(cfg: &mut Cfg, opts: UninstallOpts) -> Result<utils::ExitCod
     Ok(utils::ExitCode(0))
 }
 
-fn override_add(
+async fn override_add(
     cfg: &Cfg,
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
@@ -1299,15 +1299,10 @@ fn override_add(
         Err(e @ RustupError::ToolchainNotInstalled(_)) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
-                let status = utils::run_future(DistributableToolchain::install(
-                    cfg,
-                    desc,
-                    &[],
-                    &[],
-                    cfg.get_profile()?,
-                    false,
-                ))?
-                .0;
+                let status =
+                    DistributableToolchain::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
+                        .await?
+                        .0;
                 writeln!(process().stdout().lock())?;
                 common::show_channel_update(
                     cfg,
