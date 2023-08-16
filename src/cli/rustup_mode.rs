@@ -174,7 +174,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 Some(s) => match s {
                     ("install", m) => update(cfg, m)?,
                     ("list", m) => handle_epipe(toolchain_list(cfg, m))?,
-                    ("link", m) => toolchain_link(cfg, m)?,
+                    ("link", m) => utils::run_future(toolchain_link(cfg, m))?,
                     ("uninstall", m) => toolchain_remove(cfg, m)?,
                     _ => unreachable!(),
                 },
@@ -1447,16 +1447,17 @@ fn toolchain_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::list_toolchains(cfg, m.get_flag("verbose"))
 }
 
-fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = m.get_one::<CustomToolchainName>("toolchain").unwrap();
     let path = m.get_one::<String>("path").unwrap();
     cfg.ensure_toolchains_dir()?;
-    utils::run_future(crate::toolchain::custom::CustomToolchain::install_from_dir(
+    crate::toolchain::custom::CustomToolchain::install_from_dir(
         cfg,
         Path::new(path),
         toolchain,
         true,
-    ))?;
+    )
+    .await?;
     Ok(utils::ExitCode(0))
 }
 
