@@ -320,7 +320,7 @@ impl<'a> DistributableToolchain<'a> {
         targets: &[&str],
         profile: Profile,
         force: bool,
-    ) -> anyhow::Result<(UpdateStatus, Self)> {
+    ) -> anyhow::Result<(UpdateStatus, DistributableToolchain<'a>)> {
         let hash_path = cfg.get_hash_file(desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
