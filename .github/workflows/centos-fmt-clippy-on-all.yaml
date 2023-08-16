@@ -72,10 +72,6 @@ jobs:
         run: |
           rustup component add rustfmt
           rustup component add clippy
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
       - name: Run the centos check within the docker image
         run: |
           docker run \
