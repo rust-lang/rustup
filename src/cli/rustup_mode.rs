@@ -169,7 +169,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("update", m) => update(cfg, m)?,
             ("check", _) => utils::run_future(check_updates(cfg))?,
             ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
-            ("default", m) => default_(cfg, m)?,
+            ("default", m) => utils::run_future(default_(cfg, m))?,
             ("toolchain", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("install", m) => update(cfg, m)?,
@@ -839,7 +839,7 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
     }
 }
 
-fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
     if let Some(toolchain) = m.get_one::<MaybeResolvableToolchainName>("toolchain") {
@@ -853,9 +853,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-                let status = utils::run_future(DistributableToolchain::install_if_not_installed(
-                    cfg, &desc,
-                ))?;
+                let status = DistributableToolchain::install_if_not_installed(cfg, &desc).await?;
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
