@@ -193,7 +193,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(component_list(cfg, m))?,
                     ("add", m) => component_add(cfg, m)?,
-                    ("remove", m) => component_remove(cfg, m)?,
+                    ("remove", m) => utils::run_future(component_remove(cfg, m))?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
@@ -1406,7 +1406,7 @@ fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Opt
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
@@ -1414,7 +1414,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     for component in m.get_many::<String>("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        utils::run_future(distributable.remove_component(new_component))?;
+        distributable.remove_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
