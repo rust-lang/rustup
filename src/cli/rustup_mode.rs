@@ -982,13 +982,15 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                     allow_downgrade,
                 ))?,
                 Err(RustupError::ToolchainNotInstalled(_)) => {
-                    crate::toolchain::distributable::DistributableToolchain::install(
-                        cfg,
-                        &desc,
-                        &components,
-                        &targets,
-                        profile,
-                        force,
+                    utils::run_future(
+                        crate::toolchain::distributable::DistributableToolchain::install(
+                            cfg,
+                            &desc,
+                            &components,
+                            &targets,
+                            profile,
+                            force,
+                        ),
                     )?
                     .0
                 }
@@ -1479,14 +1481,14 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         Err(e @ RustupError::ToolchainNotInstalled(_)) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
-                let status = DistributableToolchain::install(
+                let status = utils::run_future(DistributableToolchain::install(
                     cfg,
                     desc,
                     &[],
                     &[],
                     cfg.get_profile()?,
                     false,
-                )?
+                ))?
                 .0;
                 writeln!(process().stdout().lock())?;
                 common::show_channel_update(
