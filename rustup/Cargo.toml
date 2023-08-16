@@ -1,0 +1,177 @@
+[package]
+authors = [
+    "Daniel Silverstone <dsilvers@digital-scurf.org>",
+    "Diggory Blake <diggsey@googlemail.com>",
+]
+build = "build.rs"
+description = "Manage multiple rust installations with ease"
+edition = "2021"
+homepage = "https://github.com/rust-lang/rustup"
+keywords = ["rustup", "multirust", "install", "proxy"]
+license = "MIT OR Apache-2.0"
+name = "rustup"
+readme = "../README.md"
+repository = "https://github.com/rust-lang/rustup"
+version = "1.26.0"
+
+[features]
+curl-backend = ["download/curl-backend"]
+default = [
+    "curl-backend",
+    "reqwest-backend",
+    "reqwest-default-tls",
+    "reqwest-rustls-tls",
+]
+
+reqwest-backend = ["download/reqwest-backend"]
+vendored-openssl = ['openssl/vendored']
+
+reqwest-default-tls = ["download/reqwest-default-tls"]
+reqwest-rustls-tls = ["download/reqwest-rustls-tls"]
+
+# Include in the default set to disable self-update and uninstall.
+no-self-update = []
+
+# Include an Opentelemetry sink for tracing events
+otel = [
+    "dep:opentelemetry-otlp",
+    "dep:tracing-opentelemetry",
+    "dep:tracing-subscriber",
+    "dep:opentelemetry",
+    "dep:tokio",
+]
+
+# Exports code dependent on private interfaces for the integration test suite
+test = ["dep:once_cell", "dep:walkdir"]
+
+# Sorted by alphabetic order
+[dependencies]
+anyhow.workspace = true
+cfg-if = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+clap = { version = "3", features = ["wrap_help"] }
+clap_complete = "3"
+derivative.workspace = true
+download = { path = "../download", default-features = false }
+effective-limits = "0.5.5"
+enum-map = "2.5.0"
+enum_dispatch.workspace = true
+flate2 = "1"
+fs_at.workspace = true
+git-testament = "0.2"
+home = "0.5.4"
+lazy_static.workspace = true
+libc = "0.2"
+once_cell = { workspace = true, optional = true }
+opener = "0.6.0"
+opentelemetry = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+pulldown-cmark = { version = "0.9", default-features = false }
+rand = "0.8"
+regex = "1"
+remove_dir_all = { version = "0.8.1", features = ["parallel"] }
+same-file = "1"
+scopeguard = "1"
+semver = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+sharded-slab = "0.1.1"
+strsim = "0.10"
+tar = "0.4.26"
+tempfile.workspace = true
+termcolor.workspace = true
+thiserror.workspace = true
+threadpool = "1"
+tokio = { workspace = true, optional = true }
+toml = "0.7"
+tracing-opentelemetry = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true, features = [
+    "env-filter",
+] }
+tracing.workspace = true
+url.workspace = true
+wait-timeout = "0.2"
+walkdir = { workspace = true, optional = true }
+xz2 = "0.1.3"
+zstd = "0.12"
+
+[dependencies.openssl]
+# Used by `curl` or `reqwest` backend although it isn't imported by our rustup :
+# this allows controlling the vendoring status without exposing the presence of
+# the download crate.
+optional = true
+version = "0.10"
+
+[dependencies.retry]
+default-features = false
+features = ["random"]
+version = "2.0.0"
+
+[dependencies.rs_tracing]
+features = ["rs_tracing"]
+version = "1.1.0"
+
+[target."cfg(windows)".dependencies]
+cc = "1"
+winreg = "0.50"
+
+[target."cfg(windows)".dependencies.winapi]
+features = [
+    "combaseapi",
+    "errhandlingapi",
+    "fileapi",
+    "handleapi",
+    "ioapiset",
+    "jobapi",
+    "jobapi2",
+    "minwindef",
+    "processthreadsapi",
+    "psapi",
+    "shlobj",
+    "shtypes",
+    "synchapi",
+    "sysinfoapi",
+    "tlhelp32",
+    "userenv",
+    "winbase",
+    "winerror",
+    "winioctl",
+    "winnt",
+    "winuser",
+]
+version = "0.3"
+
+[target."cfg(windows)".dependencies.windows-sys]
+features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_Security",
+    "Win32_System_Kernel",
+    "Win32_System_IO",
+    "Win32_System_Ioctl",
+]
+version = "0.48.0"
+
+
+[dev-dependencies]
+enum-map = "2.5.0"
+once_cell.workspace = true
+proptest.workspace = true
+rustup-macros.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+trycmd = "0.14.13"
+
+[build-dependencies]
+lazy_static = "1"
+regex = "1"
+
+[lib]
+name = "rustup"
+path = "src/lib.rs"
+
+[package.metadata.cargo-all-features]
+# Building with no web backend will error.
+always_include_features = ["reqwest-backend", "reqwest-rustls-tls"]
