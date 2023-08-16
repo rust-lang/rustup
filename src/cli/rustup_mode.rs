@@ -192,7 +192,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("component", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(component_list(cfg, m))?,
-                    ("add", m) => component_add(cfg, m)?,
+                    ("add", m) => utils::run_future(component_add(cfg, m))?,
                     ("remove", m) => utils::run_future(component_remove(cfg, m))?,
                     _ => unreachable!(),
                 },
@@ -1385,7 +1385,7 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
@@ -1393,7 +1393,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     for component in m.get_many::<String>("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        utils::run_future(distributable.add_component(new_component))?;
+        distributable.add_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
