@@ -2,7 +2,6 @@
 
 use ::quote::quote;
 use proc_macro2::TokenStream;
-use quote::format_ident;
 use syn::{parse_macro_input, parse_quote, Block, Expr, ItemFn, LitStr};
 
 /// Custom wrapper macro around `#[test]` and `#[tokio::test]`.
@@ -80,8 +79,10 @@ pub fn unit_test(
 
 fn test_inner(mod_path: String, mut input: ItemFn) -> syn::Result<TokenStream> {
     if input.sig.asyncness.is_some() {
-        let before_ident = format_ident!("{}::before_test_async", mod_path);
-        let after_ident = format_ident!("{}::after_test_async", mod_path);
+        let before_ident = format!("{}::before_test_async", mod_path);
+        let before_ident = syn::parse_str::<Expr>(&before_ident)?;
+        let after_ident = format!("{}::after_test_async", mod_path);
+        let after_ident = syn::parse_str::<Expr>(&after_ident)?;
 
         let inner = input.block;
         let name = input.sig.ident.clone();
