@@ -1185,7 +1185,7 @@ fn target_remove(
             warn!("after removing the last target, no build targets will be available");
         }
         let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        distributable.remove_component(new_component)?;
+        utils::run_future(distributable.remove_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1239,7 +1239,7 @@ fn component_remove(
 
     for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
-        distributable.remove_component(new_component)?;
+        utils::run_future(distributable.remove_component(new_component))?;
     }
 
     Ok(utils::ExitCode(0))
