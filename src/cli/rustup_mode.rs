@@ -650,7 +650,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 component,
                 toolchain,
                 target,
-            } => component_add(cfg, component, toolchain, target),
+            } => component_add(cfg, component, toolchain, target).await,
             ComponentSubcmd::Remove {
                 component,
                 toolchain,
@@ -1204,7 +1204,7 @@ fn component_list(
     Ok(utils::ExitCode(0))
 }
 
-fn component_add(
+async fn component_add(
     cfg: &Cfg,
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
@@ -1215,7 +1215,7 @@ fn component_add(
 
     for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
-        utils::run_future(distributable.add_component(new_component))?;
+        distributable.add_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
