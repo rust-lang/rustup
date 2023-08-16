@@ -639,7 +639,9 @@ pub async fn main() -> Result<utils::ExitCode> {
                 installed,
             } => handle_epipe(target_list(cfg, toolchain, installed)),
             TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
-            TargetSubcmd::Remove { target, toolchain } => target_remove(cfg, target, toolchain),
+            TargetSubcmd::Remove { target, toolchain } => {
+                target_remove(cfg, target, toolchain).await
+            }
         },
         RustupSubcmd::Component { subcmd } => match subcmd {
             ComponentSubcmd::List {
@@ -1159,7 +1161,7 @@ fn target_add(
     Ok(utils::ExitCode(0))
 }
 
-fn target_remove(
+async fn target_remove(
     cfg: &Cfg,
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
@@ -1187,7 +1189,7 @@ fn target_remove(
             warn!("after removing the last target, no build targets will be available");
         }
         let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        utils::run_future(distributable.remove_component(new_component))?;
+        distributable.remove_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
