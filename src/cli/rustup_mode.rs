@@ -632,7 +632,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         },
         RustupSubcmd::Check => check_updates(cfg).await,
-        RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
+        RustupSubcmd::Default { toolchain } => default_(cfg, toolchain).await,
         RustupSubcmd::Target { subcmd } => match subcmd {
             TargetSubcmd::List {
                 toolchain,
@@ -702,7 +702,10 @@ pub async fn main() -> Result<utils::ExitCode> {
     }
 }
 
-fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Result<utils::ExitCode> {
+async fn default_(
+    cfg: &Cfg,
+    toolchain: Option<MaybeResolvableToolchainName>,
+) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
     if let Some(toolchain) = toolchain {
@@ -716,9 +719,7 @@ fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Resul
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-                let status = utils::run_future(DistributableToolchain::install_if_not_installed(
-                    cfg, &desc,
-                ))?;
+                let status = DistributableToolchain::install_if_not_installed(cfg, &desc).await?;
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
