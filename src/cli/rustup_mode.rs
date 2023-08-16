@@ -9,6 +9,7 @@ use clap::{
     Arg, ArgAction, ArgGroup, ArgMatches, Command, ValueEnum,
 };
 use clap_complete::Shell;
+use futures::Future;
 use itertools::Itertools;
 
 use crate::{
@@ -82,6 +83,31 @@ where
         "  Please use `rustup {instead}` instead"
     )));
     callee(cfg, matches)
+}
+
+async fn deprecated_async<'a, FF, F, B, R>(
+    instead: &str,
+    cfg: &'a mut Cfg,
+    matches: B,
+    callee: FF,
+) -> R
+where
+    FF: FnOnce(&'a mut Cfg, B) -> F,
+    F: Future<Output = R> + 'a,
+{
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "Use of (currently) unmaintained command line interface.",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "The exact API of this command may change without warning",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "Eventually this command will be a true alias.  Until then:",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(&format!(
+        "  Please use `rustup {instead}` instead"
+    )));
+    callee(cfg, matches).await
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
@@ -1364,7 +1390,7 @@ async fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             warn!("after removing the last target, no build targets will be available");
         }
         let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        distributable.remove_component(new_component)?;
+        distributable.remove_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
