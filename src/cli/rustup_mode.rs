@@ -655,7 +655,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 component,
                 toolchain,
                 target,
-            } => component_remove(cfg, component, toolchain, target),
+            } => component_remove(cfg, component, toolchain, target).await,
         },
         RustupSubcmd::Override { subcmd } => match subcmd {
             OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
@@ -1230,7 +1230,7 @@ fn get_target(
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
-fn component_remove(
+async fn component_remove(
     cfg: &Cfg,
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
@@ -1241,7 +1241,7 @@ fn component_remove(
 
     for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
-        utils::run_future(distributable.remove_component(new_component))?;
+        distributable.remove_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
