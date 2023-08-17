@@ -131,10 +131,6 @@ jobs:
           echo "DOCKER=$DOCKER" >> $GITHUB_ENV
       - name: Fetch the docker
         run: bash ci/fetch-rust-docker.bash "${TARGET}"
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
       - name: Maybe build a docker from there
         run: |
           if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
