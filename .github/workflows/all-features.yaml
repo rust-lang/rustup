@@ -30,6 +30,7 @@ jobs:
         uses: arduino/setup-protoc@v1
         with:
           version: "3.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
