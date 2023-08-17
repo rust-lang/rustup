@@ -48,6 +48,12 @@ rm -f "$info"
 curl -o "$info" "$image_url"
 digest=$(grep -m1 ^sha "$info")
 
+# As of August 2023, Github Actions have updated Docker to 23.X,
+# which uses the BuildKit by default. It currently throws aways all
+# intermediate layers, which breaks our usage of S3 layer caching.
+# Therefore we opt-in to the old build backend for now.
+export DOCKER_BUILDKIT=0
+
 if [ -z "$(docker images -q "${LOCAL_DOCKER_TAG}")" ]; then
   url=$(grep -m1 ^https "$info")
   cache=/tmp/rustci_docker_cache
