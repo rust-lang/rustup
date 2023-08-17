@@ -198,7 +198,7 @@ impl Write for TestWriterLock<'_> {
 #[cfg(feature = "test")]
 pub(super) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
 /// A thread-safe test file handle that pretends to be e.g. stdout.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[cfg(feature = "test")]
 pub(super) struct TestWriter(TestWriterInner);
 

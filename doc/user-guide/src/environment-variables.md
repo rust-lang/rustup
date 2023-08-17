@@ -29,6 +29,10 @@
   determines the directory that traces will be written too. Traces are of the
   form PID.trace. Traces can be read by the Catapult project [tracing viewer].
 
+- `RUSTUP_TERM_COLOR` (default: `auto`) Controls whether colored output is used in the terminal.
+  Set to `auto` to use colors only in tty streams, to `always` to always enable colors,
+  or to `never` to disable colors.
+
 - `RUSTUP_UNPACK_RAM` *unstable* (default free memory or 500MiB if unable to tell, min 210MiB) Caps the amount of
   RAM `rustup` will use for IO tasks while unpacking.
 
