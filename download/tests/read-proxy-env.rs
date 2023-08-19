@@ -72,8 +72,12 @@ fn socks_proxy_request() {
 
     if let Err(e) = res {
         let s = e.source().unwrap();
+        assert!(
+            s.to_string().contains("socks connect error"),
+            "Expected socks connect error, got: {}",
+            s.to_string()
+        );
         assert_eq!(CALL_COUNT.load(Ordering::SeqCst), 1);
-        assert!(s.to_string().contains("socks connect error"));
     } else {
         panic!("Socks proxy was ignored")
     }
