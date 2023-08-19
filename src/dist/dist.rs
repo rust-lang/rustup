@@ -927,7 +927,6 @@ fn try_update_from_dist_(
                 changes,
                 force_update,
                 &download,
-                &download.notify_handler,
                 &toolchain.manifest_name(),
                 true,
             ) {

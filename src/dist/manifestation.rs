@@ -106,7 +106,6 @@ impl Manifestation {
         changes: Changes,
         force_update: bool,
         download_cfg: &DownloadCfg<'_>,
-        notify_handler: &dyn Fn(Notification<'_>),
         toolchain_str: &str,
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
@@ -118,8 +117,13 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update =
-            Update::build_update(self, new_manifest, &changes, &config, notify_handler)?;
+        let mut update = Update::build_update(
+            self,
+            new_manifest,
+            &changes,
+            &config,
+            &download_cfg.notify_handler,
+        )?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -134,9 +138,11 @@ impl Manifestation {
                         e.downcast::<RustupError>()
                     {
                         for component in &components {
-                            notify_handler(Notification::ForcingUnavailableComponent(
-                                component.name(new_manifest).as_str(),
-                            ));
+                            (download_cfg.notify_handler)(
+                                Notification::ForcingUnavailableComponent(
+                                    component.name(new_manifest).as_str(),
+                                ),
+                            );
                         }
                         update.drop_components_to_install(&components);
                     }
@@ -161,7 +167,7 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         for (component, format, url, hash) in components {
-            notify_handler(Notification::DownloadingComponent(
+            (download_cfg.notify_handler)(Notification::DownloadingComponent(
                 &component.short_name(new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
@@ -180,11 +186,11 @@ impl Manifestation {
                     Err(e) => {
                         match e.downcast_ref::<RustupError>() {
                             Some(RustupError::BrokenPartialFile) => {
-                                notify_handler(Notification::RetryingDownload(&url));
+                                (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
                                 return OperationResult::Retry(OperationError(e));
                             }
                             Some(RustupError::DownloadingFile { .. }) => {
-                                notify_handler(Notification::RetryingDownload(&url));
+                                (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
                                 return OperationResult::Retry(OperationError(e));
                             }
                             Some(_) => return OperationResult::Err(OperationError(e)),
@@ -202,7 +208,7 @@ impl Manifestation {
         }
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg, download_cfg.notify_handler);
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
@@ -215,13 +221,18 @@ impl Manifestation {
             } else {
                 Notification::RemovingComponent
             };
-            notify_handler(notification(
+            (download_cfg.notify_handler)(notification(
                 &component.short_name(new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(component, new_manifest, tx, &notify_handler)?;
+            tx = self.uninstall_component(
+                component,
+                new_manifest,
+                tx,
+                &download_cfg.notify_handler,
+            )?;
         }
 
         // Install components
@@ -234,14 +245,14 @@ impl Manifestation {
             let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
 
-            notify_handler(Notification::InstallingComponent(
+            (download_cfg.notify_handler)(Notification::InstallingComponent(
                 &short_name,
                 &self.target_triple,
                 component.target.as_ref(),
             ));
 
             let notification_converter = |notification: crate::utils::Notification<'_>| {
-                notify_handler(notification.into());
+                (download_cfg.notify_handler)(notification.into());
             };
             let gz;
             let xz;
