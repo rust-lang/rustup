@@ -224,8 +224,14 @@ To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
 Cargo's bin directory ({cargo_home}/bin).
 
-To configure your current shell, run:
+To configure your current shell, you need to source
+the `env` file ({cargo_home}/env).
+
+This is usually done by running:
     source "{cargo_home}/env"
+
+The `source` command above might need to be replaced with `.`
+on shells like `ash`, `dash` and `pdksh`.
 "#
     };
 }
@@ -251,8 +257,14 @@ macro_rules! post_install_msg_unix_no_modify_path {
 To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable. This has not been done automatically.
 
-To configure your current shell, run:
+To configure your current shell, you need to source
+the `env` file ({cargo_home}/env).
+
+This is usually done by running:
     source "{cargo_home}/env"
+
+The `source` command above might need to be replaced with `.`
+on shells like `ash`, `dash` and `pdksh`.
 "#
     };
 }
