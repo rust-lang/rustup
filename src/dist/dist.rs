@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDate;
 use lazy_static::lazy_static;
 use regex::Regex;
+use semver::Version;
 use thiserror::Error as ThisError;
 
 pub(crate) use crate::dist::triple::*;
@@ -25,7 +26,7 @@ use crate::{
     },
     errors::RustupError,
     process,
-    toolchain::names::ToolchainName,
+    toolchain::names::{ResolvableToolchainName, ToolchainName},
     utils::utils,
 };
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
@@ -101,6 +102,7 @@ pub(crate) enum DistError {
 struct ParsedToolchainDesc {
     channel: String,
     date: Option<String>,
+    delta: Option<u64>,
     target: Option<String>,
 }
 
@@ -111,9 +113,11 @@ struct ParsedToolchainDesc {
 // are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
-    // Either "nightly", "stable", "beta", or an explicit version number
+    /// Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
+    /// The `DELTA` part in relative version shorthands such as `stable-DELTA`.
+    pub delta: Option<u64>,
     pub target: PartialTargetTriple,
 }
 
@@ -125,7 +129,7 @@ pub struct PartialToolchainDesc {
 /// 1.55-x86_64-pc-windows-msvc
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ToolchainDesc {
-    // Either "nightly", "stable", "beta", or an explicit version number
+    /// Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
     pub target: TargetTriple,
@@ -177,12 +181,37 @@ fn convert_old_two_part_version(version: &str) -> &str {
     }
 }
 
+fn resolve_stable_delta(delta: u64) -> Result<String> {
+    let mut cfg = crate::cli::common::set_globals(false, true)?;
+    cfg.set_toolchain_override(&ResolvableToolchainName::try_from("stable")?);
+
+    let cwd = std::env::current_dir()?;
+
+    // e.g. stable == "rustc 1.72.0 (5680fa18f 2023-08-23)"
+    let stable = cfg
+        .find_or_install_override_toolchain_or_default(&cwd)?
+        .0
+        .rustc_version();
+
+    // e.g. stable_ver == "1.72.0"
+    let Some(stable_ver) = stable.split_ascii_whitespace().nth(1) else {
+        bail!("failed to parse rustc version string `{stable}`");
+    };
+
+    // e.g. major == 1, minor == 72
+    let Version { major, minor, .. } = Version::parse(stable_ver)?;
+    let Some(minor) = minor.checked_sub(delta) else {
+        bail!("relative version calculation `{minor} - {delta}` overflown")
+    };
+    Ok(convert_old_two_part_version(&format!("{major}.{minor}")).into())
+}
+
 impl FromStr for ParsedToolchainDesc {
     type Err = anyhow::Error;
     fn from_str(desc: &str) -> Result<Self> {
         lazy_static! {
             static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
-                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.+))?$",
+                r"^({})(?:-(?:(\d{{4}}-\d{{2}}-\d{{2}})|(\d{{1,3}})))?(?:-(.+))?$",
                 TOOLCHAIN_CHANNELS.join("|")
             );
             // Note this regex gives you a guaranteed match of the channel (1)
@@ -192,8 +221,8 @@ impl FromStr for ParsedToolchainDesc {
 
         TOOLCHAIN_CHANNEL_RE
             .captures(desc)
-            .map(|c| {
-                let channel = convert_old_two_part_version(c.get(1).unwrap().as_str());
+            .and_then(|c| {
+                let channel = convert_old_two_part_version(c.get(1)?.as_str());
 
                 let non_empty_component = |idx: usize| {
                     c.get(idx)
@@ -202,13 +231,24 @@ impl FromStr for ParsedToolchainDesc {
                 };
 
                 let date = non_empty_component(2);
-                let target = non_empty_component(3);
+                let delta = non_empty_component(3);
+                let target = non_empty_component(4);
 
-                Self {
+                if let Some(delta) = delta {
+                    return Some(Self {
+                        channel: channel.to_owned(),
+                        date: None,
+                        delta: Some(delta.as_str().parse().ok()?),
+                        target,
+                    });
+                }
+
+                Some(Self {
                     channel: channel.to_owned(),
                     date,
+                    delta: None,
                     target,
-                }
+                })
             })
             .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_owned()).into())
     }
@@ -431,6 +471,7 @@ impl FromStr for PartialToolchainDesc {
             .map(|target| Self {
                 channel: parsed.channel,
                 date: parsed.date,
+                delta: parsed.delta,
                 target,
             })
             .ok_or_else(|| anyhow!(RustupError::InvalidToolchainName(name.to_string())))
@@ -476,8 +517,17 @@ impl PartialToolchainDesc {
             format!("{arch}-{os}")
         };
 
+        let mut channel = self.channel;
+
+        if let Some(delta) = self.delta {
+            if &channel != "stable" {
+                bail!("relative version is not supported for channel `{channel}`")
+            }
+            channel = resolve_stable_delta(delta)?;
+        }
+
         Ok(ToolchainDesc {
-            channel: self.channel,
+            channel,
             date: self.date,
             target: TargetTriple(trip),
         })
@@ -491,16 +541,28 @@ impl PartialToolchainDesc {
 impl FromStr for ToolchainDesc {
     type Err = anyhow::Error;
     fn from_str(name: &str) -> Result<Self> {
-        let parsed: ParsedToolchainDesc = name.parse()?;
+        let ParsedToolchainDesc {
+            mut channel,
+            date,
+            delta,
+            target,
+        } = name.parse()?;
 
-        if parsed.target.is_none() {
-            return Err(anyhow!(RustupError::InvalidToolchainName(name.to_string())));
+        if target.is_none() {
+            bail!(RustupError::InvalidToolchainName(name.to_string()));
+        }
+
+        if let Some(delta) = delta {
+            if &channel != "stable" {
+                bail!("relative version is not supported for channel `{channel}`")
+            }
+            channel = resolve_stable_delta(delta)?;
         }
 
         Ok(Self {
-            channel: parsed.channel,
-            date: parsed.date,
-            target: TargetTriple(parsed.target.unwrap()),
+            channel,
+            date,
+            target: TargetTriple(target.unwrap()),
         })
     }
 }
@@ -1097,39 +1159,60 @@ mod tests {
     #[test]
     fn test_parsed_toolchain_desc_parse() {
         let success_cases = vec![
-            ("nightly", ("nightly", None, None)),
-            ("beta", ("beta", None, None)),
-            ("stable", ("stable", None, None)),
-            ("0.0", ("0.0", None, None)),
-            ("0.0.0", ("0.0.0", None, None)),
-            ("0.0.0--", ("0.0.0", None, Some("-"))), // possibly a bug?
-            ("9.999.99", ("9.999.99", None, None)),
-            ("0.0.0-anything", ("0.0.0", None, Some("anything"))),
-            ("0.0.0-0000-00-00", ("0.0.0", Some("0000-00-00"), None)),
+            ("nightly", ("nightly", None, None, None)),
+            ("beta", ("beta", None, None, None)),
+            ("stable", ("stable", None, None, None)),
+            ("0.0", ("0.0", None, None, None)),
+            ("0.0.0", ("0.0.0", None, None, None)),
+            ("0.0.0--", ("0.0.0", None, None, Some("-"))), // possibly a bug?
+            ("9.999.99", ("9.999.99", None, None, None)),
+            ("0.0.0-anything", ("0.0.0", None, None, Some("anything"))),
+            (
+                "0.0.0-0000-00-00",
+                ("0.0.0", Some("0000-00-00"), None, None),
+            ),
             // possibly unexpected behavior, if someone typos a date?
             (
                 "0.0.0-00000-000-000",
-                ("0.0.0", None, Some("00000-000-000")),
+                ("0.0.0", None, None, Some("00000-000-000")),
             ),
             // possibly unexpected behavior, if someone forgets to add target after the hyphen?
-            ("0.0.0-0000-00-00-", ("0.0.0", None, Some("0000-00-00-"))),
+            (
+                "0.0.0-0000-00-00-",
+                ("0.0.0", None, None, Some("0000-00-00-")),
+            ),
             (
                 "0.0.0-0000-00-00-any-other-thing",
-                ("0.0.0", Some("0000-00-00"), Some("any-other-thing")),
+                ("0.0.0", Some("0000-00-00"), None, Some("any-other-thing")),
             ),
             // special hardcoded cases that only have v1 manifests
-            ("1.0", ("1.0.0", None, None)),
-            ("1.1", ("1.1.0", None, None)),
-            ("1.2", ("1.2.0", None, None)),
-            ("1.3", ("1.3.0", None, None)),
-            ("1.4", ("1.4.0", None, None)),
-            ("1.5", ("1.5.0", None, None)),
-            ("1.6", ("1.6.0", None, None)),
-            ("1.7", ("1.7.0", None, None)),
-            ("1.8", ("1.8.0", None, None)),
+            ("1.0", ("1.0.0", None, None, None)),
+            ("1.1", ("1.1.0", None, None, None)),
+            ("1.2", ("1.2.0", None, None, None)),
+            ("1.3", ("1.3.0", None, None, None)),
+            ("1.4", ("1.4.0", None, None, None)),
+            ("1.5", ("1.5.0", None, None, None)),
+            ("1.6", ("1.6.0", None, None, None)),
+            ("1.7", ("1.7.0", None, None, None)),
+            ("1.8", ("1.8.0", None, None, None)),
+            // relative versions
+            // https://github.com/rust-lang/rustup/issues/2291#issuecomment-1689220651
+            ("stable-2", ("stable", None, Some(2), None)),
+            ("stable-999", ("stable", None, Some(999), None)),
+            (
+                "stable-31-pc-windows",
+                ("stable", None, Some(31), Some("pc-windows")),
+            ),
+            ("beta-2", ("beta", None, Some(2), None)),
+            ("nightly-2", ("nightly", None, Some(2), None)),
+            ("1.23.0-4", ("1.23.0", None, Some(4), None)),
+            (
+                "1.23-4-whatever-target",
+                ("1.23", None, Some(4), Some("whatever-target")),
+            ),
         ];
 
-        for (input, (channel, date, target)) in success_cases {
+        for (input, (channel, date, delta, target)) in success_cases {
             let parsed = input.parse::<ParsedToolchainDesc>();
             assert!(
                 parsed.is_ok(),
@@ -1139,6 +1222,7 @@ mod tests {
             let expected = ParsedToolchainDesc {
                 channel: channel.into(),
                 date: date.map(String::from),
+                delta,
                 target: target.map(String::from),
             };
             assert_eq!(parsed.unwrap(), expected, "input: `{input}`");

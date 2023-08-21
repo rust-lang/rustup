@@ -659,10 +659,10 @@ impl Cfg {
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn find_or_install_override_toolchain_or_default(
         &self,
-        path: &Path,
+        override_config_path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         let (toolchain, components, targets, reason, profile) =
-            match self.find_override_config(path)? {
+            match self.find_override_config(override_config_path)? {
                 Some((
                     OverrideCfg {
                         toolchain,

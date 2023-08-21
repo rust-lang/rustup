@@ -53,17 +53,21 @@ pub(crate) static TOOLCHAIN_HELP: &str = r"Discussion:
 
     Standard release channel toolchain names have the following form:
 
-        <channel>[-<date>][-<host>]
+        <channel>[-<date-or-delta>][-<host>]
 
-        <channel>       = stable|beta|nightly|<major.minor>|<major.minor.patch>
-        <date>          = YYYY-MM-DD
-        <host>          = <target-triple>
+        <channel>        = stable|beta|nightly|<major.minor>|<major.minor.patch>
+        <date-or-delta>  = <date>|<delta>
+        <date>           = YYYY-MM-DD
+        <delta>          = <minor>
+        <host>           = <target-triple>
 
     'channel' is a named release channel, a major and minor version
     number such as `1.42`, or a fully specified version number, such
     as `1.42.0`. Channel names can be optionally appended with an
     archive date, as in `nightly-2014-12-18`, in which case the
     toolchain is downloaded from the archive for that date.
+
+    TODO Talk about 'delta'
 
     The host may be specified as a target triple. This is most useful
     for installing a 32-bit compiler on a 64-bit platform, or for
