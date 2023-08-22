@@ -41,6 +41,7 @@ fn download_with_backend(
     resume_from: u64,
     callback: &dyn Fn(Event<'_>) -> Result<()>,
 ) -> Result<()> {
+    dbg!(url);
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
         Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
@@ -62,6 +63,7 @@ pub fn download_to_path_with_backend(
     use std::io::{Read, Seek, SeekFrom, Write};
 
     || -> Result<()> {
+        dbg!("start callback");
         let (file, resume_from) = if resume_from_partial {
             let possible_partial = OpenOptions::new().read(true).open(path);
 
@@ -73,7 +75,7 @@ pub fn download_to_path_with_backend(
                     let mut downloaded_so_far = 0;
                     loop {
                         let n = partial.read(&mut buf)?;
-                        downloaded_so_far += n as u64;
+                        downloaded_so_far += dbg!(n) as u64;
                         if n == 0 {
                             break;
                         }
@@ -83,10 +85,10 @@ pub fn download_to_path_with_backend(
                     downloaded_so_far
                 } else {
                     let file_info = partial.metadata()?;
-                    file_info.len()
+                    dbg!(file_info.len())
                 }
             } else {
-                0
+                dbg!(0)
             };
 
             let mut possible_partial = OpenOptions::new()
@@ -105,7 +107,7 @@ pub fn download_to_path_with_backend(
                     .create(true)
                     .open(path)
                     .context("error creating file for download")?,
-                0,
+                dbg!(0),
             )
         };
 
@@ -113,6 +115,7 @@ pub fn download_to_path_with_backend(
 
         download_with_backend(backend, url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
+                dbg!(data.len());
                 file.borrow_mut()
                     .write_all(data)
                     .context("unable to write download to disk")?;
@@ -123,9 +126,11 @@ pub fn download_to_path_with_backend(
             }
         })?;
 
+        dbg!("sync data");
         file.borrow_mut()
             .sync_data()
             .context("unable to sync download to disk")?;
+        dbg!("synced data");
 
         Ok(())
     }()
@@ -292,7 +297,7 @@ pub mod reqwest_be {
 
         let mut res = request(url, resume_from, tls).context("failed to make network request")?;
 
-        if !res.status().is_success() {
+        if !dbg!(res.status()).is_success() {
             let code: u16 = res.status().into();
             return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
         }
@@ -302,14 +307,14 @@ pub mod reqwest_be {
 
         if let Some(len) = res.headers().get(header::CONTENT_LENGTH) {
             // TODO possible issues during unwrap?
-            let len = len.to_str().unwrap().parse::<u64>().unwrap() + resume_from;
+            let len = dbg!(len).to_str().unwrap().parse::<u64>().unwrap() + resume_from;
             callback(Event::DownloadContentLengthReceived(len))?;
         }
 
         loop {
             let bytes_read = io::Read::read(&mut res, &mut buffer)?;
 
-            if bytes_read != 0 {
+            if dbg!(bytes_read) != 0 {
                 callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
             } else {
                 return Ok(());
