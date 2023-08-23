@@ -2,6 +2,7 @@
 //! `Components` and `DirectoryPackage` are the two sides of the
 //! installation / uninstallation process.
 
+use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
@@ -122,7 +123,7 @@ impl<'a> ComponentBuilder<'a> {
         // Write component manifest
         let path = self.components.rel_component_manifest(&self.name);
         let abs_path = self.components.prefix.abs_path(&path);
-        let mut file = self.tx.add_file(&self.name, path)?;
+        let mut file = BufWriter::new(self.tx.add_file(&self.name, path)?);
         for part in self.parts {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
