@@ -151,7 +151,7 @@ impl<'a> TarPackage<'a> {
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
         unpack_without_first_dir(&mut archive, &temp_dir, notify_handler)
-            .context("failed to extract package (perhaps you ran out of disk space?)")?;
+            .context("failed to extract package")?;
 
         Ok(TarPackage(
             DirectoryPackage::new(temp_dir.to_owned(), false)?,
