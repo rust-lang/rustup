@@ -29,6 +29,32 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain nightly
 ```
 
+
+## Using a package manager
+
+> Please note that the rustup project is not maintaining any package mentioned in this section.
+> If you have encountered any problems installing `rustup` with a package manager,
+> please contact the package maintainer(s) for further information.
+
+### Homebrew
+
+You can use `brew` to install `rustup-init`[^not-rust]:
+
+```sh
+$ brew install rustup-init
+```
+
+Then execute `rustup-init` to proceed with the installation.
+
+When the installation is complete,
+make sure that `$HOME/.cargo/bin` is in your `$PATH`,
+and you should be able to use `rustup` normally.
+
+[^not-rust]: This is not to be confused with the `rust` package,
+which is a `brew`-managed `rust` toolchain installation.
+
+## Manual installation
+
 If you prefer you can directly download `rustup-init` for the platform of your
 choice:
 
@@ -105,6 +131,8 @@ choice:
 
 You can fetch an older version from
 `https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`
+
+## Self-compiled installation
 
 To install `rustup` from source, check out the git repository from
 <https://github.com/rust-lang/rustup> and run `cargo run --release`. Note that
