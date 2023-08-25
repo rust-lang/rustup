@@ -1,4 +1,4 @@
-# Package managers
+# Already installed Rust?
 
 Several Linux distributions package Rust, and you may wish to use the packaged
 toolchain, such as for distribution package development. You may also wish to
