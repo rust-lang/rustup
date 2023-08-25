@@ -6,3 +6,6 @@ title = "The rustup book"
 edit-url-template = "https://github.com/rust-lang/rustup/edit/master/doc/user-guide/{path}"
 git-repository-url = "https://github.com/rust-lang/rustup/tree/master/doc/user-guide"
 site-url = "https://rust-lang.github.io/rustup/"
+
+[output.html.redirect]
+"/installation/package-managers.html" = "already-installed-rust.html"
