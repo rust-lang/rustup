@@ -64,7 +64,7 @@ pub(crate) fn append_file(name: &'static str, path: &Path, line: &str) -> Result
 
 pub(crate) fn write_line(
     name: &'static str,
-    file: &mut File,
+    mut file: impl Write,
     path: &Path,
     line: &str,
 ) -> Result<()> {
