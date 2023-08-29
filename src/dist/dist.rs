@@ -159,6 +159,24 @@ static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi
 #[cfg(all(not(windows), target_endian = "little"))]
 static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
+/// Some old Rust versions don't have v2 manifests, but they don't have point releases either,
+/// so to make the two-part version numbers work for these versions, specially turn
+/// them into their corresponding ".0" version.
+fn convert_old_two_part_version(version: &str) -> &str {
+    match version {
+        "1.0" => "1.0.0",
+        "1.1" => "1.1.0",
+        "1.2" => "1.2.0",
+        "1.3" => "1.3.0",
+        "1.4" => "1.4.0",
+        "1.5" => "1.5.0",
+        "1.6" => "1.6.0",
+        "1.7" => "1.7.0",
+        "1.8" => "1.8.0",
+        other => other,
+    }
+}
+
 impl FromStr for ParsedToolchainDesc {
     type Err = anyhow::Error;
     fn from_str(desc: &str) -> Result<Self> {
@@ -181,21 +199,7 @@ impl FromStr for ParsedToolchainDesc {
                 }
             }
 
-            // These versions don't have v2 manifests, but they don't have point releases either,
-            // so to make the two-part version numbers work for these versions, specially turn
-            // them into their corresponding ".0" version.
-            let channel = match c.get(1).unwrap().as_str() {
-                "1.0" => "1.0.0",
-                "1.1" => "1.1.0",
-                "1.2" => "1.2.0",
-                "1.3" => "1.3.0",
-                "1.4" => "1.4.0",
-                "1.5" => "1.5.0",
-                "1.6" => "1.6.0",
-                "1.7" => "1.7.0",
-                "1.8" => "1.8.0",
-                other => other,
-            };
+            let channel = convert_old_two_part_version(c.get(1).unwrap().as_str());
 
             Self {
                 channel: channel.to_owned(),
