@@ -190,30 +190,27 @@ impl FromStr for ParsedToolchainDesc {
             static ref TOOLCHAIN_CHANNEL_RE: Regex = Regex::new(&TOOLCHAIN_CHANNEL_PATTERN).unwrap();
         }
 
-        let d = TOOLCHAIN_CHANNEL_RE.captures(desc).map(|c| {
-            let channel = convert_old_two_part_version(c.get(1).unwrap().as_str());
+        TOOLCHAIN_CHANNEL_RE
+            .captures(desc)
+            .map(|c| {
+                let channel = convert_old_two_part_version(c.get(1).unwrap().as_str());
 
-            let non_empty_component = |idx: usize| {
-                c.get(idx)
-                    .filter(|s| !s.is_empty())
-                    .map(|s| s.as_str().to_owned())
-            };
+                let non_empty_component = |idx: usize| {
+                    c.get(idx)
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.as_str().to_owned())
+                };
 
-            let date = non_empty_component(2);
-            let target = non_empty_component(3);
+                let date = non_empty_component(2);
+                let target = non_empty_component(3);
 
-            Self {
-                channel: channel.to_owned(),
-                date,
-                target,
-            }
-        });
-
-        if let Some(d) = d {
-            Ok(d)
-        } else {
-            Err(RustupError::InvalidToolchainName(desc.to_string()).into())
-        }
+                Self {
+                    channel: channel.to_owned(),
+                    date,
+                    target,
+                }
+            })
+            .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_owned()).into())
     }
 }
 
