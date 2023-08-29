@@ -4,10 +4,9 @@ stdout = """
 ...
 Show the current profile
 
-USAGE:
-    rustup[EXE] show profile
+Usage: rustup[EXE] show profile
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 """
 stderr = ""

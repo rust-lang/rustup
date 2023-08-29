@@ -59,6 +59,9 @@ fn rustup_init_ui_doc_text_tests() {
         .unwrap();
 
         // Make sure that the help output of rustup-init and rustup-init.sh are the same.
-        assert_eq!(rustup_init_help_std_out, rustup_init_sh_help_std_out)
+        assert_eq!(
+            rustup_init_help_std_out.stdout.unwrap(),
+            rustup_init_sh_help_std_out.stdout.unwrap()
+        )
     }
 }

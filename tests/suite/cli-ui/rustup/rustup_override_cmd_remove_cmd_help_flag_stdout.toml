@@ -4,15 +4,14 @@ stdout = """
 ...
 Remove the override toolchain for a directory
 
-USAGE:
-    rustup[EXE] override unset [OPTIONS]
+Usage: rustup[EXE] override unset [OPTIONS]
 
-OPTIONS:
-        --path <path>    Path to the directory
-        --nonexistent    Remove override toolchain for all nonexistent directories
-    -h, --help           Print help information
+Options:
+      --path <path>  Path to the directory
+      --nonexistent  Remove override toolchain for all nonexistent directories
+  -h, --help         Print help
 
-DISCUSSION:
+Discussion:
     If `--path` argument is present, removes the override toolchain
     for the specified directory. If `--nonexistent` argument is
     present, removes the override toolchain for all nonexistent

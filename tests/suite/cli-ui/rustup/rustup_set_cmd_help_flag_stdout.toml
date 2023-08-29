@@ -4,16 +4,15 @@ stdout = """
 ...
 Alter rustup settings
 
-USAGE:
-    rustup[EXE] set <SUBCOMMAND>
+Usage: rustup[EXE] set <COMMAND>
 
-OPTIONS:
-    -h, --help    Print help information
+Commands:
+  default-host      The triple used to identify toolchains when not specified
+  profile           The default components installed
+  auto-self-update  The rustup auto self update mode
+  help              Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    default-host        The triple used to identify toolchains when not specified
-    profile             The default components installed
-    auto-self-update    The rustup auto self update mode
-    help                Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help  Print help
 """
 stderr = ""

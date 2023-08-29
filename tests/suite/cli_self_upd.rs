@@ -359,7 +359,7 @@ fn update_bogus_version() {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         config.expect_err(
             &["rustup", "update", "1.0.0-alpha"],
-            "Invalid value \"1.0.0-alpha\" for '<toolchain>...': invalid toolchain name: '1.0.0-alpha'",
+            "invalid value '1.0.0-alpha' for '[toolchain]...': invalid toolchain name: '1.0.0-alpha'",
         );
     });
 }

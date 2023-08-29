@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{builder::PossibleValuesParser, AppSettings, Arg, ArgAction, Command};
+use clap::{builder::PossibleValuesParser, Arg, ArgAction, Command};
 
 use crate::{
     cli::{
@@ -32,8 +32,8 @@ pub fn main() -> Result<utils::ExitCode> {
     // NOTICE: If you change anything here, please make the same changes in rustup-init.sh
     let cli = Command::new("rustup-init")
         .version(common::version())
+        .before_help(format!("rustup-init {}", common::version()))
         .about("The installer for rustup")
-        .setting(AppSettings::DeriveDisplayOrder)
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -58,13 +58,13 @@ pub fn main() -> Result<utils::ExitCode> {
         .arg(
             Arg::new("default-host")
                 .long("default-host")
-                .takes_value(true)
+                .num_args(1)
                 .help("Choose a default host triple"),
         )
         .arg(
             Arg::new("default-toolchain")
                 .long("default-toolchain")
-                .takes_value(true)
+                .num_args(1)
                 .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all")
                 .value_parser(maybe_official_toolchainame_parser)
         )
@@ -79,8 +79,7 @@ pub fn main() -> Result<utils::ExitCode> {
                 .help("Component name to also install")
                 .long("component")
                 .short('c')
-                .takes_value(true)
-                .multiple_values(true)
+                .num_args(1..)
                 .use_value_delimiter(true)
                 .action(ArgAction::Append),
         )
@@ -89,8 +88,7 @@ pub fn main() -> Result<utils::ExitCode> {
                 .help("Target name to also install")
                 .long("target")
                 .short('t')
-                .takes_value(true)
-                .multiple_values(true)
+                .num_args(1..)
                 .use_value_delimiter(true)
                 .action(ArgAction::Append),
         )
@@ -110,8 +108,8 @@ pub fn main() -> Result<utils::ExitCode> {
     let matches = match cli.try_get_matches_from(process().args_os()) {
         Ok(matches) => matches,
         Err(e)
-            if e.kind() == clap::ErrorKind::DisplayHelp
-                || e.kind() == clap::ErrorKind::DisplayVersion =>
+            if e.kind() == clap::error::ErrorKind::DisplayHelp
+                || e.kind() == clap::error::ErrorKind::DisplayVersion =>
         {
             write!(process().stdout().lock(), "{e}")?;
             return Ok(utils::ExitCode(0));

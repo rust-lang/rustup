@@ -4,20 +4,19 @@ stdout = """
 ...
 Show the active and installed toolchains or profiles
 
-USAGE:
-    rustup[EXE] show [OPTIONS] [SUBCOMMAND]
+Usage: rustup[EXE] show [OPTIONS] [COMMAND]
 
-OPTIONS:
-    -v, --verbose    Enable verbose output with rustc information for all installed toolchains
-    -h, --help       Print help information
+Commands:
+  active-toolchain  Show the active toolchain
+  home              Display the computed value of RUSTUP_HOME
+  profile           Show the current profile
+  help              Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    active-toolchain    Show the active toolchain
-    home                Display the computed value of RUSTUP_HOME
-    profile             Show the current profile
-    help                Print this message or the help of the given subcommand(s)
+Options:
+  -v, --verbose  Enable verbose output with rustc information for all installed toolchains
+  -h, --help     Print help
 
-DISCUSSION:
+Discussion:
     Shows the name of the active toolchain and the version of `rustc`.
 
     If the active toolchain has installed support for additional

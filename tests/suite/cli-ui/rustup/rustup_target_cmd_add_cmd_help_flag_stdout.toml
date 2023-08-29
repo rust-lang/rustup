@@ -4,15 +4,14 @@ stdout = """
 ...
 Add a target to a Rust toolchain
 
-USAGE:
-    rustup[EXE] target add [OPTIONS] <target>...
+Usage: rustup[EXE] target add [OPTIONS] <target>...
 
-ARGS:
-    <target>...    List of targets to install; \"all\" installs all available targets
+Arguments:
+  <target>...  List of targets to install; \"all\" installs all available targets
 
-OPTIONS:
-        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
-                                   information see `rustup help toolchain`
-    -h, --help                     Print help information
+Options:
+      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+                               information see `rustup help toolchain`
+  -h, --help                   Print help
 """
 stderr = ""

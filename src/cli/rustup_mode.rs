@@ -6,8 +6,8 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
 use clap::{
-    builder::{EnumValueParser, PossibleValuesParser},
-    AppSettings, Arg, ArgAction, ArgEnum, ArgGroup, ArgMatches, Command, PossibleValue,
+    builder::{EnumValueParser, PossibleValue, PossibleValuesParser},
+    Arg, ArgAction, ArgGroup, ArgMatches, Command, ValueEnum,
 };
 use clap_complete::Shell;
 
@@ -89,7 +89,7 @@ where
 pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
-    use clap::ErrorKind::*;
+    use clap::error::ErrorKind::*;
     let matches = match cli().try_get_matches_from(process().args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
@@ -243,17 +243,20 @@ pub fn main() -> Result<utils::ExitCode> {
             }
             _ => unreachable!(),
         },
-        None => unreachable!(),
+        None => {
+            eprintln!("{}", cli().render_long_help());
+            utils::ExitCode(1)
+        }
     })
 }
 
-pub(crate) fn cli() -> Command<'static> {
+pub(crate) fn cli() -> Command {
     let mut app = Command::new("rustup")
         .version(common::version())
         .about("The Rust toolchain installer")
+        .before_help(format!("rustup {}", common::version()))
         .after_help(RUSTUP_HELP)
-        .global_setting(AppSettings::DeriveDisplayOrder)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(false)
         .arg(
             verbose_arg("Enable verbose output"),
         )
@@ -269,10 +272,11 @@ pub(crate) fn cli() -> Command<'static> {
             Arg::new("+toolchain")
                 .help("release channel (e.g. +stable) or custom toolchain to set override")
                 .value_parser(|s: &str| {
+                    use clap::{Error, error::ErrorKind};
                     if let Some(stripped) = s.strip_prefix('+') {
-                        ResolvableToolchainName::try_from(stripped).map_err(|e| clap::Error::raw(clap::ErrorKind::InvalidValue, e))
+                        ResolvableToolchainName::try_from(stripped).map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
                     } else {
-                        Err(clap::Error::raw(clap::ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
+                        Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
                     }
                 }),
         )
@@ -312,14 +316,13 @@ pub(crate) fn cli() -> Command<'static> {
                         .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                         .required(true)
                         .value_parser(partial_toolchain_desc_parser)
-                        .takes_value(true)
-                        .multiple_values(true)
+                        .num_args(1..)
                 )
                 .arg(
                     Arg::new("profile")
                         .long("profile")
                         .value_parser(PossibleValuesParser::new(Profile::names()))
-                        .takes_value(true),
+                        .num_args(1),
                 )
                 .arg(
                     Arg::new("no-self-update")
@@ -348,8 +351,7 @@ pub(crate) fn cli() -> Command<'static> {
                         .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
                         .required(true)
                         .value_parser(resolvable_toolchainame_parser)
-                        .takes_value(true)
-                        .multiple_values(true),
+                        .num_args(1..)
                 ),
         )
         .subcommand(
@@ -362,8 +364,7 @@ pub(crate) fn cli() -> Command<'static> {
                         .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                         .required(false)
                         .value_parser(partial_toolchain_desc_parser)
-                        .takes_value(true)
-                        .multiple_values(true),
+                        .num_args(1..)
                 )
                 .arg(
                     Arg::new("no-self-update")
@@ -400,7 +401,8 @@ pub(crate) fn cli() -> Command<'static> {
             Command::new("toolchain")
                 .about("Modify or query the installed toolchains")
                 .after_help(TOOLCHAIN_HELP)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list")
                         .about("List installed toolchains")
@@ -417,22 +419,20 @@ pub(crate) fn cli() -> Command<'static> {
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .required(true)
                                 .value_parser( partial_toolchain_desc_parser)
-                                .takes_value(true)
-                                .multiple_values(true),
+                                .num_args(1..)
                         )
                         .arg(
                             Arg::new("profile")
                                 .long("profile")
                                 .value_parser(PossibleValuesParser::new(Profile::names()))
-                                .takes_value(true),
+                                .num_args(1),
                         )
                         .arg(
                             Arg::new("components")
                                 .help("Add specific components on installation")
                                 .long("component")
                                 .short('c')
-                                .takes_value(true)
-                                .multiple_values(true)
+                                .num_args(1..)
                                 .use_value_delimiter(true)
                             .action(ArgAction::Append),
                         )
@@ -441,8 +441,7 @@ pub(crate) fn cli() -> Command<'static> {
                                 .help("Add specific targets on installation")
                                 .long("target")
                                 .short('t')
-                                .takes_value(true)
-                                .multiple_values(true)
+                                .num_args(1..)
                                 .use_value_delimiter(true)
                                 .action(ArgAction::Append),
                         )
@@ -453,7 +452,6 @@ pub(crate) fn cli() -> Command<'static> {
                                      `rustup toolchain install` command",
                                 )
                                 .long("no-self-update")
-                                .takes_value(true)
                                 .action(ArgAction::SetTrue)
                         )
                         .arg(
@@ -484,8 +482,7 @@ pub(crate) fn cli() -> Command<'static> {
                                 .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
                                 .required(true)
                                 .value_parser(resolvable_toolchainame_parser)
-                                .takes_value(true)
-                                .multiple_values(true),
+                                .num_args(1..)
                         ),
                 )
                 .subcommand(
@@ -508,7 +505,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("target")
                 .about("Modify a toolchain's supported targets")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list")
                         .about("List installed and available targets")
@@ -517,7 +515,7 @@ pub(crate) fn cli() -> Command<'static> {
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
                                 .value_parser(partial_toolchain_desc_parser)
-                                .takes_value(true),
+                                .num_args(1),
                         )
                         .arg(
                             Arg::new("installed")
@@ -533,8 +531,7 @@ pub(crate) fn cli() -> Command<'static> {
                         .arg(
                             Arg::new("target")
                             .required(true)
-                            .takes_value(true)
-                            .multiple_values(true)
+                            .num_args(1..)
                             .help(
                                 "List of targets to install; \
                                 \"all\" installs all available targets"
@@ -544,7 +541,7 @@ pub(crate) fn cli() -> Command<'static> {
                             Arg::new("toolchain")
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_parser(partial_toolchain_desc_parser),
                         ),
                 )
@@ -556,14 +553,13 @@ pub(crate) fn cli() -> Command<'static> {
                             Arg::new("target")
                             .help("List of targets to uninstall")
                             .required(true)
-                            .takes_value(true)
-                            .multiple_values(true)
+                            .num_args(1..)
                         )
                         .arg(
                             Arg::new("toolchain")
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_parser(partial_toolchain_desc_parser),
                         ),
                 ),
@@ -571,7 +567,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("component")
                 .about("Modify a toolchain's installed components")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list")
                         .about("List installed and available components")
@@ -579,7 +576,7 @@ pub(crate) fn cli() -> Command<'static> {
                             Arg::new("toolchain")
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_parser(partial_toolchain_desc_parser),
                         )
                         .arg(
@@ -593,36 +590,36 @@ pub(crate) fn cli() -> Command<'static> {
                     Command::new("add")
                         .about("Add a component to a Rust toolchain")
                         .arg(Arg::new("component").required(true)
-                        .takes_value(true).multiple_values(true))
+                        .num_args(1..))
                         .arg(
                             Arg::new("toolchain")
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_parser( partial_toolchain_desc_parser),
                         )
                         .arg(
                             Arg::new("target")
                             .long("target")
-                            .takes_value(true)
+                            .num_args(1)
                         ),
                 )
                 .subcommand(
                     Command::new("remove")
                         .about("Remove a component from a Rust toolchain")
                         .arg(Arg::new("component").required(true)
-                        .takes_value(true).multiple_values(true))
+                        .num_args(1..))
                         .arg(
                             Arg::new("toolchain")
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_parser( partial_toolchain_desc_parser),
                         )
                         .arg(
                             Arg::new("target")
                             .long("target")
-                            .takes_value(true)
+                            .num_args(1)
                         ),
                 ),
         )
@@ -630,7 +627,8 @@ pub(crate) fn cli() -> Command<'static> {
             Command::new("override")
                 .about("Modify directory toolchain overrides")
                 .after_help(OVERRIDE_HELP)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("list").about("List directory toolchain overrides"),
                 )
@@ -642,13 +640,13 @@ pub(crate) fn cli() -> Command<'static> {
                             Arg::new("toolchain")
                                 .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
                                 .required(true)
-                                .takes_value(true)
+                                .num_args(1)
                                 .value_parser(resolvable_toolchainame_parser),
                         )
                         .arg(
                             Arg::new("path")
                                 .long("path")
-                                .takes_value(true)
+                                .num_args(1)
                                 .help("Path to the directory"),
                         ),
                 )
@@ -660,7 +658,7 @@ pub(crate) fn cli() -> Command<'static> {
                         .arg(
                             Arg::new("path")
                                 .long("path")
-                                .takes_value(true)
+                                .num_args(1)
                                 .help("Path to the directory"),
                         )
                         .arg(
@@ -680,14 +678,13 @@ pub(crate) fn cli() -> Command<'static> {
                     Arg::new("toolchain")
                         .help(RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)
                         .required(true)
-                        .takes_value(true)
+                        .num_args(1)
                         .value_parser(resolvable_local_toolchainame_parser),
                 )
                 .arg(
                     Arg::new("command")
                         .required(true)
-                        .takes_value(true)
-                        .multiple_values(true)
+                        .num_args(1..)
                         .use_value_delimiter(false),
                 )
                 .arg(
@@ -705,7 +702,7 @@ pub(crate) fn cli() -> Command<'static> {
                     Arg::new("toolchain")
                         .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
                         .long("toolchain")
-                        .takes_value(true)
+                        .num_args(1)
                         .value_parser(resolvable_toolchainame_parser),
                 ),
         )
@@ -724,7 +721,7 @@ pub(crate) fn cli() -> Command<'static> {
                     Arg::new("toolchain")
                         .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                         .long("toolchain")
-                        .takes_value(true)
+                        .num_args(1)
                         .value_parser(partial_toolchain_desc_parser),
                 )
                 .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
@@ -753,7 +750,7 @@ pub(crate) fn cli() -> Command<'static> {
                     Arg::new("toolchain")
                         .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                         .long("toolchain")
-                        .takes_value(true)
+                        .num_args(1)
                         .value_parser(partial_toolchain_desc_parser),
                 ),
         );
@@ -763,7 +760,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("self")
                 .about("Modify the rustup installation")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(Command::new("update").about("Download and install updates to rustup"))
                 .subcommand(
                     Command::new("uninstall")
@@ -777,7 +775,8 @@ pub(crate) fn cli() -> Command<'static> {
         .subcommand(
             Command::new("set")
                 .about("Alter rustup settings")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand_required(true)
+                .arg_required_else_help(true)
                 .subcommand(
                     Command::new("default-host")
                         .about("The triple used to identify toolchains when not specified")
@@ -819,7 +818,7 @@ pub(crate) fn cli() -> Command<'static> {
     )
 }
 
-fn verbose_arg(help: &str) -> Arg<'_> {
+fn verbose_arg(help: &'static str) -> Arg {
     Arg::new("verbose")
         .help(help)
         .short('v')
@@ -1675,7 +1674,7 @@ impl clap::ValueEnum for CompletionCommand {
         &[Self::Rustup, Self::Cargo]
     }
 
-    fn to_possible_value<'a>(&self) -> Option<clap::PossibleValue<'a>> {
+    fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
         Some(match self {
             CompletionCommand::Rustup => PossibleValue::new("rustup"),
             CompletionCommand::Cargo => PossibleValue::new("cargo"),
