@@ -408,11 +408,10 @@ impl std::convert::TryFrom<PartialTargetTriple> for TargetTriple {
     fn try_from(value: PartialTargetTriple) -> std::result::Result<Self, Self::Error> {
         let arch = value.arch.ok_or("Incomplete / bad target triple")?;
         let os = value.os.ok_or("Incomplete / bad target triple")?;
-        let triple = match value.env {
+        Ok(Self(match value.env {
             Some(env) => format!("{}-{}-{}", arch, os, env),
             None => format!("{}-{}", arch, os),
-        };
-        Ok(Self(triple))
+        }))
     }
 }
 
