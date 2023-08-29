@@ -1,13 +1,12 @@
-bin.name = "rustup"
 args = ["-q"]
+bin.name = "rustup"
 status.code = 1
-stdout = ""
 stderr = """
 rustup [..]
 
 The Rust toolchain installer
 
-Usage: rustup[EXE] [OPTIONS] [+toolchain] [COMMAND]
+Usage: rustup [OPTIONS] [+toolchain] [COMMAND]
 
 Commands:
   show         Show the active and installed toolchains or profiles
@@ -55,3 +54,4 @@ Discussion:
     learn Rust.
 
 """
+stdout = ""
