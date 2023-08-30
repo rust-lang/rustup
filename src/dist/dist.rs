@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::env;
+use std::ffi::OsString;
 use std::fmt;
 use std::io::Write;
 use std::ops::Deref;
@@ -26,7 +27,10 @@ use crate::{
     },
     errors::RustupError,
     process,
-    toolchain::names::{ResolvableToolchainName, ToolchainName},
+    toolchain::{
+        names::{ResolvableLocalToolchainName, ToolchainName},
+        toolchain::Toolchain,
+    },
     utils::utils,
 };
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
@@ -182,28 +186,50 @@ fn convert_old_two_part_version(version: &str) -> &str {
 }
 
 fn resolve_stable_delta(delta: u64) -> Result<String> {
-    let mut cfg = crate::cli::common::set_globals(false, true)?;
-    cfg.set_toolchain_override(&ResolvableToolchainName::try_from("stable")?);
+    let inner = || {
+        info!("resolving relative version `stable-{delta}`");
 
-    let cwd = std::env::current_dir()?;
+        let cfg = crate::cli::common::set_globals(false, true)?;
 
-    // e.g. stable == "rustc 1.72.0 (5680fa18f 2023-08-23)"
-    let stable = cfg
-        .find_or_install_override_toolchain_or_default(&cwd)?
-        .0
-        .rustc_version();
+        let stable_name = ResolvableLocalToolchainName::try_from("stable")?
+            .resolve(&cfg.get_default_host_triple()?)?;
 
-    // e.g. stable_ver == "1.72.0"
-    let Some(stable_ver) = stable.split_ascii_whitespace().nth(1) else {
-        bail!("failed to parse rustc version string `{stable}`");
+        let stable = Toolchain::new(&cfg, stable_name)?;
+
+        // e.g. raw_stable_ver == "rustc 1.72.0 (5680fa18f 2023-08-23)"
+        let raw_stable_ver = stable.rustc_version();
+
+        // e.g. stable_ver == "1.72.0"
+        let Some(stable_ver) = raw_stable_ver.split_ascii_whitespace().nth(1) else {
+            bail!("failed to parse rustc version string `{raw_stable_ver}`");
+        };
+
+        // e.g. major == 1, minor == 72
+        let Version { major, minor, .. } = Version::parse(stable_ver)
+            .with_context(|| anyhow!("failed to parse rustc version string `{raw_stable_ver}`"))?;
+        let Some(minor) = minor.checked_sub(delta) else {
+            bail!("relative version calculation `{minor} - {delta}` overflown")
+        };
+        Ok(convert_old_two_part_version(&format!("{major}.{minor}")).into())
     };
 
-    // e.g. major == 1, minor == 72
-    let Version { major, minor, .. } = Version::parse(stable_ver)?;
-    let Some(minor) = minor.checked_sub(delta) else {
-        bail!("relative version calculation `{minor} - {delta}` overflown")
-    };
-    Ok(convert_old_two_part_version(&format!("{major}.{minor}")).into())
+    // We need to remove `RUSTUP_TOOLCHAIN` to prevent
+    // `crate::cli::common::set_globals()` from resolving `stable-DELTA`,
+    // since we are doing that right now and we want `inner()` to resolve `stable` first.
+    // Also, we need to save that value before the actual removal for possible error recovery.
+    let key = "RUSTUP_TOOLCHAIN";
+    let rustup_toolchain = env::var_os(key);
+    env::remove_var(key);
+
+    let res = inner();
+    // If `RUSTUP_TOOLCHAIN` is set previous to `inner()`, we need to update or restore its value.
+    if let Some(val) = rustup_toolchain {
+        // If the resolution is successful,
+        // the value of `RUSTUP_TOOLCHAIN` is updated to the resolved toolchain.
+        // otherwise, the previous `RUSTUP_TOOLCHAIN` value is restored.
+        env::set_var(key, res.as_ref().map_or(val, OsString::from));
+    }
+    res
 }
 
 impl FromStr for ParsedToolchainDesc {
