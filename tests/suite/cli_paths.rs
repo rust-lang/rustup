@@ -362,7 +362,7 @@ mod windows {
     fn install_uninstall_affect_path() {
         clitools::test(Scenario::Empty, &|config| {
             with_saved_path(&mut || {
-                let path = format!("{:?}", config.cargodir.join("bin").to_string_lossy());
+                let path = config.cargodir.join("bin").display().to_string();
 
                 config.expect_ok(&INIT_NONE);
                 assert!(
