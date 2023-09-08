@@ -19,6 +19,10 @@ has_local() {
 
 has_local 2>/dev/null || alias local=typeset
 
+# zsh does not split words by default, Required for curl retry arguments below.
+if [ -n "$ZSH_VERSION" ]; then
+    setopt shwordsplit
+fi
 
 set -u
 
