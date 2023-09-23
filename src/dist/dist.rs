@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 use std::env;
 use std::fmt;
-use std::io::Write;
+use std::fs;
+use std::io::{self, Read, Write};
 use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
@@ -219,6 +220,26 @@ impl Deref for TargetTriple {
     }
 }
 
+fn is_32bit_userspace() -> bool {
+    // Check if /bin/sh is a 32-bit binary. If it doesn't exist, fall back to
+    // checking if _we_ are a 32-bit binary.
+    // rustup-init.sh also relies on checking /bin/sh for bitness.
+
+    // inner function is to simplify error handling.
+    fn inner() -> io::Result<bool> {
+        let mut f = fs::File::open("/bin/sh")?;
+        let mut buf = [0; 5];
+        f.read_exact(&mut buf)?;
+
+        // ELF files start out "\x7fELF", and the following byte is
+        //   0x01 for 32-bit and
+        //   0x02 for 64-bit.
+        Ok(&buf == b"\x7fELF\x01")
+    }
+
+    inner().unwrap_or(cfg!(target_pointer_width = "32"))
+}
+
 impl TargetTriple {
     pub fn new(name: &str) -> Self {
         Self(name.to_string())
@@ -346,7 +367,11 @@ impl TargetTriple {
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
                 (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
-                (b"Linux", b"aarch64") => Some(TRIPLE_AARCH64_UNKNOWN_LINUX),
+                (b"Linux", b"aarch64") => Some(if is_32bit_userspace() {
+                    "armv7-unknown-linux-gnueabihf"
+                } else {
+                    TRIPLE_AARCH64_UNKNOWN_LINUX
+                }),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
