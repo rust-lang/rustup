@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.26.0] - unreleased
+## [1.26.0] - 2023-04-05
 
 This version of Rustup involves a significant number of internal refactors, both in terms
 of the Rustup code and its tests.
@@ -48,6 +48,7 @@ please review the repository.
 - Fix RUSTUP_PERMIT_COPY_RENAME condition so it is actually used [pr#3292]
 - Bump a lot of dependencies to their latest versions [pr#renovate-bot]
 
+[1.26.0]: https://github.com/rust-lang/rustup/releases/tag/1.26.0
 [rust-analyzer]: https://github.com/rust-lang/rust-analyzer
 [proxy]: https://rust-lang.github.io/rustup/concepts/proxies.html
 [clap]: https://crates.io/crates/clap
