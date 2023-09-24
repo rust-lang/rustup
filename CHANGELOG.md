@@ -126,7 +126,7 @@ Thanks go to:
 - Pietro Albini
 - Daniel Silverstone
 
-[1.25.2]: https://github.com/rust-lang/rustup/release/tag/1.25.2
+[1.25.2]: https://github.com/rust-lang/rustup/releases/tag/1.25.2
 
 ## [1.25.1] - 2022-07-12
 
