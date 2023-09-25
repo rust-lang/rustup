@@ -55,6 +55,15 @@ impl OverrideFile {
     fn is_empty(&self) -> bool {
         self.toolchain.is_empty()
     }
+
+    fn has_toolchain(&self) -> bool {
+        self.toolchain.has_toolchain()
+    }
+
+    /// A left-biased merge of two [`OverrideFile`]s.
+    fn merge(&mut self, other: Self) {
+        self.toolchain.merge(other.toolchain)
+    }
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
@@ -69,9 +78,33 @@ struct ToolchainSection {
 impl ToolchainSection {
     fn is_empty(&self) -> bool {
         self.channel.is_none()
+            && self.path.is_none()
             && self.components.is_none()
             && self.targets.is_none()
-            && self.path.is_none()
+    }
+
+    fn has_toolchain(&self) -> bool {
+        self.channel.is_some() || self.path.is_some()
+    }
+
+    /// A left-biased merge of two [`ToolchainSelection`]s.
+    ///
+    /// If a field appears in both operands, the one from the left-hand side is selected.
+    fn merge(&mut self, other: Self) {
+        if !self.has_toolchain() {
+            // `channel` and `path` are mutually exclusive, so they need to be updated together,
+            // and this will happen only if `self` doesn't have a toolchain yet.
+            (self.channel, self.path) = (other.channel, other.path);
+        }
+        if self.components.is_none() {
+            self.components = other.components;
+        }
+        if self.targets.is_none() {
+            self.targets = other.targets;
+        }
+        if self.profile.is_none() {
+            self.profile = other.profile;
+        }
     }
 }
 
@@ -96,6 +129,7 @@ impl<T: Into<String>> From<T> for OverrideFile {
     }
 }
 
+/// The reason for which the toolchain is overridden.
 #[derive(Debug)]
 pub(crate) enum OverrideReason {
     Environment,
@@ -453,31 +487,46 @@ impl Cfg {
     }
 
     fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, OverrideReason)>> {
-        let mut override_ = None;
+        let mut override_ = None::<(OverrideFile, OverrideReason)>;
 
-        // First check toolchain override from command
+        let mut update_override = |file, reason| {
+            if let Some((file1, reason1)) = &mut override_ {
+                if file1.has_toolchain() {
+                    // Update the reason only if the override file has a toolchain.
+                    *reason1 = reason
+                }
+                file1.merge(file);
+            } else {
+                override_ = Some((file, reason))
+            };
+        };
+
+        // Check for all possible toolchain overrides below...
+        // See: <https://rust-lang.github.io/rustup/overrides.html>
+
+        // 1. Check toolchain override from command (i.e. the `+toolchain` syntax)
         if let Some(ref name) = self.toolchain_override {
-            override_ = Some((name.to_string().into(), OverrideReason::CommandLine));
+            update_override(name.to_string().into(), OverrideReason::CommandLine);
         }
 
-        // Check RUSTUP_TOOLCHAIN
+        // 2. Check RUSTUP_TOOLCHAIN
         if let Some(ref name) = self.env_override {
             // Because path based toolchain files exist, this has to support
             // custom, distributable, and absolute path toolchains otherwise
             // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
             // error when a nested rustup invocation occurs
-            override_ = Some((name.to_string().into(), OverrideReason::Environment));
+            update_override(name.to_string().into(), OverrideReason::Environment);
         }
 
-        // Then walk up the directory tree from 'path' looking for either the
-        // directory in override database, or a `rust-toolchain` file.
-        if override_.is_none() {
-            self.settings_file.with(|s| {
-                override_ = self.find_override_from_dir_walk(path, s)?;
-
-                Ok(())
-            })?;
-        }
+        // 3. walk up the directory tree from 'path' looking for either the
+        // directory in override database, or
+        // 4. a `rust-toolchain` file.
+        self.settings_file.with(|s| {
+            if let Some((file, reason)) = self.find_override_from_dir_walk(path, s)? {
+                update_override(file, reason);
+            }
+            Ok(())
+        })?;
 
         if let Some((file, reason)) = override_ {
             // This is hackishly using the error chain to provide a bit of
