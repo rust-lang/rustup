@@ -487,26 +487,18 @@ impl Cfg {
     }
 
     fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, OverrideReason)>> {
-        let mut override_ = None::<(OverrideFile, OverrideReason)>;
-
-        let mut update_override = |file, reason| {
-            if let Some((file1, reason1)) = &mut override_ {
-                if file1.has_toolchain() {
-                    // Update the reason only if the override file has a toolchain.
-                    *reason1 = reason
-                }
-                file1.merge(file);
-            } else {
-                override_ = Some((file, reason))
-            };
-        };
+        let mut override_ = None;
 
         // Check for all possible toolchain overrides below...
         // See: <https://rust-lang.github.io/rustup/overrides.html>
 
         // 1. Check toolchain override from command (i.e. the `+toolchain` syntax)
         if let Some(ref name) = self.toolchain_override {
-            update_override(name.to_string().into(), OverrideReason::CommandLine);
+            update_override(
+                &mut override_,
+                name.to_string().into(),
+                OverrideReason::CommandLine,
+            );
         }
 
         // 2. Check RUSTUP_TOOLCHAIN
@@ -515,7 +507,11 @@ impl Cfg {
             // custom, distributable, and absolute path toolchains otherwise
             // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
             // error when a nested rustup invocation occurs
-            update_override(name.to_string().into(), OverrideReason::Environment);
+            update_override(
+                &mut override_,
+                name.to_string().into(),
+                OverrideReason::Environment,
+            );
         }
 
         // 3. walk up the directory tree from 'path' looking for either the
@@ -523,7 +519,7 @@ impl Cfg {
         // 4. a `rust-toolchain` file.
         self.settings_file.with(|s| {
             if let Some((file, reason)) = self.find_override_from_dir_walk(path, s)? {
-                update_override(file, reason);
+                update_override(&mut override_, file, reason);
             }
             Ok(())
         })?;
@@ -1004,6 +1000,22 @@ impl Cfg {
             LocalToolchainName::Path(p) => p.to_path_buf(),
         }
     }
+}
+
+fn update_override(
+    override_: &mut Option<(OverrideFile, OverrideReason)>,
+    file: OverrideFile,
+    reason: OverrideReason,
+) {
+    if let Some((file1, reason1)) = override_ {
+        if file1.has_toolchain() {
+            // Update the reason only if the override file has a toolchain.
+            *reason1 = reason
+        }
+        file1.merge(file);
+    } else {
+        *override_ = Some((file, reason))
+    };
 }
 
 fn get_default_host_triple(s: &Settings) -> dist::TargetTriple {
