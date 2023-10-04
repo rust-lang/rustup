@@ -1,8 +1,6 @@
 /// Adapts currentprocess to the trait home::Env
 use std::ffi::OsString;
 use std::io;
-#[cfg(feature = "test")]
-use std::ops::Deref;
 use std::path::PathBuf;
 
 use home::env as home;
@@ -42,10 +40,10 @@ impl home::Env for TestProcess {
         self.var("HOME").ok().map(|v| v.into())
     }
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
-        CurrentDirSource::current_dir(self.deref())
+        CurrentDirSource::current_dir(self)
     }
     fn var_os(&self, key: &str) -> Option<OsString> {
-        VarSource::var_os(self.deref(), key)
+        VarSource::var_os(self, key)
     }
 }
 

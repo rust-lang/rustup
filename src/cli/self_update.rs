@@ -750,7 +750,7 @@ fn install_bins() -> Result<()> {
 
 pub(crate) fn install_proxies() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
-    let rustup_path = bin_path.join(&format!("rustup{EXE_SUFFIX}"));
+    let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
     let rustup = Handle::from_path(&rustup_path)?;
 
@@ -965,7 +965,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 
     let cargo_home = utils::cargo_home()?;
 
-    if !cargo_home.join(&format!("bin/rustup{EXE_SUFFIX}")).exists() {
+    if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 

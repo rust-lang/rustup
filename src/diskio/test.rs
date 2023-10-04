@@ -36,10 +36,10 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
             0o666,
             io_executor.incremental_file_state(),
         )?;
-        for _ in io_executor.execute(item).collect::<Vec<_>>() {
-            // The file should be open and incomplete, and no completed chunks
-            unreachable!();
-        }
+
+        // The file should be open and incomplete, and no completed chunks
+        assert!(io_executor.execute(item).collect::<Vec<_>>().is_empty());
+
         let mut chunk = io_executor.get_buffer(super::IO_CHUNK_SIZE);
         chunk.extend(b"0123456789");
         chunk = chunk.finished();
@@ -76,13 +76,12 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
                 break;
             }
         }
-        assert!(file_finished);
-        for _ in io_executor.join().collect::<Vec<_>>() {
-            // no more work should be outstanding
-            unreachable!();
-        }
 
+        // no more work should be outstanding
+        assert!(file_finished);
+        assert!(io_executor.join().collect::<Vec<_>>().is_empty());
         assert_eq!(io_executor.buffer_used(), 0);
+
         Ok(())
     })?;
     // We should be able to read back the file
@@ -143,10 +142,9 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
             }
         }
         assert!(items > 0);
-        for _ in io_executor.join().collect::<Vec<_>>() {
-            // no more work should be outstanding
-            unreachable!();
-        }
+        // no more work should be outstanding
+        assert!(io_executor.join().collect::<Vec<_>>().is_empty());
+
         Ok(())
     })?;
     // We should be able to read back the file with correct content
