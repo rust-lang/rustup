@@ -74,8 +74,8 @@ Some good general heuristics:
 
 ## Caveats
 
-Cross-thread propogation isn't connected yet. This will cause instrumentation in
+Cross-thread propagation isn't connected yet. This will cause instrumentation in
 a thread to make a new root span until it is fixed. If any Tokio runtime-related
 code gets added in those threads this will also cause a panic. We have a couple
 of threadpools in use today; if you need to instrument within that context, use
-a thunk to propogate the tokio runtime into those threads.
+a thunk to propagate the tokio runtime into those threads.

@@ -490,7 +490,7 @@ fn print_toolchain_path(
 }
 
 pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    // Work with LocalToolchainName to accomdate path based overrides
+    // Work with LocalToolchainName to accommodate path based overrides
     let toolchains = cfg
         .list_toolchains()?
         .iter()
