@@ -113,7 +113,7 @@ version = "1.1.0"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.50"
+winreg = "0.51"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
