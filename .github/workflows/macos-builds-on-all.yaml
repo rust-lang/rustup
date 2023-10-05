@@ -30,7 +30,7 @@ jobs:
           - target: x86_64-apple-darwin
             run_tests: YES
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
