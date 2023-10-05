@@ -58,7 +58,7 @@ download_pkg_test() {
 
 # Machines have 7GB of RAM, and our target/ contents is large enough that
 # thrashing will occur if we build-run-build-run rather than
-# build-build-build-run-run-run. Since this is used soley for non-release
+# build-build-build-run-run-run. Since this is used solely for non-release
 # artifacts, we try to keep features consistent across the builds, whether for
 # docs/test/runs etc.
 build_test() {
