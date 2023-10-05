@@ -45,7 +45,7 @@ jobs:
             mingwdir: mingw32  # skip-pr skip-master
             mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z  # skip-pr skip-master
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0

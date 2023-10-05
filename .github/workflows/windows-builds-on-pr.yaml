@@ -27,7 +27,7 @@ jobs:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
