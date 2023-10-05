@@ -19,7 +19,7 @@ pub(super) enum StreamSelector {
     Stderr,
     #[cfg(feature = "test")]
     TestWriter(TestWriter),
-    #[cfg(feature = "test")]
+    #[cfg(all(test, feature = "test"))]
     TestTtyWriter(TestWriter),
 }
 
@@ -38,7 +38,7 @@ impl StreamSelector {
             },
             #[cfg(feature = "test")]
             StreamSelector::TestWriter(_) => false,
-            #[cfg(feature = "test")]
+            #[cfg(all(test, feature = "test"))]
             StreamSelector::TestTtyWriter(_) => true,
         }
     }
@@ -100,9 +100,9 @@ impl ColorableTerminal {
                 TerminalInner::StandardStream(StandardStream::stderr(choice), ColorSpec::new())
             }
             #[cfg(feature = "test")]
-            StreamSelector::TestWriter(w) | StreamSelector::TestTtyWriter(w) => {
-                TerminalInner::TestWriter(w, choice)
-            }
+            StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w, choice),
+            #[cfg(all(test, feature = "test"))]
+            StreamSelector::TestTtyWriter(w) => TerminalInner::TestWriter(w, choice),
         };
         ColorableTerminal {
             inner: Arc::new(Mutex::new(inner)),
