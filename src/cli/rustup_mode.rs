@@ -357,7 +357,7 @@ pub(crate) fn cli() -> Command {
         .subcommand(
             Command::new("update")
                 .about("Update Rust toolchains and rustup")
-                .aliases(&["upgrade", "up"])
+                .aliases(["upgrade", "up"])
                 .after_help(UPDATE_HELP)
                 .arg(
                     Arg::new("toolchain")
@@ -413,7 +413,7 @@ pub(crate) fn cli() -> Command {
                 .subcommand(
                     Command::new("install")
                         .about("Install or update a given toolchain")
-                        .aliases(&["update", "add"])
+                        .aliases(["update", "add"])
                         .arg(
                             Arg::new("toolchain")
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
@@ -727,7 +727,7 @@ pub(crate) fn cli() -> Command {
                 .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
                 .group(
                     ArgGroup::new("page").args(
-                        &DOCS_DATA
+                        DOCS_DATA
                             .iter()
                             .map(|(name, _, _)| *name)
                             .collect::<Vec<_>>(),

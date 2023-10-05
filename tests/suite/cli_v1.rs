@@ -176,7 +176,7 @@ fn bad_sha_on_manifest() {
 fn bad_sha_on_installer() {
     setup(&|config| {
         let dir = config.distdir.as_ref().unwrap().join("dist");
-        for file in fs::read_dir(&dir).unwrap() {
+        for file in fs::read_dir(dir).unwrap() {
             let file = file.unwrap();
             let path = file.path();
             let filename = path.to_string_lossy();

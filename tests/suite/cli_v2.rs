@@ -304,7 +304,7 @@ fn bad_sha_on_installer() {
     setup(&|config| {
         // Since the v2 sha's are contained in the manifest, corrupt the installer
         let dir = config.distdir.as_ref().unwrap().join("dist/2015-01-02");
-        for file in fs::read_dir(&dir).unwrap() {
+        for file in fs::read_dir(dir).unwrap() {
             let file = file.unwrap();
             let path = file.path();
             let filename = path.to_string_lossy();
