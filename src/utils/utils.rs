@@ -151,6 +151,9 @@ pub(crate) fn download_file_with_resume(
     match download_file_(url, path, hasher, resume_from_partial, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
+            if let Some(_) = e.downcast_ref::<std::io::Error>() {
+                return Err(e);
+            }
             let is_client_error = match e.downcast_ref::<DEK>() {
                 // Specifically treat the bad partial range error as not our
                 // fault in case it was something odd which happened.
