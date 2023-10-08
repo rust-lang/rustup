@@ -12,9 +12,14 @@ TARGET="$1"
 
 RUST_REPO="https://github.com/rust-lang/rust"
 ARTIFACTS_BASE_URL="https://ci-artifacts.rust-lang.org/rustc-builds"
-LOCAL_DOCKER_TAG="rust-$TARGET"
 
-# Use images from rustc master
+# A `Dockerfile` under `rustup`'s `ci/docker` directory may start with `FROM rust-$TARGET`.
+# This means it is using an S3-cached Docker image provided by `rustc`'s CI.
+LOCAL_DOCKER_TAG="rust-$TARGET"
+# The following is a mapping from `$TARGET`s to cached Docker images built from `Dockerfile`s under
+# <https://github.com/rust-lang/rust/blob/master/src/ci/docker/host-x86_64/>,
+# e.g. `FROM rust-aarch64-unknown-linux-musl` means the base `Dockerfile` to look at is located under
+# <https://github.com/rust-lang/rust/blob/master/src/ci/docker/host-x86_64/dist-arm-linux>.
 case "$TARGET" in
   aarch64-unknown-linux-gnu)       image=dist-aarch64-linux ;;
   aarch64-unknown-linux-musl)      image=dist-arm-linux ;;

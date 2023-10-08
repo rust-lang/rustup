@@ -96,7 +96,7 @@ jobs:
             *)                DOCKER="$TARGET" ;;
           esac
           echo "DOCKER=$DOCKER" >> $GITHUB_ENV
-      - name: Fetch the docker
+      - name: Fetch the base docker images from rust-lang/rust
         run: bash ci/fetch-rust-docker.bash "${TARGET}"
       - name: Maybe build a docker from there
         run: |
