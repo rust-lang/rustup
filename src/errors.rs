@@ -147,29 +147,6 @@ fn suggest_message(suggestion: &Option<String>) -> String {
     }
 }
 
-fn remove_component_msg(cs: &Component, manifest: &Manifest, toolchain: &str) -> String {
-    if cs.short_name_in_manifest() == "rust-std" {
-        // We special-case rust-std as it's the stdlib so really you want to do
-        // rustup target remove
-        format!(
-            "    rustup target remove --toolchain {} {}",
-            toolchain,
-            cs.target.as_deref().unwrap_or(toolchain)
-        )
-    } else {
-        format!(
-            "    rustup component remove --toolchain {}{} {}",
-            toolchain,
-            if let Some(target) = cs.target.as_ref() {
-                format!(" --target {target}")
-            } else {
-                String::default()
-            },
-            cs.short_name(manifest)
-        )
-    }
-}
-
 fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
     assert!(!cs.is_empty());
 
@@ -188,11 +165,6 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
                 "Sometimes not all components are available in any given nightly. "
             );
         }
-        let _ = write!(
-            buf,
-            "If you don't need the component, you can remove it with:\n\n{}",
-            remove_component_msg(&cs[0], manifest, toolchain)
-        );
     } else {
         // More than one component
 
@@ -212,16 +184,17 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
                 .join(", ")
         };
 
-        let remove_msg = cs
-            .iter()
-            .map(|c| remove_component_msg(c, manifest, toolchain))
-            .collect::<Vec<_>>()
-            .join("\n");
         let _ = write!(
             buf,
-            "some components unavailable for download for channel '{toolchain}': {cs_str}\n\
-            If you don't need the components, you can remove them with:\n\n{remove_msg}\n\n{TOOLSTATE_MSG}",
+            "some components unavailable for download for channel '{toolchain}': {cs_str}",
         );
+
+        if toolchain.starts_with("nightly") {
+            let _ = write!(
+                buf,
+                "Sometimes not all components are available in any given nightly. "
+            );
+        }
     }
 
     String::from_utf8(buf).unwrap()

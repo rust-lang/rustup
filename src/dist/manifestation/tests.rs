@@ -772,8 +772,17 @@ fn unavailable_component() {
             )
             .unwrap_err();
             match err.downcast::<RustupError>() {
-                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
-                    assert!(e.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
+                Ok(RustupError::RequestedComponentsUnavailable {
+                    components,
+                    manifest,
+                    toolchain,
+                }) => {
+                    assert_eq!(toolchain, "nightly");
+                    let descriptions = components
+                        .iter()
+                        .map(|c| c.description(&manifest))
+                        .collect::<Vec<_>>();
+                    assert_eq!(descriptions, ["'bonus' for target 'x86_64-apple-darwin'"])
                 }
                 _ => panic!(),
             }
@@ -833,8 +842,17 @@ fn unavailable_component_from_profile() {
             )
             .unwrap_err();
             match err.downcast::<RustupError>() {
-                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
-                    assert!(e.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
+                Ok(RustupError::RequestedComponentsUnavailable {
+                    components,
+                    manifest,
+                    toolchain,
+                }) => {
+                    assert_eq!(toolchain, "nightly");
+                    let descriptions = components
+                        .iter()
+                        .map(|c| c.description(&manifest))
+                        .collect::<Vec<_>>();
+                    assert_eq!(descriptions, ["'rustc' for target 'x86_64-apple-darwin'"])
                 }
                 _ => panic!(),
             }
@@ -913,8 +931,17 @@ fn removed_component() {
             )
             .unwrap_err();
             match err.downcast::<RustupError>() {
-                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
-                    assert!(e.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
+                Ok(RustupError::RequestedComponentsUnavailable {
+                    components,
+                    manifest,
+                    toolchain,
+                }) => {
+                    assert_eq!(toolchain, "nightly");
+                    let descriptions = components
+                        .iter()
+                        .map(|c| c.description(&manifest))
+                        .collect::<Vec<_>>();
+                    assert_eq!(descriptions, ["'bonus' for target 'x86_64-apple-darwin'"])
                 }
                 _ => panic!(),
             }
@@ -992,13 +1019,24 @@ fn unavailable_components_is_target() {
             )
             .unwrap_err();
             match err.downcast::<RustupError>() {
-                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
-                    let err_str = e.to_string();
-                    assert!(err_str
-                        .contains("rustup target remove --toolchain nightly i686-apple-darwin"));
-                    assert!(err_str.contains(
-                        "rustup target remove --toolchain nightly i686-unknown-linux-gnu"
-                    ));
+                Ok(RustupError::RequestedComponentsUnavailable {
+                    components,
+                    manifest,
+                    toolchain,
+                }) => {
+                    assert_eq!(toolchain, "nightly");
+                    let descriptions = components
+                        .iter()
+                        .map(|c| c.description(&manifest))
+                        .collect::<Vec<_>>();
+                    assert_eq!(
+                        descriptions,
+                        [
+                            "'rust-std' for target 'x86_64-apple-darwin'",
+                            "'rust-std' for target 'i686-apple-darwin'",
+                            "'rust-std' for target 'i686-unknown-linux-gnu'"
+                        ]
+                    );
                 }
                 _ => panic!(),
             }
@@ -1071,13 +1109,23 @@ fn unavailable_components_with_same_target() {
             )
             .unwrap_err();
             match err.downcast::<RustupError>() {
-                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
-                    let err_str = e.to_string();
-                    assert!(err_str
-                        .contains("rustup target remove --toolchain nightly x86_64-apple-darwin"));
-                    assert!(err_str.contains(
-                                "rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"
-                            ));
+                Ok(RustupError::RequestedComponentsUnavailable {
+                    components,
+                    manifest,
+                    toolchain,
+                }) => {
+                    assert_eq!(toolchain, "nightly");
+                    let descriptions = components
+                        .iter()
+                        .map(|c| c.description(&manifest))
+                        .collect::<Vec<_>>();
+                    assert_eq!(
+                        descriptions,
+                        [
+                            "'rustc' for target 'x86_64-apple-darwin'",
+                            "'rust-std' for target 'x86_64-apple-darwin'"
+                        ]
+                    );
                 }
                 _ => panic!(),
             }
