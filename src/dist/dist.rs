@@ -43,6 +43,14 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
 ];
 
+const TOOLSTATE_MSG: &str =
+    "If you require these components, please install and use the latest successful build version,\n\
+     which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
+     the correct date, install it with a command such as:\n\n    \
+     rustup toolchain install nightly-2018-12-27\n\n\
+     Then you can use the toolchain with commands such as:\n\n    \
+     cargo +nightly-2018-12-27 build";
+
 /// Returns a error message indicating that certain [`Component`]s are missing in a toolchain distribution.
 ///
 /// This message is currently used exclusively in toolchain-wide operations,
@@ -71,7 +79,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 
             let _ = write!(
                 buf,
-                "If you don't need the component, you could try a minimal installation with:\n\n{suggestion}"
+                "If you don't need the component, you could try a minimal installation with:\n\n{suggestion}\n\n{TOOLSTATE_MSG}"
             );
         }
         cs => {
@@ -91,7 +99,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 
             let _ = write!(
                 buf,
-                "If you don't need the components, you could try a minimal installation with:\n\n{suggestion}"
+                "If you don't need the components, you could try a minimal installation with:\n\n{suggestion}\n\n{TOOLSTATE_MSG}"
             );
         }
     }

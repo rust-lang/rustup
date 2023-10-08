@@ -19,14 +19,6 @@ use crate::{
     toolchain::names::{PathBasedToolchainName, ToolchainName},
 };
 
-const TOOLSTATE_MSG: &str =
-    "If you require these components, please install and use the latest successful build version,\n\
-     which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
-     the correct date, install it with a command such as:\n\n    \
-     rustup toolchain install nightly-2018-12-27\n\n\
-     Then you can use the toolchain with commands such as:\n\n    \
-     cargo +nightly-2018-12-27 build";
-
 /// A type erasing thunk for the retry crate to permit use with anyhow. See <https://github.com/dtolnay/anyhow/issues/149>
 #[derive(Debug, ThisError)]
 #[error(transparent)]
