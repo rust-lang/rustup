@@ -151,7 +151,7 @@ pub(crate) fn download_file_with_resume(
     match download_file_(url, path, hasher, resume_from_partial, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
-            if let Some(_) = e.downcast_ref::<std::io::Error>() {
+            if e.downcast_ref::<std::io::Error>().is_some() {
                 return Err(e);
             }
             let is_client_error = match e.downcast_ref::<DEK>() {
