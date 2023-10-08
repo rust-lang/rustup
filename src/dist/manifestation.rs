@@ -130,25 +130,19 @@ impl Manifestation {
         }
 
         // Validate that the requested components are available
-        match update.unavailable_components(new_manifest, toolchain_str) {
-            Ok(_) => {}
-            Err(e) => {
-                if force_update {
-                    if let Ok(RustupError::RequestedComponentsUnavailable { components, .. }) =
-                        e.downcast::<RustupError>()
-                    {
-                        for component in &components {
-                            (download_cfg.notify_handler)(
-                                Notification::ForcingUnavailableComponent(
-                                    component.name(new_manifest).as_str(),
-                                ),
-                            );
-                        }
-                        update.drop_components_to_install(&components);
-                    }
-                } else {
-                    return Err(e);
+        if let Err(e) = update.unavailable_components(new_manifest, toolchain_str) {
+            if !force_update {
+                return Err(e);
+            }
+            if let Ok(RustupError::RequestedComponentsUnavailable { components, .. }) =
+                e.downcast::<RustupError>()
+            {
+                for component in &components {
+                    (download_cfg.notify_handler)(Notification::ForcingUnavailableComponent(
+                        &component.name(new_manifest),
+                    ));
                 }
+                update.drop_components_to_install(&components);
             }
         }
 
@@ -678,18 +672,8 @@ impl Update {
     }
 
     fn drop_components_to_install(&mut self, to_drop: &[Component]) {
-        let components: Vec<_> = self
-            .components_to_install
-            .drain(..)
-            .filter(|c| !to_drop.contains(c))
-            .collect();
-        self.components_to_install.extend(components);
-        let final_components: Vec<_> = self
-            .final_component_list
-            .drain(..)
-            .filter(|c| !to_drop.contains(c))
-            .collect();
-        self.final_component_list = final_components;
+        self.components_to_install.retain(|c| !to_drop.contains(c));
+        self.final_component_list.retain(|c| !to_drop.contains(c));
     }
 
     /// Map components to urls and hashes
