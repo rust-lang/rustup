@@ -148,52 +148,53 @@ fn suggest_message(suggestion: &Option<String>) -> String {
 }
 
 fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
-    assert!(!cs.is_empty());
-
     let mut buf = vec![];
-
-    if cs.len() == 1 {
-        let _ = writeln!(
-            buf,
-            "component {} is unavailable for download for channel '{}'",
-            &cs[0].description(manifest),
-            toolchain,
-        );
-        if toolchain.starts_with("nightly") {
-            let _ = write!(
+    match cs {
+        [] => panic!("`component_unavailable_msg` should not be called with an empty collection of unavailable components"),
+        [c] => {
+            let _ = writeln!(
                 buf,
-                "Sometimes not all components are available in any given nightly. "
+                "component {} is unavailable for download for channel '{}'",
+                c.description(manifest),
+                toolchain,
             );
+
+            if toolchain.starts_with("nightly") {
+                let _ = write!(
+                    buf,
+                    "Sometimes not all components are available in any given nightly. "
+                );
+            }
         }
-    } else {
-        // More than one component
+        cs => {
+            // More than one component
+            let same_target = cs
+                .iter()
+                .all(|c| c.target == cs[0].target || c.target.is_none());
 
-        let same_target = cs
-            .iter()
-            .all(|c| c.target == cs[0].target || c.target.is_none());
+            let cs_str = if same_target {
+                cs.iter()
+                    .map(|c| format!("'{}'", c.short_name(manifest)))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            } else {
+                cs.iter()
+                    .map(|c| c.description(manifest))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
 
-        let cs_str = if same_target {
-            cs.iter()
-                .map(|c| format!("'{}'", c.short_name(manifest)))
-                .collect::<Vec<_>>()
-                .join(", ")
-        } else {
-            cs.iter()
-                .map(|c| c.description(manifest))
-                .collect::<Vec<_>>()
-                .join(", ")
-        };
-
-        let _ = write!(
-            buf,
-            "some components unavailable for download for channel '{toolchain}': {cs_str}",
-        );
-
-        if toolchain.starts_with("nightly") {
             let _ = write!(
                 buf,
-                "Sometimes not all components are available in any given nightly. "
+                "some components unavailable for download for channel '{toolchain}': {cs_str}"
             );
+
+            if toolchain.starts_with("nightly") {
+                let _ = write!(
+                    buf,
+                    "Sometimes not all components are available in any given nightly. "
+                );
+            }
         }
     }
 
