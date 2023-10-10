@@ -36,6 +36,9 @@ use crate::{
     utils::utils,
 };
 
+#[cfg(feature = "test")]
+use crate::test::mock::clitools;
+
 #[derive(Debug, ThisError)]
 enum OverrideFileConfigError {
     #[error("empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file")]
@@ -149,7 +152,7 @@ impl Display for OverrideReason {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq)]
 struct OverrideCfg {
     toolchain: Option<LocalToolchainName>,
     components: Vec<String>,
@@ -1005,6 +1008,29 @@ impl Cfg {
     }
 }
 
+#[cfg(feature = "test")]
+impl From<clitools::Config> for Cfg {
+    fn from(cfg: clitools::Config) -> Self {
+        let rustup_dir = &cfg.rustupdir;
+        let dist_root_server = dist::DEFAULT_DIST_SERVER;
+
+        Self {
+            rustup_dir: rustup_dir.rustupdir.clone(),
+            fallback_settings: None,
+            settings_file: SettingsFile::new(rustup_dir.join("settings.toml")),
+            toolchains_dir: rustup_dir.join("toolchains"),
+            update_hash_dir: rustup_dir.join("update-hashes"),
+            download_dir: rustup_dir.join("downloads"),
+            dist_root_url: dist_root_server.to_owned() + "/dist",
+            temp_cfg: temp::Cfg::new(rustup_dir.join("tmp"), dist_root_server, Box::new(|_| {})),
+            toolchain_override: None,
+            profile_override: None,
+            env_override: None,
+            notify_handler: Arc::new(|_| {}),
+        }
+    }
+}
+
 fn update_override(
     override_: &mut Option<(OverrideFile, OverrideReason)>,
     file: OverrideFile,
@@ -1045,6 +1071,11 @@ enum ParseMode {
 #[cfg(test)]
 mod tests {
     use rustup_macros::unit_test as test;
+
+    use crate::{
+        test::{mock::clitools::setup_test_state, test_dist_dir},
+        utils::raw,
+    };
 
     use super::*;
 
@@ -1247,5 +1278,137 @@ channel = nightly
             result.unwrap_err().downcast::<OverrideFileConfigError>(),
             Ok(OverrideFileConfigError::Parsing)
         ));
+    }
+
+    /// Ensures that `rust-toolchain.toml` configs can be overridden by `<proxy> +<toolchain>`.
+    /// See: <https://github.com/rust-lang/rustup/issues/3483>
+    #[test]
+    fn toolchain_override_beats_toml() {
+        let test_dist_dir = test_dist_dir().unwrap();
+        let (cwd, config) = setup_test_state(test_dist_dir);
+
+        let toolchain_file = cwd.path().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+                [toolchain]
+                channel = "nightly"
+                components = [ "rls" ]
+            "#,
+        )
+        .unwrap();
+
+        let mut cfg = Cfg::try_from(config).unwrap();
+        let default_host_triple = cfg.get_default_host_triple().unwrap();
+        cfg.toolchain_override = Some("beta".try_into().unwrap());
+
+        let found_override = cfg.find_override_config(cwd.path()).unwrap();
+        let override_cfg = found_override.map(|it| it.0);
+
+        let expected_override_cfg = OverrideCfg {
+            toolchain: Some(LocalToolchainName::Named(ToolchainName::Official(
+                ToolchainDesc {
+                    channel: "beta".to_owned(),
+                    date: None,
+                    target: default_host_triple,
+                },
+            ))),
+            components: vec!["rls".to_owned()],
+            targets: vec![],
+            profile: None,
+        };
+        assert_eq!(override_cfg, Some(expected_override_cfg));
+    }
+
+    /// Ensures that `rust-toolchain.toml` configs can be overridden by `RUSTUP_TOOLCHAIN`.
+    /// See: <https://github.com/rust-lang/rustup/issues/3483>
+    #[test]
+    fn env_override_beats_toml() {
+        let test_dist_dir = test_dist_dir().unwrap();
+        let (cwd, config) = setup_test_state(test_dist_dir);
+
+        let toolchain_file = cwd.path().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+                [toolchain]
+                channel = "nightly"
+                components = [ "rls" ]
+            "#,
+        )
+        .unwrap();
+
+        let mut cfg = Cfg::try_from(config).unwrap();
+        let default_host_triple = cfg.get_default_host_triple().unwrap();
+        cfg.env_override = Some(
+            ResolvableLocalToolchainName::try_from("beta")
+                .unwrap()
+                .resolve(&default_host_triple)
+                .unwrap(),
+        );
+
+        let found_override = cfg.find_override_config(cwd.path()).unwrap();
+        let override_cfg = found_override.map(|it| it.0);
+
+        let expected_override_cfg = OverrideCfg {
+            toolchain: Some(LocalToolchainName::Named(ToolchainName::Official(
+                ToolchainDesc {
+                    channel: "beta".to_owned(),
+                    date: None,
+                    target: default_host_triple,
+                },
+            ))),
+            components: vec!["rls".to_owned()],
+            targets: vec![],
+            profile: None,
+        };
+        assert_eq!(override_cfg, Some(expected_override_cfg));
+    }
+
+    /// Ensures that `rust-toolchain.toml` configs can be overridden by `rustup override set`.
+    /// See: <https://github.com/rust-lang/rustup/issues/3483>
+    #[test]
+    fn override_set_beats_toml() {
+        let test_dist_dir = test_dist_dir().unwrap();
+        let (cwd, config) = setup_test_state(test_dist_dir);
+
+        let toolchain_file = cwd.path().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+                [toolchain]
+                channel = "nightly"
+                components = [ "rls" ]
+            "#,
+        )
+        .unwrap();
+
+        let cfg = Cfg::try_from(config).unwrap();
+        let default_host_triple = cfg.get_default_host_triple().unwrap();
+
+        cfg.settings_file
+            .with_mut(|settings| {
+                // "." -> beta, no rls
+                settings.add_override(cwd.path(), "beta".to_owned(), &|_| {});
+                Ok(())
+            })
+            .unwrap();
+
+        let found_override = cfg.find_override_config(cwd.path()).unwrap();
+        let override_cfg = found_override.map(|it| it.0);
+
+        let expected_override_cfg = OverrideCfg {
+            toolchain: Some(LocalToolchainName::Named(ToolchainName::Official(
+                ToolchainDesc {
+                    channel: "beta".to_owned(),
+                    date: None,
+                    target: default_host_triple,
+                },
+            ))),
+            components: vec!["rls".to_owned()],
+            targets: vec![],
+            profile: None,
+        };
+        assert_eq!(override_cfg, Some(expected_override_cfg));
     }
 }
