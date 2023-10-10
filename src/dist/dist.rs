@@ -43,6 +43,13 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
 ];
 
+/// Returns a error message indicating that certain [`Component`]s are missing in a toolchain distribution.
+///
+/// This message is currently used exclusively in toolchain-wide operations,
+/// otherwise [`component_unavailable_msg`](../../errors/fn.component_unavailable_msg.html) will be used.
+///
+/// # Panics
+/// This function will panic when the collection of unavailable components `cs` is empty.
 fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &str) -> String {
     let mut buf = vec![];
     let suggestion = format!("    rustup toolchain add {toolchain} --profile minimal");
