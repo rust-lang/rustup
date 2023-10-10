@@ -212,7 +212,7 @@ impl UnixShell for Fish {
     fn does_exist(&self) -> bool {
         // fish has to either be the shell or be callable for fish setup.
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("fish"))
-            || matches!(utils::find_cmd(&["fish"]), Some(_))
+            || utils::find_cmd(&["fish"]).is_some()
     }
 
     // > "$XDG_CONFIG_HOME/fish/conf.d" (or "~/.config/fish/conf.d" if that variable is unset) for the user
