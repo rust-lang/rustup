@@ -44,45 +44,49 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
 ];
 
 fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &str) -> String {
-    assert!(!cs.is_empty());
     let mut buf = vec![];
     let suggestion = format!("    rustup toolchain add {toolchain} --profile minimal");
     let nightly_tips = "Sometimes not all components are available in any given nightly. ";
 
-    if cs.len() == 1 {
-        let _ = writeln!(
-            buf,
-            "component {} is unavailable for download for channel '{}'",
-            &cs[0].description(manifest),
-            toolchain,
-        );
+    match cs {
+        [] => panic!("`components_missing_msg` should not be called with an empty collection of unavailable components"),
+        [c] => {
+            let _ = writeln!(
+                buf,
+                "component {} is unavailable for download for channel '{}'",
+                c.description(manifest),
+                toolchain,
+            );
 
-        if toolchain.starts_with("nightly") {
-            let _ = write!(buf, "{nightly_tips}");
+            if toolchain.starts_with("nightly") {
+                let _ = write!(buf, "{nightly_tips}");
+            }
+
+            let _ = write!(
+                buf,
+                "If you don't need the component, you could try a minimal installation with:\n\n{suggestion}"
+            );
         }
+        cs => {
+            let cs_str = cs
+                .iter()
+                .map(|c| c.description(manifest))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let _ = write!(
+                buf,
+                "some components unavailable for download for channel '{toolchain}': {cs_str}"
+            );
 
-        let _ = write!(
-            buf,
-            "If you don't need the component, you could try a minimal installation with:\n\n{suggestion}"
-        );
-    } else {
-        let cs_str = cs
-            .iter()
-            .map(|c| c.description(manifest))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let _ = write!(
-            buf,
-            "some components unavailable for download for channel '{toolchain}': {cs_str}"
-        );
+            if toolchain.starts_with("nightly") {
+                let _ = write!(buf, "{nightly_tips}");
+            }
 
-        if toolchain.starts_with("nightly") {
-            let _ = write!(buf, "{nightly_tips}");
+            let _ = write!(
+                buf,
+                "If you don't need the components, you could try a minimal installation with:\n\n{suggestion}"
+            );
         }
-        let _ = write!(
-            buf,
-            "If you don't need the components, you could try a minimal installation with:\n\n{suggestion}"
-        );
     }
 
     String::from_utf8(buf).unwrap()
