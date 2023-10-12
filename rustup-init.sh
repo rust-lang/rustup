@@ -19,10 +19,9 @@ has_local() {
 
 has_local 2>/dev/null || alias local=typeset
 
-# zsh does not split words by default, Required for curl retry arguments below.
-if [ -n "$ZSH_VERSION" ]; then
-    setopt shwordsplit
-fi
+is_zsh() {
+    [ -n "${ZSH_VERSION-}" ]
+}
 
 set -u
 
@@ -575,6 +574,9 @@ ignore() {
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 downloader() {
+    # zsh does not split words by default, Required for curl retry arguments below.
+    is_zsh && setopt local_options shwordsplit
+
     local _dld
     local _ciphersuites
     local _err
