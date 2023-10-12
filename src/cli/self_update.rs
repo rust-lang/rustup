@@ -221,10 +221,9 @@ macro_rules! post_install_msg_unix_source_env {
         r#"To configure your current shell, you need to source
 the corresponding `env` file under {cargo_home}.
 
-This is usually done by running one of the following:
-    source "{cargo_home}/env"        # For bash/zsh
-    . "{cargo_home}/env"             # For ash/dash/pdksh (note the leading DOT)
-    source "{cargo_home}/env.fish"   # For fish
+This is usually done by running one of the following (note the leading DOT):
+    . "{cargo_home}/env"            # For sh/bash/zsh/ash/dash/pdksh
+    source "{cargo_home}/env.fish"  # For fish
 "#
     };
 }
