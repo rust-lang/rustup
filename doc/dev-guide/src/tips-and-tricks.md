@@ -15,7 +15,7 @@ RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
 
 If it's necessary to alter the backtracking limit from the default of half
 a release cycle for some reason, you can set the `RUSTUP_BACKTRACK_LIMIT`
-environment variable. If this is unparseable as an `i32` or if it's absent
+environment variable. If this is unparsable as an `i32` or if it's absent
 then the default of 21 days (half a cycle) is used. If it parses and is less
 than 1, it is clamped to 1 at minimum.
 
