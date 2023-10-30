@@ -7,11 +7,13 @@ the native (MSVC) ABI used by [Visual Studio], and the GNU ABI used by the
 [GCC toolchain]. Which version of Rust you need depends largely on what C/C++
 libraries you want to interoperate with: for interop with software produced by
 Visual Studio use the MSVC build of Rust; for interop with GNU software built
-using the [MinGW/MSYS2 toolchain] use the GNU build.
+using the [MinGW/MSYS2 toolchain][MSYS2] use the GNU build.
 
 When targeting the MSVC ABI, Rust additionally requires an [installation of
 Visual Studio][msvc install] so `rustc` can use its linker and libraries.
-No additional software installation is necessary for basic use of the GNU build.
+
+When targeting the GNU ABI, no additional software is strictly required for basic use.
+However, many library crates will not be able to compile until the full [MSYS2] with MinGW has been installed.
 
 By default `rustup` on Windows configures Rust to target the MSVC ABI, that is
 a target triple of either `i686-pc-windows-msvc`, `x86_64-pc-windows-msvc`, or `aarch64-pc-windows-msvc`
@@ -60,7 +62,7 @@ targets with the same compiler.
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
 [cross-compilation]: ../cross-compilation.md
 [GCC toolchain]: https://gcc.gnu.org/
-[MinGW/MSYS2 toolchain]: https://msys2.github.io/
+[MSYS2]: https://www.msys2.org/
 [msvc-toolchain]: https://www.rust-lang.org/tools/install?platform_override=win
 [toolchain specification]: ../concepts/toolchains.md#toolchain-specification
 [msvc install]: windows-msvc.html

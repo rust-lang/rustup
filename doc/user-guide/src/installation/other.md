@@ -56,7 +56,7 @@ which is a `brew`-managed `rust` toolchain installation.
 ## Manual installation
 
 You can manually download `rustup-init` for a given target from
-`https://static.rust-lang.org/rustup/dist/{target-triple}/rustup-init[.exe]`[^msvc].
+`https://static.rust-lang.org/rustup/dist/{target-triple}/rustup-init[.exe]`[^msys2] [^msvc].
 
 <details>
 <summary>Direct links</summary>
@@ -83,7 +83,7 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-init.sha256)
 - [i686-linux-android](https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init.sha256)
-- [i686-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)
+- [i686-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)[^msys2]
   - [sha256 file](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe.sha256)
 - [i686-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)[^msvc]
   - [sha256 file](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe.sha256)
@@ -109,7 +109,7 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init.sha256)
 - [x86_64-linux-android](https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init.sha256)
-- [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe)
+- [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe)[^msys2]
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe.sha256)
 - [x86_64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)[^msvc]
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe.sha256)
@@ -131,11 +131,15 @@ To get a previous version, use
 
 SHA-256 checksums are also available by appending `.sha256` to the link.
 
+[^msys2]: Windows GNU builds require no additional software for basic use.
+    However, many library crates will not be able to compile until
+    the full [MSYS2] with MinGW has been installed.
+
+[MSYS2]: https://www.msys2.org/
+
 [^msvc]: MSVC builds of `rustup` additionally require an [installation of
     Visual Studio 2019 or the Visual C++ Build Tools 2019][vs]. For Visual
-    Studio, make sure to check the "C++ tools" and "Windows 10 SDK" option. No
-    additional software installation is necessary for basic use of the GNU
-    build.
+    Studio, make sure to check the "C++ tools" and "Windows 10 SDK" option.
 
 [vs]: https://visualstudio.microsoft.com/downloads/
 
