@@ -675,6 +675,9 @@ mod tests {
             "1.2.0-x86_64-unknown-linux-gnu",
             "1.8.0-x86_64-unknown-linux-gnu",
             "1.10.0-x86_64-unknown-linux-gnu",
+            "bar(baz)",
+            "foo#bar",
+            "this.is.not-a+semver",
         ]
         .into_iter()
         .map(|s| ToolchainName::try_from(s).unwrap())
@@ -688,6 +691,10 @@ mod tests {
             "1.10.0-x86_64-unknown-linux-gnu",
             "beta-x86_64-unknown-linux-gnu",
             "1.2.0-x86_64-unknown-linux-gnu",
+            // https://github.com/rust-lang/rustup/issues/3517
+            "foo#bar",
+            "bar(baz)",
+            "this.is.not-a+semver",
         ]
         .into_iter()
         .map(|s| ToolchainName::try_from(s).unwrap())
