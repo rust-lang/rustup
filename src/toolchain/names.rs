@@ -311,27 +311,33 @@ impl Display for ToolchainName {
 pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
     use semver::{BuildMetadata, Prerelease, Version};
 
-    fn special_version(ord: u64, s: &str) -> Version {
-        Version {
+    v.sort_by_key(|name| {
+        let s: &str = &format!("{name}");
+        let default_ver = Version {
             major: 0,
             minor: 0,
             patch: 0,
-            pre: Prerelease::new(&format!("pre.{}.{}", ord, s.replace('_', "-"))).unwrap(),
+            pre: Prerelease::EMPTY,
             build: BuildMetadata::EMPTY,
-        }
-    }
+        };
 
-    v.sort_by_key(|name| {
-        let s: &str = &format!("{name}");
         if s.starts_with("stable") {
-            special_version(0, s)
-        } else if s.starts_with("beta") {
-            special_version(1, s)
-        } else if s.starts_with("nightly") {
-            special_version(2, s)
-        } else {
-            Version::parse(&s.replace('_', "-")).unwrap_or_else(|_| special_version(3, s))
+            let pre = Prerelease::new(&format!("pre.{}.{}", 0, s.replace('_', "-"))).unwrap();
+            return Version { pre, ..default_ver };
         }
+        if s.starts_with("beta") {
+            let pre = Prerelease::new(&format!("pre.{}.{}", 1, s.replace('_', "-"))).unwrap();
+            return Version { pre, ..default_ver };
+        }
+        if s.starts_with("nightly") {
+            let pre = Prerelease::new(&format!("pre.{}.{}", 2, s.replace('_', "-"))).unwrap();
+            return Version { pre, ..default_ver };
+        }
+        if let Ok(v) = Version::parse(&s.replace('_', "-")) {
+            return v;
+        }
+        let pre = Prerelease::new(&format!("pre.{}.{}", 3, s.replace('_', "-"))).unwrap();
+        Version { pre, ..default_ver }
     });
 }
 
