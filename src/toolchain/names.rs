@@ -313,8 +313,6 @@ impl Display for ToolchainName {
 /// 2. `X.Y.Z-suffix` names, sorted by semver rules on `X.Y.Z`, then by `suffix`.
 /// 3. Other names, sorted alphanumerically.
 pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
-    use semver::Version;
-
     v.sort_by_key(|name| {
         let s = name.to_string();
         if s.starts_with("stable") {
@@ -327,7 +325,7 @@ pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
             return (2, None, s);
         }
         if let Some((ver_str, suffix)) = s.split_once('-') {
-            if let Ok(ver) = Version::parse(ver_str) {
+            if let Ok(ver) = semver::Version::parse(ver_str) {
                 return (3, Some(ver), suffix.to_owned());
             }
         }
