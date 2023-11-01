@@ -308,6 +308,10 @@ impl Display for ToolchainName {
     }
 }
 
+/// Sorts [`ToolchainName`]s in the following order:
+/// 1. `stable`/`beta`/`nightly`-prefixed names, in this exact order.
+/// 2. `X.Y.Z-suffix` names, sorted by semver rules on `X.Y.Z`, then by `suffix`.
+/// 3. Other names, sorted alphanumerically.
 pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
     use semver::Version;
 
