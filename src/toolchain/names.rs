@@ -333,13 +333,7 @@ pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
         }
     }
 
-    v.sort_by(|a, b| {
-        let a_str = &format!("{a}");
-        let b_str = &format!("{b}");
-        let a_key = toolchain_sort_key(a_str);
-        let b_key = toolchain_sort_key(b_str);
-        a_key.cmp(&b_key)
-    });
+    v.sort_by_key(|name| toolchain_sort_key(&format!("{name}")));
 }
 
 /// ResolvableLocalToolchainName is used to process values set in
