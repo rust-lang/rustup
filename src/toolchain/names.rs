@@ -321,7 +321,8 @@ pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
         }
     }
 
-    fn toolchain_sort_key(s: &str) -> Version {
+    v.sort_by_key(|name| {
+        let s: &str = &format!("{name}");
         if s.starts_with("stable") {
             special_version(0, s)
         } else if s.starts_with("beta") {
@@ -331,9 +332,7 @@ pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
         } else {
             Version::parse(&s.replace('_', "-")).unwrap_or_else(|_| special_version(3, s))
         }
-    }
-
-    v.sort_by_key(|name| toolchain_sort_key(&format!("{name}")));
+    });
 }
 
 /// ResolvableLocalToolchainName is used to process values set in
