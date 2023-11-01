@@ -309,36 +309,26 @@ impl Display for ToolchainName {
 }
 
 pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
-    use semver::{BuildMetadata, Prerelease, Version};
+    use semver::Version;
 
     v.sort_by_key(|name| {
-        let s: &str = &format!("{name}");
-        let default_ver = Version {
-            major: 0,
-            minor: 0,
-            patch: 0,
-            pre: Prerelease::EMPTY,
-            build: BuildMetadata::EMPTY,
-        };
-
+        let s = name.to_string();
         if s.starts_with("stable") {
-            let pre = Prerelease::new(&format!("pre.{}.{}", 0, s.replace('_', "-"))).unwrap();
-            return Version { pre, ..default_ver };
+            return (0, None, s);
         }
         if s.starts_with("beta") {
-            let pre = Prerelease::new(&format!("pre.{}.{}", 1, s.replace('_', "-"))).unwrap();
-            return Version { pre, ..default_ver };
+            return (1, None, s);
         }
         if s.starts_with("nightly") {
-            let pre = Prerelease::new(&format!("pre.{}.{}", 2, s.replace('_', "-"))).unwrap();
-            return Version { pre, ..default_ver };
+            return (2, None, s);
         }
-        if let Ok(v) = Version::parse(&s.replace('_', "-")) {
-            return v;
+        if let Some((ver_str, suffix)) = s.split_once('-') {
+            if let Ok(ver) = Version::parse(ver_str) {
+                return (3, Some(ver), suffix.to_owned());
+            }
         }
-        let pre = Prerelease::new(&format!("pre.{}.{}", 3, s.replace('_', "-"))).unwrap();
-        Version { pre, ..default_ver }
-    });
+        (4, None, s)
+    })
 }
 
 /// ResolvableLocalToolchainName is used to process values set in
