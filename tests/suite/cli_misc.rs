@@ -665,29 +665,22 @@ fn rename_rls_remove() {
 #[test]
 #[cfg(any(unix, windows))]
 fn toolchain_broken_symlink() {
+    use rustup::utils::raw::symlink_dir;
     use std::fs;
     use std::path::Path;
-
-    #[cfg(unix)]
-    fn create_symlink_dir<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {
-        use std::os::unix::fs;
-        fs::symlink(src, dst).unwrap();
-    }
-
-    #[cfg(windows)]
-    fn create_symlink_dir<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {
-        use std::os::windows::fs;
-        fs::symlink_dir(src, dst).unwrap();
-    }
 
     clitools::test(Scenario::None, &|config| {
         // We artificially create a broken symlink toolchain -- but this can also happen "legitimately"
         // by having a proper toolchain there, using "toolchain link", and later removing the directory.
         fs::create_dir(config.rustupdir.join("toolchains")).unwrap();
-        create_symlink_dir(
-            config.rustupdir.join("this-directory-does-not-exist"),
-            config.rustupdir.join("toolchains").join("test"),
-        );
+        fs::create_dir(config.rustupdir.join("this-directory-does-not-exist")).unwrap();
+        symlink_dir(
+            &config.rustupdir.join("this-directory-does-not-exist"),
+            &config.rustupdir.join("toolchains").join("test"),
+        )
+        .unwrap();
+        fs::remove_dir(config.rustupdir.join("this-directory-does-not-exist")).unwrap();
+
         // Make sure this "fake install" actually worked
         config.expect_ok_ex(&["rustup", "toolchain", "list"], "test\n", "");
         // Now try to uninstall it.  That should work only once.
