@@ -131,7 +131,7 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub(crate) fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
+pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     #[cfg(windows)]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
         // std's symlink uses Windows's symlink function, which requires
