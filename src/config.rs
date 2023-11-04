@@ -581,9 +581,8 @@ impl Cfg {
         settings: &Settings,
     ) -> Result<Option<(OverrideFile, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
-        let mut dir = Some(dir);
 
-        while let Some(d) = dir {
+        for d in iter::successors(Some(dir), |d| d.parent()) {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
                 let reason = OverrideReason::OverrideDB(d.to_owned());
@@ -664,8 +663,6 @@ impl Cfg {
                 let reason = OverrideReason::ToolchainFile(toolchain_file);
                 return Ok(Some((override_file, reason)));
             }
-
-            dir = d.parent();
         }
 
         Ok(None)
