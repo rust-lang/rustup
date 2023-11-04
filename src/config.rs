@@ -1,10 +1,10 @@
-use std::borrow::Cow;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::{borrow::Cow, iter};
 
 use anyhow::{anyhow, bail, Context, Result};
 use derivative::Derivative;
@@ -580,13 +580,15 @@ impl Cfg {
         dir: &Path,
         settings: &Settings,
     ) -> Result<Option<(OverrideFile, OverrideReason)>> {
+        let mut override_ = None;
+
         let notify = self.notify_handler.as_ref();
 
         for d in iter::successors(Some(dir), |d| d.parent()) {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
                 let reason = OverrideReason::OverrideDB(d.to_owned());
-                return Ok(Some((name.into(), reason)));
+                update_override(&mut override_, name.into(), reason);
             }
 
             // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
@@ -661,11 +663,15 @@ impl Cfg {
                 }
 
                 let reason = OverrideReason::ToolchainFile(toolchain_file);
-                return Ok(Some((override_file, reason)));
+                update_override(&mut override_, override_file, reason);
+            }
+
+            if override_.is_some() {
+                break;
             }
         }
 
-        Ok(None)
+        Ok(override_)
     }
 
     fn parse_override_file<S: AsRef<str>>(
