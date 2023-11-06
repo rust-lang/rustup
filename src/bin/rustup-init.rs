@@ -15,7 +15,10 @@
 
 use anyhow::{anyhow, Result};
 use cfg_if::cfg_if;
-use rs_tracing::*;
+// Public macros require availability of the internal symbols
+use rs_tracing::{
+    close_trace_file, close_trace_file_internal, open_trace_file, trace_to_file_internal,
+};
 
 use rustup::cli::common;
 use rustup::cli::proxy_mode;
