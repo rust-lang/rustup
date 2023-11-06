@@ -1,8 +1,4 @@
 [package]
-authors = [
-    "Daniel Silverstone <dsilvers@digital-scurf.org>",
-    "Diggory Blake <diggsey@googlemail.com>",
-]
 build = "build.rs"
 description = "Manage multiple rust installations with ease"
 edition = "2021"

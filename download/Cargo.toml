@@ -1,6 +1,4 @@
 [package]
-
-authors = ["Brian Anderson <banderson@mozilla.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 name = "download"
