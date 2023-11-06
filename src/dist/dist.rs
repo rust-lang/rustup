@@ -34,15 +34,6 @@ pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 // Deprecated
 pub(crate) static DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
 
-// The channel patterns we support
-static TOOLCHAIN_CHANNELS: &[&str] = &[
-    "nightly",
-    "beta",
-    "stable",
-    // Allow from 1.0.0 through to 9.999.99 with optional patch version
-    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
-];
-
 const TOOLSTATE_MSG: &str =
     "If you require these components, please install and use the latest successful build version,\n\
      which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
@@ -187,7 +178,15 @@ impl FromStr for ParsedToolchainDesc {
         static TOOLCHAIN_CHANNEL_RE: Lazy<Regex> = Lazy::new(|| {
             Regex::new(&format!(
                 r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.+))?$",
-                TOOLCHAIN_CHANNELS.join("|")
+                // The channel patterns we support
+                [
+                    "nightly",
+                    "beta",
+                    "stable",
+                    // Allow from 1.0.0 through to 9.999.99 with optional patch version
+                    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
+                ]
+                .join("|")
             ))
             .unwrap()
         });
