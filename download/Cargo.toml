@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 default = ["reqwest-backend", "reqwest-rustls-tls", "reqwest-default-tls"]
 
 curl-backend = ["curl"]
-reqwest-backend = ["reqwest", "env_proxy", "lazy_static"]
+reqwest-backend = ["reqwest", "env_proxy"]
 reqwest-default-tls = ["reqwest/default-tls"]
 reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots"]
 
@@ -17,7 +17,7 @@ reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots"]
 anyhow.workspace = true
 curl = { version = "0.4.44", optional = true }
 env_proxy = { version = "0.4.1", optional = true }
-lazy_static = { workspace = true, optional = true }
+once_cell.workspace = true
 reqwest = { version = "0.11", default-features = false, features = ["blocking", "gzip", "socks"], optional = true }
 thiserror.workspace = true
 url.workspace = true

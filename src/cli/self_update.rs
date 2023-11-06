@@ -1139,12 +1139,10 @@ fn get_new_rustup_version(path: &Path) -> Option<String> {
 }
 
 fn parse_new_rustup_version(version: String) -> String {
-    use lazy_static::lazy_static;
+    use once_cell::sync::Lazy;
     use regex::Regex;
 
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
-    }
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap());
 
     let capture = RE.captures(&version);
     let matched_version = match capture {

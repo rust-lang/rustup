@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDate;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use thiserror::Error as ThisError;
 
@@ -182,15 +182,15 @@ static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnua
 impl FromStr for ParsedToolchainDesc {
     type Err = anyhow::Error;
     fn from_str(desc: &str) -> Result<Self> {
-        lazy_static! {
-            static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
+        // Note this regex gives you a guaranteed match of the channel (1)
+        // and an optional match of the date (2) and target (3)
+        static TOOLCHAIN_CHANNEL_RE: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(&format!(
                 r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.+))?$",
                 TOOLCHAIN_CHANNELS.join("|")
-            );
-            // Note this regex gives you a guaranteed match of the channel (1)
-            // and an optional match of the date (2) and target (3)
-            static ref TOOLCHAIN_CHANNEL_RE: Regex = Regex::new(&TOOLCHAIN_CHANNEL_PATTERN).unwrap();
-        }
+            ))
+            .unwrap()
+        });
 
         let d = TOOLCHAIN_CHANNEL_RE.captures(desc).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
@@ -603,9 +603,8 @@ impl ToolchainDesc {
     /// date field is empty.
     pub(crate) fn is_tracking(&self) -> bool {
         let channels = ["nightly", "beta", "stable"];
-        lazy_static! {
-            static ref TRACKING_VERSION: Regex = Regex::new(r"^\d{1}\.\d{1,3}$").unwrap();
-        }
+        static TRACKING_VERSION: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r"^\d{1}\.\d{1,3}$").unwrap());
         (channels.iter().any(|x| *x == self.channel) || TRACKING_VERSION.is_match(&self.channel))
             && self.date.is_none()
     }
