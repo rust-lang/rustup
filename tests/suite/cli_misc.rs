@@ -667,7 +667,6 @@ fn rename_rls_remove() {
 fn toolchain_broken_symlink() {
     use rustup::utils::raw::symlink_dir;
     use std::fs;
-    use std::path::Path;
 
     clitools::test(Scenario::None, &|config| {
         // We artificially create a broken symlink toolchain -- but this can also happen "legitimately"
