@@ -1,8 +1,8 @@
 [package]
-edition = "2021"
 name = "rustup-macros"
-publish = false
 version = "0.1.0"
+edition = "2021"
+publish = false
 
 [lib]
 proc-macro = true
