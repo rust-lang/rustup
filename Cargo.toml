@@ -1,14 +1,14 @@
 [package]
-build = "build.rs"
-description = "Manage multiple rust installations with ease"
+name = "rustup"
+version = "1.26.0"
 edition = "2021"
+description = "Manage multiple rust installations with ease"
 homepage = "https://github.com/rust-lang/rustup"
 keywords = ["rustup", "multirust", "install", "proxy"]
 license = "MIT OR Apache-2.0"
-name = "rustup"
 readme = "README.md"
 repository = "https://github.com/rust-lang/rustup"
-version = "1.26.0"
+build = "build.rs"
 
 [features]
 curl-backend = ["download/curl-backend"]
