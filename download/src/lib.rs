@@ -270,7 +270,7 @@ pub mod reqwest_be {
 
     use anyhow::{anyhow, Context, Result};
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-default-tls"))]
-    use lazy_static::lazy_static;
+    use once_cell::sync::Lazy;
     use reqwest::blocking::{Client, ClientBuilder, Response};
     use reqwest::{header, Proxy};
     use url::Url;
@@ -324,40 +324,32 @@ pub mod reqwest_be {
             .proxy(Proxy::custom(env_proxy))
             .timeout(Duration::from_secs(30))
     }
+
     #[cfg(feature = "reqwest-rustls-tls")]
-    lazy_static! {
-        static ref CLIENT_RUSTLS_TLS: Client = {
-            let catcher = || {
-                client_generic().use_rustls_tls()
-                    .build()
-            };
+    static CLIENT_RUSTLS_TLS: Lazy<Client> = Lazy::new(|| {
+        let catcher = || client_generic().use_rustls_tls().build();
 
-            // woah, an unwrap?!
-            // It's OK. This is the same as what is happening in curl.
-            //
-            // The curl::Easy::new() internally assert!s that the initialized
-            // Easy is not null. Inside reqwest, the errors here would be from
-            // the TLS library returning a null pointer as well.
-            catcher().unwrap()
-        };
-    }
+        // woah, an unwrap?!
+        // It's OK. This is the same as what is happening in curl.
+        //
+        // The curl::Easy::new() internally assert!s that the initialized
+        // Easy is not null. Inside reqwest, the errors here would be from
+        // the TLS library returning a null pointer as well.
+        catcher().unwrap()
+    });
+
     #[cfg(feature = "reqwest-default-tls")]
-    lazy_static! {
-        static ref CLIENT_DEFAULT_TLS: Client = {
-            let catcher = || {
-                client_generic()
-                    .build()
-            };
+    static CLIENT_DEFAULT_TLS: Lazy<Client> = Lazy::new(|| {
+        let catcher = || client_generic().build();
 
-            // woah, an unwrap?!
-            // It's OK. This is the same as what is happening in curl.
-            //
-            // The curl::Easy::new() internally assert!s that the initialized
-            // Easy is not null. Inside reqwest, the errors here would be from
-            // the TLS library returning a null pointer as well.
-            catcher().unwrap()
-        };
-    }
+        // woah, an unwrap?!
+        // It's OK. This is the same as what is happening in curl.
+        //
+        // The curl::Easy::new() internally assert!s that the initialized
+        // Easy is not null. Inside reqwest, the errors here would be from
+        // the TLS library returning a null pointer as well.
+        catcher().unwrap()
+    });
 
     fn env_proxy(url: &Url) -> Option<Url> {
         env_proxy::for_url(url).to_url()

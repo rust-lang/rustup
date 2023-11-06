@@ -15,7 +15,6 @@ use std::{
 };
 
 use enum_map::{enum_map, Enum, EnumMap};
-use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use url::Url;
 
@@ -1501,39 +1500,39 @@ fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstall
 /// and then we store some associated files next to it which indicate
 /// the version/version hash information.
 fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
-    lazy_static! {
-        static ref MOCK_BIN: Arc<Vec<u8>> = {
-            // Create a temp directory to hold the source and the output
-            let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-            let source_path = tempdir.path().join("in.rs");
-            let dest_path = tempdir.path().join(format!("out{EXE_SUFFIX}"));
+    static MOCK_BIN: Lazy<Arc<Vec<u8>>> = Lazy::new(|| {
+        // Create a temp directory to hold the source and the output
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let source_path = tempdir.path().join("in.rs");
+        let dest_path = tempdir.path().join(format!("out{EXE_SUFFIX}"));
 
-            // Write the source
-            let source = include_bytes!("mock_bin_src.rs");
-            fs::write(&source_path, &source[..]).unwrap();
+        // Write the source
+        let source = include_bytes!("mock_bin_src.rs");
+        fs::write(&source_path, &source[..]).unwrap();
 
-            // Create the executable
-            let status = Command::new("rustc")
-                .arg(&source_path)
-                .arg("-C").arg("panic=abort")
-                .arg("-O")
-                .arg("-o").arg(&dest_path)
-                .status()
-                .unwrap();
-            assert!(status.success());
-            assert!(dest_path.exists());
+        // Create the executable
+        let status = Command::new("rustc")
+            .arg(&source_path)
+            .arg("-C")
+            .arg("panic=abort")
+            .arg("-O")
+            .arg("-o")
+            .arg(&dest_path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        assert!(dest_path.exists());
 
-            // Remove debug info from std/core which included in every programs,
-            // otherwise we just ignore the return result here
-            if cfg!(unix) {
-                drop(Command::new("strip").arg(&dest_path).status());
-            }
+        // Remove debug info from std/core which included in every programs,
+        // otherwise we just ignore the return result here
+        if cfg!(unix) {
+            drop(Command::new("strip").arg(&dest_path).status());
+        }
 
-            // Now load it into memory
-            let buf = fs::read(dest_path).unwrap();
-            Arc::new(buf)
-        };
-    }
+        // Now load it into memory
+        let buf = fs::read(dest_path).unwrap();
+        Arc::new(buf)
+    });
 
     let name = format!("bin/{name}{EXE_SUFFIX}");
     vec![

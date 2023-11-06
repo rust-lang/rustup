@@ -10,7 +10,7 @@ use std::{cmp, env};
 
 use anyhow::{anyhow, Context, Result};
 use git_testament::{git_testament, render_testament};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
@@ -566,12 +566,10 @@ pub(crate) fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
 git_testament!(TESTAMENT);
 
 pub(crate) fn version() -> &'static str {
-    lazy_static! {
-        // Because we trust our `stable` branch given the careful release
-        // process, we mark it trusted here so that our version numbers look
-        // right when built from CI before the tag is pushed
-        static ref RENDERED: String = render_testament!(TESTAMENT, "stable");
-    }
+    // Because we trust our `stable` branch given the careful release
+    // process, we mark it trusted here so that our version numbers look
+    // right when built from CI before the tag is pushed
+    static RENDERED: Lazy<String> = Lazy::new(|| render_testament!(TESTAMENT, "stable"));
     &RENDERED
 }
 
