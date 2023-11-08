@@ -233,19 +233,16 @@ static TRACE_RUNTIME: Lazy<tokio::runtime::Runtime> =
     Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
 /// A tracer for the tests.
 #[cfg(feature = "otel")]
-static TRACER: Lazy<opentelemetry::sdk::trace::Tracer> = Lazy::new(|| {
+static TRACER: Lazy<opentelemetry_sdk::trace::Tracer> = Lazy::new(|| {
     use std::time::Duration;
 
-    use opentelemetry::KeyValue;
-    use opentelemetry::{
-        global,
-        sdk::{
-            propagation::TraceContextPropagator,
-            trace::{self, Sampler},
-            Resource,
-        },
-    };
+    use opentelemetry::{global, KeyValue};
     use opentelemetry_otlp::WithExportConfig;
+    use opentelemetry_sdk::{
+        propagation::TraceContextPropagator,
+        trace::{self, Sampler},
+        Resource,
+    };
     use tokio::runtime::Handle;
     use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
@@ -268,7 +265,7 @@ static TRACER: Lazy<opentelemetry::sdk::trace::Tracer> = Lazy::new(|| {
                 .with_sampler(Sampler::AlwaysOn)
                 .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
         )
-        .install_batch(opentelemetry::runtime::Tokio)
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
         .unwrap();
 
     global::set_text_map_propagator(TraceContextPropagator::new());

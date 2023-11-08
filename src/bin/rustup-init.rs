@@ -54,13 +54,13 @@ fn maybe_trace_rustup() -> Result<utils::ExitCode> {
     {
         use std::time::Duration;
 
-        use opentelemetry::sdk::{
+        use opentelemetry::{global, KeyValue};
+        use opentelemetry_otlp::WithExportConfig;
+        use opentelemetry_sdk::{
+            propagation::TraceContextPropagator,
             trace::{self, Sampler},
             Resource,
         };
-        use opentelemetry::KeyValue;
-        use opentelemetry::{global, sdk::propagation::TraceContextPropagator};
-        use opentelemetry_otlp::WithExportConfig;
         use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
         // Background submission requires a runtime, and since we're probably
@@ -84,7 +84,7 @@ fn maybe_trace_rustup() -> Result<utils::ExitCode> {
                             "rustup",
                         )])),
                 )
-                .install_batch(opentelemetry::runtime::Tokio)?;
+                .install_batch(opentelemetry_sdk::runtime::Tokio)?;
             let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
             let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
             let subscriber = Registry::default().with(env_filter).with(telemetry);
