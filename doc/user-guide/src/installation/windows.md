@@ -61,6 +61,7 @@ targets with the same compiler.
 
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
 [cross-compilation]: ../cross-compilation.md
+[Visual Studio]: https://visualstudio.microsoft.com/
 [GCC toolchain]: https://gcc.gnu.org/
 [MSYS2]: https://www.msys2.org/
 [msvc-toolchain]: https://www.rust-lang.org/tools/install?platform_override=win
