@@ -137,7 +137,7 @@ features = [
     "Win32_System_IO",
     "Win32_System_Ioctl",
 ]
-version = "0.48.0"
+version = "0.52.0"
 
 [dev-dependencies]
 enum-map = "2.5.0"
