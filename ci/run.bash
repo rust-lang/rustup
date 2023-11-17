@@ -8,10 +8,22 @@ rustc -vV
 cargo -vV
 
 
-FEATURES=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
+FEATURES=('--no-default-features' '--features' 'reqwest-backend')
 case "$(uname -s)" in
   *NT* ) ;; # Windows NT
-  * ) FEATURES+=('--features' 'vendored-openssl') ;;
+  * )
+    case "$TARGET" in
+      loongarch* ) ;;
+      *) FEATURES+=('--features' 'vendored-openssl') ;;
+    esac
+    ;;
+esac
+
+case "$TARGET" in
+  # these platforms aren't supported by openssl:
+  loongarch* ) ;;
+  # default case, build with openssl enabled
+  * ) FEATURES+=('--features' 'curl-backend,reqwest-default-tls') ;;
 esac
 
 case "$TARGET" in
@@ -20,7 +32,6 @@ case "$TARGET" in
   mips* ) ;;
   riscv* ) ;;
   s390x* ) ;;
-  loongarch* ) ;;
   aarch64-pc-windows-msvc ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
@@ -40,14 +51,21 @@ target_cargo() {
 target_cargo build
 
 download_pkg_test() {
-  features=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
+  features=('--no-default-features' '--features' 'reqwest-backend')
+
+  case "$TARGET" in
+    # these platforms aren't supported by openssl:
+    loongarch* ) ;;
+    # default case, build with openssl enabled
+    * ) features+=('--features' 'curl-backend,reqwest-default-tls') ;;
+  esac
+
   case "$TARGET" in
     # these platforms aren't supported by ring:
     powerpc* ) ;;
     mips* ) ;;
     riscv* ) ;;
     s390x* ) ;;
-    loongarch* ) ;;
     aarch64-pc-windows-msvc ) ;;
     # default case, build with rustls enabled
     * ) features+=('--features' 'reqwest-rustls-tls') ;;
