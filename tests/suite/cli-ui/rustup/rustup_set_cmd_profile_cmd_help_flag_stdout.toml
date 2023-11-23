@@ -2,7 +2,7 @@ bin.name = "rustup"
 args = ["set","profile","--help"]
 stdout = """
 ...
-The default components installed
+The default components installed with a toolchain
 
 Usage: rustup[EXE] set profile <profile-name>
 

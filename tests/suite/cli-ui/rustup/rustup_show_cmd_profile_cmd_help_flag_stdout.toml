@@ -2,7 +2,7 @@ bin.name = "rustup"
 args = ["show","profile","--help"]
 stdout = """
 ...
-Show the current profile
+Show the default profile used for the `rustup install` command
 
 Usage: rustup[EXE] show profile
 

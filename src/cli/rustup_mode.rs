@@ -304,7 +304,7 @@ pub(crate) fn cli() -> Command {
                     Command::new("home")
                         .about("Display the computed value of RUSTUP_HOME"),
                 )
-                .subcommand(Command::new("profile").about("Show the current profile"))
+                .subcommand(Command::new("profile").about("Show the default profile used for the `rustup install` command"))
         )
         .subcommand(
             Command::new("install")
@@ -625,7 +625,7 @@ pub(crate) fn cli() -> Command {
         )
         .subcommand(
             Command::new("override")
-                .about("Modify directory toolchain overrides")
+                .about("Modify toolchain overrides for directories")
                 .after_help(OVERRIDE_HELP)
                 .subcommand_required(true)
                 .arg_required_else_help(true)
@@ -784,7 +784,7 @@ pub(crate) fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("profile")
-                        .about("The default components installed")
+                        .about("The default components installed with a toolchain")
                         .arg(
                             Arg::new("profile-name")
                                 .required(true)

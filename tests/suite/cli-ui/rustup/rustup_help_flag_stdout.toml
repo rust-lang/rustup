@@ -16,7 +16,7 @@ Commands:
   toolchain    Modify or query the installed toolchains
   target       Modify a toolchain's supported targets
   component    Modify a toolchain's installed components
-  override     Modify directory toolchain overrides
+  override     Modify toolchain overrides for directories
   run          Run a command with an environment configured for a given toolchain
   which        Display which binary will be run for a given command
   doc          Open the documentation for the current toolchain

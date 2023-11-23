@@ -2,7 +2,7 @@ bin.name = "rustup"
 args = ["override","--help"]
 stdout = """
 ...
-Modify directory toolchain overrides
+Modify toolchain overrides for directories
 
 Usage: rustup[EXE] override <COMMAND>
 
