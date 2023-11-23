@@ -137,9 +137,8 @@ host-specific toolchains.
 
 #### path
 
-The `path` setting allows a custom toolchain to be used. The value is a
-path string. A relative path is resolved relative to the location of the
-`rust-toolchain.toml` file.
+The `path` setting allows a custom toolchain to be used. The value is an
+absolute path string.
 
 Since a `path` directive directly names a local toolchain, other options
 like `components`, `targets`, and `profile` have no effect.
