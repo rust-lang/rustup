@@ -20,15 +20,22 @@ available at this time are `minimal`, `default`, and `complete`:
   install the needed additional components manually, either by using `rustup
   component add` or by using `-c` when installing the toolchain.
 
-To change the `rustup` profile you can use the `rustup set profile` command.
+To change the profile `rustup install` uses by default, you can use the
+`rustup set profile` command.
 For example, to select the minimal profile you can use:
 
 ```console
 rustup set profile minimal
 ```
 
-It's also possible to choose the profile when installing `rustup` for the
-first time, either interactively by choosing the "Customize installation"
+You can also directly select the profile used when installing a toolchain with:
+
+```console
+rustup install --profile <name>
+```
+
+It's also possible to choose the default profile when installing `rustup` for
+the first time, either interactively by choosing the "Customize installation"
 option or programmatically by passing the `--profile=<name>` flag. Profiles
 will only affect newly installed toolchains: as usual it will be possible to
 install individual components later with: `rustup component add`.
