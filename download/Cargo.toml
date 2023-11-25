@@ -23,6 +23,8 @@ thiserror.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-hyper = { version = "0.14", default-features = false, features = ["tcp", "server"] }
+http-body-util = "0.1.0"
+hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
+hyper-util = { version = "0.1.1", features = ["tokio"] }
 tempfile.workspace = true
 tokio = { workspace = true, default-features = false, features = ["sync"] }
