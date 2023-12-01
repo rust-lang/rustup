@@ -596,7 +596,7 @@ pub(crate) fn cli() -> Command {
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
                                 .num_args(1)
-                                .value_parser( partial_toolchain_desc_parser),
+                                .value_parser(partial_toolchain_desc_parser),
                         )
                         .arg(
                             Arg::new("target")
@@ -614,7 +614,7 @@ pub(crate) fn cli() -> Command {
                                 .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
                                 .num_args(1)
-                                .value_parser( partial_toolchain_desc_parser),
+                                .value_parser(partial_toolchain_desc_parser),
                         )
                         .arg(
                             Arg::new("target")
@@ -1263,10 +1263,7 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
 }
 
 fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    let toolchain = explicit_or_dir_toolchain2(cfg, toolchain)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
@@ -1278,10 +1275,7 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain_name = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    let toolchain = explicit_or_dir_toolchain2(cfg, toolchain_name)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1336,10 +1330,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    let toolchain = explicit_or_dir_toolchain2(cfg, toolchain)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
     for target in m.get_many::<String>("target").unwrap() {
@@ -1355,7 +1346,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
@@ -1368,10 +1359,7 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    let toolchain = explicit_or_dir_toolchain2(cfg, toolchain)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
@@ -1392,7 +1380,7 @@ fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Opt
 }
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
@@ -1405,9 +1393,13 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
-    let toolchain = m.get_one::<ResolvableToolchainName>("toolchain");
-    explicit_or_dir_toolchain2(cfg, toolchain.cloned())
+// Make *sure* only to use this for a subcommand whose "toolchain" argument
+// has .value_parser(partial_toolchain_desc_parser), or it will panic.
+fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
+    let toolchain = m
+        .get_one::<PartialToolchainDesc>("toolchain")
+        .map(Into::into);
+    explicit_or_dir_toolchain2(cfg, toolchain)
 }
 
 fn explicit_or_dir_toolchain2(
@@ -1556,10 +1548,7 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
 ];
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    let toolchain = explicit_or_dir_toolchain2(cfg, toolchain)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         let manifestation = distributable.get_manifestation()?;
@@ -1613,7 +1602,7 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let command = m.get_one::<String>("command").unwrap();
 
-    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");
