@@ -131,7 +131,11 @@ fn blank_lines_around_stderr_log_output_update() {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let out = run_input(
             config,
-            &["rustup-init", "--no-update-default-toolchain"],
+            &[
+                "rustup-init",
+                "--no-update-default-toolchain",
+                "--no-modify-path",
+            ],
             "\n\n",
         );
         println!("-- stdout --\n {}", out.stdout);
