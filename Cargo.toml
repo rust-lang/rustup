@@ -154,7 +154,7 @@ regex = "1"
 members = ["download", "rustup-macros"]
 
 [workspace.dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.75"
 derivative = "2.2.0"
 enum_dispatch = "0.3.11"
 fs_at = "0.1.6"
