@@ -77,7 +77,7 @@ scopeguard = "1"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
-sharded-slab = "0.1.1"
+sharded-slab = "0.1.7"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile.workspace = true
