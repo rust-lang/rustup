@@ -162,7 +162,7 @@ once_cell = "1.18.0"
 opentelemetry = "0.21.0"
 opentelemetry_sdk = { version = "0.21.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.14.0"
-proptest = "1.1.0"
+proptest = "1.4.0"
 rustup-macros = { path = "rustup-macros" }
 tempfile = "3.8"
 termcolor = "1.4"
