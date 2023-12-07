@@ -11,7 +11,7 @@
         "automerge": true
     },
     "prCreation": "not-pending",
-    "rangeStrategy": "replace",
+    "rangeStrategy": "update-lockfile",
     "stabilityDays": 3,
     "github-actions": {
         "fileMatch": [
