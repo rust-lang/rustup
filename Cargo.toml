@@ -171,7 +171,7 @@ tokio = { version = "1.26.0", default-features = false, features = ["rt-multi-th
 tracing = "0.1"
 tracing-opentelemetry = "0.22.0"
 tracing-subscriber = "0.3.16"
-url = "2.5"
+url = "2.4"
 walkdir = "2"
 
 [lib]
