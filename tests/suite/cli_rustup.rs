@@ -834,10 +834,7 @@ fn list_default_toolchain() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             config.expect_ok_ex(
                 &["rustup", "toolchain", "list"],
-                for_host!(
-                    r"nightly-{0} (default)
-"
-                ),
+                for_host!("nightly-{0} (active, default)\n"),
                 r"",
             );
         })
@@ -845,16 +842,28 @@ fn list_default_toolchain() {
 }
 
 #[test]
-fn list_override_toolchain() {
+fn list_no_default_toolchain() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "install", "nightly"]);
+            config.expect_ok(&["rustup", "default", "none"]);
+            config.expect_ok_ex(
+                &["rustup", "toolchain", "list"],
+                for_host!("nightly-{0}\n"),
+                r"",
+            );
+        })
+    });
+}
+
+#[test]
+fn list_no_default_override_toolchain() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "override", "set", "nightly"]);
             config.expect_ok_ex(
                 &["rustup", "toolchain", "list"],
-                for_host!(
-                    r"nightly-{0} (override)
-"
-                ),
+                for_host!("nightly-{0} (active)\n"),
                 r"",
             );
         })
@@ -869,10 +878,7 @@ fn list_default_and_override_toolchain() {
             config.expect_ok(&["rustup", "override", "set", "nightly"]);
             config.expect_ok_ex(
                 &["rustup", "toolchain", "list"],
-                for_host!(
-                    r"nightly-{0} (default) (override)
-"
-                ),
+                for_host!("nightly-{0} (active, default)\n"),
                 r"",
             );
         })
