@@ -577,6 +577,13 @@ fn default_none() {
             &["rustup", "default", "none"],
             "info: default toolchain unset",
         );
+
+        config.expect_ok_ex(
+            &["rustup", "default"],
+            "no default toolchain is configured\n",
+            "",
+        );
+
         config.expect_err_ex(
             &["rustc", "--version"],
             "",
