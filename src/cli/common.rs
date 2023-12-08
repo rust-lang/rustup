@@ -14,7 +14,6 @@ use once_cell::sync::Lazy;
 
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
-use crate::config::ActiveReason;
 use crate::currentprocess::{
     argsource::ArgSource,
     filesource::{StdinSource, StdoutSource},
@@ -24,6 +23,7 @@ use crate::currentprocess::{
 use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::dist::manifest::ComponentStatus;
 use crate::install::UpdateStatus;
+use crate::toolchain::names::{LocalToolchainName, ToolchainName};
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;
@@ -426,78 +426,72 @@ fn list_items(
     Ok(utils::ExitCode(0))
 }
 
-fn print_toolchain_path(
-    cfg: &Cfg,
-    toolchain: &str,
-    if_default: &str,
-    if_override: &str,
-    verbose: bool,
-) -> Result<()> {
-    let toolchain_path = cfg.toolchains_dir.join(toolchain);
-    let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
-    let toolchain_path = if verbose {
-        if toolchain_meta.is_dir() {
-            format!("\t{}", toolchain_path.display())
-        } else {
-            format!("\t{}", fs::read_link(toolchain_path)?.display())
-        }
-    } else {
-        String::new()
-    };
-    writeln!(
-        process().stdout().lock(),
-        "{}{}{}{}",
-        &toolchain,
-        if_default,
-        if_override,
-        toolchain_path
-    )?;
-    Ok(())
-}
-
 pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    // Work with LocalToolchainName to accommodate path based overrides
-    let toolchains = cfg
-        .list_toolchains()?
-        .iter()
-        .map(Into::into)
-        .collect::<Vec<_>>();
+    let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         writeln!(process().stdout().lock(), "no installed toolchains")?;
     } else {
-        let def_toolchain_name = cfg.get_default()?.map(|t| (&t).into());
+        let default_toolchain_name = cfg.get_default()?;
         let cwd = utils::current_dir()?;
-        let ovr_toolchain_name =
-            if let Ok(Some((toolchain, reason))) = cfg.find_active_toolchain(&cwd) {
-                match reason {
-                    ActiveReason::Default => None,
-                    _ => Some(toolchain),
-                }
+        let active_toolchain_name: Option<ToolchainName> =
+            if let Ok(Some((LocalToolchainName::Named(toolchain), _reason))) =
+                cfg.find_active_toolchain(&cwd)
+            {
+                Some(toolchain)
             } else {
                 None
             };
-        for toolchain in toolchains {
-            let if_default = if def_toolchain_name.as_ref() == Some(&toolchain) {
-                " (default)"
-            } else {
-                ""
-            };
-            let if_override = if ovr_toolchain_name.as_ref() == Some(&toolchain) {
-                " (override)"
-            } else {
-                ""
-            };
 
-            print_toolchain_path(
+        for toolchain in toolchains {
+            let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain);
+            let is_active_toolchain = active_toolchain_name.as_ref() == Some(&toolchain);
+
+            print_toolchain(
                 cfg,
                 &toolchain.to_string(),
-                if_default,
-                if_override,
+                is_default_toolchain,
+                is_active_toolchain,
                 verbose,
             )
             .context("Failed to list toolchains' directories")?;
         }
     }
+
+    fn print_toolchain(
+        cfg: &Cfg,
+        toolchain: &str,
+        is_default: bool,
+        is_active: bool,
+        verbose: bool,
+    ) -> Result<()> {
+        let toolchain_path = cfg.toolchains_dir.join(toolchain);
+        let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
+        let toolchain_path = if verbose {
+            if toolchain_meta.is_dir() {
+                format!(" {}", toolchain_path.display())
+            } else {
+                format!(" {}", fs::read_link(toolchain_path)?.display())
+            }
+        } else {
+            String::new()
+        };
+        let status_str = match (is_default, is_active) {
+            (true, true) => " (active, default)",
+            (true, false) => " (default)",
+            (false, true) => " (active)",
+            (false, false) => "",
+        };
+
+        writeln!(
+            process().stdout().lock(),
+            "{}{}{}",
+            &toolchain,
+            status_str,
+            toolchain_path
+        )?;
+        Ok(())
+    }
+
     Ok(utils::ExitCode(0))
 }
 
