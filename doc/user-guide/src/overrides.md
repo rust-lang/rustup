@@ -19,10 +19,7 @@ the directory tree toward the filesystem root, and a `rust-toolchain.toml` file
 that is closer to the current directory will be preferred over a directory
 override that is further away.
 
-To verify which toolchain is active, you can use `rustup show`, 
-which will also try to install the corresponding
-toolchain if the current one has not been installed according to the above rules.
-(Please note that this behavior is subject to change, as detailed in issue [#1397].)
+To verify which toolchain is active, you can use `rustup show`.
 
 [toolchain]: concepts/toolchains.md
 [toolchain override shorthand]: #toolchain-override-shorthand
