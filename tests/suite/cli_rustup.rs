@@ -2482,7 +2482,7 @@ fn check_unix_settings_fallback() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             // No default toolchain specified yet
-            config.expect_err(&["rustup", "default"], r"no default toolchain configured");
+            config.expect_stdout_ok(&["rustup", "default"], "no default toolchain is configured");
 
             // Default toolchain specified in fallback settings file
             let mock_settings_file = config.current_dir().join("mock_fallback_settings.toml");
