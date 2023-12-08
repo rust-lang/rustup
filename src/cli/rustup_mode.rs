@@ -872,10 +872,15 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
         }
     } else {
-        let default_toolchain = cfg
-            .get_default()?
-            .ok_or_else(|| anyhow!("no default toolchain configured"))?;
-        writeln!(process().stdout().lock(), "{default_toolchain} (default)")?;
+        match cfg.get_default()? {
+            Some(default_toolchain) => {
+                writeln!(process().stdout().lock(), "{default_toolchain} (default)")?;
+            }
+            None => writeln!(
+                process().stdout().lock(),
+                "no default toolchain is configured"
+            )?,
+        }
     }
 
     Ok(utils::ExitCode(0))
