@@ -120,15 +120,11 @@ The `channel` setting specifies which [toolchain] to use. The value is a
 string in the following form:
 
 ```
-<channel>[-<date>]
+(<channel>[-<date>])|<custom toolchain name>
 
 <channel>       = stable|beta|nightly|<major.minor.patch>
 <date>          = YYYY-MM-DD
 ```
-
-Note that this is a more restricted form than `rustup` toolchains
-generally, and cannot be used to specify custom toolchains or
-host-specific toolchains.
 
 [toolchain]: concepts/toolchains.md
 
