@@ -505,7 +505,7 @@ fn link() {
             config.expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
             config.expect_ok(&["rustup", "default", "custom"]);
             config.expect_stdout_ok(&["rustc", "--version"], "hash-c-1");
-            config.expect_stdout_ok(&["rustup", "show"], "custom (default)");
+            config.expect_stdout_ok(&["rustup", "show"], "custom (active, default)");
             config.expect_ok(&["rustup", "update", "nightly"]);
             config.expect_ok(&["rustup", "default", "nightly"]);
             config.expect_stdout_ok(&["rustup", "show"], "custom");
@@ -616,6 +616,11 @@ fn show_toolchain_none() {
                 r"Default host: {0}
 rustup home:  {1}
 
+installed toolchains
+--------------------
+
+active toolchain
+----------------
 no active toolchain
 "
             ),
@@ -636,11 +641,64 @@ fn show_toolchain_default() {
                     r"Default host: {0}
 rustup home:  {1}
 
-nightly-{0} (default)
-1.3.0 (hash-nightly-2)
+installed toolchains
+--------------------
+nightly-{0} (active, default)
+
+active toolchain
+----------------
+name: nightly-{0}
+compiler: 1.3.0 (hash-nightly-2)
+active because: it's the default toolchain
+installed targets:
+  {0}
 "
                 ),
                 r"",
+            );
+        })
+    });
+}
+
+#[test]
+fn show_no_default() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "install", "nightly"]);
+            config.expect_ok(&["rustup", "default", "none"]);
+            config.expect_stdout_ok(
+                &["rustup", "show"],
+                for_host!(
+                    "\
+installed toolchains
+--------------------
+nightly-{0}
+
+active toolchain
+"
+                ),
+            );
+        })
+    });
+}
+
+#[test]
+fn show_no_default_active() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "install", "nightly"]);
+            config.expect_ok(&["rustup", "default", "none"]);
+            config.expect_stdout_ok(
+                &["rustup", "+nightly", "show"],
+                for_host!(
+                    "\
+installed toolchains
+--------------------
+nightly-{0} (active)
+
+active toolchain
+"
+                ),
             );
         })
     });
@@ -661,16 +719,16 @@ rustup home:  {1}
 
 installed toolchains
 --------------------
-
 stable-{0}
-nightly-{0} (default)
+nightly-{0} (active, default)
 
 active toolchain
 ----------------
-
-nightly-{0} (default)
-1.3.0 (hash-nightly-2)
-
+name: nightly-{0}
+compiler: 1.3.0 (hash-nightly-2)
+active because: it's the default toolchain
+installed targets:
+  {0}
 "
                 ),
                 r"",
@@ -695,18 +753,18 @@ fn show_multiple_targets() {
                     r"Default host: {2}
 rustup home:  {3}
 
-installed targets for active toolchain
---------------------------------------
-
-{1}
-{0}
+installed toolchains
+--------------------
+nightly-{0} (active, default)
 
 active toolchain
 ----------------
-
-nightly-{0} (default)
-1.3.0 (xxxx-nightly-2)
-
+name: nightly-{0}
+compiler: 1.3.0 (xxxx-nightly-2)
+active because: it's the default toolchain
+installed targets:
+  {1}
+  {0}
 ",
                     clitools::MULTI_ARCH1,
                     clitools::CROSS_ARCH2,
@@ -746,22 +804,17 @@ rustup home:  {3}
 
 installed toolchains
 --------------------
-
 stable-{0}
-nightly-{0} (default)
-
-installed targets for active toolchain
---------------------------------------
-
-{1}
-{0}
+nightly-{0} (active, default)
 
 active toolchain
 ----------------
-
-nightly-{0} (default)
-1.3.0 (xxxx-nightly-2)
-
+name: nightly-{0}
+compiler: 1.3.0 (xxxx-nightly-2)
+active because: it's the default toolchain
+installed targets:
+  {1}
+  {0}
 ",
                     clitools::MULTI_ARCH1,
                     clitools::CROSS_ARCH2,
@@ -831,32 +884,35 @@ fn heal_damaged_toolchain() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "default", "nightly"]);
-            config.expect_not_stderr_ok(
-                &["rustup", "show", "active-toolchain"],
-                "syncing channel updates",
-            );
-            let path = format!(
+            config.expect_not_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates");
+            let manifest_path = format!(
                 "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
                 this_host_triple()
             );
-            fs::remove_file(config.rustupdir.join(path)).unwrap();
+
+            let mut rustc_path = config.rustupdir.join(
+                [
+                    "toolchains",
+                    &format!("nightly-{}", this_host_triple()),
+                    "bin",
+                    "rustc",
+                ]
+                .iter()
+                .collect::<PathBuf>(),
+            );
+
+            if cfg!(windows) {
+                rustc_path.set_extension("exe");
+            }
+
+            fs::remove_file(config.rustupdir.join(manifest_path)).unwrap();
             config.expect_ok_ex(
-                &["rustup", "show", "active-toolchain"],
-                &format!(
-                    r"nightly-{0} (default)
-",
-                    this_host_triple()
-                ),
-                for_host!(
-                    r"info: syncing channel updates for 'nightly-{0}'
-"
-                ),
+                &["rustup", "which", "rustc"],
+                &format!("{}\n", rustc_path.to_str().unwrap()),
+                for_host!("info: syncing channel updates for 'nightly-{0}'\n"),
             );
             config.expect_ok(&["rustup", "default", "nightly"]);
-            config.expect_stderr_ok(
-                &["rustup", "show", "active-toolchain"],
-                "syncing channel updates",
-            );
+            config.expect_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates");
         })
     });
 }
@@ -1009,15 +1065,12 @@ fn show_toolchain_override_not_installed() {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "override", "add", "nightly"]);
             config.expect_ok(&["rustup", "toolchain", "remove", "nightly"]);
-            let mut cmd = clitools::cmd(config, "rustup", ["show"]);
-            clitools::env(config, &mut cmd);
-            let out = cmd.output().unwrap();
-            assert!(out.status.success());
-            let stdout = String::from_utf8(out.stdout).unwrap();
-            let stderr = String::from_utf8(out.stderr).unwrap();
-            assert!(!stdout.contains("not a directory"));
-            assert!(!stdout.contains("is not installed"));
-            assert!(stderr.contains("info: installing component 'rustc'"));
+            let out = config.run("rustup", ["show"], &[]);
+            assert!(!out.ok);
+            assert!(out
+                .stderr
+                .contains("is not installed: the directory override for"));
+            assert!(!out.stderr.contains("info: installing component 'rustc'"));
         })
     });
 }
@@ -1064,8 +1117,17 @@ fn show_toolchain_env() {
                     r"Default host: {0}
 rustup home:  {1}
 
-nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
-1.3.0 (hash-nightly-2)
+installed toolchains
+--------------------
+nightly-{0} (active, default)
+
+active toolchain
+----------------
+name: nightly-{0}
+compiler: 1.3.0 (hash-nightly-2)
+active because: overriden by environment variable RUSTUP_TOOLCHAIN
+installed targets:
+  {0}
 "
                 )
             );
@@ -1077,15 +1139,31 @@ nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
 fn show_toolchain_env_not_installed() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
-            let mut cmd = clitools::cmd(config, "rustup", ["show"]);
-            clitools::env(config, &mut cmd);
-            cmd.env("RUSTUP_TOOLCHAIN", "nightly");
-            let out = cmd.output().unwrap();
-            assert!(out.status.success());
-            let stdout = String::from_utf8(out.stdout).unwrap();
-            let stderr = String::from_utf8(out.stderr).unwrap();
-            assert!(!stdout.contains("is not installed"));
-            assert!(stderr.contains("info: installing component 'rustc'"));
+            let out = config.run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")]);
+
+            assert!(!out.ok);
+
+            let expected_out = for_host_and_home!(
+                config,
+                r"Default host: {0}
+rustup home:  {1}
+
+installed toolchains
+--------------------
+
+active toolchain
+----------------
+"
+            );
+            assert!(&out.stdout == expected_out);
+            assert!(
+                out.stderr
+                    == format!(
+                        "error: override toolchain 'nightly-{}' is not installed: \
+                the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain\n",
+                        this_host_triple()
+                    )
+            );
         })
     });
 }
@@ -1097,10 +1175,7 @@ fn show_active_toolchain() {
             config.expect_ok(&["rustup", "default", "nightly"]);
             config.expect_ok_ex(
                 &["rustup", "show", "active-toolchain"],
-                for_host!(
-                    r"nightly-{0} (default)
-"
-                ),
+                for_host!("nightly-{0}\nactive because: it's the default toolchain\n"),
                 r"",
             );
         })
@@ -1124,20 +1199,19 @@ rustup home:  {1}
 
 installed toolchains
 --------------------
-
 nightly-2015-01-01-{0}
-1.2.0 (hash-nightly-1)
+  1.2.0 (hash-nightly-1)
 
-nightly-{0} (default)
-1.3.0 (hash-nightly-2)
-
+nightly-{0} (active, default)
+  1.3.0 (hash-nightly-2)
 
 active toolchain
 ----------------
-
-nightly-{0} (default)
-1.3.0 (hash-nightly-2)
-
+name: nightly-{0}
+compiler: 1.3.0 (hash-nightly-2)
+active because: it's the default toolchain
+installed targets:
+  {0}
 "
                 ),
                 r"",
@@ -1154,8 +1228,9 @@ fn show_active_toolchain_with_verbose() {
             config.expect_ok_ex(
                 &["rustup", "show", "active-toolchain", "--verbose"],
                 for_host!(
-                    r"nightly-{0} (default)
-1.3.0 (hash-nightly-2)
+                    r"nightly-{0}
+active because: it's the default toolchain
+compiler: 1.3.0 (hash-nightly-2)
 "
                 ),
                 r"",
@@ -1173,7 +1248,7 @@ fn show_active_toolchain_with_override() {
             config.expect_ok(&["rustup", "override", "set", "stable"]);
             config.expect_stdout_ok(
                 &["rustup", "show", "active-toolchain"],
-                for_host!("stable-{0} (directory override for"),
+                for_host!("stable-{0}\nactive because: directory override for"),
             );
         })
     });
@@ -1182,7 +1257,11 @@ fn show_active_toolchain_with_override() {
 #[test]
 fn show_active_toolchain_none() {
     test(&|config| {
-        config.expect_ok_ex(&["rustup", "show", "active-toolchain"], r"", r"");
+        config.expect_ok_ex(
+            &["rustup", "show", "active-toolchain"],
+            "There isn't an active toolchain\n",
+            "",
+        );
     });
 }
 
@@ -2050,7 +2129,7 @@ fn override_order() {
             config.expect_ok(&["rustup", "default", "none"]);
             config.expect_stdout_ok(
                 &["rustup", "show", "active-toolchain"],
-                "",
+                "There isn't an active toolchain\n",
             );
 
             // Default

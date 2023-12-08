@@ -20,7 +20,7 @@ use crate::{
         topical_doc,
     },
     command,
-    config::ActiveReason,
+    config::{new_toolchain_with_reason, ActiveReason},
     currentprocess::{
         argsource::ArgSource,
         filesource::{StderrSource, StdoutSource},
@@ -38,8 +38,9 @@ use crate::{
         names::{
             custom_toolchain_name_parser, maybe_resolvable_toolchainame_parser,
             partial_toolchain_desc_parser, resolvable_local_toolchainame_parser,
-            resolvable_toolchainame_parser, CustomToolchainName, MaybeResolvableToolchainName,
-            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
+            resolvable_toolchainame_parser, CustomToolchainName, LocalToolchainName,
+            MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
+            ToolchainName,
         },
         toolchain::Toolchain,
     },
@@ -1081,120 +1082,99 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
-    // XXX: we may want a find_without_install capability for show.
-    let active_toolchain = cfg.find_or_install_active_toolchain(&cwd);
-
-    // active_toolchain will carry the reason we don't have one in its detail.
-    let active_targets = if let Ok(ref at) = active_toolchain {
-        if let Ok(distributable) = DistributableToolchain::try_from(&at.0) {
-            match distributable.components() {
-                Ok(cs_vec) => cs_vec
-                    .into_iter()
-                    .filter(|c| c.component.short_name_in_manifest() == "rust-std")
-                    .filter(|c| c.installed)
-                    .collect(),
-                Err(_) => vec![],
-            }
+    let active_toolchain_and_reason: Option<(ToolchainName, ActiveReason)> =
+        if let Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) =
+            cfg.find_active_toolchain(&cwd)
+        {
+            Some((toolchain_name, reason))
         } else {
-            // These three vec![] could perhaps be reduced with and_then on active_toolchain.
-            vec![]
-        }
-    } else {
-        vec![]
-    };
+            None
+        };
 
-    let show_installed_toolchains = installed_toolchains.len() > 1;
-    let show_active_targets = active_targets.len() > 1;
-    let show_active_toolchain = true;
+    let (active_toolchain_name, _active_reason) = active_toolchain_and_reason
+        .as_ref()
+        .map(|atar| (&atar.0, &atar.1))
+        .unzip();
 
-    // Only need to display headers if we have multiple sections
-    let show_headers = [
-        show_installed_toolchains,
-        show_active_targets,
-        show_active_toolchain,
-    ]
-    .iter()
-    .filter(|x| **x)
-    .count()
-        > 1;
+    let active_toolchain_targets: Vec<TargetTriple> = active_toolchain_name
+        .and_then(|atn| match atn {
+            ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone()).ok(),
+            // So far, it is not possible to list targets for a custom toolchain.
+            ToolchainName::Custom(_) => None,
+        })
+        .and_then(|distributable| distributable.components().ok())
+        .map(|cs_vec| {
+            cs_vec
+                .into_iter()
+                .filter(|c| c.installed && c.component.short_name_in_manifest() == "rust-std")
+                .map(|c| c.component.target.expect("rust-std should have a target"))
+                .collect()
+        })
+        .unwrap_or_default();
 
-    if show_installed_toolchains {
+    // show installed toolchains
+    {
         let mut t = process().stdout().terminal();
 
-        if show_headers {
-            print_header::<Error>(&mut t, "installed toolchains")?;
-        }
-        let default_name = cfg
-            .get_default()?
-            .ok_or_else(|| anyhow!("no default toolchain configured"))?;
-        for it in installed_toolchains {
-            if default_name == it {
-                writeln!(t.lock(), "{it} (default)")?;
-            } else {
-                writeln!(t.lock(), "{it}")?;
-            }
+        print_header::<Error>(&mut t, "installed toolchains")?;
+
+        let default_toolchain_name = cfg.get_default()?;
+
+        let last_index = installed_toolchains.len().wrapping_sub(1);
+        for (n, toolchain_name) in installed_toolchains.into_iter().enumerate() {
+            let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain_name);
+            let is_active_toolchain = active_toolchain_name == Some(&toolchain_name);
+
+            let status_str = match (is_active_toolchain, is_default_toolchain) {
+                (true, true) => " (active, default)",
+                (true, false) => " (active)",
+                (false, true) => " (default)",
+                (false, false) => "",
+            };
+
+            writeln!(t.lock(), "{toolchain_name}{status_str}")?;
+
             if verbose {
-                let toolchain = Toolchain::new(cfg, it.into())?;
-                writeln!(process().stdout().lock(), "{}", toolchain.rustc_version())?;
-                // To make it easy to see what rustc that belongs to what
-                // toolchain we separate each pair with an extra newline
-                writeln!(process().stdout().lock())?;
-            }
-        }
-        if show_headers {
-            writeln!(t.lock())?
-        };
-    }
-
-    if show_active_targets {
-        let mut t = process().stdout().terminal();
-
-        if show_headers {
-            print_header::<Error>(&mut t, "installed targets for active toolchain")?;
-        }
-        for at in active_targets {
-            writeln!(
-                t.lock(),
-                "{}",
-                at.component
-                    .target
-                    .as_ref()
-                    .expect("rust-std should have a target")
-            )?;
-        }
-        if show_headers {
-            writeln!(t.lock())?;
-        };
-    }
-
-    if show_active_toolchain {
-        let mut t = process().stdout().terminal();
-
-        if show_headers {
-            print_header::<Error>(&mut t, "active toolchain")?;
-        }
-
-        match active_toolchain {
-            Ok((ref toolchain, ref reason)) => {
-                writeln!(t.lock(), "{} ({})", toolchain.name(), reason)?;
-                writeln!(t.lock(), "{}", toolchain.rustc_version())?;
-            }
-            Err(err) => {
-                let root_cause = err.root_cause();
-                if let Some(RustupError::ToolchainNotSelected) =
-                    root_cause.downcast_ref::<RustupError>()
-                {
-                    writeln!(t.lock(), "no active toolchain")?;
-                } else if let Some(cause) = err.source() {
-                    writeln!(t.lock(), "(error: {err}, {cause})")?;
-                } else {
-                    writeln!(t.lock(), "(error: {err})")?;
+                let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
+                writeln!(process().stdout().lock(), "  {}", toolchain.rustc_version())?;
+                // To make it easy to see which rustc belongs to which
+                // toolchain, we separate each pair with an extra newline.
+                if n != last_index {
+                    writeln!(process().stdout().lock())?;
                 }
             }
         }
+    }
 
-        if show_headers {
-            writeln!(t.lock())?
+    // show active toolchain
+    {
+        let mut t = process().stdout().terminal();
+
+        writeln!(t.lock())?;
+
+        print_header::<Error>(&mut t, "active toolchain")?;
+
+        match active_toolchain_and_reason {
+            Some((active_toolchain_name, active_reason)) => {
+                let active_toolchain = new_toolchain_with_reason(
+                    cfg,
+                    active_toolchain_name.clone().into(),
+                    &active_reason,
+                )?;
+                writeln!(t.lock(), "name: {}", active_toolchain.name())?;
+                writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
+                writeln!(t.lock(), "active because: {}", active_reason)?;
+
+                // show installed targets for the active toolchain
+                writeln!(t.lock(), "installed targets:")?;
+
+                for target in active_toolchain_targets {
+                    writeln!(t.lock(), "  {}", target)?;
+                }
+            }
+            None => {
+                writeln!(t.lock(), "no active toolchain")?;
+            }
         }
     }
 
@@ -1203,9 +1183,11 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         E: From<std::io::Error>,
     {
         t.attr(terminalsource::Attr::Bold)?;
-        writeln!(t.lock(), "{s}")?;
-        writeln!(t.lock(), "{}", "-".repeat(s.len()))?;
-        writeln!(t.lock())?;
+        {
+            let mut term_lock = t.lock();
+            writeln!(term_lock, "{s}")?;
+            writeln!(term_lock, "{}", "-".repeat(s.len()))?;
+        } // drop the term_lock
         t.reset()?;
         Ok(())
     }
@@ -1217,27 +1199,24 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
     let cwd = utils::current_dir()?;
-    match cfg.find_or_install_active_toolchain(&cwd) {
-        Err(e) => {
-            let root_cause = e.root_cause();
-            if let Some(RustupError::ToolchainNotSelected) =
-                root_cause.downcast_ref::<RustupError>()
-            {
-            } else {
-                return Err(e);
-            }
-        }
-        Ok((toolchain, reason)) => {
+    match cfg.find_active_toolchain(&cwd)? {
+        Some((toolchain_name, reason)) => {
+            let toolchain = new_toolchain_with_reason(cfg, toolchain_name.clone(), &reason)?;
             writeln!(
                 process().stdout().lock(),
-                "{} ({})",
+                "{}\nactive because: {}",
                 toolchain.name(),
                 reason
             )?;
             if verbose {
-                writeln!(process().stdout().lock(), "{}", toolchain.rustc_version())?;
+                writeln!(
+                    process().stdout().lock(),
+                    "compiler: {}",
+                    toolchain.rustc_version()
+                )?;
             }
         }
+        None => writeln!(process().stdout().lock(), "There isn't an active toolchain")?,
     }
     Ok(utils::ExitCode(0))
 }

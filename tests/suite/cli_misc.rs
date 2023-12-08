@@ -1002,7 +1002,7 @@ fn override_by_toolchain_on_the_command_line() {
         config.expect_stdout_ok(&["rustup", "+nightly", "which", "rustc"], "/bin/rustc");
         config.expect_stdout_ok(
             &["rustup", "+nightly", "show"],
-            "(overridden by +toolchain on the command line)",
+            "active because: overridden by +toolchain on the command line",
         );
         config.expect_err(
             &["rustup", "+foo", "which", "rustc"],
