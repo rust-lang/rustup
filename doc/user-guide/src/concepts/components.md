@@ -53,8 +53,7 @@ toolchains. The following is an overview of the different components:
   you to rebuild the standard library locally.
 * `rust-mingw` — This contains a linker and platform libraries for building on
   the `x86_64-pc-windows-gnu` platform.
-* `llvm-tools-preview` — This is an experimental component which contains a
-  collection of [LLVM] tools.
+* `llvm-tools` — This component contains a collection of [LLVM] tools.
 * `rustc-dev` — This component contains the compiler as a library. Most users
   will not need this; it is only needed for development *of* tools that link
   to the compiler, such as making modifications to [Clippy].
