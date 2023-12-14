@@ -6,14 +6,10 @@ set -ex
 if [ "root" == "$(whoami)" ]; then exit 1; fi
 
 echo "========="
-echo "Acquire tags for the repo"
-
-git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
-
-echo "========="
 echo "Display the current git status"
 
 git status
+git tag --list
 git describe
 
 echo "========="
