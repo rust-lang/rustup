@@ -20,6 +20,7 @@ use crate::{
         topical_doc,
     },
     command,
+    config::ActiveReason,
     currentprocess::{
         argsource::ArgSource,
         filesource::{StderrSource, StdoutSource},
@@ -864,8 +865,10 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         };
 
         let cwd = utils::current_dir()?;
-        if let Some((toolchain, reason)) = cfg.find_override(&cwd)? {
-            info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
+        if let Some((toolchain, reason)) = cfg.find_active_toolchain(&cwd)? {
+            if !matches!(reason, ActiveReason::Default) {
+                info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
+            }
         }
     } else {
         let default_toolchain = cfg
