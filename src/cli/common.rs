@@ -14,6 +14,7 @@ use once_cell::sync::Lazy;
 
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
+use crate::config::ActiveReason;
 use crate::currentprocess::{
     argsource::ArgSource,
     filesource::{StdinSource, StdoutSource},
@@ -466,11 +467,15 @@ pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCod
     } else {
         let def_toolchain_name = cfg.get_default()?.map(|t| (&t).into());
         let cwd = utils::current_dir()?;
-        let ovr_toolchain_name = if let Ok(Some((toolchain, _reason))) = cfg.find_override(&cwd) {
-            Some(toolchain)
-        } else {
-            None
-        };
+        let ovr_toolchain_name =
+            if let Ok(Some((toolchain, reason))) = cfg.find_active_toolchain(&cwd) {
+                match reason {
+                    ActiveReason::Default => None,
+                    _ => Some(toolchain),
+                }
+            } else {
+                None
+            };
         for toolchain in toolchains {
             let if_default = if def_toolchain_name.as_ref() == Some(&toolchain) {
                 " (default)"
