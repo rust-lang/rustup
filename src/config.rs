@@ -95,17 +95,20 @@ impl<T: Into<String>> From<T> for OverrideFile {
     }
 }
 
+// Represents the reason why the active toolchain is active.
 #[derive(Debug)]
-pub(crate) enum OverrideReason {
+pub(crate) enum ActiveReason {
+    Default,
     Environment,
     CommandLine,
     OverrideDB(PathBuf),
     ToolchainFile(PathBuf),
 }
 
-impl Display for OverrideReason {
+impl Display for ActiveReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
+            Self::Default => write!(f, "default"),
             Self::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
             Self::CommandLine => write!(f, "overridden by +toolchain on the command line"),
             Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
@@ -115,11 +118,11 @@ impl Display for OverrideReason {
 }
 
 /// Calls Toolchain::new(), but augments the error message with more context
-/// from the OverrideReason if the toolchain isn't installed.
+/// from the ActiveReason if the toolchain isn't installed.
 pub(crate) fn new_toolchain_with_reason<'a>(
     cfg: &'a Cfg,
     name: LocalToolchainName,
-    reason: &OverrideReason,
+    reason: &ActiveReason,
 ) -> Result<Toolchain<'a>> {
     match Toolchain::new(cfg, name.clone()) {
         Err(RustupError::ToolchainNotInstalled(_)) => (),
@@ -129,21 +132,24 @@ pub(crate) fn new_toolchain_with_reason<'a>(
     }
 
     let reason_err = match reason {
-        OverrideReason::Environment => {
+        ActiveReason::Environment => {
             "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
                 .to_string()
         }
-        OverrideReason::CommandLine => {
+        ActiveReason::CommandLine => {
             "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
         }
-        OverrideReason::OverrideDB(ref path) => format!(
+        ActiveReason::OverrideDB(ref path) => format!(
             "the directory override for '{}' specifies an uninstalled toolchain",
             utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
         ),
-        OverrideReason::ToolchainFile(ref path) => format!(
+        ActiveReason::ToolchainFile(ref path) => format!(
             "the toolchain file at '{}' specifies an uninstalled toolchain",
             utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
         ),
+        ActiveReason::Default => {
+            "the default toolchain does not describe an installed toolchain".to_string()
+        }
     };
 
     Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
@@ -478,21 +484,26 @@ impl Cfg {
             .transpose()?)
     }
 
-    pub(crate) fn find_override(
+    pub(crate) fn find_active_toolchain(
         &self,
         path: &Path,
-    ) -> Result<Option<(LocalToolchainName, OverrideReason)>> {
-        Ok(self
-            .find_override_config(path)?
-            .and_then(|(override_cfg, reason)| override_cfg.toolchain.map(|t| (t, reason))))
+    ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
+        Ok(
+            if let Some((override_config, reason)) = self.find_override_config(path)? {
+                override_config.toolchain.map(|t| (t, reason))
+            } else {
+                self.get_default()?
+                    .map(|x| (x.into(), ActiveReason::Default))
+            },
+        )
     }
 
-    fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, OverrideReason)>> {
+    fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, ActiveReason)>> {
         let mut override_ = None;
 
         // First check toolchain override from command
         if let Some(ref name) = self.toolchain_override {
-            override_ = Some((name.to_string().into(), OverrideReason::CommandLine));
+            override_ = Some((name.to_string().into(), ActiveReason::CommandLine));
         }
 
         // Check RUSTUP_TOOLCHAIN
@@ -501,7 +512,7 @@ impl Cfg {
             // custom, distributable, and absolute path toolchains otherwise
             // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
             // error when a nested rustup invocation occurs
-            override_ = Some((name.to_string().into(), OverrideReason::Environment));
+            override_ = Some((name.to_string().into(), ActiveReason::Environment));
         }
 
         // Then walk up the directory tree from 'path' looking for either the
@@ -539,14 +550,14 @@ impl Cfg {
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(OverrideFile, OverrideReason)>> {
+    ) -> Result<Option<(OverrideFile, ActiveReason)>> {
         let notify = self.notify_handler.as_ref();
         let mut dir = Some(dir);
 
         while let Some(d) = dir {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
-                let reason = OverrideReason::OverrideDB(d.to_owned());
+                let reason = ActiveReason::OverrideDB(d.to_owned());
                 return Ok(Some((name.into(), reason)));
             }
 
@@ -619,7 +630,7 @@ impl Cfg {
                     }
                 }
 
-                let reason = OverrideReason::ToolchainFile(toolchain_file);
+                let reason = ActiveReason::ToolchainFile(toolchain_file);
                 return Ok(Some((override_file, reason)));
             }
 
@@ -663,7 +674,7 @@ impl Cfg {
     pub(crate) fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> Result<(Toolchain<'_>, Option<ActiveReason>)> {
         let (toolchain, components, targets, reason, profile) =
             match self.find_override_config(path)? {
                 Some((
