@@ -114,6 +114,41 @@ impl Display for OverrideReason {
     }
 }
 
+/// Calls Toolchain::new(), but augments the error message with more context
+/// from the OverrideReason if the toolchain isn't installed.
+pub(crate) fn new_toolchain_with_reason<'a>(
+    cfg: &'a Cfg,
+    name: LocalToolchainName,
+    reason: &OverrideReason,
+) -> Result<Toolchain<'a>> {
+    match Toolchain::new(cfg, name.clone()) {
+        Err(RustupError::ToolchainNotInstalled(_)) => (),
+        result => {
+            return Ok(result?);
+        }
+    }
+
+    let reason_err = match reason {
+        OverrideReason::Environment => {
+            "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
+                .to_string()
+        }
+        OverrideReason::CommandLine => {
+            "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
+        }
+        OverrideReason::OverrideDB(ref path) => format!(
+            "the directory override for '{}' specifies an uninstalled toolchain",
+            utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
+        ),
+        OverrideReason::ToolchainFile(ref path) => format!(
+            "the toolchain file at '{}' specifies an uninstalled toolchain",
+            utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
+        ),
+    };
+
+    Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
+}
+
 #[derive(Default, Debug)]
 struct OverrideCfg {
     toolchain: Option<LocalToolchainName>,
@@ -480,29 +515,6 @@ impl Cfg {
         }
 
         if let Some((file, reason)) = override_ {
-            // This is hackishly using the error chain to provide a bit of
-            // extra context about what went wrong. The CLI will display it
-            // on a line after the proximate error.
-
-            let reason_err = match reason {
-                OverrideReason::Environment => {
-                    "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
-                        .to_string()
-                }
-                OverrideReason::CommandLine => {
-                    "the +toolchain on the command line specifies an uninstalled toolchain"
-                        .to_string()
-                }
-                OverrideReason::OverrideDB(ref path) => format!(
-                    "the directory override for '{}' specifies an uninstalled toolchain",
-                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
-                ),
-                OverrideReason::ToolchainFile(ref path) => format!(
-                    "the toolchain file at '{}' specifies an uninstalled toolchain",
-                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
-                ),
-            };
-
             let override_cfg = OverrideCfg::from_file(self, file)?;
             // Overridden toolchains can be literally any string, but only
             // distributable toolchains will be auto-installed by the wrapping
@@ -511,14 +523,7 @@ impl Cfg {
             match &override_cfg.toolchain {
                 Some(t @ LocalToolchainName::Named(ToolchainName::Custom(_)))
                 | Some(t @ LocalToolchainName::Path(_)) => {
-                    if let Err(RustupError::ToolchainNotInstalled(_)) =
-                        Toolchain::new(self, t.to_owned())
-                    {
-                        // Strip the confusing NotADirectory error and only mention that the
-                        // override toolchain is not installed.
-                        return Err(anyhow!(reason_err))
-                            .with_context(|| format!("override toolchain '{t}' is not installed"));
-                    }
+                    new_toolchain_with_reason(self, t.clone(), &reason)?;
                 }
                 // Either official (can auto install) or no toolchain specified
                 _ => {}
