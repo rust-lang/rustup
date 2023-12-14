@@ -38,6 +38,7 @@ gen_job linux-builds stable
 
 # The following targets only have a single job
 gen_job macos-builds all
+gen_job freebsd-builds all
 gen_job centos-fmt-clippy all
 gen_job all-features all
 gen_job test-docs all
