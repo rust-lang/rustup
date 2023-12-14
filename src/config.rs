@@ -684,36 +684,49 @@ impl Cfg {
                 Ok((Toolchain::new(self, toolchain)?, reason))
             }
             Some(LocalToolchainName::Named(ToolchainName::Official(desc))) => {
-                let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
-                let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
-                let toolchain = match DistributableToolchain::new(self, desc.clone()) {
-                    Err(RustupError::ToolchainNotInstalled(_)) => {
-                        DistributableToolchain::install(
-                            self,
-                            &desc,
-                            &components,
-                            &targets,
-                            profile.unwrap_or(Profile::Default),
-                            false,
-                        )?
-                        .1
-                    }
-                    Ok(mut distributable) => {
-                        if !distributable.components_exist(&components, &targets)? {
-                            distributable.update(
-                                &components,
-                                &targets,
-                                profile.unwrap_or(Profile::Default),
-                            )?;
-                        }
-                        distributable
-                    }
-                    Err(e) => return Err(e.into()),
-                }
-                .into();
+                let toolchain = self.ensure_installed(desc, components, targets, profile)?;
                 Ok((toolchain, reason))
             }
         }
+    }
+
+    // Returns a Toolchain matching the given ToolchainDesc, installing it and
+    // the given components and targets if they aren't already installed.
+    fn ensure_installed(
+        &self,
+        toolchain: ToolchainDesc,
+        components: Vec<String>,
+        targets: Vec<String>,
+        profile: Option<Profile>,
+    ) -> Result<Toolchain<'_>> {
+        let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
+        let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
+        let toolchain = match DistributableToolchain::new(self, toolchain.clone()) {
+            Err(RustupError::ToolchainNotInstalled(_)) => {
+                DistributableToolchain::install(
+                    self,
+                    &toolchain,
+                    &components,
+                    &targets,
+                    profile.unwrap_or(Profile::Default),
+                    false,
+                )?
+                .1
+            }
+            Ok(mut distributable) => {
+                if !distributable.components_exist(&components, &targets)? {
+                    distributable.update(
+                        &components,
+                        &targets,
+                        profile.unwrap_or(Profile::Default),
+                    )?;
+                }
+                distributable
+            }
+            Err(e) => return Err(e.into()),
+        }
+        .into();
+        Ok(toolchain)
     }
 
     /// Get the configured default toolchain.
