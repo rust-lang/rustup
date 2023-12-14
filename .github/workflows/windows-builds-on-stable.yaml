@@ -25,16 +25,16 @@ jobs:
           - i686-pc-windows-gnu # skip-pr skip-master
         mode:
           - dev
-          - release         
+          - release
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
-          - target: x86_64-pc-windows-gnu  # skip-pr
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z  # skip-pr
-            mingwdir: mingw64  # skip-pr
-          - target: i686-pc-windows-gnu  # skip-pr skip-master
-            mingwdir: mingw32  # skip-pr skip-master
-            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z  # skip-pr skip-master
+          - target: x86_64-pc-windows-gnu # skip-pr
+            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z # skip-pr
+            mingwdir: mingw64 # skip-pr
+          - target: i686-pc-windows-gnu # skip-pr skip-master
+            mingwdir: mingw32 # skip-pr skip-master
+            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z # skip-pr skip-master
     steps:
       - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
@@ -107,18 +107,18 @@ jobs:
           rustup target install ${{ matrix.target }}
       - name: Run a full build
         env:
-          TARGET: ${{ matrix.target }} 
+          TARGET: ${{ matrix.target }}
           BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Run cargo check and clippy
         if: matrix.mode != 'release'
         env:
-          TARGET: ${{ matrix.target }} 
+          TARGET: ${{ matrix.target }}
         # os-specific code leads to lints escaping if we only run this in one target
         run: |
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --workspace --all-targets --features test   
+          cargo clippy --workspace --all-targets --features test
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v4
