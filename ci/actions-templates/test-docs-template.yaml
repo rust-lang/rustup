@@ -5,7 +5,7 @@ jobs: # skip-all
   #
   # Builds docs for both stable and master branches.
   # stable is placed in the root of the gh-pages branch, while master is placed at /devel
-  doc:
+  doc: # job-name
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request }}
     steps:

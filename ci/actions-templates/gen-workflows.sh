@@ -42,3 +42,8 @@ gen_job freebsd-builds all
 gen_job centos-fmt-clippy all
 gen_job all-features all
 gen_job test-docs all
+
+# Finally, we generate the conclusion,
+# adding all the `# job-name` jobs to the `needs` list.
+gen_job conclusion all
+cat "$INPATH"/*-template.yaml | perl -nE 'say "      - $1" if (m/^\s*([\w-_]+)\s*:.*job-name.*$/)' >> "$OUTPATH"
