@@ -42,19 +42,15 @@ toolchains. The following is an overview of the different components:
   doc --help` for more options.
 * `rust-analyzer` — [rust-analyzer] is a language server that provides support
   for editors and IDEs.
-* `rls` — [RLS] is a language server that is deprecated and has been replaced
-  by rust-analyzer.
 * `clippy` — [Clippy] is a lint tool that provides extra checks for common
   mistakes and stylistic choices.
 * `miri` — [Miri] is an experimental Rust interpreter, which can be used for
   checking for undefined-behavior.
 * `rust-src` — This is a local copy of the source code of the Rust standard
-  library. This can be used by some tools, such as [RLS], to provide
+  library. This can be used by some tools, such as [rust-analyzer], to provide
   auto-completion for functions within the standard library; [Miri] which is a
   Rust interpreter; and Cargo's experimental [build-std] feature, which allows
   you to rebuild the standard library locally.
-* `rust-analysis` — Metadata about the standard library, used by tools like
-  [RLS].
 * `rust-mingw` — This contains a linker and platform libraries for building on
   the `x86_64-pc-windows-gnu` platform.
 * `llvm-tools-preview` — This is an experimental component which contains a
@@ -62,6 +58,14 @@ toolchains. The following is an overview of the different components:
 * `rustc-dev` — This component contains the compiler as a library. Most users
   will not need this; it is only needed for development *of* tools that link
   to the compiler, such as making modifications to [Clippy].
+
+### Previous components
+
+These components have been deprecated and are not published in new Rust releases.
+
+* `rls` — [RLS] is a language server that is deprecated and has been replaced
+  by rust-analyzer.
+* `rust-analysis` — Metadata about the standard library, used by [RLS].
 
 ## Component availability
 
