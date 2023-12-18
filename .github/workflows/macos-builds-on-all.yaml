@@ -104,7 +104,7 @@ jobs:
           fi
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
