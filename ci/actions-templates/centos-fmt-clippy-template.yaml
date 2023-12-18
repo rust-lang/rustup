@@ -19,6 +19,10 @@ jobs: # skip-all
         run: |
           git status
           git describe
+      - name: Run CI workflow generation checks
+        run: |
+          ./ci/actions-templates/gen-workflows.sh
+          git diff --quiet
       - name: Prep cargo dirs
         run: |
           mkdir -p ~/.cargo/{registry,git}
