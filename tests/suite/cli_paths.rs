@@ -145,6 +145,45 @@ export PATH="$HOME/apple/bin"
     }
 
     #[test]
+    fn install_with_zdotdir_from_calling_zsh() {
+        // This test requires that zsh is callable.
+        if std::process::Command::new("zsh")
+            .arg("-c")
+            .arg("true")
+            .status()
+            .is_err()
+        {
+            return;
+        }
+        clitools::test(Scenario::Empty, &|config| {
+            let zdotdir = tempfile::Builder::new()
+                .prefix("zdotdir")
+                .tempdir()
+                .unwrap();
+            let rc = zdotdir.path().join(".zshenv");
+            raw::write_file(&rc, FAKE_RC).unwrap();
+
+            // If $SHELL doesn't include "zsh", Zsh::zdotdir() will call zsh to obtain $ZDOTDIR.
+            // ZDOTDIR could be set directly in the environment, but having ~/.zshenv set
+            // ZDOTDIR is a normal setup, and ensures that the value came from calling zsh.
+            let home_zshenv = config.homedir.join(".zshenv");
+            let export_zdotdir = format!(
+                "export ZDOTDIR=\"{}\"\n",
+                zdotdir.path().as_os_str().to_str().unwrap()
+            );
+            raw::write_file(&home_zshenv, &export_zdotdir).unwrap();
+
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
+            cmd.env("SHELL", "/bin/sh");
+            assert!(cmd.output().unwrap().status.success());
+
+            let new_rc = fs::read_to_string(&rc).unwrap();
+            let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
+            assert_eq!(new_rc, expected);
+        });
+    }
+
+    #[test]
     fn install_adds_path_to_rc_just_once() {
         clitools::test(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
