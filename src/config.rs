@@ -165,39 +165,41 @@ struct OverrideCfg {
 
 impl OverrideCfg {
     fn from_file(cfg: &Cfg, file: OverrideFile) -> Result<Self> {
-        Ok(Self {
-            toolchain: match (file.toolchain.channel, file.toolchain.path) {
-                (Some(name), None) => Some(
-                    (&ResolvableToolchainName::try_from(name)?
-                        .resolve(&cfg.get_default_host_triple()?)?)
-                        .into(),
-                ),
-                (None, Some(path)) => {
-                    if file.toolchain.targets.is_some()
-                        || file.toolchain.components.is_some()
-                        || file.toolchain.profile.is_some()
-                    {
-                        bail!(
-                            "toolchain options are ignored for path toolchain ({})",
-                            path.display()
-                        )
-                    }
-                    // We -do not- support relative paths, they permit trivial
-                    // completely arbitrary code execution in a directory.
-                    // Longer term we'll not support path based toolchains at
-                    // all, because they also permit arbitrary code execution,
-                    // though with more challenges to exploit.
-                    Some((&PathBasedToolchainName::try_from(&path as &Path)?).into())
-                }
-                (Some(channel), Some(path)) => {
+        let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
+            (Some(name), None) => Some(
+                (&ResolvableToolchainName::try_from(name)?
+                    .resolve(&cfg.get_default_host_triple()?)?)
+                    .into(),
+            ),
+            (None, Some(path)) => {
+                if file.toolchain.targets.is_some()
+                    || file.toolchain.components.is_some()
+                    || file.toolchain.profile.is_some()
+                {
                     bail!(
-                        "cannot specify both channel ({}) and path ({}) simultaneously",
-                        channel,
+                        "toolchain options are ignored for path toolchain ({})",
                         path.display()
                     )
                 }
-                (None, None) => None,
-            },
+                // We -do not- support relative paths, they permit trivial
+                // completely arbitrary code execution in a directory.
+                // Longer term we'll not support path based toolchains at
+                // all, because they also permit arbitrary code execution,
+                // though with more challenges to exploit.
+                Some((&PathBasedToolchainName::try_from(&path as &Path)?).into())
+            }
+            (Some(channel), Some(path)) => {
+                bail!(
+                    "cannot specify both channel ({}) and path ({}) simultaneously",
+                    channel,
+                    path.display()
+                )
+            }
+            (None, None) => None,
+        };
+
+        Ok(Self {
+            toolchain: toolchain_name,
             components: file.toolchain.components.unwrap_or_default(),
             targets: file.toolchain.targets.unwrap_or_default(),
             profile: file
