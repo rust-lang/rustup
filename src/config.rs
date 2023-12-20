@@ -576,10 +576,10 @@ impl Cfg {
             // Then walk up the directory tree from 'path' looking for either the
             // directory in the override database, or a `rust-toolchain{.toml}` file,
             // in that order.
-            else if let Some((override_file, active_reason)) = self.settings_file.with(|s| {
+            else if let Some((override_cfg, active_reason)) = self.settings_file.with(|s| {
                     self.find_override_from_dir_walk(path, s)
                 })? {
-                    Some((OverrideCfg::from_file(self, override_file)?, active_reason))
+                Some((override_cfg, active_reason))
             }
             // Otherwise, there is no override.
             else {
@@ -593,7 +593,7 @@ impl Cfg {
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(OverrideFile, ActiveReason)>> {
+    ) -> Result<Option<(OverrideCfg, ActiveReason)>> {
         let notify = self.notify_handler.as_ref();
         let mut dir = Some(dir);
 
@@ -601,7 +601,16 @@ impl Cfg {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
                 let reason = ActiveReason::OverrideDB(d.to_owned());
-                return Ok(Some((name.into(), reason)));
+                // Note that `rustup override set` fully resolves it's input
+                // before writing to settings.toml, so resolving here may not
+                // be strictly necessary (could instead model as ToolchainName).
+                // However, settings.toml could conceivably be hand edited to
+                // have an unresolved name. I'm just preserving pre-existing
+                // behaviour by choosing ResolvableToolchainName here.
+                let toolchain_name = ResolvableToolchainName::try_from(name)?
+                    .resolve(&get_default_host_triple(settings))?;
+                let override_cfg = toolchain_name.into();
+                return Ok(Some((override_cfg, reason)));
             }
 
             // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
@@ -674,7 +683,8 @@ impl Cfg {
                 }
 
                 let reason = ActiveReason::ToolchainFile(toolchain_file);
-                return Ok(Some((override_file, reason)));
+                let override_cfg = OverrideCfg::from_file(self, override_file)?;
+                return Ok(Some((override_cfg, reason)));
             }
 
             dir = d.parent();
