@@ -2003,26 +2003,6 @@ channel = "nightly"
 }
 
 #[test]
-fn directory_override_beats_file_override() {
-    test(&|config| {
-        config.with_scenario(Scenario::SimpleV2, &|config| {
-            config.expect_ok(&["rustup", "default", "stable"]);
-            config.expect_ok(&["rustup", "toolchain", "install", "beta"]);
-            config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
-
-            config.expect_ok(&["rustup", "override", "set", "beta"]);
-            config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
-
-            let cwd = config.current_dir();
-            let toolchain_file = cwd.join("rust-toolchain");
-            raw::write_file(&toolchain_file, "nightly").unwrap();
-
-            config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
-        })
-    });
-}
-
-#[test]
 fn close_file_override_beats_far_directory_override() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
@@ -2044,6 +2024,69 @@ fn close_file_override_beats_far_directory_override() {
             config.change_dir(&subdir, &|config| {
                 config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
             });
+        })
+    });
+}
+
+#[test]
+// Check that toolchain overrides have the correct priority.
+fn override_order() {
+    test(&|config| {
+        config.with_scenario(Scenario::ArchivesV2, &|config| {
+            let host = this_host_triple();
+            // give each override type a different toolchain
+            let default_tc = &format!("beta-2015-01-01-{}", host);
+            let env_tc = &format!("stable-2015-01-01-{}", host);
+            let dir_tc = &format!("beta-2015-01-02-{}", host);
+            let file_tc = &format!("stable-2015-01-02-{}", host);
+            let command_tc = &format!("nightly-2015-01-01-{}", host);
+            config.expect_ok(&["rustup", "install", default_tc]);
+            config.expect_ok(&["rustup", "install", env_tc]);
+            config.expect_ok(&["rustup", "install", dir_tc]);
+            config.expect_ok(&["rustup", "install", file_tc]);
+            config.expect_ok(&["rustup", "install", command_tc]);
+
+            // No default
+            config.expect_ok(&["rustup", "default", "none"]);
+            config.expect_stdout_ok(
+                &["rustup", "show", "active-toolchain"],
+                "",
+            );
+
+            // Default
+            config.expect_ok(&["rustup", "default", default_tc]);
+            config.expect_stdout_ok(&["rustup", "show", "active-toolchain"], default_tc);
+
+            // file > default
+            let toolchain_file = config.current_dir().join("rust-toolchain.toml");
+            raw::write_file(
+                &toolchain_file,
+                &format!("[toolchain]\nchannel='{}'", file_tc),
+            )
+            .unwrap();
+            config.expect_stdout_ok(&["rustup", "show", "active-toolchain"], file_tc);
+
+            // dir override > file > default
+            config.expect_ok(&["rustup", "override", "set", dir_tc]);
+            config.expect_stdout_ok(&["rustup", "show", "active-toolchain"], dir_tc);
+
+            // env > dir override > file > default
+            let out = config.run(
+                "rustup",
+                ["show", "active-toolchain"],
+                &[("RUSTUP_TOOLCHAIN", env_tc)],
+            );
+            assert!(out.ok);
+            assert!(out.stdout.contains(env_tc));
+
+            // +toolchain > env > dir override > file > default
+            let out = config.run(
+                "rustup",
+                [&format!("+{}", command_tc), "show", "active-toolchain"],
+                &[("RUSTUP_TOOLCHAIN", env_tc)],
+            );
+            assert!(out.ok);
+            assert!(out.stdout.contains(command_tc));
         })
     });
 }

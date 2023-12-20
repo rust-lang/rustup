@@ -110,7 +110,7 @@ pub fn main() -> Result<utils::ExitCode> {
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
-                let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
+                let toolchain = cfg.find_or_install_active_toolchain(&cwd)?.0;
 
                 Ok(toolchain.rustc_version())
             }
@@ -1082,7 +1082,7 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
     // XXX: we may want a find_without_install capability for show.
-    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
+    let active_toolchain = cfg.find_or_install_active_toolchain(&cwd);
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
@@ -1175,16 +1175,10 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         }
 
         match active_toolchain {
-            Ok(atc) => match atc {
-                (ref toolchain, Some(ref reason)) => {
-                    writeln!(t.lock(), "{} ({})", toolchain.name(), reason)?;
-                    writeln!(t.lock(), "{}", toolchain.rustc_version())?;
-                }
-                (ref toolchain, None) => {
-                    writeln!(t.lock(), "{} (default)", toolchain.name())?;
-                    writeln!(t.lock(), "{}", toolchain.rustc_version())?;
-                }
-            },
+            Ok((ref toolchain, ref reason)) => {
+                writeln!(t.lock(), "{} ({})", toolchain.name(), reason)?;
+                writeln!(t.lock(), "{}", toolchain.rustc_version())?;
+            }
             Err(err) => {
                 let root_cause = err.root_cause();
                 if let Some(RustupError::ToolchainNotSelected) =
@@ -1223,7 +1217,7 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
     let cwd = utils::current_dir()?;
-    match cfg.find_or_install_override_toolchain_or_default(&cwd) {
+    match cfg.find_or_install_active_toolchain(&cwd) {
         Err(e) => {
             let root_cause = e.root_cause();
             if let Some(RustupError::ToolchainNotSelected) =
@@ -1234,16 +1228,12 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
         }
         Ok((toolchain, reason)) => {
-            if let Some(reason) = reason {
-                writeln!(
-                    process().stdout().lock(),
-                    "{} ({})",
-                    toolchain.name(),
-                    reason
-                )?;
-            } else {
-                writeln!(process().stdout().lock(), "{} (default)", toolchain.name())?;
-            }
+            writeln!(
+                process().stdout().lock(),
+                "{} ({})",
+                toolchain.name(),
+                reason
+            )?;
             if verbose {
                 writeln!(process().stdout().lock(), "{}", toolchain.rustc_version())?;
             }
@@ -1408,7 +1398,7 @@ fn explicit_or_dir_toolchain2(
         }
         None => {
             let cwd = utils::current_dir()?;
-            let (toolchain, _) = cfg.find_or_install_override_toolchain_or_default(&cwd)?;
+            let (toolchain, _) = cfg.find_or_install_active_toolchain(&cwd)?;
 
             Ok(toolchain)
         }
