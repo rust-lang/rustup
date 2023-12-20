@@ -38,9 +38,10 @@ impl SettingsFile {
     fn read_settings(&self) -> Result<()> {
         let mut needs_save = false;
         {
-            let mut b = self.cache.borrow_mut();
+            let b = self.cache.borrow();
             if b.is_none() {
-                *b = Some(if utils::is_file(&self.path) {
+                drop(b);
+                *self.cache.borrow_mut() = Some(if utils::is_file(&self.path) {
                     let content = utils::read_file("settings", &self.path)?;
                     Settings::parse(&content)?
                 } else {
