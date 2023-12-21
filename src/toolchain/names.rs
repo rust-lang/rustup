@@ -240,7 +240,7 @@ pub(crate) fn maybe_resolvable_toolchainame_parser(
 
 /// ResolvableToolchainName + none, for overriding default-has-a-value
 /// situations in the CLI with an official toolchain name or none
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum MaybeOfficialToolchainName {
     None,
     Some(PartialToolchainDesc),

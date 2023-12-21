@@ -14,16 +14,16 @@ Options:
   -q, --quiet
           Disable progress output
   -y
-          Disable confirmation prompt.
-      --default-host <default-host>
+          Disable confirmation prompt
+      --default-host <DEFAULT_HOST>
           Choose a default host triple
-      --default-toolchain <default-toolchain>
+      --default-toolchain <DEFAULT_TOOLCHAIN>
           Choose a default toolchain to install. Use 'none' to not install any toolchains at all
-      --profile <profile>
+      --profile <PROFILE>
           [default: default] [possible values: minimal, default, complete]
-  -c, --component <components>...
+  -c, --components <COMPONENTS>...
           Component name to also install
-  -t, --target <targets>...
+  -t, --targets <TARGETS>...
           Target name to also install
       --no-update-default-toolchain
           Don't update any existing default toolchain after install
