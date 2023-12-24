@@ -1353,6 +1353,63 @@ fn add_component() {
 }
 
 #[test]
+fn add_component_by_target_triple() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_ok(&[
+                "rustup",
+                "component",
+                "add",
+                &format!("rust-std-{}", clitools::CROSS_ARCH1),
+            ]);
+            let path = format!(
+                "toolchains/stable-{}/lib/rustlib/{}/lib/libstd.rlib",
+                this_host_triple(),
+                clitools::CROSS_ARCH1
+            );
+            assert!(config.rustupdir.has(path));
+        })
+    });
+}
+
+#[test]
+fn fail_invalid_component_name() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_err(
+                &[
+                    "rustup",
+                    "component",
+                    "add",
+                    &format!("dummy-{}", clitools::CROSS_ARCH1),
+                ],
+                &format!("error: toolchain 'stable-{}' does not contain component 'dummy-{}' for target '{}'",this_host_triple(), clitools::CROSS_ARCH1, this_host_triple()),
+            );
+        })
+    });
+}
+
+#[test]
+fn fail_invalid_component_target() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_err(
+                &[
+                    "rustup",
+                    "component",
+                    "add",
+                    "rust-std-invalid-target",
+                ],
+                &format!("error: toolchain 'stable-{}' does not contain component 'rust-std-invalid-target' for target '{}'",this_host_triple(),  this_host_triple()),
+            );
+        })
+    });
+}
+
+#[test]
 fn remove_component() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
@@ -1370,21 +1427,60 @@ fn remove_component() {
 }
 
 #[test]
+fn remove_component_by_target_triple() {
+    let component_with_triple = format!("rust-std-{}", clitools::CROSS_ARCH1);
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_ok(&["rustup", "component", "add", &component_with_triple]);
+            let path = PathBuf::from(format!(
+                "toolchains/stable-{}/lib/rustlib/{}/lib/libstd.rlib",
+                this_host_triple(),
+                clitools::CROSS_ARCH1
+            ));
+            assert!(config.rustupdir.has(&path));
+            config.expect_ok(&["rustup", "component", "remove", &component_with_triple]);
+            assert!(!config.rustupdir.has(path.parent().unwrap()));
+        })
+    });
+}
+
+#[test]
 fn add_remove_multiple_components() {
     let files = [
         "lib/rustlib/src/rust-src/foo.rs".to_owned(),
         format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple()),
+        format!("lib/rustlib/{}/lib/libstd.rlib", clitools::CROSS_ARCH1),
+        format!("lib/rustlib/{}/lib/libstd.rlib", clitools::CROSS_ARCH2),
     ];
+    let component_with_triple1 = format!("rust-std-{}", clitools::CROSS_ARCH1);
+    let component_with_triple2 = format!("rust-std-{}", clitools::CROSS_ARCH2);
 
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             config.expect_ok(&["rustup", "default", "nightly"]);
-            config.expect_ok(&["rustup", "component", "add", "rust-src", "rust-analysis"]);
+            config.expect_ok(&[
+                "rustup",
+                "component",
+                "add",
+                "rust-src",
+                "rust-analysis",
+                &component_with_triple1,
+                &component_with_triple2,
+            ]);
             for file in &files {
                 let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
                 assert!(config.rustupdir.has(&path));
             }
-            config.expect_ok(&["rustup", "component", "remove", "rust-src", "rust-analysis"]);
+            config.expect_ok(&[
+                "rustup",
+                "component",
+                "remove",
+                "rust-src",
+                "rust-analysis",
+                &component_with_triple1,
+                &component_with_triple2,
+            ]);
             for file in &files {
                 let path = PathBuf::from(format!(
                     "toolchains/nightly-{}/{}",
