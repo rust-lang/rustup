@@ -18,8 +18,9 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use crate::dist::dist::{PartialTargetTriple, Profile, TargetTriple};
+use crate::dist::dist::{Profile, TargetTriple};
 use crate::errors::*;
+use crate::toolchain::distributable::DistributableToolchain;
 use crate::utils::toml_utils::*;
 
 use super::{config::Config, dist::ToolchainDesc};
@@ -588,21 +589,37 @@ impl Component {
         }
     }
 
-    pub(crate) fn new_with_target(pkg_with_target: &str, is_extension: bool) -> Option<Self> {
-        for (pos, _) in pkg_with_target.match_indices('-') {
-            let pkg = &pkg_with_target[0..pos];
-            let target = &pkg_with_target[pos + 1..];
-            if let Some(partial) = PartialTargetTriple::new(target) {
-                if let Ok(triple) = TargetTriple::try_from(partial) {
-                    return Some(Self {
-                        pkg: pkg.to_string(),
-                        target: Some(triple),
-                        is_extension,
-                    });
-                }
+    pub(crate) fn try_new(
+        name: &str,
+        distributable: &DistributableToolchain<'_>,
+        fallback_target: Option<&TargetTriple>,
+    ) -> Result<Self> {
+        let manifestation = distributable.get_manifestation()?;
+        let config = manifestation.read_config()?.unwrap_or_default();
+        let manifest = distributable.get_manifest()?;
+        let manifest_components = manifest.query_components(distributable.desc(), &config)?;
+
+        for component_status in manifest_components {
+            let short_name = component_status.component.short_name_in_manifest();
+            let target = component_status.component.target.as_ref();
+
+            if name.starts_with(short_name)
+                && target.is_some()
+                && name == format!("{}-{}", short_name, target.unwrap())
+            {
+                return Ok(Component::new(
+                    short_name.to_string(),
+                    target.cloned(),
+                    false,
+                ));
             }
         }
-        None
+
+        Ok(Component::new(
+            name.to_string(),
+            fallback_target.cloned(),
+            true,
+        ))
     }
 
     pub(crate) fn wildcard(&self) -> Self {
