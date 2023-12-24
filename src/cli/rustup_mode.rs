@@ -1364,8 +1364,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let target = get_target(m, &distributable);
 
     for component in m.get_many::<String>("component").unwrap() {
-        let new_component = Component::new_with_target(component, false)
-            .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
+        let new_component = Component::try_new(component, &distributable, target.as_ref())?;
         distributable.add_component(new_component)?;
     }
 
@@ -1385,8 +1384,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let target = get_target(m, &distributable);
 
     for component in m.get_many::<String>("component").unwrap() {
-        let new_component = Component::new_with_target(component, false)
-            .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
+        let new_component = Component::try_new(component, &distributable, target.as_ref())?;
         distributable.remove_component(new_component)?;
     }
 
