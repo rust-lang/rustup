@@ -20,6 +20,21 @@
     },
     "packageRules": [
         {
+            "matchManagers": ["cargo"],
+            "enabled": false
+        },
+        {
+            "matchManagers": ["cargo"],
+            "matchUpdateTypes": ["major"],
+            "enabled": true
+        },
+        {
+            "matchManagers": ["cargo"],
+            "matchUpdateTypes": ["minor"],
+            "matchCurrentVersion": "/^0\\./",
+            "enabled": true
+        },
+        {
             "matchPackagePatterns": [
                 "opentelemetry"
             ],
