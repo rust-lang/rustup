@@ -7,7 +7,7 @@ jobs: # skip-all
   # stable is placed in the root of the gh-pages branch, while master is placed at /devel
   doc: # job-name
     runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request }}
+    if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }}
     steps:
       - uses: actions/checkout@v4
         with:
