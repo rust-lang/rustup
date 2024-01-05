@@ -6,7 +6,7 @@ jobs: # skip-master skip-pr skip-stable
   build-linux-master: # job-name skip-pr skip-stable
   build-linux-stable: # job-name skip-master skip-pr
     runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request }} # skip-master skip-stable
+    if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
     strategy:
