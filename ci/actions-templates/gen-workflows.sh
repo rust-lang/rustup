@@ -14,6 +14,7 @@ cat << EOF > "$OUTPATH"
 name: CI
 
 on:
+  merge_group:
   pull_request:
     branches:
       - "*"
