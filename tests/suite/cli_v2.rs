@@ -952,9 +952,31 @@ fn remove_target_again() {
 #[test]
 fn remove_target_host() {
     setup(&|config| {
-        let trip = this_host_triple();
+        let host = this_host_triple();
         config.expect_ok(&["rustup", "default", "nightly"]);
-        config.expect_ok(&["rustup", "target", "remove", &trip]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_stderr_ok(
+            &["rustup", "target", "remove", &host], 
+            "after removing the default host target, proc-macros and build scripts might no longer build",
+        );
+        let path = format!("toolchains/nightly-{host}/lib/rustlib/{host}/lib/libstd.rlib");
+        assert!(!config.rustupdir.has(path));
+        let path = format!("toolchains/nightly-{host}/lib/rustlib/{host}/lib");
+        assert!(!config.rustupdir.has(path));
+        let path = format!("toolchains/nightly-{host}/lib/rustlib/{host}");
+        assert!(!config.rustupdir.has(path));
+    });
+}
+
+#[test]
+fn remove_target_last() {
+    setup(&|config| {
+        let host = this_host_triple();
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stderr_ok(
+            &["rustup", "target", "remove", &host],
+            "after removing the last target, no build targets will be available",
+        );
     });
 }
 

@@ -57,6 +57,7 @@ flate2 = "1"
 fs_at.workspace = true
 git-testament = "0.2"
 home = "0.5.4"
+itertools = "0.12"
 libc = "0.2"
 once_cell.workspace = true
 opener = "0.6.0"
