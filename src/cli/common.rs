@@ -448,12 +448,7 @@ pub(crate) fn list_components(
 
 pub(crate) fn list_installed_components(distributable: DistributableToolchain<'_>) -> Result<()> {
     let t = process().stdout();
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-
-    for component in components {
+    for component in distributable.components()? {
         if component.installed {
             writeln!(t.lock(), "{}", component.name)?;
         }
