@@ -21,18 +21,14 @@
     "packageRules": [
         {
             "matchManagers": ["cargo"],
+            "matchUpdateTypes": ["patch"],
             "enabled": false
         },
         {
             "matchManagers": ["cargo"],
-            "matchUpdateTypes": ["major"],
-            "enabled": true
-        },
-        {
-            "matchManagers": ["cargo"],
             "matchUpdateTypes": ["minor"],
-            "matchCurrentVersion": "/^0\\./",
-            "enabled": true
+            "matchCurrentVersion": "!/^0/",
+            "enabled": false
         },
         {
             "matchPackagePatterns": [
