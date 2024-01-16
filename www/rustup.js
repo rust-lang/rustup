@@ -23,6 +23,7 @@ function detect_platform() {
     if (navigator.platform == "Linux ppc64") {os = "unix";}
     if (navigator.platform == "Linux mips") {os = "unix";}
     if (navigator.platform == "Linux mips64") {os = "unix";}
+    if (navigator.platform == "Linux riscv64") {os = "unix";}
     if (navigator.platform == "Mac") {os = "unix";}
     if (navigator.platform == "Win32") {os = "win32";}
     if (navigator.platform == "Win64" ||
