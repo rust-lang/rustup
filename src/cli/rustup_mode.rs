@@ -1340,14 +1340,17 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         if target == default_target {
             warn!("after removing the default host target, proc-macros and build scripts might no longer build");
         }
-        let has_at_most_one_target = {
-            let components = distributable.components()?;
-            // Every component target that is not `None` (wildcard).
-            let targets = components
-                .iter()
-                .filter_map(|c| c.installed.then(|| c.component.target.clone()).flatten());
-            targets.unique().at_most_one().is_ok()
-        };
+        // Whether we have at most 1 component target that is not `None` (wildcard).
+        let has_at_most_one_target = distributable
+            .components()?
+            .into_iter()
+            .filter_map(|c| match (c.installed, c.component.target) {
+                (true, Some(t)) => Some(t),
+                _ => None,
+            })
+            .unique()
+            .at_most_one()
+            .is_ok();
         if has_at_most_one_target {
             warn!("after removing the last target, no build targets will be available");
         }
