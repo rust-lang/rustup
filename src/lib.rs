@@ -16,6 +16,7 @@ pub use crate::errors::*;
 pub(crate) use crate::notifications::*;
 pub(crate) use crate::utils::toml_utils;
 use anyhow::{anyhow, Result};
+use itertools::{chain, Itertools};
 
 #[macro_use]
 extern crate rs_tracing;
@@ -41,23 +42,15 @@ pub static DUP_TOOLS: &[&str] = &["rust-analyzer", "rustfmt", "cargo-fmt"];
 
 // If the given name is one of the tools we proxy.
 pub fn is_proxyable_tools(tool: &str) -> Result<()> {
-    if TOOLS
-        .iter()
-        .chain(DUP_TOOLS.iter())
-        .any(|&name| name == tool)
-    {
+    if chain!(TOOLS, DUP_TOOLS).contains(&tool) {
         Ok(())
     } else {
-        Err(anyhow!(format!(
-            "unknown proxy name: '{}'; valid proxy names are {}",
-            tool,
-            TOOLS
-                .iter()
-                .chain(DUP_TOOLS.iter())
+        Err(anyhow!(
+            "unknown proxy name: '{tool}'; valid proxy names are {}",
+            chain!(TOOLS, DUP_TOOLS)
                 .map(|s| format!("'{s}'"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )))
+                .join(", "),
+        ))
     }
 }
 
