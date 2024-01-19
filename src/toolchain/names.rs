@@ -95,6 +95,14 @@ macro_rules! try_from_str {
                 $to::validate(&value)
             }
         }
+
+        impl FromStr for $to {
+            type Err = InvalidName;
+
+            fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+                $to::validate(value)
+            }
+        }
     };
     ($from:ty, $to:ident) => {
         impl TryFrom<$from> for $to {
@@ -262,15 +270,6 @@ impl Display for MaybeOfficialToolchainName {
             MaybeOfficialToolchainName::Some(t) => write!(f, "{t}"),
         }
     }
-}
-
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn maybe_official_toolchainame_parser(
-    value: &str,
-) -> Result<MaybeOfficialToolchainName, InvalidName> {
-    MaybeOfficialToolchainName::try_from(value)
 }
 
 /// ToolchainName can be used in calls to Cfg that alter configuration,

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{builder::PossibleValuesParser, Arg, ArgAction, Command};
+use clap::{builder::PossibleValuesParser, value_parser, Arg, ArgAction, Command};
 
 use crate::{
     cli::{
@@ -9,7 +9,7 @@ use crate::{
     currentprocess::{argsource::ArgSource, filesource::StdoutSource},
     dist::dist::Profile,
     process,
-    toolchain::names::{maybe_official_toolchainame_parser, MaybeOfficialToolchainName},
+    toolchain::names::MaybeOfficialToolchainName,
     utils::utils,
 };
 
@@ -66,7 +66,7 @@ pub fn main() -> Result<utils::ExitCode> {
                 .long("default-toolchain")
                 .num_args(1)
                 .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all")
-                .value_parser(maybe_official_toolchainame_parser)
+                .value_parser(value_parser!(MaybeOfficialToolchainName))
         )
         .arg(
             Arg::new("profile")
