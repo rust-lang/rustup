@@ -15,6 +15,8 @@ use crate::{
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
 pub fn main() -> Result<utils::ExitCode> {
+    use clap::error::ErrorKind;
+
     let args: Vec<_> = process().args().collect();
     let arg1 = args.get(1).map(|a| &**a);
 
@@ -107,10 +109,7 @@ pub fn main() -> Result<utils::ExitCode> {
 
     let matches = match cli.try_get_matches_from(process().args_os()) {
         Ok(matches) => matches,
-        Err(e)
-            if e.kind() == clap::error::ErrorKind::DisplayHelp
-                || e.kind() == clap::error::ErrorKind::DisplayVersion =>
-        {
+        Err(e) if [ErrorKind::DisplayHelp, ErrorKind::DisplayVersion].contains(&e.kind()) => {
             write!(process().stdout().lock(), "{e}")?;
             return Ok(utils::ExitCode(0));
         }
