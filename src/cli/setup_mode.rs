@@ -109,19 +109,19 @@ pub fn main() -> Result<utils::ExitCode> {
         return Ok(utils::ExitCode(0));
     }
 
+    if &profile == "complete" {
+        warn!("{}", common::WARN_COMPLETE_PROFILE);
+    }
+
     let opts = InstallOpts {
         default_host_triple: default_host,
         default_toolchain,
-        profile: profile.to_owned(),
+        profile,
         no_modify_path,
         no_update_toolchain: no_update_default_toolchain,
         components: &components.iter().map(|s| &**s).collect::<Vec<_>>(),
         targets: &targets.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
-
-    if profile == "complete" {
-        warn!("{}", common::WARN_COMPLETE_PROFILE);
-    }
 
     self_update::install(no_prompt, verbose, quiet, opts)
 }
