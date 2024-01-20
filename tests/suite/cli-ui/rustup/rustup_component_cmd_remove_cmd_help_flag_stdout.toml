@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["component","remove","--help"]
+args = ["component", "remove", "--help"]
 stdout = """
 ...
 Remove a component from a Rust toolchain
