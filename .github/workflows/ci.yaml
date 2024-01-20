@@ -75,7 +75,7 @@ jobs:
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         shell: bash
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -87,7 +87,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -212,7 +212,7 @@ jobs:
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         shell: bash
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -224,7 +224,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -354,7 +354,7 @@ jobs:
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         shell: bash
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -366,7 +366,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -475,7 +475,7 @@ jobs:
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -487,7 +487,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -624,7 +624,7 @@ jobs:
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -636,7 +636,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -799,7 +799,7 @@ jobs:
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -811,7 +811,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -938,7 +938,7 @@ jobs:
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -950,7 +950,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
@@ -1079,7 +1079,7 @@ jobs:
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -1091,7 +1091,7 @@ jobs:
           echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ runner.os }}-cargo-clippy-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
