@@ -458,15 +458,6 @@ impl Display for CustomToolchainName {
     }
 }
 
-/// Thunk to avoid
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn custom_toolchain_name_parser(
-    value: &str,
-) -> Result<CustomToolchainName, InvalidName> {
-    CustomToolchainName::try_from(value)
-}
-
 /// An toolchain specified just via its path. Relative paths enable arbitrary
 /// code execution in a rust dir, so as a partial mitigation is limited to
 /// absolute paths.

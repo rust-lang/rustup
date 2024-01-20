@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["component","add","--help"]
+args = ["component", "add", "--help"]
 stdout = """
 ...
 Add a component to a Rust toolchain
