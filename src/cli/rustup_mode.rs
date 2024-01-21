@@ -37,10 +37,10 @@ use crate::{
     toolchain::{
         distributable::DistributableToolchain,
         names::{
-            maybe_resolvable_toolchainame_parser, partial_toolchain_desc_parser,
-            resolvable_local_toolchainame_parser, resolvable_toolchainame_parser,
-            CustomToolchainName, LocalToolchainName, MaybeResolvableToolchainName,
-            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
+            partial_toolchain_desc_parser, resolvable_local_toolchainame_parser,
+            resolvable_toolchainame_parser, CustomToolchainName, LocalToolchainName,
+            MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
+            ToolchainName,
         },
         toolchain::Toolchain,
     },
@@ -127,6 +127,16 @@ enum RustupSubcmd {
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
         force_non_host: bool,
+    },
+
+    /// Check for updates to Rust toolchains and rustup
+    Check,
+
+    /// Set the default toolchain
+    #[command(after_help = DEFAULT_HELP)]
+    Default {
+        #[arg(help = MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<MaybeResolvableToolchainName>,
     },
 
     /// Modify or query the installed toolchains
@@ -273,6 +283,8 @@ impl Rustup {
                 ToolchainSubcmd::Link { toolchain, path } => toolchain_link(cfg, &toolchain, &path),
                 ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
             },
+            RustupSubcmd::Check => check_updates(cfg),
+            RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
         }
     }
 }
@@ -349,11 +361,10 @@ pub fn main() -> Result<utils::ExitCode> {
     Ok(match matches.subcommand() {
         Some(s) => match s {
             ("dump-testament", _) => common::dump_testament()?,
-            ("show" | "update" | "install" | "uninstall" | "toolchain", _) => {
-                Rustup::from_arg_matches(&matches)?.dispatch(cfg)?
-            }
-            ("check", _) => check_updates(cfg)?,
-            ("default", m) => default_(cfg, m)?,
+            (
+                "show" | "update" | "install" | "uninstall" | "toolchain" | "check" | "default",
+                _,
+            ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
             ("target", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(target_list(cfg, m))?,
@@ -458,18 +469,6 @@ pub(crate) fn cli() -> Command {
             Command::new("dump-testament")
                 .about("Dump information about the build")
                 .hide(true), // Not for users, only CI
-        )
-        .subcommand(Command::new("check").about("Check for updates to Rust toolchains and rustup"))
-        .subcommand(
-            Command::new("default")
-                .about("Set the default toolchain")
-                .after_help(DEFAULT_HELP)
-                .arg(
-                    Arg::new("toolchain")
-                        .help(MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                        .required(false)
-                        .value_parser(maybe_resolvable_toolchainame_parser),
-                ),
         )
         .subcommand(
             Command::new("target")
@@ -797,10 +796,10 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
     }
 }
 
-fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
-    if let Some(toolchain) = m.get_one::<MaybeResolvableToolchainName>("toolchain") {
+    if let Some(toolchain) = toolchain {
         match toolchain.to_owned() {
             MaybeResolvableToolchainName::None => {
                 cfg.set_default(None)?;

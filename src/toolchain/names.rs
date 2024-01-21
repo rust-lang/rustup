@@ -229,15 +229,6 @@ impl Display for MaybeResolvableToolchainName {
     }
 }
 
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn maybe_resolvable_toolchainame_parser(
-    value: &str,
-) -> Result<MaybeResolvableToolchainName, InvalidName> {
-    MaybeResolvableToolchainName::try_from(value)
-}
-
 /// ResolvableToolchainName + none, for overriding default-has-a-value
 /// situations in the CLI with an official toolchain name or none
 #[derive(Debug, Clone)]
