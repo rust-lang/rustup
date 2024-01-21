@@ -1,16 +1,16 @@
 bin.name = "rustup"
-args = ["target","remove","--help"]
+args = ["target", "remove", "--help"]
 stdout = """
 ...
 Remove a target from a Rust toolchain
 
-Usage: rustup[EXE] target remove [OPTIONS] <target>...
+Usage: rustup[EXE] target remove [OPTIONS] <TARGET>...
 
 Arguments:
-  <target>...  List of targets to uninstall
+  <TARGET>...  List of targets to uninstall
 
 Options:
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                information see `rustup help toolchain`
   -h, --help                   Print help
 """

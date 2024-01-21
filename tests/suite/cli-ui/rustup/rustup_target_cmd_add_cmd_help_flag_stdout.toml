@@ -1,16 +1,16 @@
 bin.name = "rustup"
-args = ["target","add","--help"]
+args = ["target", "add", "--help"]
 stdout = """
 ...
 Add a target to a Rust toolchain
 
-Usage: rustup[EXE] target add [OPTIONS] <target>...
+Usage: rustup[EXE] target add [OPTIONS] <TARGET>...
 
 Arguments:
-  <target>...  List of targets to install; \"all\" installs all available targets
+  <TARGET>...  List of targets to install; \"all\" installs all available targets
 
 Options:
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                information see `rustup help toolchain`
   -h, --help                   Print help
 """
