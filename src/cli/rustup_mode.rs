@@ -144,6 +144,12 @@ enum RustupSubcmd {
         #[command(subcommand)]
         subcmd: ToolchainSubcmd,
     },
+
+    /// Modify a toolchain's supported targets
+    Target {
+        #[command(subcommand)]
+        subcmd: TargetSubcmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -249,6 +255,45 @@ struct UninstallOpts {
     toolchain: Vec<ResolvableToolchainName>,
 }
 
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum TargetSubcmd {
+    /// List installed and available targets
+    List {
+        #[arg(
+            long,
+            help = OFFICIAL_TOOLCHAIN_ARG_HELP,
+        )]
+        toolchain: Option<PartialToolchainDesc>,
+
+        /// List only installed targets
+        #[arg(long)]
+        installed: bool,
+    },
+
+    /// Add a target to a Rust toolchain
+    #[command(alias = "install")]
+    Add {
+        /// List of targets to install; "all" installs all available targets
+        #[arg(required = true, num_args = 1..)]
+        target: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+    },
+
+    /// Remove a target from a Rust toolchain
+    #[command(alias = "uninstall")]
+    Remove {
+        /// List of targets to uninstall
+        #[arg(required = true, num_args = 1..)]
+        target: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+    },
+}
+
 impl Rustup {
     fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
         match self.subcmd {
@@ -285,6 +330,14 @@ impl Rustup {
             },
             RustupSubcmd::Check => check_updates(cfg),
             RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
+            RustupSubcmd::Target { subcmd } => match subcmd {
+                TargetSubcmd::List {
+                    toolchain,
+                    installed,
+                } => handle_epipe(target_list(cfg, toolchain, installed)),
+                TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
+                TargetSubcmd::Remove { target, toolchain } => target_remove(cfg, target, toolchain),
+            },
         }
     }
 }
@@ -362,18 +415,10 @@ pub fn main() -> Result<utils::ExitCode> {
         Some(s) => match s {
             ("dump-testament", _) => common::dump_testament()?,
             (
-                "show" | "update" | "install" | "uninstall" | "toolchain" | "check" | "default",
+                "show" | "update" | "install" | "uninstall" | "toolchain" | "check" | "default"
+                | "target",
                 _,
             ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("target", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("list", m) => handle_epipe(target_list(cfg, m))?,
-                    ("add", m) => target_add(cfg, m)?,
-                    ("remove", m) => target_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
             ("component", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", m) => handle_epipe(component_list(cfg, m))?,
@@ -469,63 +514,6 @@ pub(crate) fn cli() -> Command {
             Command::new("dump-testament")
                 .about("Dump information about the build")
                 .hide(true), // Not for users, only CI
-        )
-        .subcommand(
-            Command::new("target")
-                .about("Modify a toolchain's supported targets")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("list")
-                        .about("List installed and available targets")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .value_parser(partial_toolchain_desc_parser)
-                                .num_args(1),
-                        )
-                        .arg(
-                            Arg::new("installed")
-                                .long("installed")
-                                .help("List only installed targets")
-                                .action(ArgAction::SetTrue),
-                        ),
-                )
-                .subcommand(
-                    Command::new("add")
-                        .about("Add a target to a Rust toolchain")
-                        .alias("install")
-                        .arg(Arg::new("target").required(true).num_args(1..).help(
-                            "List of targets to install; \
-                                \"all\" installs all available targets",
-                        ))
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        ),
-                )
-                .subcommand(
-                    Command::new("remove")
-                        .about("Remove a target from a Rust toolchain")
-                        .alias("uninstall")
-                        .arg(
-                            Arg::new("target")
-                                .help("List of targets to uninstall")
-                                .required(true)
-                                .num_args(1..),
-                        )
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        ),
-                ),
         )
         .subcommand(
             Command::new("component")
@@ -1176,15 +1164,23 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn target_list(
+    cfg: &Cfg,
+    toolchain: Option<PartialToolchainDesc>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
-    common::list_targets(distributable, m.get_flag("installed"))
+    common::list_targets(distributable, installed_only)
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn target_add(
+    cfg: &Cfg,
+    mut targets: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1192,11 +1188,6 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     // custom toolchains.
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let components = distributable.components()?;
-    let mut targets: Vec<_> = m
-        .get_many::<String>("target")
-        .unwrap()
-        .map(ToOwned::to_owned)
-        .collect();
 
     if targets.contains(&"all".to_string()) {
         if targets.len() != 1 {
@@ -1234,12 +1225,16 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn target_remove(
+    cfg: &Cfg,
+    targets: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
-    for target in m.get_many::<String>("target").unwrap() {
-        let target = TargetTriple::new(target);
+    for target in targets {
+        let target = TargetTriple::new(&target);
         let default_target = cfg.get_default_host_triple()?;
         if target == default_target {
             warn!("after removing the default host target, proc-macros and build scripts might no longer build");
@@ -1266,7 +1261,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
     common::list_components(distributable, m.get_flag("installed"))?;
@@ -1274,7 +1269,7 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
@@ -1294,7 +1289,7 @@ fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Opt
 }
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
@@ -1308,11 +1303,19 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
 // Make *sure* only to use this for a subcommand whose "toolchain" argument
 // has .value_parser(partial_toolchain_desc_parser), or it will panic.
-fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
+// FIXME: Delete this.
+fn explicit_desc_or_dir_toolchain_old<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
     let toolchain = m
         .get_one::<PartialToolchainDesc>("toolchain")
         .map(Into::into);
     explicit_or_dir_toolchain2(cfg, toolchain)
+}
+
+fn explicit_desc_or_dir_toolchain(
+    cfg: &Cfg,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<Toolchain<'_>> {
+    explicit_or_dir_toolchain2(cfg, toolchain.map(|it| (&it).into()))
 }
 
 fn explicit_or_dir_toolchain2(
@@ -1458,7 +1461,7 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
 ];
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1522,7 +1525,7 @@ fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     let command = m.get_one::<String>("command").unwrap();
 
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");
