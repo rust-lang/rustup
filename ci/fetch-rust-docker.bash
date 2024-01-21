@@ -14,7 +14,7 @@ RUST_REPO="https://github.com/rust-lang/rust"
 ARTIFACTS_BASE_URL="https://ci-artifacts.rust-lang.org/rustc-builds"
 
 # A `Dockerfile` under `rustup`'s `ci/docker` directory may start with `FROM rust-$TARGET`.
-# This means it is using an S3-cached Docker image provided by `rustc`'s CI.
+# This means it is using a Docker image fetched from a container registry provided by `rustc`'s CI.
 LOCAL_DOCKER_TAG="rust-$TARGET"
 # The following is a mapping from `$TARGET`s to cached Docker images built from `Dockerfile`s under
 # <https://github.com/rust-lang/rust/blob/master/src/ci/docker/host-x86_64/>,
@@ -51,16 +51,11 @@ info="/tmp/image-$image.txt"
 
 rm -f "$info"
 curl -o "$info" "$image_url"
-digest=$(grep -m1 ^sha "$info")
 
 if [ -z "$(docker images -q "${LOCAL_DOCKER_TAG}")" ]; then
-  url=$(grep -m1 ^https "$info")
-  cache=/tmp/rustci_docker_cache
-  echo "Attempting to download $url"
-  rm -f "$cache"
-  set +e
-  command_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
   set -e
-  docker load --quiet -i "$cache"
-  docker tag "$digest" "${LOCAL_DOCKER_TAG}"
+  image_tag=$(cat $info)
+  echo "Attempting to pull image ${image_tag}"
+  docker pull "${image_tag}"
+  docker tag "${image_tag}" "${LOCAL_DOCKER_TAG}"
 fi
