@@ -5,13 +5,13 @@ stdout = """
 ...
 Display which binary will be run for a given command
 
-Usage: rustup[EXE] which [OPTIONS] <command>
+Usage: rustup[EXE] which [OPTIONS] <COMMAND>
 
 Arguments:
-  <command>  
+  <COMMAND>  
 
 Options:
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom
                                toolchain name. For more information see `rustup help toolchain`
   -h, --help                   Print help
 """
