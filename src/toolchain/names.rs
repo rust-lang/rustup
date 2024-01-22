@@ -185,15 +185,6 @@ impl Display for ResolvableToolchainName {
     }
 }
 
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn resolvable_toolchainame_parser(
-    value: &str,
-) -> Result<ResolvableToolchainName, InvalidName> {
-    ResolvableToolchainName::try_from(value)
-}
-
 /// A toolchain name from user input. MaybeToolchainName accepts 'none' or a
 /// custom or resolvable official name. Possibly this should be an Option with a
 /// local trait for our needs.
@@ -364,12 +355,6 @@ impl Display for ResolvableLocalToolchainName {
             ResolvableLocalToolchainName::Path(t) => write!(f, "{t}"),
         }
     }
-}
-
-pub(crate) fn resolvable_local_toolchainame_parser(
-    value: &str,
-) -> Result<ResolvableLocalToolchainName, InvalidName> {
-    ResolvableLocalToolchainName::try_from(value)
 }
 
 /// LocalToolchainName can be used in calls to Cfg that alter configuration,

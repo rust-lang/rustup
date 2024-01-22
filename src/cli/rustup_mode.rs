@@ -37,8 +37,7 @@ use crate::{
     toolchain::{
         distributable::DistributableToolchain,
         names::{
-            partial_toolchain_desc_parser, resolvable_local_toolchainame_parser,
-            resolvable_toolchainame_parser, CustomToolchainName, LocalToolchainName,
+            partial_toolchain_desc_parser, CustomToolchainName, LocalToolchainName,
             MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
             ToolchainName,
         },
@@ -94,6 +93,10 @@ enum RustupSubcmd {
         #[command(flatten)]
         opts: UninstallOpts,
     },
+
+    /// Dump information about the build
+    #[command(hide = true)]
+    DumpTestament,
 
     /// Show the active and installed toolchains or profiles
     #[command(after_help = SHOW_HELP)]
@@ -161,6 +164,28 @@ enum RustupSubcmd {
     Override {
         #[command(subcommand)]
         subcmd: OverrideSubcmd,
+    },
+
+    /// Run a command with an environment configured for a given toolchain
+    #[command(after_help = RUN_HELP, trailing_var_arg = true)]
+    Run {
+        #[arg(help = RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: ResolvableLocalToolchainName,
+
+        #[arg(required = true, num_args = 1.., use_value_delimiter = false)]
+        command: Vec<String>,
+
+        /// Install the requested toolchain if needed
+        #[arg(long)]
+        install: bool,
+    },
+
+    /// Display which binary will be run for a given command
+    Which {
+        command: String,
+
+        #[arg(long, help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<ResolvableToolchainName>,
     },
 }
 
@@ -381,6 +406,7 @@ enum OverrideSubcmd {
 impl Rustup {
     fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
         match self.subcmd {
+            RustupSubcmd::DumpTestament => common::dump_testament(),
             RustupSubcmd::Install { opts } => update(cfg, opts),
             RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
             RustupSubcmd::Show { verbose, subcmd } => match subcmd {
@@ -447,6 +473,12 @@ impl Rustup {
                     override_remove(cfg, path.as_deref(), nonexistent)
                 }
             },
+            RustupSubcmd::Run {
+                toolchain,
+                command,
+                install,
+            } => run(cfg, toolchain, command, install),
+            RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
         }
     }
 }
@@ -522,14 +554,11 @@ pub fn main() -> Result<utils::ExitCode> {
 
     Ok(match matches.subcommand() {
         Some(s) => match s {
-            ("dump-testament", _) => common::dump_testament()?,
             (
-                "show" | "update" | "install" | "uninstall" | "toolchain" | "check" | "default"
-                | "target" | "component" | "override",
+                "dump-testament" | "show" | "update" | "install" | "uninstall" | "toolchain"
+                | "check" | "default" | "target" | "component" | "override" | "run" | "which",
                 _,
             ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("run", m) => run(cfg, m)?,
-            ("which", m) => which(cfg, m)?,
             ("doc", m) => doc(cfg, m)?,
             #[cfg(not(windows))]
             ("man", m) => man(cfg, m)?,
@@ -600,48 +629,6 @@ pub(crate) fn cli() -> Command {
                         Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
                     }
                 }),
-        )
-        .subcommand(
-            Command::new("dump-testament")
-                .about("Dump information about the build")
-                .hide(true), // Not for users, only CI
-        )
-        .subcommand(
-            Command::new("run")
-                .about("Run a command with an environment configured for a given toolchain")
-                .after_help(RUN_HELP)
-                .trailing_var_arg(true)
-                .arg(
-                    Arg::new("toolchain")
-                        .help(RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)
-                        .required(true)
-                        .num_args(1)
-                        .value_parser(resolvable_local_toolchainame_parser),
-                )
-                .arg(
-                    Arg::new("command")
-                        .required(true)
-                        .num_args(1..)
-                        .use_value_delimiter(false),
-                )
-                .arg(
-                    Arg::new("install")
-                        .help("Install the requested toolchain if needed")
-                        .long("install")
-                        .action(ArgAction::SetTrue),
-                ),
-        )
-        .subcommand(
-            Command::new("which")
-                .about("Display which binary will be run for a given command")
-                .arg(Arg::new("command").required(true))
-                .arg(
-                    Arg::new("toolchain")
-                        .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                        .long("toolchain")
-                        .num_args(1)
-                        .value_parser(resolvable_toolchainame_parser),
-                ),
         )
         .subcommand(
             Command::new("doc")
@@ -965,22 +952,25 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m
-        .get_one::<ResolvableLocalToolchainName>("toolchain")
-        .unwrap();
-    let args = m.get_many::<String>("command").unwrap();
-    let args: Vec<_> = args.collect();
+fn run(
+    cfg: &Cfg,
+    toolchain: ResolvableLocalToolchainName,
+    command: Vec<String>,
+    install: bool,
+) -> Result<utils::ExitCode> {
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-    let cmd = cfg.create_command_for_toolchain(&toolchain, m.get_flag("install"), args[0])?;
+    let cmd = cfg.create_command_for_toolchain(&toolchain, install, &command[0])?;
 
-    let code = command::run_command_for_dir(cmd, args[0], &args[1..])?;
+    let code = command::run_command_for_dir(cmd, &command[0], &command[1..])?;
     Ok(code)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let binary = m.get_one::<String>("command").unwrap();
-    let binary_path = if let Some(toolchain) = m.get_one::<ResolvableToolchainName>("toolchain") {
+fn which(
+    cfg: &Cfg,
+    binary: &str,
+    toolchain: Option<ResolvableToolchainName>,
+) -> Result<utils::ExitCode> {
+    let binary_path = if let Some(toolchain) = toolchain {
         let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::new(cfg, desc.into())?.binary_file(binary)
     } else {
