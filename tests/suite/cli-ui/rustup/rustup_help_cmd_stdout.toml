@@ -9,7 +9,6 @@ The Rust toolchain installer
 Usage: rustup[EXE] [OPTIONS] [+toolchain] [COMMAND]
 
 Commands:
-  override     Modify toolchain overrides for directories
   run          Run a command with an environment configured for a given toolchain
   which        Display which binary will be run for a given command
   doc          Open the documentation for the current toolchain
@@ -24,6 +23,7 @@ Commands:
   toolchain    Modify or query the installed toolchains
   target       Modify a toolchain's supported targets
   component    Modify a toolchain's installed components
+  override     Modify toolchain overrides for directories
   help         Print this message or the help of the given subcommand(s)
 
 Arguments:
