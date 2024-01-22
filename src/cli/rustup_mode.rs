@@ -6,8 +6,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Error, Result};
 use clap::{
     builder::{EnumValueParser, PossibleValue, PossibleValuesParser},
-    Arg, ArgAction, ArgGroup, ArgMatches, Args, Command, FromArgMatches as _, Parser, Subcommand,
-    ValueEnum,
+    Arg, ArgAction, ArgMatches, Args, Command, FromArgMatches as _, Parser, Subcommand, ValueEnum,
 };
 use clap_complete::Shell;
 use itertools::Itertools;
@@ -186,6 +185,26 @@ enum RustupSubcmd {
 
         #[arg(long, help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
         toolchain: Option<ResolvableToolchainName>,
+    },
+
+    /// Open the documentation for the current toolchain
+    #[command(
+        alias = "docs",
+        after_help = DOC_HELP,
+    )]
+    Doc {
+        /// Only print the path to the documentation
+        #[arg(long)]
+        path: bool,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        #[arg(help = TOPIC_ARG_HELP)]
+        topic: Option<String>,
+
+        #[command(flatten)]
+        page: DocPage,
     },
 }
 
@@ -479,6 +498,12 @@ impl Rustup {
                 install,
             } => run(cfg, toolchain, command, install),
             RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
+            RustupSubcmd::Doc {
+                path,
+                toolchain,
+                topic,
+                page,
+            } => doc(cfg, path, toolchain, topic.as_deref(), &page),
         }
     }
 }
@@ -556,10 +581,10 @@ pub fn main() -> Result<utils::ExitCode> {
         Some(s) => match s {
             (
                 "dump-testament" | "show" | "update" | "install" | "uninstall" | "toolchain"
-                | "check" | "default" | "target" | "component" | "override" | "run" | "which",
+                | "check" | "default" | "target" | "component" | "override" | "run" | "which"
+                | "doc",
                 _,
             ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("doc", m) => doc(cfg, m)?,
             #[cfg(not(windows))]
             ("man", m) => man(cfg, m)?,
             ("self", c) => match c.subcommand() {
@@ -629,45 +654,6 @@ pub(crate) fn cli() -> Command {
                         Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
                     }
                 }),
-        )
-        .subcommand(
-            Command::new("doc")
-                .alias("docs")
-                .about("Open the documentation for the current toolchain")
-                .after_help(DOC_HELP)
-                .arg(
-                    Arg::new("path")
-                        .long("path")
-                        .help("Only print the path to the documentation")
-                        .action(ArgAction::SetTrue),
-                )
-                .arg(
-                    Arg::new("toolchain")
-                        .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                        .long("toolchain")
-                        .num_args(1)
-                        .value_parser(partial_toolchain_desc_parser),
-                )
-                .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
-                .group(
-                    ArgGroup::new("page").args(
-                        DOCS_DATA
-                            .iter()
-                            .map(|(name, _, _)| *name)
-                            .collect::<Vec<_>>(),
-                    ),
-                )
-                .args(
-                    &DOCS_DATA
-                        .iter()
-                        .map(|&(name, help_msg, _)| {
-                            Arg::new(name)
-                                .long(name)
-                                .help(help_msg)
-                                .action(ArgAction::SetTrue)
-                        })
-                        .collect::<Vec<_>>(),
-                ),
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -1444,28 +1430,67 @@ fn override_remove(cfg: &Cfg, path: Option<&Path>, nonexistent: bool) -> Result<
     Ok(utils::ExitCode(0))
 }
 
-const DOCS_DATA: &[(&str, &str, &str)] = &[
+macro_rules! docs_data {
+    (
+        $(
+            $( #[$meta:meta] )*
+            ($ident:ident, $help:expr, $path:expr $(,)?)
+        ),+ $(,)?
+    ) => {
+        #[derive(Debug, Args)]
+        struct DocPage {
+            $(
+                #[doc = $help]
+                #[arg(long, group = "page")]
+                $( #[$meta] )*
+                $ident: bool,
+            )+
+        }
+
+        impl DocPage {
+            fn name(&self) -> Option<&'static str> {
+                Some(self.path()?.rsplit_once('/')?.0)
+            }
+
+            fn path(&self) -> Option<&'static str> {
+                $( if self.$ident { return Some($path); } )+
+                None
+            }
+        }
+    };
+}
+
+docs_data![
     // flags can be used to open specific documents, e.g. `rustup doc --nomicon`
     // tuple elements: document name used as flag, help message, document index path
-    ("alloc", "The Rust core allocation and collections library", "alloc/index.html"),
-    ("book", "The Rust Programming Language book", "book/index.html"),
-    ("cargo", "The Cargo Book", "cargo/index.html"),
-    ("core", "The Rust Core Library", "core/index.html"),
-    ("edition-guide", "The Rust Edition Guide", "edition-guide/index.html"),
-    ("nomicon", "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
-    ("proc_macro", "A support library for macro authors when defining new macros", "proc_macro/index.html"),
-    ("reference", "The Rust Reference", "reference/index.html"),
-    ("rust-by-example", "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
-    ("rustc", "The compiler for the Rust programming language", "rustc/index.html"),
-    ("rustdoc", "Documentation generator for Rust projects", "rustdoc/index.html"),
-    ("std", "Standard library API documentation", "std/index.html"),
-    ("test", "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
-    ("unstable-book", "The Unstable Book", "unstable-book/index.html"),
-    ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
+    (alloc, "The Rust core allocation and collections library", "alloc/index.html"),
+    (book, "The Rust Programming Language book", "book/index.html"),
+    (cargo, "The Cargo Book", "cargo/index.html"),
+    (core, "The Rust Core Library", "core/index.html"),
+    (edition_guide, "The Rust Edition Guide", "edition-guide/index.html"),
+    (nomicon, "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
+
+    #[arg(long = "proc_macro")]
+    (proc_macro, "A support library for macro authors when defining new macros", "proc_macro/index.html"),
+
+    (reference, "The Rust Reference", "reference/index.html"),
+    (rust_by_example, "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
+    (rustc, "The compiler for the Rust programming language", "rustc/index.html"),
+    (rustdoc, "Documentation generator for Rust projects", "rustdoc/index.html"),
+    (std, "Standard library API documentation", "std/index.html"),
+    (test, "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
+    (unstable_book, "The Unstable Book", "unstable-book/index.html"),
+    (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
+fn doc(
+    cfg: &Cfg,
+    path_only: bool,
+    toolchain: Option<PartialToolchainDesc>,
+    mut topic: Option<&str>,
+    doc_page: &DocPage,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1493,24 +1518,21 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     };
 
     let topical_path: PathBuf;
-    let mut doc_name = m.get_one::<String>("topic").map(|s| s.as_str());
 
-    let doc_url = if let Some(topic) = doc_name {
+    let doc_url = if let Some(topic) = topic {
         topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
         topical_path.to_str().unwrap()
-    } else if let Some((name, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
-        doc_name = Some(name);
-        path
     } else {
-        "index.html"
+        topic = doc_page.name();
+        doc_page.path().unwrap_or("index.html")
     };
 
-    if m.get_flag("path") {
+    if path_only {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else {
-        if let Some(name) = doc_name {
+        if let Some(name) = topic {
             writeln!(
                 process().stderr().lock(),
                 "Opening docs named `{name}` in your browser"
