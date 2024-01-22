@@ -1,16 +1,16 @@
 bin.name = "rustup"
-args = ["man","--help"]
+args = ["man", "--help"]
 stdout = """
 ...
 View the man page for a given command
 
-Usage: rustup[EXE] man [OPTIONS] <command>
+Usage: rustup[EXE] man [OPTIONS] <COMMAND>
 
 Arguments:
-  <command>  
+  <COMMAND>  
 
 Options:
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                information see `rustup help toolchain`
   -h, --help                   Print help
 """
