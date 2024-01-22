@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
 use clap::{
-    builder::{EnumValueParser, PossibleValue, PossibleValuesParser},
+    builder::{PossibleValue, PossibleValuesParser},
     Arg, ArgAction, ArgMatches, Args, Command, FromArgMatches as _, Parser, Subcommand, ValueEnum,
 };
 use clap_complete::Shell;
@@ -36,9 +36,8 @@ use crate::{
     toolchain::{
         distributable::DistributableToolchain,
         names::{
-            partial_toolchain_desc_parser, CustomToolchainName, LocalToolchainName,
-            MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
-            ToolchainName,
+            CustomToolchainName, LocalToolchainName, MaybeResolvableToolchainName,
+            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
         },
         toolchain::Toolchain,
     },
@@ -205,6 +204,24 @@ enum RustupSubcmd {
 
         #[command(flatten)]
         page: DocPage,
+    },
+
+    /// View the man page for a given command
+    #[cfg(not(windows))]
+    Man {
+        command: String,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+    },
+
+    /// Generate tab-completion scripts for your shell
+    #[command(after_help = COMPLETIONS_HELP, arg_required_else_help = true)]
+    Completions {
+        shell: Shell,
+
+        #[arg(default_value = "rustup")]
+        command: CompletionCommand,
     },
 }
 
@@ -504,6 +521,11 @@ impl Rustup {
                 topic,
                 page,
             } => doc(cfg, path, toolchain, topic.as_deref(), &page),
+            #[cfg(not(windows))]
+            RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
+            RustupSubcmd::Completions { shell, command } => {
+                output_completion_script(shell, command)
+            }
         }
     }
 }
@@ -582,11 +604,9 @@ pub fn main() -> Result<utils::ExitCode> {
             (
                 "dump-testament" | "show" | "update" | "install" | "uninstall" | "toolchain"
                 | "check" | "default" | "target" | "component" | "override" | "run" | "which"
-                | "doc",
+                | "doc" | "man" | "completions",
                 _,
             ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            #[cfg(not(windows))]
-            ("man", m) => man(cfg, m)?,
             ("self", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("update", _) => self_update::update(cfg)?,
@@ -604,18 +624,6 @@ pub fn main() -> Result<utils::ExitCode> {
                 },
                 None => unreachable!(),
             },
-            ("completions", c) => {
-                if let Some(&shell) = c.get_one::<Shell>("shell") {
-                    output_completion_script(
-                        shell,
-                        c.get_one::<CompletionCommand>("command")
-                            .copied()
-                            .unwrap_or(CompletionCommand::Rustup),
-                    )?
-                } else {
-                    unreachable!()
-                }
-            }
             _ => unreachable!(),
         },
         None => {
@@ -626,7 +634,7 @@ pub fn main() -> Result<utils::ExitCode> {
 }
 
 pub(crate) fn cli() -> Command {
-    let mut app = Command::new("rustup")
+    let app = Command::new("rustup")
         .version(common::version())
         .about("The Rust toolchain installer")
         .before_help(format!("rustup {}", common::version()))
@@ -654,24 +662,7 @@ pub(crate) fn cli() -> Command {
                         Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
                     }
                 }),
-        );
-
-    if cfg!(not(target_os = "windows")) {
-        app = app.subcommand(
-            Command::new("man")
-                .about("View the man page for a given command")
-                .arg(Arg::new("command").required(true))
-                .arg(
-                    Arg::new("toolchain")
-                        .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                        .long("toolchain")
-                        .num_args(1)
-                        .value_parser(partial_toolchain_desc_parser),
-                ),
-        );
-    }
-
-    app = app
+        )
         .subcommand(
             Command::new("self")
                 .about("Modify the rustup installation")
@@ -716,18 +707,6 @@ pub(crate) fn cli() -> Command {
                                 .value_parser(PossibleValuesParser::new(SelfUpdateMode::modes()))
                                 .default_value(SelfUpdateMode::default_mode()),
                         ),
-                ),
-        )
-        .subcommand(
-            Command::new("completions")
-                .about("Generate tab-completion scripts for your shell")
-                .after_help(COMPLETIONS_HELP)
-                .arg_required_else_help(true)
-                .arg(Arg::new("shell").value_parser(EnumValueParser::<Shell>::new()))
-                .arg(
-                    Arg::new("command")
-                        .value_parser(EnumValueParser::<CompletionCommand>::new())
-                        .default_missing_value("rustup"),
                 ),
         );
 
@@ -1291,16 +1270,6 @@ fn component_remove(
     Ok(utils::ExitCode(0))
 }
 
-// Make *sure* only to use this for a subcommand whose "toolchain" argument
-// has .value_parser(partial_toolchain_desc_parser), or it will panic.
-// FIXME: Delete this.
-fn explicit_desc_or_dir_toolchain_old<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
-    let toolchain = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    explicit_or_dir_toolchain2(cfg, toolchain)
-}
-
 fn explicit_desc_or_dir_toolchain(
     cfg: &Cfg,
     toolchain: Option<PartialToolchainDesc>,
@@ -1546,12 +1515,14 @@ fn doc(
 }
 
 #[cfg(not(windows))]
-fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn man(
+    cfg: &Cfg,
+    command: &str,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<utils::ExitCode> {
     use crate::currentprocess::varsource::VarSource;
 
-    let command = m.get_one::<String>("command").unwrap();
-
-    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");

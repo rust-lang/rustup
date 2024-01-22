@@ -125,15 +125,6 @@ fn validate(candidate: &str) -> Result<&str, InvalidName> {
     }
 }
 
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn partial_toolchain_desc_parser(
-    value: &str,
-) -> Result<PartialToolchainDesc, anyhow::Error> {
-    value.parse::<PartialToolchainDesc>()
-}
-
 /// A toolchain name from user input.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {

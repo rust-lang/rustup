@@ -1,14 +1,14 @@
 bin.name = "rustup"
-args = ["completions","--help"]
+args = ["completions", "--help"]
 stdout = """
 ...
 Generate tab-completion scripts for your shell
 
-Usage: rustup[EXE] completions [shell] [command]
+Usage: rustup[EXE] completions <SHELL> [COMMAND]
 
 Arguments:
-  [shell]    [possible values: bash, elvish, fish, powershell, zsh]
-  [command]  [possible values: rustup, cargo]
+  <SHELL>    [possible values: bash, elvish, fish, powershell, zsh]
+  [COMMAND]  [default: rustup] [possible values: rustup, cargo]
 
 Options:
   -h, --help  Print help
