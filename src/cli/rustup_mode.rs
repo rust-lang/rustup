@@ -156,6 +156,12 @@ enum RustupSubcmd {
         #[command(subcommand)]
         subcmd: ComponentSubcmd,
     },
+
+    /// Modify toolchain overrides for directories
+    Override {
+        #[command(subcommand)]
+        subcmd: OverrideSubcmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -338,6 +344,40 @@ enum ComponentSubcmd {
     },
 }
 
+#[derive(Debug, Subcommand)]
+#[command(
+    after_help = OVERRIDE_HELP,
+    arg_required_else_help = true,
+    subcommand_required = true,
+)]
+enum OverrideSubcmd {
+    /// List directory toolchain overrides
+    List,
+
+    /// Set the override toolchain for a directory
+    #[command(alias = "add")]
+    Set {
+        #[arg(help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: ResolvableToolchainName,
+
+        /// Path to the directory
+        #[arg(long)]
+        path: Option<PathBuf>,
+    },
+
+    /// Remove the override toolchain for a directory
+    #[command(alias = "remove", after_help = OVERRIDE_UNSET_HELP)]
+    Unset {
+        /// Path to the directory
+        #[arg(long)]
+        path: Option<PathBuf>,
+
+        /// Remove override toolchain for all nonexistent directories
+        #[arg(long)]
+        nonexistent: bool,
+    },
+}
+
 impl Rustup {
     fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
         match self.subcmd {
@@ -397,6 +437,15 @@ impl Rustup {
                     toolchain,
                     target,
                 } => component_remove(cfg, component, toolchain, target.as_deref()),
+            },
+            RustupSubcmd::Override { subcmd } => match subcmd {
+                OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
+                OverrideSubcmd::Set { toolchain, path } => {
+                    override_add(cfg, toolchain, path.as_deref())
+                }
+                OverrideSubcmd::Unset { path, nonexistent } => {
+                    override_remove(cfg, path.as_deref(), nonexistent)
+                }
             },
         }
     }
@@ -476,18 +525,9 @@ pub fn main() -> Result<utils::ExitCode> {
             ("dump-testament", _) => common::dump_testament()?,
             (
                 "show" | "update" | "install" | "uninstall" | "toolchain" | "check" | "default"
-                | "target" | "component",
+                | "target" | "component" | "override",
                 _,
             ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("override", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("list", _) => handle_epipe(common::list_overrides(cfg))?,
-                    ("set", m) => override_add(cfg, m)?,
-                    ("unset", m) => override_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
             ("run", m) => run(cfg, m)?,
             ("which", m) => which(cfg, m)?,
             ("doc", m) => doc(cfg, m)?,
@@ -565,50 +605,6 @@ pub(crate) fn cli() -> Command {
             Command::new("dump-testament")
                 .about("Dump information about the build")
                 .hide(true), // Not for users, only CI
-        )
-        .subcommand(
-            Command::new("override")
-                .about("Modify toolchain overrides for directories")
-                .after_help(OVERRIDE_HELP)
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(Command::new("list").about("List directory toolchain overrides"))
-                .subcommand(
-                    Command::new("set")
-                        .about("Set the override toolchain for a directory")
-                        .alias("add")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                                .required(true)
-                                .num_args(1)
-                                .value_parser(resolvable_toolchainame_parser),
-                        )
-                        .arg(
-                            Arg::new("path")
-                                .long("path")
-                                .num_args(1)
-                                .help("Path to the directory"),
-                        ),
-                )
-                .subcommand(
-                    Command::new("unset")
-                        .about("Remove the override toolchain for a directory")
-                        .after_help(OVERRIDE_UNSET_HELP)
-                        .alias("remove")
-                        .arg(
-                            Arg::new("path")
-                                .long("path")
-                                .num_args(1)
-                                .help("Path to the directory"),
-                        )
-                        .arg(
-                            Arg::new("nonexistent")
-                                .long("nonexistent")
-                                .help("Remove override toolchain for all nonexistent directories")
-                                .action(ArgAction::SetTrue),
-                        ),
-                ),
         )
         .subcommand(
             Command::new("run")
@@ -1376,11 +1372,14 @@ fn toolchain_remove(cfg: &mut Cfg, opts: UninstallOpts) -> Result<utils::ExitCod
     Ok(utils::ExitCode(0))
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain_name = m.get_one::<ResolvableToolchainName>("toolchain").unwrap();
-    let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
+fn override_add(
+    cfg: &Cfg,
+    toolchain: ResolvableToolchainName,
+    path: Option<&Path>,
+) -> Result<utils::ExitCode> {
+    let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
 
-    let path = if let Some(path) = m.get_one::<String>("path") {
+    let path = if let Some(path) = path {
         PathBuf::from(path)
     } else {
         utils::current_dir()?
@@ -1415,17 +1414,14 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let paths = if m.get_flag("nonexistent") {
+fn override_remove(cfg: &Cfg, path: Option<&Path>, nonexistent: bool) -> Result<utils::ExitCode> {
+    let paths = if nonexistent {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
                 .iter()
                 .filter_map(|(k, _)| {
-                    if Path::new(k).is_dir() {
-                        None
-                    } else {
-                        Some(k.clone())
-                    }
+                    let path = Path::new(k);
+                    (!path.is_dir()).then(|| path.to_owned())
                 })
                 .collect())
         })?;
@@ -1433,21 +1429,21 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             info!("no nonexistent paths detected");
         }
         list
-    } else if let Some(path) = m.get_one::<String>("path") {
+    } else if let Some(path) = path {
         vec![path.to_owned()]
     } else {
-        vec![utils::current_dir()?.to_str().unwrap().to_string()]
+        vec![utils::current_dir()?]
     };
 
-    for path in paths {
+    for p in &paths {
         if cfg
             .settings_file
-            .with_mut(|s| Ok(s.remove_override(Path::new(&path), cfg.notify_handler.as_ref())))?
+            .with_mut(|s| Ok(s.remove_override(p, cfg.notify_handler.as_ref())))?
         {
-            info!("override toolchain for '{}' removed", path);
+            info!("override toolchain for '{}' removed", p.display());
         } else {
-            info!("no override toolchain for '{}'", path);
-            if m.get_one::<String>("path").is_none() && !m.get_flag("nonexistent") {
+            info!("no override toolchain for '{}'", p.display());
+            if path.is_none() && !nonexistent {
                 info!(
                     "you may use `--path <path>` option to remove override toolchain \
                      for a specific path"
