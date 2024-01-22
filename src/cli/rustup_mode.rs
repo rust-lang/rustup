@@ -150,6 +150,12 @@ enum RustupSubcmd {
         #[command(subcommand)]
         subcmd: TargetSubcmd,
     },
+
+    /// Modify a toolchain's installed components
+    Component {
+        #[command(subcommand)]
+        subcmd: ComponentSubcmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -294,6 +300,44 @@ enum TargetSubcmd {
     },
 }
 
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum ComponentSubcmd {
+    /// List installed and available components
+    List {
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        /// List only installed components
+        #[arg(long)]
+        installed: bool,
+    },
+
+    /// Add a component to a Rust toolchain
+    Add {
+        #[arg(required = true, num_args = 1..)]
+        component: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        #[arg(long)]
+        target: Option<String>,
+    },
+
+    /// Remove a component from a Rust toolchain
+    Remove {
+        #[arg(required = true, num_args = 1..)]
+        component: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        #[arg(long)]
+        target: Option<String>,
+    },
+}
+
 impl Rustup {
     fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
         match self.subcmd {
@@ -337,6 +381,22 @@ impl Rustup {
                 } => handle_epipe(target_list(cfg, toolchain, installed)),
                 TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
                 TargetSubcmd::Remove { target, toolchain } => target_remove(cfg, target, toolchain),
+            },
+            RustupSubcmd::Component { subcmd } => match subcmd {
+                ComponentSubcmd::List {
+                    toolchain,
+                    installed,
+                } => handle_epipe(component_list(cfg, toolchain, installed)),
+                ComponentSubcmd::Add {
+                    component,
+                    toolchain,
+                    target,
+                } => component_add(cfg, component, toolchain, target.as_deref()),
+                ComponentSubcmd::Remove {
+                    component,
+                    toolchain,
+                    target,
+                } => component_remove(cfg, component, toolchain, target.as_deref()),
             },
         }
     }
@@ -416,18 +476,9 @@ pub fn main() -> Result<utils::ExitCode> {
             ("dump-testament", _) => common::dump_testament()?,
             (
                 "show" | "update" | "install" | "uninstall" | "toolchain" | "check" | "default"
-                | "target",
+                | "target" | "component",
                 _,
             ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("component", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("list", m) => handle_epipe(component_list(cfg, m))?,
-                    ("add", m) => component_add(cfg, m)?,
-                    ("remove", m) => component_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
             ("override", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", _) => handle_epipe(common::list_overrides(cfg))?,
@@ -514,55 +565,6 @@ pub(crate) fn cli() -> Command {
             Command::new("dump-testament")
                 .about("Dump information about the build")
                 .hide(true), // Not for users, only CI
-        )
-        .subcommand(
-            Command::new("component")
-                .about("Modify a toolchain's installed components")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("list")
-                        .about("List installed and available components")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        )
-                        .arg(
-                            Arg::new("installed")
-                                .long("installed")
-                                .help("List only installed components")
-                                .action(ArgAction::SetTrue),
-                        ),
-                )
-                .subcommand(
-                    Command::new("add")
-                        .about("Add a component to a Rust toolchain")
-                        .arg(Arg::new("component").required(true).num_args(1..))
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        )
-                        .arg(Arg::new("target").long("target").num_args(1)),
-                )
-                .subcommand(
-                    Command::new("remove")
-                        .about("Remove a component from a Rust toolchain")
-                        .arg(Arg::new("component").required(true).num_args(1..))
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        )
-                        .arg(Arg::new("target").long("target").num_args(1)),
-                ),
         )
         .subcommand(
             Command::new("override")
@@ -1260,20 +1262,29 @@ fn target_remove(
     Ok(utils::ExitCode(0))
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
+fn component_list(
+    cfg: &Cfg,
+    toolchain: Option<PartialToolchainDesc>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
-    common::list_components(distributable, m.get_flag("installed"))?;
+    common::list_components(distributable, installed_only)?;
     Ok(utils::ExitCode(0))
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
+fn component_add(
+    cfg: &Cfg,
+    components: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+    target: Option<&str>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
-    let target = get_target(m, &distributable);
+    let target = get_target(target, &distributable);
 
-    for component in m.get_many::<String>("component").unwrap() {
+    for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
         distributable.add_component(new_component)?;
     }
@@ -1281,19 +1292,26 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Option<TargetTriple> {
-    m.get_one::<String>("target")
-        .map(|s| &**s)
+fn get_target(
+    target: Option<&str>,
+    distributable: &DistributableToolchain<'_>,
+) -> Option<TargetTriple> {
+    target
         .map(TargetTriple::new)
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain_old(cfg, m)?;
+fn component_remove(
+    cfg: &Cfg,
+    components: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+    target: Option<&str>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
-    let target = get_target(m, &distributable);
+    let target = get_target(target, &distributable);
 
-    for component in m.get_many::<String>("component").unwrap() {
+    for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
         distributable.remove_component(new_component)?;
     }

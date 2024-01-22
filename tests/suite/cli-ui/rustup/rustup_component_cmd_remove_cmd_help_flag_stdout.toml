@@ -4,15 +4,15 @@ stdout = """
 ...
 Remove a component from a Rust toolchain
 
-Usage: rustup[EXE] component remove [OPTIONS] <component>...
+Usage: rustup[EXE] component remove [OPTIONS] <COMPONENT>...
 
 Arguments:
-  <component>...  
+  <COMPONENT>...  
 
 Options:
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                information see `rustup help toolchain`
-      --target <target>        
+      --target <TARGET>        
   -h, --help                   Print help
 """
 stderr = ""
