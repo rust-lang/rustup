@@ -1,8 +1,8 @@
 bin.name = "rustup"
-args = ["self","uninstall","--help"]
+args = ["self", "uninstall", "--help"]
 stdout = """
 ...
-Uninstall rustup.
+Uninstall rustup
 
 Usage: rustup[EXE] self uninstall [OPTIONS]
 

@@ -1,13 +1,13 @@
 bin.name = "rustup"
-args = ["set","auto-self-update","--help"]
+args = ["set", "auto-self-update", "--help"]
 stdout = """
 ...
 The rustup auto self update mode
 
-Usage: rustup[EXE] set auto-self-update <auto-self-update-mode>
+Usage: rustup[EXE] set auto-self-update [AUTO_SELF_UPDATE_MODE]
 
 Arguments:
-  <auto-self-update-mode>  [default: enable] [possible values: enable, disable, check-only]
+  [AUTO_SELF_UPDATE_MODE]  [default: enable] [possible values: enable, disable, check-only]
 
 Options:
   -h, --help  Print help
