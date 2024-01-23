@@ -1,7 +1,6 @@
 use std::fmt;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
@@ -24,7 +23,6 @@ use crate::{
     currentprocess::{
         argsource::ArgSource,
         filesource::{StderrSource, StdoutSource},
-        varsource::VarSource,
     },
     dist::{
         dist::{PartialToolchainDesc, Profile, TargetTriple},
@@ -212,6 +210,7 @@ pub fn main() -> Result<utils::ExitCode> {
             ("run", m) => run(cfg, m)?,
             ("which", m) => which(cfg, m)?,
             ("doc", m) => doc(cfg, m)?,
+            #[cfg(not(windows))]
             ("man", m) => man(cfg, m)?,
             ("self", c) => match c.subcommand() {
                 Some(s) => match s {
@@ -1615,7 +1614,10 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     }
 }
 
+#[cfg(not(windows))]
 fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    use crate::currentprocess::varsource::VarSource;
+
     let command = m.get_one::<String>("command").unwrap();
 
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
@@ -1629,7 +1631,7 @@ fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     if let Some(path) = process().var_os("MANPATH") {
         manpaths.push(path);
     }
-    process::Command::new("man")
+    std::process::Command::new("man")
         .env("MANPATH", manpaths)
         .arg(command)
         .status()
