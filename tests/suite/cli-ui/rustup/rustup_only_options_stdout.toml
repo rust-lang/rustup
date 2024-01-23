@@ -28,7 +28,7 @@ Commands:
 
 Arguments:
   [+toolchain]
-          release channel (e.g. +stable) or custom toolchain to set override
+          Release channel (e.g. +stable) or custom toolchain to set override
 
 Options:
   -v, --verbose
