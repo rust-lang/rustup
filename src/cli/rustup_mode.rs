@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Error, Result};
 use clap::{
     builder::{PossibleValue, PossibleValuesParser},
-    Arg, ArgAction, ArgMatches, Args, Command, FromArgMatches as _, Parser, Subcommand, ValueEnum,
+    Arg, ArgAction, Args, Command, FromArgMatches as _, Parser, Subcommand, ValueEnum,
 };
 use clap_complete::Shell;
 use itertools::Itertools;
@@ -213,6 +213,18 @@ enum RustupSubcmd {
 
         #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
         toolchain: Option<PartialToolchainDesc>,
+    },
+
+    /// Modify the rustup installation
+    Self_ {
+        #[command(subcommand)]
+        subcmd: SelfSubcmd,
+    },
+
+    /// Alter rustup settings
+    Set {
+        #[command(subcommand)]
+        subcmd: SetSubcmd,
     },
 
     /// Generate tab-completion scripts for your shell
@@ -439,6 +451,51 @@ enum OverrideSubcmd {
     },
 }
 
+#[derive(Debug, Subcommand)]
+#[command(
+    name = "self",
+    arg_required_else_help = true,
+    subcommand_required = true
+)]
+enum SelfSubcmd {
+    /// Download and install updates to rustup
+    Update,
+
+    /// Uninstall rustup
+    Uninstall {
+        #[arg(short = 'y')]
+        no_prompt: bool,
+    },
+
+    /// Upgrade the internal data format
+    UpgradeData,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum SetSubcmd {
+    /// The triple used to identify toolchains when not specified
+    DefaultHost { host_triple: String },
+
+    /// The default components installed with a toolchain
+    Profile {
+        #[arg(
+            default_value = Profile::default_name(),
+            value_parser = PossibleValuesParser::new(Profile::names()),
+        )]
+        profile_name: String,
+    },
+
+    /// The rustup auto self update mode
+    AutoSelfUpdate {
+        #[arg(
+            default_value = SelfUpdateMode::default_mode(),
+            value_parser = PossibleValuesParser::new(SelfUpdateMode::modes()),
+        )]
+        auto_self_update_mode: String,
+    },
+}
+
 impl Rustup {
     fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
         match self.subcmd {
@@ -523,6 +580,20 @@ impl Rustup {
             } => doc(cfg, path, toolchain, topic.as_deref(), &page),
             #[cfg(not(windows))]
             RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
+            RustupSubcmd::Self_ { subcmd } => match subcmd {
+                SelfSubcmd::Update => self_update::update(cfg),
+                SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
+                SelfSubcmd::UpgradeData => upgrade_data(cfg),
+            },
+            RustupSubcmd::Set { subcmd } => match subcmd {
+                SetSubcmd::DefaultHost { host_triple } => {
+                    set_default_host_triple(cfg, &host_triple)
+                }
+                SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
+                SetSubcmd::AutoSelfUpdate {
+                    auto_self_update_mode,
+                } => set_auto_self_update(cfg, &auto_self_update_mode),
+            },
             RustupSubcmd::Completions { shell, command } => {
                 output_completion_script(shell, command)
             }
@@ -593,39 +664,10 @@ pub fn main() -> Result<utils::ExitCode> {
         cfg.set_toolchain_override(t);
     }
 
-    if maybe_upgrade_data(cfg, &matches)? {
-        return Ok(utils::ExitCode(0));
-    }
-
     cfg.check_metadata_version()?;
 
     Ok(match matches.subcommand() {
-        Some(s) => match s {
-            (
-                "dump-testament" | "show" | "update" | "install" | "uninstall" | "toolchain"
-                | "check" | "default" | "target" | "component" | "override" | "run" | "which"
-                | "doc" | "man" | "completions",
-                _,
-            ) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("self", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("update", _) => self_update::update(cfg)?,
-                    ("uninstall", m) => self_uninstall(m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("set", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("default-host", m) => set_default_host_triple(cfg, m)?,
-                    ("profile", m) => set_profile(cfg, m)?,
-                    ("auto-self-update", m) => set_auto_self_update(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            _ => unreachable!(),
-        },
+        Some(_) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
         None => {
             eprintln!("{}", cli().render_long_help());
             utils::ExitCode(1)
@@ -662,54 +704,7 @@ pub(crate) fn cli() -> Command {
                         Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
                     }
                 }),
-        )
-        .subcommand(
-            Command::new("self")
-                .about("Modify the rustup installation")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(Command::new("update").about("Download and install updates to rustup"))
-                .subcommand(
-                    Command::new("uninstall")
-                        .about("Uninstall rustup.")
-                        .arg(Arg::new("no-prompt").short('y').action(ArgAction::SetTrue)),
-                )
-                .subcommand(
-                    Command::new("upgrade-data").about("Upgrade the internal data format."),
-                ),
-        )
-        .subcommand(
-            Command::new("set")
-                .about("Alter rustup settings")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("default-host")
-                        .about("The triple used to identify toolchains when not specified")
-                        .arg(Arg::new("host_triple").required(true)),
-                )
-                .subcommand(
-                    Command::new("profile")
-                        .about("The default components installed with a toolchain")
-                        .arg(
-                            Arg::new("profile-name")
-                                .required(true)
-                                .value_parser(PossibleValuesParser::new(Profile::names()))
-                                .default_value(Profile::default_name()),
-                        ),
-                )
-                .subcommand(
-                    Command::new("auto-self-update")
-                        .about("The rustup auto self update mode")
-                        .arg(
-                            Arg::new("auto-self-update-mode")
-                                .required(true)
-                                .value_parser(PossibleValuesParser::new(SelfUpdateMode::modes()))
-                                .default_value(SelfUpdateMode::default_mode()),
-                        ),
-                ),
         );
-
     RustupSubcmd::augment_subcommands(app)
 }
 
@@ -721,17 +716,9 @@ fn verbose_arg(help: &'static str) -> Arg {
         .action(ArgAction::SetTrue)
 }
 
-fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
-    match m.subcommand() {
-        Some(("self", c)) => match c.subcommand() {
-            Some(("upgrade-data", _)) => {
-                cfg.upgrade_data()?;
-                Ok(true)
-            }
-            _ => Ok(false),
-        },
-        _ => Ok(false),
-    }
+fn upgrade_data(cfg: &Cfg) -> Result<utils::ExitCode> {
+    cfg.upgrade_data()?;
+    Ok(utils::ExitCode(0))
 }
 
 fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Result<utils::ExitCode> {
@@ -1541,23 +1528,17 @@ fn man(
     Ok(utils::ExitCode(0))
 }
 
-fn self_uninstall(m: &ArgMatches) -> Result<utils::ExitCode> {
-    let no_prompt = m.get_flag("no-prompt");
-
-    self_update::uninstall(no_prompt)
-}
-
-fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    cfg.set_default_host_triple(m.get_one::<String>("host_triple").unwrap())?;
+fn set_default_host_triple(cfg: &Cfg, host_triple: &str) -> Result<utils::ExitCode> {
+    cfg.set_default_host_triple(host_triple)?;
     Ok(utils::ExitCode(0))
 }
 
-fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    cfg.set_profile(m.get_one::<String>("profile-name").unwrap())?;
+fn set_profile(cfg: &mut Cfg, profile: &str) -> Result<utils::ExitCode> {
+    cfg.set_profile(profile)?;
     Ok(utils::ExitCode(0))
 }
 
-fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn set_auto_self_update(cfg: &mut Cfg, auto_self_update_mode: &str) -> Result<utils::ExitCode> {
     if self_update::NEVER_SELF_UPDATE {
         let mut args = crate::process().args_os();
         let arg0 = args.next().map(PathBuf::from);
@@ -1567,7 +1548,7 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode
             .ok_or(CLIError::NoExeName)?;
         warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
     }
-    cfg.set_auto_self_update(m.get_one::<String>("auto-self-update-mode").unwrap())?;
+    cfg.set_auto_self_update(auto_self_update_mode)?;
     Ok(utils::ExitCode(0))
 }
 
