@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 use std::env;
 use std::fmt;
-use std::fs;
-use std::io::{self, Read, Write};
+use std::io::Write;
 use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
@@ -238,10 +237,13 @@ impl Deref for TargetTriple {
     }
 }
 
+#[cfg(not(windows))]
 fn is_32bit_userspace() -> bool {
     // Check if /bin/sh is a 32-bit binary. If it doesn't exist, fall back to
     // checking if _we_ are a 32-bit binary.
     // rustup-init.sh also relies on checking /bin/sh for bitness.
+    use std::fs;
+    use std::io::{self, Read};
 
     // inner function is to simplify error handling.
     fn inner() -> io::Result<bool> {
