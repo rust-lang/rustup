@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Error, Result};
 use clap::{
     builder::{PossibleValue, PossibleValuesParser},
-    Arg, ArgAction, Args, Command, FromArgMatches as _, Parser, Subcommand, ValueEnum,
+    Args, CommandFactory, Parser, Subcommand, ValueEnum,
 };
 use clap_complete::Shell;
 use itertools::Itertools;
@@ -64,15 +64,43 @@ fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     }
 }
 
+/// The Rust toolchain installer
 #[derive(Debug, Parser)]
 #[command(
     name = "rustup",
     bin_name = "rustup[EXE]",
     version = common::version(),
+    before_help = format!("rustup {}", common::version()),
+    after_help = RUSTUP_HELP,
 )]
 struct Rustup {
+    /// Enable verbose output
+    #[arg(short, long)]
+    verbose: bool,
+
+    /// Disable progress output
+    #[arg(short, long, conflicts_with = "verbose")]
+    quiet: bool,
+
+    /// Release channel (e.g. +stable) or custom toolchain to set override
+    #[arg(
+        name = "+toolchain",
+        value_parser = plus_toolchain_value_parser,
+    )]
+    plus_toolchain: Option<ResolvableToolchainName>,
+
     #[command(subcommand)]
-    subcmd: RustupSubcmd,
+    subcmd: Option<RustupSubcmd>,
+}
+
+fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolchainName> {
+    use clap::{error::ErrorKind, Error};
+    if let Some(stripped) = s.strip_prefix('+') {
+        ResolvableToolchainName::try_from(stripped)
+            .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
+    } else {
+        Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -496,9 +524,9 @@ enum SetSubcmd {
     },
 }
 
-impl Rustup {
+impl RustupSubcmd {
     fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
-        match self.subcmd {
+        match self {
             RustupSubcmd::DumpTestament => common::dump_testament(),
             RustupSubcmd::Install { opts } => update(cfg, opts),
             RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
@@ -606,7 +634,7 @@ pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
     use clap::error::ErrorKind::*;
-    let matches = match cli().try_get_matches_from(process().args_os()) {
+    let matches = match Rustup::try_parse_from(process().args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
             write!(process().stdout().lock(), "{err}")?;
@@ -656,64 +684,21 @@ pub fn main() -> Result<utils::ExitCode> {
             Err(err)
         }
     }?;
-    let verbose = matches.get_flag("verbose");
-    let quiet = matches.get_flag("quiet");
-    let cfg = &mut common::set_globals(verbose, quiet)?;
+    let cfg = &mut common::set_globals(matches.verbose, matches.quiet)?;
 
-    if let Some(t) = matches.get_one::<ResolvableToolchainName>("+toolchain") {
+    if let Some(t) = &matches.plus_toolchain {
         cfg.set_toolchain_override(t);
     }
 
     cfg.check_metadata_version()?;
 
-    Ok(match matches.subcommand() {
-        Some(_) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
+    Ok(match matches.subcmd {
+        Some(subcmd) => subcmd.dispatch(cfg)?,
         None => {
-            eprintln!("{}", cli().render_long_help());
+            eprintln!("{}", Rustup::command().render_long_help());
             utils::ExitCode(1)
         }
     })
-}
-
-pub(crate) fn cli() -> Command {
-    let app = Command::new("rustup")
-        .version(common::version())
-        .about("The Rust toolchain installer")
-        .before_help(format!("rustup {}", common::version()))
-        .after_help(RUSTUP_HELP)
-        .subcommand_required(false)
-        .arg(
-            verbose_arg("Enable verbose output"),
-        )
-        .arg(
-            Arg::new("quiet")
-                .conflicts_with("verbose")
-                .help("Disable progress output")
-                .short('q')
-                .long("quiet")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("+toolchain")
-                .help("release channel (e.g. +stable) or custom toolchain to set override")
-                .value_parser(|s: &str| {
-                    use clap::{Error, error::ErrorKind};
-                    if let Some(stripped) = s.strip_prefix('+') {
-                        ResolvableToolchainName::try_from(stripped).map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
-                    } else {
-                        Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
-                    }
-                }),
-        );
-    RustupSubcmd::augment_subcommands(app)
-}
-
-fn verbose_arg(help: &'static str) -> Arg {
-    Arg::new("verbose")
-        .help(help)
-        .short('v')
-        .long("verbose")
-        .action(ArgAction::SetTrue)
 }
 
 fn upgrade_data(cfg: &Cfg) -> Result<utils::ExitCode> {
@@ -1589,7 +1574,12 @@ impl fmt::Display for CompletionCommand {
 fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<utils::ExitCode> {
     match command {
         CompletionCommand::Rustup => {
-            clap_complete::generate(shell, &mut cli(), "rustup", &mut process().stdout().lock());
+            clap_complete::generate(
+                shell,
+                &mut Rustup::command(),
+                "rustup",
+                &mut process().stdout().lock(),
+            );
         }
         CompletionCommand::Cargo => {
             if let Shell::Zsh = shell {
