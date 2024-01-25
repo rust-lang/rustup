@@ -237,11 +237,11 @@ impl Deref for TargetTriple {
     }
 }
 
+/// Check if /bin/sh is a 32-bit binary. If it doesn't exist, fall back to
+/// checking if _we_ are a 32-bit binary.
+/// rustup-init.sh also relies on checking /bin/sh for bitness.
 #[cfg(not(windows))]
 fn is_32bit_userspace() -> bool {
-    // Check if /bin/sh is a 32-bit binary. If it doesn't exist, fall back to
-    // checking if _we_ are a 32-bit binary.
-    // rustup-init.sh also relies on checking /bin/sh for bitness.
     use std::fs;
     use std::io::{self, Read};
 
