@@ -220,7 +220,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             },
             ("component", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("list", m) => handle_epipe(component_list(cfg, m))?,
+                    ("list", m) => handle_epipe(component_list(cfg, m).await)?,
                     ("add", m) => component_add(cfg, m).await?,
                     ("remove", m) => component_remove(cfg, m).await?,
                     _ => unreachable!(),
@@ -1398,8 +1398,8 @@ async fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
+async fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
