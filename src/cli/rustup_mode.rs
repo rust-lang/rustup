@@ -187,7 +187,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ("dump-testament", _) => common::dump_testament()?,
             ("show", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m))?,
+                    ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m).await)?,
                     ("home", _) => handle_epipe(show_rustup_home(cfg))?,
                     ("profile", _) => handle_epipe(show_profile(cfg))?,
                     _ => handle_epipe(show(cfg, c).await)?,
@@ -1259,10 +1259,13 @@ async fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
     let cwd = utils::current_dir()?;
-    match utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd)) {
+    match cfg
+        .find_or_install_override_toolchain_or_default(&cwd)
+        .await
+    {
         Err(e) => {
             let root_cause = e.root_cause();
             if let Some(RustupError::ToolchainNotSelected) =
