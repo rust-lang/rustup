@@ -211,7 +211,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             },
             ("target", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("list", m) => handle_epipe(target_list(cfg, m))?,
+                    ("list", m) => handle_epipe(target_list(cfg, m).await)?,
                     ("add", m) => target_add(cfg, m).await?,
                     ("remove", m) => target_remove(cfg, m).await?,
                     _ => unreachable!(),
@@ -1300,8 +1300,8 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
+async fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
