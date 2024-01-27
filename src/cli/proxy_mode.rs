@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub fn main(arg0: &str) -> Result<ExitCode> {
+pub async fn main(arg0: &str) -> Result<ExitCode> {
     self_update::cleanup_self_updater()?;
 
     let ExitCode(c) = {
@@ -40,21 +40,24 @@ pub fn main(arg0: &str) -> Result<ExitCode> {
         let toolchain = toolchain
             .map(|t| t.resolve(&cfg.get_default_host_triple()?))
             .transpose()?;
-        direct_proxy(&cfg, arg0, toolchain, &cmd_args)?
+        direct_proxy(&cfg, arg0, toolchain, &cmd_args).await?
     };
 
     Ok(ExitCode(c))
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip(cfg)))]
-fn direct_proxy(
+async fn direct_proxy(
     cfg: &Cfg,
     arg0: &str,
     toolchain: Option<LocalToolchainName>,
     args: &[OsString],
 ) -> Result<ExitCode> {
     let cmd = match toolchain {
-        None => cfg.create_command_for_dir(&utils::current_dir()?, arg0)?,
+        None => {
+            cfg.create_command_for_dir(&utils::current_dir()?, arg0)
+                .await?
+        }
         Some(tc) => cfg.create_command_for_toolchain(&tc, false, arg0)?,
     };
     run_command_for_dir(cmd, arg0, args)

@@ -832,9 +832,14 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (toolchain, _) =
-            utils::run_future(self.find_or_install_override_toolchain_or_default(path))?;
+    pub(crate) async fn create_command_for_dir(
+        &self,
+        path: &Path,
+        binary: &str,
+    ) -> Result<Command> {
+        let (toolchain, _) = self
+            .find_or_install_override_toolchain_or_default(path)
+            .await?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
