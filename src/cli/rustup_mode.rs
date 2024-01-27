@@ -1301,7 +1301,7 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
 }
 
 fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
@@ -1313,7 +1313,7 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 async fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1368,7 +1368,7 @@ async fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 async fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
     for target in m.get_many::<String>("target").unwrap() {
@@ -1399,7 +1399,7 @@ async fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
@@ -1412,7 +1412,7 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 async fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
@@ -1433,7 +1433,7 @@ fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Opt
 }
 
 async fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
@@ -1448,14 +1448,14 @@ async fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> 
 
 // Make *sure* only to use this for a subcommand whose "toolchain" argument
 // has .value_parser(partial_toolchain_desc_parser), or it will panic.
-fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
+async fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
     let toolchain = m
         .get_one::<PartialToolchainDesc>("toolchain")
         .map(Into::into);
-    explicit_or_dir_toolchain2(cfg, toolchain)
+    explicit_or_dir_toolchain2(cfg, toolchain).await
 }
 
-fn explicit_or_dir_toolchain2(
+async fn explicit_or_dir_toolchain2(
     cfg: &Cfg,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<Toolchain<'_>> {
@@ -1466,8 +1466,9 @@ fn explicit_or_dir_toolchain2(
         }
         None => {
             let cwd = utils::current_dir()?;
-            let (toolchain, _) =
-                utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd))?;
+            let (toolchain, _) = cfg
+                .find_or_install_override_toolchain_or_default(&cwd)
+                .await?;
 
             Ok(toolchain)
         }
@@ -1598,7 +1599,7 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
 ];
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         let manifestation = distributable.get_manifestation()?;
@@ -1655,7 +1656,7 @@ fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     let command = m.get_one::<String>("command").unwrap();
 
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");
