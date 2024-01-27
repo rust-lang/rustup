@@ -190,9 +190,9 @@ pub async fn main() -> Result<utils::ExitCode> {
                     ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m))?,
                     ("home", _) => handle_epipe(show_rustup_home(cfg))?,
                     ("profile", _) => handle_epipe(show_profile(cfg))?,
-                    _ => handle_epipe(show(cfg, c))?,
+                    _ => handle_epipe(show(cfg, c).await)?,
                 },
-                None => handle_epipe(show(cfg, c))?,
+                None => handle_epipe(show(cfg, c).await)?,
             },
             ("install", m) => deprecated_async("toolchain install", cfg, m, update).await?,
             ("update", m) => update(cfg, m).await?,
@@ -1085,7 +1085,7 @@ async fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
     let verbose = m.get_flag("verbose");
@@ -1112,8 +1112,9 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
     // XXX: we may want a find_without_install capability for show.
-    let active_toolchain =
-        utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd));
+    let active_toolchain = cfg
+        .find_or_install_override_toolchain_or_default(&cwd)
+        .await;
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
