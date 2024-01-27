@@ -238,9 +238,9 @@ pub async fn main() -> Result<utils::ExitCode> {
             },
             ("run", m) => run(cfg, m).await?,
             ("which", m) => which(cfg, m).await?,
-            ("doc", m) => doc(cfg, m)?,
+            ("doc", m) => doc(cfg, m).await?,
             #[cfg(not(windows))]
-            ("man", m) => man(cfg, m)?,
+            ("man", m) => man(cfg, m).await?,
             ("self", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("update", _) => self_update::update(cfg).await?,
@@ -1598,8 +1598,8 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
     ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
+async fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         let manifestation = distributable.get_manifestation()?;
@@ -1651,12 +1651,12 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg(not(windows))]
-fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     use crate::currentprocess::varsource::VarSource;
 
     let command = m.get_one::<String>("command").unwrap();
 
-    let toolchain = utils::run_future(explicit_desc_or_dir_toolchain(cfg, m))?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");
