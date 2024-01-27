@@ -126,7 +126,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             #[cfg_attr(feature = "otel", tracing::instrument)]
-            fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
+            async fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(false, true)?;
                 let cwd = std::env::current_dir()?;
 
@@ -135,13 +135,15 @@ pub async fn main() -> Result<utils::ExitCode> {
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
-                let toolchain =
-                    utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd))?.0;
+                let toolchain = cfg
+                    .find_or_install_override_toolchain_or_default(&cwd)
+                    .await?
+                    .0;
 
                 Ok(toolchain.rustc_version())
             }
 
-            match rustc_version() {
+            match rustc_version().await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
                 Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
