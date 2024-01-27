@@ -135,7 +135,8 @@ pub async fn main() -> Result<utils::ExitCode> {
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
-                let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
+                let toolchain =
+                    utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd))?.0;
 
                 Ok(toolchain.rustc_version())
             }
@@ -1107,7 +1108,8 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
     // XXX: we may want a find_without_install capability for show.
-    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
+    let active_toolchain =
+        utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd));
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
@@ -1255,7 +1257,7 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
     let cwd = utils::current_dir()?;
-    match cfg.find_or_install_override_toolchain_or_default(&cwd) {
+    match utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd)) {
         Err(e) => {
             let root_cause = e.root_cause();
             if let Some(RustupError::ToolchainNotSelected) =
@@ -1456,7 +1458,8 @@ fn explicit_or_dir_toolchain2(
         }
         None => {
             let cwd = utils::current_dir()?;
-            let (toolchain, _) = cfg.find_or_install_override_toolchain_or_default(&cwd)?;
+            let (toolchain, _) =
+                utils::run_future(cfg.find_or_install_override_toolchain_or_default(&cwd))?;
 
             Ok(toolchain)
         }

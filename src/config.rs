@@ -391,7 +391,8 @@ impl Cfg {
     }
 
     pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        let (toolchain, _) =
+            utils::run_future(self.find_or_install_override_toolchain_or_default(path))?;
         Ok(toolchain.binary_file(binary))
     }
 
@@ -657,7 +658,7 @@ impl Cfg {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn find_or_install_override_toolchain_or_default(
+    pub(crate) async fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
@@ -690,23 +691,22 @@ impl Cfg {
                 let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
                 let toolchain = match DistributableToolchain::new(self, desc.clone()) {
                     Err(RustupError::ToolchainNotInstalled(_)) => {
-                        utils::run_future(DistributableToolchain::install(
+                        DistributableToolchain::install(
                             self,
                             &desc,
                             &components,
                             &targets,
                             profile.unwrap_or(Profile::Default),
                             false,
-                        ))?
+                        )
+                        .await?
                         .1
                     }
                     Ok(mut distributable) => {
                         if !distributable.components_exist(&components, &targets)? {
-                            utils::run_future(distributable.update(
-                                &components,
-                                &targets,
-                                profile.unwrap_or(Profile::Default),
-                            ))?;
+                            distributable
+                                .update(&components, &targets, profile.unwrap_or(Profile::Default))
+                                .await?;
                         }
                         distributable
                     }
@@ -835,7 +835,8 @@ impl Cfg {
     }
 
     pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        let (toolchain, _) =
+            utils::run_future(self.find_or_install_override_toolchain_or_default(path))?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
