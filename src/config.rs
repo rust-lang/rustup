@@ -390,9 +390,10 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) =
-            utils::run_future(self.find_or_install_override_toolchain_or_default(path))?;
+    pub(crate) async fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
+        let (toolchain, _) = self
+            .find_or_install_override_toolchain_or_default(path)
+            .await?;
         Ok(toolchain.binary_file(binary))
     }
 

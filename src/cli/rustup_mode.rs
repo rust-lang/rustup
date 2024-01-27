@@ -235,7 +235,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 None => unreachable!(),
             },
             ("run", m) => run(cfg, m)?,
-            ("which", m) => which(cfg, m)?,
+            ("which", m) => which(cfg, m).await?,
             ("doc", m) => doc(cfg, m)?,
             #[cfg(not(windows))]
             ("man", m) => man(cfg, m)?,
@@ -1065,13 +1065,13 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(code)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let binary = m.get_one::<String>("command").unwrap();
     let binary_path = if let Some(toolchain) = m.get_one::<ResolvableToolchainName>("toolchain") {
         let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::new(cfg, desc.into())?.binary_file(binary)
     } else {
-        cfg.which_binary(&utils::current_dir()?, binary)?
+        cfg.which_binary(&utils::current_dir()?, binary).await?
     };
 
     utils::assert_is_file(&binary_path)?;
