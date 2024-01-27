@@ -234,7 +234,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 },
                 None => unreachable!(),
             },
-            ("run", m) => run(cfg, m)?,
+            ("run", m) => run(cfg, m).await?,
             ("which", m) => which(cfg, m).await?,
             ("doc", m) => doc(cfg, m)?,
             #[cfg(not(windows))]
@@ -1052,14 +1052,16 @@ async fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = m
         .get_one::<ResolvableLocalToolchainName>("toolchain")
         .unwrap();
     let args = m.get_many::<String>("command").unwrap();
     let args: Vec<_> = args.collect();
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-    let cmd = cfg.create_command_for_toolchain(&toolchain, m.get_flag("install"), args[0])?;
+    let cmd = cfg
+        .create_command_for_toolchain(&toolchain, m.get_flag("install"), args[0])
+        .await?;
 
     let code = command::run_command_for_dir(cmd, args[0], &args[1..])?;
     Ok(code)
