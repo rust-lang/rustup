@@ -11,6 +11,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use tokio::runtime::Builder;
 use url::Url;
 
 use rustup_macros::unit_test as test;
@@ -537,37 +538,43 @@ fn setup_from_dist_server(
         comps.enable_xz(),
         comps.enable_zst(),
     );
-
     let prefix_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
     let work_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let temp_cfg = temp::Cfg::new(
         work_tempdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-
     let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
     let prefix = InstallPrefix::from(prefix_tempdir.path());
-    let download_cfg = DownloadCfg {
-        dist_root: "phony",
-        temp_cfg: &temp_cfg,
-        download_dir: &prefix.path().to_owned().join("downloads"),
-        notify_handler: &|event| {
-            println!("{event}");
-        },
-    };
 
-    currentprocess::with(
-        currentprocess::TestProcess::new(
-            env::current_dir().unwrap(),
-            &["rustup"],
-            HashMap::default(),
-            "",
-        )
-        .into(),
-        || f(url, &toolchain, &prefix, &download_cfg, &temp_cfg),
-    );
+    let tp = currentprocess::TestProcess::new(
+        env::current_dir().unwrap(),
+        &["rustup"],
+        HashMap::default(),
+        "",
+    )
+    .into();
+
+    let mut builder = Builder::new_multi_thread();
+    builder
+        .enable_all()
+        .worker_threads(2)
+        .max_blocking_threads(2);
+
+    currentprocess::with_runtime(tp, builder, {
+        async move {
+            let download_cfg = DownloadCfg {
+                dist_root: "phony",
+                temp_cfg: &temp_cfg,
+                download_dir: &prefix.path().to_owned().join("downloads"),
+                notify_handler: &|event| {
+                    println!("{event}");
+                },
+            };
+            f(url, &toolchain, &prefix, &download_cfg, &temp_cfg)
+        }
+    });
 }
 
 fn initial_install(comps: Compressions) {
