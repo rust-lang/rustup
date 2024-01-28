@@ -452,7 +452,7 @@ pub(crate) async fn install(
         }
     }
 
-    let install_res: Result<utils::ExitCode> = (|| {
+    let install_res: Result<utils::ExitCode> = async {
         install_bins()?;
 
         #[cfg(unix)]
@@ -472,10 +472,12 @@ pub(crate) async fn install(
             opts.targets,
             verbose,
             quiet,
-        )?;
+        )
+        .await?;
 
         Ok(utils::ExitCode(0))
-    })();
+    }
+    .await;
 
     if let Err(e) = install_res {
         report_error(&e);
@@ -833,7 +835,7 @@ pub(crate) fn install_proxies() -> Result<()> {
     Ok(())
 }
 
-fn maybe_install_rust(
+async fn maybe_install_rust(
     toolchain: Option<MaybeOfficialToolchainName>,
     profile_str: &str,
     default_host_triple: Option<&str>,
@@ -863,16 +865,19 @@ fn maybe_install_rust(
             // - delete the partial install and start over
             // For now, we error.
             let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
-            utils::run_future(toolchain.update(components, targets, cfg.get_profile()?))?
+            toolchain
+                .update(components, targets, cfg.get_profile()?)
+                .await?
         } else {
-            utils::run_future(DistributableToolchain::install(
+            DistributableToolchain::install(
                 &cfg,
                 desc,
                 components,
                 targets,
                 cfg.get_profile()?,
                 true,
-            ))?
+            )
+            .await?
             .0
         };
 
