@@ -1,5 +1,76 @@
 # Changelog
 
+## [1.27.0] - 2024-01-29
+
+This long-awaited Rustup release has gathered all the new features and fixes since April 2023.
+These changes include improvements in Rustup's maintainability, user experience, compatibility and documentation quality.
+
+The headlines of this release are:
+- Basic support for `fish` shell has been added.
+- Support for the `loongarch64-unknown-linux-gnu` host platform has been added.
+
+Also, it's worth mentioning that Dirkjan Ochtman and rami3l have joined the team and are coordinating this new release.
+
+Finally, the project seems to have attracted a total of 21 new contributors within this release cycle. Looking forward to seeing you again in the future!
+
+### Added
+
+- Add basic support for `fish` shell [pr#3108] 
+- Add the `RUSTUP_TERM_COLOR` environment variable to force the use of colored output [pr#3435]
+- Improve `rustup-init.sh`'s compatibility with `ksh` and `zsh` [pr#3475]
+- Add a warning when running under Rosetta 2 [pr#3068]
+- Add browser detection for RISC-V 64 platform [pr#3642]
+- Add a warning when removing the last/host target for a toolchain [pr#3637]
+
+### Changed
+
+- Upgrade `clap` to v4 [pr#3444]
+- Fix incorrect platform detection on macOS aarch64 due to Rosetta 2 [pr#3438]
+- Fix incorrect platform detection on 32-bit Linux userland with a 64-bit kernel [pr#3488] [pr#3490]
+- Improve Windows system32 DLL loading mechanism [pr#3493]
+- Improve suggestions about missing components [pr#3453]
+- Fix handling of toolchain names with special characters [pr#3518]
+- Fix panic in `component list --toolchain stable` [pr#3548]
+- Rename `llvm-tools-preview` component to `llvm-tools` [pr#3578]
+- Bump a lot of dependencies to their latest versions [pr#renovate-bot]
+
+Thanks go to:
+
+- Anthony Perkins (acperkins)
+- Tianqi (airstone42)
+- Alex Gaynor (alex)
+- Alex Hudspith (alexhudspith)
+- Alan Somers (asomers)
+- Burak Emir (burakemir)
+- Chris Denton (ChrisDenton)
+- cui fliter (cuishuang)
+- Dirkjan Ochtman (djc)
+- Dezhi Wu (dzvon)
+- Eric Swanson (ericswanson-dfinity)
+- Prikshit Gautam (gautamprikshit1)
+- hev (heiher)
+- 二手掉包工程师 (hi-rustin)
+- Kamila Borowska (KamilaBorowska)
+- klensy (klensy)
+- Jakub Beránek (Kobzol)
+- Kornel (kornelski)
+- Matt Harding (majaha)
+- Mathias Brossard (mbrossard)
+- Christian Thackston (nan60)
+- Olivier Lemasle (olivierlemasle)
+- Chih Wang (ongchi)
+- Pavel Roskin (proski)
+- rami3l (rami3l)
+- Robert Collins (rbtcollins)
+- Sandesh  Pyakurel (Sandesh-Pyakurel)
+- Waffle Maybe (WaffleLapkin)
+- Jubilee (workingjubilee)
+- WÁNG Xuěruì (xen0n)
+- Yerkebulan Tulibergenov (yerke)
+- Renovate Bot (renovate)
+
+**Full Changelog**: https://github.com/rust-lang/rustup/compare/1.26.0...1.27.0
+
 ## [1.26.0] - 2023-04-05
 
 This version of Rustup involves a significant number of internal refactors, both in terms
