@@ -1484,7 +1484,7 @@ fn add_extensions_does_not_remove_other_components() {
     });
 }
 
-// Asking to remove extensions on initial install is nonsese.
+// Asking to remove extensions on initial install is nonsense.
 #[test]
 #[should_panic]
 fn remove_extensions_for_initial_install() {

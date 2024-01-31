@@ -205,7 +205,7 @@ pub(super) struct TestWriter(TestWriterInner);
 #[cfg(feature = "test")]
 impl TestWriter {
     pub(super) fn lock(&self) -> TestWriterLock<'_> {
-        // The stream can be locked even if a test thread paniced: its state
+        // The stream can be locked even if a test thread panicked: its state
         // will be ok
         TestWriterLock {
             inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
