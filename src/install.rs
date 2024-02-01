@@ -59,7 +59,7 @@ pub(crate) enum InstallMethod<'a> {
 impl<'a> InstallMethod<'a> {
     // Install a toolchain
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn install(&self) -> Result<UpdateStatus> {
+    pub(crate) async fn install(&self) -> Result<UpdateStatus> {
         let nh = self.cfg().notify_handler.clone();
         match self {
             InstallMethod::Copy { .. }
@@ -75,9 +75,11 @@ impl<'a> InstallMethod<'a> {
             &self.dest_path(),
             &self.dest_basename(),
         ));
-        let updated = self.run(&self.dest_path(), &|n| {
-            (self.cfg().notify_handler)(n.into())
-        })?;
+        let updated = self
+            .run(&self.dest_path(), &|n| {
+                (self.cfg().notify_handler)(n.into())
+            })
+            .await?;
 
         let status = match updated {
             false => {
@@ -105,7 +107,7 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    fn run(&self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
+    async fn run(&self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -150,7 +152,8 @@ impl<'a> InstallMethod<'a> {
                     old_date_version.as_ref().map(|dv| dv.0.as_str()),
                     components,
                     targets,
-                )?;
+                )
+                .await?;
 
                 if let Some(hash) = maybe_new_hash {
                     if let Some(hash_file) = update_hash {

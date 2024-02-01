@@ -45,7 +45,7 @@ impl<'a> DistributableToolchain<'a> {
         &self.desc
     }
 
-    pub(crate) fn add_component(&self, mut component: Component) -> anyhow::Result<()> {
+    pub(crate) async fn add_component(&self, mut component: Component) -> anyhow::Result<()> {
         // TODO: take multiple components?
         let manifestation = self.get_manifestation()?;
         let manifest = self.get_manifest()?;
@@ -103,14 +103,16 @@ impl<'a> DistributableToolchain<'a> {
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        manifestation.update(
-            &manifest,
-            changes,
-            false,
-            &download_cfg,
-            &self.desc.manifest_name(),
-            false,
-        )?;
+        manifestation
+            .update(
+                &manifest,
+                changes,
+                false,
+                &download_cfg,
+                &self.desc.manifest_name(),
+                false,
+            )
+            .await?;
 
         Ok(())
     }
@@ -319,7 +321,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn install(
+    pub(crate) async fn install(
         cfg: &'a Cfg,
         desc: &'_ ToolchainDesc,
         components: &[&str],
@@ -343,12 +345,13 @@ impl<'a> DistributableToolchain<'a> {
             components,
             targets,
         }
-        .install()?;
+        .install()
+        .await?;
         Ok((status, Self::new(cfg, desc.clone())?))
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub fn install_if_not_installed(
+    pub async fn install_if_not_installed(
         cfg: &'a Cfg,
         desc: &'a ToolchainDesc,
     ) -> anyhow::Result<UpdateStatus> {
@@ -357,23 +360,28 @@ impl<'a> DistributableToolchain<'a> {
             (cfg.notify_handler)(Notification::UsingExistingToolchain(desc));
             Ok(UpdateStatus::Unchanged)
         } else {
-            Ok(Self::install(cfg, desc, &[], &[], cfg.get_profile()?, false)?.0)
+            Ok(
+                Self::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
+                    .await?
+                    .0,
+            )
         }
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn update(
+    pub(crate) async fn update(
         &mut self,
         components: &[&str],
         targets: &[&str],
         profile: Profile,
     ) -> anyhow::Result<UpdateStatus> {
         self.update_extra(components, targets, profile, true, false)
+            .await
     }
 
     /// Update a toolchain with control over the channel behaviour
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
-    pub(crate) fn update_extra(
+    pub(crate) async fn update_extra(
         &mut self,
         components: &[&str],
         targets: &[&str],
@@ -415,6 +423,7 @@ impl<'a> DistributableToolchain<'a> {
             targets,
         }
         .install()
+        .await
     }
 
     pub fn recursion_error(&self, binary_lossy: String) -> Result<Infallible, anyhow::Error> {
@@ -452,7 +461,7 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
-    pub(crate) fn remove_component(&self, mut component: Component) -> anyhow::Result<()> {
+    pub(crate) async fn remove_component(&self, mut component: Component) -> anyhow::Result<()> {
         // TODO: take multiple components?
         let manifestation = self.get_manifestation()?;
         let config = manifestation.read_config()?.unwrap_or_default();
@@ -501,25 +510,29 @@ impl<'a> DistributableToolchain<'a> {
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        manifestation.update(
-            &manifest,
-            changes,
-            false,
-            &download_cfg,
-            &self.desc.manifest_name(),
-            false,
-        )?;
+        manifestation
+            .update(
+                &manifest,
+                changes,
+                false,
+                &download_cfg,
+                &self.desc.manifest_name(),
+                false,
+            )
+            .await?;
 
         Ok(())
     }
 
-    pub fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
+    pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
         let update_hash = self.cfg.get_hash_file(&self.desc, false)?;
         let notify_handler =
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        match crate::dist::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc)? {
+        match crate::dist::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc)
+            .await?
+        {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }

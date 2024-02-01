@@ -131,16 +131,16 @@ where
     })
 }
 
-pub fn download_file(
+pub async fn download_file(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    download_file_with_resume(url, path, hasher, false, &notify_handler)
+    download_file_with_resume(url, path, hasher, false, &notify_handler).await
 }
 
-pub(crate) fn download_file_with_resume(
+pub(crate) async fn download_file_with_resume(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
@@ -148,7 +148,7 @@ pub(crate) fn download_file_with_resume(
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::DownloadError as DEK;
-    match download_file_(url, path, hasher, resume_from_partial, notify_handler) {
+    match download_file_(url, path, hasher, resume_from_partial, notify_handler).await {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {
@@ -178,7 +178,7 @@ pub(crate) fn download_file_with_resume(
     }
 }
 
-fn download_file_(
+async fn download_file_(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
@@ -242,7 +242,8 @@ fn download_file_(
     };
     notify_handler(notification);
     let res =
-        download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback));
+        download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))
+            .await;
 
     notify_handler(Notification::DownloadFinished);
 

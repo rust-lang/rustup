@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
 use derivative::Derivative;
+use futures::future::join_all;
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
@@ -390,8 +391,10 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+    pub(crate) async fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
+        let (toolchain, _) = self
+            .find_or_install_override_toolchain_or_default(path)
+            .await?;
         Ok(toolchain.binary_file(binary))
     }
 
@@ -657,7 +660,7 @@ impl Cfg {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn find_or_install_override_toolchain_or_default(
+    pub(crate) async fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
@@ -697,16 +700,15 @@ impl Cfg {
                             &targets,
                             profile.unwrap_or(Profile::Default),
                             false,
-                        )?
+                        )
+                        .await?
                         .1
                     }
                     Ok(mut distributable) => {
                         if !distributable.components_exist(&components, &targets)? {
-                            distributable.update(
-                                &components,
-                                &targets,
-                                profile.unwrap_or(Profile::Default),
-                            )?;
+                            distributable
+                                .update(&components, &targets, profile.unwrap_or(Profile::Default))
+                                .await?;
                         }
                         distributable
                     }
@@ -791,7 +793,7 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn update_all_channels(
+    pub(crate) async fn update_all_channels(
         &self,
         force_update: bool,
     ) -> Result<Vec<(ToolchainDesc, Result<UpdateStatus>)>> {
@@ -800,16 +802,18 @@ impl Cfg {
         let profile = self.get_profile()?;
 
         // Update toolchains and collect the results
-        let channels = channels.map(|(desc, mut distributable)| {
-            let st = distributable.update_extra(&[], &[], profile, force_update, false);
+        let channels = join_all(channels.map(|(desc, mut distributable)| async move {
+            let st = distributable
+                .update_extra(&[], &[], profile, force_update, false)
+                .await;
 
             if let Err(ref e) = st {
                 (self.notify_handler)(Notification::NonFatalError(e));
             }
             (desc, st)
-        });
-
-        Ok(channels.collect())
+        }))
+        .await;
+        Ok(channels)
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
@@ -828,12 +832,18 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+    pub(crate) async fn create_command_for_dir(
+        &self,
+        path: &Path,
+        binary: &str,
+    ) -> Result<Command> {
+        let (toolchain, _) = self
+            .find_or_install_override_toolchain_or_default(path)
+            .await?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
-    pub(crate) fn create_command_for_toolchain(
+    pub(crate) async fn create_command_for_toolchain(
         &self,
         toolchain_name: &LocalToolchainName,
         install_if_missing: bool,
@@ -851,7 +861,8 @@ impl Cfg {
                                 &[],
                                 self.get_profile()?,
                                 true,
-                            )?;
+                            )
+                            .await?;
                         }
                     }
                     o => {

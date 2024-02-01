@@ -282,12 +282,12 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub(crate) fn update_all_channels(
+pub(crate) async fn update_all_channels(
     cfg: &Cfg,
     do_self_update: bool,
     force_update: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchains = cfg.update_all_channels(force_update)?;
+    let toolchains = cfg.update_all_channels(force_update).await?;
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
@@ -307,7 +307,7 @@ pub(crate) fn update_all_channels(
     };
 
     if do_self_update {
-        self_update(show_channel_updates)
+        self_update(show_channel_updates).await
     } else {
         show_channel_updates()
     }
@@ -347,7 +347,8 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
     }
 }
 
-pub(crate) fn self_update<F>(before_restart: F) -> Result<utils::ExitCode>
+/// Performs all of a self-update: check policy, download, apply and exit.
+pub(crate) async fn self_update<F>(before_restart: F) -> Result<utils::ExitCode>
 where
     F: FnOnce() -> Result<utils::ExitCode>,
 {
@@ -360,7 +361,7 @@ where
         SelfUpdatePermission::Permit => {}
     }
 
-    let setup_path = self_update::prepare_update()?;
+    let setup_path = self_update::prepare_update().await?;
 
     before_restart()?;
 

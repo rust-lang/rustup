@@ -4,15 +4,13 @@ use std::env::{remove_var, set_var};
 use std::error::Error;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
 use env_proxy::for_url;
-use reqwest::{blocking::Client, Proxy};
+use reqwest::{Client, Proxy};
+use serial_test::serial;
 use url::Url;
-
-static SERIALISE_TESTS: Mutex<()> = Mutex::new(());
 
 fn scrub_env() {
     remove_var("http_proxy");
@@ -27,11 +25,9 @@ fn scrub_env() {
 }
 
 // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
-#[test]
-fn read_basic_proxy_params() {
-    let _guard = SERIALISE_TESTS
-        .lock()
-        .expect("Unable to lock the test guard");
+#[tokio::test]
+#[serial]
+async fn read_basic_proxy_params() {
     scrub_env();
     set_var("https_proxy", "http://proxy.example.com:8080");
     let u = Url::parse("https://www.example.org").ok().unwrap();
@@ -42,13 +38,10 @@ fn read_basic_proxy_params() {
 }
 
 // Tests to verify if socks feature is available and being used
-#[test]
-fn socks_proxy_request() {
+#[tokio::test]
+#[serial]
+async fn socks_proxy_request() {
     static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
-    let _guard = SERIALISE_TESTS
-        .lock()
-        .expect("Unable to lock the test guard");
-
     scrub_env();
     set_var("all_proxy", "socks5://127.0.0.1:1080");
 
@@ -68,7 +61,7 @@ fn socks_proxy_request() {
         .timeout(Duration::from_secs(1))
         .build()
         .unwrap();
-    let res = client.get(url.as_str()).send();
+    let res = client.get(url.as_str()).send().await;
 
     if let Err(e) = res {
         let s = e.source().unwrap();

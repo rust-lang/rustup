@@ -35,7 +35,7 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
-fn download_with_backend(
+async fn download_with_backend(
     backend: Backend,
     url: &Url,
     resume_from: u64,
@@ -43,13 +43,13 @@ fn download_with_backend(
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
+        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls).await,
     }
 }
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
 
-pub fn download_to_path_with_backend(
+pub async fn download_to_path_with_backend(
     backend: Backend,
     url: &Url,
     path: &Path,
@@ -61,74 +61,81 @@ pub fn download_to_path_with_backend(
     use std::fs::OpenOptions;
     use std::io::{Read, Seek, SeekFrom, Write};
 
-    || -> Result<()> {
-        let (file, resume_from) = if resume_from_partial {
-            let possible_partial = OpenOptions::new().read(true).open(path);
+    {
+        async move {
+            let (file, resume_from) = if resume_from_partial {
+                // TODO: blocking call
+                let possible_partial = OpenOptions::new().read(true).open(path);
 
-            let downloaded_so_far = if let Ok(mut partial) = possible_partial {
-                if let Some(cb) = callback {
-                    cb(Event::ResumingPartialDownload)?;
+                let downloaded_so_far = if let Ok(mut partial) = possible_partial {
+                    if let Some(cb) = callback {
+                        cb(Event::ResumingPartialDownload)?;
 
-                    let mut buf = vec![0; 32768];
-                    let mut downloaded_so_far = 0;
-                    loop {
-                        let n = partial.read(&mut buf)?;
-                        downloaded_so_far += n as u64;
-                        if n == 0 {
-                            break;
+                        let mut buf = vec![0; 32768];
+                        let mut downloaded_so_far = 0;
+                        loop {
+                            let n = partial.read(&mut buf)?;
+                            downloaded_so_far += n as u64;
+                            if n == 0 {
+                                break;
+                            }
+                            cb(Event::DownloadDataReceived(&buf[..n]))?;
                         }
-                        cb(Event::DownloadDataReceived(&buf[..n]))?;
+
+                        downloaded_so_far
+                    } else {
+                        let file_info = partial.metadata()?;
+                        file_info.len()
                     }
-
-                    downloaded_so_far
                 } else {
-                    let file_info = partial.metadata()?;
-                    file_info.len()
-                }
-            } else {
-                0
-            };
+                    0
+                };
 
-            let mut possible_partial = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .open(path)
-                .context("error opening file for download")?;
-
-            possible_partial.seek(SeekFrom::End(0))?;
-
-            (possible_partial, downloaded_so_far)
-        } else {
-            (
-                OpenOptions::new()
+                // TODO: blocking call
+                let mut possible_partial = OpenOptions::new()
                     .write(true)
                     .create(true)
                     .open(path)
-                    .context("error creating file for download")?,
-                0,
-            )
-        };
+                    .context("error opening file for download")?;
 
-        let file = RefCell::new(file);
+                possible_partial.seek(SeekFrom::End(0))?;
 
-        download_with_backend(backend, url, resume_from, &|event| {
-            if let Event::DownloadDataReceived(data) = event {
-                file.borrow_mut()
-                    .write_all(data)
-                    .context("unable to write download to disk")?;
-            }
-            match callback {
-                Some(cb) => cb(event),
-                None => Ok(()),
-            }
-        })?;
+                (possible_partial, downloaded_so_far)
+            } else {
+                (
+                    OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .open(path)
+                        .context("error creating file for download")?,
+                    0,
+                )
+            };
 
-        file.borrow_mut()
-            .sync_data()
-            .context("unable to sync download to disk")?;
+            let file = RefCell::new(file);
 
-        Ok(())
-    }()
+            // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
+            download_with_backend(backend, url, resume_from, &|event| {
+                if let Event::DownloadDataReceived(data) = event {
+                    file.borrow_mut()
+                        .write_all(data)
+                        .context("unable to write download to disk")?;
+                }
+                match callback {
+                    Some(cb) => cb(event),
+                    None => Ok(()),
+                }
+            })
+            .await?;
+
+            file.borrow_mut()
+                .sync_data()
+                .context("unable to sync download to disk")?;
+
+            Ok::<(), anyhow::Error>(())
+        }
+    }
+    .await
     .map_err(|e| {
         // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
         if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
@@ -271,15 +278,15 @@ pub mod reqwest_be {
     use anyhow::{anyhow, Context, Result};
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-default-tls"))]
     use once_cell::sync::Lazy;
-    use reqwest::blocking::{Client, ClientBuilder, Response};
-    use reqwest::{header, Proxy};
+    use reqwest::{header, Client, ClientBuilder, Proxy, Response};
+    use tokio_stream::StreamExt;
     use url::Url;
 
     use super::Event;
     use super::TlsBackend;
     use crate::errors::*;
 
-    pub fn download(
+    pub async fn download(
         url: &Url,
         resume_from: u64,
         callback: &dyn Fn(Event<'_>) -> Result<()>,
@@ -290,31 +297,26 @@ pub mod reqwest_be {
             return Ok(());
         }
 
-        let mut res = request(url, resume_from, tls).context("failed to make network request")?;
+        let res = request(url, resume_from, tls)
+            .await
+            .context("failed to make network request")?;
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
             return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
         }
 
-        let buffer_size = 0x10000;
-        let mut buffer = vec![0u8; buffer_size];
-
-        if let Some(len) = res.headers().get(header::CONTENT_LENGTH) {
-            // TODO possible issues during unwrap?
-            let len = len.to_str().unwrap().parse::<u64>().unwrap() + resume_from;
+        if let Some(len) = res.content_length() {
+            let len = len + resume_from;
             callback(Event::DownloadContentLengthReceived(len))?;
         }
 
-        loop {
-            let bytes_read = io::Read::read(&mut res, &mut buffer)?;
-
-            if bytes_read != 0 {
-                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-            } else {
-                return Ok(());
-            }
+        let mut stream = res.bytes_stream();
+        while let Some(item) = stream.next().await {
+            let bytes = item?;
+            callback(Event::DownloadDataReceived(&bytes))?;
         }
+        Ok(())
     }
 
     fn client_generic() -> ClientBuilder {
@@ -355,7 +357,7 @@ pub mod reqwest_be {
         env_proxy::for_url(url).to_url()
     }
 
-    fn request(
+    async fn request(
         url: &Url,
         resume_from: u64,
         backend: TlsBackend,
@@ -380,7 +382,7 @@ pub mod reqwest_be {
             req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
 
-        Ok(req.send()?)
+        Ok(req.send().await?)
     }
 
     fn download_from_file_url(

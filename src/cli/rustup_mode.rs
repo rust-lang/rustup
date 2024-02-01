@@ -9,6 +9,7 @@ use clap::{
     Arg, ArgAction, ArgGroup, ArgMatches, Command, ValueEnum,
 };
 use clap_complete::Shell;
+use futures::Future;
 use itertools::Itertools;
 
 use crate::{
@@ -84,8 +85,33 @@ where
     callee(cfg, matches)
 }
 
+async fn deprecated_async<'a, FF, F, B, R>(
+    instead: &str,
+    cfg: &'a mut Cfg,
+    matches: B,
+    callee: FF,
+) -> R
+where
+    FF: FnOnce(&'a mut Cfg, B) -> F,
+    F: Future<Output = R> + 'a,
+{
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "Use of (currently) unmaintained command line interface.",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "The exact API of this command may change without warning",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "Eventually this command will be a true alias.  Until then:",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(&format!(
+        "  Please use `rustup {instead}` instead"
+    )));
+    callee(cfg, matches).await
+}
+
 #[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
-pub fn main() -> Result<utils::ExitCode> {
+pub async fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
     use clap::error::ErrorKind::*;
@@ -100,7 +126,7 @@ pub fn main() -> Result<utils::ExitCode> {
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             #[cfg_attr(feature = "otel", tracing::instrument)]
-            fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
+            async fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(false, true)?;
                 let cwd = std::env::current_dir()?;
 
@@ -109,12 +135,15 @@ pub fn main() -> Result<utils::ExitCode> {
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
-                let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
+                let toolchain = cfg
+                    .find_or_install_override_toolchain_or_default(&cwd)
+                    .await?
+                    .0;
 
                 Ok(toolchain.rustc_version())
             }
 
-            match rustc_version() {
+            match rustc_version().await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
                 Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
@@ -158,23 +187,23 @@ pub fn main() -> Result<utils::ExitCode> {
             ("dump-testament", _) => common::dump_testament()?,
             ("show", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m))?,
+                    ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m).await)?,
                     ("home", _) => handle_epipe(show_rustup_home(cfg))?,
                     ("profile", _) => handle_epipe(show_profile(cfg))?,
-                    _ => handle_epipe(show(cfg, c))?,
+                    _ => handle_epipe(show(cfg, c).await)?,
                 },
-                None => handle_epipe(show(cfg, c))?,
+                None => handle_epipe(show(cfg, c).await)?,
             },
-            ("install", m) => deprecated("toolchain install", cfg, m, update)?,
-            ("update", m) => update(cfg, m)?,
-            ("check", _) => check_updates(cfg)?,
+            ("install", m) => deprecated_async("toolchain install", cfg, m, update).await?,
+            ("update", m) => update(cfg, m).await?,
+            ("check", _) => check_updates(cfg).await?,
             ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
-            ("default", m) => default_(cfg, m)?,
+            ("default", m) => default_(cfg, m).await?,
             ("toolchain", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("install", m) => update(cfg, m)?,
+                    ("install", m) => update(cfg, m).await?,
                     ("list", m) => handle_epipe(toolchain_list(cfg, m))?,
-                    ("link", m) => toolchain_link(cfg, m)?,
+                    ("link", m) => toolchain_link(cfg, m).await?,
                     ("uninstall", m) => toolchain_remove(cfg, m)?,
                     _ => unreachable!(),
                 },
@@ -182,18 +211,18 @@ pub fn main() -> Result<utils::ExitCode> {
             },
             ("target", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("list", m) => handle_epipe(target_list(cfg, m))?,
-                    ("add", m) => target_add(cfg, m)?,
-                    ("remove", m) => target_remove(cfg, m)?,
+                    ("list", m) => handle_epipe(target_list(cfg, m).await)?,
+                    ("add", m) => target_add(cfg, m).await?,
+                    ("remove", m) => target_remove(cfg, m).await?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
             },
             ("component", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("list", m) => handle_epipe(component_list(cfg, m))?,
-                    ("add", m) => component_add(cfg, m)?,
-                    ("remove", m) => component_remove(cfg, m)?,
+                    ("list", m) => handle_epipe(component_list(cfg, m).await)?,
+                    ("add", m) => component_add(cfg, m).await?,
+                    ("remove", m) => component_remove(cfg, m).await?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
@@ -201,20 +230,20 @@ pub fn main() -> Result<utils::ExitCode> {
             ("override", c) => match c.subcommand() {
                 Some(s) => match s {
                     ("list", _) => handle_epipe(common::list_overrides(cfg))?,
-                    ("set", m) => override_add(cfg, m)?,
+                    ("set", m) => override_add(cfg, m).await?,
                     ("unset", m) => override_remove(cfg, m)?,
                     _ => unreachable!(),
                 },
                 None => unreachable!(),
             },
-            ("run", m) => run(cfg, m)?,
-            ("which", m) => which(cfg, m)?,
-            ("doc", m) => doc(cfg, m)?,
+            ("run", m) => run(cfg, m).await?,
+            ("which", m) => which(cfg, m).await?,
+            ("doc", m) => doc(cfg, m).await?,
             #[cfg(not(windows))]
-            ("man", m) => man(cfg, m)?,
+            ("man", m) => man(cfg, m).await?,
             ("self", c) => match c.subcommand() {
                 Some(s) => match s {
-                    ("update", _) => self_update::update(cfg)?,
+                    ("update", _) => self_update::update(cfg).await?,
                     ("uninstall", m) => self_uninstall(m)?,
                     _ => unreachable!(),
                 },
@@ -839,7 +868,7 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
     }
 }
 
-fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
     if let Some(toolchain) = m.get_one::<MaybeResolvableToolchainName>("toolchain") {
@@ -853,7 +882,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-                let status = DistributableToolchain::install_if_not_installed(cfg, &desc)?;
+                let status = DistributableToolchain::install_if_not_installed(cfg, &desc).await?;
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
@@ -877,14 +906,14 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
+async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
     let channels = cfg.list_channels()?;
 
     for channel in channels {
         let (name, distributable) = channel;
         let current_version = distributable.show_version()?;
-        let dist_version = distributable.show_dist_version()?;
+        let dist_version = distributable.show_dist_version().await?;
         let _ = t.attr(terminalsource::Attr::Bold);
         write!(t.lock(), "{name} - ")?;
         match (current_version, dist_version) {
@@ -913,12 +942,12 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    check_rustup_update()?;
+    check_rustup_update().await?;
 
     Ok(utils::ExitCode(0))
 }
 
-fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
@@ -975,7 +1004,8 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                 desc.clone(),
             ) {
                 Ok(mut d) => {
-                    d.update_extra(&components, &targets, profile, force, allow_downgrade)?
+                    d.update_extra(&components, &targets, profile, force, allow_downgrade)
+                        .await?
                 }
                 Err(RustupError::ToolchainNotInstalled(_)) => {
                     crate::toolchain::distributable::DistributableToolchain::install(
@@ -985,7 +1015,8 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                         &targets,
                         profile,
                         force,
-                    )?
+                    )
+                    .await?
                     .0
                 }
                 Err(e) => Err(e)?,
@@ -1002,17 +1033,17 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
         }
         if self_update {
-            common::self_update(|| Ok(utils::ExitCode(0)))?;
+            common::self_update(|| Ok(utils::ExitCode(0))).await?;
         }
     } else {
-        common::update_all_channels(cfg, self_update, m.get_flag("force"))?;
+        common::update_all_channels(cfg, self_update, m.get_flag("force")).await?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents(&cfg.download_dir);
         cfg.temp_cfg.clean();
     }
 
     if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update()?;
+        check_rustup_update().await?;
     }
 
     if self_update::NEVER_SELF_UPDATE {
@@ -1023,26 +1054,28 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = m
         .get_one::<ResolvableLocalToolchainName>("toolchain")
         .unwrap();
     let args = m.get_many::<String>("command").unwrap();
     let args: Vec<_> = args.collect();
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-    let cmd = cfg.create_command_for_toolchain(&toolchain, m.get_flag("install"), args[0])?;
+    let cmd = cfg
+        .create_command_for_toolchain(&toolchain, m.get_flag("install"), args[0])
+        .await?;
 
     let code = command::run_command_for_dir(cmd, args[0], &args[1..])?;
     Ok(code)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let binary = m.get_one::<String>("command").unwrap();
     let binary_path = if let Some(toolchain) = m.get_one::<ResolvableToolchainName>("toolchain") {
         let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::new(cfg, desc.into())?.binary_file(binary)
     } else {
-        cfg.which_binary(&utils::current_dir()?, binary)?
+        cfg.which_binary(&utils::current_dir()?, binary).await?
     };
 
     utils::assert_is_file(&binary_path)?;
@@ -1052,7 +1085,7 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
     let verbose = m.get_flag("verbose");
@@ -1079,7 +1112,9 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
     // XXX: we may want a find_without_install capability for show.
-    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
+    let active_toolchain = cfg
+        .find_or_install_override_toolchain_or_default(&cwd)
+        .await;
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
@@ -1224,10 +1259,13 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
     let cwd = utils::current_dir()?;
-    match cfg.find_or_install_override_toolchain_or_default(&cwd) {
+    match cfg
+        .find_or_install_override_toolchain_or_default(&cwd)
+        .await
+    {
         Err(e) => {
             let root_cause = e.root_cause();
             if let Some(RustupError::ToolchainNotSelected) =
@@ -1262,8 +1300,8 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
@@ -1274,8 +1312,8 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     }
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1323,14 +1361,14 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             Some(TargetTriple::new(&target)),
             false,
         );
-        distributable.add_component(new_component)?;
+        distributable.add_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
     for target in m.get_many::<String>("target").unwrap() {
@@ -1354,14 +1392,14 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             warn!("after removing the last target, no build targets will be available");
         }
         let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        distributable.remove_component(new_component)?;
+        distributable.remove_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
@@ -1373,15 +1411,15 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
     for component in m.get_many::<String>("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        distributable.add_component(new_component)?;
+        distributable.add_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1394,15 +1432,15 @@ fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Opt
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
     for component in m.get_many::<String>("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        distributable.remove_component(new_component)?;
+        distributable.remove_component(new_component).await?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1410,14 +1448,14 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
 // Make *sure* only to use this for a subcommand whose "toolchain" argument
 // has .value_parser(partial_toolchain_desc_parser), or it will panic.
-fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
+async fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
     let toolchain = m
         .get_one::<PartialToolchainDesc>("toolchain")
         .map(Into::into);
-    explicit_or_dir_toolchain2(cfg, toolchain)
+    explicit_or_dir_toolchain2(cfg, toolchain).await
 }
 
-fn explicit_or_dir_toolchain2(
+async fn explicit_or_dir_toolchain2(
     cfg: &Cfg,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<Toolchain<'_>> {
@@ -1428,7 +1466,9 @@ fn explicit_or_dir_toolchain2(
         }
         None => {
             let cwd = utils::current_dir()?;
-            let (toolchain, _) = cfg.find_or_install_override_toolchain_or_default(&cwd)?;
+            let (toolchain, _) = cfg
+                .find_or_install_override_toolchain_or_default(&cwd)
+                .await?;
 
             Ok(toolchain)
         }
@@ -1439,7 +1479,7 @@ fn toolchain_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     common::list_toolchains(cfg, m.get_flag("verbose"))
 }
 
-fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = m.get_one::<CustomToolchainName>("toolchain").unwrap();
     let path = m.get_one::<String>("path").unwrap();
     cfg.ensure_toolchains_dir()?;
@@ -1448,7 +1488,8 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         Path::new(path),
         toolchain,
         true,
-    )?;
+    )
+    .await?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1460,7 +1501,7 @@ fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain_name = m.get_one::<ResolvableToolchainName>("toolchain").unwrap();
     let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
 
@@ -1475,15 +1516,10 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         Err(e @ RustupError::ToolchainNotInstalled(_)) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
-                let status = DistributableToolchain::install(
-                    cfg,
-                    desc,
-                    &[],
-                    &[],
-                    cfg.get_profile()?,
-                    false,
-                )?
-                .0;
+                let status =
+                    DistributableToolchain::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
+                        .await?
+                        .0;
                 writeln!(process().stdout().lock())?;
                 common::show_channel_update(
                     cfg,
@@ -1562,8 +1598,8 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
     ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+async fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         let manifestation = distributable.get_manifestation()?;
@@ -1615,12 +1651,12 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg(not(windows))]
-fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+async fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     use crate::currentprocess::varsource::VarSource;
 
     let command = m.get_one::<String>("command").unwrap();
 
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, m).await?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");

@@ -7,8 +7,7 @@ mod tests;
 use std::path::Path;
 
 use anyhow::{anyhow, bail, Context, Result};
-use retry::delay::NoDelay;
-use retry::{retry, OperationResult};
+use tokio_retry::{strategy::FixedInterval, RetryIf};
 
 use crate::currentprocess::varsource::VarSource;
 use crate::dist::component::{
@@ -21,7 +20,7 @@ use crate::dist::manifest::{Component, CompressionKind, Manifest, TargetedPackag
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::errors::{OperationError, RustupError};
+use crate::errors::RustupError;
 use crate::process;
 use crate::utils::utils;
 
@@ -100,7 +99,10 @@ impl Manifestation {
     /// distribution manifest to "rustlib/rustup-dist.toml" and a
     /// configuration containing the component name-target pairs to
     /// "rustlib/rustup-config.toml".
-    pub fn update(
+    ///
+    /// It is *not* safe to run two updates concurrently. See
+    /// https://github.com/rust-lang/rustup/issues/988 for the details.
+    pub async fn update(
         &self,
         new_manifest: &Manifest,
         changes: Changes,
@@ -174,26 +176,22 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let downloaded_file = retry(NoDelay.take(max_retries), || {
-                match download_cfg.download(&url_url, &hash) {
-                    Ok(f) => OperationResult::Ok(f),
-                    Err(e) => {
-                        match e.downcast_ref::<RustupError>() {
-                            Some(RustupError::BrokenPartialFile) => {
-                                (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                                return OperationResult::Retry(OperationError(e));
-                            }
-                            Some(RustupError::DownloadingFile { .. }) => {
-                                (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                                return OperationResult::Retry(OperationError(e));
-                            }
-                            Some(_) => return OperationResult::Err(OperationError(e)),
-                            None => (),
-                        };
-                        OperationResult::Err(OperationError(e))
+            let downloaded_file = RetryIf::spawn(
+                FixedInterval::from_millis(0).take(max_retries),
+                || download_cfg.download(&url_url, &hash),
+                |e: &anyhow::Error| {
+                    // retry only known retriable cases
+                    match e.downcast_ref::<RustupError>() {
+                        Some(RustupError::BrokenPartialFile)
+                        | Some(RustupError::DownloadingFile { .. }) => {
+                            (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
+                            true
+                        }
+                        _ => false,
                     }
-                }
-            })
+                },
+            )
+            .await
             .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
@@ -381,7 +379,7 @@ impl Manifestation {
     }
 
     /// Installation using the legacy v1 manifest format
-    pub(crate) fn update_v1(
+    pub(crate) async fn update_v1(
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
@@ -424,7 +422,9 @@ impl Manifestation {
             notify_handler,
         };
 
-        let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;
+        let dl = dlcfg
+            .download_and_check(&url, update_hash, ".tar.gz")
+            .await?;
         if dl.is_none() {
             return Ok(None);
         };

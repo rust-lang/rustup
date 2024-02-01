@@ -12,7 +12,7 @@ use super::{names::CustomToolchainName, toolchain::InstalledPath};
 pub(crate) struct CustomToolchain;
 
 impl CustomToolchain {
-    pub(crate) fn install_from_dir(
+    pub(crate) async fn install_from_dir(
         cfg: &Cfg,
         src: &Path,
         dest: &CustomToolchainName,
@@ -34,9 +34,10 @@ impl CustomToolchain {
                 dest,
                 cfg,
             }
-            .install()?;
+            .install()
+            .await?;
         } else {
-            InstallMethod::Copy { src, dest, cfg }.install()?;
+            InstallMethod::Copy { src, dest, cfg }.install().await?;
         }
         Ok(Self)
     }

@@ -356,9 +356,10 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
 }
 
 /// Installing is a simple matter of copying the running binary to
-/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
-/// and adding `CARGO_HOME`/bin to PATH.
-pub(crate) fn install(
+/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it, and adding
+/// `CARGO_HOME`/bin to PATH by dropping shell scripts around the place, except
+/// on windows, and also we need a linker on Windows...
+pub(crate) async fn install(
     no_prompt: bool,
     verbose: bool,
     quiet: bool,
@@ -393,7 +394,7 @@ pub(crate) fn install(
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
             match windows::choose_vs_install()? {
                 Some(VsInstallPlan::Automatic) => {
-                    match try_install_msvc(&opts) {
+                    match try_install_msvc(&opts).await {
                         Err(e) => {
                             // Make sure the console doesn't exit before the user can
                             // see the error and give the option to continue anyway.
@@ -451,7 +452,7 @@ pub(crate) fn install(
         }
     }
 
-    let install_res: Result<utils::ExitCode> = (|| {
+    let install_res: Result<utils::ExitCode> = async {
         install_bins()?;
 
         #[cfg(unix)]
@@ -471,10 +472,12 @@ pub(crate) fn install(
             opts.targets,
             verbose,
             quiet,
-        )?;
+        )
+        .await?;
 
         Ok(utils::ExitCode(0))
-    })();
+    }
+    .await;
 
     if let Err(e) = install_res {
         report_error(&e);
@@ -832,7 +835,7 @@ pub(crate) fn install_proxies() -> Result<()> {
     Ok(())
 }
 
-fn maybe_install_rust(
+async fn maybe_install_rust(
     toolchain: Option<MaybeOfficialToolchainName>,
     profile_str: &str,
     default_host_triple: Option<&str>,
@@ -862,7 +865,9 @@ fn maybe_install_rust(
             // - delete the partial install and start over
             // For now, we error.
             let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
-            toolchain.update(components, targets, cfg.get_profile()?)?
+            toolchain
+                .update(components, targets, cfg.get_profile()?)
+                .await?
         } else {
             DistributableToolchain::install(
                 &cfg,
@@ -871,7 +876,8 @@ fn maybe_install_rust(
                 targets,
                 cfg.get_profile()?,
                 true,
-            )?
+            )
+            .await?
             .0
         };
 
@@ -1074,10 +1080,10 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
-pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
-    common::warn_if_host_is_emulated();
-
+pub(crate) async fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
     use common::SelfUpdatePermission::*;
+
+    common::warn_if_host_is_emulated();
     let update_permitted = if NEVER_SELF_UPDATE {
         HardFail
     } else {
@@ -1097,7 +1103,7 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
         Permit => {}
     }
 
-    match prepare_update()? {
+    match prepare_update().await? {
         Some(setup_path) => {
             let version = match get_new_rustup_version(&setup_path) {
                 Some(new_version) => parse_new_rustup_version(new_version),
@@ -1152,7 +1158,7 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
+pub(crate) async fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
@@ -1187,7 +1193,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Get available version
     info!("checking for self-update");
-    let available_version = get_available_rustup_version()?;
+    let available_version = get_available_rustup_version().await?;
 
     // If up-to-date
     if available_version == current_version {
@@ -1202,7 +1208,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Download new version
     info!("downloading self-update");
-    utils::download_file(&download_url, &setup_path, None, &|_| ())?;
+    utils::download_file(&download_url, &setup_path, None, &|_| ()).await?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
@@ -1210,7 +1216,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     Ok(Some(setup_path))
 }
 
-pub(crate) fn get_available_rustup_version() -> Result<String> {
+async fn get_available_rustup_version() -> Result<String> {
     let update_root = process()
         .var("RUSTUP_UPDATE_ROOT")
         .unwrap_or_else(|_| String::from(UPDATE_ROOT));
@@ -1223,7 +1229,7 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
+    utils::download_file(&release_file_url, &release_file, None, &|_| ()).await?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml: toml::Value =
         toml::from_str(&release_toml_str).context("unable to parse rustup release file")?;
@@ -1250,13 +1256,13 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
     Ok(String::from(available_version))
 }
 
-pub(crate) fn check_rustup_update() -> Result<()> {
+pub(crate) async fn check_rustup_update() -> Result<()> {
     let mut t = process().stdout().terminal();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = get_available_rustup_version()?;
+    let available_version = get_available_rustup_version().await?;
 
     let _ = t.attr(terminalsource::Attr::Bold);
     write!(t.lock(), "rustup - ")?;
