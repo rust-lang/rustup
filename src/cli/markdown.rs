@@ -1,7 +1,7 @@
 // Write Markdown to the terminal
 use std::io::Write;
 
-use pulldown_cmark::{Event, Tag};
+use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::currentprocess::terminalsource::{Attr, Color, ColorableTerminal};
 
@@ -122,16 +122,17 @@ impl<'a> LineFormatter<'a> {
             Tag::Paragraph => {
                 self.wrapper.write_line();
             }
-            Tag::Heading(_level, _identifier, _classes) => {
+            Tag::Heading { .. } => {
                 self.push_attr(Attr::Bold);
                 self.wrapper.write_line();
             }
+            Tag::MetadataBlock(_) => {}
             Tag::Table(_alignments) => {}
             Tag::TableHead => {}
             Tag::TableRow => {}
             Tag::TableCell => {}
             Tag::BlockQuote => {}
-            Tag::CodeBlock(_lang) => {
+            Tag::CodeBlock(_) | Tag::HtmlBlock { .. } => {
                 self.wrapper.write_line();
                 self.wrapper.indent += 2;
                 self.is_code_block = true;
@@ -148,43 +149,44 @@ impl<'a> LineFormatter<'a> {
             }
             Tag::Strong => {}
             Tag::Strikethrough => {}
-            Tag::Link(_link_type, _dest, _title) => {}
-            Tag::Image(_link_type, _dest, _title) => {}
+            Tag::Link { .. } => {}
+            Tag::Image { .. } => {}
             Tag::FootnoteDefinition(_name) => {}
         }
     }
 
-    fn end_tag(&mut self, tag: Tag<'a>) {
+    fn end_tag(&mut self, tag: TagEnd) {
         match tag {
-            Tag::Paragraph => {
+            TagEnd::Paragraph => {
                 self.wrapper.write_line();
             }
-            Tag::Heading(_level, _identifier, _classes) => {
+            TagEnd::Heading { .. } => {
                 self.wrapper.write_line();
                 self.pop_attr();
             }
-            Tag::Table(_) => {}
-            Tag::TableHead => {}
-            Tag::TableRow => {}
-            Tag::TableCell => {}
-            Tag::BlockQuote => {}
-            Tag::CodeBlock(_) => {
+            TagEnd::Table => {}
+            TagEnd::TableHead => {}
+            TagEnd::TableRow => {}
+            TagEnd::TableCell => {}
+            TagEnd::BlockQuote => {}
+            TagEnd::CodeBlock | TagEnd::HtmlBlock => {
                 self.is_code_block = false;
                 self.wrapper.indent -= 2;
             }
-            Tag::List(_) => {
+            TagEnd::List(_) => {
                 self.wrapper.indent -= 2;
                 self.wrapper.write_line();
             }
-            Tag::Item => {}
-            Tag::Emphasis => {
+            TagEnd::Item => {}
+            TagEnd::Emphasis => {
                 self.pop_attr();
             }
-            Tag::Strong => {}
-            Tag::Strikethrough => {}
-            Tag::Link(_, _, _) => {}
-            Tag::Image(_, _, _) => {} // shouldn't happen, handled in start
-            Tag::FootnoteDefinition(_) => {}
+            TagEnd::Strong => {}
+            TagEnd::Strikethrough => {}
+            TagEnd::Link { .. } => {}
+            TagEnd::Image { .. } => {} // shouldn't happen, handled in start
+            TagEnd::FootnoteDefinition => {}
+            TagEnd::MetadataBlock(_) => {}
         }
     }
 
@@ -216,6 +218,7 @@ impl<'a> LineFormatter<'a> {
             FootnoteReference(_name) => {}
             TaskListMarker(true) => {}
             TaskListMarker(false) => {}
+            InlineHtml(_) => {}
         }
     }
 }
