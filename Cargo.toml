@@ -67,7 +67,7 @@ openssl = { version = "0.10", optional = true }
 opentelemetry = { workspace = true, optional = true }
 opentelemetry_sdk = { workspace = true, optional = true }
 opentelemetry-otlp = { workspace = true, optional = true }
-pulldown-cmark = { version = "0.9", default-features = false }
+pulldown-cmark = { version = "0.10", default-features = false }
 rand = "0.8"
 regex = "1"
 remove_dir_all = { version = "0.8.1", features = ["parallel"] }
