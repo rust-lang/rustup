@@ -6,6 +6,7 @@ src = "src"
 title = "The Rustup developer guide"
 
 [output.html]
+curly-quotes = true
 edit-url-template = "https://github.com/rust-lang/rustup/edit/master/doc/dev-guide/{path}"
 git-repository-url = "https://github.com/rust-lang/rustup/tree/master/doc/dev-guide"
 site-url = "https://rust-lang.github.io/rustup/dev-guide"

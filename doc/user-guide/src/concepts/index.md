@@ -25,30 +25,30 @@ This is similar to Ruby's [rbenv], Python's [pyenv], or Node's [nvm].
 
 ## Terminology
 
-* **channel** — Rust is released to three different "channels": stable, beta,
+* **channel** --- Rust is released to three different "channels": stable, beta,
   and nightly. See the [Channels] chapter for more details.
 
-* **toolchain** — A "toolchain" is a complete installation of the Rust
+* **toolchain** --- A "toolchain" is a complete installation of the Rust
   compiler (`rustc`) and related tools (like `cargo`). A [toolchain
   specification] includes the release channel or version, and the host
   platform that the toolchain runs on.
 
-* **target** — `rustc` is capable of generating code for many platforms. The
+* **target** --- `rustc` is capable of generating code for many platforms. The
   "target" specifies the platform that the code will be generated for. By
   default, `cargo` and `rustc` use the host toolchain's platform as the
   target. To build for a different target, usually the target's standard
   library needs to be installed first via the `rustup target` command. See the
   [Cross-compilation] chapter for more details.
 
-* **component** — Each release of Rust includes several "components", some of
+* **component** --- Each release of Rust includes several "components", some of
   which are required (like `rustc`) and some that are optional (like
   [`clippy`]). See the [Components] chapter for more detail.
 
-* **profile** — In order to make it easier to work with components, a
+* **profile** --- In order to make it easier to work with components, a
   "profile" defines a grouping of components. See the [Profiles] chapter for
   more details.
 
-* **proxy** —  A wrapper for a common Rust component (like `rustc`), built to forward
+* **proxy** ---  A wrapper for a common Rust component (like `rustc`), built to forward
   CLI invocations to the active Rust toolchain. See the [Proxies] chapter for more details.
 
 [`clippy`]: https://github.com/rust-lang/rust-clippy
