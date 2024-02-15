@@ -145,7 +145,7 @@ enum-map = "2.5.0"
 proptest.workspace = true
 rustup-macros.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-trycmd = "0.14.13"
+trycmd = "0.15.0"
 
 [build-dependencies]
 once_cell.workspace = true
