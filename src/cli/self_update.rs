@@ -433,10 +433,10 @@ pub(crate) fn install(
         let msg = pre_install_msg(opts.no_modify_path)?;
 
         md(&mut term, msg);
-
+        let mut customized_install = false;
         loop {
             md(&mut term, current_install_opts(&opts));
-            match common::confirm_advanced()? {
+            match common::confirm_advanced(customized_install)? {
                 Confirm::No => {
                     info!("aborting installation");
                     return Ok(utils::ExitCode(0));
@@ -445,6 +445,7 @@ pub(crate) fn install(
                     break;
                 }
                 Confirm::Advanced => {
+                    customized_install = true;
                     opts = customize_install(opts)?;
                 }
             }
