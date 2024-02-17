@@ -1598,9 +1598,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
         topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
         topical_path.to_str().unwrap()
-    } else if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
+    } else if let Some((name, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
+        writeln!(
+            process().stderr().lock(),
+            "Opening docs named `{name}` in your browser"
+        )?;
         path
     } else {
+        writeln!(process().stderr().lock(), "Opening docs in your browser")?;
         "index.html"
     };
 
