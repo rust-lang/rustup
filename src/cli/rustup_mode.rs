@@ -1608,6 +1608,16 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
+    } else if m.get_flag("serve") {
+        //TODO: implement serve
+        const PORT: u16 = 0;
+        writeln!(
+            process().stdout().lock(),
+            "Serving documentation at {} on {}",
+            doc_url,
+            PORT
+        )?;
+        Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
         Ok(utils::ExitCode(0))
