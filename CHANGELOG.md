@@ -71,6 +71,23 @@ Thanks go to:
 
 **Full Changelog**: https://github.com/rust-lang/rustup/compare/1.26.0...1.27.0
 
+[1.27.0]: https://github.com/rust-lang/rustup/releases/tag/1.27.0
+[pr#3108]: https://github.com/rust-lang/rustup/pull/3108
+[pr#3435]: https://github.com/rust-lang/rustup/pull/3435
+[pr#3475]: https://github.com/rust-lang/rustup/pull/3475
+[pr#3068]: https://github.com/rust-lang/rustup/pull/3068
+[pr#3642]: https://github.com/rust-lang/rustup/pull/3642
+[pr#3637]: https://github.com/rust-lang/rustup/pull/3637
+[pr#3444]: https://github.com/rust-lang/rustup/pull/3444
+[pr#3438]: https://github.com/rust-lang/rustup/pull/3438
+[pr#3488]: https://github.com/rust-lang/rustup/pull/3488
+[pr#3490]: https://github.com/rust-lang/rustup/pull/3490
+[pr#3493]: https://github.com/rust-lang/rustup/pull/3493
+[pr#3453]: https://github.com/rust-lang/rustup/pull/3453
+[pr#3518]: https://github.com/rust-lang/rustup/pull/3518
+[pr#3548]: https://github.com/rust-lang/rustup/pull/3548
+[pr#3578]: https://github.com/rust-lang/rustup/pull/3578
+
 ## [1.26.0] - 2023-04-05
 
 This version of Rustup involves a significant number of internal refactors, both in terms
