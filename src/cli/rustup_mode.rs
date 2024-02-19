@@ -4,12 +4,17 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
+use axum::http::Request;
 use clap::{
     builder::{EnumValueParser, PossibleValue, PossibleValuesParser},
     Arg, ArgAction, ArgGroup, ArgMatches, Command, ValueEnum,
 };
 use clap_complete::Shell;
 use itertools::Itertools;
+
+use axum::{routing::get, Router};
+use tokio::main;
+use tokio::net::TcpListener;
 
 use crate::{
     cli::{
@@ -45,6 +50,7 @@ use crate::{
     utils::utils,
     Cfg, Notification,
 };
+use axum::Router;
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =
     "To override the toolchain using the 'rustup +toolchain' syntax, \
@@ -716,6 +722,13 @@ pub(crate) fn cli() -> Command {
                         .long("path")
                         .help("Only print the path to the documentation")
                         .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    //TODO: Test this with `rustup doc --serve`
+                    Arg::new("serve")
+                        .help("serve doc over HTTP")
+                        .long("serve")
+                        .num_args(1)
                 )
                 .arg(
                     Arg::new("toolchain")
@@ -1562,6 +1575,7 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
     ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
+#[tokio::main]
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
 
@@ -1610,13 +1624,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         Ok(utils::ExitCode(0))
     } else if m.get_flag("serve") {
         //TODO: implement serve
-        const PORT: u16 = 0;
-        writeln!(
-            process().stdout().lock(),
-            "Serving documentation at {} on {}",
-            doc_url,
-            PORT
-        )?;
+        let app = Router::new().route(
+            "/",
+            get(|| async {
+                doc_url;
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1.0");
+        axum::serve(listener, app).await.unwrap();
         Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
