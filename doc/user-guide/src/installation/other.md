@@ -36,6 +36,15 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile
 > If you have encountered any problems installing `rustup` with a package manager,
 > please contact the package maintainer(s) for further information.
 
+### APT
+
+Starting from Debian 13 (trixie) and Ubuntu 24.04 (noble),
+you may use `apt` to install `rustup`:
+
+```sh
+$ sudo apt install rustup
+```
+
 ### Homebrew
 
 You can use `brew` to install `rustup-init`[^not-rust]:
