@@ -1,10 +1,10 @@
 use std::fmt;
+use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
-use axum::http::Request;
 use clap::{
     builder::{EnumValueParser, PossibleValue, PossibleValuesParser},
     Arg, ArgAction, ArgGroup, ArgMatches, Command, ValueEnum,
@@ -12,9 +12,7 @@ use clap::{
 use clap_complete::Shell;
 use itertools::Itertools;
 
-use axum::{routing::get, Router};
-use tokio::main;
-use tokio::net::TcpListener;
+use ::tiny_http::{Response, Server, StatusCode};
 
 use crate::{
     cli::{
@@ -50,7 +48,6 @@ use crate::{
     utils::utils,
     Cfg, Notification,
 };
-use axum::Router;
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =
     "To override the toolchain using the 'rustup +toolchain' syntax, \
@@ -728,7 +725,6 @@ pub(crate) fn cli() -> Command {
                     Arg::new("serve")
                         .help("serve doc over HTTP")
                         .long("serve")
-                        .num_args(1)
                 )
                 .arg(
                     Arg::new("toolchain")
@@ -1575,7 +1571,6 @@ const DOCS_DATA: &[(&str, &str, &str)] = &[
     ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-#[tokio::main]
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
 
@@ -1624,15 +1619,21 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         Ok(utils::ExitCode(0))
     } else if m.get_flag("serve") {
         //TODO: implement serve
-        let app = Router::new().route(
-            "/",
-            get(|| async {
-                doc_url;
-            }),
-        );
-        let listener = tokio::net::TcpListener::bind("127.0.0.1.0");
-        axum::serve(listener, app).await.unwrap();
-        Ok(utils::ExitCode(0))
+        let server = Server::http("0.0.0.0:8000").unwrap();
+        loop {
+            for request in server.incoming_requests() {
+                println!(
+                    "received request! method: {:?}, url: {:?}, headers: {:?}",
+                    request.method(),
+                    request.url(),
+                    request.headers()
+                );
+                let response = tiny_http::Response::from_string(doc_url);
+                let _ = request.respond(response);
+            }
+        }
+
+        //Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
         Ok(utils::ExitCode(0))
