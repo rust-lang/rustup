@@ -1,5 +1,4 @@
 use std::fmt;
-use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -11,8 +10,6 @@ use clap::{
 };
 use clap_complete::Shell;
 use itertools::Itertools;
-
-use ::tiny_http::{Response, Server, StatusCode};
 
 use crate::{
     cli::{
@@ -721,12 +718,6 @@ pub(crate) fn cli() -> Command {
                         .action(ArgAction::SetTrue),
                 )
                 .arg(
-                    //TODO: Test this with `rustup doc --serve`
-                    Arg::new("serve")
-                        .help("serve doc over HTTP")
-                        .long("serve")
-                )
-                .arg(
                     Arg::new("toolchain")
                         .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
                         .long("toolchain")
@@ -734,6 +725,9 @@ pub(crate) fn cli() -> Command {
                         .value_parser(partial_toolchain_desc_parser),
                 )
                 .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
+                .subcommand(
+                    Command::new("servedoc")
+                    )
                 .group(
                     ArgGroup::new("page").args(
                         DOCS_DATA
@@ -747,7 +741,7 @@ pub(crate) fn cli() -> Command {
                         .iter()
                         .map(|&(name, help_msg, _)| Arg::new(name).long(name).help(help_msg).action(ArgAction::SetTrue))
                         .collect::<Vec<_>>(),
-                ),
+                )
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -1602,6 +1596,10 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         }
     };
 
+    //get servedoc argument out of m
+    let servedoc = m.subcommand();
+    println!("servedoc: {:?}", servedoc);
+
     let topical_path: PathBuf;
 
     let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
@@ -1617,23 +1615,6 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
-    } else if m.get_flag("serve") {
-        //TODO: implement serve
-        let server = Server::http("0.0.0.0:8000").unwrap();
-        loop {
-            for request in server.incoming_requests() {
-                println!(
-                    "received request! method: {:?}, url: {:?}, headers: {:?}",
-                    request.method(),
-                    request.url(),
-                    request.headers()
-                );
-                let response = tiny_http::Response::from_string(doc_url);
-                let _ = request.respond(response);
-            }
-        }
-
-        //Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
         Ok(utils::ExitCode(0))
