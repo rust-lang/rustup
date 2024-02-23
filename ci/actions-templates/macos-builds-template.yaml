@@ -8,12 +8,12 @@ jobs: # skip-x86_64 skip-aarch64
     runs-on: macos-13 # skip-aarch64
     strategy:
       matrix:
-        target:
-          - x86_64-apple-darwin # skip-aarch64
-          - aarch64-apple-darwin # skip-x86_64
         mode:
           - dev
           - release
+        target:
+          - x86_64-apple-darwin # skip-aarch64
+          - aarch64-apple-darwin # skip-x86_64
     steps:
       - uses: actions/checkout@v4
         with:
