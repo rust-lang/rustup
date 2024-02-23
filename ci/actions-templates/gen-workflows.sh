@@ -37,8 +37,10 @@ gen_job linux-builds pr
 gen_job linux-builds master
 gen_job linux-builds stable
 
+gen_job macos-builds x86_64
+gen_job macos-builds aarch64
+
 # The following targets only have a single job
-gen_job macos-builds all
 gen_job freebsd-builds all
 gen_job centos-fmt-clippy all
 gen_job all-features all
