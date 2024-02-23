@@ -14,15 +14,15 @@ jobs: # skip-master skip-pr skip-stable
     strategy:
       fail-fast: false
       matrix:
+        mode:
+          - dev
+          - release
         target:
           - x86_64-pc-windows-msvc
           - i686-pc-windows-msvc # skip-pr skip-master
           - aarch64-pc-windows-msvc # skip-pr
           - x86_64-pc-windows-gnu # skip-pr
           - i686-pc-windows-gnu # skip-pr skip-master
-        mode:
-          - dev
-          - release
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES

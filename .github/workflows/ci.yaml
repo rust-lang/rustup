@@ -28,11 +28,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-pc-windows-msvc
         mode:
           - dev
           - release
+        target:
+          - x86_64-pc-windows-msvc
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -160,13 +160,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        mode:
+          - dev
+          - release
         target:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc # skip-pr
           - x86_64-pc-windows-gnu # skip-pr
-        mode:
-          - dev
-          - release
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -297,15 +297,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        mode:
+          - dev
+          - release
         target:
           - x86_64-pc-windows-msvc
           - i686-pc-windows-msvc # skip-pr skip-master
           - aarch64-pc-windows-msvc # skip-pr
           - x86_64-pc-windows-gnu # skip-pr
           - i686-pc-windows-gnu # skip-pr skip-master
-        mode:
-          - dev
-          - release
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -899,11 +899,11 @@ jobs:
     runs-on: macos-13 # skip-aarch64
     strategy:
       matrix:
-        target:
-          - x86_64-apple-darwin # skip-aarch64
         mode:
           - dev
           - release
+        target:
+          - x86_64-apple-darwin # skip-aarch64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1012,11 +1012,11 @@ jobs:
     runs-on: macos-14 # skip-x86_64
     strategy:
       matrix:
-        target:
-          - aarch64-apple-darwin # skip-x86_64
         mode:
           - dev
           - release
+        target:
+          - aarch64-apple-darwin # skip-x86_64
     steps:
       - uses: actions/checkout@v4
         with:
