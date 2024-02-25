@@ -1613,9 +1613,13 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else if m.subcommand_matches("servedoc").is_some() {
+        let doc_path = toolchain.doc_path(doc_url)?;
+        let doc_path_str = doc_path.to_string_lossy().into_owned();
+        println!("serving doc from {}", doc_path.display());
         loop {
             let server = Server::http("127.0.0.1:3000").unwrap();
             for request in server.incoming_requests() {
+                let file = std::fs::File::open(&doc_path_str).unwrap();
                 println!(
                     "received request! method: {:?}, url: {:?}, headers: {:?}",
                     request.method(),
@@ -1623,7 +1627,7 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                     request.headers()
                 );
 
-                let response = Response::from_string(doc_url);
+                let response = Response::from_file(file);
                 request.respond(response);
             }
         }
