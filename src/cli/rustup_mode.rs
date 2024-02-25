@@ -1597,26 +1597,6 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         }
     };
 
-    //get servedoc argument out of m
-    if let Some(servedoc) = m.subcommand_matches("servedoc") {
-        println!("servedoc: {:?}", servedoc);
-
-        println!("hehe");
-        loop {
-            let server = Server::http("127.0.0.1:3000").unwrap();
-            for request in server.incoming_requests() {
-                println!(
-                    "received request! method: {:?}, url: {:?}, headers: {:?}",
-                    request.method(),
-                    request.url(),
-                    request.headers()
-                );
-
-                let response = Response::from_string("hello world");
-                request.respond(response);
-            }
-        }
-    }
     let topical_path: PathBuf;
 
     let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
@@ -1631,6 +1611,22 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     if m.get_flag("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
+        Ok(utils::ExitCode(0))
+    } else if m.subcommand_matches("servedoc").is_some() {
+        loop {
+            let server = Server::http("127.0.0.1:3000").unwrap();
+            for request in server.incoming_requests() {
+                println!(
+                    "received request! method: {:?}, url: {:?}, headers: {:?}",
+                    request.method(),
+                    request.url(),
+                    request.headers()
+                );
+
+                let response = Response::from_string(doc_url);
+                request.respond(response);
+            }
+        }
         Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
