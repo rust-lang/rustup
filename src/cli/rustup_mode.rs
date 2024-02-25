@@ -10,6 +10,7 @@ use clap::{
 };
 use clap_complete::Shell;
 use itertools::Itertools;
+use tiny_http::{Response, Server};
 
 use crate::{
     cli::{
@@ -1597,9 +1598,25 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     };
 
     //get servedoc argument out of m
-    let servedoc = m.subcommand();
-    println!("servedoc: {:?}", servedoc);
+    if let Some(servedoc) = m.subcommand_matches("servedoc") {
+        println!("servedoc: {:?}", servedoc);
 
+        println!("hehe");
+        loop {
+            let server = Server::http("127.0.0.1:3000").unwrap();
+            for request in server.incoming_requests() {
+                println!(
+                    "received request! method: {:?}, url: {:?}, headers: {:?}",
+                    request.method(),
+                    request.url(),
+                    request.headers()
+                );
+
+                let response = Response::from_string("hello world");
+                request.respond(response);
+            }
+        }
+    }
     let topical_path: PathBuf;
 
     let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
