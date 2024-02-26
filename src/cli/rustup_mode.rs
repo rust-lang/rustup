@@ -1613,13 +1613,24 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else if m.subcommand_matches("servedoc").is_some() {
-        let doc_path = toolchain.doc_path(doc_url)?;
-        let doc_path_str = doc_path.to_string_lossy().into_owned();
-        println!("serving doc from {}", doc_path.display());
+        let doc_path_index = toolchain.doc_path(doc_url)?;
+        let doc_path_base = toolchain.doc_path("")?;
+        let doc_path_str = doc_path_base.to_string_lossy().into_owned();
+        println!("serving doc from {}", doc_path_base.display());
         loop {
             let server = Server::http("127.0.0.1:3000").unwrap();
             for request in server.incoming_requests() {
-                let file = std::fs::File::open(&doc_path_str).unwrap();
+                //TODO get request path and serve filebased on that
+                let request_path = request.url();
+                println!("request path: {}", request_path);
+                let mut response_path =
+                    doc_path_base.clone().to_string_lossy().into_owned() + request_path;
+                if request_path == "/" {
+                    response_path = doc_path_index.clone().to_string_lossy().into_owned();
+                }
+                let request_path_from_doc = doc_path_str.clone() + request_path;
+                println!("request path: {}", request_path_from_doc);
+                let file = std::fs::File::open(&response_path).unwrap();
                 println!(
                     "received request! method: {:?}, url: {:?}, headers: {:?}",
                     request.method(),
