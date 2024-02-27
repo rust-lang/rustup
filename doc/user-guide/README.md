@@ -1,10 +1,11 @@
+
 # rustup documentation
 
 This directory contains rustup's documentation.
 
 ## Building the book
 
-Building the book requires [mdBook](https://github.com/rust-lang/mdBook). To get it:
+Building the book requires [mdBook](https://github.com/vecna-the-eternal/rust-lang-mdbook). To get it:
 
 ```console
 $ cargo install mdbook
