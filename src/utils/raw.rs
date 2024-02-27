@@ -134,10 +134,9 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
 pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     #[cfg(windows)]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
-        // std's symlink uses Windows's symlink function, which requires
-        // admin. We can create directory junctions the hard way without
-        // though.
-        symlink_junction_inner(src, dest)
+        // On Windows creating symlinks isn't allowed by default so if it fails
+        // we fallback to creating a directory junction.
+        std::os::windows::fs::symlink_dir(src, dest).or_else(|_| symlink_junction_inner(src, dest))
     }
     #[cfg(not(windows))]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
