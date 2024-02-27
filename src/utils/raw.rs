@@ -136,6 +136,8 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
         // On Windows creating symlinks isn't allowed by default so if it fails
         // we fallback to creating a directory junction.
+        // We prefer to use symlinks here because junction point paths, unlike symlinks,
+        // must always be absolute. This makes moving the rustup directory difficult.
         std::os::windows::fs::symlink_dir(src, dest).or_else(|_| symlink_junction_inner(src, dest))
     }
     #[cfg(not(windows))]
