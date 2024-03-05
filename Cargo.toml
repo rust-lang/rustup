@@ -160,9 +160,9 @@ derivative = "2.2.0"
 enum_dispatch = "0.3.11"
 fs_at = "0.1.6"
 once_cell = "1.18.0"
-opentelemetry = "0.21.0"
-opentelemetry_sdk = { version = "0.21.0", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.14.0"
+opentelemetry = "0.22.0"
+opentelemetry_sdk = { version = "0.22.0", features = ["rt-tokio"] }
+opentelemetry-otlp = "0.15.0"
 proptest = "1.1.0"
 rustup-macros = { path = "rustup-macros" }
 tempfile = "3.8"
