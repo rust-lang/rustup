@@ -10,6 +10,7 @@ use clap::{
 };
 use clap_complete::Shell;
 use itertools::Itertools;
+use tiny_http::{Response, Server};
 
 use crate::{
     cli::{
@@ -725,6 +726,9 @@ pub(crate) fn cli() -> Command {
                         .value_parser(partial_toolchain_desc_parser),
                 )
                 .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
+                .subcommand(
+                    Command::new("servedoc")
+                    )
                 .group(
                     ArgGroup::new("page").args(
                         DOCS_DATA
@@ -738,7 +742,7 @@ pub(crate) fn cli() -> Command {
                         .iter()
                         .map(|&(name, help_msg, _)| Arg::new(name).long(name).help(help_msg).action(ArgAction::SetTrue))
                         .collect::<Vec<_>>(),
-                ),
+                )
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -1607,6 +1611,37 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     if m.get_flag("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
+        Ok(utils::ExitCode(0))
+    } else if m.subcommand_matches("servedoc").is_some() {
+        let doc_path_index = toolchain.doc_path(doc_url)?;
+        let doc_path_base = toolchain.doc_path("")?;
+        let doc_path_str = doc_path_base.to_string_lossy().into_owned();
+        println!("serving doc from {}", doc_path_base.display());
+        loop {
+            let server = Server::http("127.0.0.1:3000").unwrap();
+            for request in server.incoming_requests() {
+                //TODO get request path and serve filebased on that
+                let request_path = request.url();
+                println!("request path: {}", request_path);
+                let mut response_path =
+                    doc_path_base.clone().to_string_lossy().into_owned() + request_path;
+                if request_path == "/" {
+                    response_path = doc_path_index.clone().to_string_lossy().into_owned();
+                }
+                let request_path_from_doc = doc_path_str.clone() + request_path;
+                println!("request path: {}", request_path_from_doc);
+                let file = std::fs::File::open(&response_path).unwrap();
+                println!(
+                    "received request! method: {:?}, url: {:?}, headers: {:?}",
+                    request.method(),
+                    request.url(),
+                    request.headers()
+                );
+
+                let response = Response::from_file(file);
+                request.respond(response);
+            }
+        }
         Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
