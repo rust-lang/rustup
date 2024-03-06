@@ -1,8 +1,8 @@
 bin.name = "rustup"
-args = ["self","upgrade-data","--help"]
+args = ["self", "upgrade-data", "--help"]
 stdout = """
 ...
-Upgrade the internal data format.
+Upgrade the internal data format
 
 Usage: rustup[EXE] self upgrade-data
 

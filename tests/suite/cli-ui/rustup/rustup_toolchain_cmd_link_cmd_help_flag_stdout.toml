@@ -1,14 +1,14 @@
 bin.name = "rustup"
-args = ["toolchain","link","--help"]
+args = ["toolchain", "link", "--help"]
 stdout = """
 ...
 Create a custom toolchain by symlinking to a directory
 
-Usage: rustup[EXE] toolchain link <toolchain> <path>
+Usage: rustup[EXE] toolchain link <TOOLCHAIN> <PATH>
 
 Arguments:
-  <toolchain>  Custom toolchain name
-  <path>       Path to the directory
+  <TOOLCHAIN>  Custom toolchain name
+  <PATH>       Path to the directory
 
 Options:
   -h, --help  Print help

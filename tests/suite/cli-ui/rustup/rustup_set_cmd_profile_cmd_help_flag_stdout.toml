@@ -1,13 +1,13 @@
 bin.name = "rustup"
-args = ["set","profile","--help"]
+args = ["set", "profile", "--help"]
 stdout = """
 ...
 The default components installed with a toolchain
 
-Usage: rustup[EXE] set profile <profile-name>
+Usage: rustup[EXE] set profile [PROFILE_NAME]
 
 Arguments:
-  <profile-name>  [default: default] [possible values: minimal, default, complete]
+  [PROFILE_NAME]  [default: default] [possible values: minimal, default, complete]
 
 Options:
   -h, --help  Print help

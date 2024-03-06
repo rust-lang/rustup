@@ -5,8 +5,8 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
 use clap::{
-    builder::{EnumValueParser, PossibleValue, PossibleValuesParser},
-    Arg, ArgAction, ArgGroup, ArgMatches, Command, ValueEnum,
+    builder::{PossibleValue, PossibleValuesParser},
+    Args, CommandFactory, Parser, Subcommand, ValueEnum,
 };
 use clap_complete::Shell;
 use itertools::Itertools;
@@ -35,15 +35,13 @@ use crate::{
     toolchain::{
         distributable::DistributableToolchain,
         names::{
-            custom_toolchain_name_parser, maybe_resolvable_toolchainame_parser,
-            partial_toolchain_desc_parser, resolvable_local_toolchainame_parser,
-            resolvable_toolchainame_parser, CustomToolchainName, MaybeResolvableToolchainName,
-            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
+            CustomToolchainName, MaybeResolvableToolchainName, ResolvableLocalToolchainName,
+            ResolvableToolchainName, ToolchainName,
         },
         toolchain::Toolchain,
     },
     utils::utils,
-    Cfg, Notification,
+    Cfg,
 };
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =
@@ -65,23 +63,568 @@ fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     }
 }
 
-fn deprecated<F, B, R>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> R
-where
-    F: FnOnce(&mut Cfg, B) -> R,
-{
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(
-        "Use of (currently) unmaintained command line interface.",
-    ));
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(
-        "The exact API of this command may change without warning",
-    ));
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(
-        "Eventually this command will be a true alias.  Until then:",
-    ));
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(&format!(
-        "  Please use `rustup {instead}` instead"
-    )));
-    callee(cfg, matches)
+/// The Rust toolchain installer
+#[derive(Debug, Parser)]
+#[command(
+    name = "rustup",
+    bin_name = "rustup[EXE]",
+    version = common::version(),
+    before_help = format!("rustup {}", common::version()),
+    after_help = RUSTUP_HELP,
+)]
+struct Rustup {
+    /// Enable verbose output
+    #[arg(short, long)]
+    verbose: bool,
+
+    /// Disable progress output
+    #[arg(short, long, conflicts_with = "verbose")]
+    quiet: bool,
+
+    /// Release channel (e.g. +stable) or custom toolchain to set override
+    #[arg(
+        name = "+toolchain",
+        value_parser = plus_toolchain_value_parser,
+    )]
+    plus_toolchain: Option<ResolvableToolchainName>,
+
+    #[command(subcommand)]
+    subcmd: Option<RustupSubcmd>,
+}
+
+fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolchainName> {
+    use clap::{error::ErrorKind, Error};
+    if let Some(stripped) = s.strip_prefix('+') {
+        ResolvableToolchainName::try_from(stripped)
+            .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
+    } else {
+        Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
+    }
+}
+
+#[derive(Debug, Subcommand)]
+#[command(name = "rustup", bin_name = "rustup[EXE]")]
+enum RustupSubcmd {
+    /// Update Rust toolchains
+    #[command(hide = true, after_help = INSTALL_HELP)]
+    Install {
+        #[command(flatten)]
+        opts: UpdateOpts,
+    },
+
+    /// Uninstall Rust toolchains
+    #[command(hide = true)]
+    Uninstall {
+        #[command(flatten)]
+        opts: UninstallOpts,
+    },
+
+    /// Dump information about the build
+    #[command(hide = true)]
+    DumpTestament,
+
+    /// Show the active and installed toolchains or profiles
+    #[command(after_help = SHOW_HELP)]
+    Show {
+        /// Enable verbose output with rustc information for all installed toolchains
+        #[arg(short, long)]
+        verbose: bool,
+
+        #[command(subcommand)]
+        subcmd: Option<ShowSubcmd>,
+    },
+
+    /// Update Rust toolchains and rustup
+    #[command(
+        after_help = UPDATE_HELP,
+        aliases = ["upgrade", "up"],
+    )]
+    Update {
+        /// Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help toolchain`
+        #[arg(num_args = 1..)]
+        toolchain: Vec<PartialToolchainDesc>,
+
+        /// Don't perform self update when running the `rustup update` command
+        #[arg(long)]
+        no_self_update: bool,
+
+        /// Force an update, even if some components are missing
+        #[arg(long)]
+        force: bool,
+
+        /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
+        #[arg(long)]
+        force_non_host: bool,
+    },
+
+    /// Check for updates to Rust toolchains and rustup
+    Check,
+
+    /// Set the default toolchain
+    #[command(after_help = DEFAULT_HELP)]
+    Default {
+        #[arg(help = MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<MaybeResolvableToolchainName>,
+    },
+
+    /// Modify or query the installed toolchains
+    Toolchain {
+        #[command(subcommand)]
+        subcmd: ToolchainSubcmd,
+    },
+
+    /// Modify a toolchain's supported targets
+    Target {
+        #[command(subcommand)]
+        subcmd: TargetSubcmd,
+    },
+
+    /// Modify a toolchain's installed components
+    Component {
+        #[command(subcommand)]
+        subcmd: ComponentSubcmd,
+    },
+
+    /// Modify toolchain overrides for directories
+    Override {
+        #[command(subcommand)]
+        subcmd: OverrideSubcmd,
+    },
+
+    /// Run a command with an environment configured for a given toolchain
+    #[command(after_help = RUN_HELP, trailing_var_arg = true)]
+    Run {
+        #[arg(help = RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: ResolvableLocalToolchainName,
+
+        #[arg(required = true, num_args = 1.., use_value_delimiter = false)]
+        command: Vec<String>,
+
+        /// Install the requested toolchain if needed
+        #[arg(long)]
+        install: bool,
+    },
+
+    /// Display which binary will be run for a given command
+    Which {
+        command: String,
+
+        #[arg(long, help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<ResolvableToolchainName>,
+    },
+
+    /// Open the documentation for the current toolchain
+    #[command(
+        alias = "docs",
+        after_help = DOC_HELP,
+    )]
+    Doc {
+        /// Only print the path to the documentation
+        #[arg(long)]
+        path: bool,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        #[arg(help = TOPIC_ARG_HELP)]
+        topic: Option<String>,
+
+        #[command(flatten)]
+        page: DocPage,
+    },
+
+    /// View the man page for a given command
+    #[cfg(not(windows))]
+    Man {
+        command: String,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+    },
+
+    /// Modify the rustup installation
+    Self_ {
+        #[command(subcommand)]
+        subcmd: SelfSubcmd,
+    },
+
+    /// Alter rustup settings
+    Set {
+        #[command(subcommand)]
+        subcmd: SetSubcmd,
+    },
+
+    /// Generate tab-completion scripts for your shell
+    #[command(after_help = COMPLETIONS_HELP, arg_required_else_help = true)]
+    Completions {
+        shell: Shell,
+
+        #[arg(default_value = "rustup")]
+        command: CompletionCommand,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum ShowSubcmd {
+    /// Show the active toolchain
+    #[command(after_help = SHOW_ACTIVE_TOOLCHAIN_HELP)]
+    ActiveToolchain {
+        /// Enable verbose output with rustc information
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Display the computed value of RUSTUP_HOME
+    Home,
+
+    /// Show the default profile used for the `rustup install` command
+    Profile,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(
+    arg_required_else_help = true,
+    subcommand_required = true,
+    after_help = TOOLCHAIN_HELP,
+)]
+enum ToolchainSubcmd {
+    /// List installed toolchains
+    List {
+        /// Enable verbose output with toolchain information
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Install or update a given toolchain
+    #[command(aliases = ["update", "add"] )]
+    Install {
+        #[command(flatten)]
+        opts: UpdateOpts,
+    },
+
+    /// Uninstall a toolchain
+    #[command(alias = "remove")]
+    Uninstall {
+        #[command(flatten)]
+        opts: UninstallOpts,
+    },
+
+    /// Create a custom toolchain by symlinking to a directory
+    #[command(after_help = TOOLCHAIN_LINK_HELP)]
+    Link {
+        /// Custom toolchain name
+        toolchain: CustomToolchainName,
+
+        /// Path to the directory
+        path: PathBuf,
+    },
+}
+
+#[derive(Debug, Default, Args)]
+struct UpdateOpts {
+    #[arg(
+        required = true,
+        help = OFFICIAL_TOOLCHAIN_ARG_HELP,
+        num_args = 1..,
+    )]
+    toolchain: Vec<PartialToolchainDesc>,
+
+    #[arg(long, value_parser = PossibleValuesParser::new(Profile::names()))]
+    profile: Option<String>,
+
+    /// Add specific components on installation
+    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
+    component: Vec<String>,
+
+    /// Add specific targets on installation
+    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
+    target: Vec<String>,
+
+    /// Don't perform self update when running the `rustup toolchain install` command
+    #[arg(long)]
+    no_self_update: bool,
+
+    /// Force an update, even if some components are missing
+    #[arg(long)]
+    force: bool,
+
+    /// Allow rustup to downgrade the toolchain to satisfy your component choice
+    #[arg(long)]
+    allow_downgrade: bool,
+
+    /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
+    #[arg(long)]
+    force_non_host: bool,
+}
+
+#[derive(Debug, Default, Args)]
+struct UninstallOpts {
+    #[arg(
+        help = RESOLVABLE_TOOLCHAIN_ARG_HELP,
+        num_args = 1..,
+    )]
+    toolchain: Vec<ResolvableToolchainName>,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum TargetSubcmd {
+    /// List installed and available targets
+    List {
+        #[arg(
+            long,
+            help = OFFICIAL_TOOLCHAIN_ARG_HELP,
+        )]
+        toolchain: Option<PartialToolchainDesc>,
+
+        /// List only installed targets
+        #[arg(long)]
+        installed: bool,
+    },
+
+    /// Add a target to a Rust toolchain
+    #[command(alias = "install")]
+    Add {
+        /// List of targets to install; "all" installs all available targets
+        #[arg(required = true, num_args = 1..)]
+        target: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+    },
+
+    /// Remove a target from a Rust toolchain
+    #[command(alias = "uninstall")]
+    Remove {
+        /// List of targets to uninstall
+        #[arg(required = true, num_args = 1..)]
+        target: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum ComponentSubcmd {
+    /// List installed and available components
+    List {
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        /// List only installed components
+        #[arg(long)]
+        installed: bool,
+    },
+
+    /// Add a component to a Rust toolchain
+    Add {
+        #[arg(required = true, num_args = 1..)]
+        component: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        #[arg(long)]
+        target: Option<String>,
+    },
+
+    /// Remove a component from a Rust toolchain
+    Remove {
+        #[arg(required = true, num_args = 1..)]
+        component: Vec<String>,
+
+        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<PartialToolchainDesc>,
+
+        #[arg(long)]
+        target: Option<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+#[command(
+    after_help = OVERRIDE_HELP,
+    arg_required_else_help = true,
+    subcommand_required = true,
+)]
+enum OverrideSubcmd {
+    /// List directory toolchain overrides
+    List,
+
+    /// Set the override toolchain for a directory
+    #[command(alias = "add")]
+    Set {
+        #[arg(help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: ResolvableToolchainName,
+
+        /// Path to the directory
+        #[arg(long)]
+        path: Option<PathBuf>,
+    },
+
+    /// Remove the override toolchain for a directory
+    #[command(alias = "remove", after_help = OVERRIDE_UNSET_HELP)]
+    Unset {
+        /// Path to the directory
+        #[arg(long)]
+        path: Option<PathBuf>,
+
+        /// Remove override toolchain for all nonexistent directories
+        #[arg(long)]
+        nonexistent: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+#[command(
+    name = "self",
+    arg_required_else_help = true,
+    subcommand_required = true
+)]
+enum SelfSubcmd {
+    /// Download and install updates to rustup
+    Update,
+
+    /// Uninstall rustup
+    Uninstall {
+        #[arg(short = 'y')]
+        no_prompt: bool,
+    },
+
+    /// Upgrade the internal data format
+    UpgradeData,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum SetSubcmd {
+    /// The triple used to identify toolchains when not specified
+    DefaultHost { host_triple: String },
+
+    /// The default components installed with a toolchain
+    Profile {
+        #[arg(
+            default_value = Profile::default_name(),
+            value_parser = PossibleValuesParser::new(Profile::names()),
+        )]
+        profile_name: String,
+    },
+
+    /// The rustup auto self update mode
+    AutoSelfUpdate {
+        #[arg(
+            default_value = SelfUpdateMode::default_mode(),
+            value_parser = PossibleValuesParser::new(SelfUpdateMode::modes()),
+        )]
+        auto_self_update_mode: String,
+    },
+}
+
+impl RustupSubcmd {
+    fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
+        match self {
+            RustupSubcmd::DumpTestament => common::dump_testament(),
+            RustupSubcmd::Install { opts } => update(cfg, opts),
+            RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
+            RustupSubcmd::Show { verbose, subcmd } => match subcmd {
+                None => handle_epipe(show(cfg, verbose)),
+                Some(ShowSubcmd::ActiveToolchain { verbose }) => {
+                    handle_epipe(show_active_toolchain(cfg, verbose))
+                }
+                Some(ShowSubcmd::Home) => handle_epipe(show_rustup_home(cfg)),
+                Some(ShowSubcmd::Profile) => handle_epipe(show_profile(cfg)),
+            },
+            RustupSubcmd::Update {
+                toolchain,
+                no_self_update,
+                force,
+                force_non_host,
+            } => update(
+                cfg,
+                UpdateOpts {
+                    toolchain,
+                    no_self_update,
+                    force,
+                    force_non_host,
+                    ..UpdateOpts::default()
+                },
+            ),
+            RustupSubcmd::Toolchain { subcmd } => match subcmd {
+                ToolchainSubcmd::Install { opts } => update(cfg, opts),
+                ToolchainSubcmd::List { verbose } => handle_epipe(toolchain_list(cfg, verbose)),
+                ToolchainSubcmd::Link { toolchain, path } => toolchain_link(cfg, &toolchain, &path),
+                ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
+            },
+            RustupSubcmd::Check => check_updates(cfg),
+            RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
+            RustupSubcmd::Target { subcmd } => match subcmd {
+                TargetSubcmd::List {
+                    toolchain,
+                    installed,
+                } => handle_epipe(target_list(cfg, toolchain, installed)),
+                TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
+                TargetSubcmd::Remove { target, toolchain } => target_remove(cfg, target, toolchain),
+            },
+            RustupSubcmd::Component { subcmd } => match subcmd {
+                ComponentSubcmd::List {
+                    toolchain,
+                    installed,
+                } => handle_epipe(component_list(cfg, toolchain, installed)),
+                ComponentSubcmd::Add {
+                    component,
+                    toolchain,
+                    target,
+                } => component_add(cfg, component, toolchain, target.as_deref()),
+                ComponentSubcmd::Remove {
+                    component,
+                    toolchain,
+                    target,
+                } => component_remove(cfg, component, toolchain, target.as_deref()),
+            },
+            RustupSubcmd::Override { subcmd } => match subcmd {
+                OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
+                OverrideSubcmd::Set { toolchain, path } => {
+                    override_add(cfg, toolchain, path.as_deref())
+                }
+                OverrideSubcmd::Unset { path, nonexistent } => {
+                    override_remove(cfg, path.as_deref(), nonexistent)
+                }
+            },
+            RustupSubcmd::Run {
+                toolchain,
+                command,
+                install,
+            } => run(cfg, toolchain, command, install),
+            RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
+            RustupSubcmd::Doc {
+                path,
+                toolchain,
+                topic,
+                page,
+            } => doc(cfg, path, toolchain, topic.as_deref(), &page),
+            #[cfg(not(windows))]
+            RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
+            RustupSubcmd::Self_ { subcmd } => match subcmd {
+                SelfSubcmd::Update => self_update::update(cfg),
+                SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
+                SelfSubcmd::UpgradeData => upgrade_data(cfg),
+            },
+            RustupSubcmd::Set { subcmd } => match subcmd {
+                SetSubcmd::DefaultHost { host_triple } => {
+                    set_default_host_triple(cfg, &host_triple)
+                }
+                SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
+                SetSubcmd::AutoSelfUpdate {
+                    auto_self_update_mode,
+                } => set_auto_self_update(cfg, &auto_self_update_mode),
+            },
+            RustupSubcmd::Completions { shell, command } => {
+                output_completion_script(shell, command)
+            }
+        }
+    }
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
@@ -89,7 +632,7 @@ pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
     use clap::error::ErrorKind::*;
-    let matches = match cli().try_get_matches_from(process().args_os()) {
+    let matches = match Rustup::try_parse_from(process().args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
             write!(process().stdout().lock(), "{err}")?;
@@ -139,710 +682,32 @@ pub fn main() -> Result<utils::ExitCode> {
             Err(err)
         }
     }?;
-    let verbose = matches.get_flag("verbose");
-    let quiet = matches.get_flag("quiet");
-    let cfg = &mut common::set_globals(verbose, quiet)?;
+    let cfg = &mut common::set_globals(matches.verbose, matches.quiet)?;
 
-    if let Some(t) = matches.get_one::<ResolvableToolchainName>("+toolchain") {
+    if let Some(t) = &matches.plus_toolchain {
         cfg.set_toolchain_override(t);
-    }
-
-    if maybe_upgrade_data(cfg, &matches)? {
-        return Ok(utils::ExitCode(0));
     }
 
     cfg.check_metadata_version()?;
 
-    Ok(match matches.subcommand() {
-        Some(s) => match s {
-            ("dump-testament", _) => common::dump_testament()?,
-            ("show", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m))?,
-                    ("home", _) => handle_epipe(show_rustup_home(cfg))?,
-                    ("profile", _) => handle_epipe(show_profile(cfg))?,
-                    _ => handle_epipe(show(cfg, c))?,
-                },
-                None => handle_epipe(show(cfg, c))?,
-            },
-            ("install", m) => deprecated("toolchain install", cfg, m, update)?,
-            ("update", m) => update(cfg, m)?,
-            ("check", _) => check_updates(cfg)?,
-            ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
-            ("default", m) => default_(cfg, m)?,
-            ("toolchain", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("install", m) => update(cfg, m)?,
-                    ("list", m) => handle_epipe(toolchain_list(cfg, m))?,
-                    ("link", m) => toolchain_link(cfg, m)?,
-                    ("uninstall", m) => toolchain_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("target", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("list", m) => handle_epipe(target_list(cfg, m))?,
-                    ("add", m) => target_add(cfg, m)?,
-                    ("remove", m) => target_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("component", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("list", m) => handle_epipe(component_list(cfg, m))?,
-                    ("add", m) => component_add(cfg, m)?,
-                    ("remove", m) => component_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("override", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("list", _) => handle_epipe(common::list_overrides(cfg))?,
-                    ("set", m) => override_add(cfg, m)?,
-                    ("unset", m) => override_remove(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("run", m) => run(cfg, m)?,
-            ("which", m) => which(cfg, m)?,
-            ("doc", m) => doc(cfg, m)?,
-            #[cfg(not(windows))]
-            ("man", m) => man(cfg, m)?,
-            ("self", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("update", _) => self_update::update(cfg)?,
-                    ("uninstall", m) => self_uninstall(m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("set", c) => match c.subcommand() {
-                Some(s) => match s {
-                    ("default-host", m) => set_default_host_triple(cfg, m)?,
-                    ("profile", m) => set_profile(cfg, m)?,
-                    ("auto-self-update", m) => set_auto_self_update(cfg, m)?,
-                    _ => unreachable!(),
-                },
-                None => unreachable!(),
-            },
-            ("completions", c) => {
-                if let Some(&shell) = c.get_one::<Shell>("shell") {
-                    output_completion_script(
-                        shell,
-                        c.get_one::<CompletionCommand>("command")
-                            .copied()
-                            .unwrap_or(CompletionCommand::Rustup),
-                    )?
-                } else {
-                    unreachable!()
-                }
-            }
-            _ => unreachable!(),
-        },
+    Ok(match matches.subcmd {
+        Some(subcmd) => subcmd.dispatch(cfg)?,
         None => {
-            eprintln!("{}", cli().render_long_help());
+            eprintln!("{}", Rustup::command().render_long_help());
             utils::ExitCode(1)
         }
     })
 }
 
-pub(crate) fn cli() -> Command {
-    let mut app = Command::new("rustup")
-        .version(common::version())
-        .about("The Rust toolchain installer")
-        .before_help(format!("rustup {}", common::version()))
-        .after_help(RUSTUP_HELP)
-        .subcommand_required(false)
-        .arg(
-            verbose_arg("Enable verbose output"),
-        )
-        .arg(
-            Arg::new("quiet")
-                .conflicts_with("verbose")
-                .help("Disable progress output")
-                .short('q')
-                .long("quiet")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("+toolchain")
-                .help("release channel (e.g. +stable) or custom toolchain to set override")
-                .value_parser(|s: &str| {
-                    use clap::{Error, error::ErrorKind};
-                    if let Some(stripped) = s.strip_prefix('+') {
-                        ResolvableToolchainName::try_from(stripped).map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
-                    } else {
-                        Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
-                    }
-                }),
-        )
-        .subcommand(
-            Command::new("dump-testament")
-                .about("Dump information about the build")
-                .hide(true), // Not for users, only CI
-        )
-        .subcommand(
-            Command::new("show")
-                .about("Show the active and installed toolchains or profiles")
-                .after_help(SHOW_HELP)
-                .arg(
-                    verbose_arg("Enable verbose output with rustc information for all installed toolchains"),
-                )
-                .subcommand(
-                    Command::new("active-toolchain")
-                        .about("Show the active toolchain")
-                        .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
-                        .arg(
-                            verbose_arg("Enable verbose output with rustc information"),
-                        ),
-                )
-                .subcommand(
-                    Command::new("home")
-                        .about("Display the computed value of RUSTUP_HOME"),
-                )
-                .subcommand(Command::new("profile").about("Show the default profile used for the `rustup install` command"))
-        )
-        .subcommand(
-            Command::new("install")
-                .about("Update Rust toolchains")
-                .after_help(INSTALL_HELP)
-                .hide(true) // synonym for 'toolchain install'
-                .arg(
-                    Arg::new("toolchain")
-                        .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                        .required(true)
-                        .value_parser(partial_toolchain_desc_parser)
-                        .num_args(1..)
-                )
-                .arg(
-                    Arg::new("profile")
-                        .long("profile")
-                        .value_parser(PossibleValuesParser::new(Profile::names()))
-                        .num_args(1),
-                )
-                .arg(
-                    Arg::new("no-self-update")
-                        .help("Don't perform self-update when running the `rustup install` command")
-                        .long("no-self-update")
-                        .action(ArgAction::SetTrue)
-                )
-                .arg(
-                    Arg::new("force")
-                        .help("Force an update, even if some components are missing")
-                        .long("force")
-                        .action(ArgAction::SetTrue)
-                ).arg(
-                    Arg::new("force-non-host")
-                        .help("Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains")
-                        .long("force-non-host")
-                        .action(ArgAction::SetTrue)
-                ),
-        )
-        .subcommand(
-            Command::new("uninstall")
-                .about("Uninstall Rust toolchains")
-                .hide(true) // synonym for 'toolchain uninstall'
-                .arg(
-                    Arg::new("toolchain")
-                        .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                        .required(true)
-                        .value_parser(resolvable_toolchainame_parser)
-                        .num_args(1..)
-                ),
-        )
-        .subcommand(
-            Command::new("update")
-                .about("Update Rust toolchains and rustup")
-                .aliases(["upgrade", "up"])
-                .after_help(UPDATE_HELP)
-                .arg(
-                    Arg::new("toolchain")
-                        .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                        .required(false)
-                        .value_parser(partial_toolchain_desc_parser)
-                        .num_args(1..)
-                )
-                .arg(
-                    Arg::new("no-self-update")
-                        .help("Don't perform self update when running the `rustup update` command")
-                        .long("no-self-update")
-                        .action(ArgAction::SetTrue)
-                )
-                .arg(
-                    Arg::new("force")
-                        .help("Force an update, even if some components are missing")
-                        .long("force")
-                        .action(ArgAction::SetTrue)
-                )
-                .arg(
-                    Arg::new("force-non-host")
-                        .help("Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains")
-                        .long("force-non-host")
-                        .action(ArgAction::SetTrue)
-                ),
-        )
-        .subcommand(Command::new("check").about("Check for updates to Rust toolchains and rustup"))
-        .subcommand(
-            Command::new("default")
-                .about("Set the default toolchain")
-                .after_help(DEFAULT_HELP)
-                .arg(
-                    Arg::new("toolchain")
-                        .help(MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                        .required(false)
-                        .value_parser(maybe_resolvable_toolchainame_parser)
-                ),
-        )
-        .subcommand(
-            Command::new("toolchain")
-                .about("Modify or query the installed toolchains")
-                .after_help(TOOLCHAIN_HELP)
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("list")
-                        .about("List installed toolchains")
-                        .arg(
-                            verbose_arg("Enable verbose output with toolchain information"),
-                        ),
-                )
-                .subcommand(
-                    Command::new("install")
-                        .about("Install or update a given toolchain")
-                        .aliases(["update", "add"])
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .required(true)
-                                .value_parser( partial_toolchain_desc_parser)
-                                .num_args(1..)
-                        )
-                        .arg(
-                            Arg::new("profile")
-                                .long("profile")
-                                .value_parser(PossibleValuesParser::new(Profile::names()))
-                                .num_args(1),
-                        )
-                        .arg(
-                            Arg::new("components")
-                                .help("Add specific components on installation")
-                                .long("component")
-                                .short('c')
-                                .num_args(1..)
-                                .use_value_delimiter(true)
-                            .action(ArgAction::Append),
-                        )
-                        .arg(
-                            Arg::new("targets")
-                                .help("Add specific targets on installation")
-                                .long("target")
-                                .short('t')
-                                .num_args(1..)
-                                .use_value_delimiter(true)
-                                .action(ArgAction::Append),
-                        )
-                        .arg(
-                            Arg::new("no-self-update")
-                                .help(
-                                    "Don't perform self update when running the\
-                                     `rustup toolchain install` command",
-                                )
-                                .long("no-self-update")
-                                .action(ArgAction::SetTrue)
-                        )
-                        .arg(
-                            Arg::new("force")
-                                .help("Force an update, even if some components are missing")
-                                .long("force")
-                                .action(ArgAction::SetTrue)
-                        )
-                        .arg(
-                            Arg::new("allow-downgrade")
-                                .help("Allow rustup to downgrade the toolchain to satisfy your component choice")
-                                .long("allow-downgrade")
-                                .action(ArgAction::SetTrue)
-                        )
-                        .arg(
-                            Arg::new("force-non-host")
-                                .help("Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains")
-                                .long("force-non-host")
-                                .action(ArgAction::SetTrue)
-                        ),
-                )
-                .subcommand(
-                    Command::new("uninstall")
-                        .about("Uninstall a toolchain")
-                        .alias("remove")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                                .required(true)
-                                .value_parser(resolvable_toolchainame_parser)
-                                .num_args(1..)
-                        ),
-                )
-                .subcommand(
-                    Command::new("link")
-                        .about("Create a custom toolchain by symlinking to a directory")
-                        .after_help(TOOLCHAIN_LINK_HELP)
-                        .arg(
-                            Arg::new("toolchain")
-                                .help("Custom toolchain name")
-                                .required(true)
-                                .value_parser(custom_toolchain_name_parser),
-                        )
-                        .arg(
-                            Arg::new("path")
-                                .help("Path to the directory")
-                                .required(true),
-                        ),
-                ),
-        )
-        .subcommand(
-            Command::new("target")
-                .about("Modify a toolchain's supported targets")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("list")
-                        .about("List installed and available targets")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .value_parser(partial_toolchain_desc_parser)
-                                .num_args(1),
-                        )
-                        .arg(
-                            Arg::new("installed")
-                                .long("installed")
-                                .help("List only installed targets")
-                                .action(ArgAction::SetTrue)
-                        ),
-                )
-                .subcommand(
-                    Command::new("add")
-                        .about("Add a target to a Rust toolchain")
-                        .alias("install")
-                        .arg(
-                            Arg::new("target")
-                            .required(true)
-                            .num_args(1..)
-                            .help(
-                                "List of targets to install; \
-                                \"all\" installs all available targets"
-                            )
-                        )
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        ),
-                )
-                .subcommand(
-                    Command::new("remove")
-                        .about("Remove a target from a Rust toolchain")
-                        .alias("uninstall")
-                        .arg(
-                            Arg::new("target")
-                            .help("List of targets to uninstall")
-                            .required(true)
-                            .num_args(1..)
-                        )
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        ),
-                ),
-        )
-        .subcommand(
-            Command::new("component")
-                .about("Modify a toolchain's installed components")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("list")
-                        .about("List installed and available components")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        )
-                        .arg(
-                            Arg::new("installed")
-                                .long("installed")
-                                .help("List only installed components")
-                                .action(ArgAction::SetTrue)
-                        ),
-                )
-                .subcommand(
-                    Command::new("add")
-                        .about("Add a component to a Rust toolchain")
-                        .arg(Arg::new("component").required(true)
-                        .num_args(1..))
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        )
-                        .arg(
-                            Arg::new("target")
-                            .long("target")
-                            .num_args(1)
-                        ),
-                )
-                .subcommand(
-                    Command::new("remove")
-                        .about("Remove a component from a Rust toolchain")
-                        .arg(Arg::new("component").required(true)
-                        .num_args(1..))
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                                .long("toolchain")
-                                .num_args(1)
-                                .value_parser(partial_toolchain_desc_parser),
-                        )
-                        .arg(
-                            Arg::new("target")
-                            .long("target")
-                            .num_args(1)
-                        ),
-                ),
-        )
-        .subcommand(
-            Command::new("override")
-                .about("Modify toolchain overrides for directories")
-                .after_help(OVERRIDE_HELP)
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("list").about("List directory toolchain overrides"),
-                )
-                .subcommand(
-                    Command::new("set")
-                        .about("Set the override toolchain for a directory")
-                        .alias("add")
-                        .arg(
-                            Arg::new("toolchain")
-                                .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                                .required(true)
-                                .num_args(1)
-                                .value_parser(resolvable_toolchainame_parser),
-                        )
-                        .arg(
-                            Arg::new("path")
-                                .long("path")
-                                .num_args(1)
-                                .help("Path to the directory"),
-                        ),
-                )
-                .subcommand(
-                    Command::new("unset")
-                        .about("Remove the override toolchain for a directory")
-                        .after_help(OVERRIDE_UNSET_HELP)
-                        .alias("remove")
-                        .arg(
-                            Arg::new("path")
-                                .long("path")
-                                .num_args(1)
-                                .help("Path to the directory"),
-                        )
-                        .arg(
-                            Arg::new("nonexistent")
-                                .long("nonexistent")
-                                .help("Remove override toolchain for all nonexistent directories")
-                                .action(ArgAction::SetTrue),
-                        ),
-                ),
-        )
-        .subcommand(
-            Command::new("run")
-                .about("Run a command with an environment configured for a given toolchain")
-                .after_help(RUN_HELP)
-                .trailing_var_arg(true)
-                .arg(
-                    Arg::new("toolchain")
-                        .help(RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)
-                        .required(true)
-                        .num_args(1)
-                        .value_parser(resolvable_local_toolchainame_parser),
-                )
-                .arg(
-                    Arg::new("command")
-                        .required(true)
-                        .num_args(1..)
-                        .use_value_delimiter(false),
-                )
-                .arg(
-                    Arg::new("install")
-                        .help("Install the requested toolchain if needed")
-                        .long("install")
-                        .action(ArgAction::SetTrue),
-                ),
-        )
-        .subcommand(
-            Command::new("which")
-                .about("Display which binary will be run for a given command")
-                .arg(Arg::new("command").required(true))
-                .arg(
-                    Arg::new("toolchain")
-                        .help(RESOLVABLE_TOOLCHAIN_ARG_HELP)
-                        .long("toolchain")
-                        .num_args(1)
-                        .value_parser(resolvable_toolchainame_parser),
-                ),
-        )
-        .subcommand(
-            Command::new("doc")
-                .alias("docs")
-                .about("Open the documentation for the current toolchain")
-                .after_help(DOC_HELP)
-                .arg(
-                    Arg::new("path")
-                        .long("path")
-                        .help("Only print the path to the documentation")
-                        .action(ArgAction::SetTrue),
-                )
-                .arg(
-                    Arg::new("toolchain")
-                        .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                        .long("toolchain")
-                        .num_args(1)
-                        .value_parser(partial_toolchain_desc_parser),
-                )
-                .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
-                .group(
-                    ArgGroup::new("page").args(
-                        DOCS_DATA
-                            .iter()
-                            .map(|(name, _, _)| *name)
-                            .collect::<Vec<_>>(),
-                    ),
-                )
-                .args(
-                    &DOCS_DATA
-                        .iter()
-                        .map(|&(name, help_msg, _)| Arg::new(name).long(name).help(help_msg).action(ArgAction::SetTrue))
-                        .collect::<Vec<_>>(),
-                ),
-        );
-
-    if cfg!(not(target_os = "windows")) {
-        app = app.subcommand(
-            Command::new("man")
-                .about("View the man page for a given command")
-                .arg(Arg::new("command").required(true))
-                .arg(
-                    Arg::new("toolchain")
-                        .help(OFFICIAL_TOOLCHAIN_ARG_HELP)
-                        .long("toolchain")
-                        .num_args(1)
-                        .value_parser(partial_toolchain_desc_parser),
-                ),
-        );
-    }
-
-    app = app
-        .subcommand(
-            Command::new("self")
-                .about("Modify the rustup installation")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(Command::new("update").about("Download and install updates to rustup"))
-                .subcommand(
-                    Command::new("uninstall")
-                        .about("Uninstall rustup.")
-                        .arg(Arg::new("no-prompt").short('y').action(ArgAction::SetTrue)),
-                )
-                .subcommand(
-                    Command::new("upgrade-data").about("Upgrade the internal data format."),
-                ),
-        )
-        .subcommand(
-            Command::new("set")
-                .about("Alter rustup settings")
-                .subcommand_required(true)
-                .arg_required_else_help(true)
-                .subcommand(
-                    Command::new("default-host")
-                        .about("The triple used to identify toolchains when not specified")
-                        .arg(Arg::new("host_triple").required(true)),
-                )
-                .subcommand(
-                    Command::new("profile")
-                        .about("The default components installed with a toolchain")
-                        .arg(
-                            Arg::new("profile-name")
-                                .required(true)
-                                .value_parser(PossibleValuesParser::new(Profile::names()))
-                                .default_value(Profile::default_name()),
-                        ),
-                )
-                .subcommand(
-                    Command::new("auto-self-update")
-                        .about("The rustup auto self update mode")
-                        .arg(
-                            Arg::new("auto-self-update-mode")
-                                .required(true)
-                                .value_parser(PossibleValuesParser::new(SelfUpdateMode::modes()))
-                                .default_value(SelfUpdateMode::default_mode()),
-                        ),
-                ),
-        );
-
-    app.subcommand(
-        Command::new("completions")
-            .about("Generate tab-completion scripts for your shell")
-            .after_help(COMPLETIONS_HELP)
-            .arg_required_else_help(true)
-            .arg(Arg::new("shell").value_parser(EnumValueParser::<Shell>::new()))
-            .arg(
-                Arg::new("command")
-                    .value_parser(EnumValueParser::<CompletionCommand>::new())
-                    .default_missing_value("rustup"),
-            ),
-    )
+fn upgrade_data(cfg: &Cfg) -> Result<utils::ExitCode> {
+    cfg.upgrade_data()?;
+    Ok(utils::ExitCode(0))
 }
 
-fn verbose_arg(help: &'static str) -> Arg {
-    Arg::new("verbose")
-        .help(help)
-        .short('v')
-        .long("verbose")
-        .action(ArgAction::SetTrue)
-}
-
-fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
-    match m.subcommand() {
-        Some(("self", c)) => match c.subcommand() {
-            Some(("upgrade-data", _)) => {
-                cfg.upgrade_data()?;
-                Ok(true)
-            }
-            _ => Ok(false),
-        },
-        _ => Ok(false),
-    }
-}
-
-fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
-    if let Some(toolchain) = m.get_one::<MaybeResolvableToolchainName>("toolchain") {
+    if let Some(toolchain) = toolchain {
         match toolchain.to_owned() {
             MaybeResolvableToolchainName::None => {
                 cfg.set_default(None)?;
@@ -918,7 +783,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
@@ -927,9 +792,9 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     // and has **no** no-self-update parameter.
     let self_update = !self_update::NEVER_SELF_UPDATE
         && self_update_mode == SelfUpdateMode::Enable
-        && !m.get_flag("no-self-update");
-    let forced = m.get_flag("force-non-host");
-    if let Ok(Some(p)) = m.try_get_one::<String>("profile") {
+        && !opts.no_self_update;
+    let forced = opts.force_non_host;
+    if let Some(p) = &opts.profile {
         let p = Profile::from_str(p)?;
         cfg.set_profile_override(p);
     }
@@ -937,8 +802,9 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     if cfg.get_profile()? == Profile::Complete {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
-    if let Ok(Some(names)) = m.try_get_many::<PartialToolchainDesc>("toolchain") {
-        for name in names.map(|n| n.to_owned()) {
+    let names = opts.toolchain;
+    if !names.is_empty() {
+        for name in names {
             // This needs another pass to fix it all up
             if name.has_triple() {
                 let host_arch = TargetTriple::from_host_or_build();
@@ -955,20 +821,11 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             }
             let desc = name.resolve(&cfg.get_default_host_triple()?)?;
 
-            let components: Vec<_> = m
-                .try_get_many::<String>("components")
-                .ok()
-                .flatten()
-                .map_or_else(Vec::new, |v| v.map(|s| &**s).collect());
-            let targets: Vec<_> = m
-                .try_get_many::<String>("targets")
-                .ok()
-                .flatten()
-                .map_or_else(Vec::new, |v| v.map(|s| &**s).collect());
+            let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
+            let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
 
-            let force = m.get_flag("force");
-            let allow_downgrade =
-                matches!(m.try_get_one::<bool>("allow-downgrade"), Ok(Some(true)));
+            let force = opts.force;
+            let allow_downgrade = opts.allow_downgrade;
             let profile = cfg.get_profile()?;
             let status = match crate::toolchain::distributable::DistributableToolchain::new(
                 cfg,
@@ -1005,7 +862,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             common::self_update(|| Ok(utils::ExitCode(0)))?;
         }
     } else {
-        common::update_all_channels(cfg, self_update, m.get_flag("force"))?;
+        common::update_all_channels(cfg, self_update, opts.force)?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents(&cfg.download_dir);
         cfg.temp_cfg.clean();
@@ -1023,22 +880,25 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m
-        .get_one::<ResolvableLocalToolchainName>("toolchain")
-        .unwrap();
-    let args = m.get_many::<String>("command").unwrap();
-    let args: Vec<_> = args.collect();
+fn run(
+    cfg: &Cfg,
+    toolchain: ResolvableLocalToolchainName,
+    command: Vec<String>,
+    install: bool,
+) -> Result<utils::ExitCode> {
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-    let cmd = cfg.create_command_for_toolchain(&toolchain, m.get_flag("install"), args[0])?;
+    let cmd = cfg.create_command_for_toolchain(&toolchain, install, &command[0])?;
 
-    let code = command::run_command_for_dir(cmd, args[0], &args[1..])?;
+    let code = command::run_command_for_dir(cmd, &command[0], &command[1..])?;
     Ok(code)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let binary = m.get_one::<String>("command").unwrap();
-    let binary_path = if let Some(toolchain) = m.get_one::<ResolvableToolchainName>("toolchain") {
+fn which(
+    cfg: &Cfg,
+    binary: &str,
+    toolchain: Option<ResolvableToolchainName>,
+) -> Result<utils::ExitCode> {
+    let binary_path = if let Some(toolchain) = toolchain {
         let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::new(cfg, desc.into())?.binary_file(binary)
     } else {
@@ -1052,10 +912,8 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
-
-    let verbose = m.get_flag("verbose");
 
     // Print host triple
     {
@@ -1224,8 +1082,7 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let verbose = m.get_flag("verbose");
+fn show_active_toolchain(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
         Err(e) => {
@@ -1262,20 +1119,28 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn target_list(
+    cfg: &Cfg,
+    toolchain: Option<PartialToolchainDesc>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
-    if m.get_flag("installed") {
+    if installed_only {
         common::list_installed_targets(distributable)
     } else {
         common::list_targets(distributable)
     }
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn target_add(
+    cfg: &Cfg,
+    mut targets: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1286,12 +1151,6 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let config = manifestation.read_config()?.unwrap_or_default();
     let manifest = distributable.get_manifest()?;
     let components = manifest.query_components(distributable.desc(), &config)?;
-
-    let mut targets: Vec<_> = m
-        .get_many::<String>("target")
-        .unwrap()
-        .map(ToOwned::to_owned)
-        .collect();
 
     if targets.contains(&"all".to_string()) {
         if targets.len() != 1 {
@@ -1329,12 +1188,16 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn target_remove(
+    cfg: &Cfg,
+    targets: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
-    for target in m.get_many::<String>("target").unwrap() {
-        let target = TargetTriple::new(target);
+    for target in targets {
+        let target = TargetTriple::new(&target);
         let default_target = cfg.get_default_host_triple()?;
         if target == default_target {
             warn!("after removing the default host target, proc-macros and build scripts might no longer build");
@@ -1360,12 +1223,16 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn component_list(
+    cfg: &Cfg,
+    toolchain: Option<PartialToolchainDesc>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
 
-    if m.get_flag("installed") {
+    if installed_only {
         common::list_installed_components(distributable)?;
     } else {
         common::list_components(distributable)?;
@@ -1373,12 +1240,17 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn component_add(
+    cfg: &Cfg,
+    components: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+    target: Option<&str>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
-    let target = get_target(m, &distributable);
+    let target = get_target(target, &distributable);
 
-    for component in m.get_many::<String>("component").unwrap() {
+    for component in &components {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
         distributable.add_component(new_component)?;
@@ -1387,19 +1259,26 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Option<TargetTriple> {
-    m.get_one::<String>("target")
-        .map(|s| &**s)
+fn get_target(
+    target: Option<&str>,
+    distributable: &DistributableToolchain<'_>,
+) -> Option<TargetTriple> {
+    target
         .map(TargetTriple::new)
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn component_remove(
+    cfg: &Cfg,
+    components: Vec<String>,
+    toolchain: Option<PartialToolchainDesc>,
+    target: Option<&str>,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
-    let target = get_target(m, &distributable);
+    let target = get_target(target, &distributable);
 
-    for component in m.get_many::<String>("component").unwrap() {
+    for component in &components {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
         distributable.remove_component(new_component)?;
@@ -1408,13 +1287,11 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-// Make *sure* only to use this for a subcommand whose "toolchain" argument
-// has .value_parser(partial_toolchain_desc_parser), or it will panic.
-fn explicit_desc_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
-    let toolchain = m
-        .get_one::<PartialToolchainDesc>("toolchain")
-        .map(Into::into);
-    explicit_or_dir_toolchain2(cfg, toolchain)
+fn explicit_desc_or_dir_toolchain(
+    cfg: &Cfg,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<Toolchain<'_>> {
+    explicit_or_dir_toolchain2(cfg, toolchain.map(|it| (&it).into()))
 }
 
 fn explicit_or_dir_toolchain2(
@@ -1435,36 +1312,36 @@ fn explicit_or_dir_toolchain2(
     }
 }
 
-fn toolchain_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    common::list_toolchains(cfg, m.get_flag("verbose"))
+fn toolchain_list(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
+    common::list_toolchains(cfg, verbose)
 }
 
-fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = m.get_one::<CustomToolchainName>("toolchain").unwrap();
-    let path = m.get_one::<String>("path").unwrap();
+fn toolchain_link(
+    cfg: &Cfg,
+    toolchain: &CustomToolchainName,
+    path: &Path,
+) -> Result<utils::ExitCode> {
     cfg.ensure_toolchains_dir()?;
-    crate::toolchain::custom::CustomToolchain::install_from_dir(
-        cfg,
-        Path::new(path),
-        toolchain,
-        true,
-    )?;
+    crate::toolchain::custom::CustomToolchain::install_from_dir(cfg, path, toolchain, true)?;
     Ok(utils::ExitCode(0))
 }
 
-fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    for toolchain_name in m.get_many::<ResolvableToolchainName>("toolchain").unwrap() {
+fn toolchain_remove(cfg: &mut Cfg, opts: UninstallOpts) -> Result<utils::ExitCode> {
+    for toolchain_name in &opts.toolchain {
         let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
     }
     Ok(utils::ExitCode(0))
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain_name = m.get_one::<ResolvableToolchainName>("toolchain").unwrap();
-    let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
+fn override_add(
+    cfg: &Cfg,
+    toolchain: ResolvableToolchainName,
+    path: Option<&Path>,
+) -> Result<utils::ExitCode> {
+    let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
 
-    let path = if let Some(path) = m.get_one::<String>("path") {
+    let path = if let Some(path) = path {
         PathBuf::from(path)
     } else {
         utils::current_dir()?
@@ -1499,17 +1376,14 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let paths = if m.get_flag("nonexistent") {
+fn override_remove(cfg: &Cfg, path: Option<&Path>, nonexistent: bool) -> Result<utils::ExitCode> {
+    let paths = if nonexistent {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
                 .iter()
                 .filter_map(|(k, _)| {
-                    if Path::new(k).is_dir() {
-                        None
-                    } else {
-                        Some(k.clone())
-                    }
+                    let path = Path::new(k);
+                    (!path.is_dir()).then(|| path.to_owned())
                 })
                 .collect())
         })?;
@@ -1517,21 +1391,21 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             info!("no nonexistent paths detected");
         }
         list
-    } else if let Some(path) = m.get_one::<String>("path") {
+    } else if let Some(path) = path {
         vec![path.to_owned()]
     } else {
-        vec![utils::current_dir()?.to_str().unwrap().to_string()]
+        vec![utils::current_dir()?]
     };
 
-    for path in paths {
+    for p in &paths {
         if cfg
             .settings_file
-            .with_mut(|s| Ok(s.remove_override(Path::new(&path), cfg.notify_handler.as_ref())))?
+            .with_mut(|s| Ok(s.remove_override(p, cfg.notify_handler.as_ref())))?
         {
-            info!("override toolchain for '{}' removed", path);
+            info!("override toolchain for '{}' removed", p.display());
         } else {
-            info!("no override toolchain for '{}'", path);
-            if m.get_one::<String>("path").is_none() && !m.get_flag("nonexistent") {
+            info!("no override toolchain for '{}'", p.display());
+            if path.is_none() && !nonexistent {
                 info!(
                     "you may use `--path <path>` option to remove override toolchain \
                      for a specific path"
@@ -1542,28 +1416,63 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-const DOCS_DATA: &[(&str, &str, &str)] = &[
+macro_rules! docs_data {
+    (
+        $(
+            $( #[$meta:meta] )*
+            ($ident:ident, $help:expr, $path:expr $(,)?)
+        ),+ $(,)?
+    ) => {
+        #[derive(Debug, Args)]
+        struct DocPage {
+            $(
+                #[doc = $help]
+                #[arg(long, group = "page")]
+                $( #[$meta] )*
+                $ident: bool,
+            )+
+        }
+
+        impl DocPage {
+            fn path(&self) -> Option<&'static str> {
+                $( if self.$ident { return Some($path); } )+
+                None
+            }
+        }
+    };
+}
+
+docs_data![
     // flags can be used to open specific documents, e.g. `rustup doc --nomicon`
     // tuple elements: document name used as flag, help message, document index path
-    ("alloc", "The Rust core allocation and collections library", "alloc/index.html"),
-    ("book", "The Rust Programming Language book", "book/index.html"),
-    ("cargo", "The Cargo Book", "cargo/index.html"),
-    ("core", "The Rust Core Library", "core/index.html"),
-    ("edition-guide", "The Rust Edition Guide", "edition-guide/index.html"),
-    ("nomicon", "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
-    ("proc_macro", "A support library for macro authors when defining new macros", "proc_macro/index.html"),
-    ("reference", "The Rust Reference", "reference/index.html"),
-    ("rust-by-example", "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
-    ("rustc", "The compiler for the Rust programming language", "rustc/index.html"),
-    ("rustdoc", "Documentation generator for Rust projects", "rustdoc/index.html"),
-    ("std", "Standard library API documentation", "std/index.html"),
-    ("test", "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
-    ("unstable-book", "The Unstable Book", "unstable-book/index.html"),
-    ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
+    (alloc, "The Rust core allocation and collections library", "alloc/index.html"),
+    (book, "The Rust Programming Language book", "book/index.html"),
+    (cargo, "The Cargo Book", "cargo/index.html"),
+    (core, "The Rust Core Library", "core/index.html"),
+    (edition_guide, "The Rust Edition Guide", "edition-guide/index.html"),
+    (nomicon, "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
+
+    #[arg(long = "proc_macro")]
+    (proc_macro, "A support library for macro authors when defining new macros", "proc_macro/index.html"),
+
+    (reference, "The Rust Reference", "reference/index.html"),
+    (rust_by_example, "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
+    (rustc, "The compiler for the Rust programming language", "rustc/index.html"),
+    (rustdoc, "Documentation generator for Rust projects", "rustdoc/index.html"),
+    (std, "Standard library API documentation", "std/index.html"),
+    (test, "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
+    (unstable_book, "The Unstable Book", "unstable-book/index.html"),
+    (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+fn doc(
+    cfg: &Cfg,
+    path_only: bool,
+    toolchain: Option<PartialToolchainDesc>,
+    topic: Option<&str>,
+    doc_page: &DocPage,
+) -> Result<utils::ExitCode> {
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         let manifestation = distributable.get_manifestation()?;
@@ -1595,16 +1504,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     let topical_path: PathBuf;
 
-    let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
+    let doc_url = if let Some(topic) = topic {
         topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
         topical_path.to_str().unwrap()
-    } else if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
-        path
     } else {
-        "index.html"
+        doc_page.path().unwrap_or("index.html")
     };
 
-    if m.get_flag("path") {
+    if path_only {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
@@ -1615,12 +1522,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 }
 
 #[cfg(not(windows))]
-fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn man(
+    cfg: &Cfg,
+    command: &str,
+    toolchain: Option<PartialToolchainDesc>,
+) -> Result<utils::ExitCode> {
     use crate::currentprocess::varsource::VarSource;
 
-    let command = m.get_one::<String>("command").unwrap();
-
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
+    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");
@@ -1639,23 +1548,17 @@ fn man(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn self_uninstall(m: &ArgMatches) -> Result<utils::ExitCode> {
-    let no_prompt = m.get_flag("no-prompt");
-
-    self_update::uninstall(no_prompt)
-}
-
-fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    cfg.set_default_host_triple(m.get_one::<String>("host_triple").unwrap())?;
+fn set_default_host_triple(cfg: &Cfg, host_triple: &str) -> Result<utils::ExitCode> {
+    cfg.set_default_host_triple(host_triple)?;
     Ok(utils::ExitCode(0))
 }
 
-fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
-    cfg.set_profile(m.get_one::<String>("profile-name").unwrap())?;
+fn set_profile(cfg: &mut Cfg, profile: &str) -> Result<utils::ExitCode> {
+    cfg.set_profile(profile)?;
     Ok(utils::ExitCode(0))
 }
 
-fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+fn set_auto_self_update(cfg: &mut Cfg, auto_self_update_mode: &str) -> Result<utils::ExitCode> {
     if self_update::NEVER_SELF_UPDATE {
         let mut args = crate::process().args_os();
         let arg0 = args.next().map(PathBuf::from);
@@ -1665,7 +1568,7 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode
             .ok_or(CLIError::NoExeName)?;
         warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
     }
-    cfg.set_auto_self_update(m.get_one::<String>("auto-self-update-mode").unwrap())?;
+    cfg.set_auto_self_update(auto_self_update_mode)?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1706,7 +1609,12 @@ impl fmt::Display for CompletionCommand {
 fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<utils::ExitCode> {
     match command {
         CompletionCommand::Rustup => {
-            clap_complete::generate(shell, &mut cli(), "rustup", &mut process().stdout().lock());
+            clap_complete::generate(
+                shell,
+                &mut Rustup::command(),
+                "rustup",
+                &mut process().stdout().lock(),
+            );
         }
         CompletionCommand::Cargo => {
             if let Shell::Zsh = shell {

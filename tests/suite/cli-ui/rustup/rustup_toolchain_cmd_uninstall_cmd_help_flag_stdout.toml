@@ -4,10 +4,10 @@ stdout = """
 ...
 Uninstall a toolchain
 
-Usage: rustup[EXE] toolchain uninstall <toolchain>...
+Usage: rustup[EXE] toolchain uninstall [TOOLCHAIN]...
 
 Arguments:
-  <toolchain>...  Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain name.
+  [TOOLCHAIN]...  Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain name.
                   For more information see `rustup help toolchain`
 
 Options:

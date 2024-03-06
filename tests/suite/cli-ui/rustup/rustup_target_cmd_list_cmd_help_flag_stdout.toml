@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["target","list","--help"]
+args = ["target", "list", "--help"]
 stdout = """
 ...
 List installed and available targets
@@ -7,7 +7,7 @@ List installed and available targets
 Usage: rustup[EXE] target list [OPTIONS]
 
 Options:
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                information see `rustup help toolchain`
       --installed              List only installed targets
   -h, --help                   Print help

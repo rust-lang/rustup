@@ -31,7 +31,6 @@ pub(crate) enum Notification<'a> {
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a anyhow::Error),
     UpgradeRemovesToolchains,
-    PlainVerboseMessage(&'a str),
     /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
     DuplicateToolchainFile {
         rust_toolchain: &'a Path,
@@ -68,7 +67,6 @@ impl<'a> Notification<'a> {
             | UpdatingToolchain(_)
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
-            | PlainVerboseMessage(_)
             | UpdateHashMatches => NotificationLevel::Verbose,
             SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
@@ -124,7 +122,6 @@ impl<'a> Display for Notification<'a> {
                 f,
                 "this upgrade will remove all existing toolchains. you will need to reinstall them"
             ),
-            PlainVerboseMessage(r) => write!(f, "{r}"),
             DuplicateToolchainFile {
                 rust_toolchain,
                 rust_toolchain_toml,

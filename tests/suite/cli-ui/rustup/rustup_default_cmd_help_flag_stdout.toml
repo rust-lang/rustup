@@ -1,13 +1,13 @@
 bin.name = "rustup"
-args = ["default","--help"]
+args = ["default", "--help"]
 stdout = """
 ...
 Set the default toolchain
 
-Usage: rustup[EXE] default [toolchain]
+Usage: rustup[EXE] default [TOOLCHAIN]
 
 Arguments:
-  [toolchain]  'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
+  [TOOLCHAIN]  'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
                name. For more information see `rustup help toolchain`
 
 Options:

@@ -798,11 +798,11 @@ fn completion_bad_shell() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "fake"],
-            r#"error: invalid value 'fake' for '[shell]'"#,
+            r#"error: invalid value 'fake' for '<SHELL>'"#,
         );
         config.expect_err(
             &["rustup", "completions", "fake", "cargo"],
-            r#"error: invalid value 'fake' for '[shell]'"#,
+            r#"error: invalid value 'fake' for '<SHELL>'"#,
         );
     });
 }
@@ -812,7 +812,7 @@ fn completion_bad_tool() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "bash", "fake"],
-            r#"error: invalid value 'fake' for '[command]'"#,
+            r#"error: invalid value 'fake' for '[COMMAND]'"#,
         );
     });
 }
@@ -955,30 +955,4 @@ fn toolchain_link_then_list_verbose() {
         #[cfg(not(windows))]
         config.expect_stdout_ok(&["rustup", "toolchain", "list", "-v"], "/custom-1");
     });
-}
-
-#[test]
-fn deprecated_interfaces() {
-    setup(&|config| {
-        // In verbose mode we want the deprecated interfaces to complain
-        config.expect_ok_contains(
-            &["rustup", "--verbose", "install", "nightly"],
-            "",
-            "Please use `rustup toolchain install` instead",
-        );
-        config.expect_ok_contains(
-            &["rustup", "--verbose", "uninstall", "nightly"],
-            "",
-            "Please use `rustup toolchain uninstall` instead",
-        );
-        // But if not verbose then they should *NOT* complain
-        config.expect_not_stderr_ok(
-            &["rustup", "install", "nightly"],
-            "Please use `rustup toolchain install` instead",
-        );
-        config.expect_not_stderr_ok(
-            &["rustup", "uninstall", "nightly"],
-            "Please use `rustup toolchain uninstall` instead",
-        );
-    })
 }

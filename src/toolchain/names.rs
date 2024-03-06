@@ -125,15 +125,6 @@ fn validate(candidate: &str) -> Result<&str, InvalidName> {
     }
 }
 
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn partial_toolchain_desc_parser(
-    value: &str,
-) -> Result<PartialToolchainDesc, anyhow::Error> {
-    value.parse::<PartialToolchainDesc>()
-}
-
 /// A toolchain name from user input.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {
@@ -185,15 +176,6 @@ impl Display for ResolvableToolchainName {
     }
 }
 
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn resolvable_toolchainame_parser(
-    value: &str,
-) -> Result<ResolvableToolchainName, InvalidName> {
-    ResolvableToolchainName::try_from(value)
-}
-
 /// A toolchain name from user input. MaybeToolchainName accepts 'none' or a
 /// custom or resolvable official name. Possibly this should be an Option with a
 /// local trait for our needs.
@@ -229,18 +211,9 @@ impl Display for MaybeResolvableToolchainName {
     }
 }
 
-/// Thunk to avoid errors like
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn maybe_resolvable_toolchainame_parser(
-    value: &str,
-) -> Result<MaybeResolvableToolchainName, InvalidName> {
-    MaybeResolvableToolchainName::try_from(value)
-}
-
 /// ResolvableToolchainName + none, for overriding default-has-a-value
 /// situations in the CLI with an official toolchain name or none
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum MaybeOfficialToolchainName {
     None,
     Some(PartialToolchainDesc),
@@ -375,12 +348,6 @@ impl Display for ResolvableLocalToolchainName {
     }
 }
 
-pub(crate) fn resolvable_local_toolchainame_parser(
-    value: &str,
-) -> Result<ResolvableLocalToolchainName, InvalidName> {
-    ResolvableLocalToolchainName::try_from(value)
-}
-
 /// LocalToolchainName can be used in calls to Cfg that alter configuration,
 /// like setting overrides, or that depend on configuration, like calculating
 /// the toolchain directory. It is not used to model the RUSTUP_TOOLCHAIN
@@ -456,15 +423,6 @@ impl Display for CustomToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
-}
-
-/// Thunk to avoid
-///  = note: `fn(&'2 str) -> Result<CustomToolchainName, <CustomToolchainName as TryFrom<&'2 str>>::Error> {<CustomToolchainName as TryFrom<&'2 str>>::try_from}` must implement `FnOnce<(&'1 str,)>`, for any lifetime `'1`...
-/// = note: ...but it actually implements `FnOnce<(&'2 str,)>`, for some specific lifetime `'2`
-pub(crate) fn custom_toolchain_name_parser(
-    value: &str,
-) -> Result<CustomToolchainName, InvalidName> {
-    CustomToolchainName::try_from(value)
 }
 
 /// An toolchain specified just via its path. Relative paths enable arbitrary

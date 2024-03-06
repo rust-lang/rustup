@@ -6,7 +6,7 @@ rustup [..]
 
 The Rust toolchain installer
 
-Usage: rustup [OPTIONS] [+toolchain] [COMMAND]
+Usage: rustup[EXE] [OPTIONS] [+toolchain] [COMMAND]
 
 Commands:
   show         Show the active and installed toolchains or profiles
@@ -28,7 +28,7 @@ Commands:
 
 Arguments:
   [+toolchain]
-          release channel (e.g. +stable) or custom toolchain to set override
+          Release channel (e.g. +stable) or custom toolchain to set override
 
 Options:
   -v, --verbose

@@ -4,10 +4,10 @@ stdout = """
 ...
 Update Rust toolchains and rustup
 
-Usage: rustup[EXE] update [OPTIONS] [toolchain]...
+Usage: rustup[EXE] update [OPTIONS] [TOOLCHAIN]...
 
 Arguments:
-  [toolchain]...  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+  [TOOLCHAIN]...  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
                   `rustup help toolchain`
 
 Options:

@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["override","unset","--help"]
+args = ["override", "unset", "--help"]
 stdout = """
 ...
 Remove the override toolchain for a directory
@@ -7,7 +7,7 @@ Remove the override toolchain for a directory
 Usage: rustup[EXE] override unset [OPTIONS]
 
 Options:
-      --path <path>  Path to the directory
+      --path <PATH>  Path to the directory
       --nonexistent  Remove override toolchain for all nonexistent directories
   -h, --help         Print help
 

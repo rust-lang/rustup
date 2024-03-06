@@ -1,19 +1,19 @@
 bin.name = "rustup"
-args = ["doc","--help"]
+args = ["doc", "--help"]
 stdout = """
 ...
 Open the documentation for the current toolchain
 
-Usage: rustup[EXE] doc [OPTIONS] [topic]
+Usage: rustup[EXE] doc [OPTIONS] [TOPIC]
 
 Arguments:
-  [topic]  Topic such as 'core', 'fn', 'usize', 'eprintln!', 'core::arch', 'alloc::format!',
+  [TOPIC]  Topic such as 'core', 'fn', 'usize', 'eprintln!', 'core::arch', 'alloc::format!',
            'std::fs', 'std::fs::read_dir', 'std::io::Bytes', 'std::iter::Sum',
            'std::io::error::Result' etc...
 
 Options:
       --path                   Only print the path to the documentation
-      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+      --toolchain <TOOLCHAIN>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                information see `rustup help toolchain`
       --alloc                  The Rust core allocation and collections library
       --book                   The Rust Programming Language book
