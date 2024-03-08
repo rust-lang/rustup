@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.27.0] - 2024-01-29
+## [1.27.0] - 2024-03-08
 
 This long-awaited Rustup release has gathered all the new features and fixes since April 2023.
 These changes include improvements in Rustup's maintainability, user experience, compatibility and documentation quality.
@@ -11,7 +11,7 @@ The headlines of this release are:
 
 Also, it's worth mentioning that Dirkjan Ochtman and rami3l have joined the team and are coordinating this new release.
 
-Finally, the project seems to have attracted a total of 21 new contributors within this release cycle. Looking forward to seeing you again in the future!
+Finally, the project seems to have attracted a total of 23 new contributors within this release cycle. Looking forward to seeing you again in the future!
 
 ### Added
 
@@ -32,6 +32,7 @@ Finally, the project seems to have attracted a total of 21 new contributors with
 - Fix handling of toolchain names with special characters [pr#3518]
 - Fix panic in `component list --toolchain stable` [pr#3548]
 - Rename `llvm-tools-preview` component to `llvm-tools` [pr#3578]
+- Try using symlinks if possible on Windows [pr#3687]
 - Bump a lot of dependencies to their latest versions [pr#renovate-bot]
 
 Thanks go to:
@@ -41,6 +42,7 @@ Thanks go to:
 - Alex Gaynor (alex)
 - Alex Hudspith (alexhudspith)
 - Alan Somers (asomers)
+- Brett (brettearle)
 - Burak Emir (burakemir)
 - Chris Denton (ChrisDenton)
 - cui fliter (cuishuang)
@@ -57,6 +59,7 @@ Thanks go to:
 - Matt Harding (majaha)
 - Mathias Brossard (mbrossard)
 - Christian Thackston (nan60)
+- Ruohui Wang (noirgif)
 - Olivier Lemasle (olivierlemasle)
 - Chih Wang (ongchi)
 - Pavel Roskin (proski)
@@ -87,6 +90,7 @@ Thanks go to:
 [pr#3518]: https://github.com/rust-lang/rustup/pull/3518
 [pr#3548]: https://github.com/rust-lang/rustup/pull/3548
 [pr#3578]: https://github.com/rust-lang/rustup/pull/3578
+[pr#3687]: https://github.com/rust-lang/rustup/pull/3687
 
 ## [1.26.0] - 2023-04-05
 
