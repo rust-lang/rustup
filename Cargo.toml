@@ -63,7 +63,11 @@ once_cell.workspace = true
 opener = "0.6.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
-openssl = { version = "0.10", optional = true }
+# HACK: We temporarily pin the OpenSSL version due to build issues encountered in
+# https://github.com/rust-lang/rustup/pull/3668.
+openssl = { version = "=0.10.57", optional = true }
+openssl-src = { version = "=111.28.1", optional = true }
+openssl-sys = { version = "=0.9.92", optional = true }
 opentelemetry = { workspace = true, optional = true }
 opentelemetry_sdk = { workspace = true, optional = true }
 opentelemetry-otlp = { workspace = true, optional = true }
