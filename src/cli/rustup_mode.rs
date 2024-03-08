@@ -1621,20 +1621,28 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             for request in server.incoming_requests() {
                 //TODO get request path and serve filebased on that
                 let request_path = request.url().strip_prefix('/');
-                println!("request path: {:?}", request_path);
-                let mut response_path =
-                    doc_path_base.clone().to_string_lossy().into_owned() + request_path;
-                println!("response path: {}", response_path);
-                if request_path == Option::from("/") {
-                    response_path = doc_path_index.clone().to_string_lossy().into_owned();
+                match request_path {
+                    Some(mut request_path) => {
+                        println!("doc url: {:?}", &doc_url);
+                        println!("Req file: {:?}", &request_path);
+                        let base_string = doc_path_str.clone();
+                        if request_path == "" {
+                            request_path = doc_url;
+                        }
+                        //strip search params
+                        if let Some(index) = request_path.find('?') {
+                            request_path = &request_path[..index];
+                        }
+                        let path = String::from(base_string + &request_path);
+                        println!("Serving file: {:?}", &path);
+                        let file = std::fs::File::open(path).unwrap();
+                        request.respond(Response::from_file(file)).unwrap();
+                    }
+                    None => {
+                        let file = std::fs::File::open(&doc_path_index).unwrap();
+                        request.respond(Response::from_file(file)).unwrap();
+                    }
                 }
-                let request_path_from_doc = doc_path_str.clone() + request_path.strip_prefix('/');
-                println!("request path: {}", request_path_from_doc);
-                let file = std::fs::File::open(&response_path).unwrap();
-                println!("received request! url: {:?}", request.url(),);
-
-                let response = Response::from_file(file);
-                request.respond(response).unwrap();
             }
         }
     } else {
