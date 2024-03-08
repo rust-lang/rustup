@@ -1617,7 +1617,8 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         let doc_path_base = toolchain.doc_path("")?;
         let doc_path_str = doc_path_base.to_string_lossy().into_owned();
         loop {
-            let server = Server::http("127.0.0.1:3000").unwrap();
+            let server = Server::http("127.0.0.1:0").unwrap();
+            println!("Serving documentation at {}", server.server_addr());
             for request in server.incoming_requests() {
                 //TODO get request path and serve filebased on that
                 let request_path = request.url().strip_prefix('/');
@@ -1632,6 +1633,10 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                         //strip search params
                         if let Some(index) = request_path.find('?') {
                             request_path = &request_path[..index];
+                        }
+                        //ignore favicon requests
+                        if request_path == "favicon.ico" {
+                            continue;
                         }
                         let path = String::from(base_string + &request_path);
                         println!("Serving file: {:?}", &path);
