@@ -137,6 +137,7 @@ impl Package for DirectoryPackage {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)] // temp::Dir is held for drop.
 pub(crate) struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {

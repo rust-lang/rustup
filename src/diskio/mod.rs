@@ -206,6 +206,7 @@ pub(crate) enum CompletedIo {
     /// A submitted Item has completed
     Item(Item),
     /// An IncrementalFile has completed a single chunk
+    #[allow(dead_code)] // chunk size only used in test code
     Chunk(usize),
 }
 

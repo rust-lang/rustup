@@ -18,7 +18,7 @@ pub(crate) enum Notification<'a> {
     SetProfile(&'a str),
     SetSelfUpdate(&'a str),
     LookingForToolchain(&'a ToolchainDesc),
-    ToolchainDirectory(&'a Path, &'a str),
+    ToolchainDirectory(&'a Path),
     UpdatingToolchain(&'a str),
     InstallingToolchain(&'a str),
     InstalledToolchain(&'a str),
@@ -62,7 +62,7 @@ impl<'a> Notification<'a> {
             Install(n) => n.level(),
             Utils(n) => n.level(),
             Temp(n) => n.level(),
-            ToolchainDirectory(_, _)
+            ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
             | UpdatingToolchain(_)
@@ -103,7 +103,7 @@ impl<'a> Display for Notification<'a> {
             SetProfile(name) => write!(f, "profile set to '{name}'"),
             SetSelfUpdate(mode) => write!(f, "auto-self-update mode set to '{mode}'"),
             LookingForToolchain(name) => write!(f, "looking for installed toolchain '{name}'"),
-            ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
+            ToolchainDirectory(path) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{name}'"),
             InstallingToolchain(name) => write!(f, "installing toolchain '{name}'"),
             InstalledToolchain(name) => write!(f, "toolchain '{name}' installed"),
