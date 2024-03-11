@@ -79,7 +79,7 @@ use crate::{
 };
 
 use os::*;
-pub(crate) use os::{delete_rustup_and_cargo_home, run_update, self_replace};
+pub(crate) use os::{run_update, self_replace};
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 

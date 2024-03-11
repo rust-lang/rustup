@@ -59,6 +59,7 @@ pub struct ColorableTerminal {
 enum TerminalInner {
     StandardStream(StandardStream, ColorSpec),
     #[cfg(feature = "test")]
+    #[allow(dead_code)] // ColorChoice only read in test code
     TestWriter(TestWriter, ColorChoice),
 }
 
