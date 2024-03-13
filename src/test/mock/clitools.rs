@@ -360,7 +360,6 @@ pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
         fs::copy(dist_tmp, &dist_exe).unwrap();
         // modify it
         let mut dest_file = fs::OpenOptions::new()
-            .write(true)
             .append(true)
             .create(true)
             .open(dist_exe)
@@ -391,7 +390,6 @@ pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Co
     fs::copy(dist_tmp, &dist_exe).unwrap();
     // modify it
     let mut dest_file = fs::OpenOptions::new()
-        .write(true)
         .append(true)
         .create(true)
         .open(dist_exe)

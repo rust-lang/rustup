@@ -54,7 +54,6 @@ impl MockInstallerBuilder {
             // Update the components file
             let comp_file = path.join("components");
             let mut comp_file = OpenOptions::new()
-                .write(true)
                 .append(true)
                 .create(true)
                 .open(comp_file.clone())
