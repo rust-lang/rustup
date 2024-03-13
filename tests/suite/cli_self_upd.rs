@@ -267,25 +267,28 @@ fn uninstall_doesnt_leave_gc_file() {
         // 100ms, but during the contention of test suites can be substantially
         // longer while still succeeding.
 
-        #[derive(thiserror::Error, Debug)]
-        #[error("garbage remaining: {:?}", .0)]
-        struct GcErr(Vec<String>);
-
-        match retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
-            let garbage = fs::read_dir(parent)
-                .unwrap()
-                .map(|d| d.unwrap().path().to_string_lossy().to_string())
-                .collect::<Vec<_>>();
-            match garbage.len() {
-                0 => OperationResult::Ok(()),
-                _ => OperationResult::Retry(GcErr(garbage)),
-            }
-        }) {
+        let check = || ensure_empty(parent);
+        match retry(Fibonacci::from_millis(1).map(jitter).take(23), check) {
             Ok(_) => (),
             Err(e) => panic!("{e}"),
         }
     })
 }
+
+fn ensure_empty(dir: &Path) -> OperationResult<(), GcErr> {
+    let garbage = fs::read_dir(dir)
+        .unwrap()
+        .map(|d| d.unwrap().path().to_string_lossy().to_string())
+        .collect::<Vec<_>>();
+    match garbage.len() {
+        0 => OperationResult::Ok(()),
+        _ => OperationResult::Retry(GcErr(garbage)),
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("garbage remaining: {:?}", .0)]
+struct GcErr(Vec<String>);
 
 #[test]
 fn update_exact() {
