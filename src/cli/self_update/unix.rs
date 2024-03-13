@@ -92,6 +92,13 @@ pub(crate) fn do_add_to_path() -> Result<()> {
                 _ => &source_cmd,
             };
 
+            let rc_dir = rc.parent().with_context(|| {
+                format!(
+                    "parent directory doesn't exist for rcfile path: `{}`",
+                    rc.display()
+                )
+            })?;
+            utils::ensure_dir_exists("rcfile dir", rc_dir, &|_: Notification<'_>| ())?;
             utils::append_file("rcfile", &rc, cmd_to_write)
                 .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
         }
