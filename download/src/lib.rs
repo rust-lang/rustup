@@ -92,6 +92,7 @@ pub fn download_to_path_with_backend(
             let mut possible_partial = OpenOptions::new()
                 .write(true)
                 .create(true)
+                .truncate(false)
                 .open(path)
                 .context("error opening file for download")?;
 
@@ -103,6 +104,7 @@ pub fn download_to_path_with_backend(
                 OpenOptions::new()
                     .write(true)
                     .create(true)
+                    .truncate(true)
                     .open(path)
                     .context("error creating file for download")?,
                 0,

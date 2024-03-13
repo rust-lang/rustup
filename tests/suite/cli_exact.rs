@@ -592,7 +592,7 @@ fn list_targets() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             let trip = this_host_triple();
-            let mut sorted = vec![
+            let mut sorted = [
                 format!("{} (installed)", &*trip),
                 format!("{} (installed)", clitools::CROSS_ARCH1),
                 clitools::CROSS_ARCH2.to_string(),
@@ -613,7 +613,7 @@ fn list_installed_targets() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             let trip = this_host_triple();
-            let mut sorted = vec![
+            let mut sorted = [
                 trip,
                 clitools::CROSS_ARCH1.to_string(),
                 clitools::CROSS_ARCH2.to_string(),

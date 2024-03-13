@@ -162,7 +162,7 @@ fn clear_process() {
 }
 
 thread_local! {
-    pub(crate) static PROCESS:RefCell<Option<Process>> = RefCell::new(None);
+    pub(crate) static PROCESS: RefCell<Option<Process>> = const { RefCell::new(None) };
 }
 
 // PID related things
