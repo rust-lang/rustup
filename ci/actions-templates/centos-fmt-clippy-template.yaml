@@ -83,4 +83,4 @@ jobs: # skip-all
         run: |
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --all --all-targets --features test
+          cargo clippy --all-targets --all-features -- -D warnings
