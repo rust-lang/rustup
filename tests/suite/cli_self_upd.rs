@@ -10,7 +10,7 @@ use remove_dir_all::remove_dir_all;
 
 use retry::{
     delay::{jitter, Fibonacci},
-    retry, OperationResult,
+    retry,
 };
 use rustup::test::{
     mock::{
@@ -275,14 +275,14 @@ fn uninstall_doesnt_leave_gc_file() {
     })
 }
 
-fn ensure_empty(dir: &Path) -> OperationResult<(), GcErr> {
+fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
     let garbage = fs::read_dir(dir)
         .unwrap()
         .map(|d| d.unwrap().path().to_string_lossy().to_string())
         .collect::<Vec<_>>();
     match garbage.len() {
-        0 => OperationResult::Ok(()),
-        _ => OperationResult::Retry(GcErr(garbage)),
+        0 => Ok(()),
+        _ => Err(GcErr(garbage)),
     }
 }
 
