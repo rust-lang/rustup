@@ -115,7 +115,7 @@ jobs: # skip-master skip-pr skip-stable
         run: |
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --workspace --all-targets --features test
+          cargo clippy --all-targets --all-features -- --deny warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v4
