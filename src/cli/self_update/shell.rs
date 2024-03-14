@@ -244,7 +244,7 @@ impl UnixShell for Fish {
     }
 
     fn source_string(&self) -> Result<String> {
-        Ok(format!(r#". "{}/env.fish""#, cargo_home_str()?))
+        Ok(format!(r#"source "{}/env.fish""#, cargo_home_str()?))
     }
 }
 
