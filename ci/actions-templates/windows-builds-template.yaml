@@ -107,7 +107,7 @@ jobs: # skip-master skip-pr skip-stable
           TARGET: ${{ matrix.target }}
           BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
-      - name: Run cargo check and clippy
+      - name: Run cargo check
         if: matrix.mode != 'release'
         env:
           TARGET: ${{ matrix.target }}
@@ -115,7 +115,12 @@ jobs: # skip-master skip-pr skip-stable
         run: |
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --all-targets --all-features -- --deny warnings
+      - name: Run cargo clippy
+        if: matrix.mode != 'release' && matrix.mingw == ''
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v4
