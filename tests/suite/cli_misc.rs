@@ -542,6 +542,22 @@ fn run_rls_when_not_installed() {
 }
 
 #[test]
+fn run_rls_when_not_installed_for_nightly() {
+    setup(&|config| {
+        config.expect_ok(&["rustup", "default", "stable"]);
+        config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        config.expect_err(
+            &["rls", "+nightly", "--version"],
+            &format!(
+                "'rls{}' is not installed for the toolchain 'nightly-{}'.\nTo install, run `rustup component add --toolchain nightly-{1} rls`",
+                EXE_SUFFIX,
+                this_host_triple(),
+            ),
+        );
+    });
+}
+
+#[test]
 fn run_rust_lldb_when_not_in_toolchain() {
     clitools::test(Scenario::UnavailableRls, &|config| {
         set_current_dist_date(config, "2015-01-01");
