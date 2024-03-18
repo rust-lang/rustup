@@ -336,6 +336,7 @@ static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 fn update_root() -> String {
     process()
         .var("RUSTUP_UPDATE_ROOT")
+        .inspect(|url| debug!("`RUSTUP_UPDATE_ROOT` has been set to `{url}`"))
         .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
 }
 
