@@ -226,9 +226,9 @@ impl Cfg {
             .transpose()?;
 
         let dist_root_server = match process().var("RUSTUP_DIST_SERVER") {
-            Ok(ref s) if !s.is_empty() => {
+            Ok(s) if !s.is_empty() => {
                 debug!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
-                s.clone()
+                s
             }
             _ => {
                 // For backward compatibility
