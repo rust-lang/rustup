@@ -331,12 +331,12 @@ These components can be acquired through a Visual Studio installer.
 
 "#;
 
-static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
+static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 fn update_root() -> String {
     process()
         .var("RUSTUP_UPDATE_ROOT")
-        .unwrap_or_else(|_| String::from(UPDATE_ROOT))
+        .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
 }
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
