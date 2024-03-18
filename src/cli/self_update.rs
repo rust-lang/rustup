@@ -333,6 +333,12 @@ These components can be acquired through a Visual Studio installer.
 
 static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
+fn update_root() -> String {
+    process()
+        .var("RUSTUP_UPDATE_ROOT")
+        .unwrap_or_else(|_| String::from(UPDATE_ROOT))
+}
+
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<Cow<'static, str>> {
@@ -1178,9 +1184,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     let triple = dist::TargetTriple::from_host().unwrap_or(triple);
 
     // Get update root.
-    let update_root = process()
-        .var("RUSTUP_UPDATE_ROOT")
-        .unwrap_or_else(|_| String::from(UPDATE_ROOT));
+    let update_root = update_root();
 
     // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
@@ -1211,9 +1215,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 }
 
 pub(crate) fn get_available_rustup_version() -> Result<String> {
-    let update_root = process()
-        .var("RUSTUP_UPDATE_ROOT")
-        .unwrap_or_else(|_| String::from(UPDATE_ROOT));
+    let update_root = update_root();
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
         .tempdir()
