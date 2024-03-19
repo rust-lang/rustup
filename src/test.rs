@@ -223,8 +223,6 @@ where
 
 #[cfg(feature = "otel")]
 use once_cell::sync::Lazy;
-#[cfg(feature = "otel")]
-use tokio;
 
 /// A tokio runtime for the sync tests, permitting the use of tracing. This is
 /// never shutdown, instead it is just dropped at end of process.

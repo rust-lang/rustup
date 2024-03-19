@@ -351,7 +351,7 @@ impl Manifest {
     pub(crate) fn rename_component(&self, component: &Component) -> Option<Component> {
         self.renames.get(&component.pkg).map(|r| {
             let mut c = component.clone();
-            c.pkg = r.clone();
+            c.pkg.clone_from(r);
             c
         })
     }

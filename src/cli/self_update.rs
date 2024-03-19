@@ -132,14 +132,13 @@ impl FromStr for SelfUpdateMode {
     }
 }
 
-impl ToString for SelfUpdateMode {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for SelfUpdateMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             SelfUpdateMode::Enable => "enable",
             SelfUpdateMode::Disable => "disable",
             SelfUpdateMode::CheckOnly => "check-only",
-        }
-        .into()
+        })
     }
 }
 
