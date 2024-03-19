@@ -982,7 +982,7 @@ fn try_update_from_dist_(
                 remove_components: Vec::new(),
             };
 
-            *fetched = m.date.clone();
+            fetched.clone_from(&m.date);
 
             return match manifestation.update(
                 &m,

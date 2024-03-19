@@ -428,7 +428,7 @@ impl Cfg {
                 }
 
                 self.settings_file.with_mut(|s| {
-                    s.version = DEFAULT_METADATA_VERSION.to_owned();
+                    DEFAULT_METADATA_VERSION.clone_into(&mut s.version);
                     Ok(())
                 })
             }

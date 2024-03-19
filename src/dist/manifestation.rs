@@ -575,7 +575,9 @@ impl Update {
             }
         } else {
             result.components_to_uninstall = starting_list;
-            result.components_to_install = result.final_component_list.clone();
+            result
+                .components_to_install
+                .clone_from(&result.final_component_list);
         }
 
         Ok(result)
