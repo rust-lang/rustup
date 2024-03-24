@@ -961,7 +961,7 @@ fn _install_selection(
     )
 }
 
-pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
+pub(crate) fn uninstall(cfg: &Cfg, no_prompt: bool) -> Result<utils::ExitCode> {
     if NEVER_SELF_UPDATE {
         err!("self-uninstall is disabled for this build of rustup");
         err!("you should probably use your system package manager to uninstall rustup");
@@ -982,6 +982,13 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
             info!("aborting uninstallation");
             return Ok(utils::ExitCode(0));
         }
+    }
+
+    info!("removing toolchains");
+    let toolchains = cfg.list_toolchains()?;
+    for toolchain in toolchains {
+        let toolchain = cfg.get_toolchain(&toolchain, false)?;
+        toolchain.remove()?;
     }
 
     info!("removing rustup home");
