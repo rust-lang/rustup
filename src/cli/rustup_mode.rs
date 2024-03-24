@@ -1379,8 +1379,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let target = get_target(m, &distributable);
 
     for component in m.get_many::<String>("component").unwrap() {
-        let new_component = Component::new_with_target(component, false)
-            .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
+        let new_component = get_component(component, &distributable, target.as_ref())?;
         distributable.add_component(new_component)?;
     }
 
@@ -1394,14 +1393,46 @@ fn get_target(m: &ArgMatches, distributable: &DistributableToolchain<'_>) -> Opt
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
+fn get_component(
+    name: &str,
+    distributable: &DistributableToolchain<'_>,
+    fallback_target: Option<&TargetTriple>,
+) -> Result<Component> {
+    let manifestation = distributable.get_manifestation()?;
+    let config = manifestation.read_config()?.unwrap_or_default();
+    let manifest = distributable.get_manifest()?;
+    let manifest_components = manifest.query_components(distributable.desc(), &config)?;
+
+    for component_status in manifest_components {
+        let short_name = component_status.component.short_name_in_manifest();
+        let target = component_status.component.target.as_ref();
+
+        if name.starts_with(short_name)
+            && target.is_some()
+            && name == format!("{}-{}", short_name, target.unwrap())
+        {
+            return Ok(Component::new(
+                short_name.to_string(),
+                target.cloned(),
+                false,
+            ));
+        }
+    }
+
+    Ok(Component::new(
+        name.to_string(),
+        fallback_target.cloned(),
+        true,
+    ))
+}
+
 fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(m, &distributable);
 
     for component in m.get_many::<String>("component").unwrap() {
-        let new_component = Component::new_with_target(component, false)
-            .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
+        let new_component = get_component(component, &distributable, target.as_ref())?;
         distributable.remove_component(new_component)?;
     }
 
