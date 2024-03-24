@@ -590,8 +590,6 @@ impl Cfg {
                             // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
                             // the base name in the error to help users)
                             let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
-                            let ts = self.list_toolchains()?;
-                            eprintln!("{resolved_name:?} {ts:?}");
                             if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
                                 return Err(anyhow!(format!(
                                     "target triple in channel name '{name}'"
