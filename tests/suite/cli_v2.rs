@@ -129,11 +129,11 @@ fn list_toolchains() {
         config.expect_ok(&["rustup", "update", "nightly"]);
         config.expect_ok(&["rustup", "update", "beta-2015-01-01"]);
         config.expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly");
-        config.expect_stdout_ok(&["rustup", "toolchain", "list", "-v"], "(default)\t");
+        config.expect_stdout_ok(&["rustup", "toolchain", "list", "-v"], "(active, default) ");
         #[cfg(windows)]
         config.expect_stdout_ok(
             &["rustup", "toolchain", "list", "-v"],
-            for_host!("\\toolchains\\nightly-{}"),
+            for_host!(r"\toolchains\nightly-{}"),
         );
         #[cfg(not(windows))]
         config.expect_stdout_ok(
@@ -144,7 +144,7 @@ fn list_toolchains() {
         #[cfg(windows)]
         config.expect_stdout_ok(
             &["rustup", "toolchain", "list", "-v"],
-            "\\toolchains\\beta-2015-01-01",
+            r"\toolchains\beta-2015-01-01",
         );
         #[cfg(not(windows))]
         config.expect_stdout_ok(
