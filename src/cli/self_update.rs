@@ -79,7 +79,7 @@ use crate::{
 };
 
 use os::*;
-pub(crate) use os::{delete_rustup_and_cargo_home, run_update, self_replace};
+pub(crate) use os::{run_update, self_replace};
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 
@@ -132,14 +132,13 @@ impl FromStr for SelfUpdateMode {
     }
 }
 
-impl ToString for SelfUpdateMode {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for SelfUpdateMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             SelfUpdateMode::Enable => "enable",
             SelfUpdateMode::Disable => "disable",
             SelfUpdateMode::CheckOnly => "check-only",
-        }
-        .into()
+        })
     }
 }
 
@@ -433,10 +432,10 @@ pub(crate) fn install(
         let msg = pre_install_msg(opts.no_modify_path)?;
 
         md(&mut term, msg);
-
+        let mut customized_install = false;
         loop {
             md(&mut term, current_install_opts(&opts));
-            match common::confirm_advanced()? {
+            match common::confirm_advanced(customized_install)? {
                 Confirm::No => {
                     info!("aborting installation");
                     return Ok(utils::ExitCode(0));
@@ -445,6 +444,7 @@ pub(crate) fn install(
                     break;
                 }
                 Confirm::Advanced => {
+                    customized_install = true;
                     opts = customize_install(opts)?;
                 }
             }

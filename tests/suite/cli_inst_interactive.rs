@@ -90,7 +90,7 @@ Current installation options:
                profile: default
   modify PATH variable: no
 
-1) Proceed with installation (default)
+1) Proceed with standard installation (default - just press enter)
 2) Customize installation
 3) Cancel installation
 >

@@ -1,6 +1,4 @@
-use std::boxed::Box;
 use std::cell::RefCell;
-use std::default::Default;
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Debug;
@@ -164,7 +162,7 @@ fn clear_process() {
 }
 
 thread_local! {
-    pub(crate) static PROCESS:RefCell<Option<Process>> = RefCell::new(None);
+    pub(crate) static PROCESS: RefCell<Option<Process>> = const { RefCell::new(None) };
 }
 
 // PID related things

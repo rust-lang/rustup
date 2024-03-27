@@ -439,8 +439,8 @@ impl<'a> DistributableToolchain<'a> {
             } else {
                 // available, not installed, recommend installation
                 let selector = match self.cfg.get_default()? {
-                    Some(ToolchainName::Official(n)) if n == self.desc => "",
-                    _ => " --toolchain {toolchain}",
+                    Some(ToolchainName::Official(n)) if n == self.desc => String::new(),
+                    _ => format!("--toolchain {} ", self.toolchain.name()),
                 };
                 Err(anyhow!("'{binary_lossy}' is not installed for the toolchain '{desc}'.\nTo install, run `rustup component add {selector}{component_name}`"))
             }

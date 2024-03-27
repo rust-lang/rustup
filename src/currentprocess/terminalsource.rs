@@ -59,6 +59,7 @@ pub struct ColorableTerminal {
 enum TerminalInner {
     StandardStream(StandardStream, ColorSpec),
     #[cfg(feature = "test")]
+    #[allow(dead_code)] // ColorChoice only read in test code
     TestWriter(TestWriter, ColorChoice),
 }
 
@@ -175,7 +176,10 @@ impl ColorableTerminal {
 
     pub fn reset(&mut self) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, _color) => s.reset(),
+            TerminalInner::StandardStream(s, color) => {
+                color.clear();
+                s.reset()
+            }
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(_, _) => Ok(()),
         }

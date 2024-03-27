@@ -71,10 +71,7 @@ impl<'a> InstallMethod<'a> {
             _ => (nh)(RootNotification::UpdatingToolchain(&self.dest_basename())),
         }
 
-        (self.cfg().notify_handler)(RootNotification::ToolchainDirectory(
-            &self.dest_path(),
-            &self.dest_basename(),
-        ));
+        (self.cfg().notify_handler)(RootNotification::ToolchainDirectory(&self.dest_path()));
         let updated = self.run(&self.dest_path(), &|n| {
             (self.cfg().notify_handler)(n.into())
         })?;

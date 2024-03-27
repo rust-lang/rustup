@@ -8,9 +8,6 @@ use std::path::Path;
 use std::str;
 
 #[cfg(not(windows))]
-use libc;
-
-#[cfg(not(windows))]
 use crate::{currentprocess::varsource::VarSource, process};
 
 pub(crate) fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
@@ -119,7 +116,6 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
 
 pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
     let mut dest_file = fs::OpenOptions::new()
-        .write(true)
         .append(true)
         .create(true)
         .open(dest)?;

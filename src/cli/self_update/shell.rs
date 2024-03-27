@@ -233,7 +233,11 @@ impl UnixShell for Fish {
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        self.rcfiles()
+        // The first rcfile takes precedence.
+        match self.rcfiles().into_iter().next() {
+            Some(path) => vec![path],
+            None => vec![],
+        }
     }
 
     fn env_script(&self) -> ShellScript {
@@ -244,7 +248,7 @@ impl UnixShell for Fish {
     }
 
     fn source_string(&self) -> Result<String> {
-        Ok(format!(r#". "{}/env.fish""#, cargo_home_str()?))
+        Ok(format!(r#"source "{}/env.fish""#, cargo_home_str()?))
     }
 }
 

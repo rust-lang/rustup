@@ -1,6 +1,7 @@
 # Summary
 
 - [Introduction](index.md)
+    - [Linting](linting.md)
 - [Coding standards](coding-standards.md)
 - [Version numbers](version-numbers.md)
 - [Release process](release-process.md)

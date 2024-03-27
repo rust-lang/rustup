@@ -471,7 +471,7 @@ fn list_overrides() {
             let mut cwd_formatted = format!("{}", cwd.display());
 
             if cfg!(windows) {
-                cwd_formatted = cwd_formatted[4..].to_owned();
+                cwd_formatted.drain(..4);
             }
 
             let trip = this_host_triple();
@@ -511,7 +511,7 @@ fn list_overrides_with_nonexistent() {
             let mut path_formatted = format!("{}", nonexistent_path.display());
 
             if cfg!(windows) {
-                path_formatted = path_formatted[4..].to_owned();
+                path_formatted.drain(..4);
             }
 
             config.expect_ok_ex(
@@ -592,7 +592,7 @@ fn list_targets() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             let trip = this_host_triple();
-            let mut sorted = vec![
+            let mut sorted = [
                 format!("{} (installed)", &*trip),
                 format!("{} (installed)", clitools::CROSS_ARCH1),
                 clitools::CROSS_ARCH2.to_string(),
@@ -613,7 +613,7 @@ fn list_installed_targets() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {
             let trip = this_host_triple();
-            let mut sorted = vec![
+            let mut sorted = [
                 trip,
                 clitools::CROSS_ARCH1.to_string(),
                 clitools::CROSS_ARCH2.to_string(),

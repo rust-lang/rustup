@@ -165,7 +165,7 @@ hr {
     position: relative;
     width: fit-content;
     height: fit-content;
-    top: 50%;
+    top: 27px;
     left: 50%;
     transform: translate(-50%, -50%);
 }

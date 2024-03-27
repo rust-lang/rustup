@@ -165,7 +165,7 @@ impl<'a> Toolchain<'a> {
         }
 
         if cfg!(target_os = "windows") {
-            // Historically rustup has included the bin directory in PATH to
+            // Historically rustup included the bin directory in PATH to
             // work around some bugs (see
             // https://github.com/rust-lang/rustup/pull/3178 for more
             // information). This shouldn't be needed anymore, and it causes
@@ -174,10 +174,13 @@ impl<'a> Toolchain<'a> {
             // recursive call won't work because it is not executing the
             // proxy, so the `+` toolchain override doesn't work.
             //
-            // This is opt-in to allow us to get more real-world testing.
+            // The RUSTUP_WINDOWS_PATH_ADD_BIN env var was added to opt-in to
+            // testing the fix. The default is now off, but this is left here
+            // just in case there are problems. Consider removing in the
+            // future if it doesn't seem necessary.
             if process()
                 .var_os("RUSTUP_WINDOWS_PATH_ADD_BIN")
-                .map_or(true, |s| s == "1")
+                .map_or(false, |s| s == "1")
             {
                 path_entries.push(self.path.join("bin"));
             }

@@ -22,7 +22,6 @@ on:
     branches:
       - master
       - stable
-      - renovate/*
   schedule:
     - cron: "30 0 * * 1" # Every Monday at half past midnight UTC
 

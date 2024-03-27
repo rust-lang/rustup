@@ -56,12 +56,13 @@ pub(crate) enum Confirm {
     Advanced,
 }
 
-pub(crate) fn confirm_advanced() -> Result<Confirm> {
+pub(crate) fn confirm_advanced(customized_install: bool) -> Result<Confirm> {
     writeln!(process().stdout().lock())?;
-    writeln!(
-        process().stdout().lock(),
-        "1) Proceed with installation (default)"
-    )?;
+    let first_option = match customized_install {
+        true => "1) Proceed with selected options (default - just press enter)",
+        false => "1) Proceed with standard installation (default - just press enter)",
+    };
+    writeln!(process().stdout().lock(), "{first_option}")?;
     writeln!(process().stdout().lock(), "2) Customize installation")?;
     writeln!(process().stdout().lock(), "3) Cancel installation")?;
     write!(process().stdout().lock(), ">")?;
