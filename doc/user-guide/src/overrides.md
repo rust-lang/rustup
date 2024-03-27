@@ -12,14 +12,18 @@ and override which toolchain is used:
 5. The [default toolchain].
 
 The toolchain is chosen in the order listed above, using the first one that is
-specified. There is one exception though: directory overrides and the
-`rust-toolchain.toml` file are also preferred by their proximity to the current
-directory. That is, these two override methods are discovered by walking up
-the directory tree toward the filesystem root, and a `rust-toolchain.toml` file
-that is closer to the current directory will be preferred over a directory
-override that is further away.
+specified. There are a number of caveats though:
 
-To verify which toolchain is active, you can use `rustup show`, 
+- Directory overrides and `rust-toolchain.toml` overrides are determined together.
+  Since each of them is bounded to the directory it was set in, to find out
+  which of them to use, `rustup` walks up the directory tree towards the
+  filesystem root, and whichever has its bounded directory closest to the
+  current directory wins. If that same closest directory has both overrides,
+  then `rust-toolchain.toml` is overridden by the directory override.
+- When overriding a `rust-toolchain.toml`, its `components` and `targets`
+  will be carried over to the new toolchain.
+
+To verify which toolchain is active, you can use `rustup show`,
 which will also try to install the corresponding
 toolchain if the current one has not been installed according to the above rules.
 (Please note that this behavior is subject to change, as detailed in issue [#1397].)
