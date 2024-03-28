@@ -45,11 +45,9 @@ pub fn open_dir(p: &Path) -> std::io::Result<File> {
 #[cfg(not(windows))]
 pub fn open_dir(p: &Path) -> std::io::Result<File> {
     use std::fs::OpenOptions;
-    use std::os::unix::fs::OpenOptionsExt;
 
     let mut options = OpenOptions::new();
     options.read(true);
-    options.custom_flags(libc::O_NOFOLLOW);
     options.open(p)
 }
 

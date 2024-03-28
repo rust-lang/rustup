@@ -677,7 +677,33 @@ fn rename_rls_remove() {
     });
 }
 
+// issue #3737
+/// `~/.rustup/toolchains` is permitted to be a symlink.
+#[test]
+#[cfg(any(unix, windows))]
+fn toolchains_symlink() {
+    use rustup::utils::raw::symlink_dir;
+    use std::fs;
+
+    clitools::test(Scenario::SimpleV2, &|config| {
+        let cwd = config.current_dir();
+        let test_toolchains = cwd.join("toolchains-test");
+        fs::create_dir(&test_toolchains).unwrap();
+        symlink_dir(&test_toolchains, &config.rustupdir.join("toolchains")).unwrap();
+
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok_contains(&["rustup", "toolchain", "list"], "nightly", "");
+        config.expect_ok_contains(&["rustc", "--version"], "hash-nightly-2", "");
+        config.expect_ok(&["rustup", "toolchain", "uninstall", "nightly"]);
+        config.expect_stdout_ok(
+            &["rustup", "toolchain", "list"],
+            "no installed toolchains\n",
+        );
+    });
+}
+
 // issue #1169
+/// A toolchain that is a stale symlink should be correctly uninstalled.
 #[test]
 #[cfg(any(unix, windows))]
 fn toolchain_broken_symlink() {
