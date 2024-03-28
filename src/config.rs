@@ -230,13 +230,17 @@ impl Cfg {
             .transpose()?;
 
         let dist_root_server = match process().var("RUSTUP_DIST_SERVER") {
-            Ok(ref s) if !s.is_empty() => s.clone(),
+            Ok(s) if !s.is_empty() => {
+                info!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
+                s
+            }
             _ => {
                 // For backward compatibility
                 process()
                     .var("RUSTUP_DIST_ROOT")
                     .ok()
                     .and_then(utils::if_not_empty)
+                    .inspect(|url| info!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
                     .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)
                     .as_ref()
                     .trim_end_matches("/dist")
