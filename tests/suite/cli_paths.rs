@@ -203,7 +203,7 @@ export PATH="$HOME/apple/bin"
             let profile = config.homedir.join(".profile");
             let fake_rc_modified = FAKE_RC.strip_suffix('\n').expect("Should end in a newline");
             raw::write_file(&profile, fake_rc_modified).unwrap();
-            // Run once to to add the configuration
+            // Run once to add the configuration
             config.expect_ok(&INIT_NONE);
             // Run twice to test that the process is idempotent
             config.expect_ok(&INIT_NONE);
