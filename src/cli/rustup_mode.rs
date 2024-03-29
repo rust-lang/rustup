@@ -1594,18 +1594,15 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     };
 
     let topical_path: PathBuf;
+    let mut doc_name = m.get_one::<String>("topic").map(|s| s.as_str());
 
-    let doc_url = if let Some(topic) = m.get_one::<String>("topic") {
+    let doc_url = if let Some(topic) = doc_name {
         topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
         topical_path.to_str().unwrap()
     } else if let Some((name, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.get_flag(name)) {
-        writeln!(
-            process().stderr().lock(),
-            "Opening docs named `{name}` in your browser"
-        )?;
+        doc_name = Some(name);
         path
     } else {
-        writeln!(process().stderr().lock(), "Opening docs in your browser")?;
         "index.html"
     };
 
@@ -1614,6 +1611,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else {
+        if let Some(name) = doc_name {
+            writeln!(
+                process().stderr().lock(),
+                "Opening docs named `{name}` in your browser"
+            )?;
+        } else {
+            writeln!(process().stderr().lock(), "Opening docs in your browser")?;
+        }
         toolchain.open_docs(doc_url)?;
         Ok(utils::ExitCode(0))
     }
