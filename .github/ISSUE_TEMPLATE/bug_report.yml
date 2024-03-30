@@ -7,6 +7,16 @@ body:
       value: >
         **Thanks for filing a 🐛 bug report 😄!**
 
+  - type: checkboxes
+    attributes:
+      label: Verification
+      description: Please verify that you've followed these steps.
+      options:
+        - label: I searched for recent similar issues at https://github.com/rust-lang/rustup/issues?q=is%3Aissue+is%3Aopen%2Cclosed and found no duplicates.
+          required: true
+        - label: I am on the latest version of Rustup according to https://github.com/rust-lang/rustup/tags and am still able to reproduce my issue.
+          required: true
+
   - type: textarea
     id: problem
     attributes:
@@ -56,6 +66,14 @@ body:
     attributes:
       label: Installed toolchains
       description: Output of `rustup show`
+      render: console
+    validations:
+      required: true
+
+  - type: textarea
+    id: os
+    attributes:
+      label: OS version
       render: console
     validations:
       required: true
