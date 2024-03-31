@@ -31,7 +31,7 @@ pub fn is_file<P: AsRef<Path>>(path: P) -> bool {
 }
 
 #[cfg(windows)]
-pub fn open_dir(p: &Path) -> std::io::Result<File> {
+pub fn open_dir_following_links(p: &Path) -> std::io::Result<File> {
     use std::fs::OpenOptions;
     use std::os::windows::fs::OpenOptionsExt;
 
@@ -42,8 +42,9 @@ pub fn open_dir(p: &Path) -> std::io::Result<File> {
     options.custom_flags(FILE_FLAG_BACKUP_SEMANTICS);
     options.open(p)
 }
+
 #[cfg(not(windows))]
-pub fn open_dir(p: &Path) -> std::io::Result<File> {
+pub fn open_dir_following_links(p: &Path) -> std::io::Result<File> {
     use std::fs::OpenOptions;
 
     let mut options = OpenOptions::new();

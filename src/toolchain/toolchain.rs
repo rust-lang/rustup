@@ -19,7 +19,7 @@ use crate::{
     currentprocess::{process, varsource::VarSource},
     env_var, install,
     notifications::Notification,
-    utils::{raw::open_dir, utils},
+    utils::{raw::open_dir_following_links, utils},
     RustupError,
 };
 
@@ -62,7 +62,7 @@ impl<'a> Toolchain<'a> {
         let base_name = path
             .file_name()
             .ok_or_else(|| RustupError::InvalidToolchainName(name.to_string()))?;
-        let parent_dir = match open_dir(parent) {
+        let parent_dir = match open_dir_following_links(parent) {
             Ok(d) => d,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(false),
             e => e?,
