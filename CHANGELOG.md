@@ -749,7 +749,7 @@ but you can always see the full list of changes via the Git repository.
 ## [1.22.1] - 2020-07-08
 
 A regression in proxied behaviour slipped in due to a non-compatible change
-in `url` slipping in 2.1 which [caused a misbehaviour][env_proxy#8] in `env_proxy`.
+in `url` slipping in in 2.1 which [caused a misbehaviour][env_proxy#8] in `env_proxy`.
 which was [fixed][env_proxy@5591cc7] but not released to crates.io until after
 1.22.0 was built.
 
