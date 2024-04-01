@@ -610,7 +610,7 @@ where
     })
 }
 
-pub(crate) fn delete_dir_contents(dir_path: &Path) {
+pub(crate) fn delete_dir_contents_or_unlink(dir_path: &Path) {
     let remove = if dir_path.is_symlink() {
         fs::remove_dir_all
     } else {
