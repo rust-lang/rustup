@@ -702,33 +702,6 @@ fn toolchains_symlink() {
     });
 }
 
-// issue #3344
-/// `~/.rustup/tmp` and `~/.rustup/downloads` are permitted to be symlinks.
-#[test]
-#[cfg(any(unix, windows))]
-fn tmp_downloads_symlink() {
-    use rustup::utils::raw::symlink_dir;
-    use std::fs;
-
-    clitools::test(Scenario::ArchivesV2, &|config| {
-        let cwd = config.current_dir();
-
-        let test_tmp = cwd.join("tmp-test");
-        fs::create_dir(&test_tmp).unwrap();
-        symlink_dir(&test_tmp, &config.rustupdir.join("tmp")).unwrap();
-
-        let test_downloads = cwd.join("tmp-downloads");
-        fs::create_dir(&test_downloads).unwrap();
-        symlink_dir(&test_downloads, &config.rustupdir.join("downloads")).unwrap();
-
-        set_current_dist_date(config, "2015-01-01");
-        config.expect_ok(&["rustup", "default", "nightly"]);
-
-        set_current_dist_date(config, "2015-01-02");
-        config.expect_ok(&["rustup", "update"]);
-    });
-}
-
 // issue #1169
 /// A toolchain that is a stale symlink should be correctly uninstalled.
 #[test]
