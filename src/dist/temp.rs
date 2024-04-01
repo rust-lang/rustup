@@ -158,7 +158,7 @@ impl Cfg {
     }
 
     pub(crate) fn clean(&self) {
-        utils::delete_dir_contents(&self.root_directory);
+        utils::delete_dir_contents_or_unlink(&self.root_directory);
     }
 }
 
