@@ -611,12 +611,7 @@ where
 }
 
 pub(crate) fn delete_dir_contents(dir_path: &Path) {
-    let remove = if dir_path.is_symlink() {
-        fs::remove_dir_all
-    } else {
-        remove_dir_all::remove_dir_contents
-    };
-    match remove(dir_path) {
+    match remove_dir_all::remove_dir_contents(dir_path) {
         Err(e) if e.kind() != io::ErrorKind::NotFound => {
             panic!("Unable to clean up {}: {:?}", dir_path.display(), e);
         }
