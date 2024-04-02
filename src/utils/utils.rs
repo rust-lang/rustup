@@ -611,7 +611,9 @@ where
 }
 
 pub(crate) fn delete_dir_contents(dir_path: &Path) {
-    match remove_dir_all::remove_dir_contents(dir_path) {
+    use remove_dir_all::RemoveDir;
+
+    match raw::open_dir_following_links(dir_path).and_then(|mut p| p.remove_dir_contents(None)) {
         Err(e) if e.kind() != io::ErrorKind::NotFound => {
             panic!("Unable to clean up {}: {:?}", dir_path.display(), e);
         }
