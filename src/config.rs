@@ -1,10 +1,10 @@
-use std::borrow::Cow;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::{borrow::Cow, iter};
 
 use anyhow::{anyhow, bail, Context, Result};
 use derivative::Derivative;
@@ -36,6 +36,9 @@ use crate::{
     utils::utils,
 };
 
+#[cfg(feature = "test")]
+use crate::test::mock::clitools;
+
 #[derive(Debug, ThisError)]
 enum OverrideFileConfigError {
     #[error("empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file")]
@@ -55,6 +58,15 @@ impl OverrideFile {
     fn is_empty(&self) -> bool {
         self.toolchain.is_empty()
     }
+
+    fn has_toolchain(&self) -> bool {
+        self.toolchain.has_toolchain()
+    }
+
+    /// A left-biased merge of two [`OverrideFile`]s.
+    fn merge(&mut self, other: Self) {
+        self.toolchain.merge(other.toolchain)
+    }
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
@@ -69,9 +81,33 @@ struct ToolchainSection {
 impl ToolchainSection {
     fn is_empty(&self) -> bool {
         self.channel.is_none()
+            && self.path.is_none()
             && self.components.is_none()
             && self.targets.is_none()
-            && self.path.is_none()
+    }
+
+    fn has_toolchain(&self) -> bool {
+        self.channel.is_some() || self.path.is_some()
+    }
+
+    /// A left-biased merge of two [`ToolchainSelection`]s.
+    ///
+    /// If a field appears in both operands, the one from the left-hand side is selected.
+    fn merge(&mut self, other: Self) {
+        if !self.has_toolchain() {
+            // `channel` and `path` are mutually exclusive, so they need to be updated together,
+            // and this will happen only if `self` doesn't have a toolchain yet.
+            (self.channel, self.path) = (other.channel, other.path);
+        }
+        if self.components.is_none() {
+            self.components = other.components;
+        }
+        if self.targets.is_none() {
+            self.targets = other.targets;
+        }
+        if self.profile.is_none() {
+            self.profile = other.profile;
+        }
     }
 }
 
@@ -96,6 +132,7 @@ impl<T: Into<String>> From<T> for OverrideFile {
     }
 }
 
+/// The reason for which the toolchain is overridden.
 #[derive(Debug)]
 pub(crate) enum OverrideReason {
     Environment,
@@ -115,7 +152,7 @@ impl Display for OverrideReason {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq)]
 struct OverrideCfg {
     toolchain: Option<LocalToolchainName>,
     components: Vec<String>,
@@ -455,29 +492,40 @@ impl Cfg {
     fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, OverrideReason)>> {
         let mut override_ = None;
 
-        // First check toolchain override from command
+        // Check for all possible toolchain overrides below...
+        // See: <https://rust-lang.github.io/rustup/overrides.html>
+
+        // 1. Check toolchain override from command (i.e. the `+toolchain` syntax)
         if let Some(ref name) = self.toolchain_override {
-            override_ = Some((name.to_string().into(), OverrideReason::CommandLine));
+            update_override(
+                &mut override_,
+                name.to_string().into(),
+                OverrideReason::CommandLine,
+            );
         }
 
-        // Check RUSTUP_TOOLCHAIN
+        // 2. Check RUSTUP_TOOLCHAIN
         if let Some(ref name) = self.env_override {
             // Because path based toolchain files exist, this has to support
             // custom, distributable, and absolute path toolchains otherwise
             // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
             // error when a nested rustup invocation occurs
-            override_ = Some((name.to_string().into(), OverrideReason::Environment));
+            update_override(
+                &mut override_,
+                name.to_string().into(),
+                OverrideReason::Environment,
+            );
         }
 
-        // Then walk up the directory tree from 'path' looking for either the
-        // directory in override database, or a `rust-toolchain` file.
-        if override_.is_none() {
-            self.settings_file.with(|s| {
-                override_ = self.find_override_from_dir_walk(path, s)?;
-
-                Ok(())
-            })?;
-        }
+        // 3. walk up the directory tree from 'path' looking for either the
+        // directory in override database, or
+        // 4. a `rust-toolchain` file.
+        self.settings_file.with(|s| {
+            if let Some((file, reason)) = self.find_override_from_dir_walk(path, s)? {
+                update_override(&mut override_, file, reason);
+            }
+            Ok(())
+        })?;
 
         if let Some((file, reason)) = override_ {
             // This is hackishly using the error chain to provide a bit of
@@ -535,14 +583,15 @@ impl Cfg {
         dir: &Path,
         settings: &Settings,
     ) -> Result<Option<(OverrideFile, OverrideReason)>> {
-        let notify = self.notify_handler.as_ref();
-        let mut dir = Some(dir);
+        let mut override_ = None;
 
-        while let Some(d) = dir {
+        let notify = self.notify_handler.as_ref();
+
+        for d in iter::successors(Some(dir), |d| d.parent()) {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
                 let reason = OverrideReason::OverrideDB(d.to_owned());
-                return Ok(Some((name.into(), reason)));
+                update_override(&mut override_, name.into(), reason);
             }
 
             // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
@@ -615,13 +664,15 @@ impl Cfg {
                 }
 
                 let reason = OverrideReason::ToolchainFile(toolchain_file);
-                return Ok(Some((override_file, reason)));
+                update_override(&mut override_, override_file, reason);
             }
 
-            dir = d.parent();
+            if override_.is_some() {
+                break;
+            }
         }
 
-        Ok(None)
+        Ok(override_)
     }
 
     fn parse_override_file<S: AsRef<str>>(
@@ -955,6 +1006,45 @@ impl Cfg {
     }
 }
 
+#[cfg(feature = "test")]
+impl From<clitools::Config> for Cfg {
+    fn from(cfg: clitools::Config) -> Self {
+        let rustup_dir = &cfg.rustupdir;
+        let dist_root_server = dist::DEFAULT_DIST_SERVER;
+
+        Self {
+            rustup_dir: rustup_dir.rustupdir.clone(),
+            fallback_settings: None,
+            settings_file: SettingsFile::new(rustup_dir.join("settings.toml")),
+            toolchains_dir: rustup_dir.join("toolchains"),
+            update_hash_dir: rustup_dir.join("update-hashes"),
+            download_dir: rustup_dir.join("downloads"),
+            dist_root_url: dist_root_server.to_owned() + "/dist",
+            temp_cfg: temp::Cfg::new(rustup_dir.join("tmp"), dist_root_server, Box::new(|_| {})),
+            toolchain_override: None,
+            profile_override: None,
+            env_override: None,
+            notify_handler: Arc::new(|_| {}),
+        }
+    }
+}
+
+fn update_override(
+    override_: &mut Option<(OverrideFile, OverrideReason)>,
+    file: OverrideFile,
+    reason: OverrideReason,
+) {
+    if let Some((file1, reason1)) = override_ {
+        if file1.has_toolchain() {
+            // Update the reason only if the override file has a toolchain.
+            *reason1 = reason
+        }
+        file1.merge(file);
+    } else {
+        *override_ = Some((file, reason))
+    };
+}
+
 fn get_default_host_triple(s: &Settings) -> dist::TargetTriple {
     s.default_host_triple
         .as_ref()
@@ -979,6 +1069,11 @@ enum ParseMode {
 #[cfg(test)]
 mod tests {
     use rustup_macros::unit_test as test;
+
+    use crate::{
+        test::{mock::clitools::setup_test_state, test_dist_dir},
+        utils::raw,
+    };
 
     use super::*;
 
@@ -1181,5 +1276,137 @@ channel = nightly
             result.unwrap_err().downcast::<OverrideFileConfigError>(),
             Ok(OverrideFileConfigError::Parsing)
         ));
+    }
+
+    /// Ensures that `rust-toolchain.toml` configs can be overridden by `<proxy> +<toolchain>`.
+    /// See: <https://github.com/rust-lang/rustup/issues/3483>
+    #[test]
+    fn toolchain_override_beats_toml() {
+        let test_dist_dir = test_dist_dir().unwrap();
+        let (cwd, config) = setup_test_state(test_dist_dir);
+
+        let toolchain_file = cwd.path().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+                [toolchain]
+                channel = "nightly"
+                components = [ "rls" ]
+            "#,
+        )
+        .unwrap();
+
+        let mut cfg = Cfg::try_from(config).unwrap();
+        let default_host_triple = cfg.get_default_host_triple().unwrap();
+        cfg.toolchain_override = Some("beta".try_into().unwrap());
+
+        let found_override = cfg.find_override_config(cwd.path()).unwrap();
+        let override_cfg = found_override.map(|it| it.0);
+
+        let expected_override_cfg = OverrideCfg {
+            toolchain: Some(LocalToolchainName::Named(ToolchainName::Official(
+                ToolchainDesc {
+                    channel: "beta".to_owned(),
+                    date: None,
+                    target: default_host_triple,
+                },
+            ))),
+            components: vec!["rls".to_owned()],
+            targets: vec![],
+            profile: None,
+        };
+        assert_eq!(override_cfg, Some(expected_override_cfg));
+    }
+
+    /// Ensures that `rust-toolchain.toml` configs can be overridden by `RUSTUP_TOOLCHAIN`.
+    /// See: <https://github.com/rust-lang/rustup/issues/3483>
+    #[test]
+    fn env_override_beats_toml() {
+        let test_dist_dir = test_dist_dir().unwrap();
+        let (cwd, config) = setup_test_state(test_dist_dir);
+
+        let toolchain_file = cwd.path().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+                [toolchain]
+                channel = "nightly"
+                components = [ "rls" ]
+            "#,
+        )
+        .unwrap();
+
+        let mut cfg = Cfg::try_from(config).unwrap();
+        let default_host_triple = cfg.get_default_host_triple().unwrap();
+        cfg.env_override = Some(
+            ResolvableLocalToolchainName::try_from("beta")
+                .unwrap()
+                .resolve(&default_host_triple)
+                .unwrap(),
+        );
+
+        let found_override = cfg.find_override_config(cwd.path()).unwrap();
+        let override_cfg = found_override.map(|it| it.0);
+
+        let expected_override_cfg = OverrideCfg {
+            toolchain: Some(LocalToolchainName::Named(ToolchainName::Official(
+                ToolchainDesc {
+                    channel: "beta".to_owned(),
+                    date: None,
+                    target: default_host_triple,
+                },
+            ))),
+            components: vec!["rls".to_owned()],
+            targets: vec![],
+            profile: None,
+        };
+        assert_eq!(override_cfg, Some(expected_override_cfg));
+    }
+
+    /// Ensures that `rust-toolchain.toml` configs can be overridden by `rustup override set`.
+    /// See: <https://github.com/rust-lang/rustup/issues/3483>
+    #[test]
+    fn override_set_beats_toml() {
+        let test_dist_dir = test_dist_dir().unwrap();
+        let (cwd, config) = setup_test_state(test_dist_dir);
+
+        let toolchain_file = cwd.path().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+                [toolchain]
+                channel = "nightly"
+                components = [ "rls" ]
+            "#,
+        )
+        .unwrap();
+
+        let cfg = Cfg::try_from(config).unwrap();
+        let default_host_triple = cfg.get_default_host_triple().unwrap();
+
+        cfg.settings_file
+            .with_mut(|settings| {
+                // "." -> beta, no rls
+                settings.add_override(cwd.path(), "beta".to_owned(), &|_| {});
+                Ok(())
+            })
+            .unwrap();
+
+        let found_override = cfg.find_override_config(cwd.path()).unwrap();
+        let override_cfg = found_override.map(|it| it.0);
+
+        let expected_override_cfg = OverrideCfg {
+            toolchain: Some(LocalToolchainName::Named(ToolchainName::Official(
+                ToolchainDesc {
+                    channel: "beta".to_owned(),
+                    date: None,
+                    target: default_host_triple,
+                },
+            ))),
+            components: vec!["rls".to_owned()],
+            targets: vec![],
+            profile: None,
+        };
+        assert_eq!(override_cfg, Some(expected_override_cfg));
     }
 }

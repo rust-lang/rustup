@@ -2013,6 +2013,49 @@ fn plus_override_beats_file_override() {
     });
 }
 
+// Ensures that the specified toolchain components and targets still work even if the toolchain is already installed.
+// See: <https://github.com/rust-lang/rustup/pull/3492#issuecomment-1793382483>
+#[test]
+fn file_override_beats_existing_toolchain() {
+    use clitools::MULTI_ARCH1;
+
+    test(&|config| {
+        config.with_scenario(Scenario::MultiHost, &|config| {
+            let beta = "hash-beta-1.2.0";
+            config.expect_ok(&[
+                "rustup",
+                "toolchain",
+                "install",
+                "beta",
+                "--profile=minimal",
+            ]);
+            config.expect_ok(&["rustup", "override", "set", "beta"]);
+
+            let cwd = config.current_dir();
+            let toolchain_file = cwd.join("rust-toolchain.toml");
+            raw::write_file(
+                &toolchain_file,
+                &format!(
+                    r#"
+                        [toolchain]
+                        channel = "beta"
+                        components = [ "rls" ]
+                        targets = [ "{MULTI_ARCH1}" ]
+                    "#,
+                ),
+            )
+            .unwrap();
+
+            // Implicitly install the missing components and targets.
+            config.expect_stdout_ok(&["rustc", "--version"], beta);
+
+            let list_installed = &["rustup", "component", "list", "--installed"];
+            config.expect_stdout_ok(list_installed, "rls-");
+            config.expect_stdout_ok(list_installed, &format!("rust-std-{MULTI_ARCH1}"));
+        })
+    });
+}
+
 #[test]
 fn file_override_not_installed_custom() {
     test(&|config| {
