@@ -610,7 +610,7 @@ where
     })
 }
 
-pub(crate) fn delete_dir_contents(dir_path: &Path) {
+pub(crate) fn delete_dir_contents_following_links(dir_path: &Path) {
     use remove_dir_all::RemoveDir;
 
     match raw::open_dir_following_links(dir_path).and_then(|mut p| p.remove_dir_contents(None)) {
