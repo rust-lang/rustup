@@ -6,7 +6,7 @@ use anyhow::Result;
 
 use crate::{
     config::Cfg,
-    dist::{self, download::DownloadCfg, prefix::InstallPrefix, Notification},
+    dist::{self, prefix::InstallPrefix, DistOptions, Notification},
     errors::RustupError,
     notifications::Notification as RootNotification,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
@@ -32,25 +32,7 @@ pub(crate) enum InstallMethod<'a> {
         dest: &'a CustomToolchainName,
         cfg: &'a Cfg<'a>,
     },
-    Dist {
-        cfg: &'a Cfg<'a>,
-        desc: &'a dist::ToolchainDesc,
-        profile: dist::Profile,
-        update_hash: Option<&'a Path>,
-        dl_cfg: DownloadCfg<'a>,
-        /// --force bool is whether to force an update/install
-        force: bool,
-        /// --allow-downgrade
-        allow_downgrade: bool,
-        /// toolchain already exists
-        exists: bool,
-        /// currently installed date and version
-        old_date_version: Option<(String, String)>,
-        /// Extra components to install from dist
-        components: &'a [&'a str],
-        /// Extra targets to install from dist
-        targets: &'a [&'a str],
-    },
+    Dist(DistOptions<'a>),
 }
 
 impl<'a> InstallMethod<'a> {
@@ -61,10 +43,10 @@ impl<'a> InstallMethod<'a> {
         match self {
             InstallMethod::Copy { .. }
             | InstallMethod::Link { .. }
-            | InstallMethod::Dist {
+            | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
-            } => (nh)(RootNotification::InstallingToolchain(&self.dest_basename())),
+            }) => (nh)(RootNotification::InstallingToolchain(&self.dest_basename())),
             _ => (nh)(RootNotification::UpdatingToolchain(&self.dest_basename())),
         }
 
@@ -83,10 +65,10 @@ impl<'a> InstallMethod<'a> {
             true => {
                 (nh)(RootNotification::InstalledToolchain(&self.dest_basename()));
                 match self {
-                    InstallMethod::Dist {
+                    InstallMethod::Dist(DistOptions {
                         old_date_version: Some((_, v)),
                         ..
-                    } => UpdateStatus::Updated(v.clone()),
+                    }) => UpdateStatus::Updated(v.clone()),
                     InstallMethod::Copy { .. }
                     | InstallMethod::Link { .. }
                     | InstallMethod::Dist { .. } => UpdateStatus::Installed,
@@ -121,36 +103,12 @@ impl<'a> InstallMethod<'a> {
                 utils::symlink_dir(src, path, notify_handler)?;
                 Ok(true)
             }
-            InstallMethod::Dist {
-                desc,
-                profile,
-                update_hash,
-                dl_cfg,
-                force: force_update,
-                allow_downgrade,
-                exists,
-                old_date_version,
-                components,
-                targets,
-                ..
-            } => {
+            InstallMethod::Dist(opts) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = dist::update_from_dist(
-                    *dl_cfg,
-                    update_hash.as_deref(),
-                    desc,
-                    if *exists { None } else { Some(*profile) },
-                    prefix,
-                    *force_update,
-                    *allow_downgrade,
-                    old_date_version.as_ref().map(|dv| dv.0.as_str()),
-                    components,
-                    targets,
-                )
-                .await?;
+                let maybe_new_hash = dist::update_from_dist(prefix, opts).await?;
 
                 if let Some(hash) = maybe_new_hash {
-                    if let Some(hash_file) = update_hash {
+                    if let Some(hash_file) = opts.update_hash {
                         utils::write_file("update hash", hash_file, &hash)?;
                     }
 
@@ -166,7 +124,7 @@ impl<'a> InstallMethod<'a> {
         match self {
             InstallMethod::Copy { cfg, .. } => cfg,
             InstallMethod::Link { cfg, .. } => cfg,
-            InstallMethod::Dist { cfg, .. } => cfg,
+            InstallMethod::Dist(DistOptions { cfg, .. }) => cfg,
         }
     }
 
@@ -174,7 +132,7 @@ impl<'a> InstallMethod<'a> {
         match self {
             InstallMethod::Copy { dest, .. } => (*dest).into(),
             InstallMethod::Link { dest, .. } => (*dest).into(),
-            InstallMethod::Dist { desc, .. } => (*desc).into(),
+            InstallMethod::Dist(DistOptions { desc, .. }) => (*desc).into(),
         }
     }
 
@@ -186,7 +144,9 @@ impl<'a> InstallMethod<'a> {
         match self {
             InstallMethod::Copy { cfg, dest, .. } => cfg.toolchain_path(&(*dest).into()),
             InstallMethod::Link { cfg, dest, .. } => cfg.toolchain_path(&(*dest).into()),
-            InstallMethod::Dist { cfg, desc, .. } => cfg.toolchain_path(&(*desc).into()),
+            InstallMethod::Dist(DistOptions { cfg, desc, .. }) => {
+                cfg.toolchain_path(&(*desc).into())
+            }
         }
     }
 }

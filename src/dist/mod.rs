@@ -11,7 +11,10 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
-use crate::{currentprocess::Process, errors::RustupError, toolchain::ToolchainName, utils::utils};
+use crate::{
+    config::Cfg, currentprocess::Process, errors::RustupError, toolchain::ToolchainName,
+    utils::utils,
+};
 
 pub mod component;
 pub(crate) mod config;
@@ -707,51 +710,69 @@ impl fmt::Display for Profile {
     }
 }
 
+#[derive(Clone)]
+pub(crate) struct DistOptions<'a> {
+    pub(crate) cfg: &'a Cfg<'a>,
+    pub(crate) desc: &'a ToolchainDesc,
+    pub(crate) profile: Profile,
+    pub(crate) update_hash: Option<&'a Path>,
+    pub(crate) dl_cfg: DownloadCfg<'a>,
+    /// --force bool is whether to force an update/install
+    pub(crate) force: bool,
+    /// --allow-downgrade
+    pub(crate) allow_downgrade: bool,
+    /// toolchain already exists
+    pub(crate) exists: bool,
+    /// currently installed date and version
+    pub(crate) old_date_version: Option<(String, String)>,
+    /// Extra components to install from dist
+    pub(crate) components: &'a [&'a str],
+    /// Extra targets to install from dist
+    pub(crate) targets: &'a [&'a str],
+}
+
 // Installs or updates a toolchain from a dist server. If an initial
 // install then it will be installed with the default components. If
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-#[cfg_attr(feature = "otel", tracing::instrument(err, skip_all, fields(profile=format!("{profile:?}"), prefix=prefix.path().to_string_lossy().to_string())))]
+#[cfg_attr(feature = "otel", tracing::instrument(err, skip_all, fields(profile=format!("{:?}", opts.profile), prefix=prefix.path().to_string_lossy().to_string())))]
 pub(crate) async fn update_from_dist(
-    download: DownloadCfg<'_>,
-    update_hash: Option<&Path>,
-    toolchain: &ToolchainDesc,
-    profile: Option<Profile>,
     prefix: &InstallPrefix,
-    force_update: bool,
-    allow_downgrade: bool,
-    old_date: Option<&str>,
-    components: &[&str],
-    targets: &[&str],
+    opts: &DistOptions<'_>,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
-    let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
+    let hash_exists = opts.update_hash.map(Path::exists).unwrap_or(false);
     // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
     if fresh_install && hash_exists {
         // It's ok to unwrap, because hash have to exist at this point
-        (download.notify_handler)(Notification::StrayHash(update_hash.unwrap()));
-        std::fs::remove_file(update_hash.unwrap())?;
+        (opts.dl_cfg.notify_handler)(Notification::StrayHash(opts.update_hash.unwrap()));
+        std::fs::remove_file(opts.update_hash.unwrap())?;
     }
 
     let res = update_from_dist_(
-        download,
-        update_hash,
-        toolchain,
-        profile,
+        opts.dl_cfg,
+        opts.update_hash,
+        opts.desc,
+        match opts.exists {
+            true => None,
+            false => Some(opts.profile),
+        },
         prefix,
-        force_update,
-        allow_downgrade,
-        old_date,
-        components,
-        targets,
+        opts.force,
+        opts.allow_downgrade,
+        opts.old_date_version
+            .as_ref()
+            .map(|(date, _)| date.as_str()),
+        opts.components,
+        opts.targets,
     )
     .await;
 
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
         // FIXME Ignoring cascading errors
-        let _ = utils::remove_dir("toolchain", prefix.path(), download.notify_handler);
+        let _ = utils::remove_dir("toolchain", prefix.path(), opts.dl_cfg.notify_handler);
     }
 
     res
