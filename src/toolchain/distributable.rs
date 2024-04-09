@@ -12,7 +12,7 @@ use crate::{
         manifest::{Component, ComponentStatus, Manifest},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
-        PartialToolchainDesc, Profile, ToolchainDesc,
+        DistOptions, PartialToolchainDesc, Profile, ToolchainDesc,
     },
     install::{InstallMethod, UpdateStatus},
     notifications::Notification,
@@ -336,7 +336,7 @@ impl<'a> DistributableToolchain<'a> {
         let hash_path = cfg.get_hash_file(desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
-        let status = InstallMethod::Dist {
+        let status = InstallMethod::Dist(DistOptions {
             cfg,
             desc,
             profile,
@@ -348,7 +348,7 @@ impl<'a> DistributableToolchain<'a> {
             old_date_version: None,
             components,
             targets,
-        }
+        })
         .install()
         .await?;
         Ok((status, Self::new(cfg, desc.clone())?))
@@ -412,7 +412,7 @@ impl<'a> DistributableToolchain<'a> {
         let hash_path = cfg.get_hash_file(&self.desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
-        InstallMethod::Dist {
+        InstallMethod::Dist(DistOptions {
             cfg,
             desc: &self.desc,
             profile,
@@ -424,7 +424,7 @@ impl<'a> DistributableToolchain<'a> {
             old_date_version,
             components,
             targets,
-        }
+        })
         .install()
         .await
     }
