@@ -66,13 +66,7 @@ use varsource::*;
 /// and even there we should be doing debouncing and managing update rates).
 #[enum_dispatch]
 pub trait CurrentProcess:
-    home::Env
-    + CurrentDirSource
-    + VarSource
-    + StderrSource
-    + StdinSource
-    + ProcessSource
-    + Debug
+    home::Env + CurrentDirSource + VarSource + StdinSource + ProcessSource + Debug
 {
 }
 
@@ -82,7 +76,6 @@ pub trait CurrentProcess:
     CurrentProcess,
     CurrentDirSource,
     VarSource,
-    StderrSource,
     StdinSource,
     ProcessSource
 )]
@@ -127,6 +120,14 @@ impl Process {
             Process::OSProcess(_) => Box::new(io::stdout()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stdout.clone())),
+        }
+    }
+
+    pub(crate) fn stderr(&self) -> Box<dyn filesource::Writer> {
+        match self {
+            Process::OSProcess(_) => Box::new(io::stderr()),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stderr.clone())),
         }
     }
 }
