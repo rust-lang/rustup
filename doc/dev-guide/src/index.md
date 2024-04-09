@@ -35,6 +35,11 @@ We use `rustfmt` to keep our codebase consistently formatted. Please ensure that
 you have correctly formatted your code (most editors will do this automatically
 when saving) or it may not pass the CI tests.
 
+If you are moving, renaming or removing an existing mdBook page, please use mdBook's
+[`output.html.redirect`] feature to ensure that the old URL gets redirected.
+
+[`output.html.redirect`]: https://rust-lang.github.io/mdBook/format/configuration/renderers.html#outputhtmlredirect
+
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the
 Apache-2.0 license, shall be dual licensed as in the README, without any
