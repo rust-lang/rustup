@@ -10,7 +10,6 @@ use std::{
 };
 
 use anyhow::{anyhow, bail};
-use derivative::Derivative;
 use fs_at::OpenOptions;
 use wait_timeout::ChildExt;
 
@@ -30,8 +29,7 @@ use super::{
 };
 
 /// A toolchain installed on the local disk
-#[derive(Derivative)]
-#[derivative(Clone, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: LocalToolchainName,
