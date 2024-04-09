@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Debug;
-use std::io;
+use std::io::{self, IsTerminal};
 use std::panic;
 use std::path::PathBuf;
 use std::sync::Once;
@@ -30,8 +30,6 @@ use argsource::*;
 use cwdsource::*;
 use filesource::*;
 use varsource::*;
-
-use crate::utils::tty::{stderr_isatty, stdout_isatty};
 
 /// An abstraction for the current process.
 ///
@@ -186,8 +184,8 @@ pub struct OSProcess {
 impl OSProcess {
     pub fn new() -> Self {
         OSProcess {
-            stderr_is_a_tty: stderr_isatty(),
-            stdout_is_a_tty: stdout_isatty(),
+            stderr_is_a_tty: io::stderr().is_terminal(),
+            stdout_is_a_tty: io::stdout().is_terminal(),
         }
     }
 }
