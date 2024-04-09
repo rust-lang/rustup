@@ -1,7 +1,5 @@
 use std::io::{self, BufRead, Read, Result, Write};
 
-use enum_dispatch::enum_dispatch;
-
 use super::terminalsource::{ColorableTerminal, StreamSelector};
 use crate::currentprocess::process;
 
@@ -14,12 +12,6 @@ pub trait Stdin {
 /// Stand-in for std::io::StdinLock
 pub trait StdinLock: Read + BufRead {}
 
-/// Stand-in for std::io::stdin
-#[enum_dispatch]
-pub trait StdinSource {
-    fn stdin(&self) -> Box<dyn Stdin>;
-}
-
 // ----------------- OS support for stdin -----------------
 
 impl StdinLock for io::StdinLock<'_> {}
@@ -31,12 +23,6 @@ impl Stdin for io::Stdin {
 
     fn read_line(&self, buf: &mut String) -> Result<usize> {
         io::Stdin::read_line(self, buf)
-    }
-}
-
-impl StdinSource for super::OSProcess {
-    fn stdin(&self) -> Box<dyn Stdin> {
-        Box::new(io::stdin())
     }
 }
 
@@ -112,7 +98,7 @@ mod test_support {
         sync::{Arc, Mutex, MutexGuard},
     };
 
-    use super::{super::TestProcess, *};
+    use super::*;
 
     // ----------------------- test support for stdin ------------------
 
@@ -139,7 +125,7 @@ mod test_support {
 
     pub(crate) type TestStdinInner = Arc<Mutex<Cursor<String>>>;
 
-    struct TestStdin(TestStdinInner);
+    pub struct TestStdin(pub(in super::super) TestStdinInner);
 
     impl Stdin for TestStdin {
         fn lock(&self) -> Box<dyn StdinLock + '_> {
@@ -149,12 +135,6 @@ mod test_support {
         }
         fn read_line(&self, buf: &mut String) -> Result<usize> {
             self.lock().read_line(buf)
-        }
-    }
-
-    impl StdinSource for TestProcess {
-        fn stdin(&self) -> Box<dyn Stdin> {
-            Box::new(TestStdin(self.stdin.clone()))
         }
     }
 

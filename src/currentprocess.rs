@@ -27,7 +27,6 @@ pub mod terminalsource;
 pub mod varsource;
 
 use cwdsource::*;
-use filesource::*;
 use varsource::*;
 
 /// An abstraction for the current process.
@@ -65,20 +64,11 @@ use varsource::*;
 /// methods are in performance critical loops (except perhaps progress bars -
 /// and even there we should be doing debouncing and managing update rates).
 #[enum_dispatch]
-pub trait CurrentProcess:
-    home::Env + CurrentDirSource + VarSource + StdinSource + ProcessSource + Debug
-{
-}
+pub trait CurrentProcess: home::Env + CurrentDirSource + VarSource + ProcessSource + Debug {}
 
 /// Allows concrete types for the currentprocess abstraction.
 #[derive(Clone, Debug)]
-#[enum_dispatch(
-    CurrentProcess,
-    CurrentDirSource,
-    VarSource,
-    StdinSource,
-    ProcessSource
-)]
+#[enum_dispatch(CurrentProcess, CurrentDirSource, VarSource, ProcessSource)]
 pub enum Process {
     OSProcess(OSProcess),
     #[cfg(feature = "test")]
@@ -112,6 +102,14 @@ impl Process {
             Process::OSProcess(_) => Box::new(env::args_os()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(p.args.iter().map(OsString::from)),
+        }
+    }
+
+    pub(crate) fn stdin(&self) -> Box<dyn filesource::Stdin> {
+        match self {
+            Process::OSProcess(_) => Box::new(io::stdin()),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => Box::new(filesource::TestStdin(p.stdin.clone())),
         }
     }
 
@@ -296,9 +294,9 @@ pub struct TestProcess {
     pub args: Vec<String>,
     pub vars: HashMap<String, String>,
     pub id: u64,
-    pub stdin: TestStdinInner,
-    pub stdout: TestWriterInner,
-    pub stderr: TestWriterInner,
+    pub stdin: filesource::TestStdinInner,
+    pub stdout: filesource::TestWriterInner,
+    pub stderr: filesource::TestWriterInner,
 }
 
 #[cfg(feature = "test")]
