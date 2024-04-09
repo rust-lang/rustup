@@ -24,7 +24,6 @@ use crate::{
     command,
     config::{new_toolchain_with_reason, ActiveReason, Cfg},
     currentprocess::{
-        argsource::ArgSource,
         filesource::{StderrSource, StdoutSource},
         process,
         terminalsource::{self, ColorableTerminal},
@@ -1513,7 +1512,8 @@ async fn man(
 
 fn set_auto_self_update(cfg: &mut Cfg, auto_self_update_mode: &str) -> Result<utils::ExitCode> {
     if self_update::NEVER_SELF_UPDATE {
-        let mut args = process().args_os();
+        let process = process();
+        let mut args = process.args_os();
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
             .as_ref()
