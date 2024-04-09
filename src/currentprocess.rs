@@ -16,7 +16,6 @@ use std::{
 };
 
 use enum_dispatch::enum_dispatch;
-use home::env as home;
 #[cfg(feature = "test")]
 use rand::{thread_rng, Rng};
 
@@ -64,7 +63,7 @@ use varsource::*;
 /// methods are in performance critical loops (except perhaps progress bars -
 /// and even there we should be doing debouncing and managing update rates).
 #[enum_dispatch]
-pub trait CurrentProcess: home::Env + CurrentDirSource + VarSource + Debug {}
+pub trait CurrentProcess: CurrentDirSource + VarSource + Debug {}
 
 /// Allows concrete types for the currentprocess abstraction.
 #[derive(Clone, Debug)]
