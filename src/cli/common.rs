@@ -14,9 +14,7 @@ use once_cell::sync::Lazy;
 
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
-use crate::currentprocess::{
-    filesource::StdinSource, process, terminalsource, varsource::VarSource,
-};
+use crate::currentprocess::{process, terminalsource, varsource::VarSource};
 use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::dist::manifest::ComponentStatus;
 use crate::install::UpdateStatus;
