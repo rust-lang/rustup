@@ -953,18 +953,33 @@ impl Cfg {
 
 impl Debug for Cfg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self {
+            profile_override,
+            rustup_dir,
+            settings_file,
+            fallback_settings,
+            toolchains_dir,
+            update_hash_dir,
+            download_dir,
+            tmp_cx,
+            toolchain_override,
+            env_override,
+            dist_root_url,
+            notify_handler: _,
+        } = self;
+
         f.debug_struct("Cfg")
-            .field("profile_override", &self.profile_override)
-            .field("rustup_dir", &self.rustup_dir)
-            .field("settings_file", &self.settings_file)
-            .field("fallback_settings", &self.fallback_settings)
-            .field("toolchains_dir", &self.toolchains_dir)
-            .field("update_hash_dir", &self.update_hash_dir)
-            .field("download_dir", &self.download_dir)
-            .field("tmp_cx", &self.tmp_cx)
-            .field("toolchain_override", &self.toolchain_override)
-            .field("env_override", &self.env_override)
-            .field("dist_root_url", &self.dist_root_url)
+            .field("profile_override", profile_override)
+            .field("rustup_dir", rustup_dir)
+            .field("settings_file", settings_file)
+            .field("fallback_settings", fallback_settings)
+            .field("toolchains_dir", toolchains_dir)
+            .field("update_hash_dir", update_hash_dir)
+            .field("download_dir", download_dir)
+            .field("tmp_cx", tmp_cx)
+            .field("toolchain_override", toolchain_override)
+            .field("env_override", env_override)
+            .field("dist_root_url", dist_root_url)
             .finish()
     }
 }
