@@ -4,7 +4,7 @@ use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::currentprocess::{filesource::StdoutSource, process, terminalsource};
+use crate::currentprocess::{process, terminalsource};
 use crate::dist::Notification as In;
 use crate::notifications::Notification;
 use crate::utils::units::{Size, Unit, UnitMode};

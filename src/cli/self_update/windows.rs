@@ -12,7 +12,7 @@ use super::super::errors::*;
 use super::common;
 use super::{install_bins, InstallOpts};
 use crate::cli::download_tracker::DownloadTracker;
-use crate::currentprocess::{filesource::StdoutSource, process, varsource::VarSource};
+use crate::currentprocess::{process, varsource::VarSource};
 use crate::dist::dist::TargetTriple;
 use crate::utils::utils;
 use crate::utils::Notification;

@@ -69,7 +69,6 @@ pub trait CurrentProcess:
     home::Env
     + CurrentDirSource
     + VarSource
-    + StdoutSource
     + StderrSource
     + StdinSource
     + ProcessSource
@@ -83,7 +82,6 @@ pub trait CurrentProcess:
     CurrentProcess,
     CurrentDirSource,
     VarSource,
-    StdoutSource,
     StderrSource,
     StdinSource,
     ProcessSource
@@ -121,6 +119,14 @@ impl Process {
             Process::OSProcess(_) => Box::new(env::args_os()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(p.args.iter().map(OsString::from)),
+        }
+    }
+
+    pub(crate) fn stdout(&self) -> Box<dyn filesource::Writer> {
+        match self {
+            Process::OSProcess(_) => Box::new(io::stdout()),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stdout.clone())),
         }
     }
 }
