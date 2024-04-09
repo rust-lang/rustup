@@ -27,7 +27,7 @@ use rustup::cli::rustup_mode;
 #[cfg(windows)]
 use rustup::cli::self_update;
 use rustup::cli::setup_mode;
-use rustup::currentprocess::{process, with_runtime, OSProcess};
+use rustup::currentprocess::{process, with_runtime, Process};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::is_proxyable_tools;
 use rustup::utils::utils::{self, ExitCode};
@@ -36,10 +36,10 @@ fn main() {
     #[cfg(windows)]
     pre_rustup_main_init();
 
-    let process = OSProcess::default();
+    let process = Process::os();
     let mut builder = Builder::new_multi_thread();
     builder.enable_all();
-    with_runtime(process.into(), builder, {
+    with_runtime(process, builder, {
         async {
             match maybe_trace_rustup().await {
                 Err(e) => {

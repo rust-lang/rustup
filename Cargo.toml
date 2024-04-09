@@ -50,7 +50,6 @@ clap_complete = "4"
 download = { path = "download", default-features = false }
 effective-limits = "0.5.5"
 enum-map = "2.5.0"
-enum_dispatch.workspace = true
 flate2 = "1"
 fs_at.workspace = true
 git-testament = "0.2"
@@ -134,7 +133,6 @@ members = ["download", "rustup-macros"]
 
 [workspace.dependencies]
 anyhow = "1.0.69"
-enum_dispatch = "0.3.11"
 fs_at = "0.1.6"
 once_cell = "1.18.0"
 opentelemetry = "0.23"
