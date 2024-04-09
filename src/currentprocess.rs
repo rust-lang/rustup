@@ -23,10 +23,8 @@ pub mod cwdsource;
 pub mod filesource;
 mod homethunk;
 pub mod terminalsource;
-pub mod varsource;
 
 use cwdsource::*;
-use varsource::*;
 
 /// An abstraction for the current process.
 ///
@@ -63,11 +61,11 @@ use varsource::*;
 /// methods are in performance critical loops (except perhaps progress bars -
 /// and even there we should be doing debouncing and managing update rates).
 #[enum_dispatch]
-pub trait CurrentProcess: CurrentDirSource + VarSource + Debug {}
+pub trait CurrentProcess: CurrentDirSource + Debug {}
 
 /// Allows concrete types for the currentprocess abstraction.
 #[derive(Clone, Debug)]
-#[enum_dispatch(CurrentProcess, CurrentDirSource, VarSource)]
+#[enum_dispatch(CurrentProcess, CurrentDirSource)]
 pub enum Process {
     OSProcess(OSProcess),
     #[cfg(feature = "test")]
@@ -86,6 +84,25 @@ impl Process {
             .and_then(|a| a.file_stem())
             .and_then(std::ffi::OsStr::to_str)
             .map(String::from)
+    }
+
+    pub fn var(&self, key: &str) -> Result<String, env::VarError> {
+        match self {
+            Process::OSProcess(_) => env::var(key),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => match p.vars.get(key) {
+                Some(val) => Ok(val.to_owned()),
+                None => Err(env::VarError::NotPresent),
+            },
+        }
+    }
+
+    pub(crate) fn var_os(&self, key: &str) -> Option<OsString> {
+        match self {
+            Process::OSProcess(_) => env::var_os(key),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => p.vars.get(key).map(OsString::from),
+        }
     }
 
     pub(crate) fn args(&self) -> Box<dyn Iterator<Item = String> + '_> {

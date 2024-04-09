@@ -66,7 +66,7 @@ use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::{Context, Result};
 
-use crate::currentprocess::{process, varsource::VarSource};
+use crate::currentprocess::process;
 use crate::utils::notifications::Notification;
 use threaded::PoolReference;
 
