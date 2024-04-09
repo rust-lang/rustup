@@ -66,7 +66,7 @@ use crate::{
         markdown::md,
     },
     config::Cfg,
-    currentprocess::{filesource::StdoutSource, process, varsource::VarSource},
+    currentprocess::{process, varsource::VarSource},
     dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     install::UpdateStatus,
     toolchain::{
