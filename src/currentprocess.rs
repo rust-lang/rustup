@@ -15,53 +15,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use enum_dispatch::enum_dispatch;
 #[cfg(feature = "test")]
 use rand::{thread_rng, Rng};
 
 pub mod filesource;
 pub mod terminalsource;
 
-/// An abstraction for the current process.
-///
-/// This acts as a clonable proxy to the global state provided by some key OS
-/// interfaces - it is a zero cost abstraction. For the test variant it manages
-/// a mutex and takes out locks to ensure consistency.
-///
-/// This provides replacements env::arg*, env::var*, and the standard files
-/// io::std* with traits that are customisable for tests. As a result any macros
-/// or code that have non-pluggable usage of those are incompatible with
-/// CurrentProcess and must not be used. That includes \[e\]println! as well as
-/// third party crates.
-///
-/// CurrentProcess is used via an instance in a thread local variable; when
-/// making new threads, be sure to copy CurrentProcess::process() into the new
-/// thread before calling any code that may need to use a CurrentProcess
-/// function.
-///
-/// Run some code using with: this will set the current instance, call your
-/// function, then finally reset the instance at the end before returning.
-///
-/// Testing level interoperation with external code that depends on environment
-/// variables could be possible with a hypothetical  `with_projected()` which
-/// would be a zero-cost operation in real processes, but in test processes will
-/// take a lock out to mutually exclude other code, then overwrite the current
-/// value of std::env::vars, restoring it at the end. However, the only use for
-/// that today is a test of cargo::home, which is now implemented in a separate
-/// crate, so we've just deleted the test.
-///
-/// A thread local is used to permit the instance to be available to the entire
-/// rustup library without needing to explicitly wire this normally global state
-/// everywhere; and a trait object with dyn dispatch is likewise used to avoid
-/// needing to thread trait parameters across the entire code base: none of the
-/// methods are in performance critical loops (except perhaps progress bars -
-/// and even there we should be doing debouncing and managing update rates).
-#[enum_dispatch]
-pub trait CurrentProcess: Debug {}
-
 /// Allows concrete types for the currentprocess abstraction.
 #[derive(Clone, Debug)]
-#[enum_dispatch(CurrentProcess)]
 pub enum Process {
     OSProcess(OSProcess),
     #[cfg(feature = "test")]
@@ -69,6 +30,10 @@ pub enum Process {
 }
 
 impl Process {
+    pub fn os() -> Self {
+        Self::OSProcess(OSProcess::new())
+    }
+
     pub fn name(&self) -> Option<String> {
         let arg0 = match self.var("RUSTUP_FORCE_ARG0") {
             Ok(v) => Some(v),
@@ -182,6 +147,13 @@ impl home::env::Env for Process {
             #[cfg(feature = "test")]
             Process::TestProcess(_) => self.var_os(key),
         }
+    }
+}
+
+#[cfg(feature = "test")]
+impl From<TestProcess> for Process {
+    fn from(p: TestProcess) -> Self {
+        Self::TestProcess(p)
     }
 }
 
