@@ -64,11 +64,11 @@ use varsource::*;
 /// methods are in performance critical loops (except perhaps progress bars -
 /// and even there we should be doing debouncing and managing update rates).
 #[enum_dispatch]
-pub trait CurrentProcess: home::Env + CurrentDirSource + VarSource + ProcessSource + Debug {}
+pub trait CurrentProcess: home::Env + CurrentDirSource + VarSource + Debug {}
 
 /// Allows concrete types for the currentprocess abstraction.
 #[derive(Clone, Debug)]
-#[enum_dispatch(CurrentProcess, CurrentDirSource, VarSource, ProcessSource)]
+#[enum_dispatch(CurrentProcess, CurrentDirSource, VarSource)]
 pub enum Process {
     OSProcess(OSProcess),
     #[cfg(feature = "test")]
@@ -126,6 +126,15 @@ impl Process {
             Process::OSProcess(_) => Box::new(io::stderr()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stderr.clone())),
+        }
+    }
+
+    #[cfg(test)]
+    fn id(&self) -> u64 {
+        match self {
+            Process::OSProcess(_) => std::process::id() as u64,
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => p.id,
         }
     }
 }
@@ -247,16 +256,6 @@ thread_local! {
     pub(crate) static PROCESS: RefCell<Option<Process>> = const { RefCell::new(None) };
 }
 
-// PID related things
-#[enum_dispatch]
-pub trait ProcessSource {
-    /// Returns a unique id for the process.
-    ///
-    /// Real process ids are <= u32::MAX.
-    /// Test process ids are > u32::MAX
-    fn id(&self) -> u64;
-}
-
 // ----------- real process -----------------
 
 #[derive(Clone, Debug)]
@@ -277,12 +276,6 @@ impl OSProcess {
 impl Default for OSProcess {
     fn default() -> Self {
         OSProcess::new()
-    }
-}
-
-impl ProcessSource for OSProcess {
-    fn id(&self) -> u64 {
-        std::process::id() as u64
     }
 }
 
@@ -342,13 +335,6 @@ impl TestProcess {
     }
 }
 
-#[cfg(feature = "test")]
-impl ProcessSource for TestProcess {
-    fn id(&self) -> u64 {
-        self.id
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -356,7 +342,7 @@ mod tests {
 
     use rustup_macros::unit_test as test;
 
-    use super::{process, with, ProcessSource, TestProcess};
+    use super::{process, with, TestProcess};
 
     #[test]
     fn test_instance() {
@@ -367,7 +353,7 @@ mod tests {
             "",
         );
         with(proc.clone().into(), || {
-            assert_eq!(proc.id(), process().id(), "{:?} != {:?}", proc, process())
+            assert_eq!(proc.id, process().id(), "{:?} != {:?}", proc, process())
         });
     }
 }
