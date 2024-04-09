@@ -22,30 +22,61 @@ pub(crate) enum CreatingError {
 }
 
 #[derive(Debug)]
-pub enum Notification<'a> {
-    CreatingRoot(&'a Path),
-    CreatingFile(&'a Path),
-    CreatingDirectory(&'a Path),
-    FileDeletion(&'a Path, io::Result<()>),
-    DirectoryDeletion(&'a Path, io::Result<()>),
-}
-
-pub struct Cfg {
-    root_directory: PathBuf,
-    pub dist_server: String,
-    notify_handler: Box<dyn Fn(Notification<'_>)>,
-}
-
-#[derive(Debug)]
 pub(crate) struct Dir<'a> {
     cfg: &'a Cfg,
     path: PathBuf,
+}
+
+impl<'a> ops::Deref for Dir<'a> {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        self.path.as_path()
+    }
+}
+
+impl<'a> Drop for Dir<'a> {
+    fn drop(&mut self) {
+        if raw::is_directory(&self.path) {
+            let n = Notification::DirectoryDeletion(
+                &self.path,
+                remove_dir_all::remove_dir_all(&self.path),
+            );
+            (self.cfg.notify_handler)(n);
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct File<'a> {
     cfg: &'a Cfg,
     path: PathBuf,
+}
+
+impl<'a> ops::Deref for File<'a> {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        self.path.as_path()
+    }
+}
+
+impl<'a> Drop for File<'a> {
+    fn drop(&mut self) {
+        if raw::is_file(&self.path) {
+            let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
+            (self.cfg.notify_handler)(n);
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Notification<'a> {
+    CreatingRoot(&'a Path),
+    CreatingFile(&'a Path),
+    CreatingDirectory(&'a Path),
+    FileDeletion(&'a Path, io::Result<()>),
+    DirectoryDeletion(&'a Path, io::Result<()>),
 }
 
 impl<'a> Notification<'a> {
@@ -87,6 +118,12 @@ impl<'a> Display for Notification<'a> {
             }
         }
     }
+}
+
+pub struct Cfg {
+    root_directory: PathBuf,
+    pub dist_server: String,
+    notify_handler: Box<dyn Fn(Notification<'_>)>,
 }
 
 impl Cfg {
@@ -168,42 +205,5 @@ impl fmt::Debug for Cfg {
             .field("root_directory", &self.root_directory)
             .field("notify_handler", &"...")
             .finish()
-    }
-}
-
-impl<'a> ops::Deref for Dir<'a> {
-    type Target = Path;
-
-    fn deref(&self) -> &Path {
-        self.path.as_path()
-    }
-}
-
-impl<'a> ops::Deref for File<'a> {
-    type Target = Path;
-
-    fn deref(&self) -> &Path {
-        self.path.as_path()
-    }
-}
-
-impl<'a> Drop for Dir<'a> {
-    fn drop(&mut self) {
-        if raw::is_directory(&self.path) {
-            let n = Notification::DirectoryDeletion(
-                &self.path,
-                remove_dir_all::remove_dir_all(&self.path),
-            );
-            (self.cfg.notify_handler)(n);
-        }
-    }
-}
-
-impl<'a> Drop for File<'a> {
-    fn drop(&mut self) {
-        if raw::is_file(&self.path) {
-            let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
-            (self.cfg.notify_handler)(n);
-        }
     }
 }
