@@ -110,7 +110,7 @@ impl Manifestation {
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
-        let temp_cfg = download_cfg.temp_cfg;
+        let tmp_cx = download_cfg.tmp_cx;
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
@@ -146,7 +146,7 @@ impl Manifestation {
             }
         }
 
-        let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
+        let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
         let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
@@ -167,7 +167,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
             let url = if altered {
-                url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str())
+                url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
             } else {
                 url
             };
@@ -202,7 +202,7 @@ impl Manifestation {
         }
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, download_cfg.notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.notify_handler);
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
@@ -255,15 +255,15 @@ impl Manifestation {
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
             let package: &dyn Package = match format {
                 CompressionKind::GZip => {
-                    gz = TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+                    gz = TarGzPackage::new(reader, tmp_cx, Some(&notification_converter))?;
                     &gz
                 }
                 CompressionKind::XZ => {
-                    xz = TarXzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+                    xz = TarXzPackage::new(reader, tmp_cx, Some(&notification_converter))?;
                     &xz
                 }
                 CompressionKind::ZStd => {
-                    zst = TarZStdPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+                    zst = TarZStdPackage::new(reader, tmp_cx, Some(&notification_converter))?;
                     &zst
                 }
             };
@@ -307,12 +307,12 @@ impl Manifestation {
     pub fn uninstall(
         &self,
         manifest: &Manifest,
-        temp_cfg: &temp::Cfg,
+        tmp_cx: &temp::Context,
         notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<()> {
         let prefix = self.installation.prefix();
 
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx, notify_handler);
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
@@ -385,7 +385,7 @@ impl Manifestation {
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
-        temp_cfg: &temp::Cfg,
+        tmp_cx: &temp::Context,
         notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
@@ -407,7 +407,7 @@ impl Manifestation {
         // Only replace once. The cost is inexpensive.
         let url = url
             .unwrap()
-            .replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
+            .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str());
 
         notify_handler(Notification::DownloadingComponent(
             "rust",
@@ -420,7 +420,7 @@ impl Manifestation {
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
             download_dir: &dld_dir,
-            temp_cfg,
+            tmp_cx,
             notify_handler,
         };
 
@@ -439,7 +439,7 @@ impl Manifestation {
         ));
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix, tmp_cx, notify_handler);
 
         // Uninstall components
         let components = self.installation.list()?;
@@ -454,7 +454,7 @@ impl Manifestation {
         let reader =
             utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
         let package: &dyn Package =
-            &TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+            &TarGzPackage::new(reader, tmp_cx, Some(&notification_converter))?;
 
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;

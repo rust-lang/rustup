@@ -179,7 +179,7 @@ pub(crate) struct Cfg {
     pub toolchains_dir: PathBuf,
     pub update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub temp_cfg: temp::Cfg,
+    pub tmp_cx: temp::Context,
     pub toolchain_override: Option<ResolvableToolchainName>,
     pub env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
@@ -241,7 +241,7 @@ impl Cfg {
         };
 
         let notify_clone = notify_handler.clone();
-        let temp_cfg = temp::Cfg::new(
+        let tmp_cx = temp::Context::new(
             rustup_dir.join("tmp"),
             dist_root_server.as_str(),
             Box::new(move |n| (notify_clone)(n.into())),
@@ -256,7 +256,7 @@ impl Cfg {
             toolchains_dir,
             update_hash_dir,
             download_dir,
-            temp_cfg,
+            tmp_cx,
             notify_handler,
             toolchain_override: None,
             env_override,
@@ -281,7 +281,7 @@ impl Cfg {
     ) -> DownloadCfg<'a> {
         DownloadCfg {
             dist_root: &self.dist_root_url,
-            temp_cfg: &self.temp_cfg,
+            tmp_cx: &self.tmp_cx,
             download_dir: &self.download_dir,
             notify_handler,
         }
@@ -961,7 +961,7 @@ impl Debug for Cfg {
             .field("toolchains_dir", &self.toolchains_dir)
             .field("update_hash_dir", &self.update_hash_dir)
             .field("download_dir", &self.download_dir)
-            .field("temp_cfg", &self.temp_cfg)
+            .field("tmp_cx", &self.tmp_cx)
             .field("toolchain_override", &self.toolchain_override)
             .field("env_override", &self.env_override)
             .field("dist_root_url", &self.dist_root_url)

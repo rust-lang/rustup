@@ -16,7 +16,7 @@ const UPDATE_HASH_LEN: usize = 20;
 #[derive(Copy, Clone)]
 pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
-    pub temp_cfg: &'a temp::Cfg,
+    pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
     pub notify_handler: &'a dyn Fn(Notification<'_>),
 }
@@ -126,7 +126,7 @@ impl<'a> DownloadCfg<'a> {
 
     fn download_hash(&self, url: &str) -> Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
-        let hash_file = self.temp_cfg.new_file()?;
+        let hash_file = self.tmp_cx.new_file()?;
 
         utils::download_file(&hash_url, &hash_file, None, &|n| {
             (self.notify_handler)(n.into())
@@ -165,7 +165,7 @@ impl<'a> DownloadCfg<'a> {
         }
 
         let url = utils::parse_url(url_str)?;
-        let file = self.temp_cfg.new_file_with_ext("", ext)?;
+        let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
         utils::download_file(&url, &file, Some(&mut hasher), &|n| {

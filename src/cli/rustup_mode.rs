@@ -1008,7 +1008,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         common::update_all_channels(cfg, self_update, m.get_flag("force"))?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
-        cfg.temp_cfg.clean();
+        cfg.tmp_cx.clean();
     }
 
     if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
