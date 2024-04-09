@@ -20,14 +20,12 @@ use home::env as home;
 #[cfg(feature = "test")]
 use rand::{thread_rng, Rng};
 
-pub mod argsource;
 pub mod cwdsource;
 pub mod filesource;
 mod homethunk;
 pub mod terminalsource;
 pub mod varsource;
 
-use argsource::*;
 use cwdsource::*;
 use filesource::*;
 use varsource::*;
@@ -69,7 +67,6 @@ use varsource::*;
 #[enum_dispatch]
 pub trait CurrentProcess:
     home::Env
-    + ArgSource
     + CurrentDirSource
     + VarSource
     + StdoutSource
@@ -84,7 +81,6 @@ pub trait CurrentProcess:
 #[derive(Clone, Debug)]
 #[enum_dispatch(
     CurrentProcess,
-    ArgSource,
     CurrentDirSource,
     VarSource,
     StdoutSource,
@@ -110,6 +106,22 @@ impl Process {
             .and_then(|a| a.file_stem())
             .and_then(std::ffi::OsStr::to_str)
             .map(String::from)
+    }
+
+    pub(crate) fn args(&self) -> Box<dyn Iterator<Item = String> + '_> {
+        match self {
+            Process::OSProcess(_) => Box::new(env::args()),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => Box::new(p.args.iter().cloned()),
+        }
+    }
+
+    pub(crate) fn args_os(&self) -> Box<dyn Iterator<Item = OsString> + '_> {
+        match self {
+            Process::OSProcess(_) => Box::new(env::args_os()),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => Box::new(p.args.iter().map(OsString::from)),
+        }
     }
 }
 

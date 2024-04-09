@@ -7,7 +7,7 @@ use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
     config::Cfg,
-    currentprocess::{argsource::ArgSource, process},
+    currentprocess::process,
     toolchain::names::{LocalToolchainName, ResolvableLocalToolchainName},
     utils::utils,
 };
@@ -18,7 +18,8 @@ pub async fn main(arg0: &str) -> Result<ExitStatus> {
 
     let _setup = job::setup();
 
-    let mut args = process().args_os().skip(1);
+    let process = process();
+    let mut args = process.args_os().skip(1);
 
     // Check for a + toolchain specifier
     let arg1 = args.next();

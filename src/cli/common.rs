@@ -15,7 +15,6 @@ use once_cell::sync::Lazy;
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
 use crate::currentprocess::{
-    argsource::ArgSource,
     filesource::{StdinSource, StdoutSource},
     process, terminalsource,
     varsource::VarSource,
