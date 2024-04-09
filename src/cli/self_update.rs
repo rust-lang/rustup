@@ -462,6 +462,7 @@ pub(crate) async fn install(
         }
     }
 
+    let no_modify_path = opts.no_modify_path;
     let install_res = move || async move {
         install_bins()?;
 
@@ -483,19 +484,7 @@ pub(crate) async fn install(
             fs::create_dir_all(home).context("unable to create ~/.rustup")?;
         }
 
-        maybe_install_rust(
-            opts.default_toolchain,
-            &opts.profile,
-            opts.default_host_triple.as_deref(),
-            !opts.no_update_toolchain,
-            opts.components,
-            opts.targets,
-            current_dir,
-            verbose,
-            quiet,
-        )
-        .await?;
-
+        maybe_install_rust(current_dir, verbose, quiet, opts).await?;
         Ok(utils::ExitCode(0))
     };
 
@@ -518,7 +507,7 @@ pub(crate) async fn install(
     #[cfg(windows)]
     let cargo_home = cargo_home.replace('\\', r"\\");
     #[cfg(windows)]
-    let msg = if opts.no_modify_path {
+    let msg = if no_modify_path {
         format!(
             post_install_msg_win_no_modify_path!(),
             cargo_home = cargo_home
@@ -527,7 +516,7 @@ pub(crate) async fn install(
         format!(post_install_msg_win!(), cargo_home = cargo_home)
     };
     #[cfg(not(windows))]
-    let msg = if opts.no_modify_path {
+    let msg = if no_modify_path {
         format!(
             post_install_msg_unix_no_modify_path!(),
             cargo_home = cargo_home
@@ -856,27 +845,15 @@ pub(crate) fn install_proxies() -> Result<()> {
 }
 
 async fn maybe_install_rust(
-    toolchain: Option<MaybeOfficialToolchainName>,
-    profile_str: &str,
-    default_host_triple: Option<&str>,
-    update_existing_toolchain: bool,
-    components: &[&str],
-    targets: &[&str],
     current_dir: PathBuf,
     verbose: bool,
     quiet: bool,
+    opts: InstallOpts<'_>,
 ) -> Result<()> {
     let mut cfg = common::set_globals(current_dir, verbose, quiet)?;
 
-    let toolchain = _install_selection(
-        &mut cfg,
-        toolchain,
-        profile_str,
-        default_host_triple,
-        update_existing_toolchain,
-        components,
-        targets,
-    )?;
+    let (components, targets) = (opts.components, opts.targets);
+    let toolchain = _install_selection(opts, &mut cfg)?;
     if let Some(ref desc) = toolchain {
         let status = if Toolchain::exists(&cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
@@ -909,18 +886,20 @@ async fn maybe_install_rust(
     Ok(())
 }
 
-fn _install_selection(
-    cfg: &mut Cfg,
-    toolchain_opt: Option<MaybeOfficialToolchainName>,
-    profile_str: &str,
-    default_host_triple: Option<&str>,
-    update_existing_toolchain: bool,
-    components: &[&str],
-    targets: &[&str],
-) -> Result<Option<ToolchainDesc>> {
-    cfg.set_profile(profile_str)?;
+fn _install_selection(opts: InstallOpts<'_>, cfg: &mut Cfg) -> Result<Option<ToolchainDesc>> {
+    let InstallOpts {
+        default_host_triple,
+        default_toolchain,
+        profile,
+        no_modify_path: _no_modify_path,
+        no_update_toolchain,
+        components,
+        targets,
+    } = opts;
 
-    if let Some(default_host_triple) = default_host_triple {
+    cfg.set_profile(&profile)?;
+
+    if let Some(default_host_triple) = &default_host_triple {
         // Set host triple now as it will affect resolution of toolchain_str
         info!("setting default host triple to {}", default_host_triple);
         cfg.set_default_host_triple(default_host_triple.to_owned())?;
@@ -928,10 +907,10 @@ fn _install_selection(
         info!("default host triple is {}", cfg.get_default_host_triple()?);
     }
 
-    let user_specified_something = toolchain_opt.is_some()
+    let user_specified_something = default_toolchain.is_some()
         || !targets.is_empty()
         || !components.is_empty()
-        || update_existing_toolchain;
+        || !no_update_toolchain;
 
     // If the user specified they want no toolchain, we skip this, otherwise
     // if they specify something directly, or we have no default, then we install
@@ -939,7 +918,7 @@ fn _install_selection(
     // those are true, we have a user who doesn't mind, and already has an
     // install, so we leave their setup alone.
     Ok(
-        if matches!(toolchain_opt, Some(MaybeOfficialToolchainName::None)) {
+        if matches!(default_toolchain, Some(MaybeOfficialToolchainName::None)) {
             info!("skipping toolchain installation");
             if !components.is_empty() {
                 warn!(
@@ -958,9 +937,9 @@ fn _install_selection(
             writeln!(process().stdout().lock())?;
             None
         } else if user_specified_something
-            || (update_existing_toolchain && cfg.find_default()?.is_none())
+            || (!no_update_toolchain && cfg.find_default()?.is_none())
         {
-            match toolchain_opt {
+            match default_toolchain {
                 Some(s) => {
                     let toolchain_name = match s {
                         MaybeOfficialToolchainName::None => unreachable!(),
@@ -1350,6 +1329,7 @@ mod tests {
     use rustup_macros::unit_test as test;
 
     use crate::cli::common;
+    use crate::cli::self_update::InstallOpts;
     use crate::dist::dist::PartialToolchainDesc;
     use crate::test::{test_dir, with_rustup_home, Env};
     use crate::{currentprocess, for_host};
@@ -1363,6 +1343,17 @@ mod tests {
                 vars,
                 ..Default::default()
             };
+
+            let opts = InstallOpts {
+                default_host_triple: None,
+                default_toolchain: None,       // No toolchain specified
+                profile: "default".to_owned(), // default profile
+                no_modify_path: false,
+                components: &[],
+                targets: &[],
+                no_update_toolchain: false,
+            };
+
             currentprocess::with(tp.clone().into(), || -> Result<()> {
                 // TODO: we could pass in a custom cfg to get notification
                 // callbacks rather than output to the tp sink.
@@ -1373,17 +1364,9 @@ mod tests {
                         .unwrap()
                         .resolve(&cfg.get_default_host_triple().unwrap())
                         .unwrap(),
-                    super::_install_selection(
-                        &mut cfg,
-                        None,      // No toolchain specified
-                        "default", // default profile
-                        None,
-                        true,
-                        &[],
-                        &[],
-                    )
-                    .unwrap() // result
-                    .unwrap() // option
+                    super::_install_selection(opts, &mut cfg)
+                        .unwrap() // result
+                        .unwrap() // option
                 );
                 Ok(())
             })?;
