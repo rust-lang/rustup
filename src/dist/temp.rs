@@ -4,7 +4,7 @@ use std::io;
 use std::ops;
 use std::path::{Path, PathBuf};
 
-pub(crate) use anyhow::{Context, Result};
+pub(crate) use anyhow::{Context as _, Result};
 use thiserror::Error as ThisError;
 
 use crate::utils::notify::NotificationLevel;
@@ -23,7 +23,7 @@ pub(crate) enum CreatingError {
 
 #[derive(Debug)]
 pub(crate) struct Dir<'a> {
-    cfg: &'a Cfg,
+    cfg: &'a Context,
     path: PathBuf,
 }
 
@@ -49,7 +49,7 @@ impl<'a> Drop for Dir<'a> {
 
 #[derive(Debug)]
 pub struct File<'a> {
-    cfg: &'a Cfg,
+    cfg: &'a Context,
     path: PathBuf,
 }
 
@@ -120,13 +120,13 @@ impl<'a> Display for Notification<'a> {
     }
 }
 
-pub struct Cfg {
+pub struct Context {
     root_directory: PathBuf,
     pub dist_server: String,
     notify_handler: Box<dyn Fn(Notification<'_>)>,
 }
 
-impl Cfg {
+impl Context {
     pub fn new(
         root_directory: PathBuf,
         dist_server: &str,
@@ -199,7 +199,7 @@ impl Cfg {
     }
 }
 
-impl fmt::Debug for Cfg {
+impl fmt::Debug for Context {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Cfg")
             .field("root_directory", &self.root_directory)

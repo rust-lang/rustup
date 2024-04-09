@@ -36,7 +36,7 @@ use crate::utils::utils;
 pub struct Transaction<'a> {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem<'a>>,
-    temp_cfg: &'a temp::Cfg,
+    tmp_cx: &'a temp::Context,
     notify_handler: &'a dyn Fn(Notification<'_>),
     committed: bool,
 }
@@ -44,13 +44,13 @@ pub struct Transaction<'a> {
 impl<'a> Transaction<'a> {
     pub fn new(
         prefix: InstallPrefix,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify_handler: &'a dyn Fn(Notification<'_>),
     ) -> Self {
         Transaction {
             prefix,
             changes: Vec::new(),
-            temp_cfg,
+            tmp_cx,
             notify_handler,
             committed: false,
         }
@@ -99,7 +99,7 @@ impl<'a> Transaction<'a> {
             &self.prefix,
             component,
             relpath,
-            self.temp_cfg,
+            self.tmp_cx,
             self.notify_handler(),
         )?;
         self.change(item);
@@ -114,7 +114,7 @@ impl<'a> Transaction<'a> {
             &self.prefix,
             component,
             relpath,
-            self.temp_cfg,
+            self.tmp_cx,
             self.notify_handler(),
         )?;
         self.change(item);
@@ -142,7 +142,7 @@ impl<'a> Transaction<'a> {
     /// This is used for arbitrarily manipulating a file.
     pub fn modify_file(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::modify_file(&self.prefix, relpath, self.temp_cfg)?;
+        let item = ChangedItem::modify_file(&self.prefix, relpath, self.tmp_cx)?;
         self.change(item);
         Ok(())
     }
@@ -170,8 +170,8 @@ impl<'a> Transaction<'a> {
         Ok(())
     }
 
-    pub(crate) fn temp(&self) -> &'a temp::Cfg {
-        self.temp_cfg
+    pub(crate) fn temp(&self) -> &'a temp::Context {
+        self.tmp_cx
     }
     pub(crate) fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {
         self.notify_handler
@@ -280,11 +280,11 @@ impl<'a> ChangedItem<'a> {
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify: &'a dyn Fn(Notification<'_>),
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
-        let backup = temp_cfg.new_file()?;
+        let backup = tmp_cx.new_file()?;
         if !utils::path_exists(&abs_path) {
             Err(RustupError::ComponentMissingFile {
                 name: component.to_owned(),
@@ -300,11 +300,11 @@ impl<'a> ChangedItem<'a> {
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify: &'a dyn Fn(Notification<'_>),
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
-        let backup = temp_cfg.new_directory()?;
+        let backup = tmp_cx.new_directory()?;
         if !utils::path_exists(&abs_path) {
             Err(RustupError::ComponentMissingDir {
                 name: component.to_owned(),
@@ -319,12 +319,12 @@ impl<'a> ChangedItem<'a> {
     fn modify_file(
         prefix: &InstallPrefix,
         relpath: PathBuf,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
 
         if utils::is_file(&abs_path) {
-            let backup = temp_cfg.new_file()?;
+            let backup = tmp_cx.new_file()?;
             utils::copy_file(&abs_path, &backup)?;
             Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
         } else {

@@ -143,10 +143,10 @@ pub(crate) struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 impl<'a> TarPackage<'a> {
     pub(crate) fn new<R: Read>(
         stream: R,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ) -> Result<Self> {
-        let temp_dir = temp_cfg.new_directory()?;
+        let temp_dir = tmp_cx.new_directory()?;
         let mut archive = tar::Archive::new(stream);
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
@@ -555,13 +555,13 @@ pub(crate) struct TarGzPackage<'a>(TarPackage<'a>);
 impl<'a> TarGzPackage<'a> {
     pub(crate) fn new<R: Read>(
         stream: R,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ) -> Result<Self> {
         let stream = flate2::read::GzDecoder::new(stream);
         Ok(TarGzPackage(TarPackage::new(
             stream,
-            temp_cfg,
+            tmp_cx,
             notify_handler,
         )?))
     }
@@ -591,13 +591,13 @@ pub(crate) struct TarXzPackage<'a>(TarPackage<'a>);
 impl<'a> TarXzPackage<'a> {
     pub(crate) fn new<R: Read>(
         stream: R,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
         Ok(TarXzPackage(TarPackage::new(
             stream,
-            temp_cfg,
+            tmp_cx,
             notify_handler,
         )?))
     }
@@ -627,13 +627,13 @@ pub(crate) struct TarZStdPackage<'a>(TarPackage<'a>);
 impl<'a> TarZStdPackage<'a> {
     pub(crate) fn new<R: Read>(
         stream: R,
-        temp_cfg: &'a temp::Cfg,
+        tmp_cx: &'a temp::Context,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ) -> Result<Self> {
         let stream = zstd::stream::read::Decoder::new(stream)?;
         Ok(TarZStdPackage(TarPackage::new(
             stream,
-            temp_cfg,
+            tmp_cx,
             notify_handler,
         )?))
     }
