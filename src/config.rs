@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -7,7 +7,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
-use derivative::Derivative;
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
@@ -172,8 +171,6 @@ impl OverrideCfg {
 
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
-#[derive(Derivative)]
-#[derivative(Debug)]
 pub(crate) struct Cfg {
     profile_override: Option<dist::Profile>,
     pub rustup_dir: PathBuf,
@@ -186,7 +183,6 @@ pub(crate) struct Cfg {
     pub toolchain_override: Option<ResolvableToolchainName>,
     pub env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
-    #[derivative(Debug = "ignore")]
     pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
 }
 
@@ -952,6 +948,24 @@ impl Cfg {
             LocalToolchainName::Named(name) => self.toolchains_dir.join(name.to_string()),
             LocalToolchainName::Path(p) => p.to_path_buf(),
         }
+    }
+}
+
+impl Debug for Cfg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Cfg")
+            .field("profile_override", &self.profile_override)
+            .field("rustup_dir", &self.rustup_dir)
+            .field("settings_file", &self.settings_file)
+            .field("fallback_settings", &self.fallback_settings)
+            .field("toolchains_dir", &self.toolchains_dir)
+            .field("update_hash_dir", &self.update_hash_dir)
+            .field("download_dir", &self.download_dir)
+            .field("temp_cfg", &self.temp_cfg)
+            .field("toolchain_override", &self.toolchain_override)
+            .field("env_override", &self.env_override)
+            .field("dist_root_url", &self.dist_root_url)
+            .finish()
     }
 }
 
