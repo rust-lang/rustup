@@ -24,7 +24,6 @@ use crate::{
     command,
     config::{new_toolchain_with_reason, ActiveReason, Cfg},
     currentprocess::{
-        filesource::StderrSource,
         process,
         terminalsource::{self, ColorableTerminal},
     },

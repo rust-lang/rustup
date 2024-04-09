@@ -1,9 +1,7 @@
 use std::fmt;
 use std::io::Write;
 
-use crate::currentprocess::{
-    filesource::StderrSource, process, terminalsource, varsource::VarSource,
-};
+use crate::currentprocess::{process, terminalsource, varsource::VarSource};
 
 macro_rules! warn {
     ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
