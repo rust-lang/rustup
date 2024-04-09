@@ -15,7 +15,7 @@ use wait_timeout::ChildExt;
 
 use crate::{
     config::Cfg,
-    currentprocess::{process, varsource::VarSource},
+    currentprocess::process,
     dist::dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,

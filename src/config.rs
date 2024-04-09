@@ -13,7 +13,7 @@ use tokio_stream::StreamExt;
 
 use crate::{
     cli::self_update::SelfUpdateMode,
-    currentprocess::{process, varsource::VarSource},
+    currentprocess::process,
     dist::{
         dist::{self, PartialToolchainDesc, Profile, ToolchainDesc},
         download::DownloadCfg,

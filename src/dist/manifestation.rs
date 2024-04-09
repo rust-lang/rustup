@@ -9,7 +9,7 @@ use std::path::Path;
 use anyhow::{anyhow, bail, Context, Result};
 use tokio_retry::{strategy::FixedInterval, RetryIf};
 
-use crate::currentprocess::{process, varsource::VarSource};
+use crate::currentprocess::process;
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };

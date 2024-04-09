@@ -29,7 +29,7 @@ use std::path::PathBuf;
 use anyhow::{bail, Result};
 
 use super::utils;
-use crate::currentprocess::{process, varsource::VarSource};
+use crate::currentprocess::process;
 
 pub(crate) type Shell = Box<dyn UnixShell>;
 

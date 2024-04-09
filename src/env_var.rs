@@ -3,7 +3,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::currentprocess::{process, varsource::VarSource};
+use crate::currentprocess::process;
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 

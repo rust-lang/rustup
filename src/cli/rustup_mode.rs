@@ -1488,8 +1488,6 @@ async fn man(
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    use crate::currentprocess::varsource::VarSource;
-
     let toolchain = Toolchain::from_partial(toolchain, cfg).await?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");

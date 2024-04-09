@@ -11,7 +11,7 @@ use termcolor::{ColorChoice, ColorSpec, StandardStream, StandardStreamLock, Writ
 
 #[cfg(feature = "test")]
 use super::filesource::{TestWriter, TestWriterLock};
-use super::{process, varsource::VarSource};
+use super::process;
 
 /// Select what stream to make a terminal on
 pub(super) enum StreamSelector {
