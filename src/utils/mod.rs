@@ -2,7 +2,6 @@
 pub(crate) mod notifications;
 pub mod raw;
 pub(crate) mod toml_utils;
-pub(crate) mod tty;
 pub(crate) mod units;
 #[allow(clippy::module_inception)]
 pub mod utils;
