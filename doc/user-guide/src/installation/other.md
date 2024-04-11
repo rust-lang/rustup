@@ -98,6 +98,8 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe.sha256)
 - [i686-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init.sha256)
+- [loongarch64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/loongarch64-unknown-linux-gnu/rustup-init)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/loongarch64-unknown-linux-gnu/rustup-init.sha256)
 - [mips-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/mips-unknown-linux-gnu/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/mips-unknown-linux-gnu/rustup-init.sha256)
 - [mips64-unknown-linux-gnuabi64](https://static.rust-lang.org/rustup/dist/mips64-unknown-linux-gnuabi64/rustup-init)
