@@ -593,6 +593,12 @@ pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
         .spawn()
         .context("unable to run updater")?;
 
+    let Some(version) = super::get_and_parse_new_rustup_version(setup_path) else {
+        warn!("failed to get the new rustup version in order to update `DisplayVersion`");
+        return Ok(utils::ExitCode(1));
+    };
+    do_update_programs_display_version(&version)?;
+
     Ok(utils::ExitCode(0))
 }
 
