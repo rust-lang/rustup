@@ -1106,12 +1106,9 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
 
     match prepare_update()? {
         Some(setup_path) => {
-            let version = match get_new_rustup_version(&setup_path) {
-                Some(new_version) => parse_new_rustup_version(new_version),
-                None => {
-                    err!("failed to get rustup version");
-                    return Ok(utils::ExitCode(1));
-                }
+            let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
+                err!("failed to get rustup version");
+                return Ok(utils::ExitCode(1));
             };
 
             let _ = common::show_channel_update(
@@ -1133,6 +1130,10 @@ pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
     }
 
     Ok(utils::ExitCode(0))
+}
+
+fn get_and_parse_new_rustup_version(path: &Path) -> Option<String> {
+    get_new_rustup_version(path).map(parse_new_rustup_version)
 }
 
 fn get_new_rustup_version(path: &Path) -> Option<String> {
