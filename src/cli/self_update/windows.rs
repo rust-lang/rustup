@@ -500,13 +500,23 @@ pub(crate) fn do_remove_from_path() -> Result<()> {
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
 
+fn rustup_uninstall_reg_key() -> Result<RegKey> {
+    Ok(RegKey::predef(HKEY_CURRENT_USER)
+        .create_subkey(RUSTUP_UNINSTALL_ENTRY)
+        .context("Failed creating uninstall key")?
+        .0)
+}
+
+pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
+    rustup_uninstall_reg_key()?
+        .set_value("DisplayVersion", &version)
+        .context("Failed to set display version")
+}
+
 pub(crate) fn do_add_to_programs() -> Result<()> {
     use std::path::PathBuf;
 
-    let key = RegKey::predef(HKEY_CURRENT_USER)
-        .create_subkey(RUSTUP_UNINSTALL_ENTRY)
-        .context("Failed creating uninstall key")?
-        .0;
+    let key = rustup_uninstall_reg_key()?;
 
     // Don't overwrite registry if Rustup is already installed
     let prev = key
@@ -531,14 +541,11 @@ pub(crate) fn do_add_to_programs() -> Result<()> {
         vtype: RegType::REG_SZ,
     };
 
-    let current_version: &str = env!("CARGO_PKG_VERSION");
-
     key.set_raw_value("UninstallString", &reg_value)
         .context("Failed to set uninstall string")?;
     key.set_value("DisplayName", &"Rustup: the Rust toolchain installer")
         .context("Failed to set display name")?;
-    key.set_value("DisplayVersion", &current_version)
-        .context("Failed to set display version")?;
+    do_update_programs_display_version(env!("CARGO_PKG_VERSION"))?;
 
     Ok(())
 }
