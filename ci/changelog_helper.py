@@ -3,16 +3,32 @@ import re
 import subprocess
 import sys
 
+USAGE = """
+Usage:
+  python changelog_helper.py replace-nums CHANGELOG_MARKDOWN
+    Replace Rustup PR numbers or links with `[pr#1234]`, moving the actual links to the bottom
+
+  python changelog_helper.py usernames GITHUB_GENERATED_CHANGELOG
+    Generate a Markdown list of contributors to be pasted below the line `Thanks go to:`
+    A logged-in GitHub CLI (https://cli.github.com) is required for this subcommand
+    For a GitHub-generated changelog, see https://github.com/rust-lang/rustup/releases/new
+"""
+
+BOTS = {"renovate": "Renovate Bot"}
+
 
 def extract_usernames(text):
-    return sorted(set(re.findall(r"@([\w-]+)", text)), key=str.casefold)
+    return sorted(
+        set(re.findall(r"@([\w-]+)", text)),
+        key=lambda name: (name in BOTS, str.casefold(name)),
+    )
 
 
 def github_name(username):
     # url = f"https://api.github.com/users/{username}"
     # response = urlopen(url)
-    if username == "renovate":
-        return "Renovate Bot"
+    if username in BOTS:
+        return BOTS[username]
     try:
         response = subprocess.check_output(
             [
@@ -26,7 +42,7 @@ def github_name(username):
             ]
         )
         data = json.loads(response)
-        return data["name"]
+        return data["name"] or username
     except Exception as e:
         print("An error occurred:", str(e))
 
@@ -42,16 +58,7 @@ def read_file(file_name):
 
 
 def help():
-    print("Usage:")
-    print("  python changelog_helper.py usernames GITHUB_GENERATED_CHANGELOG")
-    print("  python changelog_helper.py replace-nums CHANGELOG_MARKDOWN")
-    print()
-    print(
-        "A logged-in GitHub CLI (https://cli.github.com) is required for the `usernames` subcommand"
-    )
-    print(
-        "For a GitHub-generated changelog, see https://github.com/rust-lang/rustup/releases/new"
-    )
+    print(USAGE)
     sys.exit(1)
 
 
@@ -72,11 +79,11 @@ def main():
         footer = ""
         if not content:
             return
-        for match in re.findall(r"(?<=#)(\d+)", content):
-            # Replace issue number with fully-qualified link
-            link = f"[pr#{match}]"
-            footer += f"{link}: https://github.com/rust-lang/rustup/pull/{match}\n"
-            content = content.replace(f"#{match}", link)
+        issue_pat = r"(#|https://github\.com/rust-lang/rustup/pull/)(\d+)"
+        for prefix, num in re.findall(issue_pat, content):
+            link = f"[pr#{num}]"
+            footer += f"{link}: https://github.com/rust-lang/rustup/pull/{num}\n"
+            content = content.replace(prefix + num, link)
         print(f"{content}\n{footer}")
     else:
         help()
