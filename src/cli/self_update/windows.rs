@@ -510,7 +510,7 @@ fn rustup_uninstall_reg_key() -> Result<RegKey> {
 pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
     rustup_uninstall_reg_key()?
         .set_value("DisplayVersion", &version)
-        .context("Failed to set display version")
+        .context("Failed to set `DisplayVersion`")
 }
 
 pub(crate) fn do_add_to_programs() -> Result<()> {
@@ -542,9 +542,9 @@ pub(crate) fn do_add_to_programs() -> Result<()> {
     };
 
     key.set_raw_value("UninstallString", &reg_value)
-        .context("Failed to set uninstall string")?;
+        .context("Failed to set `UninstallString`")?;
     key.set_value("DisplayName", &"Rustup: the Rust toolchain installer")
-        .context("Failed to set display name")?;
+        .context("Failed to set `DisplayName`")?;
     do_update_programs_display_version(env!("CARGO_PKG_VERSION"))?;
 
     Ok(())
