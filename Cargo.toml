@@ -1,6 +1,6 @@
 [package]
 name = "rustup"
-version = "1.27.0"
+version = "1.27.1"
 edition = "2021"
 description = "Manage multiple rust installations with ease"
 homepage = "https://github.com/rust-lang/rustup"
