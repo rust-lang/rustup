@@ -2,13 +2,13 @@
 
 use std::sync::Mutex;
 
-#[cfg(not(unix))]
+#[cfg(windows)]
 use winreg::{
     enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE},
     RegKey, RegValue,
 };
 
-#[cfg(not(unix))]
+#[cfg(windows)]
 pub fn get_path() -> std::io::Result<Option<RegValue>> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
@@ -21,7 +21,7 @@ pub fn get_path() -> std::io::Result<Option<RegValue>> {
     }
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
 fn restore_path(p: Option<RegValue>) {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
