@@ -32,11 +32,18 @@ pub fn with_saved_path(f: &mut dyn FnMut()) {
 
 #[cfg(windows)]
 pub fn get_path() -> io::Result<Option<RegValue>> {
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .unwrap();
-    match environment.get_raw_value("PATH") {
+    get_reg_value(&RegKey::predef(HKEY_CURRENT_USER), "Environment", "PATH")
+}
+
+#[cfg(windows)]
+fn restore_path(p: Option<RegValue>) {
+    restore_reg_value(&RegKey::predef(HKEY_CURRENT_USER), "Environment", "PATH", p)
+}
+
+#[cfg(windows)]
+fn get_reg_value(root: &RegKey, subkey: &str, name: &str) -> io::Result<Option<RegValue>> {
+    let subkey = root.open_subkey_with_flags(subkey, KEY_READ | KEY_WRITE)?;
+    match subkey.get_raw_value(name) {
         Ok(val) => Ok(Some(val)),
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),
@@ -44,15 +51,14 @@ pub fn get_path() -> io::Result<Option<RegValue>> {
 }
 
 #[cfg(windows)]
-fn restore_path(p: Option<RegValue>) {
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+fn restore_reg_value(root: &RegKey, subkey: &str, name: &str, p: Option<RegValue>) {
+    let subkey = root
+        .open_subkey_with_flags(subkey, KEY_READ | KEY_WRITE)
         .unwrap();
     if let Some(p) = p.as_ref() {
-        environment.set_raw_value("PATH", p).unwrap();
+        subkey.set_raw_value(name, p).unwrap();
     } else {
-        let _ = environment.delete_value("PATH");
+        let _ = subkey.delete_value(name);
     }
 }
 
