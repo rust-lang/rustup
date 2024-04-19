@@ -34,7 +34,7 @@ $ rustup set default-host i686-pc-windows-msvc
 Or to choose the 64 bit GNU toolchain:
 
 ```console
-$ rustup set default-host x86_64-pc-windows-gnu
+$ rustup default stable-x86_64-pc-windows-gnu
 ```
 
 Since the MSVC ABI provides the best interoperation with other Windows
