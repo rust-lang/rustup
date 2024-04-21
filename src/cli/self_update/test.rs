@@ -41,6 +41,15 @@ fn restore_path(p: Option<RegValue>) {
 }
 
 #[cfg(windows)]
+pub fn with_saved_reg_value(root: &RegKey, subkey: &str, name: &str, f: &mut dyn FnMut()) {
+    with_saved_global_state(
+        || get_reg_value(root, subkey, name),
+        |p| restore_reg_value(root, subkey, name, p),
+        f,
+    )
+}
+
+#[cfg(windows)]
 fn get_reg_value(root: &RegKey, subkey: &str, name: &str) -> io::Result<Option<RegValue>> {
     let subkey = root.open_subkey_with_flags(subkey, KEY_READ | KEY_WRITE)?;
     match subkey.get_raw_value(name) {
