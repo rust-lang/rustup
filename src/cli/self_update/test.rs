@@ -26,18 +26,19 @@ pub fn with_saved_global_state<S>(
     f();
 }
 
+#[cfg(windows)]
 pub fn with_saved_path(f: &mut dyn FnMut()) {
-    with_saved_global_state(get_path, restore_path, f)
+    with_saved_reg_value(&RegKey::predef(HKEY_CURRENT_USER), "Environment", "PATH", f)
+}
+
+#[cfg(unix)]
+pub fn with_saved_path(f: &mut dyn FnMut()) {
+    f()
 }
 
 #[cfg(windows)]
 pub fn get_path() -> io::Result<Option<RegValue>> {
     get_reg_value(&RegKey::predef(HKEY_CURRENT_USER), "Environment", "PATH")
-}
-
-#[cfg(windows)]
-fn restore_path(p: Option<RegValue>) {
-    restore_reg_value(&RegKey::predef(HKEY_CURRENT_USER), "Environment", "PATH", p)
 }
 
 #[cfg(windows)]
@@ -70,11 +71,3 @@ fn restore_reg_value(root: &RegKey, subkey: &str, name: &str, p: Option<RegValue
         let _ = subkey.delete_value(name);
     }
 }
-
-#[cfg(unix)]
-pub fn get_path() -> io::Result<Option<()>> {
-    Ok(None)
-}
-
-#[cfg(unix)]
-fn restore_path(_: Option<()>) {}

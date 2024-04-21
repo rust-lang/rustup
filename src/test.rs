@@ -15,12 +15,12 @@ use std::process::Command;
 #[cfg(test)]
 use anyhow::Result;
 
-pub use crate::cli::self_update::test::{get_path, with_saved_global_state, with_saved_path};
+pub use crate::cli::self_update::test::{with_saved_global_state, with_saved_path};
 use crate::currentprocess;
 use crate::dist::dist::TargetTriple;
 
 #[cfg(windows)]
-pub use crate::cli::self_update::test::with_saved_reg_value;
+pub use crate::cli::self_update::test::{get_path, with_saved_reg_value};
 
 // Things that can have environment variables applied to them.
 pub trait Env {
