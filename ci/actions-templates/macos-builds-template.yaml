@@ -7,7 +7,7 @@ jobs: # skip-x86_64 skip-aarch64
     env: # skip-x86_64
       MACOSX_DEPLOYMENT_TARGET: 11.0 # skip-x86_64
   build-macos-x86_64: # job-name skip-aarch64
-    runs-on: macos-13 # skip-aarch64
+    runs-on: macos-14 # skip-aarch64
     env: # skip-aarch64
       MACOSX_DEPLOYMENT_TARGET: 10.12 # skip-aarch64
     strategy:
