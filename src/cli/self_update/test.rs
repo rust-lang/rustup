@@ -1,6 +1,6 @@
 //! Support for functional tests.
 
-use std::sync::Mutex;
+use std::{io, sync::Mutex};
 
 #[cfg(windows)]
 use winreg::{
@@ -9,14 +9,14 @@ use winreg::{
 };
 
 #[cfg(windows)]
-pub fn get_path() -> std::io::Result<Option<RegValue>> {
+pub fn get_path() -> io::Result<Option<RegValue>> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
     match environment.get_raw_value("PATH") {
         Ok(val) => Ok(Some(val)),
-        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),
     }
 }
@@ -49,7 +49,7 @@ pub fn with_saved_path(f: &mut dyn FnMut()) {
 }
 
 #[cfg(unix)]
-pub fn get_path() -> std::io::Result<Option<()>> {
+pub fn get_path() -> io::Result<Option<()>> {
     Ok(None)
 }
 
