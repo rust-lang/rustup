@@ -906,7 +906,7 @@ impl Cfg {
         // breadcrumb in case of regression: we used to get the cargo path and
         // cargo.exe path separately, not using the binary_file helper. This may
         // matter if calling a binary with some personality that allows .exe and
-        // not .exe to coexist (e.g. wine) - but thats not something we aim to
+        // not .exe to coexist (e.g. wine) - but that's not something we aim to
         // support : the host should always be correct.
         if cargo_path.exists() {
             return Ok(None);
