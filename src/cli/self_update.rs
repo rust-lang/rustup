@@ -1178,7 +1178,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
 
     // For windows x86 builds seem slow when used with windows defender.
     // The website defaulted to i686-windows-gnu builds for a long time.
-    // This ensures that we update to a version thats appropriate for users
+    // This ensures that we update to a version that's appropriate for users
     // and also works around if the website messed up the detection.
     // If someone really wants to use another version, they still can enforce
     // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
