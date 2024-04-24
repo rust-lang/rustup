@@ -565,11 +565,11 @@ jobs:
           path: |
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
-      - name: Acquire the AWS tooling
+      - name: Ensure that awscli is installed
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
-          pip3 install -U setuptools
-          pip3 install awscli
+          which aws
+          aws --version
       - name: Prepare the dist
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
@@ -714,11 +714,11 @@ jobs:
           path: |
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
-      - name: Acquire the AWS tooling
+      - name: Ensure that awscli is installed
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
-          pip3 install -U setuptools
-          pip3 install awscli
+          which aws
+          aws --version
       - name: Prepare the dist
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
@@ -885,11 +885,11 @@ jobs:
           path: |
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
-      - name: Acquire the AWS tooling
+      - name: Ensure that awscli is installed
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
-          pip3 install -U setuptools
-          pip3 install awscli
+          which aws
+          aws --version
       - name: Prepare the dist
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
