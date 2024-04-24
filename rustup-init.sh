@@ -31,7 +31,7 @@ RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 # NOTICE: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat <<EOF
-rustup-init 1.27.1 (c9662f94b 2024-04-23)
+rustup-init 1.27.1 (a8e4f5c64 2024-04-24)
 
 The installer for rustup
 
