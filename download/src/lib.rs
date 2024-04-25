@@ -15,6 +15,11 @@ pub use crate::errors::*;
 const USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"));
 
 #[derive(Debug, Copy, Clone)]
+pub enum Backend {
+    Reqwest(TlsBackend),
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum TlsBackend {
     Rustls,
     Default,
@@ -31,11 +36,19 @@ pub enum Event<'a> {
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
 
-fn download(url: &Url, resume_from: u64, callback: &DownloadCallback) -> Result<()> {
-    reqwest_be::download(url, resume_from, callback, tls)
+fn download_with_backend(
+    backend: Backend,
+    url: &Url,
+    resume_from: u64,
+    callback: &dyn Fn(Event<'_>) -> Result<()>,
+) -> Result<()> {
+    match backend {
+        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
+    }
 }
 
-pub fn download_to_path(
+pub fn download_to_path_with_backend(
+    backend: Backend,
     url: &Url,
     path: &Path,
     resume_from_partial: bool,
@@ -98,7 +111,7 @@ pub fn download_to_path(
 
         let file = RefCell::new(file);
 
-        download(url, resume_from, &|event| {
+        download_with_backend(backend, url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
                 file.borrow_mut()
                     .write_all(data)

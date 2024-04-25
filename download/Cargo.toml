@@ -6,17 +6,14 @@ license = "MIT OR Apache-2.0"
 
 [features]
 
-default = ["reqwest-backend", "reqwest-rustls-tls", "reqwest-default-tls"]
+default = ["reqwest-rustls-tls", "reqwest-default-tls"]
 
-curl-backend = ["curl"]
-reqwest-backend = ["reqwest", "env_proxy"]
 reqwest-default-tls = ["reqwest/default-tls", "dep:once_cell"]
 reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots", "dep:once_cell"]
 
 [dependencies]
 anyhow.workspace = true
-curl = { version = "0.4.44", optional = true }
-env_proxy = { version = "0.4.1", optional = true }
+env_proxy = "0.4.1"
 once_cell = { workspace = true, optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "socks"], optional = true }
 thiserror.workspace = true
