@@ -40,7 +40,7 @@ fn download_with_backend(
     backend: Backend,
     url: &Url,
     resume_from: u64,
-    callback: &dyn Fn(Event<'_>) -> Result<()>,
+    callback: DownloadCallback<'_>,
 ) -> Result<()> {
     match backend {
         Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
