@@ -1,5 +1,3 @@
-#![cfg(feature = "reqwest-backend")]
-
 use std::env::{remove_var, set_var};
 use std::error::Error;
 use std::net::TcpListener;

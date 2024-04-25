@@ -11,15 +11,11 @@ repository = "https://github.com/rust-lang/rustup"
 build = "build.rs"
 
 [features]
-curl-backend = ["download/curl-backend"]
 default = [
-    "curl-backend",
-    "reqwest-backend",
     "reqwest-default-tls",
     "reqwest-rustls-tls",
 ]
 
-reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
 
 reqwest-default-tls = ["download/reqwest-default-tls"]
@@ -61,7 +57,7 @@ itertools = "0.12"
 libc = "0.2"
 once_cell.workspace = true
 opener = "0.7.0"
-# `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
+# `openssl` is used by or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
 # HACK: We temporarily pin the OpenSSL version due to build issues encountered in
 # https://github.com/rust-lang/rustup/pull/3668.
@@ -192,4 +188,4 @@ opt-level = 0
 
 [package.metadata.cargo-all-features]
 # Building with no web backend will error.
-always_include_features = ["reqwest-backend", "reqwest-rustls-tls"]
+always_include_features = ["reqwest-rustls-tls"]

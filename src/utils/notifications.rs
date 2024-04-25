@@ -32,8 +32,6 @@ pub enum Notification<'a> {
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
     Error(String),
-    UsingCurl,
-    UsingReqwest,
     /// Renaming encountered a file in use error and is retrying.
     /// The InUse aspect is a heuristic - the OS specifies
     /// Permission denied, but as we work in users home dirs and
@@ -57,9 +55,7 @@ impl<'a> Notification<'a> {
             | DownloadPushUnit(_)
             | DownloadPopUnit
             | DownloadFinished
-            | ResumingPartialDownload
-            | UsingCurl
-            | UsingReqwest => NotificationLevel::Verbose,
+            | ResumingPartialDownload => NotificationLevel::Verbose,
             RenameInUse(_, _) => NotificationLevel::Info,
             NoCanonicalPath(_) => NotificationLevel::Warn,
             Error(_) => NotificationLevel::Error,
@@ -99,8 +95,6 @@ impl<'a> Display for Notification<'a> {
             DownloadFinished => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
-            UsingCurl => write!(f, "downloading with curl"),
-            UsingReqwest => write!(f, "downloading with reqwest"),
         }
     }
 }

@@ -221,11 +221,8 @@ fn download_file_(
     // Download the file
 
     // Keep the curl env var around for a bit
-    let use_curl_backend = process().var_os("RUSTUP_USE_CURL").is_some();
     let use_rustls = process().var_os("RUSTUP_USE_RUSTLS").is_some();
-    let (backend, notification) = if use_curl_backend {
-        (Backend::Curl, Notification::UsingCurl)
-    } else {
+    let backend = {
         let tls_backend = if use_rustls {
             TlsBackend::Rustls
         } else {
@@ -238,9 +235,8 @@ fn download_file_(
                 TlsBackend::Rustls
             }
         };
-        (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
+        Backend::Reqwest(tls_backend)
     };
-    notify_handler(notification);
     let res =
         download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback));
 

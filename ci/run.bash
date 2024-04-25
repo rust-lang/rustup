@@ -8,7 +8,7 @@ rustc -vV
 cargo -vV
 
 
-FEATURES=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
+FEATURES=('--no-default-features' '--features' 'reqwest-default-tls')
 case "$(uname -s)" in
   *NT* ) ;; # Windows NT
   * ) FEATURES+=('--features' 'vendored-openssl') ;;
@@ -39,7 +39,7 @@ target_cargo() {
 target_cargo build
 
 download_pkg_test() {
-  features=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
+  features=('--no-default-features' '--features' 'reqwest-default-tls')
   case "$TARGET" in
     # these platforms aren't supported by ring:
     powerpc* ) ;;
