@@ -60,7 +60,6 @@ or an official [r]elease:
    latest `stable` commit.
    - `git tag -as $VER_NUM -m $VER_NUM` (optionally without `-s` if not GPG
      signing the tag)
-   - `git push origin HEAD:master`
    - `git push origin $VER_NUM`
 
 [Rust Blog]: https://github.com/rust-lang/blog.rust-lang.org
