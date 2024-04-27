@@ -35,19 +35,19 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
+type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
+
 fn download_with_backend(
     backend: Backend,
     url: &Url,
     resume_from: u64,
-    callback: &dyn Fn(Event<'_>) -> Result<()>,
+    callback: DownloadCallback<'_>,
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
         Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
     }
 }
-
-type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
 
 pub fn download_to_path_with_backend(
     backend: Backend,
