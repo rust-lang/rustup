@@ -226,7 +226,7 @@ fn download_file_(
         .map_or(false, |it| it != "0");
     let use_rustls = process()
         .var_os("RUSTUP_USE_RUSTLS")
-        .map_or(false, |it| it != "0");
+        .map_or(true, |it| it != "0");
     let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
     } else {
