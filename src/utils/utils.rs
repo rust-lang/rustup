@@ -221,8 +221,12 @@ fn download_file_(
     // Download the file
 
     // Keep the curl env var around for a bit
-    let use_curl_backend = process().var_os("RUSTUP_USE_CURL").is_some();
-    let use_rustls = process().var_os("RUSTUP_USE_RUSTLS").is_some();
+    let use_curl_backend = process()
+        .var_os("RUSTUP_USE_CURL")
+        .map_or(false, |it| it != "0");
+    let use_rustls = process()
+        .var_os("RUSTUP_USE_RUSTLS")
+        .map_or(false, |it| it != "0");
     let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
     } else {
