@@ -296,7 +296,7 @@ This will uninstall all Rust toolchains and data, and remove
 #[cfg(windows)]
 static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
-Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
+Rust requires the Microsoft C++ build tools for Visual Studio 2017 or
 later, but they don't seem to be installed.
 
 "#;

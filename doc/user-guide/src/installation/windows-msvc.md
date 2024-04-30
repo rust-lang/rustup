@@ -15,7 +15,7 @@ See [licensing terms][vs licences] for more details.
 ## Manual install
 
 [Download Visual Studio][vs downloads].
-Rust supports Visual Studio 2013 and later but it is recommended that you use the latest version (currently 2022) for new projects.
+Rust supports Visual Studio 2017 and later but it is recommended that you use the latest version (currently 2022) for new projects.
 You can opt to download only the Build Tools for Visual Studio, which does not include the IDE.
 However this requires you already have a license to the Community, Professional or Enterprise edition.
 
