@@ -177,12 +177,23 @@ main() {
     return "$_retval"
 }
 
-check_proc() {
-    # Check for /proc by looking for the /proc/self/exe link
+get_current_exe() {
+    # Returns the executable used for system architecture detection
     # This is only run on Linux
-    if ! test -L /proc/self/exe ; then
-        err "fatal: Unable to find /proc/self/exe.  Is /proc mounted?  Installation cannot proceed without /proc."
+    local _current_exe
+    if test -L /proc/self/exe ; then
+        _current_exe=/proc/self/exe
+    else
+        printf '%s\n' "Warning: Unable to find /proc/self/exe. System architecture detection might be inaccurate." 1>&2
+        if test -n "$SHELL" ; then
+            _current_exe=$SHELL
+        else
+            need_cmd /bin/sh
+            _current_exe=/bin/sh
+        fi
+        printf '%s\n' "Warning: Falling back to $_current_exe." 1>&2
     fi
+    echo "$_current_exe"
 }
 
 get_bitness() {
@@ -193,8 +204,9 @@ get_bitness() {
     #   0x02 for 64-bit.
     # The printf builtin on some shells like dash only supports octal
     # escape sequences, so we use those.
+    local _current_exe=$1
     local _current_exe_head
-    _current_exe_head=$(head -c 5 /proc/self/exe )
+    _current_exe_head=$(head -c 5 "$_current_exe")
     if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
         echo 32
     elif [ "$_current_exe_head" = "$(printf '\177ELF\002')" ]; then
@@ -205,27 +217,30 @@ get_bitness() {
 }
 
 is_host_amd64_elf() {
+    local _current_exe=$1
+
     need_cmd head
     need_cmd tail
     # ELF e_machine detection without dependencies beyond coreutils.
     # Two-byte field at offset 0x12 indicates the CPU,
     # but we're interested in it being 0x3E to indicate amd64, or not that.
     local _current_exe_machine
-    _current_exe_machine=$(head -c 19 /proc/self/exe | tail -c 1)
+    _current_exe_machine=$(head -c 19 "$_current_exe" | tail -c 1)
     [ "$_current_exe_machine" = "$(printf '\076')" ]
 }
 
 get_endianness() {
-    local cputype=$1
-    local suffix_eb=$2
-    local suffix_el=$3
+    local _current_exe=$1
+    local cputype=$2
+    local suffix_eb=$3
+    local suffix_el=$4
 
     # detect endianness without od/hexdump, like get_bitness() does.
     need_cmd head
     need_cmd tail
 
     local _current_exe_endianness
-    _current_exe_endianness="$(head -c 6 /proc/self/exe | tail -c 1)"
+    _current_exe_endianness="$(head -c 6 "$_current_exe" | tail -c 1)"
     if [ "$_current_exe_endianness" = "$(printf '\001')" ]; then
         echo "${cputype}${suffix_el}"
     elif [ "$_current_exe_endianness" = "$(printf '\002')" ]; then
@@ -356,6 +371,7 @@ get_architecture() {
         fi
     fi
 
+    local _current_exe
     case "$_ostype" in
 
         Android)
@@ -363,9 +379,9 @@ get_architecture() {
             ;;
 
         Linux)
-            check_proc
+            _current_exe=$(get_current_exe)
             _ostype=unknown-linux-$_clibtype
-            _bitness=$(get_bitness)
+            _bitness=$(get_bitness "$_current_exe")
             ;;
 
         FreeBSD)
@@ -438,14 +454,14 @@ get_architecture() {
             ;;
 
         mips)
-            _cputype=$(get_endianness mips '' el)
+            _cputype=$(get_endianness "$_current_exe" mips '' el)
             ;;
 
         mips64)
             if [ "$_bitness" -eq 64 ]; then
                 # only n64 ABI is supported for now
                 _ostype="${_ostype}abi64"
-                _cputype=$(get_endianness mips64 '' el)
+                _cputype=$(get_endianness "$_current_exe" mips64 '' el)
             fi
             ;;
 
@@ -484,7 +500,7 @@ get_architecture() {
                     _cputype="$RUSTUP_CPUTYPE"
                 else {
                     # 32-bit executable for amd64 = x32
-                    if is_host_amd64_elf; then {
+                    if is_host_amd64_elf "$_current_exe"; then {
                          echo "This host is running an x32 userland; as it stands, x32 support is poor," 1>&2
                          echo "and there isn't a native toolchain -- you will have to install" 1>&2
                          echo "multiarch compatibility with i686 and/or amd64, then select one" 1>&2
@@ -500,7 +516,7 @@ get_architecture() {
                 }; fi
                 ;;
             mips64)
-                _cputype=$(get_endianness mips '' el)
+                _cputype=$(get_endianness "$_current_exe" mips '' el)
                 ;;
             powerpc64)
                 _cputype=powerpc
