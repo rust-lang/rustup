@@ -539,8 +539,9 @@ get_architecture() {
     # and fall back to arm.
     # See https://github.com/rust-lang/rustup.rs/issues/587.
     if [ "$_ostype" = "unknown-linux-gnueabihf" ] && [ "$_cputype" = armv7 ]; then
-        if ensure grep '^Features' /proc/cpuinfo | grep -E -q -v 'neon|simd'; then
-            # At least one processor does not have NEON (which is asimd on armv8+).
+        if ! (ensure grep '^Features' /proc/cpuinfo | grep -E -q 'neon|simd') ; then
+            # Either `/proc/cpuinfo` is malformed or unavailable, or
+            # at least one processor does not have NEON (which is asimd on armv8+).
             _cputype=arm
         fi
     fi
