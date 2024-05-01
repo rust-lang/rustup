@@ -294,15 +294,14 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
 pub(crate) fn wait_for_parent() -> Result<()> {
     use std::io;
     use std::mem;
-    use winapi::shared::minwindef::DWORD;
-    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-    use winapi::um::processthreadsapi::{GetCurrentProcessId, OpenProcess};
-    use winapi::um::synchapi::WaitForSingleObject;
-    use winapi::um::tlhelp32::{
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
+    use windows_sys::Win32::Storage::FileSystem::SYNCHRONIZE;
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
         CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
     };
-    use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
-    use winapi::um::winnt::SYNCHRONIZE;
+    use windows_sys::Win32::System::Threading::{
+        GetCurrentProcessId, OpenProcess, WaitForSingleObject, INFINITE,
+    };
 
     unsafe {
         // Take a snapshot of system processes, one of which is ours
@@ -318,7 +317,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
         });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
-        entry.dwSize = mem::size_of::<PROCESSENTRY32>() as DWORD;
+        entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
 
         // Iterate over system processes looking for ours
         let success = Process32First(*snapshot, &mut entry);
@@ -343,7 +342,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 
         // Get a handle to the parent process
         let parent = OpenProcess(SYNCHRONIZE, 0, parent_id);
-        if parent.is_null() {
+        if parent == 0 {
             // This just means the parent has already exited.
             return Ok(());
         }
@@ -371,8 +370,8 @@ pub(crate) fn do_add_to_path() -> Result<()> {
 
 fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
     use std::ptr;
-    use winapi::shared::minwindef::*;
-    use winapi::um::winuser::{
+    use windows_sys::Win32::Foundation::*;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
         SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
     };
 
@@ -645,12 +644,11 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     use std::ptr;
     use std::thread;
     use std::time::Duration;
-    use winapi::shared::minwindef::DWORD;
-    use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
-    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-    use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
-    use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
-    use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
+    use windows_sys::Win32::Foundation::{CloseHandle, GENERIC_READ, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
+    use windows_sys::Win32::Storage::FileSystem::{
+        CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, OPEN_EXISTING,
+    };
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = utils::cargo_home()?;
@@ -671,8 +669,8 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
     // Make the sub-process opened by gc exe inherit its attribute.
-    let mut sa = SECURITY_ATTRIBUTES {
-        nLength: mem::size_of::<SECURITY_ATTRIBUTES>() as DWORD,
+    let sa = SECURITY_ATTRIBUTES {
+        nLength: mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
         lpSecurityDescriptor: ptr::null_mut(),
         bInheritHandle: 1,
     };
@@ -684,10 +682,10 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
             gc_exe_win.as_ptr(),
             GENERIC_READ,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
-            &mut sa,
+            &sa,
             OPEN_EXISTING,
             FILE_FLAG_DELETE_ON_CLOSE,
-            ptr::null_mut(),
+            0,
         );
 
         if gc_handle == INVALID_HANDLE_VALUE {

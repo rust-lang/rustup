@@ -176,7 +176,9 @@ fn do_recursion_guard() -> Result<()> {
 /// rustup-init in the user's download folder.
 #[cfg(windows)]
 pub fn pre_rustup_main_init() {
-    use winapi::um::libloaderapi::{SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_SYSTEM32};
+    use windows_sys::Win32::System::LibraryLoader::{
+        SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_SYSTEM32,
+    };
     // Default to loading delay loaded DLLs from the system directory.
     // For DLLs loaded at load time, this relies on the `delayload` linker flag.
     // This is only necessary prior to Windows 10 RS1. See build.rs for details.

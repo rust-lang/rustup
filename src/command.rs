@@ -36,10 +36,10 @@ pub(crate) fn run_command_for_dir<S: AsRef<OsStr> + Debug>(
 
     #[cfg(windows)]
     fn exec(cmd: &mut Command) -> io::Result<ExitCode> {
-        use winapi::shared::minwindef::{BOOL, DWORD, FALSE, TRUE};
-        use winapi::um::consoleapi::SetConsoleCtrlHandler;
+        use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
+        use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 
-        unsafe extern "system" fn ctrlc_handler(_: DWORD) -> BOOL {
+        unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
             // Do nothing. Let the child process handle it.
             TRUE
         }
