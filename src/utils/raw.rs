@@ -156,25 +156,24 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
     use std::ptr;
-    use winapi::shared::minwindef::*;
-    use winapi::um::fileapi::*;
-    use winapi::um::ioapiset::*;
-    use winapi::um::winbase::*;
-    use winapi::um::winioctl::FSCTL_SET_REPARSE_POINT;
-    use winapi::um::winnt::*;
+    use windows_sys::Win32::Foundation::*;
+    use windows_sys::Win32::Storage::FileSystem::*;
+    use windows_sys::Win32::System::Ioctl::FSCTL_SET_REPARSE_POINT;
+    use windows_sys::Win32::System::SystemServices::*;
+    use windows_sys::Win32::System::IO::*;
 
     const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: usize = 16 * 1024;
 
     #[repr(C)]
     #[allow(non_snake_case)]
     struct REPARSE_MOUNTPOINT_DATA_BUFFER {
-        ReparseTag: DWORD,
-        ReparseDataLength: DWORD,
-        Reserved: WORD,
-        ReparseTargetLength: WORD,
-        ReparseTargetMaximumLength: WORD,
-        Reserved1: WORD,
-        ReparseTarget: WCHAR,
+        ReparseTag: u32,
+        ReparseDataLength: u32,
+        Reserved: u16,
+        ReparseTargetLength: u16,
+        ReparseTargetMaximumLength: u16,
+        Reserved1: u16,
+        ReparseTarget: u16,
     }
 
     // We're using low-level APIs to create the junction, and these are more picky about paths.
@@ -194,12 +193,12 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
             ptr::null_mut(),
             OPEN_EXISTING,
             FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-            ptr::null_mut(),
+            0,
         );
 
         let mut data = [0u8; MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
         let db = data.as_mut_ptr().cast::<REPARSE_MOUNTPOINT_DATA_BUFFER>();
-        let buf = &mut (*db).ReparseTarget as *mut WCHAR;
+        let buf = &mut (*db).ReparseTarget as *mut u16;
         let mut i = 0;
         // FIXME: this conversion is very hacky
         let v = br"\??\";
@@ -211,13 +210,13 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
         *buf.offset(i) = 0;
         i += 1;
         (*db).ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
-        (*db).ReparseTargetMaximumLength = (i * 2) as WORD;
-        (*db).ReparseTargetLength = ((i - 1) * 2) as WORD;
-        (*db).ReparseDataLength = (*db).ReparseTargetLength as DWORD + 12;
+        (*db).ReparseTargetMaximumLength = (i * 2) as u16;
+        (*db).ReparseTargetLength = ((i - 1) * 2) as u16;
+        (*db).ReparseDataLength = (*db).ReparseTargetLength as u32 + 12;
 
         let mut ret = 0;
         let res = DeviceIoControl(
-            h.cast(),
+            h,
             FSCTL_SET_REPARSE_POINT,
             data.as_mut_ptr().cast(),
             (*db).ReparseDataLength + 8,

@@ -181,7 +181,7 @@ impl DownloadTracker {
                         let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
                         let remaining = content_len - self.total_downloaded;
                         let eta_h = Duration::from_secs(if speed == 0 {
-                            std::u64::MAX
+                            u64::MAX
                         } else {
                             (remaining / speed) as u64
                         });

@@ -304,10 +304,10 @@ impl TargetTriple {
             /// it is only available on Windows 10 1511+, so we use `GetProcAddress`
             /// to maintain backward compatibility with older Windows versions.
             fn arch_primary() -> Option<&'static str> {
-                use winapi::shared::minwindef::BOOL;
-                use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress};
-                use winapi::um::processthreadsapi::GetCurrentProcess;
-                use winapi::um::winnt::HANDLE;
+                use windows_sys::core::s;
+                use windows_sys::Win32::Foundation::{BOOL, HANDLE};
+                use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
+                use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
                 const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
                 const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
@@ -320,16 +320,11 @@ impl TargetTriple {
                     *mut u16,
                 )
                     -> BOOL = unsafe {
-                    let module = GetModuleHandleA(b"kernel32.dll\0" as *const u8 as *const i8);
-                    if module.is_null() {
+                    let module = GetModuleHandleA(s!("kernel32.dll"));
+                    if module == 0 {
                         return None;
                     }
-                    let process =
-                        GetProcAddress(module, b"IsWow64Process2\0" as *const u8 as *const i8);
-                    if process.is_null() {
-                        return None;
-                    }
-                    mem::transmute(process)
+                    mem::transmute(GetProcAddress(module, s!("IsWow64Process2"))?)
                 };
 
                 let mut _machine = 0;
@@ -352,7 +347,7 @@ impl TargetTriple {
             /// Get the host architecture using `GetNativeSystemInfo`.
             /// Does not support detecting aarch64.
             fn arch_fallback() -> Option<&'static str> {
-                use winapi::um::sysinfoapi::GetNativeSystemInfo;
+                use windows_sys::Win32::System::SystemInformation::GetNativeSystemInfo;
 
                 const PROCESSOR_ARCHITECTURE_AMD64: u16 = 9;
                 const PROCESSOR_ARCHITECTURE_INTEL: u16 = 0;
@@ -363,7 +358,7 @@ impl TargetTriple {
                     GetNativeSystemInfo(&mut sys_info);
                 }
 
-                match unsafe { sys_info.u.s() }.wProcessorArchitecture {
+                match unsafe { sys_info.Anonymous.Anonymous }.wProcessorArchitecture {
                     PROCESSOR_ARCHITECTURE_AMD64 => Some("x86_64"),
                     PROCESSOR_ARCHITECTURE_INTEL => Some("i686"),
                     _ => None,
