@@ -32,7 +32,6 @@ no-self-update = []
 otel = [
     "dep:opentelemetry-otlp",
     "dep:tracing-opentelemetry",
-    "dep:tracing-subscriber",
     "dep:opentelemetry",
     "dep:opentelemetry_sdk",
 ]
@@ -87,7 +86,7 @@ tokio.workspace = true
 tokio-stream.workspace = true
 toml = "0.8"
 tracing-opentelemetry = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing.workspace = true
 url.workspace = true
 wait-timeout = "0.2"
