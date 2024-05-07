@@ -1,11 +1,14 @@
-use std::io::{self, BufRead, Cursor, Read, Result, Write};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::io::{self, BufRead, Read, Result, Write};
+#[cfg(feature = "test")]
+use std::{
+    io::Cursor,
+    sync::{Arc, Mutex, MutexGuard},
+};
 
 use enum_dispatch::enum_dispatch;
 
-use crate::currentprocess::process;
-
 use super::terminalsource::{ColorableTerminal, StreamSelector};
+use crate::currentprocess::process;
 
 /// Stand-in for std::io::Stdin
 pub trait Stdin {
@@ -44,18 +47,22 @@ impl StdinSource for super::OSProcess {
 
 // ----------------------- test support for stdin ------------------
 
+#[cfg(feature = "test")]
 struct TestStdinLock<'a> {
     inner: MutexGuard<'a, Cursor<String>>,
 }
 
+#[cfg(feature = "test")]
 impl StdinLock for TestStdinLock<'_> {}
 
+#[cfg(feature = "test")]
 impl Read for TestStdinLock<'_> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.inner.read(buf)
     }
 }
 
+#[cfg(feature = "test")]
 impl BufRead for TestStdinLock<'_> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         self.inner.fill_buf()
@@ -65,10 +72,13 @@ impl BufRead for TestStdinLock<'_> {
     }
 }
 
+#[cfg(feature = "test")]
 pub(crate) type TestStdinInner = Arc<Mutex<Cursor<String>>>;
 
+#[cfg(feature = "test")]
 struct TestStdin(TestStdinInner);
 
+#[cfg(feature = "test")]
 impl Stdin for TestStdin {
     fn lock(&self) -> Box<dyn StdinLock + '_> {
         Box::new(TestStdinLock {
@@ -179,12 +189,15 @@ impl StderrSource for super::OSProcess {
 
 // ----------------------- test support for writers ------------------
 
+#[cfg(feature = "test")]
 pub(super) struct TestWriterLock<'a> {
     inner: MutexGuard<'a, Vec<u8>>,
 }
 
+#[cfg(feature = "test")]
 impl WriterLock for TestWriterLock<'_> {}
 
+#[cfg(feature = "test")]
 impl Write for TestWriterLock<'_> {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         self.inner.write(buf)
