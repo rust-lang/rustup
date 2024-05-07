@@ -1364,12 +1364,7 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
-
-    if m.get_flag("installed") {
-        common::list_installed_components(distributable)?;
-    } else {
-        common::list_components(distributable)?;
-    }
+    common::list_components(distributable, m.get_flag("installed"))?;
     Ok(utils::ExitCode(0))
 }
 
