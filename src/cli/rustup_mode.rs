@@ -1266,12 +1266,7 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
-
-    if m.get_flag("installed") {
-        common::list_installed_targets(distributable)
-    } else {
-        common::list_targets(distributable)
-    }
+    common::list_targets(distributable, m.get_flag("installed"))
 }
 
 fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
