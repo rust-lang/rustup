@@ -22,7 +22,7 @@ jobs: # skip-master skip-stable
         usesh: true
         copyback: false
         prepare: |
-          pkg install -y git gmake bash sudo
+          pkg install -y git gmake bash sudo ca_root_nss
         run: |
           echo "========="
           echo "create non-root user and log into it"
