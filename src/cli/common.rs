@@ -375,7 +375,10 @@ where
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_targets(
+    distributable: DistributableToolchain<'_>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
     let manifestation = distributable.get_manifestation()?;
     let config = manifestation.read_config()?.unwrap_or_default();
@@ -388,39 +391,20 @@ pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<
                 .target
                 .as_ref()
                 .expect("rust-std should have a target");
-            if component.installed {
-                let _ = t.attr(terminalsource::Attr::Bold);
-                let _ = writeln!(t.lock(), "{target} (installed)");
-                let _ = t.reset();
-            } else if component.available {
-                let _ = writeln!(t.lock(), "{target}");
+            match (component.available, component.installed, installed_only) {
+                (false, _, _) | (_, false, true) => continue,
+                (true, true, false) => {
+                    t.attr(terminalsource::Attr::Bold)?;
+                    writeln!(t.lock(), "{target} (installed)")?;
+                    t.reset()?;
+                }
+                (true, _, false) | (_, true, true) => {
+                    writeln!(t.lock(), "{target}")?;
+                }
             }
         }
     }
 
-    Ok(utils::ExitCode(0))
-}
-
-pub(crate) fn list_installed_targets(
-    distributable: DistributableToolchain<'_>,
-) -> Result<utils::ExitCode> {
-    let t = process().stdout();
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-    for component in components {
-        if component.component.short_name_in_manifest() == "rust-std" {
-            let target = component
-                .component
-                .target
-                .as_ref()
-                .expect("rust-std should have a target");
-            if component.installed {
-                writeln!(t.lock(), "{target}")?;
-            }
-        }
-    }
     Ok(utils::ExitCode(0))
 }
 
