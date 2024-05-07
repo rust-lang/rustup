@@ -380,11 +380,7 @@ pub(crate) fn list_targets(
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-    for component in components {
+    for component in distributable.components()? {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
                 .component
@@ -413,12 +409,7 @@ pub(crate) fn list_components(
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
-
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-    for component in components {
+    for component in distributable.components()? {
         let name = component.name;
         match (component.available, component.installed, installed_only) {
             (false, _, _) | (_, false, true) => continue,

@@ -594,12 +594,7 @@ impl Component {
         distributable: &DistributableToolchain<'_>,
         fallback_target: Option<&TargetTriple>,
     ) -> Result<Self> {
-        let manifestation = distributable.get_manifestation()?;
-        let config = manifestation.read_config()?.unwrap_or_default();
-        let manifest = distributable.get_manifest()?;
-        let manifest_components = manifest.query_components(distributable.desc(), &config)?;
-
-        for component_status in manifest_components {
+        for component_status in distributable.components()? {
             let short_name = component_status.component.short_name_in_manifest();
             let target = component_status.component.target.as_ref();
 

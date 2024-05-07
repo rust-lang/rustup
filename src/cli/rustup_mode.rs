@@ -1084,14 +1084,7 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
         if let Ok(distributable) = DistributableToolchain::try_from(&at.0) {
-            let components = (|| {
-                let manifestation = distributable.get_manifestation()?;
-                let config = manifestation.read_config()?.unwrap_or_default();
-                let manifest = distributable.get_manifest()?;
-                manifest.query_components(distributable.desc(), &config)
-            })();
-
-            match components {
+            match distributable.components() {
                 Ok(cs_vec) => cs_vec
                     .into_iter()
                     .filter(|c| c.component.short_name_in_manifest() == "rust-std")
@@ -1277,11 +1270,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
     let distributable = DistributableToolchain::try_from(&toolchain)?;
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-
+    let components = distributable.components()?;
     let mut targets: Vec<_> = m
         .get_many::<String>("target")
         .unwrap()
@@ -1554,11 +1543,8 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_desc_or_dir_toolchain(cfg, m)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
-        let manifestation = distributable.get_manifestation()?;
-        let config = manifestation.read_config()?.unwrap_or_default();
-        let manifest = distributable.get_manifest()?;
-        let components = manifest.query_components(distributable.desc(), &config)?;
-        if let [_] = components
+        if let [_] = distributable
+            .components()?
             .into_iter()
             .filter(|cstatus| {
                 cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
