@@ -426,6 +426,7 @@ pub(crate) fn list_installed_targets(
 
 pub(crate) fn list_components(
     distributable: DistributableToolchain<'_>,
+    installed_only: bool,
 ) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
 
@@ -435,26 +436,20 @@ pub(crate) fn list_components(
     let components = manifest.query_components(distributable.desc(), &config)?;
     for component in components {
         let name = component.name;
-        if component.installed {
-            t.attr(terminalsource::Attr::Bold)?;
-            writeln!(t.lock(), "{name} (installed)")?;
-            t.reset()?;
-        } else if component.available {
-            writeln!(t.lock(), "{name}")?;
+        match (component.available, component.installed, installed_only) {
+            (false, _, _) | (_, false, true) => continue,
+            (true, true, false) => {
+                t.attr(terminalsource::Attr::Bold)?;
+                writeln!(t.lock(), "{name} (installed)")?;
+                t.reset()?;
+            }
+            (true, _, false) | (_, true, true) => {
+                writeln!(t.lock(), "{name}")?;
+            }
         }
     }
 
     Ok(utils::ExitCode(0))
-}
-
-pub(crate) fn list_installed_components(distributable: DistributableToolchain<'_>) -> Result<()> {
-    let t = process().stdout();
-    for component in distributable.components()? {
-        if component.installed {
-            writeln!(t.lock(), "{}", component.name)?;
-        }
-    }
-    Ok(())
 }
 
 fn print_toolchain_path(
