@@ -21,6 +21,7 @@ use crate::currentprocess::{
     varsource::VarSource,
 };
 use crate::dist::dist::{TargetTriple, ToolchainDesc};
+use crate::dist::manifest::ComponentStatus;
 use crate::install::UpdateStatus;
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
@@ -379,38 +380,35 @@ pub(crate) fn list_targets(
     distributable: DistributableToolchain<'_>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
-    let mut t = process().stdout().terminal();
-    for component in distributable.components()? {
-        if component.component.short_name_in_manifest() == "rust-std" {
-            let target = component
-                .component
-                .target
-                .as_ref()
-                .expect("rust-std should have a target");
-            match (component.available, component.installed, installed_only) {
-                (false, _, _) | (_, false, true) => continue,
-                (true, true, false) => {
-                    t.attr(terminalsource::Attr::Bold)?;
-                    writeln!(t.lock(), "{target} (installed)")?;
-                    t.reset()?;
-                }
-                (true, _, false) | (_, true, true) => {
-                    writeln!(t.lock(), "{target}")?;
-                }
-            }
-        }
-    }
-
-    Ok(utils::ExitCode(0))
+    list_items(
+        distributable,
+        |c| {
+            (c.component.short_name_in_manifest() == "rust-std").then(|| {
+                c.component
+                    .target
+                    .as_deref()
+                    .expect("rust-std should have a target")
+            })
+        },
+        installed_only,
+    )
 }
 
 pub(crate) fn list_components(
     distributable: DistributableToolchain<'_>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
+    list_items(distributable, |c| Some(&c.name), installed_only)
+}
+
+fn list_items(
+    distributable: DistributableToolchain<'_>,
+    f: impl Fn(&ComponentStatus) -> Option<&str>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
     for component in distributable.components()? {
-        let name = component.name;
+        let Some(name) = f(&component) else { continue };
         match (component.available, component.installed, installed_only) {
             (false, _, _) | (_, false, true) => continue,
             (true, true, false) => {
