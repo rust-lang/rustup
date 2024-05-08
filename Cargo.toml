@@ -12,13 +12,13 @@ build = "build.rs"
 
 [features]
 curl-backend = ["download/curl-backend"]
+
 default = [
     "curl-backend",
     "reqwest-backend",
     "reqwest-default-tls",
     "reqwest-rustls-tls",
 ]
-
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
 
@@ -86,6 +86,7 @@ termcolor.workspace = true
 thiserror.workspace = true
 threadpool = "1"
 tokio = { workspace = true, optional = true }
+tiny_http = "0.11"
 toml = "0.8"
 tracing-opentelemetry = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }

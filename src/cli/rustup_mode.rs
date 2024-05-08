@@ -10,6 +10,7 @@ use clap::{
 };
 use clap_complete::Shell;
 use itertools::Itertools;
+use tiny_http::{Response, Server};
 
 use crate::{
     cli::{
@@ -727,6 +728,9 @@ pub(crate) fn cli() -> Command {
                         .value_parser(partial_toolchain_desc_parser),
                 )
                 .arg(Arg::new("topic").help(TOPIC_ARG_HELP))
+                .subcommand(
+                    Command::new("servedoc")
+                    )
                 .group(
                     ArgGroup::new("page").args(
                         DOCS_DATA
@@ -740,7 +744,7 @@ pub(crate) fn cli() -> Command {
                         .iter()
                         .map(|&(name, help_msg, _)| Arg::new(name).long(name).help(help_msg).action(ArgAction::SetTrue))
                         .collect::<Vec<_>>(),
-                ),
+                )
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -1561,6 +1565,44 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
+    } else if m.subcommand_matches("servedoc").is_some() {
+        let doc_path_index = toolchain.doc_path(doc_url)?;
+        let doc_path_base = toolchain.doc_path("")?;
+        let doc_path_str = doc_path_base.to_string_lossy().into_owned();
+        loop {
+            let server = Server::http("127.0.0.1:0").unwrap();
+            println!("Serving documentation at {}", server.server_addr());
+            for request in server.incoming_requests() {
+                //TODO get request path and serve filebased on that
+                let request_path = request.url().strip_prefix('/');
+                match request_path {
+                    Some(mut request_path) => {
+                        println!("doc url: {:?}", &doc_url);
+                        println!("Req file: {:?}", &request_path);
+                        let base_string = doc_path_str.clone();
+                        if request_path == "" {
+                            request_path = doc_url;
+                        }
+                        //strip search params
+                        if let Some(index) = request_path.find('?') {
+                            request_path = &request_path[..index];
+                        }
+                        //ignore favicon requests
+                        if request_path == "favicon.ico" {
+                            continue;
+                        }
+                        let path = String::from(base_string + &request_path);
+                        println!("Serving file: {:?}", &path);
+                        let file = std::fs::File::open(path).unwrap();
+                        request.respond(Response::from_file(file)).unwrap();
+                    }
+                    None => {
+                        let file = std::fs::File::open(&doc_path_index).unwrap();
+                        request.respond(Response::from_file(file)).unwrap();
+                    }
+                }
+            }
+        }
     } else {
         if let Some(name) = doc_name {
             writeln!(
