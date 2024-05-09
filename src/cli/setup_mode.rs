@@ -1,3 +1,5 @@
+use std::{collections::HashMap, ffi::OsString, str::FromStr};
+
 use anyhow::Result;
 use clap::{builder::PossibleValuesParser, value_parser, Arg, ArgAction, Command};
 
@@ -8,6 +10,7 @@ use crate::{
     },
     currentprocess::{argsource::ArgSource, filesource::StdoutSource},
     dist::dist::Profile,
+    filesource::StderrSource,
     process,
     toolchain::names::MaybeOfficialToolchainName,
     utils::utils,
@@ -30,7 +33,6 @@ pub fn main() -> Result<utils::ExitCode> {
         common::dump_testament()?;
         return Ok(utils::ExitCode(0));
     }
-
     // NOTICE: If you change anything here, please make the same changes in rustup-init.sh
     let cli = Command::new("rustup-init")
         .version(common::version())
@@ -113,7 +115,11 @@ pub fn main() -> Result<utils::ExitCode> {
             write!(process().stdout().lock(), "{e}")?;
             return Ok(utils::ExitCode(0));
         }
-        Err(e) => return Err(e.into()),
+        Err(e) => {
+            write!(process().stderr().lock(), "{e}")?;
+            handle_suggestion()?;
+            return Ok(utils::ExitCode(1));
+        }
     };
     let no_prompt = matches.get_flag("no-prompt");
     let verbose = matches.get_flag("verbose");
@@ -153,6 +159,28 @@ pub fn main() -> Result<utils::ExitCode> {
     if profile == "complete" {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
-
     self_update::install(no_prompt, verbose, quiet, opts)
+}
+
+fn handle_suggestion() -> Result<()> {
+    let mut suggestions = HashMap::new();
+
+    suggestions.insert(
+        vec![OsString::from_str("update")?, OsString::from_str("self")?],
+        "note: use `rustup self update` to update rustup itself",
+    );
+
+    let args: Vec<OsString> = process().args_os().skip(1).collect();
+    for i in 0..args.len() {
+        for j in i + 1..=args.len() {
+            let slice = &args[i..j];
+            let slice = slice.iter().cloned().collect::<Vec<OsString>>();
+            if let Some(&message) = suggestions.get(&slice) {
+                writeln!(process().stdout().lock(), "\n{}", message)?;
+                break;
+            }
+        }
+    }
+
+    Ok(())
 }
