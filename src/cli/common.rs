@@ -21,7 +21,9 @@ use crate::currentprocess::{
     varsource::VarSource,
 };
 use crate::dist::dist::{TargetTriple, ToolchainDesc};
+use crate::dist::manifest::ComponentStatus;
 use crate::install::UpdateStatus;
+use crate::toolchain::names::{LocalToolchainName, ToolchainName};
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;
@@ -375,156 +377,121 @@ where
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<utils::ExitCode> {
-    let mut t = process().stdout().terminal();
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-    for component in components {
-        if component.component.short_name_in_manifest() == "rust-std" {
-            let target = component
-                .component
-                .target
-                .as_ref()
-                .expect("rust-std should have a target");
-            if component.installed {
-                let _ = t.attr(terminalsource::Attr::Bold);
-                let _ = writeln!(t.lock(), "{target} (installed)");
-                let _ = t.reset();
-            } else if component.available {
-                let _ = writeln!(t.lock(), "{target}");
-            }
-        }
-    }
-
-    Ok(utils::ExitCode(0))
-}
-
-pub(crate) fn list_installed_targets(
+pub(crate) fn list_targets(
     distributable: DistributableToolchain<'_>,
+    installed_only: bool,
 ) -> Result<utils::ExitCode> {
-    let t = process().stdout();
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-    for component in components {
-        if component.component.short_name_in_manifest() == "rust-std" {
-            let target = component
-                .component
-                .target
-                .as_ref()
-                .expect("rust-std should have a target");
-            if component.installed {
-                writeln!(t.lock(), "{target}")?;
-            }
-        }
-    }
-    Ok(utils::ExitCode(0))
+    list_items(
+        distributable,
+        |c| {
+            (c.component.short_name_in_manifest() == "rust-std").then(|| {
+                c.component
+                    .target
+                    .as_deref()
+                    .expect("rust-std should have a target")
+            })
+        },
+        installed_only,
+    )
 }
 
 pub(crate) fn list_components(
     distributable: DistributableToolchain<'_>,
+    installed_only: bool,
+) -> Result<utils::ExitCode> {
+    list_items(distributable, |c| Some(&c.name), installed_only)
+}
+
+fn list_items(
+    distributable: DistributableToolchain<'_>,
+    f: impl Fn(&ComponentStatus) -> Option<&str>,
+    installed_only: bool,
 ) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
-
-    let manifestation = distributable.get_manifestation()?;
-    let config = manifestation.read_config()?.unwrap_or_default();
-    let manifest = distributable.get_manifest()?;
-    let components = manifest.query_components(distributable.desc(), &config)?;
-    for component in components {
-        let name = component.name;
-        if component.installed {
-            t.attr(terminalsource::Attr::Bold)?;
-            writeln!(t.lock(), "{name} (installed)")?;
-            t.reset()?;
-        } else if component.available {
-            writeln!(t.lock(), "{name}")?;
+    for component in distributable.components()? {
+        let Some(name) = f(&component) else { continue };
+        match (component.available, component.installed, installed_only) {
+            (false, _, _) | (_, false, true) => continue,
+            (true, true, false) => {
+                t.attr(terminalsource::Attr::Bold)?;
+                writeln!(t.lock(), "{name} (installed)")?;
+                t.reset()?;
+            }
+            (true, _, false) | (_, true, true) => {
+                writeln!(t.lock(), "{name}")?;
+            }
         }
     }
 
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_installed_components(distributable: DistributableToolchain<'_>) -> Result<()> {
-    let t = process().stdout();
-    for component in distributable.components()? {
-        if component.installed {
-            writeln!(t.lock(), "{}", component.name)?;
-        }
-    }
-    Ok(())
-}
-
-fn print_toolchain_path(
-    cfg: &Cfg,
-    toolchain: &str,
-    if_default: &str,
-    if_override: &str,
-    verbose: bool,
-) -> Result<()> {
-    let toolchain_path = cfg.toolchains_dir.join(toolchain);
-    let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
-    let toolchain_path = if verbose {
-        if toolchain_meta.is_dir() {
-            format!("\t{}", toolchain_path.display())
-        } else {
-            format!("\t{}", fs::read_link(toolchain_path)?.display())
-        }
-    } else {
-        String::new()
-    };
-    writeln!(
-        process().stdout().lock(),
-        "{}{}{}{}",
-        &toolchain,
-        if_default,
-        if_override,
-        toolchain_path
-    )?;
-    Ok(())
-}
-
 pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    // Work with LocalToolchainName to accommodate path based overrides
-    let toolchains = cfg
-        .list_toolchains()?
-        .iter()
-        .map(Into::into)
-        .collect::<Vec<_>>();
+    let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         writeln!(process().stdout().lock(), "no installed toolchains")?;
     } else {
-        let def_toolchain_name = cfg.get_default()?.map(|t| (&t).into());
+        let default_toolchain_name = cfg.get_default()?;
         let cwd = utils::current_dir()?;
-        let ovr_toolchain_name = if let Ok(Some((toolchain, _reason))) = cfg.find_override(&cwd) {
-            Some(toolchain)
-        } else {
-            None
-        };
-        for toolchain in toolchains {
-            let if_default = if def_toolchain_name.as_ref() == Some(&toolchain) {
-                " (default)"
+        let active_toolchain_name: Option<ToolchainName> =
+            if let Ok(Some((LocalToolchainName::Named(toolchain), _reason))) =
+                cfg.find_active_toolchain(&cwd)
+            {
+                Some(toolchain)
             } else {
-                ""
-            };
-            let if_override = if ovr_toolchain_name.as_ref() == Some(&toolchain) {
-                " (override)"
-            } else {
-                ""
+                None
             };
 
-            print_toolchain_path(
+        for toolchain in toolchains {
+            let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain);
+            let is_active_toolchain = active_toolchain_name.as_ref() == Some(&toolchain);
+
+            print_toolchain(
                 cfg,
                 &toolchain.to_string(),
-                if_default,
-                if_override,
+                is_default_toolchain,
+                is_active_toolchain,
                 verbose,
             )
             .context("Failed to list toolchains' directories")?;
         }
     }
+
+    fn print_toolchain(
+        cfg: &Cfg,
+        toolchain: &str,
+        is_default: bool,
+        is_active: bool,
+        verbose: bool,
+    ) -> Result<()> {
+        let toolchain_path = cfg.toolchains_dir.join(toolchain);
+        let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
+        let toolchain_path = if verbose {
+            if toolchain_meta.is_dir() {
+                format!(" {}", toolchain_path.display())
+            } else {
+                format!(" {}", fs::read_link(toolchain_path)?.display())
+            }
+        } else {
+            String::new()
+        };
+        let status_str = match (is_default, is_active) {
+            (true, true) => " (active, default)",
+            (true, false) => " (default)",
+            (false, true) => " (active)",
+            (false, false) => "",
+        };
+
+        writeln!(
+            process().stdout().lock(),
+            "{}{}{}",
+            &toolchain,
+            status_str,
+            toolchain_path
+        )?;
+        Ok(())
+    }
+
     Ok(utils::ExitCode(0))
 }
 

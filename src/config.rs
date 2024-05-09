@@ -27,8 +27,8 @@ use crate::{
     toolchain::{
         distributable::DistributableToolchain,
         names::{
-            LocalToolchainName, PathBasedToolchainName, ResolvableLocalToolchainName,
-            ResolvableToolchainName, ToolchainName,
+            CustomToolchainName, LocalToolchainName, PathBasedToolchainName,
+            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
         },
         toolchain::Toolchain,
     },
@@ -95,18 +95,21 @@ impl<T: Into<String>> From<T> for OverrideFile {
     }
 }
 
+// Represents the reason why the active toolchain is active.
 #[derive(Debug)]
-pub(crate) enum OverrideReason {
+pub(crate) enum ActiveReason {
+    Default,
     Environment,
     CommandLine,
     OverrideDB(PathBuf),
     ToolchainFile(PathBuf),
 }
 
-impl Display for OverrideReason {
+impl Display for ActiveReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
-            Self::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
+            Self::Default => write!(f, "it's the default toolchain"),
+            Self::Environment => write!(f, "overriden by environment variable RUSTUP_TOOLCHAIN"),
             Self::CommandLine => write!(f, "overridden by +toolchain on the command line"),
             Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
@@ -114,58 +117,156 @@ impl Display for OverrideReason {
     }
 }
 
-#[derive(Default, Debug)]
-struct OverrideCfg {
-    toolchain: Option<LocalToolchainName>,
-    components: Vec<String>,
-    targets: Vec<String>,
-    profile: Option<dist::Profile>,
+/// Calls Toolchain::new(), but augments the error message with more context
+/// from the ActiveReason if the toolchain isn't installed.
+pub(crate) fn new_toolchain_with_reason<'a>(
+    cfg: &'a Cfg,
+    name: LocalToolchainName,
+    reason: &ActiveReason,
+) -> Result<Toolchain<'a>> {
+    match Toolchain::new(cfg, name.clone()) {
+        Err(RustupError::ToolchainNotInstalled(_)) => (),
+        result => {
+            return Ok(result?);
+        }
+    }
+
+    let reason_err = match reason {
+        ActiveReason::Environment => {
+            "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
+                .to_string()
+        }
+        ActiveReason::CommandLine => {
+            "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
+        }
+        ActiveReason::OverrideDB(ref path) => format!(
+            "the directory override for '{}' specifies an uninstalled toolchain",
+            utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
+        ),
+        ActiveReason::ToolchainFile(ref path) => format!(
+            "the toolchain file at '{}' specifies an uninstalled toolchain",
+            utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
+        ),
+        ActiveReason::Default => {
+            "the default toolchain does not describe an installed toolchain".to_string()
+        }
+    };
+
+    Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
+}
+
+// Represents a toolchain override from a +toolchain command line option,
+// RUSTUP_TOOLCHAIN environment variable, or rust-toolchain.toml file etc. Can
+// include components and targets from a rust-toolchain.toml that should be
+// downloaded and installed.
+#[derive(Debug)]
+enum OverrideCfg {
+    PathBased(PathBasedToolchainName),
+    Custom(CustomToolchainName),
+    Official {
+        toolchain: ToolchainDesc,
+        components: Vec<String>,
+        targets: Vec<String>,
+        profile: Option<dist::Profile>,
+    },
 }
 
 impl OverrideCfg {
     fn from_file(cfg: &Cfg, file: OverrideFile) -> Result<Self> {
-        Ok(Self {
-            toolchain: match (file.toolchain.channel, file.toolchain.path) {
-                (Some(name), None) => Some(
-                    (&ResolvableToolchainName::try_from(name)?
-                        .resolve(&cfg.get_default_host_triple()?)?)
-                        .into(),
-                ),
-                (None, Some(path)) => {
-                    if file.toolchain.targets.is_some()
-                        || file.toolchain.components.is_some()
-                        || file.toolchain.profile.is_some()
-                    {
-                        bail!(
-                            "toolchain options are ignored for path toolchain ({})",
-                            path.display()
-                        )
-                    }
-                    // We -do not- support relative paths, they permit trivial
-                    // completely arbitrary code execution in a directory.
-                    // Longer term we'll not support path based toolchains at
-                    // all, because they also permit arbitrary code execution,
-                    // though with more challenges to exploit.
-                    Some((&PathBasedToolchainName::try_from(&path as &Path)?).into())
-                }
-                (Some(channel), Some(path)) => {
+        let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
+            (Some(name), None) => {
+                ResolvableToolchainName::try_from(name)?.resolve(&cfg.get_default_host_triple()?)?
+            }
+            (None, Some(path)) => {
+                if file.toolchain.targets.is_some()
+                    || file.toolchain.components.is_some()
+                    || file.toolchain.profile.is_some()
+                {
                     bail!(
-                        "cannot specify both channel ({}) and path ({}) simultaneously",
-                        channel,
+                        "toolchain options are ignored for path toolchain ({})",
                         path.display()
                     )
                 }
-                (None, None) => None,
-            },
-            components: file.toolchain.components.unwrap_or_default(),
-            targets: file.toolchain.targets.unwrap_or_default(),
-            profile: file
-                .toolchain
-                .profile
-                .as_deref()
-                .map(dist::Profile::from_str)
-                .transpose()?,
+                // We -do not- support relative paths, they permit trivial
+                // completely arbitrary code execution in a directory.
+                // Longer term we'll not support path based toolchains at
+                // all, because they also permit arbitrary code execution,
+                // though with more challenges to exploit.
+                return Ok(Self::PathBased(PathBasedToolchainName::try_from(
+                    &path as &Path,
+                )?));
+            }
+            (Some(channel), Some(path)) => {
+                bail!(
+                    "cannot specify both channel ({}) and path ({}) simultaneously",
+                    channel,
+                    path.display()
+                )
+            }
+            (None, None) => cfg
+                .get_default()?
+                .ok_or(RustupError::ToolchainNotSelected)?,
+        };
+        Ok(match toolchain_name {
+            ToolchainName::Official(desc) => {
+                let components = file.toolchain.components.unwrap_or_default();
+                let targets = file.toolchain.targets.unwrap_or_default();
+                Self::Official {
+                    toolchain: desc,
+                    components,
+                    targets,
+                    profile: file
+                        .toolchain
+                        .profile
+                        .as_deref()
+                        .map(dist::Profile::from_str)
+                        .transpose()?,
+                }
+            }
+            ToolchainName::Custom(name) => {
+                if file.toolchain.targets.is_some()
+                    || file.toolchain.components.is_some()
+                    || file.toolchain.profile.is_some()
+                {
+                    bail!(
+                        "toolchain options are ignored for a custom toolchain ({})",
+                        name
+                    )
+                }
+                Self::Custom(name)
+            }
         })
+    }
+
+    fn into_local_toolchain_name(self) -> LocalToolchainName {
+        match self {
+            Self::PathBased(path_based_name) => path_based_name.into(),
+            Self::Custom(custom_name) => custom_name.into(),
+            Self::Official { ref toolchain, .. } => toolchain.into(),
+        }
+    }
+}
+
+impl From<ToolchainName> for OverrideCfg {
+    fn from(value: ToolchainName) -> Self {
+        match value {
+            ToolchainName::Official(desc) => Self::Official {
+                toolchain: desc,
+                components: vec![],
+                targets: vec![],
+                profile: None,
+            },
+            ToolchainName::Custom(name) => Self::Custom(name),
+        }
+    }
+}
+
+impl From<LocalToolchainName> for OverrideCfg {
+    fn from(value: LocalToolchainName) -> Self {
+        match value {
+            LocalToolchainName::Named(name) => Self::from(name),
+            LocalToolchainName::Path(path_name) => Self::PathBased(path_name),
+        }
     }
 }
 
@@ -391,7 +492,7 @@ impl Cfg {
     }
 
     pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        let (toolchain, _) = self.find_or_install_active_toolchain(path)?;
         Ok(toolchain.binary_file(binary))
     }
 
@@ -443,106 +544,73 @@ impl Cfg {
             .transpose()?)
     }
 
-    pub(crate) fn find_override(
+    pub(crate) fn find_active_toolchain(
         &self,
         path: &Path,
-    ) -> Result<Option<(LocalToolchainName, OverrideReason)>> {
-        Ok(self
-            .find_override_config(path)?
-            .and_then(|(override_cfg, reason)| override_cfg.toolchain.map(|t| (t, reason))))
+    ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
+        Ok(
+            if let Some((override_config, reason)) = self.find_override_config(path)? {
+                Some((override_config.into_local_toolchain_name(), reason))
+            } else {
+                self.get_default()?
+                    .map(|x| (x.into(), ActiveReason::Default))
+            },
+        )
     }
 
-    fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, OverrideReason)>> {
-        let mut override_ = None;
-
-        // First check toolchain override from command
-        if let Some(ref name) = self.toolchain_override {
-            override_ = Some((name.to_string().into(), OverrideReason::CommandLine));
-        }
-
-        // Check RUSTUP_TOOLCHAIN
-        if let Some(ref name) = self.env_override {
-            // Because path based toolchain files exist, this has to support
-            // custom, distributable, and absolute path toolchains otherwise
-            // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
-            // error when a nested rustup invocation occurs
-            override_ = Some((name.to_string().into(), OverrideReason::Environment));
-        }
-
-        // Then walk up the directory tree from 'path' looking for either the
-        // directory in override database, or a `rust-toolchain` file.
-        if override_.is_none() {
-            self.settings_file.with(|s| {
-                override_ = self.find_override_from_dir_walk(path, s)?;
-
-                Ok(())
-            })?;
-        }
-
-        if let Some((file, reason)) = override_ {
-            // This is hackishly using the error chain to provide a bit of
-            // extra context about what went wrong. The CLI will display it
-            // on a line after the proximate error.
-
-            let reason_err = match reason {
-                OverrideReason::Environment => {
-                    "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
-                        .to_string()
-                }
-                OverrideReason::CommandLine => {
-                    "the +toolchain on the command line specifies an uninstalled toolchain"
-                        .to_string()
-                }
-                OverrideReason::OverrideDB(ref path) => format!(
-                    "the directory override for '{}' specifies an uninstalled toolchain",
-                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
-                ),
-                OverrideReason::ToolchainFile(ref path) => format!(
-                    "the toolchain file at '{}' specifies an uninstalled toolchain",
-                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
-                ),
+    fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, ActiveReason)>> {
+        let override_config: Option<(OverrideCfg, ActiveReason)> =
+            // First check +toolchain override from the command line
+            if let Some(ref name) = self.toolchain_override {
+                let override_config = name.resolve(&self.get_default_host_triple()?)?.into();
+                Some((override_config, ActiveReason::CommandLine))
+            }
+            // Then check the RUSTUP_TOOLCHAIN environment variable
+            else if let Some(ref name) = self.env_override {
+                // Because path based toolchain files exist, this has to support
+                // custom, distributable, and absolute path toolchains otherwise
+                // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
+                // error when a nested rustup invocation occurs
+                Some((name.clone().into(), ActiveReason::Environment))
+            }
+            // Then walk up the directory tree from 'path' looking for either the
+            // directory in the override database, or a `rust-toolchain{.toml}` file,
+            // in that order.
+            else if let Some((override_cfg, active_reason)) = self.settings_file.with(|s| {
+                    self.find_override_from_dir_walk(path, s)
+                })? {
+                Some((override_cfg, active_reason))
+            }
+            // Otherwise, there is no override.
+            else {
+                None
             };
 
-            let override_cfg = OverrideCfg::from_file(self, file)?;
-            // Overridden toolchains can be literally any string, but only
-            // distributable toolchains will be auto-installed by the wrapping
-            // code; provide a nice error for this common case. (default could
-            // be set badly too, but that is much less common).
-            match &override_cfg.toolchain {
-                Some(t @ LocalToolchainName::Named(ToolchainName::Custom(_)))
-                | Some(t @ LocalToolchainName::Path(_)) => {
-                    if let Err(RustupError::ToolchainNotInstalled(_)) =
-                        Toolchain::new(self, t.to_owned())
-                    {
-                        // Strip the confusing NotADirectory error and only mention that the
-                        // override toolchain is not installed.
-                        return Err(anyhow!(reason_err))
-                            .with_context(|| format!("override toolchain '{t}' is not installed"));
-                    }
-                }
-                // Either official (can auto install) or no toolchain specified
-                _ => {}
-            }
-
-            Ok(Some((override_cfg, reason)))
-        } else {
-            Ok(None)
-        }
+        Ok(override_config)
     }
 
     fn find_override_from_dir_walk(
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(OverrideFile, OverrideReason)>> {
+    ) -> Result<Option<(OverrideCfg, ActiveReason)>> {
         let notify = self.notify_handler.as_ref();
         let mut dir = Some(dir);
 
         while let Some(d) = dir {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
-                let reason = OverrideReason::OverrideDB(d.to_owned());
-                return Ok(Some((name.into(), reason)));
+                let reason = ActiveReason::OverrideDB(d.to_owned());
+                // Note that `rustup override set` fully resolves it's input
+                // before writing to settings.toml, so resolving here may not
+                // be strictly necessary (could instead model as ToolchainName).
+                // However, settings.toml could conceivably be hand edited to
+                // have an unresolved name. I'm just preserving pre-existing
+                // behaviour by choosing ResolvableToolchainName here.
+                let toolchain_name = ResolvableToolchainName::try_from(name)?
+                    .resolve(&get_default_host_triple(settings))?;
+                let override_cfg = toolchain_name.into();
+                return Ok(Some((override_cfg, reason)));
             }
 
             // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
@@ -614,8 +682,9 @@ impl Cfg {
                     }
                 }
 
-                let reason = OverrideReason::ToolchainFile(toolchain_file);
-                return Ok(Some((override_file, reason)));
+                let reason = ActiveReason::ToolchainFile(toolchain_file);
+                let override_cfg = OverrideCfg::from_file(self, override_file)?;
+                return Ok(Some((override_cfg, reason)));
             }
 
             dir = d.parent();
@@ -654,66 +723,94 @@ impl Cfg {
         }
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn find_or_install_override_toolchain_or_default(
+    pub(crate) fn find_or_install_active_toolchain(
         &self,
         path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
-        let (toolchain, components, targets, reason, profile) =
-            match self.find_override_config(path)? {
-                Some((
-                    OverrideCfg {
-                        toolchain,
-                        components,
-                        targets,
-                        profile,
-                    },
-                    reason,
-                )) => (toolchain, components, targets, Some(reason), profile),
-                None => (None, vec![], vec![], None, None),
-            };
-        let toolchain = match toolchain {
-            t @ Some(_) => t,
-            None => self.get_default()?.map(Into::into),
-        };
-        match toolchain {
-            // No override and no default set
-            None => Err(RustupError::ToolchainNotSelected.into()),
-            Some(toolchain @ LocalToolchainName::Named(ToolchainName::Custom(_)))
-            | Some(toolchain @ LocalToolchainName::Path(_)) => {
-                Ok((Toolchain::new(self, toolchain)?, reason))
-            }
-            Some(LocalToolchainName::Named(ToolchainName::Official(desc))) => {
-                let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
-                let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
-                let toolchain = match DistributableToolchain::new(self, desc.clone()) {
-                    Err(RustupError::ToolchainNotInstalled(_)) => {
-                        DistributableToolchain::install(
-                            self,
-                            &desc,
-                            &components,
-                            &targets,
-                            profile.unwrap_or(Profile::Default),
-                            false,
-                        )?
-                        .1
-                    }
-                    Ok(mut distributable) => {
-                        if !distributable.components_exist(&components, &targets)? {
-                            distributable.update(
-                                &components,
-                                &targets,
-                                profile.unwrap_or(Profile::Default),
-                            )?;
-                        }
-                        distributable
-                    }
-                    Err(e) => return Err(e.into()),
+    ) -> Result<(Toolchain<'_>, ActiveReason)> {
+        self.maybe_find_or_install_active_toolchain(path)?
+            .ok_or(RustupError::ToolchainNotSelected.into())
+    }
+
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    pub(crate) fn maybe_find_or_install_active_toolchain(
+        &self,
+        path: &Path,
+    ) -> Result<Option<(Toolchain<'_>, ActiveReason)>> {
+        match self.find_override_config(path)? {
+            Some((override_config, reason)) => match override_config {
+                OverrideCfg::PathBased(path_based_name) => {
+                    let toolchain =
+                        new_toolchain_with_reason(self, path_based_name.into(), &reason)?;
+                    Ok(Some((toolchain, reason)))
                 }
-                .into();
-                Ok((toolchain, reason))
-            }
+                OverrideCfg::Custom(custom_name) => {
+                    let toolchain = new_toolchain_with_reason(self, custom_name.into(), &reason)?;
+                    Ok(Some((toolchain, reason)))
+                }
+                OverrideCfg::Official {
+                    toolchain,
+                    components,
+                    targets,
+                    profile,
+                } => {
+                    let toolchain =
+                        self.ensure_installed(toolchain, components, targets, profile)?;
+                    Ok(Some((toolchain, reason)))
+                }
+            },
+            None => match self.get_default()? {
+                None => Ok(None),
+                Some(ToolchainName::Custom(custom_name)) => {
+                    let reason = ActiveReason::Default;
+                    let toolchain = new_toolchain_with_reason(self, custom_name.into(), &reason)?;
+                    Ok(Some((toolchain, reason)))
+                }
+                Some(ToolchainName::Official(toolchain_desc)) => {
+                    let reason = ActiveReason::Default;
+                    let toolchain = self.ensure_installed(toolchain_desc, vec![], vec![], None)?;
+                    Ok(Some((toolchain, reason)))
+                }
+            },
         }
+    }
+
+    // Returns a Toolchain matching the given ToolchainDesc, installing it and
+    // the given components and targets if they aren't already installed.
+    fn ensure_installed(
+        &self,
+        toolchain: ToolchainDesc,
+        components: Vec<String>,
+        targets: Vec<String>,
+        profile: Option<Profile>,
+    ) -> Result<Toolchain<'_>> {
+        let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
+        let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
+        let toolchain = match DistributableToolchain::new(self, toolchain.clone()) {
+            Err(RustupError::ToolchainNotInstalled(_)) => {
+                DistributableToolchain::install(
+                    self,
+                    &toolchain,
+                    &components,
+                    &targets,
+                    profile.unwrap_or(Profile::Default),
+                    false,
+                )?
+                .1
+            }
+            Ok(mut distributable) => {
+                if !distributable.components_exist(&components, &targets)? {
+                    distributable.update(
+                        &components,
+                        &targets,
+                        profile.unwrap_or(Profile::Default),
+                    )?;
+                }
+                distributable
+            }
+            Err(e) => return Err(e.into()),
+        }
+        .into();
+        Ok(toolchain)
     }
 
     /// Get the configured default toolchain.
@@ -827,7 +924,7 @@ impl Cfg {
     }
 
     pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        let (toolchain, _) = self.find_or_install_active_toolchain(path)?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 

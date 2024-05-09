@@ -47,7 +47,7 @@ test = ["dep:walkdir"]
 anyhow.workspace = true
 cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
-clap = { version = "4", features = ["wrap_help"] }
+clap = { version = "4", features = ["derive", "wrap_help"] }
 clap_complete = "4"
 download = { path = "download", default-features = false }
 effective-limits = "0.5.5"

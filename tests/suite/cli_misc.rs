@@ -477,13 +477,6 @@ fn toolchains_are_resolved_early() {
     });
 }
 
-#[test]
-fn no_panic_on_default_toolchain_missing() {
-    setup(&|config| {
-        config.expect_err(&["rustup", "default"], "no default toolchain configured");
-    });
-}
-
 // #190
 #[test]
 fn proxies_pass_empty_args() {
@@ -1002,7 +995,7 @@ fn override_by_toolchain_on_the_command_line() {
         config.expect_stdout_ok(&["rustup", "+nightly", "which", "rustc"], "/bin/rustc");
         config.expect_stdout_ok(
             &["rustup", "+nightly", "show"],
-            "(overridden by +toolchain on the command line)",
+            "active because: overridden by +toolchain on the command line",
         );
         config.expect_err(
             &["rustup", "+foo", "which", "rustc"],
