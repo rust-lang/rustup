@@ -142,15 +142,9 @@ fn handle_suggestion() -> Result<()> {
     );
 
     let args: Vec<String> = std::env::args().skip(1).collect();
-    for i in 0..args.len() {
-        for j in i + 1..=args.len() {
-            let slice = &args[i..j];
-            let slice = slice.to_vec();
-            if let Some(&message) = suggestions.get(&slice) {
-                writeln!(process().stdout().lock(), "\n{}", message)?;
-                break;
-            }
-        }
+    if let Some(&message) = suggestions.get(&args) {
+        writeln!(process().stdout().lock(), "\n{}", message)?;
+        return Ok(());
     }
 
     Ok(())
