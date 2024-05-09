@@ -141,11 +141,11 @@ fn handle_suggestion() -> Result<()> {
         "note: use `rustup self update` to update rustup itself",
     );
 
-    let args: Vec<String> = std::env::args().into_iter().skip(1).collect();
+    let args: Vec<String> = std::env::args().skip(1).collect();
     for i in 0..args.len() {
         for j in i + 1..=args.len() {
             let slice = &args[i..j];
-            let slice = slice.iter().cloned().collect::<Vec<String>>();
+            let slice = slice.to_vec();
             if let Some(&message) = suggestions.get(&slice) {
                 writeln!(process().stdout().lock(), "\n{}", message)?;
                 break;
