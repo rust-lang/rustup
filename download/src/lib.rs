@@ -12,7 +12,19 @@ pub use crate::errors::*;
 
 /// User agent header value for HTTP request.
 /// See: https://github.com/rust-lang/rustup/issues/2860.
-const USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"));
+#[cfg(feature = "curl-backend")]
+const CURL_USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"), " (curl)");
+
+#[cfg(feature = "reqwest-default-tls")]
+const REQWEST_DEFAULT_TLS_USER_AGENT: &str = concat!(
+    "rustup/",
+    env!("CARGO_PKG_VERSION"),
+    " (reqwest; default-tls)"
+);
+
+#[cfg(feature = "reqwest-rustls-tls")]
+const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
+    concat!("rustup/", env!("CARGO_PKG_VERSION"), " (reqwest; rustls)");
 
 #[derive(Debug, Copy, Clone)]
 pub enum Backend {
@@ -175,7 +187,7 @@ pub mod curl {
 
             handle.url(url.as_ref())?;
             handle.follow_location(true)?;
-            handle.useragent(super::USER_AGENT)?;
+            handle.useragent(super::CURL_USER_AGENT)?;
 
             if resume_from > 0 {
                 handle.resume_from(resume_from)?;
@@ -322,14 +334,18 @@ pub mod reqwest_be {
     fn client_generic() -> ClientBuilder {
         Client::builder()
             .gzip(false)
-            .user_agent(super::USER_AGENT)
             .proxy(Proxy::custom(env_proxy))
             .timeout(Duration::from_secs(30))
     }
 
     #[cfg(feature = "reqwest-rustls-tls")]
     static CLIENT_RUSTLS_TLS: Lazy<Client> = Lazy::new(|| {
-        let catcher = || client_generic().use_rustls_tls().build();
+        let catcher = || {
+            client_generic()
+                .use_rustls_tls()
+                .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
+                .build()
+        };
 
         // woah, an unwrap?!
         // It's OK. This is the same as what is happening in curl.
@@ -342,7 +358,11 @@ pub mod reqwest_be {
 
     #[cfg(feature = "reqwest-default-tls")]
     static CLIENT_DEFAULT_TLS: Lazy<Client> = Lazy::new(|| {
-        let catcher = || client_generic().build();
+        let catcher = || {
+            client_generic()
+                .user_agent(super::REQWEST_DEFAULT_TLS_USER_AGENT)
+                .build()
+        };
 
         // woah, an unwrap?!
         // It's OK. This is the same as what is happening in curl.
