@@ -530,14 +530,14 @@ impl RustupSubcmd {
             RustupSubcmd::DumpTestament => common::dump_testament(),
             RustupSubcmd::Install { opts } => update(cfg, opts),
             RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
-            RustupSubcmd::Show { verbose, subcmd } => match subcmd {
-                None => handle_epipe(show(cfg, verbose)),
+            RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
+                None => show(cfg, verbose),
                 Some(ShowSubcmd::ActiveToolchain { verbose }) => {
-                    handle_epipe(show_active_toolchain(cfg, verbose))
+                    show_active_toolchain(cfg, verbose)
                 }
-                Some(ShowSubcmd::Home) => handle_epipe(show_rustup_home(cfg)),
-                Some(ShowSubcmd::Profile) => handle_epipe(show_profile(cfg)),
-            },
+                Some(ShowSubcmd::Home) => show_rustup_home(cfg),
+                Some(ShowSubcmd::Profile) => show_profile(cfg),
+            }),
             RustupSubcmd::Update {
                 toolchain,
                 no_self_update,
