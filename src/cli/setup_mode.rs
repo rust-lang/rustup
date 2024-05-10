@@ -51,11 +51,11 @@ struct RustupInit {
 
     /// Component name to also install
     #[arg(short, long, value_delimiter = ',', num_args = 1..)]
-    components: Vec<String>,
+    component: Vec<String>,
 
     /// Target name to also install
     #[arg(short, long, value_delimiter = ',', num_args = 1..)]
-    targets: Vec<String>,
+    target: Vec<String>,
 
     /// Don't update any existing default toolchain after install
     #[arg(long)]
@@ -85,8 +85,8 @@ pub fn main() -> Result<utils::ExitCode> {
         default_host,
         default_toolchain,
         profile,
-        components,
-        targets,
+        component,
+        target,
         no_update_default_toolchain,
         no_modify_path,
         self_replace,
@@ -119,8 +119,8 @@ pub fn main() -> Result<utils::ExitCode> {
         profile,
         no_modify_path,
         no_update_toolchain: no_update_default_toolchain,
-        components: &components.iter().map(|s| &**s).collect::<Vec<_>>(),
-        targets: &targets.iter().map(|s| &**s).collect::<Vec<_>>(),
+        components: &component.iter().map(|s| &**s).collect::<Vec<_>>(),
+        targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
     self_update::install(no_prompt, verbose, quiet, opts)
