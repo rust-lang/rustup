@@ -31,10 +31,12 @@
 
 from __future__ import print_function
 
-import sys
+import json
 import os
-import subprocess
 import shutil
+import subprocess
+import sys
+
 
 def usage():
     print("usage: sync-dist dev-to-local [--live-run]\n"
@@ -127,6 +129,49 @@ def run_s3cmd(command):
 
     subprocess.check_call(s3cmd)
 
+
+# Purge cached versions of rustup on Fastly
+#
+# When a new version of rustup is released, we need to purge old versions that
+# have been cached on Fastly. Since rustup is distributed using the same CDN as
+# the Rust releases, we selectively purge rustup artifacts using surrogate keys.
+# https://www.fastly.com/documentation/guides/concepts/edge-state/cache/purging/#surrogate-key-purge
+#
+# Objects are tagged transparently by the Fastly service. This is configured in
+# the Terragrunt module `release-distribution` in rust-lang/simpleinfra:
+# https://github.com/rust-lang/simpleinfra/blob/master/terragrunt/modules/release-distribution/fastly-static.tf
+def purge_fastly(env):
+    fastly_token = get_ssm_parameter(f"/{env}/rustup/fastly-api-token")
+    service_id = get_ssm_parameter(f"/{env}/rustup/fastly-service-id")
+
+    cmd = [
+        "curl", "-i", "-X", "POST",
+        f"https://api.fastly.com/service/{service_id}/purge/rustup",
+        "-H", f"Fastly-Key: {fastly_token}",
+        "-H", "Accept: application/json"
+    ]
+
+    if live_run:
+        subprocess.check_call(cmd)
+    else:
+        print(f"skipping: {cmd}")
+
+
+def get_ssm_parameter(parameter):
+    if not live_run:
+        return "[REDACTED]"
+
+    cmd = [
+        "aws", "ssm", "get-parameter",
+        "--with-decryption",
+        "--name", parameter
+    ]
+
+    ssm_parameter = json.loads(subprocess.check_output(cmd))
+
+    return ssm_parameter["Parameter"]["Value"]
+
+
 run_s3cmd(s3cmd)
 
 # Next deal with the rustup-init.sh script and website
@@ -163,9 +208,11 @@ if command == "local-to-prod":
 if command == "update-dev-release" and live_run:
     run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
               "E30AO2GXMDY230 --paths /rustup/*".format(s3_bucket))
+    purge_fastly("dev")
     # Invalidate dev.rustup.rs
     run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
               "E3OQOQ34607Z0A --paths /*")
 if command == "update-prod-release" and live_run:
     run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
               "E3NZU1LCBHH4A4 --paths /rustup/*".format(s3_bucket))
+    purge_fastly("prod")
