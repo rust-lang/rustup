@@ -1021,29 +1021,3 @@ fn toolchain_link_then_list_verbose() {
         config.expect_stdout_ok(&["rustup", "toolchain", "list", "-v"], "/custom-1");
     });
 }
-
-#[test]
-fn deprecated_interfaces() {
-    setup(&|config| {
-        // In verbose mode we want the deprecated interfaces to complain
-        config.expect_ok_contains(
-            &["rustup", "--verbose", "install", "nightly"],
-            "",
-            "Please use `rustup toolchain install` instead",
-        );
-        config.expect_ok_contains(
-            &["rustup", "--verbose", "uninstall", "nightly"],
-            "",
-            "Please use `rustup toolchain uninstall` instead",
-        );
-        // But if not verbose then they should *NOT* complain
-        config.expect_not_stderr_ok(
-            &["rustup", "install", "nightly"],
-            "Please use `rustup toolchain install` instead",
-        );
-        config.expect_not_stderr_ok(
-            &["rustup", "uninstall", "nightly"],
-            "Please use `rustup toolchain uninstall` instead",
-        );
-    })
-}

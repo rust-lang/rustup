@@ -46,7 +46,7 @@ use crate::{
         toolchain::Toolchain,
     },
     utils::utils,
-    Cfg, Notification,
+    Cfg,
 };
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =
@@ -66,25 +66,6 @@ fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
         }
         res => res,
     }
-}
-
-fn deprecated<F, B, R>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> R
-where
-    F: FnOnce(&mut Cfg, B) -> R,
-{
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(
-        "Use of (currently) unmaintained command line interface.",
-    ));
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(
-        "The exact API of this command may change without warning",
-    ));
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(
-        "Eventually this command will be a true alias.  Until then:",
-    ));
-    (cfg.notify_handler)(Notification::PlainVerboseMessage(&format!(
-        "  Please use `rustup {instead}` instead"
-    )));
-    callee(cfg, matches)
 }
 
 #[derive(Debug, Parser)]
@@ -217,10 +198,10 @@ pub fn main() -> Result<utils::ExitCode> {
         Some(s) => match s {
             ("dump-testament", _) => common::dump_testament()?,
             ("show", _) => Rustup::from_arg_matches(&matches)?.dispatch(cfg)?,
-            ("install", m) => deprecated("toolchain install", cfg, m, update)?,
+            ("install", m) => update(cfg, m)?,
             ("update", m) => update(cfg, m)?,
             ("check", _) => check_updates(cfg)?,
-            ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
+            ("uninstall", m) => toolchain_remove(cfg, m)?,
             ("default", m) => default_(cfg, m)?,
             ("toolchain", c) => match c.subcommand() {
                 Some(s) => match s {
