@@ -863,11 +863,11 @@ fn completion_bad_shell() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "fake"],
-            r#"error: invalid value 'fake' for '<SHELL>'"#,
+            r#"error: invalid value 'fake' for '[shell]'"#,
         );
         config.expect_err(
             &["rustup", "completions", "fake", "cargo"],
-            r#"error: invalid value 'fake' for '<SHELL>'"#,
+            r#"error: invalid value 'fake' for '[shell]'"#,
         );
     });
 }
@@ -877,7 +877,7 @@ fn completion_bad_tool() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "bash", "fake"],
-            r#"error: invalid value 'fake' for '[COMMAND]'"#,
+            r#"error: invalid value 'fake' for '[command]'"#,
         );
     });
 }
