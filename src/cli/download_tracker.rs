@@ -186,13 +186,16 @@ impl DownloadTracker {
                             (remaining / speed) as u64
                         });
                         format!(
-                            "{} / {} ({:3.0} %) {} in {} ETA: {}",
+                            "{} / {} ({:3.0} %) {} in {}{}",
                             total_h,
                             content_len_h,
                             percent,
                             speed_h,
                             elapsed_h.display(),
-                            eta_h.display(),
+                            match eta_h {
+                                Duration::ZERO => format_args!(""),
+                                _ => format_args!(" ETA: {}", eta_h.display()),
+                            }
                         )
                     }
                     None => format!(
