@@ -186,13 +186,13 @@ impl DownloadTracker {
                             (remaining / speed) as u64
                         });
                         format!(
-                            "{} / {} ({:3.0} %) {} in {} ETA: {}",
+                            "{} / {} ({:3.0} %) {} in {}{}",
                             total_h,
                             content_len_h,
                             percent,
                             speed_h,
                             elapsed_h.display(),
-                            eta_h.display(),
+                            Eta(eta_h),
                         )
                     }
                     None => format!(
@@ -217,6 +217,17 @@ impl DownloadTracker {
 
     pub(crate) fn pop_unit(&mut self) {
         self.units.pop();
+    }
+}
+
+struct Eta(Duration);
+
+impl fmt::Display for Eta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Duration::ZERO => Ok(()),
+            _ => write!(f, "{}", self.0.display()),
+        }
     }
 }
 
