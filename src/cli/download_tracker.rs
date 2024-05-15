@@ -226,7 +226,7 @@ impl fmt::Display for Eta {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             Duration::ZERO => Ok(()),
-            _ => write!(f, "{}", self.0.display()),
+            _ => write!(f, " ETA: {}", self.0.display()),
         }
     }
 }
