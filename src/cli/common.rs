@@ -377,24 +377,6 @@ where
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_targets(
-    distributable: DistributableToolchain<'_>,
-    installed_only: bool,
-) -> Result<utils::ExitCode> {
-    list_items(
-        distributable,
-        |c| {
-            (c.component.short_name_in_manifest() == "rust-std").then(|| {
-                c.component
-                    .target
-                    .as_deref()
-                    .expect("rust-std should have a target")
-            })
-        },
-        installed_only,
-    )
-}
-
 pub(crate) fn list_components(
     distributable: DistributableToolchain<'_>,
     installed_only: bool,
@@ -402,7 +384,7 @@ pub(crate) fn list_components(
     list_items(distributable, |c| Some(&c.name), installed_only)
 }
 
-fn list_items(
+pub(super) fn list_items(
     distributable: DistributableToolchain<'_>,
     f: impl Fn(&ComponentStatus) -> Option<&str>,
     installed_only: bool,

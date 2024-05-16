@@ -1085,7 +1085,18 @@ fn target_list(
     let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
-    common::list_targets(distributable, installed_only)
+    common::list_items(
+        distributable,
+        |c| {
+            (c.component.short_name_in_manifest() == "rust-std").then(|| {
+                c.component
+                    .target
+                    .as_deref()
+                    .expect("rust-std should have a target")
+            })
+        },
+        installed_only,
+    )
 }
 
 fn target_add(
