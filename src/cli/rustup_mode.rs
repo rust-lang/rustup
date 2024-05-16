@@ -645,12 +645,12 @@ pub fn main() -> Result<utils::ExitCode> {
                 component,
                 toolchain,
                 target,
-            } => component_add(cfg, component, toolchain, target.as_deref()),
+            } => component_add(cfg, component, toolchain, target),
             ComponentSubcmd::Remove {
                 component,
                 toolchain,
                 target,
-            } => component_remove(cfg, component, toolchain, target.as_deref()),
+            } => component_remove(cfg, component, toolchain, target),
         },
         RustupSubcmd::Override { subcmd } => match subcmd {
             OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
@@ -682,7 +682,7 @@ pub fn main() -> Result<utils::ExitCode> {
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
             SetSubcmd::DefaultHost { host_triple } => cfg
-                .set_default_host_triple(&host_triple)
+                .set_default_host_triple(host_triple)
                 .map(|_| utils::ExitCode(0)),
             SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
             SetSubcmd::AutoSelfUpdate {
@@ -1135,7 +1135,7 @@ fn target_add(
     for target in targets {
         let new_component = Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new(&target)),
+            Some(TargetTriple::new(target)),
             false,
         );
         distributable.add_component(new_component)?;
@@ -1152,7 +1152,7 @@ fn target_remove(
     let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
 
     for target in targets {
-        let target = TargetTriple::new(&target);
+        let target = TargetTriple::new(target);
         let default_target = cfg.get_default_host_triple()?;
         if target == default_target {
             warn!("after removing the default host target, proc-macros and build scripts might no longer build");
@@ -1193,7 +1193,7 @@ fn component_add(
     cfg: &Cfg,
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
-    target: Option<&str>,
+    target: Option<String>,
 ) -> Result<utils::ExitCode> {
     let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let target = get_target(target, &distributable);
@@ -1207,7 +1207,7 @@ fn component_add(
 }
 
 fn get_target(
-    target: Option<&str>,
+    target: Option<String>,
     distributable: &DistributableToolchain<'_>,
 ) -> Option<TargetTriple> {
     target
@@ -1219,7 +1219,7 @@ fn component_remove(
     cfg: &Cfg,
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
-    target: Option<&str>,
+    target: Option<String>,
 ) -> Result<utils::ExitCode> {
     let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let target = get_target(target, &distributable);

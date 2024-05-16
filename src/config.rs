@@ -1025,14 +1025,14 @@ impl Cfg {
         Ok(None)
     }
 
-    pub(crate) fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
+    pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
         dist::PartialToolchainDesc::from_str("stable")?
-            .resolve(&dist::TargetTriple::new(host_triple))?;
+            .resolve(&dist::TargetTriple::new(host_triple.clone()))?;
         self.settings_file.with_mut(|s| {
-            s.default_host_triple = Some(host_triple.to_owned());
+            s.default_host_triple = Some(host_triple);
             Ok(())
         })
     }
@@ -1087,7 +1087,7 @@ impl Debug for Cfg {
 fn get_default_host_triple(s: &Settings) -> dist::TargetTriple {
     s.default_host_triple
         .as_ref()
-        .map(|s| dist::TargetTriple::new(s))
+        .map(dist::TargetTriple::new)
         .unwrap_or_else(dist::TargetTriple::from_host_or_build)
 }
 

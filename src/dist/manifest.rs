@@ -379,7 +379,7 @@ impl Manifest {
         for component in &targ_pkg.components {
             let installed = component.contained_within(&config.components);
 
-            let component_target = TargetTriple::new(&component.target());
+            let component_target = TargetTriple::new(component.target());
 
             // Get the component so we can check if it is available
             let component_pkg = self
@@ -438,7 +438,7 @@ impl Package {
             let mut result = HashMap::new();
             for (k, v) in target_table {
                 if let toml::Value::Table(t) = v {
-                    result.insert(TargetTriple::new(&k), TargetedPackage::from_toml(t, path)?);
+                    result.insert(TargetTriple::new(k), TargetedPackage::from_toml(t, path)?);
                 }
             }
             Ok(PackageTargets::Targeted(result))
@@ -635,7 +635,7 @@ impl Component {
                 if s == "*" {
                     None
                 } else {
-                    Some(TargetTriple::new(&s))
+                    Some(TargetTriple::new(s))
                 }
             })?,
             is_extension,
