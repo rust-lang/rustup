@@ -131,7 +131,7 @@ impl<'a> LineFormatter<'a> {
             Tag::TableHead => {}
             Tag::TableRow => {}
             Tag::TableCell => {}
-            Tag::BlockQuote => {}
+            Tag::BlockQuote(_) => {}
             Tag::CodeBlock(_) | Tag::HtmlBlock { .. } => {
                 self.wrapper.write_line();
                 self.wrapper.indent += 2;
@@ -219,6 +219,8 @@ impl<'a> LineFormatter<'a> {
             TaskListMarker(true) => {}
             TaskListMarker(false) => {}
             InlineHtml(_) => {}
+            InlineMath(_) => {}
+            DisplayMath(_) => {}
         }
     }
 }
