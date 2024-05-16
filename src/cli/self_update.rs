@@ -694,7 +694,7 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
 ",
         opts.default_host_triple
             .as_ref()
-            .map(|s| TargetTriple::new(s))
+            .map(TargetTriple::new)
             .unwrap_or_else(TargetTriple::from_host_or_build),
         opts.default_toolchain
             .as_ref()
