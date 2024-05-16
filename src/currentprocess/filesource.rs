@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
+use cfg_if::cfg_if;
 use enum_dispatch::enum_dispatch;
 
 use super::terminalsource::{ColorableTerminal, StreamSelector};
@@ -47,53 +48,49 @@ impl StdinSource for super::OSProcess {
 
 // ----------------------- test support for stdin ------------------
 
-#[cfg(feature = "test")]
-struct TestStdinLock<'a> {
-    inner: MutexGuard<'a, Cursor<String>>,
-}
+cfg_if! {
+    if #[cfg(feature = "test")] {
+        struct TestStdinLock<'a> {
+            inner: MutexGuard<'a, Cursor<String>>,
+        }
 
-#[cfg(feature = "test")]
-impl StdinLock for TestStdinLock<'_> {}
+        impl StdinLock for TestStdinLock<'_> {}
 
-#[cfg(feature = "test")]
-impl Read for TestStdinLock<'_> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.inner.read(buf)
-    }
-}
+        impl Read for TestStdinLock<'_> {
+            fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+                self.inner.read(buf)
+            }
+        }
 
-#[cfg(feature = "test")]
-impl BufRead for TestStdinLock<'_> {
-    fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        self.inner.fill_buf()
-    }
-    fn consume(&mut self, n: usize) {
-        self.inner.consume(n)
-    }
-}
+        impl BufRead for TestStdinLock<'_> {
+            fn fill_buf(&mut self) -> io::Result<&[u8]> {
+                self.inner.fill_buf()
+            }
+            fn consume(&mut self, n: usize) {
+                self.inner.consume(n)
+            }
+        }
 
-#[cfg(feature = "test")]
-pub(crate) type TestStdinInner = Arc<Mutex<Cursor<String>>>;
+        pub(crate) type TestStdinInner = Arc<Mutex<Cursor<String>>>;
 
-#[cfg(feature = "test")]
-struct TestStdin(TestStdinInner);
+        struct TestStdin(TestStdinInner);
 
-#[cfg(feature = "test")]
-impl Stdin for TestStdin {
-    fn lock(&self) -> Box<dyn StdinLock + '_> {
-        Box::new(TestStdinLock {
-            inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
-        })
-    }
-    fn read_line(&self, buf: &mut String) -> Result<usize> {
-        self.lock().read_line(buf)
-    }
-}
+        impl Stdin for TestStdin {
+            fn lock(&self) -> Box<dyn StdinLock + '_> {
+                Box::new(TestStdinLock {
+                    inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
+                })
+            }
+            fn read_line(&self, buf: &mut String) -> Result<usize> {
+                self.lock().read_line(buf)
+            }
+        }
 
-#[cfg(feature = "test")]
-impl StdinSource for super::TestProcess {
-    fn stdin(&self) -> Box<dyn Stdin> {
-        Box::new(TestStdin(self.stdin.clone()))
+        impl StdinSource for super::TestProcess {
+            fn stdin(&self) -> Box<dyn Stdin> {
+                Box::new(TestStdin(self.stdin.clone()))
+            }
+        }
     }
 }
 
@@ -189,79 +186,74 @@ impl StderrSource for super::OSProcess {
 
 // ----------------------- test support for writers ------------------
 
-#[cfg(feature = "test")]
-pub(super) struct TestWriterLock<'a> {
-    inner: MutexGuard<'a, Vec<u8>>,
-}
-
-#[cfg(feature = "test")]
-impl WriterLock for TestWriterLock<'_> {}
-
-#[cfg(feature = "test")]
-impl Write for TestWriterLock<'_> {
-    fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        self.inner.write(buf)
-    }
-
-    fn flush(&mut self) -> Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "test")]
-pub(super) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
-/// A thread-safe test file handle that pretends to be e.g. stdout.
-#[derive(Clone, Default)]
-#[cfg(feature = "test")]
-pub(super) struct TestWriter(TestWriterInner);
-
-#[cfg(feature = "test")]
-impl TestWriter {
-    pub(super) fn lock(&self) -> TestWriterLock<'_> {
-        // The stream can be locked even if a test thread panicked: its state
-        // will be ok
-        TestWriterLock {
-            inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
+cfg_if! {
+    if #[cfg(feature = "test")] {
+        pub(super) struct TestWriterLock<'a> {
+            inner: MutexGuard<'a, Vec<u8>>,
         }
-    }
-}
 
-#[cfg(feature = "test")]
-impl Writer for TestWriter {
-    fn is_a_tty(&self) -> bool {
-        false
-    }
+        impl WriterLock for TestWriterLock<'_> {}
 
-    fn lock(&self) -> Box<dyn WriterLock + '_> {
-        Box::new(self.lock())
-    }
+        impl Write for TestWriterLock<'_> {
+            fn write(&mut self, buf: &[u8]) -> Result<usize> {
+                self.inner.write(buf)
+            }
 
-    fn terminal(&self) -> ColorableTerminal {
-        ColorableTerminal::new(StreamSelector::TestWriter(self.clone()))
-    }
-}
+            fn flush(&mut self) -> Result<()> {
+                Ok(())
+            }
+        }
 
-#[cfg(feature = "test")]
-impl Write for TestWriter {
-    fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        self.lock().write(buf)
-    }
+        pub(super) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
 
-    fn flush(&mut self) -> Result<()> {
-        Ok(())
-    }
-}
+        /// A thread-safe test file handle that pretends to be e.g. stdout.
+        #[derive(Clone, Default)]
+        pub(super) struct TestWriter(TestWriterInner);
 
-#[cfg(feature = "test")]
-impl StdoutSource for super::TestProcess {
-    fn stdout(&self) -> Box<dyn Writer> {
-        Box::new(TestWriter(self.stdout.clone()))
-    }
-}
+        impl TestWriter {
+            pub(super) fn lock(&self) -> TestWriterLock<'_> {
+                // The stream can be locked even if a test thread panicked: its state
+                // will be ok
+                TestWriterLock {
+                    inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
+                }
+            }
+        }
 
-#[cfg(feature = "test")]
-impl StderrSource for super::TestProcess {
-    fn stderr(&self) -> Box<dyn Writer> {
-        Box::new(TestWriter(self.stderr.clone()))
+        impl Writer for TestWriter {
+            fn is_a_tty(&self) -> bool {
+                false
+            }
+
+            fn lock(&self) -> Box<dyn WriterLock + '_> {
+                Box::new(self.lock())
+            }
+
+            fn terminal(&self) -> ColorableTerminal {
+                ColorableTerminal::new(StreamSelector::TestWriter(self.clone()))
+            }
+        }
+
+        impl Write for TestWriter {
+            fn write(&mut self, buf: &[u8]) -> Result<usize> {
+                self.lock().write(buf)
+            }
+
+            fn flush(&mut self) -> Result<()> {
+                Ok(())
+            }
+        }
+
+        impl StdoutSource for super::TestProcess {
+            fn stdout(&self) -> Box<dyn Writer> {
+                Box::new(TestWriter(self.stdout.clone()))
+            }
+        }
+
+        impl StderrSource for super::TestProcess {
+            fn stderr(&self) -> Box<dyn Writer> {
+                Box::new(TestWriter(self.stderr.clone()))
+            }
+        }
     }
 }
