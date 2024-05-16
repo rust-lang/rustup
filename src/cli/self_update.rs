@@ -618,7 +618,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
         let host_triple = opts
             .default_host_triple
             .as_ref()
-            .map(|s| dist::TargetTriple::new(s))
+            .map(dist::TargetTriple::new)
             .unwrap_or_else(TargetTriple::from_host_or_build);
         let partial_channel = match &opts.default_toolchain {
             None | Some(MaybeOfficialToolchainName::None) => {
@@ -903,7 +903,7 @@ fn _install_selection(
     if let Some(default_host_triple) = default_host_triple {
         // Set host triple now as it will affect resolution of toolchain_str
         info!("setting default host triple to {}", default_host_triple);
-        cfg.set_default_host_triple(default_host_triple)?;
+        cfg.set_default_host_triple(default_host_triple.to_owned())?;
     } else {
         info!("default host triple is {}", cfg.get_default_host_triple()?);
     }

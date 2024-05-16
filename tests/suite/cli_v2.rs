@@ -956,7 +956,7 @@ fn remove_target_host() {
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
         config.expect_stderr_ok(
-            &["rustup", "target", "remove", &host], 
+            &["rustup", "target", "remove", &host],
             "after removing the default host target, proc-macros and build scripts might no longer build",
         );
         let path = format!("toolchains/nightly-{host}/lib/rustlib/{host}/lib/libstd.rlib");
@@ -1017,7 +1017,7 @@ fn warn_about_and_remove_stray_hash() {
     });
 }
 
-fn make_component_unavailable(config: &Config, name: &str, target: &str) {
+fn make_component_unavailable(config: &Config, name: &str, target: String) {
     use rustup::dist::manifest::Manifest;
     use rustup::test::mock::dist::create_hash;
 
@@ -1046,7 +1046,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
 #[test]
 fn update_unavailable_std() {
     setup(&|config| {
-        make_component_unavailable(config, "rust-std", &this_host_triple());
+        make_component_unavailable(config, "rust-std", this_host_triple());
         config.expect_err(
             &["rustup", "update", "nightly", ],
             for_host!(
@@ -1059,7 +1059,7 @@ fn update_unavailable_std() {
 #[test]
 fn add_missing_component() {
     setup(&|config| {
-        make_component_unavailable(config, "rls-preview", &this_host_triple());
+        make_component_unavailable(config, "rls-preview", this_host_triple());
         config.expect_ok(&["rustup", "toolchain", "add", "nightly"]);
         config.expect_err(
             &["rustup", "component", "add", "rls-preview"],
@@ -1080,7 +1080,7 @@ fn add_missing_component() {
 #[test]
 fn add_missing_component_toolchain() {
     setup(&|config| {
-        make_component_unavailable(config, "rust-std", &this_host_triple());
+        make_component_unavailable(config, "rust-std", this_host_triple());
         config.expect_err(
             &["rustup", "toolchain", "add", "nightly"],
             for_host!(
@@ -1117,7 +1117,7 @@ fn update_unavailable_force() {
             "--toolchain",
             "nightly",
         ]);
-        make_component_unavailable(config, "rls-preview", &trip);
+        make_component_unavailable(config, "rls-preview", trip);
         config.expect_err(
             &["rustup", "update", "nightly"],
             for_host!(
@@ -1222,7 +1222,7 @@ fn target_list_ignores_unavailable_targets() {
         config.expect_ok(&["rustup", "default", "nightly"]);
         let target_list = &["rustup", "target", "list"];
         config.expect_stdout_ok(target_list, clitools::CROSS_ARCH1);
-        make_component_unavailable(config, "rust-std", clitools::CROSS_ARCH1);
+        make_component_unavailable(config, "rust-std", clitools::CROSS_ARCH1.to_owned());
         config.expect_ok(&["rustup", "update", "nightly", "--force"]);
         config.expect_not_stdout_ok(target_list, clitools::CROSS_ARCH1);
     })
@@ -1351,7 +1351,7 @@ fn test_complete_profile_skips_missing_when_forced() {
 fn run_with_install_flag_against_unavailable_component() {
     setup(&|config| {
         let trip = this_host_triple();
-        make_component_unavailable(config, "rust-std", &trip);
+        make_component_unavailable(config, "rust-std", trip);
         config.expect_ok_ex(
             &[
                 "rustup",

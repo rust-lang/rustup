@@ -259,8 +259,8 @@ fn is_32bit_userspace() -> bool {
 }
 
 impl TargetTriple {
-    pub fn new(name: &str) -> Self {
-        Self(name.to_string())
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
     }
 
     pub(crate) fn from_build() -> Self {
@@ -947,7 +947,7 @@ fn try_update_from_dist_(
                 all_components.insert(component);
             }
 
-            for target in targets {
+            for &target in targets {
                 let triple = TargetTriple::new(target);
                 all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
             }
@@ -1263,11 +1263,11 @@ mod tests {
             ),
         ];
 
-        for (host, compatible, incompatible) in CASES {
+        for &(host, compatible, incompatible) in CASES {
             println!("host={host}");
             let host = TargetTriple::new(host);
             assert!(host.can_run(&host).unwrap(), "host wasn't self-compatible");
-            for other in compatible.iter() {
+            for &other in compatible.iter() {
                 println!("compatible with {other}");
                 let other = TargetTriple::new(other);
                 assert!(
@@ -1275,7 +1275,7 @@ mod tests {
                     "host and other were unexpectedly incompatible"
                 );
             }
-            for other in incompatible.iter() {
+            for &other in incompatible.iter() {
                 println!("incompatible with {other}");
                 let other = TargetTriple::new(other);
                 assert!(
