@@ -1192,7 +1192,7 @@ fn component_list(
     let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
-    common::list_components(distributable, installed_only)?;
+    common::list_items(distributable, |c| Some(&c.name), installed_only)?;
     Ok(utils::ExitCode(0))
 }
 
