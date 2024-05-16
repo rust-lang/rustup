@@ -678,7 +678,7 @@ pub fn main() -> Result<utils::ExitCode> {
         RustupSubcmd::Self_ { subcmd } => match subcmd {
             SelfSubcmd::Update => self_update::update(cfg),
             SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
-            SelfSubcmd::UpgradeData => upgrade_data(cfg),
+            SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
             SetSubcmd::DefaultHost { host_triple } => set_default_host_triple(cfg, &host_triple),
@@ -689,11 +689,6 @@ pub fn main() -> Result<utils::ExitCode> {
         },
         RustupSubcmd::Completions { shell, command } => output_completion_script(shell, command),
     }
-}
-
-fn upgrade_data(cfg: &Cfg) -> Result<utils::ExitCode> {
-    cfg.upgrade_data()?;
-    Ok(utils::ExitCode(0))
 }
 
 fn default_(cfg: &Cfg, toolchain: Option<MaybeResolvableToolchainName>) -> Result<utils::ExitCode> {
