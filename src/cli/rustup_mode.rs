@@ -681,7 +681,9 @@ pub fn main() -> Result<utils::ExitCode> {
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
-            SetSubcmd::DefaultHost { host_triple } => set_default_host_triple(cfg, &host_triple),
+            SetSubcmd::DefaultHost { host_triple } => cfg
+                .set_default_host_triple(&host_triple)
+                .map(|_| utils::ExitCode(0)),
             SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
@@ -1485,11 +1487,6 @@ fn man(
         .arg(command)
         .status()
         .expect("failed to open man page");
-    Ok(utils::ExitCode(0))
-}
-
-fn set_default_host_triple(cfg: &Cfg, host_triple: &str) -> Result<utils::ExitCode> {
-    cfg.set_default_host_triple(host_triple)?;
     Ok(utils::ExitCode(0))
 }
 
