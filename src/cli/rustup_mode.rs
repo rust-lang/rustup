@@ -1,3 +1,4 @@
+use std::env::consts::EXE_SUFFIX;
 use std::fmt;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -32,7 +33,7 @@ use crate::{
         manifest::{Component, ComponentStatus},
     },
     errors::RustupError,
-    install::UpdateStatus,
+    install::{InstallMethod, UpdateStatus},
     toolchain::{
         distributable::DistributableToolchain,
         names::{
@@ -1255,13 +1256,29 @@ fn explicit_or_dir_toolchain2(
     }
 }
 
-fn toolchain_link(
-    cfg: &Cfg,
-    toolchain: &CustomToolchainName,
-    path: &Path,
-) -> Result<utils::ExitCode> {
+fn toolchain_link(cfg: &Cfg, dest: &CustomToolchainName, src: &Path) -> Result<utils::ExitCode> {
     cfg.ensure_toolchains_dir()?;
-    crate::toolchain::custom::CustomToolchain::install_from_dir(cfg, path, toolchain, true)?;
+    let mut pathbuf = PathBuf::from(src);
+
+    pathbuf.push("lib");
+    utils::assert_is_directory(&pathbuf)?;
+    pathbuf.pop();
+    pathbuf.push("bin");
+    utils::assert_is_directory(&pathbuf)?;
+    pathbuf.push(format!("rustc{EXE_SUFFIX}"));
+    utils::assert_is_file(&pathbuf)?;
+
+    if true {
+        InstallMethod::Link {
+            src: &utils::to_absolute(src)?,
+            dest,
+            cfg,
+        }
+        .install()?;
+    } else {
+        InstallMethod::Copy { src, dest, cfg }.install()?;
+    }
+
     Ok(utils::ExitCode(0))
 }
 
