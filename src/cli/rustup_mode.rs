@@ -1082,7 +1082,7 @@ fn target_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
     common::list_items(
@@ -1104,7 +1104,7 @@ fn target_add(
     mut targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1154,7 +1154,7 @@ fn target_remove(
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
 
     for target in targets {
@@ -1189,7 +1189,7 @@ fn component_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     // downcasting required because the toolchain files can name any toolchain
     let distributable = (&toolchain).try_into()?;
     common::list_items(distributable, |c| Some(&c.name), installed_only)?;
@@ -1202,7 +1202,7 @@ fn component_add(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<&str>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(target, &distributable);
 
@@ -1229,7 +1229,7 @@ fn component_remove(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<&str>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     let distributable = DistributableToolchain::try_from(&toolchain)?;
     let target = get_target(target, &distributable);
 
@@ -1239,24 +1239,6 @@ fn component_remove(
     }
 
     Ok(utils::ExitCode(0))
-}
-
-fn explicit_desc_or_dir_toolchain(
-    cfg: &Cfg,
-    toolchain: Option<PartialToolchainDesc>,
-) -> Result<Toolchain<'_>> {
-    match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
-        Some(toolchain) => {
-            let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-            Ok(Toolchain::new(cfg, desc.into())?)
-        }
-        None => {
-            let cwd = utils::current_dir()?;
-            let (toolchain, _) = cfg.find_or_install_active_toolchain(&cwd)?;
-
-            Ok(toolchain)
-        }
-    }
 }
 
 fn toolchain_link(cfg: &Cfg, dest: &CustomToolchainName, src: &Path) -> Result<utils::ExitCode> {
@@ -1435,7 +1417,7 @@ fn doc(
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> Result<utils::ExitCode> {
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1498,7 +1480,7 @@ fn man(
 ) -> Result<utils::ExitCode> {
     use crate::currentprocess::varsource::VarSource;
 
-    let toolchain = explicit_desc_or_dir_toolchain(cfg, toolchain)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");

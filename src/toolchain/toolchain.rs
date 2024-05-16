@@ -16,6 +16,7 @@ use wait_timeout::ChildExt;
 use crate::{
     config::Cfg,
     currentprocess::{process, varsource::VarSource},
+    dist::dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,
     utils::{raw::open_dir_following_links, utils},
@@ -24,7 +25,7 @@ use crate::{
 
 use super::{
     distributable::DistributableToolchain,
-    names::{LocalToolchainName, ToolchainName},
+    names::{LocalToolchainName, ResolvableToolchainName, ToolchainName},
 };
 
 /// A toolchain installed on the local disk
@@ -36,6 +37,24 @@ pub(crate) struct Toolchain<'a> {
 }
 
 impl<'a> Toolchain<'a> {
+    pub(crate) fn from_partial(
+        toolchain: Option<PartialToolchainDesc>,
+        cfg: &'a Cfg,
+    ) -> anyhow::Result<Self> {
+        match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
+            Some(toolchain) => {
+                let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+                Ok(Toolchain::new(cfg, desc.into())?)
+            }
+            None => {
+                let cwd = utils::current_dir()?;
+                let (toolchain, _) = cfg.find_or_install_active_toolchain(&cwd)?;
+
+                Ok(toolchain)
+            }
+        }
+    }
+
     pub(crate) fn new(cfg: &'a Cfg, name: LocalToolchainName) -> Result<Self, RustupError> {
         let path = cfg.toolchain_path(&name);
         if !Toolchain::exists(cfg, &name)? {
