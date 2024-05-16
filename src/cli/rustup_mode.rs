@@ -619,7 +619,9 @@ pub fn main() -> Result<utils::ExitCode> {
         ),
         RustupSubcmd::Toolchain { subcmd } => match subcmd {
             ToolchainSubcmd::Install { opts } => update(cfg, opts),
-            ToolchainSubcmd::List { verbose } => handle_epipe(toolchain_list(cfg, verbose)),
+            ToolchainSubcmd::List { verbose } => {
+                handle_epipe(common::list_toolchains(cfg, verbose))
+            }
             ToolchainSubcmd::Link { toolchain, path } => toolchain_link(cfg, &toolchain, &path),
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         },
@@ -1252,10 +1254,6 @@ fn explicit_or_dir_toolchain2(
             Ok(toolchain)
         }
     }
-}
-
-fn toolchain_list(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    common::list_toolchains(cfg, verbose)
 }
 
 fn toolchain_link(
