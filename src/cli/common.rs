@@ -377,13 +377,6 @@ where
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_components(
-    distributable: DistributableToolchain<'_>,
-    installed_only: bool,
-) -> Result<utils::ExitCode> {
-    list_items(distributable, |c| Some(&c.name), installed_only)
-}
-
 pub(super) fn list_items(
     distributable: DistributableToolchain<'_>,
     f: impl Fn(&ComponentStatus) -> Option<&str>,
