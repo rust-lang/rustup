@@ -684,7 +684,9 @@ pub fn main() -> Result<utils::ExitCode> {
             SetSubcmd::DefaultHost { host_triple } => cfg
                 .set_default_host_triple(host_triple)
                 .map(|_| utils::ExitCode(0)),
-            SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
+            SetSubcmd::Profile { profile_name } => {
+                cfg.set_profile(&profile_name).map(|_| utils::ExitCode(0))
+            }
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
             } => set_auto_self_update(cfg, &auto_self_update_mode),
@@ -1487,11 +1489,6 @@ fn man(
         .arg(command)
         .status()
         .expect("failed to open man page");
-    Ok(utils::ExitCode(0))
-}
-
-fn set_profile(cfg: &mut Cfg, profile: &str) -> Result<utils::ExitCode> {
-    cfg.set_profile(profile)?;
     Ok(utils::ExitCode(0))
 }
 
