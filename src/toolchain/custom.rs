@@ -5,7 +5,7 @@ use std::{
 
 use crate::{config::Cfg, install::InstallMethod, utils::utils};
 
-use super::{names::CustomToolchainName, toolchain::InstalledPath};
+use super::names::CustomToolchainName;
 
 /// An official toolchain installed on the local disk
 #[derive(Debug)]
@@ -39,9 +39,5 @@ impl CustomToolchain {
             InstallMethod::Copy { src, dest, cfg }.install()?;
         }
         Ok(Self)
-    }
-
-    pub(crate) fn installed_paths(path: &Path) -> anyhow::Result<Vec<InstalledPath<'_>>> {
-        Ok(vec![InstalledPath::Dir { path }])
     }
 }
