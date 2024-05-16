@@ -1082,9 +1082,8 @@ fn target_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = (&toolchain).try_into()?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     common::list_items(
         distributable,
         |c| {
@@ -1104,13 +1103,12 @@ fn target_add(
     mut targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
-    let distributable = DistributableToolchain::try_from(&toolchain)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let components = distributable.components()?;
 
     if targets.contains(&"all".to_string()) {
@@ -1154,8 +1152,7 @@ fn target_remove(
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
-    let distributable = DistributableToolchain::try_from(&toolchain)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
 
     for target in targets {
         let target = TargetTriple::new(&target);
@@ -1189,9 +1186,8 @@ fn component_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = (&toolchain).try_into()?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     common::list_items(distributable, |c| Some(&c.name), installed_only)?;
     Ok(utils::ExitCode(0))
 }
@@ -1202,8 +1198,7 @@ fn component_add(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<&str>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
-    let distributable = DistributableToolchain::try_from(&toolchain)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1229,8 +1224,7 @@ fn component_remove(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<&str>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
-    let distributable = DistributableToolchain::try_from(&toolchain)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let target = get_target(target, &distributable);
 
     for component in &components {

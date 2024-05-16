@@ -9,7 +9,7 @@ use crate::{
     config::Cfg,
     dist::{
         config::Config,
-        dist::{Profile, ToolchainDesc},
+        dist::{PartialToolchainDesc, Profile, ToolchainDesc},
         manifest::{Component, ComponentStatus, Manifest},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
@@ -33,6 +33,13 @@ pub(crate) struct DistributableToolchain<'a> {
 }
 
 impl<'a> DistributableToolchain<'a> {
+    pub(crate) fn from_partial(
+        toolchain: Option<PartialToolchainDesc>,
+        cfg: &'a Cfg,
+    ) -> anyhow::Result<Self> {
+        Ok(Self::try_from(&Toolchain::from_partial(toolchain, cfg)?)?)
+    }
+
     pub(crate) fn new(cfg: &'a Cfg, desc: ToolchainDesc) -> Result<Self, RustupError> {
         Toolchain::new(cfg, (&desc).into()).map(|toolchain| Self {
             toolchain,
