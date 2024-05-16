@@ -29,7 +29,7 @@ use rustup::cli::setup_mode;
 use rustup::currentprocess::{process, varsource::VarSource, with, OSProcess};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::is_proxyable_tools;
-use rustup::utils::utils;
+use rustup::utils::utils::{self, ExitCode};
 
 fn main() {
     #[cfg(windows)]
@@ -148,7 +148,7 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
         }
         Some(n) => {
             is_proxyable_tools(n)?;
-            proxy_mode::main(n)
+            proxy_mode::main(n).map(ExitCode::from)
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
