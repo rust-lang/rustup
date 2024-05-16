@@ -23,7 +23,6 @@ use crate::{
 };
 
 use super::{
-    custom::CustomToolchain,
     distributable::DistributableToolchain,
     names::{LocalToolchainName, ToolchainName},
 };
@@ -318,7 +317,7 @@ impl<'a> Toolchain<'a> {
             true => {
                 (cfg.notify_handler)(Notification::UninstallingToolchain(&name));
                 let installed_paths = match &name {
-                    ToolchainName::Custom(_) => CustomToolchain::installed_paths(&path),
+                    ToolchainName::Custom(_) => Ok(vec![InstalledPath::Dir { path: &path }]),
                     ToolchainName::Official(desc) => {
                         DistributableToolchain::installed_paths(cfg, desc, &path)
                     }
