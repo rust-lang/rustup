@@ -10,12 +10,8 @@
 )]
 #![recursion_limit = "1024"]
 
-pub(crate) use crate::config::*;
-use crate::currentprocess::*;
-pub use crate::errors::*;
-pub(crate) use crate::notifications::*;
-pub(crate) use crate::utils::toml_utils;
 use anyhow::{anyhow, Result};
+use errors::RustupError;
 use itertools::{chain, Itertools};
 
 #[macro_use]

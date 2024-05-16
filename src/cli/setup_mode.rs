@@ -6,9 +6,8 @@ use crate::{
         common,
         self_update::{self, InstallOpts},
     },
-    currentprocess::filesource::StdoutSource,
+    currentprocess::{filesource::StdoutSource, process},
     dist::dist::Profile,
-    process,
     toolchain::names::MaybeOfficialToolchainName,
     utils::utils,
 };

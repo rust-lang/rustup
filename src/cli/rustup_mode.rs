@@ -20,10 +20,12 @@ use crate::{
         topical_doc,
     },
     command,
-    config::{new_toolchain_with_reason, ActiveReason},
+    config::{new_toolchain_with_reason, ActiveReason, Cfg},
     currentprocess::{
         argsource::ArgSource,
         filesource::{StderrSource, StdoutSource},
+        process,
+        terminalsource::{self, ColorableTerminal},
     },
     dist::{
         dist::{PartialToolchainDesc, Profile, TargetTriple},
@@ -31,8 +33,6 @@ use crate::{
     },
     errors::RustupError,
     install::UpdateStatus,
-    process,
-    terminalsource::{self, ColorableTerminal},
     toolchain::{
         distributable::DistributableToolchain,
         names::{
@@ -42,7 +42,6 @@ use crate::{
         toolchain::Toolchain,
     },
     utils::utils,
-    Cfg,
 };
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =
@@ -1510,7 +1509,7 @@ fn set_profile(cfg: &mut Cfg, profile: &str) -> Result<utils::ExitCode> {
 
 fn set_auto_self_update(cfg: &mut Cfg, auto_self_update_mode: &str) -> Result<utils::ExitCode> {
     if self_update::NEVER_SELF_UPDATE {
-        let mut args = crate::process().args_os();
+        let mut args = process().args_os();
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
             .as_ref()

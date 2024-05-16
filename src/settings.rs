@@ -9,7 +9,7 @@ use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::dist::Profile;
 use crate::errors::*;
 use crate::notifications::*;
-use crate::toml_utils::*;
+use crate::utils::toml_utils::*;
 use crate::utils::utils;
 
 pub(crate) const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];

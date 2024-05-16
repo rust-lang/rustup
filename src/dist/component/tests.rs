@@ -9,9 +9,9 @@ use crate::dist::dist::DEFAULT_DIST_SERVER;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::dist::Notification;
+use crate::errors::RustupError;
 use crate::utils::raw as utils_raw;
 use crate::utils::utils;
-use crate::RustupError;
 
 #[test]
 fn add_file() {

@@ -5,10 +5,10 @@ use anyhow::Result;
 use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
-    currentprocess::argsource::ArgSource,
+    config::Cfg,
+    currentprocess::{argsource::ArgSource, process},
     toolchain::names::{LocalToolchainName, ResolvableLocalToolchainName},
     utils::utils::{self, ExitCode},
-    Cfg,
 };
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
@@ -18,7 +18,7 @@ pub fn main(arg0: &str) -> Result<ExitCode> {
     let ExitCode(c) = {
         let _setup = job::setup();
 
-        let mut args = crate::process().args_os().skip(1);
+        let mut args = process().args_os().skip(1);
 
         // Check for a + toolchain specifier
         let arg1 = args.next();
@@ -30,7 +30,7 @@ pub fn main(arg0: &str) -> Result<ExitCode> {
             .transpose()?;
 
         // Build command args now while we know whether or not to skip arg 1.
-        let cmd_args: Vec<_> = crate::process()
+        let cmd_args: Vec<_> = crate::currentprocess::process()
             .args_os()
             .skip(1 + toolchain.is_some() as usize)
             .collect();
