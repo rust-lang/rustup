@@ -1245,14 +1245,7 @@ fn explicit_desc_or_dir_toolchain(
     cfg: &Cfg,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<Toolchain<'_>> {
-    explicit_or_dir_toolchain2(cfg, toolchain.map(|it| (&it).into()))
-}
-
-fn explicit_or_dir_toolchain2(
-    cfg: &Cfg,
-    toolchain: Option<ResolvableToolchainName>,
-) -> Result<Toolchain<'_>> {
-    match toolchain {
+    match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
         Some(toolchain) => {
             let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
             Ok(Toolchain::new(cfg, desc.into())?)
