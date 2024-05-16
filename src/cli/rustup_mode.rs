@@ -2,6 +2,7 @@ use std::env::consts::EXE_SUFFIX;
 use std::fmt;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::ExitStatus;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
@@ -42,7 +43,7 @@ use crate::{
         },
         toolchain::Toolchain,
     },
-    utils::utils,
+    utils::utils::{self, ExitCode},
 };
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =
@@ -664,7 +665,7 @@ pub fn main() -> Result<utils::ExitCode> {
             toolchain,
             command,
             install,
-        } => run(cfg, toolchain, command, install),
+        } => run(cfg, toolchain, command, install).map(ExitCode::from),
         RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
         RustupSubcmd::Doc {
             path,
@@ -883,12 +884,10 @@ fn run(
     toolchain: ResolvableLocalToolchainName,
     command: Vec<String>,
     install: bool,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitStatus> {
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
     let cmd = cfg.create_command_for_toolchain(&toolchain, install, &command[0])?;
-
-    let code = command::run_command_for_dir(cmd, &command[0], &command[1..])?;
-    Ok(code)
+    command::run_command_for_dir(cmd, &command[0], &command[1..])
 }
 
 fn which(

@@ -2,6 +2,7 @@ use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
+use std::process::ExitStatus;
 
 use anyhow::{anyhow, bail, Context, Result};
 use home::env as home;
@@ -24,6 +25,15 @@ pub(crate) use crate::utils::utils::raw::{if_not_empty, is_directory};
 pub use crate::utils::utils::raw::{is_file, path_exists};
 
 pub struct ExitCode(pub i32);
+
+impl From<ExitStatus> for ExitCode {
+    fn from(status: ExitStatus) -> Self {
+        Self(match status.success() {
+            true => 0,
+            false => status.code().unwrap_or(1),
+        })
+    }
+}
 
 pub fn ensure_dir_exists<'a, N>(
     name: &'static str,
