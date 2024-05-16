@@ -10,7 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::NoDelay;
 use retry::{retry, OperationResult};
 
-use crate::currentprocess::varsource::VarSource;
+use crate::currentprocess::{process, varsource::VarSource};
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
@@ -22,7 +22,6 @@ use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::{OperationError, RustupError};
-use crate::process;
 use crate::utils::utils;
 
 pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";

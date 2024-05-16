@@ -17,21 +17,21 @@ use crate::cli::download_tracker::DownloadTracker;
 use crate::currentprocess::{
     argsource::ArgSource,
     filesource::{StdinSource, StdoutSource},
-    terminalsource,
+    process, terminalsource,
     varsource::VarSource,
 };
 use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::dist::manifest::ComponentStatus;
 use crate::install::UpdateStatus;
 use crate::toolchain::names::{LocalToolchainName, ToolchainName};
+use crate::toolchain::toolchain::Toolchain;
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;
+use crate::{config::Cfg, notifications::Notification};
 use crate::{
     dist::notifications as dist_notifications, toolchain::distributable::DistributableToolchain,
 };
-use crate::{process, toolchain::toolchain::Toolchain};
-use crate::{Cfg, Notification};
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 

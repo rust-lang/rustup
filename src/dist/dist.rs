@@ -14,7 +14,7 @@ use thiserror::Error as ThisError;
 
 pub(crate) use crate::dist::triple::*;
 use crate::{
-    currentprocess::varsource::VarSource,
+    currentprocess::{process, varsource::VarSource},
     dist::{
         download::DownloadCfg,
         manifest::{Component, Manifest as ManifestV2},
@@ -23,7 +23,6 @@ use crate::{
         prefix::InstallPrefix,
     },
     errors::RustupError,
-    process,
     toolchain::names::ToolchainName,
     utils::utils,
 };

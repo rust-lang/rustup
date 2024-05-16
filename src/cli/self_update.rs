@@ -65,17 +65,17 @@ use crate::{
         errors::*,
         markdown::md,
     },
-    currentprocess::{filesource::StdoutSource, varsource::VarSource},
+    config::Cfg,
+    currentprocess::{filesource::StdoutSource, process, varsource::VarSource},
     dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     install::UpdateStatus,
-    process,
     toolchain::{
         distributable::DistributableToolchain,
         names::{MaybeOfficialToolchainName, ResolvableToolchainName, ToolchainName},
         toolchain::Toolchain,
     },
     utils::{utils, Notification},
-    Cfg, DUP_TOOLS, TOOLS,
+    DUP_TOOLS, TOOLS,
 };
 
 use os::*;

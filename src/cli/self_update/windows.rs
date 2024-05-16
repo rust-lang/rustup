@@ -12,9 +12,8 @@ use super::super::errors::*;
 use super::common;
 use super::{install_bins, InstallOpts};
 use crate::cli::download_tracker::DownloadTracker;
-use crate::currentprocess::{filesource::StdoutSource, varsource::VarSource};
+use crate::currentprocess::{filesource::StdoutSource, process, varsource::VarSource};
 use crate::dist::dist::TargetTriple;
-use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
 
@@ -185,12 +184,9 @@ pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall
 
     info!("downloading Visual Studio installer");
     utils::download_file(&visual_studio_url, &visual_studio, None, &move |n| {
-        download_tracker
-            .lock()
-            .unwrap()
-            .handle_notification(&crate::Notification::Install(
-                crate::dist::Notification::Utils(n),
-            ));
+        download_tracker.lock().unwrap().handle_notification(
+            &crate::notifications::Notification::Install(crate::dist::Notification::Utils(n)),
+        );
     })?;
 
     // Run the installer. Arguments are documented at:

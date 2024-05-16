@@ -10,11 +10,12 @@ use retry::{retry, OperationResult};
 use sha2::Sha256;
 use url::Url;
 
-use crate::currentprocess::{cwdsource::CurrentDirSource, varsource::VarSource};
+use crate::currentprocess::{
+    cwdsource::CurrentDirSource, home_process, process, varsource::VarSource,
+};
 use crate::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
-use crate::{home_process, process};
 
 #[cfg(not(windows))]
 pub(crate) use crate::utils::utils::raw::find_cmd;
