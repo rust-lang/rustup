@@ -524,111 +524,6 @@ enum SetSubcmd {
     },
 }
 
-impl RustupSubcmd {
-    fn dispatch(self, cfg: &mut Cfg) -> Result<utils::ExitCode> {
-        match self {
-            RustupSubcmd::DumpTestament => common::dump_testament(),
-            RustupSubcmd::Install { opts } => update(cfg, opts),
-            RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
-            RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
-                None => show(cfg, verbose),
-                Some(ShowSubcmd::ActiveToolchain { verbose }) => {
-                    show_active_toolchain(cfg, verbose)
-                }
-                Some(ShowSubcmd::Home) => show_rustup_home(cfg),
-                Some(ShowSubcmd::Profile) => show_profile(cfg),
-            }),
-            RustupSubcmd::Update {
-                toolchain,
-                no_self_update,
-                force,
-                force_non_host,
-            } => update(
-                cfg,
-                UpdateOpts {
-                    toolchain,
-                    no_self_update,
-                    force,
-                    force_non_host,
-                    ..UpdateOpts::default()
-                },
-            ),
-            RustupSubcmd::Toolchain { subcmd } => match subcmd {
-                ToolchainSubcmd::Install { opts } => update(cfg, opts),
-                ToolchainSubcmd::List { verbose } => handle_epipe(toolchain_list(cfg, verbose)),
-                ToolchainSubcmd::Link { toolchain, path } => toolchain_link(cfg, &toolchain, &path),
-                ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
-            },
-            RustupSubcmd::Check => check_updates(cfg),
-            RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
-            RustupSubcmd::Target { subcmd } => match subcmd {
-                TargetSubcmd::List {
-                    toolchain,
-                    installed,
-                } => handle_epipe(target_list(cfg, toolchain, installed)),
-                TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
-                TargetSubcmd::Remove { target, toolchain } => target_remove(cfg, target, toolchain),
-            },
-            RustupSubcmd::Component { subcmd } => match subcmd {
-                ComponentSubcmd::List {
-                    toolchain,
-                    installed,
-                } => handle_epipe(component_list(cfg, toolchain, installed)),
-                ComponentSubcmd::Add {
-                    component,
-                    toolchain,
-                    target,
-                } => component_add(cfg, component, toolchain, target.as_deref()),
-                ComponentSubcmd::Remove {
-                    component,
-                    toolchain,
-                    target,
-                } => component_remove(cfg, component, toolchain, target.as_deref()),
-            },
-            RustupSubcmd::Override { subcmd } => match subcmd {
-                OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
-                OverrideSubcmd::Set { toolchain, path } => {
-                    override_add(cfg, toolchain, path.as_deref())
-                }
-                OverrideSubcmd::Unset { path, nonexistent } => {
-                    override_remove(cfg, path.as_deref(), nonexistent)
-                }
-            },
-            RustupSubcmd::Run {
-                toolchain,
-                command,
-                install,
-            } => run(cfg, toolchain, command, install),
-            RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
-            RustupSubcmd::Doc {
-                path,
-                toolchain,
-                topic,
-                page,
-            } => doc(cfg, path, toolchain, topic.as_deref(), &page),
-            #[cfg(not(windows))]
-            RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
-            RustupSubcmd::Self_ { subcmd } => match subcmd {
-                SelfSubcmd::Update => self_update::update(cfg),
-                SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
-                SelfSubcmd::UpgradeData => upgrade_data(cfg),
-            },
-            RustupSubcmd::Set { subcmd } => match subcmd {
-                SetSubcmd::DefaultHost { host_triple } => {
-                    set_default_host_triple(cfg, &host_triple)
-                }
-                SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
-                SetSubcmd::AutoSelfUpdate {
-                    auto_self_update_mode,
-                } => set_auto_self_update(cfg, &auto_self_update_mode),
-            },
-            RustupSubcmd::Completions { shell, command } => {
-                output_completion_script(shell, command)
-            }
-        }
-    }
-}
-
 #[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
 pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
@@ -692,13 +587,105 @@ pub fn main() -> Result<utils::ExitCode> {
 
     cfg.check_metadata_version()?;
 
-    Ok(match matches.subcmd {
-        Some(subcmd) => subcmd.dispatch(cfg)?,
-        None => {
-            eprintln!("{}", Rustup::command().render_long_help());
-            utils::ExitCode(1)
-        }
-    })
+    let Some(subcmd) = matches.subcmd else {
+        eprintln!("{}", Rustup::command().render_long_help());
+        return Ok(utils::ExitCode(1));
+    };
+
+    match subcmd {
+        RustupSubcmd::DumpTestament => common::dump_testament(),
+        RustupSubcmd::Install { opts } => update(cfg, opts),
+        RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
+        RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
+            None => show(cfg, verbose),
+            Some(ShowSubcmd::ActiveToolchain { verbose }) => show_active_toolchain(cfg, verbose),
+            Some(ShowSubcmd::Home) => show_rustup_home(cfg),
+            Some(ShowSubcmd::Profile) => show_profile(cfg),
+        }),
+        RustupSubcmd::Update {
+            toolchain,
+            no_self_update,
+            force,
+            force_non_host,
+        } => update(
+            cfg,
+            UpdateOpts {
+                toolchain,
+                no_self_update,
+                force,
+                force_non_host,
+                ..UpdateOpts::default()
+            },
+        ),
+        RustupSubcmd::Toolchain { subcmd } => match subcmd {
+            ToolchainSubcmd::Install { opts } => update(cfg, opts),
+            ToolchainSubcmd::List { verbose } => handle_epipe(toolchain_list(cfg, verbose)),
+            ToolchainSubcmd::Link { toolchain, path } => toolchain_link(cfg, &toolchain, &path),
+            ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
+        },
+        RustupSubcmd::Check => check_updates(cfg),
+        RustupSubcmd::Default { toolchain } => default_(cfg, toolchain),
+        RustupSubcmd::Target { subcmd } => match subcmd {
+            TargetSubcmd::List {
+                toolchain,
+                installed,
+            } => handle_epipe(target_list(cfg, toolchain, installed)),
+            TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain),
+            TargetSubcmd::Remove { target, toolchain } => target_remove(cfg, target, toolchain),
+        },
+        RustupSubcmd::Component { subcmd } => match subcmd {
+            ComponentSubcmd::List {
+                toolchain,
+                installed,
+            } => handle_epipe(component_list(cfg, toolchain, installed)),
+            ComponentSubcmd::Add {
+                component,
+                toolchain,
+                target,
+            } => component_add(cfg, component, toolchain, target.as_deref()),
+            ComponentSubcmd::Remove {
+                component,
+                toolchain,
+                target,
+            } => component_remove(cfg, component, toolchain, target.as_deref()),
+        },
+        RustupSubcmd::Override { subcmd } => match subcmd {
+            OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
+            OverrideSubcmd::Set { toolchain, path } => {
+                override_add(cfg, toolchain, path.as_deref())
+            }
+            OverrideSubcmd::Unset { path, nonexistent } => {
+                override_remove(cfg, path.as_deref(), nonexistent)
+            }
+        },
+        RustupSubcmd::Run {
+            toolchain,
+            command,
+            install,
+        } => run(cfg, toolchain, command, install),
+        RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
+        RustupSubcmd::Doc {
+            path,
+            toolchain,
+            topic,
+            page,
+        } => doc(cfg, path, toolchain, topic.as_deref(), &page),
+        #[cfg(not(windows))]
+        RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
+        RustupSubcmd::Self_ { subcmd } => match subcmd {
+            SelfSubcmd::Update => self_update::update(cfg),
+            SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
+            SelfSubcmd::UpgradeData => upgrade_data(cfg),
+        },
+        RustupSubcmd::Set { subcmd } => match subcmd {
+            SetSubcmd::DefaultHost { host_triple } => set_default_host_triple(cfg, &host_triple),
+            SetSubcmd::Profile { profile_name } => set_profile(cfg, &profile_name),
+            SetSubcmd::AutoSelfUpdate {
+                auto_self_update_mode,
+            } => set_auto_self_update(cfg, &auto_self_update_mode),
+        },
+        RustupSubcmd::Completions { shell, command } => output_completion_script(shell, command),
+    }
 }
 
 fn upgrade_data(cfg: &Cfg) -> Result<utils::ExitCode> {
