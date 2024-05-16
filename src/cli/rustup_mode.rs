@@ -601,7 +601,10 @@ pub fn main() -> Result<utils::ExitCode> {
             None => show(cfg, verbose),
             Some(ShowSubcmd::ActiveToolchain { verbose }) => show_active_toolchain(cfg, verbose),
             Some(ShowSubcmd::Home) => show_rustup_home(cfg),
-            Some(ShowSubcmd::Profile) => show_profile(cfg),
+            Some(ShowSubcmd::Profile) => {
+                writeln!(process().stdout().lock(), "{}", cfg.get_profile()?)?;
+                Ok(ExitCode(0))
+            }
         }),
         RustupSubcmd::Update {
             toolchain,
@@ -1503,12 +1506,6 @@ fn set_auto_self_update(cfg: &mut Cfg, auto_self_update_mode: &str) -> Result<ut
         warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
     }
     cfg.set_auto_self_update(auto_self_update_mode)?;
-    Ok(utils::ExitCode(0))
-}
-
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show_profile(cfg: &Cfg) -> Result<utils::ExitCode> {
-    writeln!(process().stdout().lock(), "{}", cfg.get_profile()?)?;
     Ok(utils::ExitCode(0))
 }
 
