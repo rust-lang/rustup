@@ -399,10 +399,6 @@ impl Display for LocalToolchainName {
 pub(crate) struct CustomToolchainName(String);
 
 impl CustomToolchainName {
-    pub fn str(&self) -> &str {
-        &self.0
-    }
-
     fn validate(candidate: &str) -> Result<CustomToolchainName, InvalidName> {
         let candidate = validate(candidate)?;
         if candidate.parse::<PartialToolchainDesc>().is_ok()
@@ -414,6 +410,14 @@ impl CustomToolchainName {
         } else {
             Ok(CustomToolchainName(candidate.into()))
         }
+    }
+}
+
+impl Deref for CustomToolchainName {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
     }
 }
 

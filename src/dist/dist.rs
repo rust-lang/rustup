@@ -594,7 +594,7 @@ impl TryFrom<&ToolchainName> for ToolchainDesc {
 
     fn try_from(value: &ToolchainName) -> std::result::Result<Self, Self::Error> {
         match value {
-            ToolchainName::Custom(n) => Err(DistError::InvalidOfficialName(n.str().into())),
+            ToolchainName::Custom(n) => Err(DistError::InvalidOfficialName(n.to_string())),
             ToolchainName::Official(n) => Ok(n.clone()),
         }
     }
