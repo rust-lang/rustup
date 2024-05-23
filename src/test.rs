@@ -144,6 +144,10 @@ pub fn this_host_triple() -> String {
         "aarch64"
     } else if cfg!(target_arch = "loongarch64") {
         "loongarch64"
+    } else if cfg!(target_arch = "powerpc64") && cfg!(target_endian = "little") {
+        "powerpc64le"
+    } else if cfg!(target_arch = "s390x") {
+        "s390x"
     } else {
         unimplemented!()
     };
