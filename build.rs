@@ -3,11 +3,8 @@ use std::env;
 include!("src/dist/triple.rs");
 
 fn from_build() -> Result<PartialTargetTriple, String> {
-    let triple = if let Ok(triple) = env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-        triple
-    } else {
-        env::var("TARGET").unwrap()
-    };
+    let triple =
+        env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE").unwrap_or_else(|_| env::var("TARGET").unwrap());
     PartialTargetTriple::new(&triple).ok_or(triple)
 }
 
