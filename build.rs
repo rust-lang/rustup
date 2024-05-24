@@ -1,23 +1,26 @@
 use std::env;
 
-include!("src/dist/triple.rs");
+use platforms::Platform;
 
-fn from_build() -> Result<PartialTargetTriple, String> {
+fn from_build() -> Result<String, String> {
     let triple =
         env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE").unwrap_or_else(|_| env::var("TARGET").unwrap());
-    PartialTargetTriple::new(&triple).ok_or(triple)
+    if Platform::ALL.iter().any(|p| p.target_triple == triple) {
+        Ok(triple)
+    } else {
+        Err(triple)
+    }
 }
 
 fn main() {
     println!("cargo:rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TRIPLE");
     println!("cargo:rerun-if-env-changed=TARGET");
     match from_build() {
-        Ok(triple) => eprintln!("Computed build based partial target triple: {triple:#?}"),
+        Ok(triple) => eprintln!("Computed build based on target triple: {triple:#?}"),
         Err(s) => {
-            eprintln!("Unable to parse target '{s}' as a PartialTargetTriple");
+            eprintln!("Unable to parse target '{s}' as a known target triple");
             eprintln!(
-                "If you are attempting to bootstrap a new target you may need to adjust the\n\
-               permitted values found in src/dist/triple.rs"
+                "If you are attempting to bootstrap a new target, you might need to update `platforms` to a newer version"
             );
             std::process::abort();
         }
