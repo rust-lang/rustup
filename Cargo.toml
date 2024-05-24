@@ -126,6 +126,7 @@ trycmd = "0.15.0"
 
 [build-dependencies]
 once_cell.workspace = true
+platforms = "3.4"
 regex = "1"
 
 [workspace]
