@@ -1,51 +1,7 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-// These lists contain the targets known to rustup, and used to build
-// the PartialTargetTriple.
-
-static LIST_ARCHS: &[&str] = &[
-    "i386",
-    "i586",
-    "i686",
-    "x86_64",
-    "arm",
-    "armv7",
-    "armv7s",
-    "aarch64",
-    "mips",
-    "mipsel",
-    "mips64",
-    "mips64el",
-    "powerpc",
-    "powerpc64",
-    "powerpc64le",
-    "riscv64gc",
-    "s390x",
-    "loongarch64",
-];
-static LIST_OSES: &[&str] = &[
-    "pc-windows",
-    "unknown-linux",
-    "apple-darwin",
-    "unknown-netbsd",
-    "apple-ios",
-    "linux",
-    "rumprun-netbsd",
-    "unknown-freebsd",
-    "unknown-illumos",
-];
-static LIST_ENVS: &[&str] = &[
-    "gnu",
-    "gnux32",
-    "msvc",
-    "gnueabi",
-    "gnueabihf",
-    "gnuabi64",
-    "androideabi",
-    "android",
-    "musl",
-];
+pub mod known;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartialTargetTriple {
@@ -71,9 +27,9 @@ impl PartialTargetTriple {
         static RE: Lazy<Regex> = Lazy::new(|| {
             Regex::new(&format!(
                 r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
-                LIST_ARCHS.join("|"),
-                LIST_OSES.join("|"),
-                LIST_ENVS.join("|")
+                known::LIST_ARCHS.join("|"),
+                known::LIST_OSES.join("|"),
+                known::LIST_ENVS.join("|")
             ))
             .unwrap()
         });
