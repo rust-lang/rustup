@@ -20,7 +20,6 @@ case "$TARGET" in
   mips* ) ;;
   riscv* ) ;;
   s390x* ) ;;
-  aarch64-pc-windows-msvc ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
 esac
@@ -46,7 +45,6 @@ download_pkg_test() {
     mips* ) ;;
     riscv* ) ;;
     s390x* ) ;;
-    aarch64-pc-windows-msvc ) ;;
     # default case, build with rustls enabled
     * ) features+=('--features' 'reqwest-rustls-tls') ;;
   esac
