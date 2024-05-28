@@ -62,7 +62,7 @@ main difference between the two is that they use different values for the
 `RUSTUP_UPDATE_ROOT` environment variable:
 
 - A beta release is deployed on `https://dev-static.rust-lang.org/rustup`.
-- An official release is deployed on `https://static.rust-lang.org/rustup`.
+- A stable release is deployed on `https://static.rust-lang.org/rustup`.
 
 By switching between those two values, Rustup effectively provides two
 "self update channels", making beta testing possible with `rustup self update`.
