@@ -3,8 +3,9 @@
 The primary installation method, as described at <https://rustup.rs>, differs
 by platform:
 
-* On Windows, download and run the [`rustup-init.exe` built for the
-  `x86_64-pc-windows-msvc` target][setup]. In general, this is the build of
+* On Windows, download and run the `rustup-init.exe` built for the
+  [`x86_64-pc-windows-msvc`] or [`aarch64-pc-windows-msvc`] target,
+  depending on your OS architecture. In general, this is the build of
   `rustup` one should install on Windows. This will require the Visual C++
   Build Tools 2019 or equivalent (Visual Studio 2019, etc.) to already be
   installed. If you would prefer to install GNU toolchains or the i686
@@ -15,7 +16,8 @@ by platform:
   downloads and runs [`rustup-init.sh`], which in turn downloads and runs the
   correct version of the `rustup-init` executable for your platform.
 
-[setup]: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+[`x86_64-pc-windows-msvc`]: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+[`aarch64-pc-windows-msvc`]: https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe
 [`rustup-init.sh`]: https://static.rust-lang.org/rustup/rustup-init.sh
 
 `rustup-init` accepts arguments, which can be passed through the shell script.
@@ -74,6 +76,8 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init.sha256)
 - [aarch64-linux-android](https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init.sha256)
+- [aarch64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe.sha256)
 - [aarch64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init.sha256)
 - [aarch64-unknown-linux-musl](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-musl/rustup-init)
