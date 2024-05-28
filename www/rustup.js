@@ -1,10 +1,10 @@
 // IF YOU CHANGE THIS FILE IT MUST BE CHANGED ON BOTH rust-www and rustup.rs
 
-var platforms = ["default", "unknown", "win32", "win64", "unix"];
+var platforms = ["default", "unknown", "win32", "win64", "win-arm64", "unix"];
 var platform_override = null;
 var rustup_install_command = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh";
 
-function detect_platform() {
+async function detect_platform() {
     "use strict";
 
     if (platform_override !== null) {
@@ -29,6 +29,10 @@ function detect_platform() {
     if (navigator.platform == "Win64" ||
         navigator.userAgent.indexOf("WOW64") != -1 ||
         navigator.userAgent.indexOf("Win64") != -1) { os = "win64"; }
+    if (navigator.userAgentData &&
+        navigator.userAgentData.platform == "Windows" &&
+        await navigator.userAgentData.getHighEntropyValues(["architecture", "bitness"])
+            .then(ua => ua.architecture == "arm" && ua.bitness == "64")) { os = "win-arm64"; }
     if (navigator.platform == "FreeBSD x86_64") {os = "unix";}
     if (navigator.platform == "FreeBSD amd64") {os = "unix";}
     if (navigator.platform == "NetBSD x86_64") {os = "unix";}
@@ -68,10 +72,10 @@ function vis(elem, value) {
     }
 }
 
-function adjust_for_platform() {
+async function adjust_for_platform() {
     "use strict";
 
-    var platform = detect_platform();
+    var platform = await detect_platform();
 
     platforms.forEach(function (platform_elem) {
         var platform_div = document.getElementById("platform-instructions-" + platform_elem);
@@ -94,7 +98,7 @@ function adjust_platform_specific_instrs(platform) {
         if (el_is_inline) {
             el_visible_style = "inline";
         }
-        if (platform == "win64" || platform == "win32") {
+        if (platform == "win64" || platform == "win32" || platform == "win-arm64") {
             if (el_is_not_win) {
                 vis(el, "none");
             } else {
@@ -110,13 +114,13 @@ function adjust_platform_specific_instrs(platform) {
     }
 }
 
-function cycle_platform() {
+async function cycle_platform() {
     if (platform_override == null) {
         platform_override = 0;
     } else {
         platform_override = (platform_override + 1) % platforms.length;
     }
-    adjust_for_platform();
+    await adjust_for_platform();
 }
 
 function set_up_cycle_button() {
@@ -127,9 +131,9 @@ function set_up_cycle_button() {
     var idx=0;
     var unlocked=false;
 
-    document.onkeypress = function(event) {
+    document.onkeypress = async function(event) {
         if (event.key == "n" && unlocked) {
-            cycle_platform();
+            await cycle_platform();
         }
 
         if (event.key == key[idx]) {
@@ -138,7 +142,7 @@ function set_up_cycle_button() {
             if (idx == key.length) {
                 vis(cycle_button, "block");
                 unlocked = true;
-                cycle_platform();
+                await cycle_platform();
             }
         } else if (event.key == key[0]) {
             idx = 1;
@@ -148,9 +152,9 @@ function set_up_cycle_button() {
     };
 }
 
-function go_to_default_platform() {
+async function go_to_default_platform() {
     platform_override = 0;
-    adjust_for_platform();
+    await adjust_for_platform();
 }
 
 // NB: This has no effect on rust-lang.org/install.html
@@ -190,6 +194,9 @@ function handle_copy_button_click(e) {
         case 'copy-button-win64':
             process_copy_button_click('copy-status-message-win64');
             break;
+        case 'copy-button-win-arm64':
+            process_copy_button_click('copy-status-message-win-arm64');
+            break;
         case 'copy-button-unknown':
             process_copy_button_click('copy-status-message-unknown');
             break;
@@ -208,8 +215,8 @@ function set_up_copy_button_clicks() {
     })
 }
 
-(function () {
-    adjust_for_platform();
+(async function () {
+    await adjust_for_platform();
     set_up_cycle_button();
     set_up_default_platform_buttons();
     set_up_copy_button_clicks();

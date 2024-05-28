@@ -108,6 +108,7 @@ hr {
 #platform-instructions-unix > p,
 #platform-instructions-win32 > p,
 #platform-instructions-win64 > p,
+#platform-instructions-win-arm64 > p,
 #platform-instructions-default > p,
 #platform-instructions-unknown > p {
     width: 40rem;
@@ -138,6 +139,7 @@ hr {
 #platform-instructions-unix div.copy-container,
 #platform-instructions-win32 div.copy-container,
 #platform-instructions-win64 div.copy-container,
+#platform-instructions-win-arm64 div.copy-container,
 #platform-instructions-default div.copy-container,
 #platform-instructions-unknown div.copy-container {
     display: flex;
@@ -147,6 +149,7 @@ hr {
 #platform-instructions-unix button.copy-button,
 #platform-instructions-win32 button.copy-button,
 #platform-instructions-win64 button.copy-button,
+#platform-instructions-win-arm64 button.copy-button,
 #platform-instructions-default button.copy-button,
 #platform-instructions-unknown button.copy-button {
     height: 58px;
@@ -160,6 +163,7 @@ hr {
 #platform-instructions-unix div.copy-icon,
 #platform-instructions-win32 div.copy-icon,
 #platform-instructions-win64 div.copy-icon,
+#platform-instructions-win-arm64 div.copy-icon,
 #platform-instructions-default div.copy-icon,
 #platform-instructions-unknown div.copy-icon {
     position: relative;
@@ -173,6 +177,7 @@ hr {
 #platform-instructions-unix div.copy-button-text,
 #platform-instructions-win32 div.copy-button-text,
 #platform-instructions-win64 div.copy-button-text,
+#platform-instructions-win-arm64 div.copy-button-text,
 #platform-instructions-default div.copy-button-text,
 #platform-instructions-unknown div.copy-button-text {
     transition: opacity 0.2s ease-in-out;
@@ -187,6 +192,7 @@ hr {
 
 #platform-instructions-win32 a.windows-download,
 #platform-instructions-win64 a.windows-download,
+#platform-instructions-win-arm64 a.windows-download,
 #platform-instructions-default a.windows-download,
 #platform-instructions-unknown a.windows-download {
     display: block;
