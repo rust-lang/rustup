@@ -10,8 +10,7 @@ use home::env as home;
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 use sha2::Sha256;
-use tokio::runtime::Handle;
-use tokio::task;
+use tokio::runtime::{Handle, RuntimeFlavor};
 use url::Url;
 
 use crate::currentprocess::{
@@ -269,20 +268,37 @@ async fn download_file_(
 }
 
 /// Temporary thunk to support asyncifying from underneath.
-pub(crate) fn run_future<F, R, E>(f: F) -> Result<R, E>
+pub(crate) fn run_future<F>(f: F) -> F::Output
 where
-    F: Future<Output = Result<R, E>>,
-    E: std::convert::From<std::io::Error>,
+    F: Future,
 {
     match Handle::try_current() {
-        Ok(current) => {
-            // hide the asyncness for now.
-            task::block_in_place(|| current.block_on(f))
-        }
-        Err(_) => {
-            // Make a runtime to hide the asyncness.
-            tokio::runtime::Runtime::new()?.block_on(f)
-        }
+        // We are in the async world.
+        Ok(handle) => match handle.runtime_flavor() {
+            // tokio doesn't allow current_thread runtime to block_in_place because current thread is
+            // the only thread to drive IO operations. The only way here is to spawn another thread, but
+            // this requires bounds to be F: Future + Send. Considering we are enforcing multi_thread runtime
+            // everywhere, we just panic here.
+            //
+            // If you are using a test, considering add flavor = "multi_thread".
+            RuntimeFlavor::CurrentThread => panic!(
+                "Current thread runtime is not supported, please use multi thread runtime instead."
+            ),
+            // `block_in_place`` is the very low-level "hack" to "escape" to the sync world. It doesn't
+            // need 'static lifetime because the thread is not switched. However, there is a caveat
+            // that tokio multi_thread runtime by default has a 512 limit for blocking threads. Exceeding
+            // this limit with `block_in_place` might cause the whole runtime to hang forever.
+            //
+            // If possible, always wrap `spwan_blocking` with `run_future`
+            _ => tokio::task::block_in_place(move || handle.block_on(f)),
+        },
+        // We are in sync world, spawn a thread to get work done
+        // Note current_thread runtime could still spawn extra threads
+        Err(_) => tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(f),
     }
 }
 
