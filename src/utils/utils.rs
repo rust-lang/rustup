@@ -289,10 +289,10 @@ where
             // that tokio multi_thread runtime by default has a 512 limit for blocking threads. Exceeding
             // this limit with `block_in_place` might cause the whole runtime to hang forever.
             //
-            // If possible, always wrap `spwan_blocking` with `run_future`
+            // If possible, always wrap `run_future` with `spawn_blocking` to avoid any possible hang.
             _ => tokio::task::block_in_place(move || handle.block_on(f)),
         },
-        // We are in sync world, spawn a thread to get work done
+        // We are in sync world, spawn a current_thread runtime to get work done
         // Note current_thread runtime could still spawn extra threads
         Err(_) => tokio::runtime::Builder::new_current_thread()
             .enable_all()
