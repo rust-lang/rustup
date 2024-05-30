@@ -873,7 +873,7 @@ fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
             utils::run_future(common::self_update(|| Ok(utils::ExitCode(0))))?;
         }
     } else {
-        common::update_all_channels(cfg, self_update, opts.force)?;
+        utils::run_future(common::update_all_channels(cfg, self_update, opts.force))?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
