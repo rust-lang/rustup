@@ -626,7 +626,9 @@ pub async fn main() -> Result<utils::ExitCode> {
             ToolchainSubcmd::List { verbose } => {
                 handle_epipe(common::list_toolchains(cfg, verbose))
             }
-            ToolchainSubcmd::Link { toolchain, path } => toolchain_link(cfg, &toolchain, &path),
+            ToolchainSubcmd::Link { toolchain, path } => {
+                toolchain_link(cfg, &toolchain, &path).await
+            }
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         },
         RustupSubcmd::Check => check_updates(cfg),
@@ -1245,7 +1247,11 @@ fn component_remove(
     Ok(utils::ExitCode(0))
 }
 
-fn toolchain_link(cfg: &Cfg, dest: &CustomToolchainName, src: &Path) -> Result<utils::ExitCode> {
+async fn toolchain_link(
+    cfg: &Cfg,
+    dest: &CustomToolchainName,
+    src: &Path,
+) -> Result<utils::ExitCode> {
     cfg.ensure_toolchains_dir()?;
     let mut pathbuf = PathBuf::from(src);
 
@@ -1258,16 +1264,15 @@ fn toolchain_link(cfg: &Cfg, dest: &CustomToolchainName, src: &Path) -> Result<u
     utils::assert_is_file(&pathbuf)?;
 
     if true {
-        utils::run_future(
-            InstallMethod::Link {
-                src: &utils::to_absolute(src)?,
-                dest,
-                cfg,
-            }
-            .install(),
-        )?;
+        InstallMethod::Link {
+            src: &utils::to_absolute(src)?,
+            dest,
+            cfg,
+        }
+        .install()
+        .await?;
     } else {
-        utils::run_future(InstallMethod::Copy { src, dest, cfg }.install())?;
+        InstallMethod::Copy { src, dest, cfg }.install().await?;
     }
 
     Ok(utils::ExitCode(0))
