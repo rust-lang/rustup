@@ -285,7 +285,7 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub(crate) fn update_all_channels(
+pub(crate) async fn update_all_channels(
     cfg: &Cfg,
     do_self_update: bool,
     force_update: bool,
@@ -310,7 +310,7 @@ pub(crate) fn update_all_channels(
     };
 
     if do_self_update {
-        utils::run_future(self_update(show_channel_updates))
+        self_update(show_channel_updates).await
     } else {
         show_channel_updates()
     }
