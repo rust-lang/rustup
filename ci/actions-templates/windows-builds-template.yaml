@@ -21,14 +21,14 @@ jobs: # skip-master skip-pr skip-stable
           - x86_64-pc-windows-msvc
           - i686-pc-windows-msvc # skip-pr skip-master
           - aarch64-pc-windows-msvc # skip-pr
-          - x86_64-pc-windows-gnu # skip-pr
+          - x86_64-pc-windows-gnu
           - i686-pc-windows-gnu # skip-pr skip-master
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
-          - target: x86_64-pc-windows-gnu # skip-pr
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z # skip-pr
-            mingwdir: mingw64 # skip-pr
+          - target: x86_64-pc-windows-gnu
+            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z 
+            mingwdir: mingw64
           - target: i686-pc-windows-gnu # skip-pr skip-master
             mingwdir: mingw32 # skip-pr skip-master
             mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z # skip-pr skip-master
