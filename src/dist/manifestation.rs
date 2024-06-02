@@ -313,8 +313,12 @@ impl Manifestation {
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let config_str = utils::read_file("dist config", &prefix.path().join(&rel_config_path))?;
-        let config = Config::parse(&config_str)?;
+        let abs_config_path = prefix.path().join(&rel_config_path);
+        let config_str = utils::read_file("dist config", &abs_config_path)?;
+        let config = Config::parse(&config_str).with_context(|| RustupError::ParsingFile {
+            name: "config",
+            path: abs_config_path,
+        })?;
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
@@ -359,7 +363,12 @@ impl Manifestation {
         let config_path = prefix.path().join(rel_config_path);
         if utils::path_exists(&config_path) {
             let config_str = utils::read_file("dist config", &config_path)?;
-            Ok(Some(Config::parse(&config_str)?))
+            Ok(Some(Config::parse(&config_str).with_context(|| {
+                RustupError::ParsingFile {
+                    name: "Config",
+                    path: config_path,
+                }
+            })?))
         } else {
             Ok(None)
         }
@@ -371,7 +380,12 @@ impl Manifestation {
         let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
         if utils::path_exists(&old_manifest_path) {
             let manifest_str = utils::read_file("installed manifest", &old_manifest_path)?;
-            Ok(Some(Manifest::parse(&manifest_str)?))
+            Ok(Some(Manifest::parse(&manifest_str).with_context(|| {
+                RustupError::ParsingFile {
+                    name: "manifest",
+                    path: old_manifest_path,
+                }
+            })?))
         } else {
             Ok(None)
         }

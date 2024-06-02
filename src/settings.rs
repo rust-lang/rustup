@@ -43,7 +43,10 @@ impl SettingsFile {
                 drop(b);
                 *self.cache.borrow_mut() = Some(if utils::is_file(&self.path) {
                     let content = utils::read_file("settings", &self.path)?;
-                    Settings::parse(&content)?
+                    Settings::parse(&content).with_context(|| RustupError::ParsingFile {
+                        name: "settings",
+                        path: self.path.clone(),
+                    })?
                 } else {
                     needs_save = true;
                     Default::default()

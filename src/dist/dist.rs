@@ -1096,7 +1096,11 @@ pub(crate) async fn dl_v2_manifest(
                 return Ok(None);
             };
             let manifest_str = utils::read_file("manifest", &manifest_file)?;
-            let manifest = ManifestV2::parse(&manifest_str)?;
+            let manifest =
+                ManifestV2::parse(&manifest_str).with_context(|| RustupError::ParsingFile {
+                    name: "manifest",
+                    path: manifest_file.to_path_buf(),
+                })?;
 
             Ok(Some((manifest, manifest_hash)))
         }
