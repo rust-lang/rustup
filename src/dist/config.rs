@@ -43,7 +43,7 @@ impl Config {
     }
 
     pub(crate) fn parse(data: &str) -> Result<Self> {
-        let value = toml::from_str(data).context("error parsing manifest")?;
+        let value = toml::from_str(data).context("error parsing config")?;
         Self::from_toml(value, "")
     }
 

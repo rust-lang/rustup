@@ -641,11 +641,15 @@ impl Cfg {
             };
 
             if let Ok(contents) = contents {
-                let add_file_context = || format!("in {}", toolchain_file.to_string_lossy());
                 // XXX Should not return the unvalidated contents; but a new
                 // internal only safe struct
-                let override_file = Cfg::parse_override_file(contents, parse_mode)
-                    .with_context(add_file_context)?;
+                let override_file =
+                    Cfg::parse_override_file(contents, parse_mode).with_context(|| {
+                        RustupError::ParsingFile {
+                            name: "override",
+                            path: toolchain_file.clone(),
+                        }
+                    })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
                     let toolchain_name = ResolvableToolchainName::try_from(toolchain_name_str)?;
                     let default_host_triple = get_default_host_triple(settings);

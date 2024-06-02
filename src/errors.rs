@@ -71,6 +71,8 @@ pub(crate) enum RustupError {
     ReadingDirectory { name: &'static str, path: PathBuf },
     #[error("could not read {name} file: '{}'", .path.display())]
     ReadingFile { name: &'static str, path: PathBuf },
+    #[error("could not parse {name} file: '{}'", .path.display())]
+    ParsingFile { name: &'static str, path: PathBuf },
     #[error("could not remove '{}' directory: '{}'", .name, .path.display())]
     RemovingDirectory { name: &'static str, path: PathBuf },
     #[error("could not remove '{name}' file: '{}'", .path.display())]
