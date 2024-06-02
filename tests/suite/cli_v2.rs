@@ -305,10 +305,19 @@ fn bad_manifest() {
     setup(&|config| {
         // install some toolchain
         config.expect_ok(&["rustup", "update", "nightly"]);
+
+        #[cfg(not(target_os = "windows"))]
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
             this_host_triple(),
         );
+
+        #[cfg(target_os = "windows")]
+        let path = format!(
+            r"toolchains\nightly-{}\lib/rustlib\multirust-channel-manifest.toml",
+            this_host_triple(),
+        );
+
         assert!(config.rustupdir.has(&path));
         let path = config.rustupdir.join(&path);
 
