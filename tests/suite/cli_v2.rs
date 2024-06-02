@@ -300,6 +300,39 @@ fn bad_sha_on_manifest() {
 }
 
 #[test]
+fn bad_manifest() {
+    // issue #3851
+    setup(&|config| {
+        // install some toolchain
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
+            this_host_triple(),
+        );
+        assert!(config.rustupdir.has(&path));
+        let path = config.rustupdir.join(&path);
+
+        // corrupt the manifest file by inserting a NUL byte at some position
+        let old = fs::read_to_string(&path).unwrap();
+        let pattern = "[[pkg.rust.targ";
+        let (prefix, suffix) = old.split_once(pattern).unwrap();
+        let new = format!("{prefix}{pattern}\u{0}{suffix}");
+        fs::write(&path, new).unwrap();
+
+        // run some commands that try to load the manifest and
+        // check that the manifest parsing error includes the manifest file path
+        config.expect_err(
+            &["rustup", "check"],
+            &format!("error: could not parse manifest file: '{}'", path.display()),
+        );
+        config.expect_err(
+            &["cargo", "--help"],
+            &format!("error: could not parse manifest file: '{}'", path.display()),
+        );
+    });
+}
+
+#[test]
 fn bad_sha_on_installer() {
     setup(&|config| {
         // Since the v2 sha's are contained in the manifest, corrupt the installer
