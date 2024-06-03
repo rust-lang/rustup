@@ -2,15 +2,16 @@
 // server (mocked on the file system)
 #![allow(clippy::type_complexity)]
 
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::{cell::Cell, future::Future};
 
 use anyhow::{anyhow, Result};
+use tokio::{runtime::Handle, task};
 use url::Url;
 
 use rustup_macros::unit_test as test;
@@ -31,6 +32,24 @@ use crate::{
 };
 
 const SHA256_HASH_LEN: usize = 64;
+
+/// Temporary thunk to support asyncifying from underneath.
+fn run_future<F, R, E>(f: F) -> Result<R, E>
+where
+    F: Future<Output = Result<R, E>>,
+    E: std::convert::From<std::io::Error>,
+{
+    match Handle::try_current() {
+        Ok(current) => {
+            // hide the asyncness for now.
+            task::block_in_place(|| current.block_on(f))
+        }
+        Err(_) => {
+            // Make a runtime to hide the asyncness.
+            tokio::runtime::Runtime::new()?.block_on(f)
+        }
+    }
+}
 
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(
@@ -323,7 +342,7 @@ fn rename_component() {
             )];
 
             change_channel_date(url, "nightly", "2016-02-01");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -337,7 +356,7 @@ fn rename_component() {
             assert!(utils::path_exists(prefix.path().join("bin/bonus")));
             assert!(!utils::path_exists(prefix.path().join("bin/bobo")));
             change_channel_date(url, "nightly", "2016-02-02");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -388,7 +407,7 @@ fn rename_component_new() {
             )];
             // Install the basics from day 1
             change_channel_date(url, "nightly", "2016-02-01");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -405,7 +424,7 @@ fn rename_component_new() {
             // Now we move to day 2, where bobo is part of the set of things we want
             // to have installed
             change_channel_date(url, "nightly", "2016-02-02");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -576,7 +595,7 @@ fn initial_install(comps: Compressions) {
                          prefix,
                          download_cfg,
                          tmp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -615,7 +634,7 @@ fn test_uninstall() {
                           prefix,
                           download_cfg,
                           tmp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -640,7 +659,7 @@ fn uninstall_removes_config_file() {
                           prefix,
                           download_cfg,
                           tmp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -669,7 +688,7 @@ fn upgrade() {
                           download_cfg,
                           tmp_cx| {
         change_channel_date(url, "nightly", "2016-02-01");
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -685,7 +704,7 @@ fn upgrade() {
             fs::read_to_string(prefix.path().join("bin/rustc")).unwrap()
         );
         change_channel_date(url, "nightly", "2016-02-02");
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -747,7 +766,7 @@ fn unavailable_component() {
 
             change_channel_date(url, "nightly", "2016-02-01");
             // Update with bonus.
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -762,7 +781,7 @@ fn unavailable_component() {
             change_channel_date(url, "nightly", "2016-02-02");
 
             // Update without bonus, should fail.
-            let err = utils::run_future(update_from_dist(
+            let err = run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -817,7 +836,7 @@ fn unavailable_component_from_profile() {
         &|url, toolchain, prefix, download_cfg, tmp_cx| {
             change_channel_date(url, "nightly", "2016-02-01");
             // Update with rustc.
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -832,7 +851,7 @@ fn unavailable_component_from_profile() {
             change_channel_date(url, "nightly", "2016-02-02");
 
             // Update without rustc, should fail.
-            let err = utils::run_future(update_from_dist(
+            let err = run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -859,7 +878,7 @@ fn unavailable_component_from_profile() {
                 _ => panic!(),
             }
 
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -906,7 +925,7 @@ fn removed_component() {
 
             // Update with bonus.
             change_channel_date(url, "nightly", "2016-02-01");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -921,7 +940,7 @@ fn removed_component() {
 
             // Update without bonus, should fail with RequestedComponentsUnavailable
             change_channel_date(url, "nightly", "2016-02-02");
-            let err = utils::run_future(update_from_dist(
+            let err = run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -988,7 +1007,7 @@ fn unavailable_components_is_target() {
 
             // Update with rust-std
             change_channel_date(url, "nightly", "2016-02-01");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -1009,7 +1028,7 @@ fn unavailable_components_is_target() {
 
             // Update without rust-std
             change_channel_date(url, "nightly", "2016-02-02");
-            let err = utils::run_future(update_from_dist(
+            let err = run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -1083,7 +1102,7 @@ fn unavailable_components_with_same_target() {
         &|url, toolchain, prefix, download_cfg, tmp_cx| {
             // Update with rust-std and rustc
             change_channel_date(url, "nightly", "2016-02-01");
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -1099,7 +1118,7 @@ fn unavailable_components_with_same_target() {
 
             // Update without rust-std and rustc
             change_channel_date(url, "nightly", "2016-02-02");
-            let err = utils::run_future(update_from_dist(
+            let err = run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -1156,7 +1175,7 @@ fn update_preserves_extensions() {
         ];
 
         change_channel_date(url, "nightly", "2016-02-01");
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1176,7 +1195,7 @@ fn update_preserves_extensions() {
         ));
 
         change_channel_date(url, "nightly", "2016-02-02");
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1204,7 +1223,7 @@ fn update_makes_no_changes_for_identical_manifest() {
                           prefix,
                           download_cfg,
                           tmp_cx| {
-        let status = utils::run_future(update_from_dist(
+        let status = run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1216,7 +1235,7 @@ fn update_makes_no_changes_for_identical_manifest() {
         ))
         .unwrap();
         assert_eq!(status, UpdateStatus::Changed);
-        let status = utils::run_future(update_from_dist(
+        let status = run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1251,7 +1270,7 @@ fn add_extensions_for_initial_install() {
             ),
         ];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1278,7 +1297,7 @@ fn add_extensions_for_same_manifest() {
                           prefix,
                           download_cfg,
                           tmp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1303,7 +1322,7 @@ fn add_extensions_for_same_manifest() {
             ),
         ];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1333,7 +1352,7 @@ fn add_extensions_for_upgrade() {
                           tmp_cx| {
         change_channel_date(url, "nightly", "2016-02-01");
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1360,7 +1379,7 @@ fn add_extensions_for_upgrade() {
             ),
         ];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1395,7 +1414,7 @@ fn add_extension_not_in_manifest() {
             true,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1423,7 +1442,7 @@ fn add_extension_that_is_required_component() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1452,7 +1471,7 @@ fn add_extensions_does_not_remove_other_components() {
                           prefix,
                           download_cfg,
                           temp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1470,7 +1489,7 @@ fn add_extensions_does_not_remove_other_components() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1501,7 +1520,7 @@ fn remove_extensions_for_initial_install() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1535,7 +1554,7 @@ fn remove_extensions_for_same_manifest() {
             ),
         ];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1553,7 +1572,7 @@ fn remove_extensions_for_same_manifest() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1596,7 +1615,7 @@ fn remove_extensions_for_upgrade() {
             ),
         ];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1616,7 +1635,7 @@ fn remove_extensions_for_upgrade() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1647,7 +1666,7 @@ fn remove_extension_not_in_manifest() {
                           tmp_cx| {
         change_channel_date(url, "nightly", "2016-02-01");
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1667,7 +1686,7 @@ fn remove_extension_not_in_manifest() {
             true,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1712,7 +1731,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
                 Some(TargetTriple::new("x86_64-apple-darwin")),
                 true,
             )];
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -1732,7 +1751,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
                 Some(TargetTriple::new("x86_64-apple-darwin")),
                 true,
             )];
-            utils::run_future(update_from_dist(
+            run_future(update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -1755,7 +1774,7 @@ fn remove_extension_that_is_required_component() {
                           prefix,
                           download_cfg,
                           temp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1773,7 +1792,7 @@ fn remove_extension_that_is_required_component() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1795,7 +1814,7 @@ fn remove_extension_not_installed() {
                           prefix,
                           download_cfg,
                           temp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1813,7 +1832,7 @@ fn remove_extension_not_installed() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1844,7 +1863,7 @@ fn remove_extensions_does_not_remove_other_components() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1862,7 +1881,7 @@ fn remove_extensions_does_not_remove_other_components() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1893,7 +1912,7 @@ fn add_and_remove_for_upgrade() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1919,7 +1938,7 @@ fn add_and_remove_for_upgrade() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1953,7 +1972,7 @@ fn add_and_remove() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -1977,7 +1996,7 @@ fn add_and_remove() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2005,7 +2024,7 @@ fn add_and_remove_same_component() {
                           prefix,
                           download_cfg,
                           temp_cx| {
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2029,7 +2048,7 @@ fn add_and_remove_same_component() {
             false,
         )];
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2054,7 +2073,7 @@ fn bad_component_hash() {
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         utils_raw::write_file(&path, "bogus").unwrap();
 
-        let err = utils::run_future(update_from_dist(
+        let err = run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2084,7 +2103,7 @@ fn unable_to_download_component() {
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         fs::remove_file(path).unwrap();
 
-        let err = utils::run_future(update_from_dist(
+        let err = run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2141,7 +2160,7 @@ fn reuse_downloaded_file() {
             },
         };
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2156,7 +2175,7 @@ fn reuse_downloaded_file() {
 
         allow_installation(prefix);
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2208,7 +2227,7 @@ fn checks_files_hashes_before_reuse() {
             },
         };
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
@@ -2255,7 +2274,7 @@ fn handle_corrupt_partial_downloads() {
         )
         .unwrap();
 
-        utils::run_future(update_from_dist(
+        run_future(update_from_dist(
             url,
             toolchain,
             prefix,
