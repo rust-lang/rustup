@@ -1988,6 +1988,7 @@ dependencies = [
  "threadpool",
  "tokio",
  "tokio-retry",
+ "tokio-stream",
  "toml",
  "tracing",
  "tracing-opentelemetry",

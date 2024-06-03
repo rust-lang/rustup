@@ -290,7 +290,7 @@ pub(crate) async fn update_all_channels(
     do_self_update: bool,
     force_update: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchains = cfg.update_all_channels(force_update)?;
+    let toolchains = cfg.update_all_channels(force_update).await?;
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
