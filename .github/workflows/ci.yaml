@@ -37,8 +37,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
           - target: x86_64-pc-windows-gnu
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z 
+            arch: x86_64
             mingwdir: mingw64
+            gcc: x86_64-w64-mingw32-gcc
     steps:
       - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
@@ -57,17 +58,16 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
       - name: Install mingw
-        run: |
-          # We retrieve mingw from the Rust CI buckets
-          # Disable the download progress bar which can cause perf issues
-          $ProgressPreference = "SilentlyContinue"
-          Invoke-WebRequest ${{ matrix.mingw }} -OutFile mingw.7z
-          7z x -y mingw.7z -oC:\msys64 | Out-Null
-          del mingw.7z
-          echo "C:\msys64\usr\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "C:\msys64\${{ matrix.mingwdir }}\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+        uses: bwoodsend/setup-winlibs-action@v1
+        if: matrix.mingwdir != ''
+        with:
+          architecture: ${{ matrix.arch }}
+      - name: Verify mingw gcc installation
         shell: powershell
-        if: matrix.mingw != ''
+        if: matrix.mingwdir != ''
+        run: |
+          Get-Command ${{ matrix.gcc }}
+          ${{ matrix.gcc }} --version
       - name: Set PATH
         run: |
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
@@ -123,7 +123,7 @@ jobs:
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
       - name: Run cargo clippy
-        if: matrix.mode != 'release' && matrix.mingw == ''
+        if: matrix.mode != 'release' && matrix.mingwdir == ''
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -179,8 +179,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
           - target: x86_64-pc-windows-gnu
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z 
+            arch: x86_64
             mingwdir: mingw64
+            gcc: x86_64-w64-mingw32-gcc
     steps:
       - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
@@ -199,17 +200,16 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
       - name: Install mingw
-        run: |
-          # We retrieve mingw from the Rust CI buckets
-          # Disable the download progress bar which can cause perf issues
-          $ProgressPreference = "SilentlyContinue"
-          Invoke-WebRequest ${{ matrix.mingw }} -OutFile mingw.7z
-          7z x -y mingw.7z -oC:\msys64 | Out-Null
-          del mingw.7z
-          echo "C:\msys64\usr\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "C:\msys64\${{ matrix.mingwdir }}\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+        uses: bwoodsend/setup-winlibs-action@v1
+        if: matrix.mingwdir != ''
+        with:
+          architecture: ${{ matrix.arch }}
+      - name: Verify mingw gcc installation
         shell: powershell
-        if: matrix.mingw != ''
+        if: matrix.mingwdir != ''
+        run: |
+          Get-Command ${{ matrix.gcc }}
+          ${{ matrix.gcc }} --version
       - name: Set PATH
         run: |
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
@@ -265,7 +265,7 @@ jobs:
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
       - name: Run cargo clippy
-        if: matrix.mode != 'release' && matrix.mingw == ''
+        if: matrix.mode != 'release' && matrix.mingwdir == ''
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -323,11 +323,13 @@ jobs:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
           - target: x86_64-pc-windows-gnu
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z 
+            arch: x86_64
             mingwdir: mingw64
+            gcc: x86_64-w64-mingw32-gcc
           - target: i686-pc-windows-gnu # skip-pr skip-master
+            arch: i686 # skip-pr skip-master
             mingwdir: mingw32 # skip-pr skip-master
-            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z # skip-pr skip-master
+            gcc: i686-w64-mingw32-gcc # skip-pr skip-master
     steps:
       - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
@@ -346,17 +348,16 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
       - name: Install mingw
-        run: |
-          # We retrieve mingw from the Rust CI buckets
-          # Disable the download progress bar which can cause perf issues
-          $ProgressPreference = "SilentlyContinue"
-          Invoke-WebRequest ${{ matrix.mingw }} -OutFile mingw.7z
-          7z x -y mingw.7z -oC:\msys64 | Out-Null
-          del mingw.7z
-          echo "C:\msys64\usr\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "C:\msys64\${{ matrix.mingwdir }}\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+        uses: bwoodsend/setup-winlibs-action@v1
+        if: matrix.mingwdir != ''
+        with:
+          architecture: ${{ matrix.arch }}
+      - name: Verify mingw gcc installation
         shell: powershell
-        if: matrix.mingw != ''
+        if: matrix.mingwdir != ''
+        run: |
+          Get-Command ${{ matrix.gcc }}
+          ${{ matrix.gcc }} --version
       - name: Set PATH
         run: |
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
@@ -412,7 +413,7 @@ jobs:
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
       - name: Run cargo clippy
-        if: matrix.mode != 'release' && matrix.mingw == ''
+        if: matrix.mode != 'release' && matrix.mingwdir == ''
         env:
           TARGET: ${{ matrix.target }}
         run: |
