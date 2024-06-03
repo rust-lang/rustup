@@ -675,7 +675,9 @@ pub async fn main() -> Result<utils::ExitCode> {
             toolchain,
             command,
             install,
-        } => run(cfg, toolchain, command, install).map(ExitCode::from),
+        } => run(cfg, toolchain, command, install)
+            .await
+            .map(ExitCode::from),
         RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain).await,
         RustupSubcmd::Doc {
             path,
@@ -893,14 +895,16 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn run(
+async fn run(
     cfg: &Cfg,
     toolchain: ResolvableLocalToolchainName,
     command: Vec<String>,
     install: bool,
 ) -> Result<ExitStatus> {
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-    let cmd = cfg.create_command_for_toolchain(&toolchain, install, &command[0])?;
+    let cmd = cfg
+        .create_command_for_toolchain(&toolchain, install, &command[0])
+        .await?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
 }
 
