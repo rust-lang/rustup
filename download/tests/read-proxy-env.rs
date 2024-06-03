@@ -61,6 +61,10 @@ async fn socks_proxy_request() {
     let url = Url::parse("http://192.168.0.1/").unwrap();
 
     let client = Client::builder()
+        // HACK: set `pool_max_idle_per_host` to `0` to avoid an issue in the underlying
+        // `hyper` library that causes the `reqwest` client to hang in some cases.
+        // See <https://github.com/hyperium/hyper/issues/2312> for more details.
+        .pool_max_idle_per_host(0)
         .proxy(Proxy::custom(env_proxy))
         .timeout(Duration::from_secs(1))
         .build()
