@@ -37,7 +37,7 @@ pub(crate) struct Toolchain<'a> {
 }
 
 impl<'a> Toolchain<'a> {
-    pub(crate) fn from_partial(
+    pub(crate) async fn from_partial(
         toolchain: Option<PartialToolchainDesc>,
         cfg: &'a Cfg,
     ) -> anyhow::Result<Self> {
@@ -48,7 +48,7 @@ impl<'a> Toolchain<'a> {
             }
             None => {
                 let cwd = utils::current_dir()?;
-                let (toolchain, _) = cfg.find_or_install_active_toolchain(&cwd)?;
+                let (toolchain, _) = cfg.find_or_install_active_toolchain(&cwd).await?;
 
                 Ok(toolchain)
             }
