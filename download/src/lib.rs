@@ -345,6 +345,10 @@ pub mod reqwest_be {
 
     fn client_generic() -> ClientBuilder {
         Client::builder()
+            // HACK: set `pool_max_idle_per_host` to `0` to avoid an issue in the underlying
+            // `hyper` library that causes the `reqwest` client to hang in some cases.
+            // See <https://github.com/hyperium/hyper/issues/2312> for more details.
+            .pool_max_idle_per_host(0)
             .gzip(false)
             .proxy(Proxy::custom(env_proxy))
             .timeout(Duration::from_secs(30))
