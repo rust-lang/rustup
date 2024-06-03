@@ -9,6 +9,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, bail, Context, Result};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
+use tokio_stream::StreamExt;
 
 use crate::{
     cli::self_update::SelfUpdateMode,
@@ -894,7 +895,7 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn update_all_channels(
+    pub(crate) async fn update_all_channels(
         &self,
         force_update: bool,
     ) -> Result<Vec<(ToolchainDesc, Result<UpdateStatus>)>> {
@@ -903,22 +904,17 @@ impl Cfg {
         let profile = self.get_profile()?;
 
         // Update toolchains and collect the results
-        let channels = channels.map(|(desc, mut distributable)| {
-            let st = utils::run_future(distributable.update_extra(
-                &[],
-                &[],
-                profile,
-                force_update,
-                false,
-            ));
-
+        let channels = tokio_stream::iter(channels).then(|(desc, mut distributable)| async move {
+            let st = distributable
+                .update_extra(&[], &[], profile, force_update, false)
+                .await;
             if let Err(ref e) = st {
                 (self.notify_handler)(Notification::NonFatalError(e));
             }
             (desc, st)
         });
 
-        Ok(channels.collect())
+        Ok(channels.collect().await)
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]

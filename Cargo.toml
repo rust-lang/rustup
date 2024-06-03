@@ -85,6 +85,7 @@ thiserror.workspace = true
 threadpool = "1"
 tokio-retry.workspace = true
 tokio.workspace = true
+tokio-stream.workspace = true
 toml = "0.8"
 tracing-opentelemetry = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
