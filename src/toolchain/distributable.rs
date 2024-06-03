@@ -33,11 +33,13 @@ pub(crate) struct DistributableToolchain<'a> {
 }
 
 impl<'a> DistributableToolchain<'a> {
-    pub(crate) fn from_partial(
+    pub(crate) async fn from_partial(
         toolchain: Option<PartialToolchainDesc>,
         cfg: &'a Cfg,
     ) -> anyhow::Result<Self> {
-        Ok(Self::try_from(&Toolchain::from_partial(toolchain, cfg)?)?)
+        Ok(Self::try_from(
+            &Toolchain::from_partial(toolchain, cfg).await?,
+        )?)
     }
 
     pub(crate) fn new(cfg: &'a Cfg, desc: ToolchainDesc) -> Result<Self, RustupError> {

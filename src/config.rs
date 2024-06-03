@@ -490,8 +490,8 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.find_or_install_active_toolchain(path)?;
+    pub(crate) async fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
+        let (toolchain, _) = self.find_or_install_active_toolchain(path).await?;
         Ok(toolchain.binary_file(binary))
     }
 
@@ -726,16 +726,17 @@ impl Cfg {
         }
     }
 
-    pub(crate) fn find_or_install_active_toolchain(
+    pub(crate) async fn find_or_install_active_toolchain(
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, ActiveReason)> {
-        self.maybe_find_or_install_active_toolchain(path)?
+        self.maybe_find_or_install_active_toolchain(path)
+            .await?
             .ok_or(RustupError::ToolchainNotSelected.into())
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn maybe_find_or_install_active_toolchain(
+    pub(crate) async fn maybe_find_or_install_active_toolchain(
         &self,
         path: &Path,
     ) -> Result<Option<(Toolchain<'_>, ActiveReason)>> {
@@ -756,8 +757,9 @@ impl Cfg {
                     targets,
                     profile,
                 } => {
-                    let toolchain =
-                        self.ensure_installed(toolchain, components, targets, profile)?;
+                    let toolchain = self
+                        .ensure_installed(toolchain, components, targets, profile)
+                        .await?;
                     Ok(Some((toolchain, reason)))
                 }
             },
@@ -770,7 +772,9 @@ impl Cfg {
                 }
                 Some(ToolchainName::Official(toolchain_desc)) => {
                     let reason = ActiveReason::Default;
-                    let toolchain = self.ensure_installed(toolchain_desc, vec![], vec![], None)?;
+                    let toolchain = self
+                        .ensure_installed(toolchain_desc, vec![], vec![], None)
+                        .await?;
                     Ok(Some((toolchain, reason)))
                 }
             },
@@ -779,7 +783,7 @@ impl Cfg {
 
     // Returns a Toolchain matching the given ToolchainDesc, installing it and
     // the given components and targets if they aren't already installed.
-    fn ensure_installed(
+    async fn ensure_installed(
         &self,
         toolchain: ToolchainDesc,
         components: Vec<String>,
@@ -790,14 +794,15 @@ impl Cfg {
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
         let toolchain = match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled(_)) => {
-                utils::run_future(DistributableToolchain::install(
+                DistributableToolchain::install(
                     self,
                     &toolchain,
                     &components,
                     &targets,
                     profile.unwrap_or(Profile::Default),
                     false,
-                ))?
+                )
+                .await?
                 .1
             }
             Ok(mut distributable) => {
@@ -932,8 +937,12 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (toolchain, _) = self.find_or_install_active_toolchain(path)?;
+    pub(crate) async fn create_command_for_dir(
+        &self,
+        path: &Path,
+        binary: &str,
+    ) -> Result<Command> {
+        let (toolchain, _) = self.find_or_install_active_toolchain(path).await?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 

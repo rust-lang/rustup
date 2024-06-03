@@ -541,7 +541,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             #[cfg_attr(feature = "otel", tracing::instrument)]
-            fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
+            async fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(false, true)?;
                 let cwd = std::env::current_dir()?;
 
@@ -550,12 +550,12 @@ pub async fn main() -> Result<utils::ExitCode> {
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
-                let toolchain = cfg.find_or_install_active_toolchain(&cwd)?.0;
+                let toolchain = cfg.find_or_install_active_toolchain(&cwd).await?.0;
 
                 Ok(toolchain.rustc_version())
             }
 
-            match rustc_version() {
+            match rustc_version().await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
                 Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
@@ -640,7 +640,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             TargetSubcmd::List {
                 toolchain,
                 installed,
-            } => handle_epipe(target_list(cfg, toolchain, installed)),
+            } => handle_epipe(target_list(cfg, toolchain, installed).await),
             TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain).await,
             TargetSubcmd::Remove { target, toolchain } => {
                 target_remove(cfg, target, toolchain).await
@@ -650,7 +650,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             ComponentSubcmd::List {
                 toolchain,
                 installed,
-            } => handle_epipe(component_list(cfg, toolchain, installed)),
+            } => handle_epipe(component_list(cfg, toolchain, installed).await),
             ComponentSubcmd::Add {
                 component,
                 toolchain,
@@ -676,15 +676,15 @@ pub async fn main() -> Result<utils::ExitCode> {
             command,
             install,
         } => run(cfg, toolchain, command, install).map(ExitCode::from),
-        RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain),
+        RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain).await,
         RustupSubcmd::Doc {
             path,
             toolchain,
             topic,
             page,
-        } => doc(cfg, path, toolchain, topic.as_deref(), &page),
+        } => doc(cfg, path, toolchain, topic.as_deref(), &page).await,
         #[cfg(not(windows))]
-        RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain),
+        RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain).await,
         RustupSubcmd::Self_ { subcmd } => match subcmd {
             SelfSubcmd::Update => self_update::update(cfg).await,
             SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
@@ -904,7 +904,7 @@ fn run(
     command::run_command_for_dir(cmd, &command[0], &command[1..])
 }
 
-fn which(
+async fn which(
     cfg: &Cfg,
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
@@ -913,7 +913,7 @@ fn which(
         let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::new(cfg, desc.into())?.binary_file(binary)
     } else {
-        cfg.which_binary(&utils::current_dir()?, binary)?
+        cfg.which_binary(&utils::current_dir()?, binary).await?
     };
 
     utils::assert_is_file(&binary_path)?;
@@ -1091,13 +1091,13 @@ fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn target_list(
+async fn target_list(
     cfg: &Cfg,
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     common::list_items(
         distributable,
         |c| {
@@ -1122,7 +1122,7 @@ async fn target_add(
     // isn't a feature yet.
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let components = distributable.components()?;
 
     if targets.contains(&"all".to_string()) {
@@ -1166,7 +1166,7 @@ async fn target_remove(
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
 
     for target in targets {
         let target = TargetTriple::new(target);
@@ -1195,13 +1195,13 @@ async fn target_remove(
     Ok(utils::ExitCode(0))
 }
 
-fn component_list(
+async fn component_list(
     cfg: &Cfg,
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     common::list_items(distributable, |c| Some(&c.name), installed_only)?;
     Ok(utils::ExitCode(0))
 }
@@ -1212,7 +1212,7 @@ async fn component_add(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1238,7 +1238,7 @@ async fn component_remove(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1418,14 +1418,14 @@ docs_data![
     (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(
+async fn doc(
     cfg: &Cfg,
     path_only: bool,
     toolchain: Option<PartialToolchainDesc>,
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg).await?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1481,14 +1481,14 @@ fn doc(
 }
 
 #[cfg(not(windows))]
-fn man(
+async fn man(
     cfg: &Cfg,
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
     use crate::currentprocess::varsource::VarSource;
 
-    let toolchain = Toolchain::from_partial(toolchain, cfg)?;
+    let toolchain = Toolchain::from_partial(toolchain, cfg).await?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");

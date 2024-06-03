@@ -140,7 +140,7 @@ async fn run_rustup_inner() -> Result<utils::ExitCode> {
         }
         Some(n) => {
             is_proxyable_tools(n)?;
-            proxy_mode::main(n).map(ExitCode::from)
+            proxy_mode::main(n).await.map(ExitCode::from)
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
