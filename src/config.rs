@@ -808,11 +808,9 @@ impl Cfg {
             }
             Ok(mut distributable) => {
                 if !distributable.components_exist(&components, &targets)? {
-                    utils::run_future(distributable.update(
-                        &components,
-                        &targets,
-                        profile.unwrap_or(Profile::Default),
-                    ))?;
+                    distributable
+                        .update(&components, &targets, profile.unwrap_or(Profile::Default))
+                        .await?;
                 }
                 distributable
             }
@@ -942,7 +940,7 @@ impl Cfg {
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
-    pub(crate) fn create_command_for_toolchain(
+    pub(crate) async fn create_command_for_toolchain(
         &self,
         toolchain_name: &LocalToolchainName,
         install_if_missing: bool,
@@ -953,14 +951,15 @@ impl Cfg {
                 match DistributableToolchain::new(self, desc.clone()) {
                     Err(RustupError::ToolchainNotInstalled(_)) => {
                         if install_if_missing {
-                            utils::run_future(DistributableToolchain::install(
+                            DistributableToolchain::install(
                                 self,
                                 desc,
                                 &[],
                                 &[],
                                 self.get_profile()?,
                                 true,
-                            ))?;
+                            )
+                            .await?;
                         }
                     }
                     o => {

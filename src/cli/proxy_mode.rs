@@ -55,7 +55,7 @@ async fn direct_proxy(
             cfg.create_command_for_dir(&utils::current_dir()?, arg0)
                 .await?
         }
-        Some(tc) => cfg.create_command_for_toolchain(&tc, false, arg0)?,
+        Some(tc) => cfg.create_command_for_toolchain(&tc, false, arg0).await?,
     };
     run_command_for_dir(cmd, arg0, args)
 }
