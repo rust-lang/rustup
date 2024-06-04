@@ -86,6 +86,8 @@ pub enum Scenario {
     SimpleV1,
     /// One date, v2 manifests, MULTI_ARCH1 host
     MultiHost,
+    /// One date, v2 manifests, beta with tag
+    BetaTag,
     /// Two dates, v2 manifests, everything unavailable in second date.
     Unavailable,
     /// Two dates, v2 manifests, RLS unavailable in first date, restored on second.
@@ -139,6 +141,7 @@ impl ConstState {
                 Scenario::ArchivesV2 => RwLock::new(None),
                 Scenario::ArchivesV2_2015_01_01 => RwLock::new(None),
                 Scenario::ArchivesV2TwoVersions => RwLock::new(None),
+                Scenario::BetaTag => RwLock::new(None),
                 Scenario::Empty => RwLock::new(None),
                 Scenario::Full => RwLock::new(None),
                 Scenario::HostGoesMissingBefore => RwLock::new(None),
@@ -921,6 +924,14 @@ impl Release {
         Release::new("beta", version, date, version)
     }
 
+    fn beta_with_tag(tag: Option<&str>, version: &str, date: &str) -> Self {
+        let channel = match tag {
+            Some(tag) => format!("{version}-beta.{tag}"),
+            None => format!("{version}-beta"),
+        };
+        Release::new(&channel, version, date, version)
+    }
+
     fn with_rls(mut self, status: RlsStatus) -> Self {
         self.rls = status;
         self
@@ -1093,6 +1104,13 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::beta("1.2.0", "2015-01-02").multi_arch(),
             Release::stable("1.1.0", "2015-01-02").multi_arch(),
         ],
+        Scenario::BetaTag => vec![
+            Release::beta("1.78.0", "2024-03-19"),
+            Release::beta_with_tag(None, "1.78.0", "2024-03-19"),
+            Release::beta("1.79.0", "2024-05-03"),
+            Release::beta_with_tag(Some("1"), "1.79.0", "2024-04-29"),
+            Release::beta_with_tag(Some("2"), "1.79.0", "2024-05-03"),
+        ],
         Scenario::HostGoesMissingBefore => {
             vec![Release::new("nightly", "1.3.0", "2019-12-09", "1")]
         }
@@ -1119,6 +1137,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::ArchivesV2
         | Scenario::ArchivesV2_2015_01_01
         | Scenario::ArchivesV2TwoVersions
+        | Scenario::BetaTag
         | Scenario::MultiHost
         | Scenario::Unavailable
         | Scenario::UnavailableRls
