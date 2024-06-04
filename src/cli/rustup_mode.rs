@@ -1292,13 +1292,6 @@ async fn override_add(
     path: Option<&Path>,
 ) -> Result<utils::ExitCode> {
     let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-
-    let path = if let Some(path) = path {
-        PathBuf::from(path)
-    } else {
-        utils::current_dir()?
-    };
-
     match Toolchain::new(cfg, (&toolchain_name).into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled(_)) => match &toolchain_name {
@@ -1319,7 +1312,7 @@ async fn override_add(
         Err(e) => Err(e)?,
     }
 
-    cfg.make_override(&path, &toolchain_name)?;
+    cfg.make_override(path.unwrap_or(&cfg.current_dir), &toolchain_name)?;
     Ok(utils::ExitCode(0))
 }
 
