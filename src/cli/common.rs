@@ -403,10 +403,9 @@ pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCod
         writeln!(process().stdout().lock(), "no installed toolchains")?;
     } else {
         let default_toolchain_name = cfg.get_default()?;
-        let cwd = utils::current_dir()?;
         let active_toolchain_name: Option<ToolchainName> =
             if let Ok(Some((LocalToolchainName::Named(toolchain), _reason))) =
-                cfg.find_active_toolchain(&cwd)
+                cfg.find_active_toolchain()
             {
                 Some(toolchain)
             } else {
