@@ -541,14 +541,13 @@ pub async fn main() -> Result<utils::ExitCode> {
             #[cfg_attr(feature = "otel", tracing::instrument)]
             async fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(false, true)?;
-                let cwd = std::env::current_dir()?;
 
                 if let Some(t) = process().args().find(|x| x.starts_with('+')) {
                     debug!("Fetching rustc version from toolchain `{}`", t);
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
-                let toolchain = cfg.find_or_install_active_toolchain(&cwd).await?.0;
+                let toolchain = cfg.find_or_install_active_toolchain().await?.0;
 
                 Ok(toolchain.rustc_version())
             }

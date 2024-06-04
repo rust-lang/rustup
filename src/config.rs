@@ -494,9 +494,7 @@ impl Cfg {
     }
 
     pub(crate) async fn which_binary(&self, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self
-            .find_or_install_active_toolchain(&self.current_dir)
-            .await?;
+        let (toolchain, _) = self.find_or_install_active_toolchain().await?;
         Ok(toolchain.binary_file(binary))
     }
 
@@ -732,9 +730,8 @@ impl Cfg {
 
     pub(crate) async fn find_or_install_active_toolchain(
         &self,
-        path: &Path,
     ) -> Result<(Toolchain<'_>, ActiveReason)> {
-        self.maybe_find_or_install_active_toolchain(path)
+        self.maybe_find_or_install_active_toolchain(&self.current_dir)
             .await?
             .ok_or(RustupError::ToolchainNotSelected.into())
     }
@@ -935,9 +932,7 @@ impl Cfg {
     }
 
     pub(crate) async fn create_command_for_dir(&self, binary: &str) -> Result<Command> {
-        let (toolchain, _) = self
-            .find_or_install_active_toolchain(&self.current_dir)
-            .await?;
+        let (toolchain, _) = self.find_or_install_active_toolchain().await?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 

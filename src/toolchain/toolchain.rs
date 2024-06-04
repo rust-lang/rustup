@@ -46,12 +46,7 @@ impl<'a> Toolchain<'a> {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
                 Ok(Toolchain::new(cfg, desc.into())?)
             }
-            None => {
-                let cwd = utils::current_dir()?;
-                let (toolchain, _) = cfg.find_or_install_active_toolchain(&cwd).await?;
-
-                Ok(toolchain)
-            }
+            None => Ok(cfg.find_or_install_active_toolchain().await?.0),
         }
     }
 
