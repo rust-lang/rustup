@@ -493,8 +493,10 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    pub(crate) async fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.find_or_install_active_toolchain(path).await?;
+    pub(crate) async fn which_binary(&self, binary: &str) -> Result<PathBuf> {
+        let (toolchain, _) = self
+            .find_or_install_active_toolchain(&self.current_dir)
+            .await?;
         Ok(toolchain.binary_file(binary))
     }
 
@@ -932,11 +934,10 @@ impl Cfg {
         })
     }
 
-    pub(crate) async fn create_command_for_dir(
-        &self,
-        binary: &str,
-    ) -> Result<Command> {
-        let (toolchain, _) = self.find_or_install_active_toolchain(&self.current_dir).await?;
+    pub(crate) async fn create_command_for_dir(&self, binary: &str) -> Result<Command> {
+        let (toolchain, _) = self
+            .find_or_install_active_toolchain(&self.current_dir)
+            .await?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
