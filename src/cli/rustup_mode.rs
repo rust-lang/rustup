@@ -1334,7 +1334,7 @@ fn override_remove(cfg: &Cfg, path: Option<&Path>, nonexistent: bool) -> Result<
     } else if let Some(path) = path {
         vec![path.to_owned()]
     } else {
-        vec![utils::current_dir()?]
+        vec![cfg.current_dir.clone()]
     };
 
     for p in &paths {
