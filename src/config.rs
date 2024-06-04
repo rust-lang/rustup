@@ -934,10 +934,9 @@ impl Cfg {
 
     pub(crate) async fn create_command_for_dir(
         &self,
-        path: &Path,
         binary: &str,
     ) -> Result<Command> {
-        let (toolchain, _) = self.find_or_install_active_toolchain(path).await?;
+        let (toolchain, _) = self.find_or_install_active_toolchain(&self.current_dir).await?;
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
