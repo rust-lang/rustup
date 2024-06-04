@@ -794,6 +794,18 @@ fn install_unavailable_platform() {
     });
 }
 
+// issue #1329
+#[test]
+fn install_beta_with_tag() {
+    clitools::test(Scenario::BetaTag, &|config| {
+        config.expect_ok(&["rustup", "default", "1.78.0-beta"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "1.78.0-beta");
+
+        config.expect_ok(&["rustup", "default", "1.79.0-beta.2"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "1.79.0-beta.2");
+    })
+}
+
 #[test]
 fn update_nightly_even_with_incompat() {
     clitools::test(Scenario::MissingComponent, &|config| {
