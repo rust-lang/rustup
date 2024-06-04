@@ -181,7 +181,8 @@ impl FromStr for ParsedToolchainDesc {
                     "beta",
                     "stable",
                     // Allow from 1.0.0 through to 9.999.99 with optional patch version
-                    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
+                    // and optional beta tag
+                    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?(?:-beta(?:\.\d{1,2})?)?",
                 ]
                 .join("|")
             ))
@@ -1185,6 +1186,25 @@ mod tests {
             ("1.6", ("1.6.0", None, None)),
             ("1.7", ("1.7.0", None, None)),
             ("1.8", ("1.8.0", None, None)),
+            // channels with beta tags
+            ("0.0.0-beta", ("0.0.0-beta", None, None)),
+            ("0.0.0-beta.1", ("0.0.0-beta.1", None, None)),
+            (
+                "0.0.0-beta.1-0000-00-00",
+                ("0.0.0-beta.1", Some("0000-00-00"), None),
+            ),
+            (
+                "0.0.0-beta.1-anything",
+                ("0.0.0-beta.1", None, Some("anything")),
+            ),
+            (
+                "0.0.0-beta-anything",
+                ("0.0.0-beta", None, Some("anything")),
+            ),
+            (
+                "0.0.0-beta.1-0000-00-00-any-other-thing",
+                ("0.0.0-beta.1", Some("0000-00-00"), Some("any-other-thing")),
+            ),
         ];
 
         for (input, (channel, date, target)) in success_cases {
