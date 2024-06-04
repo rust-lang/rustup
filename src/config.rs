@@ -285,6 +285,7 @@ pub(crate) struct Cfg {
     pub env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
     pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
+    pub current_dir: PathBuf,
 }
 
 impl Cfg {
@@ -366,6 +367,7 @@ impl Cfg {
             toolchain_override: None,
             env_override,
             dist_root_url: dist_root,
+            current_dir: utils::current_dir()?,
         };
 
         // Run some basic checks against the constructed configuration
@@ -546,10 +548,9 @@ impl Cfg {
 
     pub(crate) fn find_active_toolchain(
         &self,
-        path: &Path,
     ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
         Ok(
-            if let Some((override_config, reason)) = self.find_override_config(path)? {
+            if let Some((override_config, reason)) = self.find_override_config(&self.current_dir)? {
                 Some((override_config.into_local_toolchain_name(), reason))
             } else {
                 self.get_default()?
@@ -1080,6 +1081,7 @@ impl Debug for Cfg {
             env_override,
             dist_root_url,
             notify_handler: _,
+            current_dir,
         } = self;
 
         f.debug_struct("Cfg")
@@ -1094,6 +1096,7 @@ impl Debug for Cfg {
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
             .field("dist_root_url", dist_root_url)
+            .field("current_dir", current_dir)
             .finish()
     }
 }

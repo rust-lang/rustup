@@ -732,8 +732,7 @@ async fn default_(
             }
         };
 
-        let cwd = utils::current_dir()?;
-        if let Some((toolchain, reason)) = cfg.find_active_toolchain(&cwd)? {
+        if let Some((toolchain, reason)) = cfg.find_active_toolchain()? {
             if !matches!(reason, ActiveReason::Default) {
                 info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
             }
@@ -947,11 +946,10 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
         writeln!(t.lock())?;
     }
 
-    let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
     let active_toolchain_and_reason: Option<(ToolchainName, ActiveReason)> =
         if let Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) =
-            cfg.find_active_toolchain(&cwd)
+            cfg.find_active_toolchain()
         {
             Some((toolchain_name, reason))
         } else {
@@ -1064,8 +1062,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show_active_toolchain(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    let cwd = utils::current_dir()?;
-    match cfg.find_active_toolchain(&cwd)? {
+    match cfg.find_active_toolchain()? {
         Some((toolchain_name, reason)) => {
             let toolchain = new_toolchain_with_reason(cfg, toolchain_name.clone(), &reason)?;
             writeln!(
