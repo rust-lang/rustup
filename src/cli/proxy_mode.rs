@@ -9,7 +9,6 @@ use crate::{
     config::Cfg,
     currentprocess::process,
     toolchain::names::{LocalToolchainName, ResolvableLocalToolchainName},
-    utils::utils,
 };
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
@@ -52,10 +51,7 @@ async fn direct_proxy(
     args: &[OsString],
 ) -> Result<ExitStatus> {
     let cmd = match toolchain {
-        None => {
-            cfg.create_command_for_dir(&utils::current_dir()?, arg0)
-                .await?
-        }
+        None => cfg.create_command_for_dir(arg0).await?,
         Some(tc) => cfg.create_command_for_toolchain(&tc, false, arg0).await?,
     };
     run_command_for_dir(cmd, arg0, args)
