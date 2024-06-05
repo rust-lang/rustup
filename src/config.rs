@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::fmt::{self, Debug, Display};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -15,7 +14,7 @@ use crate::{
     cli::self_update::SelfUpdateMode,
     currentprocess::process,
     dist::{
-        dist::{self, PartialToolchainDesc, Profile, ToolchainDesc},
+        dist::{self, Profile, ToolchainDesc},
         download::DownloadCfg,
         temp,
     },
@@ -932,45 +931,6 @@ impl Cfg {
                 ))
             }
         })
-    }
-
-    // Custom toolchains don't have cargo, so here we detect that situation and
-    // try to find a different cargo.
-    pub(crate) fn maybe_do_cargo_fallback(
-        &self,
-        toolchain: &Toolchain<'_>,
-        binary: &str,
-    ) -> Result<Option<Command>> {
-        if binary != "cargo" && binary != "cargo.exe" {
-            return Ok(None);
-        }
-
-        let cargo_path = toolchain.binary_file("cargo");
-
-        // breadcrumb in case of regression: we used to get the cargo path and
-        // cargo.exe path separately, not using the binary_file helper. This may
-        // matter if calling a binary with some personality that allows .exe and
-        // not .exe to coexist (e.g. wine) - but that's not something we aim to
-        // support : the host should always be correct.
-        if cargo_path.exists() {
-            return Ok(None);
-        }
-
-        let default_host_triple = self.get_default_host_triple()?;
-        // XXX: This could actually consider all installed distributable
-        // toolchains in principle.
-        for fallback in ["nightly", "beta", "stable"] {
-            let resolved =
-                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
-            if let Ok(fallback) =
-                crate::toolchain::distributable::DistributableToolchain::new(self, resolved)
-            {
-                let cmd = fallback.create_fallback_command("cargo", toolchain)?;
-                return Ok(Some(cmd));
-            }
-        }
-
-        Ok(None)
     }
 
     pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
