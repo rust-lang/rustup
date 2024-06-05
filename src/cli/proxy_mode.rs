@@ -51,13 +51,16 @@ async fn direct_proxy(
     args: &[OsString],
 ) -> Result<ExitStatus> {
     let cmd = match toolchain {
-        None => cfg.create_command_for_dir(arg0).await?,
+        None => {
+            let (toolchain, _) = cfg.find_or_install_active_toolchain().await?;
+            cfg.create_command_for_toolchain(toolchain, arg0)?
+        }
         Some(tc) => {
             let toolchain = Toolchain::from_local(&tc, false, cfg).await?;
 
             // NB this can only fail in race conditions since we handle existence above
             // for dir.
-            cfg.create_command_for_toolchain_(toolchain, arg0)?
+            cfg.create_command_for_toolchain(toolchain, arg0)?
         }
     };
     run_command_for_dir(cmd, arg0, args)
