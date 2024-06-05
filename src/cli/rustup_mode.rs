@@ -904,7 +904,7 @@ async fn run(
 
     // NB this can only fail in race conditions since we handle existence above
     // for dir.
-    let cmd = cfg.create_command_for_toolchain_(toolchain, &command[0])?;
+    let cmd = cfg.create_command_for_toolchain(toolchain, &command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
 }
 
