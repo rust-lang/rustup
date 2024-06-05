@@ -6,6 +6,7 @@ use std::{
     io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    str::FromStr,
     time::Duration,
 };
 
@@ -293,12 +294,45 @@ impl<'a> Toolchain<'a> {
             self.name(),
             LocalToolchainName::Named(ToolchainName::Official(_))
         ) {
-            if let Some(cmd) = self.cfg.maybe_do_cargo_fallback(self, binary)? {
+            if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
                 return Ok(cmd);
             }
         }
 
         self.create_command(binary)
+    }
+
+    // Custom toolchains don't have cargo, so here we detect that situation and
+    // try to find a different cargo.
+    pub(crate) fn maybe_do_cargo_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
+        if binary != "cargo" && binary != "cargo.exe" {
+            return Ok(None);
+        }
+
+        let cargo_path = self.binary_file("cargo");
+
+        // breadcrumb in case of regression: we used to get the cargo path and
+        // cargo.exe path separately, not using the binary_file helper. This may
+        // matter if calling a binary with some personality that allows .exe and
+        // not .exe to coexist (e.g. wine) - but that's not something we aim to
+        // support : the host should always be correct.
+        if cargo_path.exists() {
+            return Ok(None);
+        }
+
+        let default_host_triple = self.cfg.get_default_host_triple()?;
+        // XXX: This could actually consider all installed distributable
+        // toolchains in principle.
+        for fallback in ["nightly", "beta", "stable"] {
+            let resolved =
+                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
+            if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
+                let cmd = fallback.create_fallback_command("cargo", self)?;
+                return Ok(Some(cmd));
+            }
+        }
+
+        Ok(None)
     }
 
     #[cfg_attr(feature="otel", tracing::instrument(err,fields(binary, recursion=process().var("RUST_RECURSION_COUNT").ok())))]
