@@ -55,6 +55,6 @@ async fn direct_proxy(
         Some(tc) => Toolchain::from_local(&tc, false, cfg).await?,
     };
 
-    let cmd = cfg.create_command_for_toolchain(toolchain, arg0)?;
+    let cmd = toolchain.command(arg0)?;
     run_command_for_dir(cmd, arg0, args)
 }

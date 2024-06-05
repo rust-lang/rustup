@@ -286,11 +286,23 @@ impl<'a> Toolchain<'a> {
         }
     }
 
+    pub(crate) fn command(&self, binary: &str) -> anyhow::Result<Command> {
+        // Should push the cargo fallback into a custom toolchain type? And then
+        // perhaps a trait that create command layers on?
+        if !matches!(
+            self.name(),
+            LocalToolchainName::Named(ToolchainName::Official(_))
+        ) {
+            if let Some(cmd) = self.cfg.maybe_do_cargo_fallback(self, binary)? {
+                return Ok(cmd);
+            }
+        }
+
+        self.create_command(binary)
+    }
+
     #[cfg_attr(feature="otel", tracing::instrument(err,fields(binary, recursion=process().var("RUST_RECURSION_COUNT").ok())))]
-    pub fn create_command<T: AsRef<OsStr> + Debug>(
-        &self,
-        binary: T,
-    ) -> Result<Command, anyhow::Error> {
+    fn create_command<T: AsRef<OsStr> + Debug>(&self, binary: T) -> Result<Command, anyhow::Error> {
         // Create the path to this binary within the current toolchain sysroot
         let binary = if let Some(binary_str) = binary.as_ref().to_str() {
             if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {

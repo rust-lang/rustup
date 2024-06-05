@@ -901,10 +901,7 @@ async fn run(
 ) -> Result<ExitStatus> {
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
     let toolchain = Toolchain::from_local(&toolchain, install, cfg).await?;
-
-    // NB this can only fail in race conditions since we handle existence above
-    // for dir.
-    let cmd = cfg.create_command_for_toolchain(toolchain, &command[0])?;
+    let cmd = toolchain.command(&command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
 }
 
