@@ -15,7 +15,7 @@ use fs_at::OpenOptions;
 use wait_timeout::ChildExt;
 
 use crate::{
-    config::Cfg,
+    config::{ActiveReason, Cfg},
     currentprocess::process,
     dist::dist::PartialToolchainDesc,
     env_var, install,
@@ -85,6 +85,44 @@ impl<'a> Toolchain<'a> {
             }
             None => Ok(cfg.find_or_install_active_toolchain().await?.0),
         }
+    }
+
+    /// Calls Toolchain::new(), but augments the error message with more context
+    /// from the ActiveReason if the toolchain isn't installed.
+    pub(crate) fn with_reason(
+        cfg: &'a Cfg,
+        name: LocalToolchainName,
+        reason: &ActiveReason,
+    ) -> anyhow::Result<Self> {
+        match Self::new(cfg, name.clone()) {
+            Err(RustupError::ToolchainNotInstalled(_)) => (),
+            result => {
+                return Ok(result?);
+            }
+        }
+
+        let reason_err = match reason {
+            ActiveReason::Environment => {
+                "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
+                    .to_string()
+            }
+            ActiveReason::CommandLine => {
+                "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
+            }
+            ActiveReason::OverrideDB(ref path) => format!(
+                "the directory override for '{}' specifies an uninstalled toolchain",
+                utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
+            ),
+            ActiveReason::ToolchainFile(ref path) => format!(
+                "the toolchain file at '{}' specifies an uninstalled toolchain",
+                utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
+            ),
+            ActiveReason::Default => {
+                "the default toolchain does not describe an installed toolchain".to_string()
+            }
+        };
+
+        Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
     }
 
     pub(crate) fn new(cfg: &'a Cfg, name: LocalToolchainName) -> Result<Self, RustupError> {
