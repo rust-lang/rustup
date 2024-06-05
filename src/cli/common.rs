@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::{cmp, env};
 
 use anyhow::{anyhow, Context, Result};
@@ -167,23 +167,34 @@ impl NotifyOnConsole {
     }
 }
 
+struct Notifier {
+    tracker: Arc<Mutex<DownloadTracker>>,
+    notifier: RefCell<NotifyOnConsole>,
+}
+
+impl Notifier {
+    fn new(verbose: bool, quiet: bool) -> Self {
+        Self {
+            tracker: DownloadTracker::new_with_display_progress(!quiet),
+            notifier: RefCell::new(NotifyOnConsole {
+                verbose,
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn handle(&self, n: Notification<'_>) {
+        if self.tracker.lock().unwrap().handle_notification(&n) {
+            return;
+        }
+        self.notifier.borrow_mut().handle(n);
+    }
+}
+
 #[cfg_attr(feature = "otel", tracing::instrument)]
 pub(crate) fn set_globals(current_dir: PathBuf, verbose: bool, quiet: bool) -> Result<Cfg> {
-    let download_tracker = DownloadTracker::new_with_display_progress(!quiet);
-    let console_notifier = RefCell::new(NotifyOnConsole {
-        verbose,
-        ..Default::default()
-    });
-
-    Cfg::from_env(
-        current_dir,
-        Arc::new(move |n: Notification<'_>| {
-            if download_tracker.lock().unwrap().handle_notification(&n) {
-                return;
-            }
-            console_notifier.borrow_mut().handle(n);
-        }),
-    )
+    let notifier = Notifier::new(verbose, quiet);
+    Cfg::from_env(current_dir, Arc::new(move |n| notifier.handle(n)))
 }
 
 pub(crate) fn show_channel_update(
