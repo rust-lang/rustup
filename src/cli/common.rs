@@ -125,7 +125,7 @@ pub(crate) fn read_line() -> Result<String> {
 }
 
 pub(super) struct Notifier {
-    tracker: Arc<Mutex<DownloadTracker>>,
+    tracker: Mutex<DownloadTracker>,
     ram_notice_shown: RefCell<bool>,
     verbose: bool,
 }
@@ -133,9 +133,7 @@ pub(super) struct Notifier {
 impl Notifier {
     pub(super) fn new(verbose: bool, quiet: bool) -> Self {
         Self {
-            tracker: Arc::new(Mutex::new(DownloadTracker::new_with_display_progress(
-                !quiet,
-            ))),
+            tracker: Mutex::new(DownloadTracker::new_with_display_progress(!quiet)),
             ram_notice_shown: RefCell::new(false),
             verbose,
         }
