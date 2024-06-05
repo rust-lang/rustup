@@ -539,7 +539,9 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             #[cfg_attr(feature = "otel", tracing::instrument)]
-            async fn rustc_version(current_dir: PathBuf) -> std::result::Result<String, Box<dyn std::error::Error>> {
+            async fn rustc_version(
+                current_dir: PathBuf,
+            ) -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(current_dir, false, true)?;
 
                 if let Some(t) = process().args().find(|x| x.starts_with('+')) {
