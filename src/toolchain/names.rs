@@ -249,7 +249,7 @@ impl Display for MaybeOfficialToolchainName {
 /// like setting overrides, or that depend on configuration, like calculating
 /// the toolchain directory.
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub(crate) enum ToolchainName {
+pub enum ToolchainName {
     Custom(CustomToolchainName),
     Official(ToolchainDesc),
 }
@@ -396,7 +396,7 @@ impl Display for LocalToolchainName {
 /// A custom toolchain name, but not an official toolchain name
 /// (e.g. my-custom-toolchain)
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub(crate) struct CustomToolchainName(String);
+pub struct CustomToolchainName(String);
 
 impl CustomToolchainName {
     fn validate(candidate: &str) -> Result<CustomToolchainName, InvalidName> {
@@ -433,7 +433,7 @@ impl Display for CustomToolchainName {
 /// code execution in a rust dir, so as a partial mitigation is limited to
 /// absolute paths.
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub(crate) struct PathBasedToolchainName(PathBuf, String);
+pub struct PathBasedToolchainName(PathBuf, String);
 
 impl Display for PathBasedToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

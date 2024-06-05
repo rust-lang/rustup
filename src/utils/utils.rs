@@ -491,12 +491,6 @@ pub(crate) fn make_executable(path: &Path) -> Result<()> {
     inner(path)
 }
 
-pub fn current_dir() -> Result<PathBuf> {
-    process()
-        .current_dir()
-        .context(RustupError::LocatingWorkingDir)
-}
-
 pub fn current_exe() -> Result<PathBuf> {
     env::current_exe().context(RustupError::LocatingWorkingDir)
 }
