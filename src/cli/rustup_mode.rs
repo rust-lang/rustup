@@ -1265,7 +1265,7 @@ async fn toolchain_link(
 
     if true {
         InstallMethod::Link {
-            src: &utils::to_absolute(src)?,
+            src: &utils::to_absolute(src, &cfg.current_dir),
             dest,
             cfg,
         }
