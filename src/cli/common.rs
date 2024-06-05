@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, ErrorKind, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{cmp, env};
 
@@ -168,19 +168,22 @@ impl NotifyOnConsole {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub(crate) fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
+pub(crate) fn set_globals(current_dir: PathBuf, verbose: bool, quiet: bool) -> Result<Cfg> {
     let download_tracker = DownloadTracker::new_with_display_progress(!quiet);
     let console_notifier = RefCell::new(NotifyOnConsole {
         verbose,
         ..Default::default()
     });
 
-    Cfg::from_env(Arc::new(move |n: Notification<'_>| {
-        if download_tracker.lock().unwrap().handle_notification(&n) {
-            return;
-        }
-        console_notifier.borrow_mut().handle(n);
-    }))
+    Cfg::from_env(
+        current_dir,
+        Arc::new(move |n: Notification<'_>| {
+            if download_tracker.lock().unwrap().handle_notification(&n) {
+                return;
+            }
+            console_notifier.borrow_mut().handle(n);
+        }),
+    )
 }
 
 pub(crate) fn show_channel_update(

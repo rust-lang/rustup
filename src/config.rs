@@ -289,7 +289,10 @@ pub(crate) struct Cfg {
 }
 
 impl Cfg {
-    pub(crate) fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
+    pub(crate) fn from_env(
+        current_dir: PathBuf,
+        notify_handler: Arc<dyn Fn(Notification<'_>)>,
+    ) -> Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
@@ -367,7 +370,7 @@ impl Cfg {
             toolchain_override: None,
             env_override,
             dist_root_url: dist_root,
-            current_dir: utils::current_dir()?,
+            current_dir,
         };
 
         // Run some basic checks against the constructed configuration

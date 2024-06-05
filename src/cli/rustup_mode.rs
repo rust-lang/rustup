@@ -524,7 +524,7 @@ enum SetSubcmd {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
-pub async fn main() -> Result<utils::ExitCode> {
+pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
     use clap::error::ErrorKind::*;
@@ -539,8 +539,8 @@ pub async fn main() -> Result<utils::ExitCode> {
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             #[cfg_attr(feature = "otel", tracing::instrument)]
-            async fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
-                let cfg = &mut common::set_globals(false, true)?;
+            async fn rustc_version(current_dir: PathBuf) -> std::result::Result<String, Box<dyn std::error::Error>> {
+                let cfg = &mut common::set_globals(current_dir, false, true)?;
 
                 if let Some(t) = process().args().find(|x| x.starts_with('+')) {
                     debug!("Fetching rustc version from toolchain `{}`", t);
@@ -552,7 +552,7 @@ pub async fn main() -> Result<utils::ExitCode> {
                 Ok(toolchain.rustc_version())
             }
 
-            match rustc_version().await {
+            match rustc_version(current_dir).await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
                 Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
@@ -577,7 +577,7 @@ pub async fn main() -> Result<utils::ExitCode> {
             Err(err)
         }
     }?;
-    let cfg = &mut common::set_globals(matches.verbose, matches.quiet)?;
+    let cfg = &mut common::set_globals(current_dir, matches.verbose, matches.quiet)?;
 
     if let Some(t) = &matches.plus_toolchain {
         cfg.set_toolchain_override(t);
