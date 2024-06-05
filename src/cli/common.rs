@@ -126,20 +126,20 @@ pub(crate) fn read_line() -> Result<String> {
 
 #[derive(Default)]
 struct NotifyOnConsole {
-    ram_notice_shown: bool,
+    ram_notice_shown: RefCell<bool>,
     verbose: bool,
 }
 
 impl NotifyOnConsole {
-    fn handle(&mut self, n: Notification<'_>) {
+    fn handle(&self, n: Notification<'_>) {
         if let Notification::Install(dist_notifications::Notification::Utils(
             util_notifications::Notification::SetDefaultBufferSize(_),
         )) = &n
         {
-            if self.ram_notice_shown {
+            if *self.ram_notice_shown.borrow() {
                 return;
             } else {
-                self.ram_notice_shown = true;
+                *self.ram_notice_shown.borrow_mut() = true;
             }
         };
         let level = n.level();
@@ -169,17 +169,17 @@ impl NotifyOnConsole {
 
 struct Notifier {
     tracker: Arc<Mutex<DownloadTracker>>,
-    notifier: RefCell<NotifyOnConsole>,
+    notifier: NotifyOnConsole,
 }
 
 impl Notifier {
     fn new(verbose: bool, quiet: bool) -> Self {
         Self {
             tracker: DownloadTracker::new_with_display_progress(!quiet),
-            notifier: RefCell::new(NotifyOnConsole {
+            notifier: NotifyOnConsole {
                 verbose,
                 ..Default::default()
-            }),
+            },
         }
     }
 
@@ -187,7 +187,7 @@ impl Notifier {
         if self.tracker.lock().unwrap().handle_notification(&n) {
             return;
         }
-        self.notifier.borrow_mut().handle(n);
+        self.notifier.handle(n);
     }
 }
 
