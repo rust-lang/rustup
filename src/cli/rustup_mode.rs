@@ -293,6 +293,10 @@ enum ToolchainSubcmd {
         /// Enable verbose output with toolchain information
         #[arg(short, long)]
         verbose: bool,
+
+        /// Force the output to be a single column
+        #[arg(short, long, conflicts_with = "verbose")]
+        quiet: bool,
     },
 
     /// Install or update a given toolchain
@@ -623,8 +627,8 @@ pub async fn main() -> Result<utils::ExitCode> {
         }
         RustupSubcmd::Toolchain { subcmd } => match subcmd {
             ToolchainSubcmd::Install { opts } => update(cfg, opts).await,
-            ToolchainSubcmd::List { verbose } => {
-                handle_epipe(common::list_toolchains(cfg, verbose))
+            ToolchainSubcmd::List { verbose, quiet } => {
+                handle_epipe(common::list_toolchains(cfg, verbose, quiet))
             }
             ToolchainSubcmd::Link { toolchain, path } => {
                 toolchain_link(cfg, &toolchain, &path).await
