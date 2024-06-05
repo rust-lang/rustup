@@ -124,14 +124,26 @@ pub(crate) fn read_line() -> Result<String> {
     .context("unable to read from stdin for confirmation")
 }
 
-#[derive(Default)]
-struct NotifyOnConsole {
+pub(super) struct Notifier {
+    tracker: Arc<Mutex<DownloadTracker>>,
     ram_notice_shown: RefCell<bool>,
     verbose: bool,
 }
 
-impl NotifyOnConsole {
-    fn handle(&self, n: Notification<'_>) {
+impl Notifier {
+    pub(super) fn new(verbose: bool, quiet: bool) -> Self {
+        Self {
+            tracker: DownloadTracker::new_with_display_progress(!quiet),
+            ram_notice_shown: RefCell::new(false),
+            verbose,
+        }
+    }
+
+    pub(super) fn handle(&self, n: Notification<'_>) {
+        if self.tracker.lock().unwrap().handle_notification(&n) {
+            return;
+        }
+
         if let Notification::Install(dist_notifications::Notification::Utils(
             util_notifications::Notification::SetDefaultBufferSize(_),
         )) = &n
@@ -164,30 +176,6 @@ impl NotifyOnConsole {
                 }
             }
         }
-    }
-}
-
-struct Notifier {
-    tracker: Arc<Mutex<DownloadTracker>>,
-    notifier: NotifyOnConsole,
-}
-
-impl Notifier {
-    fn new(verbose: bool, quiet: bool) -> Self {
-        Self {
-            tracker: DownloadTracker::new_with_display_progress(!quiet),
-            notifier: NotifyOnConsole {
-                verbose,
-                ..Default::default()
-            },
-        }
-    }
-
-    fn handle(&self, n: Notification<'_>) {
-        if self.tracker.lock().unwrap().handle_notification(&n) {
-            return;
-        }
-        self.notifier.handle(n);
     }
 }
 
