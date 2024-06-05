@@ -509,22 +509,6 @@ pub(crate) fn cargo_home() -> Result<PathBuf> {
     home::cargo_home_with_env(&home_process()).context("failed to determine cargo home")
 }
 
-// Creates a ~/.rustup folder
-pub(crate) fn create_rustup_home() -> Result<()> {
-    // If RUSTUP_HOME is set then don't make any assumptions about where it's
-    // ok to put ~/.rustup
-    if process().var_os("RUSTUP_HOME").is_some() {
-        return Ok(());
-    }
-
-    let home = home_dir()
-        .map(|p| p.join(".rustup"))
-        .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
-
-    fs::create_dir_all(home).context("unable to create ~/.rustup")?;
-    Ok(())
-}
-
 pub(crate) fn rustup_home() -> Result<PathBuf> {
     home::rustup_home_with_env(&home_process()).context("failed to determine rustup home dir")
 }
