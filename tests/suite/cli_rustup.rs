@@ -842,6 +842,20 @@ fn list_default_toolchain() {
 }
 
 #[test]
+fn list_default_toolchain_quiet() {
+    test(&|config| {
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_ok(&["rustup", "default", "nightly"]);
+            config.expect_ok_ex(
+                &["rustup", "toolchain", "list", "--quiet"],
+                for_host!("nightly-{0}\n"),
+                r"",
+            );
+        })
+    });
+}
+
+#[test]
 fn list_no_default_toolchain() {
     test(&|config| {
         config.with_scenario(Scenario::SimpleV2, &|config| {

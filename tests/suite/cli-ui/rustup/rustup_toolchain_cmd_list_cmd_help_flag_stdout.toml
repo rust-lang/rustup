@@ -8,6 +8,7 @@ Usage: rustup[EXE] toolchain list [OPTIONS]
 
 Options:
   -v, --verbose  Enable verbose output with toolchain information
+  -q, --quiet    Force the output to be a single column
   -h, --help     Print help
 """
 stderr = ""

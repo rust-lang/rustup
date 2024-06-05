@@ -400,7 +400,7 @@ pub(super) fn list_items(
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
+pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool, quiet: bool) -> Result<utils::ExitCode> {
     let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         writeln!(process().stdout().lock(), "no installed toolchains")?;
@@ -425,6 +425,7 @@ pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCod
                 is_default_toolchain,
                 is_active_toolchain,
                 verbose,
+                quiet,
             )
             .context("Failed to list toolchains' directories")?;
         }
@@ -436,7 +437,13 @@ pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCod
         is_default: bool,
         is_active: bool,
         verbose: bool,
+        quiet: bool,
     ) -> Result<()> {
+        if quiet {
+            writeln!(process().stdout().lock(), "{toolchain}")?;
+            return Ok(());
+        }
+
         let toolchain_path = cfg.toolchains_dir.join(toolchain);
         let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
         let toolchain_path = if verbose {
