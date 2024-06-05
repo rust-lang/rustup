@@ -385,6 +385,10 @@ enum TargetSubcmd {
         /// List only installed targets
         #[arg(long)]
         installed: bool,
+
+        /// Force the output to be a single column
+        #[arg(long, short)]
+        quiet: bool,
     },
 
     /// Add a target to a Rust toolchain
@@ -421,6 +425,10 @@ enum ComponentSubcmd {
         /// List only installed components
         #[arg(long)]
         installed: bool,
+
+        /// Force the output to be a single column
+        #[arg(long, short)]
+        quiet: bool,
     },
 
     /// Add a component to a Rust toolchain
@@ -641,7 +649,8 @@ pub async fn main() -> Result<utils::ExitCode> {
             TargetSubcmd::List {
                 toolchain,
                 installed,
-            } => handle_epipe(target_list(cfg, toolchain, installed).await),
+                quiet,
+            } => handle_epipe(target_list(cfg, toolchain, installed, quiet).await),
             TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain).await,
             TargetSubcmd::Remove { target, toolchain } => {
                 target_remove(cfg, target, toolchain).await
@@ -651,7 +660,8 @@ pub async fn main() -> Result<utils::ExitCode> {
             ComponentSubcmd::List {
                 toolchain,
                 installed,
-            } => handle_epipe(component_list(cfg, toolchain, installed).await),
+                quiet,
+            } => handle_epipe(component_list(cfg, toolchain, installed, quiet).await),
             ComponentSubcmd::Add {
                 component,
                 toolchain,
@@ -1097,6 +1107,7 @@ async fn target_list(
     cfg: &Cfg,
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
+    quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
@@ -1111,6 +1122,7 @@ async fn target_list(
             })
         },
         installed_only,
+        quiet,
     )
 }
 
@@ -1201,10 +1213,11 @@ async fn component_list(
     cfg: &Cfg,
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
+    quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
-    common::list_items(distributable, |c| Some(&c.name), installed_only)?;
+    common::list_items(distributable, |c| Some(&c.name), installed_only, quiet)?;
     Ok(utils::ExitCode(0))
 }
 
