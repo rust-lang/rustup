@@ -501,11 +501,10 @@ pub fn current_exe() -> Result<PathBuf> {
     env::current_exe().context(RustupError::LocatingWorkingDir)
 }
 
-pub(crate) fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
-    current_dir().map(|mut v| {
-        v.push(path);
-        v
-    })
+pub(crate) fn to_absolute<P: AsRef<Path>>(path: P, cwd: &Path) -> PathBuf {
+    let mut new = PathBuf::from(cwd);
+    new.push(path);
+    new
 }
 
 pub(crate) fn home_dir() -> Option<PathBuf> {
