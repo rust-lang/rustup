@@ -5,6 +5,7 @@ use std::io::Write;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Context, Result};
 
@@ -179,7 +180,7 @@ pub(crate) async fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueI
         .context("error creating temp directory")?;
 
     let visual_studio = tempdir.path().join("vs_setup.exe");
-    let download_tracker = DownloadTracker::new_with_display_progress(true);
+    let download_tracker = Arc::new(Mutex::new(DownloadTracker::new_with_display_progress(true)));
     download_tracker.lock().unwrap().download_finished();
 
     info!("downloading Visual Studio installer");

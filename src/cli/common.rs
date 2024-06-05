@@ -133,7 +133,9 @@ pub(super) struct Notifier {
 impl Notifier {
     pub(super) fn new(verbose: bool, quiet: bool) -> Self {
         Self {
-            tracker: DownloadTracker::new_with_display_progress(!quiet),
+            tracker: Arc::new(Mutex::new(DownloadTracker::new_with_display_progress(
+                !quiet,
+            ))),
             ram_notice_shown: RefCell::new(false),
             verbose,
         }
