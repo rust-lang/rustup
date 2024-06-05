@@ -13,7 +13,7 @@
 
 #![recursion_limit = "1024"]
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 // Public macros require availability of the internal symbols
 use rs_tracing::{
@@ -29,6 +29,7 @@ use rustup::cli::self_update;
 use rustup::cli::setup_mode;
 use rustup::currentprocess::{process, with_runtime, Process};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+use rustup::errors::RustupError;
 use rustup::is_proxyable_tools;
 use rustup::utils::utils::{self, ExitCode};
 
@@ -115,7 +116,9 @@ async fn run_rustup_inner() -> Result<utils::ExitCode> {
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
-    let current_dir = utils::current_dir()?;
+    let current_dir = process()
+        .current_dir()
+        .context(RustupError::LocatingWorkingDir)?;
     utils::current_exe()?;
 
     match process().name().as_deref() {

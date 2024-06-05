@@ -96,7 +96,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 }
 
 #[derive(Debug, ThisError)]
-pub(crate) enum DistError {
+pub enum DistError {
     #[error("{}", components_missing_msg(.0, .1, .2))]
     ToolchainComponentsMissing(Vec<Component>, Box<ManifestV2>, String),
     #[error("no release found for '{0}'")]

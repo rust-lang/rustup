@@ -106,7 +106,7 @@ impl Process {
         }
     }
 
-    pub(crate) fn current_dir(&self) -> io::Result<PathBuf> {
+    pub fn current_dir(&self) -> io::Result<PathBuf> {
         match self {
             Process::OSProcess(_) => env::current_dir(),
             #[cfg(feature = "test")]

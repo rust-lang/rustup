@@ -25,7 +25,7 @@ use crate::{
 pub struct OperationError(pub anyhow::Error);
 
 #[derive(ThisError, Debug)]
-pub(crate) enum RustupError {
+pub enum RustupError {
     #[error("partially downloaded file may have been damaged and was removed, please try again")]
     BrokenPartialFile,
     #[error("component download failed for {0}")]
