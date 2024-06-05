@@ -380,13 +380,14 @@ pub(super) fn list_items(
     distributable: DistributableToolchain<'_>,
     f: impl Fn(&ComponentStatus) -> Option<&str>,
     installed_only: bool,
+    quiet: bool,
 ) -> Result<utils::ExitCode> {
     let mut t = process().stdout().terminal();
     for component in distributable.components()? {
         let Some(name) = f(&component) else { continue };
         match (component.available, component.installed, installed_only) {
             (false, _, _) | (_, false, true) => continue,
-            (true, true, false) => {
+            (true, true, false) if !quiet => {
                 t.attr(terminalsource::Attr::Bold)?;
                 writeln!(t.lock(), "{name} (installed)")?;
                 t.reset()?;
