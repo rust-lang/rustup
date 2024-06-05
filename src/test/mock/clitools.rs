@@ -731,8 +731,11 @@ impl Config {
             .enable_all()
             .worker_threads(2)
             .max_blocking_threads(2);
-        let process_res =
-            currentprocess::with_runtime(tp.clone().into(), builder, rustup_mode::main(tp.cwd.clone()));
+        let process_res = currentprocess::with_runtime(
+            tp.clone().into(),
+            builder,
+            rustup_mode::main(tp.cwd.clone()),
+        );
         // convert Err's into an ec
         let ec = match process_res {
             Ok(process_res) => process_res,

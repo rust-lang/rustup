@@ -1,5 +1,4 @@
-use std::{ffi::OsString, path::PathBuf};
-use std::process::ExitStatus;
+use std::{ffi::OsString, path::PathBuf, process::ExitStatus};
 
 use anyhow::Result;
 

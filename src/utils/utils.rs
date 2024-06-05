@@ -517,10 +517,9 @@ pub(crate) fn create_rustup_home() -> Result<()> {
         return Ok(());
     }
 
-    // XXX: This error message seems wrong/bogus.
     let home = home_dir()
         .map(|p| p.join(".rustup"))
-        .ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))?;
+        .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
 
     fs::create_dir_all(home).context("unable to create ~/.rustup")?;
     Ok(())
