@@ -116,44 +116,6 @@ impl Display for ActiveReason {
     }
 }
 
-/// Calls Toolchain::new(), but augments the error message with more context
-/// from the ActiveReason if the toolchain isn't installed.
-pub(crate) fn new_toolchain_with_reason<'a>(
-    cfg: &'a Cfg,
-    name: LocalToolchainName,
-    reason: &ActiveReason,
-) -> Result<Toolchain<'a>> {
-    match Toolchain::new(cfg, name.clone()) {
-        Err(RustupError::ToolchainNotInstalled(_)) => (),
-        result => {
-            return Ok(result?);
-        }
-    }
-
-    let reason_err = match reason {
-        ActiveReason::Environment => {
-            "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
-                .to_string()
-        }
-        ActiveReason::CommandLine => {
-            "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
-        }
-        ActiveReason::OverrideDB(ref path) => format!(
-            "the directory override for '{}' specifies an uninstalled toolchain",
-            utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
-        ),
-        ActiveReason::ToolchainFile(ref path) => format!(
-            "the toolchain file at '{}' specifies an uninstalled toolchain",
-            utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
-        ),
-        ActiveReason::Default => {
-            "the default toolchain does not describe an installed toolchain".to_string()
-        }
-    };
-
-    Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
-}
-
 // Represents a toolchain override from a +toolchain command line option,
 // RUSTUP_TOOLCHAIN environment variable, or rust-toolchain.toml file etc. Can
 // include components and targets from a rust-toolchain.toml that should be
@@ -746,12 +708,11 @@ impl Cfg {
         match self.find_override_config(path)? {
             Some((override_config, reason)) => match override_config {
                 OverrideCfg::PathBased(path_based_name) => {
-                    let toolchain =
-                        new_toolchain_with_reason(self, path_based_name.into(), &reason)?;
+                    let toolchain = Toolchain::with_reason(self, path_based_name.into(), &reason)?;
                     Ok(Some((toolchain, reason)))
                 }
                 OverrideCfg::Custom(custom_name) => {
-                    let toolchain = new_toolchain_with_reason(self, custom_name.into(), &reason)?;
+                    let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
                     Ok(Some((toolchain, reason)))
                 }
                 OverrideCfg::Official {
@@ -770,7 +731,7 @@ impl Cfg {
                 None => Ok(None),
                 Some(ToolchainName::Custom(custom_name)) => {
                     let reason = ActiveReason::Default;
-                    let toolchain = new_toolchain_with_reason(self, custom_name.into(), &reason)?;
+                    let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
                     Ok(Some((toolchain, reason)))
                 }
                 Some(ToolchainName::Official(toolchain_desc)) => {

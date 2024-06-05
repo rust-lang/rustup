@@ -22,7 +22,7 @@ use crate::{
         topical_doc,
     },
     command,
-    config::{new_toolchain_with_reason, ActiveReason, Cfg},
+    config::{ActiveReason, Cfg},
     currentprocess::{
         process,
         terminalsource::{self, ColorableTerminal},
@@ -1021,7 +1021,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 
         match active_toolchain_and_reason {
             Some((active_toolchain_name, active_reason)) => {
-                let active_toolchain = new_toolchain_with_reason(
+                let active_toolchain = Toolchain::with_reason(
                     cfg,
                     active_toolchain_name.clone().into(),
                     &active_reason,
@@ -1064,7 +1064,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 fn show_active_toolchain(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     match cfg.find_active_toolchain()? {
         Some((toolchain_name, reason)) => {
-            let toolchain = new_toolchain_with_reason(cfg, toolchain_name.clone(), &reason)?;
+            let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
             writeln!(
                 process().stdout().lock(),
                 "{}\nactive because: {}",
