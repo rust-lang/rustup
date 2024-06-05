@@ -457,11 +457,6 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    pub(crate) async fn which_binary(&self, binary: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.find_or_install_active_toolchain().await?;
-        Ok(toolchain.binary_file(binary))
-    }
-
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;

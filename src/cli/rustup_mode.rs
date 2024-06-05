@@ -914,7 +914,8 @@ async fn which(
         let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::new(cfg, desc.into())?.binary_file(binary)
     } else {
-        cfg.which_binary(binary).await?
+        let (toolchain, _) = cfg.find_or_install_active_toolchain().await?;
+        toolchain.binary_file(binary)
     };
 
     utils::assert_is_file(&binary_path)?;
