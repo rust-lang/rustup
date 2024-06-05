@@ -115,17 +115,17 @@ async fn run_rustup_inner() -> Result<utils::ExitCode> {
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
-    utils::current_dir()?;
+    let current_dir = utils::current_dir()?;
     utils::current_exe()?;
 
     match process().name().as_deref() {
-        Some("rustup") => rustup_mode::main().await,
+        Some("rustup") => rustup_mode::main(current_dir).await,
         Some(n) if n.starts_with("rustup-setup") || n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
             // e.g. rustup-setup(2), and this allows all variations
             // to work.
-            setup_mode::main().await
+            setup_mode::main(current_dir).await
         }
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
@@ -140,7 +140,7 @@ async fn run_rustup_inner() -> Result<utils::ExitCode> {
         }
         Some(n) => {
             is_proxyable_tools(n)?;
-            proxy_mode::main(n).await.map(ExitCode::from)
+            proxy_mode::main(n, current_dir).await.map(ExitCode::from)
         }
         None => {
             // Weird case. No arg0, or it's unparsable.

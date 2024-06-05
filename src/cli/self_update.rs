@@ -365,6 +365,7 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub(crate) async fn install(
+    current_dir: PathBuf,
     no_prompt: bool,
     verbose: bool,
     quiet: bool,
@@ -458,7 +459,7 @@ pub(crate) async fn install(
         }
     }
 
-    let install_res = || async {
+    let install_res = move || async move {
         install_bins()?;
 
         #[cfg(unix)]
@@ -476,6 +477,7 @@ pub(crate) async fn install(
             !opts.no_update_toolchain,
             opts.components,
             opts.targets,
+            current_dir,
             verbose,
             quiet,
         )
@@ -847,10 +849,11 @@ async fn maybe_install_rust(
     update_existing_toolchain: bool,
     components: &[&str],
     targets: &[&str],
+    current_dir: PathBuf,
     verbose: bool,
     quiet: bool,
 ) -> Result<()> {
-    let mut cfg = common::set_globals(verbose, quiet)?;
+    let mut cfg = common::set_globals(current_dir, verbose, quiet)?;
 
     let toolchain = _install_selection(
         &mut cfg,
@@ -1329,7 +1332,7 @@ mod tests {
             currentprocess::with(tp.clone().into(), || -> Result<()> {
                 // TODO: we could pass in a custom cfg to get notification
                 // callbacks rather than output to the tp sink.
-                let mut cfg = common::set_globals(false, false).unwrap();
+                let mut cfg = common::set_globals(tp.cwd.clone(), false, false).unwrap();
                 assert_eq!(
                     "stable"
                         .parse::<PartialToolchainDesc>()

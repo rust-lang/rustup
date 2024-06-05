@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use clap::{builder::PossibleValuesParser, Parser};
 
@@ -74,7 +76,7 @@ struct RustupInit {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub async fn main() -> Result<utils::ExitCode> {
+pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
     use clap::error::ErrorKind;
 
     let RustupInit {
@@ -122,5 +124,5 @@ pub async fn main() -> Result<utils::ExitCode> {
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    self_update::install(no_prompt, verbose, quiet, opts).await
+    self_update::install(current_dir, no_prompt, verbose, quiet, opts).await
 }

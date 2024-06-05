@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::{ffi::OsString, path::PathBuf};
 use std::process::ExitStatus;
 
 use anyhow::Result;
@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub async fn main(arg0: &str) -> Result<ExitStatus> {
+pub async fn main(arg0: &str, current_dir: PathBuf) -> Result<ExitStatus> {
     self_update::cleanup_self_updater()?;
 
     let _setup = job::setup();
@@ -35,7 +35,7 @@ pub async fn main(arg0: &str) -> Result<ExitStatus> {
         .skip(1 + toolchain.is_some() as usize)
         .collect();
 
-    let cfg = set_globals(false, true)?;
+    let cfg = set_globals(current_dir, false, true)?;
     cfg.check_metadata_version()?;
     let toolchain = toolchain
         .map(|t| t.resolve(&cfg.get_default_host_triple()?))
