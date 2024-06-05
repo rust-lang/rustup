@@ -939,20 +939,7 @@ impl Cfg {
         self.create_command_for_toolchain_(toolchain, binary)
     }
 
-    pub(crate) async fn create_command_for_toolchain(
-        &self,
-        toolchain_name: &LocalToolchainName,
-        install_if_missing: bool,
-        binary: &str,
-    ) -> Result<Command> {
-        let toolchain = Toolchain::from_local(toolchain_name, install_if_missing, self).await?;
-
-        // NB this can only fail in race conditions since we handle existence above
-        // for dir.
-        self.create_command_for_toolchain_(toolchain, binary)
-    }
-
-    fn create_command_for_toolchain_(
+    pub fn create_command_for_toolchain_(
         &self,
         toolchain: Toolchain<'_>,
         binary: &str,
