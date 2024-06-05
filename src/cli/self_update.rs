@@ -469,7 +469,16 @@ pub(crate) async fn install(
             do_add_to_programs()?;
             do_add_to_path()?;
         }
-        utils::create_rustup_home()?;
+
+        // If RUSTUP_HOME is not set, make sure it exists
+        if process().var_os("RUSTUP_HOME").is_none() {
+            let home = utils::home_dir()
+                .map(|p| p.join(".rustup"))
+                .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
+
+            fs::create_dir_all(home).context("unable to create ~/.rustup")?;
+        }
+
         maybe_install_rust(
             opts.default_toolchain,
             &opts.profile,
