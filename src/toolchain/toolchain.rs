@@ -37,6 +37,42 @@ pub(crate) struct Toolchain<'a> {
 }
 
 impl<'a> Toolchain<'a> {
+    pub(crate) async fn from_local(
+        toolchain_name: &LocalToolchainName,
+        install_if_missing: bool,
+        cfg: &'a Cfg,
+    ) -> anyhow::Result<Toolchain<'a>> {
+        match toolchain_name {
+            LocalToolchainName::Named(ToolchainName::Official(desc)) => {
+                match DistributableToolchain::new(cfg, desc.clone()) {
+                    Err(RustupError::ToolchainNotInstalled(_)) => {
+                        if install_if_missing {
+                            DistributableToolchain::install(
+                                cfg,
+                                desc,
+                                &[],
+                                &[],
+                                cfg.get_profile()?,
+                                true,
+                            )
+                            .await?;
+                        }
+                    }
+                    o => {
+                        o?;
+                    }
+                }
+            }
+            n => {
+                if !Self::exists(cfg, n)? {
+                    return Err(RustupError::ToolchainNotInstallable(n.to_string()).into());
+                }
+            }
+        }
+
+        Ok(Self::new(cfg, toolchain_name.clone())?)
+    }
+
     pub(crate) async fn from_partial(
         toolchain: Option<PartialToolchainDesc>,
         cfg: &'a Cfg,

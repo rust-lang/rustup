@@ -945,35 +945,7 @@ impl Cfg {
         install_if_missing: bool,
         binary: &str,
     ) -> Result<Command> {
-        match toolchain_name {
-            LocalToolchainName::Named(ToolchainName::Official(desc)) => {
-                match DistributableToolchain::new(self, desc.clone()) {
-                    Err(RustupError::ToolchainNotInstalled(_)) => {
-                        if install_if_missing {
-                            DistributableToolchain::install(
-                                self,
-                                desc,
-                                &[],
-                                &[],
-                                self.get_profile()?,
-                                true,
-                            )
-                            .await?;
-                        }
-                    }
-                    o => {
-                        o?;
-                    }
-                }
-            }
-            n => {
-                if !Toolchain::exists(self, n)? {
-                    return Err(RustupError::ToolchainNotInstallable(n.to_string()).into());
-                }
-            }
-        }
-
-        let toolchain = Toolchain::new(self, toolchain_name.clone())?;
+        let toolchain = Toolchain::from_local(toolchain_name, install_if_missing, self).await?;
 
         // NB this can only fail in race conditions since we handle existence above
         // for dir.
