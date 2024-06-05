@@ -2,6 +2,7 @@ use std::{ffi::OsString, path::PathBuf, process::ExitStatus};
 
 use anyhow::Result;
 
+use crate::toolchain::toolchain::Toolchain;
 use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
@@ -51,7 +52,13 @@ async fn direct_proxy(
 ) -> Result<ExitStatus> {
     let cmd = match toolchain {
         None => cfg.create_command_for_dir(arg0).await?,
-        Some(tc) => cfg.create_command_for_toolchain(&tc, false, arg0).await?,
+        Some(tc) => {
+            let toolchain = Toolchain::from_local(&tc, false, cfg).await?;
+
+            // NB this can only fail in race conditions since we handle existence above
+            // for dir.
+            cfg.create_command_for_toolchain_(toolchain, arg0)?
+        }
     };
     run_command_for_dir(cmd, arg0, args)
 }
