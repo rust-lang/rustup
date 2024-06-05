@@ -523,13 +523,11 @@ pub(crate) fn create_rustup_home() -> Result<()> {
     Ok(())
 }
 
-fn dot_dir(name: &str) -> Option<PathBuf> {
-    home_dir().map(|p| p.join(name))
-}
-
 fn rustup_home_in_user_dir() -> Result<PathBuf> {
     // XXX: This error message seems wrong/bogus.
-    dot_dir(".rustup").ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))
+    home_dir()
+        .map(|p| p.join(".rustup"))
+        .ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))
 }
 
 pub(crate) fn rustup_home() -> Result<PathBuf> {
