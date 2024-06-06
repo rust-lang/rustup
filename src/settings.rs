@@ -74,7 +74,7 @@ impl SettingsFile {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Settings {
     pub version: MetadataVersion,
     pub default_host_triple: Option<String>,
@@ -83,20 +83,6 @@ pub struct Settings {
     pub overrides: BTreeMap<String, String>,
     pub pgp_keys: Option<String>,
     pub auto_self_update: Option<SelfUpdateMode>,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            version: MetadataVersion::default(),
-            default_host_triple: None,
-            default_toolchain: None,
-            profile: Some(Profile::default()),
-            overrides: BTreeMap::new(),
-            pgp_keys: None,
-            auto_self_update: None,
-        }
-    }
 }
 
 impl Settings {
