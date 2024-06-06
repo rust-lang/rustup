@@ -250,7 +250,7 @@ fn mock_dist_server_smoke_test() {
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let path = tempdir.path();
 
-    create_mock_dist_server(path, None).write(&[ManifestVersion::V2], false, false);
+    create_mock_dist_server(path, None).write(&[MockManifestVersion::V2], false, false);
 
     assert!(utils::path_exists(path.join(
         "dist/2016-02-01/rustc-nightly-x86_64-apple-darwin.tar.gz"
@@ -552,7 +552,7 @@ fn setup_from_dist_server(
     f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Context),
 ) {
     server.write(
-        &[ManifestVersion::V2],
+        &[MockManifestVersion::V2],
         comps.enable_xz(),
         comps.enable_zst(),
     );

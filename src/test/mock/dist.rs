@@ -11,6 +11,12 @@ use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
 use url::Url;
 
+use crate::dist::dist::{Profile, TargetTriple};
+use crate::dist::manifest::{
+    Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package, PackageTargets,
+    Renamed, TargetedPackage,
+};
+
 use super::clitools::hard_link;
 use super::MockInstallerBuilder;
 
@@ -118,14 +124,14 @@ pub struct MockHashes {
     pub zst: Option<String>,
 }
 
-pub enum ManifestVersion {
+pub enum MockManifestVersion {
     V1,
     V2,
 }
 
 impl MockDistServer {
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub fn write(&self, vs: &[ManifestVersion], enable_xz: bool, enable_zst: bool) {
+    pub fn write(&self, vs: &[MockManifestVersion], enable_xz: bool, enable_zst: bool) {
         fs::create_dir_all(&self.path).unwrap();
 
         for channel in self.channels.iter() {
@@ -136,8 +142,8 @@ impl MockDistServer {
             }
             for v in vs {
                 match *v {
-                    ManifestVersion::V1 => self.write_manifest_v1(channel),
-                    ManifestVersion::V2 => self.write_manifest_v2(channel, &hashes),
+                    MockManifestVersion::V1 => self.write_manifest_v1(channel),
+                    MockManifestVersion::V2 => self.write_manifest_v2(channel, &hashes),
                 }
             }
         }
@@ -306,136 +312,118 @@ impl MockDistServer {
         channel: &MockChannel,
         hashes: &HashMap<MockComponent, MockHashes>,
     ) {
-        let mut toml_manifest = toml::value::Table::new();
-
-        toml_manifest.insert(
-            String::from("manifest-version"),
-            toml::Value::String(MOCK_MANIFEST_VERSION.to_owned()),
-        );
-        toml_manifest.insert(
-            String::from("date"),
-            toml::Value::String(channel.date.to_owned()),
-        );
+        let mut manifest = Manifest {
+            manifest_version: ManifestVersion::V2,
+            date: channel.date.clone(),
+            renames: HashMap::default(),
+            packages: HashMap::default(),
+            reverse_renames: HashMap::default(),
+            profiles: HashMap::default(),
+        };
 
         // [pkg.*]
-        let mut toml_packages = toml::value::Table::new();
         for package in &channel.packages {
-            let mut toml_package = toml::value::Table::new();
-            toml_package.insert(
-                String::from("version"),
-                toml::Value::String(package.version.to_owned()),
-            );
+            let mut targets = HashMap::default();
 
             // [pkg.*.target.*]
-            let mut toml_targets = toml::value::Table::new();
             for target in &package.targets {
-                let mut toml_target = toml::value::Table::new();
-                toml_target.insert(
-                    String::from("available"),
-                    toml::Value::Boolean(target.available),
-                );
+                let mut tpkg = TargetedPackage {
+                    bins: Vec::new(),
+                    components: Vec::new(),
+                };
 
                 let package_file_name = if target.target != "*" {
                     format!("{}-{}-{}.tar.gz", package.name, channel.name, target.target)
                 } else {
                     format!("{}-{}.tar.gz", package.name, channel.name)
                 };
+
                 let path = self
                     .path
                     .join("dist")
                     .join(&channel.date)
                     .join(package_file_name);
-                let url = format!("file://{}", path.to_string_lossy());
-                toml_target.insert(String::from("url"), toml::Value::String(url.clone()));
 
                 let component = MockComponent {
                     name: package.name.to_owned(),
                     target: target.target.to_owned(),
                     is_extension: false,
                 };
-                let hash = hashes[&component].clone();
-                toml_target.insert(String::from("hash"), toml::Value::String(hash.gz));
 
-                if let Some(xz_hash) = hash.xz {
-                    toml_target.insert(
-                        String::from("xz_url"),
-                        toml::Value::String(url.replace(".tar.gz", ".tar.xz")),
-                    );
-                    toml_target.insert(String::from("xz_hash"), toml::Value::String(xz_hash));
-                }
-                if let Some(zst_hash) = hash.zst {
-                    toml_target.insert(
-                        String::from("zst_url"),
-                        toml::Value::String(url.replace(".tar.gz", ".tar.zst")),
-                    );
-                    toml_target.insert(String::from("zst_hash"), toml::Value::String(zst_hash));
+                if target.available {
+                    let hash = hashes[&component].clone();
+                    let url = format!("file://{}", path.to_string_lossy());
+                    tpkg.bins.push(HashedBinary {
+                        url: url.clone(),
+                        hash: hash.gz,
+                        compression: CompressionKind::GZip,
+                    });
+
+                    if let Some(xz_hash) = hash.xz {
+                        tpkg.bins.push(HashedBinary {
+                            url: url.replace(".tar.gz", ".tar.xz"),
+                            hash: xz_hash,
+                            compression: CompressionKind::XZ,
+                        });
+                    }
+
+                    if let Some(zst_hash) = hash.zst {
+                        tpkg.bins.push(HashedBinary {
+                            url: url.replace(".tar.gz", ".tar.zst"),
+                            hash: zst_hash,
+                            compression: CompressionKind::ZStd,
+                        });
+                    }
                 }
 
                 // [pkg.*.target.*.components.*] and [pkg.*.target.*.extensions.*]
-                let mut toml_components = toml::value::Array::new();
-                let mut toml_extensions = toml::value::Array::new();
                 for component in &target.components {
-                    let mut toml_component = toml::value::Table::new();
-                    toml_component.insert(
-                        String::from("pkg"),
-                        toml::Value::String(component.name.to_owned()),
-                    );
-                    toml_component.insert(
-                        String::from("target"),
-                        toml::Value::String(component.target.to_owned()),
-                    );
-                    if component.is_extension {
-                        toml_extensions.push(toml::Value::Table(toml_component));
-                    } else {
-                        toml_components.push(toml::Value::Table(toml_component));
-                    }
+                    tpkg.components.push(Component {
+                        pkg: component.name.to_owned(),
+                        target: Some(TargetTriple::new(&component.target)),
+                        is_extension: component.is_extension,
+                    });
                 }
-                toml_target.insert(
-                    String::from("components"),
-                    toml::Value::Array(toml_components),
-                );
-                toml_target.insert(
-                    String::from("extensions"),
-                    toml::Value::Array(toml_extensions),
-                );
 
-                toml_targets.insert(target.target.clone(), toml::Value::Table(toml_target));
+                targets.insert(TargetTriple::new(&target.target), tpkg);
             }
-            toml_package.insert(String::from("target"), toml::Value::Table(toml_targets));
 
-            toml_packages.insert(String::from(package.name), toml::Value::Table(toml_package));
+            manifest.packages.insert(
+                package.name.to_owned(),
+                Package {
+                    version: package.version.clone(),
+                    targets: PackageTargets::Targeted(targets),
+                },
+            );
         }
-        toml_manifest.insert(String::from("pkg"), toml::Value::Table(toml_packages));
 
-        let mut toml_renames = toml::value::Table::new();
         for (from, to) in &channel.renames {
-            let mut toml_rename = toml::value::Table::new();
-            toml_rename.insert(String::from("to"), toml::Value::String(to.to_owned()));
-            toml_renames.insert(from.to_owned(), toml::Value::Table(toml_rename));
+            manifest
+                .renames
+                .insert(from.to_owned(), Renamed { to: to.to_owned() });
         }
-        toml_manifest.insert(String::from("renames"), toml::Value::Table(toml_renames));
 
-        let mut toml_profiles = toml::value::Table::new();
         let profiles = &[
-            ("minimal", vec!["rustc"]),
-            ("default", vec!["rustc", "cargo", "rust-std", "rust-docs"]),
+            (Profile::Minimal, &["rustc"][..]),
             (
-                "complete",
-                vec!["rustc", "cargo", "rust-std", "rust-docs", "rls"],
+                Profile::Default,
+                &["rustc", "cargo", "rust-std", "rust-docs"],
+            ),
+            (
+                Profile::Complete,
+                &["rustc", "cargo", "rust-std", "rust-docs", "rls"],
             ),
         ];
+
         for (profile, values) in profiles {
-            let array = values
-                .iter()
-                .map(|v| toml::Value::String((**v).to_owned()))
-                .collect();
-            toml_profiles.insert((*profile).to_string(), toml::Value::Array(array));
+            manifest
+                .profiles
+                .insert(*profile, values.iter().map(|&v| v.to_owned()).collect());
         }
-        toml_manifest.insert(String::from("profiles"), toml::Value::Table(toml_profiles));
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let manifest_path = self.path.join(format!("{manifest_name}.toml"));
-        let manifest_content = toml::to_string(&toml_manifest).unwrap();
+        let manifest_content = manifest.stringify().unwrap();
         write_file(&manifest_path, &manifest_content);
 
         let hash_path = self.path.join(format!("{manifest_name}.toml.sha256"));

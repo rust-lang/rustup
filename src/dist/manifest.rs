@@ -37,7 +37,7 @@ pub(crate) struct ComponentStatus {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Manifest {
-    manifest_version: ManifestVersion,
+    pub(crate) manifest_version: ManifestVersion,
     pub date: String,
     #[serde(default, rename = "pkg")]
     pub packages: HashMap<String, Package>,
@@ -46,12 +46,12 @@ pub struct Manifest {
     #[serde(default, skip_serializing)]
     pub reverse_renames: HashMap<String, String>,
     #[serde(default)]
-    profiles: HashMap<Profile, Vec<String>>,
+    pub profiles: HashMap<Profile, Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Renamed {
-    to: String,
+    pub to: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -228,7 +228,7 @@ pub struct Component {
     // Older Rustup distinguished between components (which are essential) and
     // extensions (which are not).
     #[serde(default)]
-    is_extension: bool,
+    pub is_extension: bool,
 }
 
 impl PartialEq for Component {
