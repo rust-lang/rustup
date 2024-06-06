@@ -21,12 +21,10 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
+use super::{config::Config, dist::ToolchainDesc};
 use crate::dist::dist::{Profile, TargetTriple};
 use crate::errors::*;
 use crate::toolchain::distributable::DistributableToolchain;
-use crate::utils::toml_utils::*;
-
-use super::{config::Config, dist::ToolchainDesc};
 
 /// Used by the `installed_components` function
 pub(crate) struct ComponentStatus {
@@ -529,36 +527,7 @@ impl Component {
             is_extension: false,
         }
     }
-    pub(crate) fn from_toml(
-        mut table: toml::value::Table,
-        path: &str,
-        is_extension: bool,
-    ) -> Result<Self> {
-        Ok(Self {
-            pkg: get_string(&mut table, "pkg", path)?,
-            target: get_string(&mut table, "target", path).map(|s| {
-                if s == "*" {
-                    None
-                } else {
-                    Some(TargetTriple::new(s))
-                }
-            })?,
-            is_extension,
-        })
-    }
-    pub(crate) fn into_toml(self) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-        result.insert(
-            "target".to_owned(),
-            toml::Value::String(
-                self.target
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "*".to_owned()),
-            ),
-        );
-        result.insert("pkg".to_owned(), toml::Value::String(self.pkg));
-        result
-    }
+
     pub(crate) fn name(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {

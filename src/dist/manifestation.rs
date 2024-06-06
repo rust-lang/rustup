@@ -287,7 +287,7 @@ impl Manifestation {
         // name/target. Needs to be fixed in rust-installer.
         let mut new_config = Config::new();
         new_config.components = update.final_component_list;
-        let config_str = new_config.stringify();
+        let config_str = new_config.stringify()?;
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(&rel_config_path);
         tx.modify_file(rel_config_path)?;
