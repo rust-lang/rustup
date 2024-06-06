@@ -19,22 +19,6 @@ pub(crate) fn get_string(table: &mut toml::value::Table, key: &str, path: &str) 
     }
 }
 
-pub(crate) fn get_opt_string(
-    table: &mut toml::value::Table,
-    key: &str,
-    path: &str,
-) -> Result<Option<String>> {
-    if let Ok(v) = get_value(table, key, path) {
-        if let toml::Value::String(s) = v {
-            Ok(Some(s))
-        } else {
-            Err(ExpectedType("string", path.to_owned() + key).into())
-        }
-    } else {
-        Ok(None)
-    }
-}
-
 pub(crate) fn get_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result<bool> {
     get_value(table, key, path).and_then(|v| {
         if let toml::Value::Boolean(b) = v {

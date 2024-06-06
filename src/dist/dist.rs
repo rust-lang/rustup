@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDate;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
 pub(crate) use crate::dist::triple::*;
@@ -600,7 +601,8 @@ impl TryFrom<&ToolchainName> for ToolchainDesc {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Profile {
     Minimal,
     #[default]
