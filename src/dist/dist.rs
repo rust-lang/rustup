@@ -600,9 +600,10 @@ impl TryFrom<&ToolchainName> for ToolchainDesc {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Profile {
     Minimal,
+    #[default]
     Default,
     Complete,
 }
@@ -631,12 +632,6 @@ impl Profile {
 
     pub(crate) fn default_name() -> &'static str {
         "default"
-    }
-}
-
-impl Default for Profile {
-    fn default() -> Self {
-        Self::Default
     }
 }
 
