@@ -437,7 +437,7 @@ fn update_bad_schema() {
     update_setup(&|config, self_dist| {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         output_release_file(self_dist, "17", "1.1.1");
-        config.expect_err(&["rustup", "self", "update"], "unknown schema version");
+        config.expect_err(&["rustup", "self", "update"], "unknown variant");
     });
 }
 
