@@ -57,6 +57,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 use same_file::Handle;
+use serde::{Deserialize, Serialize};
 
 use crate::currentprocess::terminalsource;
 use crate::{
@@ -98,7 +99,8 @@ pub(crate) const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
 pub(crate) const NEVER_SELF_UPDATE: bool = false;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum SelfUpdateMode {
     Enable,
     Disable,
