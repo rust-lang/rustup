@@ -10,6 +10,7 @@ use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
 
+use crate::settings::MetadataVersion;
 use crate::{
     cli::self_update::SelfUpdateMode,
     currentprocess::process,
@@ -22,7 +23,7 @@ use crate::{
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
     notifications::*,
-    settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION},
+    settings::{Settings, SettingsFile},
     toolchain::{
         distributable::DistributableToolchain,
         names::{
@@ -459,20 +460,19 @@ impl Cfg {
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn upgrade_data(&self) -> Result<()> {
-        let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;
-
-        if current_version == DEFAULT_METADATA_VERSION {
-            (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(&current_version));
+        let current_version = self.settings_file.with(|s| Ok(s.version))?;
+        if current_version == MetadataVersion::default() {
+            (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(current_version));
             return Ok(());
         }
 
         (self.notify_handler)(Notification::UpgradingMetadata(
-            &current_version,
-            DEFAULT_METADATA_VERSION,
+            current_version,
+            MetadataVersion::default(),
         ));
 
-        match &*current_version {
-            "2" => {
+        match current_version {
+            MetadataVersion::V2 => {
                 // The toolchain installation format changed. Just delete them all.
                 (self.notify_handler)(Notification::UpgradeRemovesToolchains);
 
@@ -490,11 +490,11 @@ impl Cfg {
                 }
 
                 self.settings_file.with_mut(|s| {
-                    DEFAULT_METADATA_VERSION.clone_into(&mut s.version);
+                    s.version = MetadataVersion::default();
                     Ok(())
                 })
             }
-            _ => Err(RustupError::UnknownMetadataVersion(current_version).into()),
+            MetadataVersion::V12 => unreachable!(),
         }
     }
 
@@ -878,8 +878,8 @@ impl Cfg {
         utils::assert_is_directory(&self.rustup_dir)?;
 
         self.settings_file.with(|s| {
-            (self.notify_handler)(Notification::ReadMetadataVersion(&s.version));
-            if s.version == DEFAULT_METADATA_VERSION {
+            (self.notify_handler)(Notification::ReadMetadataVersion(s.version));
+            if s.version == MetadataVersion::default() {
                 Ok(())
             } else {
                 Err(anyhow!(
