@@ -93,7 +93,7 @@ impl Default for Settings {
             version: DEFAULT_METADATA_VERSION.to_owned(),
             default_host_triple: None,
             default_toolchain: None,
-            profile: Some(Profile::Default),
+            profile: Some(Profile::default()),
             overrides: BTreeMap::new(),
             pgp_keys: None,
             auto_self_update: None,
