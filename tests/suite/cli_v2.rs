@@ -1076,7 +1076,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: String) {
         let target_pkg = std_pkg.targets.get_mut(&target).unwrap();
         target_pkg.bins = Vec::new();
     }
-    let manifest_str = manifest.stringify();
+    let manifest_str = manifest.stringify().unwrap();
     rustup::utils::raw::write_file(&manifest_path, &manifest_str).unwrap();
 
     // Have to update the hash too

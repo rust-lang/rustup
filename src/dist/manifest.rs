@@ -12,12 +12,14 @@
 //!
 //! Docs: <https://forge.rust-lang.org/infra/channel-layout.html>
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
+use serde::{Deserialize, Serialize};
 
 use crate::dist::dist::{Profile, TargetTriple};
 use crate::errors::*;
@@ -34,71 +36,200 @@ pub(crate) struct ComponentStatus {
     pub available: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Manifest {
     manifest_version: ManifestVersion,
     pub date: String,
+    #[serde(default, rename = "pkg")]
     pub packages: HashMap<String, Package>,
-    pub renames: HashMap<String, String>,
+    #[serde(default)]
+    pub renames: HashMap<String, Renamed>,
+    #[serde(default, skip_serializing)]
     pub reverse_renames: HashMap<String, String>,
+    #[serde(default)]
     profiles: HashMap<Profile, Vec<String>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct Renamed {
+    to: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Package {
     pub version: String,
+    #[serde(rename = "target")]
     pub targets: PackageTargets,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(from = "TargetsMap", into = "TargetsMap")]
 pub enum PackageTargets {
     Wildcard(TargetedPackage),
     Targeted(HashMap<TargetTriple, TargetedPackage>),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Deserialize, Serialize)]
+#[serde(transparent)]
+struct TargetsMap(HashMap<TargetTriple, TargetedPackage>);
+
+impl From<TargetsMap> for PackageTargets {
+    fn from(mut map: TargetsMap) -> Self {
+        let wildcard = TargetTriple::new("*");
+        match (map.0.len(), map.0.entry(wildcard)) {
+            (1, Entry::Occupied(entry)) => Self::Wildcard(entry.remove()),
+            (_, _) => Self::Targeted(map.0),
+        }
+    }
+}
+
+impl From<PackageTargets> for TargetsMap {
+    fn from(targets: PackageTargets) -> Self {
+        match targets {
+            PackageTargets::Wildcard(tpkg) => {
+                let mut map = HashMap::new();
+                map.insert(TargetTriple::new("*"), tpkg);
+                Self(map)
+            }
+            PackageTargets::Targeted(tpkgs) => Self(tpkgs),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(from = "Target", into = "Target")]
 pub struct TargetedPackage {
-    pub bins: Vec<(CompressionKind, HashedBinary)>,
+    #[serde(default)]
+    pub bins: Vec<HashedBinary>,
     pub components: Vec<Component>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Deserialize, Serialize)]
+struct Target {
+    available: bool,
+    url: Option<String>,
+    hash: Option<String>,
+    xz_url: Option<String>,
+    xz_hash: Option<String>,
+    zst_url: Option<String>,
+    zst_hash: Option<String>,
+    components: Option<Vec<Component>>,
+    extensions: Option<Vec<Component>>,
+}
+
+impl From<Target> for TargetedPackage {
+    fn from(target: Target) -> Self {
+        let mut components = target.components.unwrap_or_default();
+        if let Some(extensions) = target.extensions {
+            components.extend(extensions.into_iter().map(|mut c| {
+                c.is_extension = true;
+                c
+            }));
+        }
+
+        let mut bins = Vec::new();
+        if !target.available {
+            return Self { bins, components };
+        }
+
+        if let (Some(url), Some(hash)) = (target.zst_url, target.zst_hash) {
+            bins.push(HashedBinary {
+                url,
+                hash,
+                compression: CompressionKind::ZStd,
+            });
+        }
+
+        if let (Some(url), Some(hash)) = (target.xz_url, target.xz_hash) {
+            bins.push(HashedBinary {
+                url,
+                hash,
+                compression: CompressionKind::XZ,
+            });
+        }
+
+        if let (Some(url), Some(hash)) = (target.url, target.hash) {
+            bins.push(HashedBinary {
+                url,
+                hash,
+                compression: CompressionKind::GZip,
+            });
+        }
+
+        Self { bins, components }
+    }
+}
+
+impl From<TargetedPackage> for Target {
+    fn from(tpkg: TargetedPackage) -> Self {
+        let (mut url, mut hash) = (None, None);
+        let (mut xz_url, mut xz_hash) = (None, None);
+        let (mut zst_url, mut zst_hash) = (None, None);
+        let available = !tpkg.bins.is_empty();
+        for bin in tpkg.bins {
+            match bin.compression {
+                CompressionKind::GZip => {
+                    url = Some(bin.url);
+                    hash = Some(bin.hash);
+                }
+                CompressionKind::XZ => {
+                    xz_url = Some(bin.url);
+                    xz_hash = Some(bin.hash);
+                }
+                CompressionKind::ZStd => {
+                    zst_url = Some(bin.url);
+                    zst_hash = Some(bin.hash);
+                }
+            }
+        }
+
+        let (mut components, mut extensions) =
+            (Vec::with_capacity(tpkg.components.len()), Vec::new());
+        for c in tpkg.components {
+            match c.is_extension {
+                true => &mut extensions,
+                false => &mut components,
+            }
+            .push(c);
+        }
+
+        Self {
+            available,
+            url,
+            hash,
+            xz_url,
+            xz_hash,
+            zst_url,
+            zst_hash,
+            components: Some(components),
+            extensions: Some(extensions),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum CompressionKind {
     GZip,
     XZ,
     ZStd,
 }
 
-/// Each compression kind, in order of preference for use, from most desirable
-/// to least desirable.
-static COMPRESSION_KIND_PREFERENCE_ORDER: &[CompressionKind] = &[
-    CompressionKind::ZStd,
-    CompressionKind::XZ,
-    CompressionKind::GZip,
-];
-
-impl CompressionKind {
-    const fn key_prefix(self) -> &'static str {
-        match self {
-            Self::GZip => "",
-            Self::XZ => "xz_",
-            Self::ZStd => "zst_",
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HashedBinary {
     pub url: String,
     pub hash: String,
+    pub compression: CompressionKind,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialOrd, Serialize)]
 pub struct Component {
-    pkg: String,
+    pub pkg: String,
+    #[serde(with = "component_target")]
     pub target: Option<TargetTriple>,
     // Older Rustup distinguished between components (which are essential) and
     // extensions (which are not).
+    #[serde(default)]
     is_extension: bool,
 }
 
@@ -118,136 +249,43 @@ impl Hash for Component {
     }
 }
 
-impl Manifest {
-    pub fn parse(data: &str) -> Result<Self> {
-        let value = toml::from_str(data).context("error parsing manifest")?;
-        let manifest = Self::from_toml(value, "")?;
-        manifest.validate()?;
+mod component_target {
+    use super::*;
+    use serde::{Deserialize, Deserializer, Serializer};
 
-        Ok(manifest)
-    }
-    pub fn stringify(self) -> String {
-        self.into_toml().to_string()
-    }
-
-    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        let version = get_string(&mut table, "manifest-version", path)?;
-        let manifest_version = ManifestVersion::from_str(&version)?;
-
-        let (renames, reverse_renames) = Self::table_to_renames(&mut table, path)?;
-        Ok(Self {
-            manifest_version,
-            date: get_string(&mut table, "date", path)?,
-            packages: Self::table_to_packages(&mut table, path)?,
-            renames,
-            reverse_renames,
-            profiles: Self::table_to_profiles(&mut table, path)?,
+    pub fn serialize<S: Serializer>(
+        target: &Option<TargetTriple>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(match target {
+            Some(t) => t,
+            None => "*",
         })
     }
-    pub(crate) fn into_toml(self) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
 
-        result.insert("date".to_owned(), toml::Value::String(self.date));
-        result.insert(
-            "manifest-version".to_owned(),
-            toml::Value::String(self.manifest_version.to_string()),
-        );
-
-        let renames = Self::renames_to_table(self.renames);
-        result.insert("renames".to_owned(), toml::Value::Table(renames));
-
-        let packages = Self::packages_to_table(self.packages);
-        result.insert("pkg".to_owned(), toml::Value::Table(packages));
-
-        let profiles = Self::profiles_to_table(self.profiles);
-        result.insert("profiles".to_owned(), toml::Value::Table(profiles));
-
-        result
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<TargetTriple>, D::Error> {
+        Ok(match Option::<String>::deserialize(deserializer)? {
+            Some(s) if s != "*" => Some(TargetTriple::new(s)),
+            _ => None,
+        })
     }
+}
 
-    fn table_to_packages(
-        table: &mut toml::value::Table,
-        path: &str,
-    ) -> Result<HashMap<String, Package>> {
-        let mut result = HashMap::new();
-        let pkg_table = get_table(table, "pkg", path)?;
-
-        for (k, v) in pkg_table {
-            if let toml::Value::Table(t) = v {
-                result.insert(k, Package::from_toml(t, path)?);
-            }
+impl Manifest {
+    pub fn parse(data: &str) -> Result<Self> {
+        let mut manifest = toml::from_str::<Self>(data).context("error parsing manifest")?;
+        for (from, to) in manifest.renames.iter() {
+            manifest.reverse_renames.insert(to.to.clone(), from.clone());
         }
 
-        Ok(result)
-    }
-    fn packages_to_table(packages: HashMap<String, Package>) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-        for (k, v) in packages {
-            result.insert(k, toml::Value::Table(v.into_toml()));
-        }
-        result
+        manifest.validate()?;
+        Ok(manifest)
     }
 
-    fn table_to_renames(
-        table: &mut toml::value::Table,
-        path: &str,
-    ) -> Result<(HashMap<String, String>, HashMap<String, String>)> {
-        let mut renames = HashMap::new();
-        let mut reverse_renames = HashMap::new();
-        let renames_table = get_table(table, "renames", path)?;
-
-        for (k, v) in renames_table {
-            if let toml::Value::Table(mut t) = v {
-                let to = get_string(&mut t, "to", path)?;
-                renames.insert(k.to_owned(), to.clone());
-                reverse_renames.insert(to, k.to_owned());
-            }
-        }
-
-        Ok((renames, reverse_renames))
-    }
-    fn renames_to_table(renames: HashMap<String, String>) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-        for (from, to) in renames {
-            let mut table = toml::value::Table::new();
-            table.insert("to".to_owned(), toml::Value::String(to));
-            result.insert(from, toml::Value::Table(table));
-        }
-        result
-    }
-
-    fn table_to_profiles(
-        table: &mut toml::value::Table,
-        path: &str,
-    ) -> Result<HashMap<Profile, Vec<String>>> {
-        let mut result = HashMap::new();
-        let profile_table = match get_table(table, "profiles", path) {
-            Ok(t) => t,
-            Err(_) => return Ok(result),
-        };
-
-        for (k, v) in profile_table {
-            if let toml::Value::Array(a) = v {
-                let values = a
-                    .into_iter()
-                    .filter_map(|v| match v {
-                        toml::Value::String(s) => Some(s),
-                        _ => None,
-                    })
-                    .collect();
-                result.insert(Profile::from_str(&k)?, values);
-            }
-        }
-
-        Ok(result)
-    }
-    fn profiles_to_table(profiles: HashMap<Profile, Vec<String>>) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-        for (profile, values) in profiles {
-            let array = values.into_iter().map(toml::Value::String).collect();
-            result.insert(profile.to_string(), toml::Value::Array(array));
-        }
-        result
+    pub fn stringify(self) -> anyhow::Result<String> {
+        Ok(toml::to_string(&self)?)
     }
 
     pub fn get_package(&self, name: &str) -> Result<&Package> {
@@ -334,7 +372,8 @@ impl Manifest {
 
         // The target of any renames must be an actual package. The subject of
         // renames is unconstrained.
-        for name in self.renames.values() {
+        for renamed in self.renames.values() {
+            let name = &renamed.to;
             if !self.packages.contains_key(name) {
                 bail!(format!(
                     "server sent a broken manifest: missing package for the target of a rename {name}"
@@ -350,7 +389,7 @@ impl Manifest {
     pub(crate) fn rename_component(&self, component: &Component) -> Option<Component> {
         self.renames.get(&component.pkg).map(|r| {
             let mut c = component.clone();
-            c.pkg.clone_from(r);
+            c.pkg.clone_from(&r.to);
             c
         })
     }
@@ -408,55 +447,6 @@ impl Manifest {
 }
 
 impl Package {
-    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        Ok(Self {
-            version: get_string(&mut table, "version", path)?,
-            targets: Self::toml_to_targets(table, path)?,
-        })
-    }
-    pub(crate) fn into_toml(self) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-
-        result.insert("version".to_owned(), toml::Value::String(self.version));
-
-        let targets = Self::targets_to_toml(self.targets);
-        result.insert("target".to_owned(), toml::Value::Table(targets));
-
-        result
-    }
-
-    fn toml_to_targets(mut table: toml::value::Table, path: &str) -> Result<PackageTargets> {
-        let mut target_table = get_table(&mut table, "target", path)?;
-
-        if let Some(toml::Value::Table(t)) = target_table.remove("*") {
-            Ok(PackageTargets::Wildcard(TargetedPackage::from_toml(
-                t, path,
-            )?))
-        } else {
-            let mut result = HashMap::new();
-            for (k, v) in target_table {
-                if let toml::Value::Table(t) = v {
-                    result.insert(TargetTriple::new(k), TargetedPackage::from_toml(t, path)?);
-                }
-            }
-            Ok(PackageTargets::Targeted(result))
-        }
-    }
-    fn targets_to_toml(targets: PackageTargets) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-        match targets {
-            PackageTargets::Wildcard(tpkg) => {
-                result.insert("*".to_owned(), toml::Value::Table(tpkg.into_toml()));
-            }
-            PackageTargets::Targeted(tpkgs) => {
-                for (k, v) in tpkgs {
-                    result.insert(k.to_string(), toml::Value::Table(v.into_toml()));
-                }
-            }
-        }
-        result
-    }
-
     pub fn get_target(&self, target: Option<&TargetTriple>) -> Result<&TargetedPackage> {
         match self.targets {
             PackageTargets::Wildcard(ref tpkg) => Ok(tpkg),
@@ -490,91 +480,8 @@ impl PackageTargets {
 }
 
 impl TargetedPackage {
-    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        let components = get_array(&mut table, "components", path)?;
-        let extensions = get_array(&mut table, "extensions", path)?;
-
-        let mut components =
-            Self::toml_to_components(components, &format!("{}{}.", path, "components"), false)?;
-        components.append(&mut Self::toml_to_components(
-            extensions,
-            &format!("{}{}.", path, "extensions"),
-            true,
-        )?);
-
-        if get_bool(&mut table, "available", path)? {
-            let mut bins = Vec::new();
-            for kind in COMPRESSION_KIND_PREFERENCE_ORDER.iter().copied() {
-                let url_key = format!("{}url", kind.key_prefix());
-                let hash_key = format!("{}hash", kind.key_prefix());
-                let url = get_string(&mut table, &url_key, path).ok();
-                let hash = get_string(&mut table, &hash_key, path).ok();
-                if let (Some(url), Some(hash)) = (url, hash) {
-                    bins.push((kind, HashedBinary { url, hash }));
-                }
-            }
-            Ok(Self { bins, components })
-        } else {
-            Ok(Self {
-                bins: Vec::new(),
-                components: Vec::new(),
-            })
-        }
-    }
-    pub(crate) fn into_toml(self) -> toml::value::Table {
-        let mut result = toml::value::Table::new();
-        let (components, extensions) = Self::components_to_toml(self.components);
-        if !components.is_empty() {
-            result.insert("components".to_owned(), toml::Value::Array(components));
-        }
-        if !extensions.is_empty() {
-            result.insert("extensions".to_owned(), toml::Value::Array(extensions));
-        }
-        if self.bins.is_empty() {
-            result.insert("available".to_owned(), toml::Value::Boolean(false));
-        } else {
-            for (kind, bin) in self.bins {
-                let url_key = format!("{}url", kind.key_prefix());
-                let hash_key = format!("{}hash", kind.key_prefix());
-                result.insert(url_key, toml::Value::String(bin.url));
-                result.insert(hash_key, toml::Value::String(bin.hash));
-            }
-            result.insert("available".to_owned(), toml::Value::Boolean(true));
-        }
-        result
-    }
-
     pub fn available(&self) -> bool {
         !self.bins.is_empty()
-    }
-
-    fn toml_to_components(
-        arr: toml::value::Array,
-        path: &str,
-        is_extension: bool,
-    ) -> Result<Vec<Component>> {
-        let mut result = Vec::new();
-
-        for (i, v) in arr.into_iter().enumerate() {
-            if let toml::Value::Table(t) = v {
-                let path = format!("{path}[{i}]");
-                result.push(Component::from_toml(t, &path, is_extension)?);
-            }
-        }
-
-        Ok(result)
-    }
-    fn components_to_toml(data: Vec<Component>) -> (toml::value::Array, toml::value::Array) {
-        let mut components = toml::value::Array::new();
-        let mut extensions = toml::value::Array::new();
-        for v in data {
-            if v.is_extension {
-                extensions.push(toml::Value::Table(v.into_toml()));
-            } else {
-                components.push(toml::Value::Table(v.into_toml()));
-            }
-        }
-        (components, extensions)
     }
 }
 
@@ -717,8 +624,9 @@ impl Component {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub(crate) enum ManifestVersion {
+    #[serde(rename = "2")]
     #[default]
     V2,
 }
@@ -779,8 +687,8 @@ mod tests {
             .get_target(Some(&x86_64_unknown_linux_gnu))
             .unwrap();
         assert!(rust_target_pkg.available());
-        assert_eq!(rust_target_pkg.bins[0].1.url, "example.com");
-        assert_eq!(rust_target_pkg.bins[0].1.hash, "...");
+        assert_eq!(rust_target_pkg.bins[0].url, "example.com");
+        assert_eq!(rust_target_pkg.bins[0].hash, "...");
 
         let component = &rust_target_pkg.components[0];
         assert_eq!(component.short_name_in_manifest(), "rustc");
@@ -794,14 +702,14 @@ mod tests {
         let docs_target_pkg = docs_pkg
             .get_target(Some(&x86_64_unknown_linux_gnu))
             .unwrap();
-        assert_eq!(docs_target_pkg.bins[0].1.url, "example.com");
+        assert_eq!(docs_target_pkg.bins[0].url, "example.com");
     }
 
     #[test]
     fn renames() {
         let manifest = Manifest::parse(EXAMPLE2).unwrap();
         assert_eq!(1, manifest.renames.len());
-        assert_eq!(manifest.renames["cargo-old"], "cargo");
+        assert_eq!(manifest.renames["cargo-old"].to, "cargo");
         assert_eq!(1, manifest.reverse_renames.len());
         assert_eq!(manifest.reverse_renames["cargo"], "cargo-old");
     }
@@ -809,12 +717,12 @@ mod tests {
     #[test]
     fn parse_round_trip() {
         let original = Manifest::parse(EXAMPLE).unwrap();
-        let serialized = original.clone().stringify();
+        let serialized = original.clone().stringify().unwrap();
         let new = Manifest::parse(&serialized).unwrap();
         assert_eq!(original, new);
 
         let original = Manifest::parse(EXAMPLE2).unwrap();
-        let serialized = original.clone().stringify();
+        let serialized = original.clone().stringify().unwrap();
         let new = Manifest::parse(&serialized).unwrap();
         assert_eq!(original, new);
     }
