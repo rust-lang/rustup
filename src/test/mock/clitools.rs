@@ -28,7 +28,7 @@ use crate::utils::{raw, utils};
 
 use super::{
     dist::{
-        change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer,
+        change_channel_date, MockChannel, MockComponent, MockDistServer, MockManifestVersion,
         MockPackage, MockTargetedPackage,
     },
     topical_doc_data, MockComponentBuilder, MockFile, MockInstallerBuilder,
@@ -1134,8 +1134,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     let vs = match s {
         Scenario::None => unreachable!("None exits above"),
         Scenario::Empty => vec![],
-        Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
-        Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
+        Scenario::Full => vec![MockManifestVersion::V1, MockManifestVersion::V2],
+        Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![MockManifestVersion::V1],
         Scenario::SimpleV2
         | Scenario::ArchivesV2
         | Scenario::ArchivesV2_2015_01_01
@@ -1148,7 +1148,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::HostGoesMissingBefore
         | Scenario::HostGoesMissingAfter
         | Scenario::MissingComponent
-        | Scenario::MissingComponentMulti => vec![ManifestVersion::V2],
+        | Scenario::MissingComponentMulti => vec![MockManifestVersion::V2],
     };
 
     MockDistServer {
