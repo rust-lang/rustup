@@ -1,24 +1,22 @@
-use anyhow::{bail, Context, Result};
+use std::fmt;
+use std::str::FromStr;
+
+use anyhow::{Context, Result};
 
 use super::manifest::Component;
 use crate::errors::*;
 use crate::utils::toml_utils::*;
 
-pub(crate) const SUPPORTED_CONFIG_VERSIONS: [&str; 1] = ["1"];
-pub(crate) const DEFAULT_CONFIG_VERSION: &str = "1";
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Config {
-    pub config_version: String,
+    pub config_version: ConfigVersion,
     pub components: Vec<Component>,
 }
 
 impl Config {
     pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let config_version = get_string(&mut table, "config_version", path)?;
-        if !SUPPORTED_CONFIG_VERSIONS.contains(&&*config_version) {
-            bail!(RustupError::UnsupportedVersion(config_version));
-        }
+        let config_version = ConfigVersion::from_str(&config_version)?;
 
         let components = get_array(&mut table, "components", path)?;
         let components =
@@ -33,7 +31,7 @@ impl Config {
         let mut result = toml::value::Table::new();
         result.insert(
             "config_version".to_owned(),
-            toml::Value::String(self.config_version),
+            toml::Value::String(self.config_version.as_str().to_owned()),
         );
         let components = Self::components_to_toml(self.components);
         if !components.is_empty() {
@@ -77,11 +75,33 @@ impl Config {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            config_version: DEFAULT_CONFIG_VERSION.to_owned(),
-            components: Vec::new(),
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum ConfigVersion {
+    #[default]
+    V1,
+}
+
+impl ConfigVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::V1 => "1",
         }
+    }
+}
+
+impl FromStr for ConfigVersion {
+    type Err = RustupError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Self::V1),
+            _ => Err(RustupError::UnsupportedVersion(s.to_owned())),
+        }
+    }
+}
+
+impl fmt::Display for ConfigVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
