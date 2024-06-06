@@ -247,3 +247,59 @@ impl fmt::Display for MetadataVersion {
         write!(f, "{}", self.as_str())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serialize_default() {
+        let settings = Settings::default();
+        let toml = settings.stringify();
+        assert_eq!(
+            toml,
+            r#"version = "12"
+
+[overrides]
+"#
+        );
+    }
+
+    #[test]
+    fn deserialize_default() {
+        let toml = r#"version = "12""#;
+        let settings = Settings::parse(toml).unwrap();
+        assert_eq!(settings.version, MetadataVersion::V12);
+    }
+
+    #[test]
+    fn serialize_basic() {
+        let settings = Settings {
+            version: MetadataVersion::V12,
+            default_toolchain: Some("stable-aarch64-apple-darwin".to_owned()),
+            profile: Some(Profile::Default),
+            ..Default::default()
+        };
+
+        let toml = settings.stringify();
+        assert_eq!(toml, BASIC,);
+    }
+
+    #[test]
+    fn deserialize_basic() {
+        let settings = Settings::parse(BASIC).unwrap();
+        assert_eq!(settings.version, MetadataVersion::V12);
+        assert_eq!(
+            settings.default_toolchain,
+            Some("stable-aarch64-apple-darwin".to_owned())
+        );
+        assert_eq!(settings.profile, Some(Profile::Default));
+    }
+
+    const BASIC: &str = r#"default_toolchain = "stable-aarch64-apple-darwin"
+profile = "default"
+version = "12"
+
+[overrides]
+"#;
+}
