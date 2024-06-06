@@ -46,13 +46,13 @@ mod os {
 }
 
 use std::borrow::Cow;
-use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::io::Write;
 use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
 use std::process::Command;
 use std::str::FromStr;
+use std::{env, fmt};
 
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
@@ -60,6 +60,7 @@ use same_file::Handle;
 use serde::{Deserialize, Serialize};
 
 use crate::currentprocess::terminalsource;
+use crate::errors::RustupError;
 use crate::{
     cli::{
         common::{self, ignorable_error, report_error, Confirm, PackageUpdate},
@@ -1247,29 +1248,49 @@ async fn get_available_rustup_version() -> Result<String> {
     let release_file = tempdir.path().join("release-stable.toml");
     utils::download_file(&release_file_url, &release_file, None, &|_| ()).await?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
-    let release_toml: toml::Value =
-        toml::from_str(&release_toml_str).context("unable to parse rustup release file")?;
+    let release_toml = toml::from_str::<RustupManifest>(&release_toml_str)
+        .context("unable to parse rustup release file")?;
 
-    // Check the release file schema.
-    let schema = release_toml
-        .get("schema-version")
-        .ok_or_else(|| anyhow!("no schema key in rustup release file"))?
-        .as_str()
-        .ok_or_else(|| anyhow!("invalid schema key in rustup release file"))?;
-    if schema != "1" {
-        return Err(anyhow!(format!(
-            "unknown schema version '{schema}' in rustup release file"
-        )));
+    Ok(release_toml.version)
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+struct RustupManifest {
+    schema_version: SchemaVersion,
+    version: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub(crate) enum SchemaVersion {
+    #[serde(rename = "1")]
+    #[default]
+    V1,
+}
+
+impl SchemaVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::V1 => "1",
+        }
     }
+}
 
-    // Get the version.
-    let available_version = release_toml
-        .get("version")
-        .ok_or_else(|| anyhow!("no version key in rustup release file"))?
-        .as_str()
-        .ok_or_else(|| anyhow!("invalid version key in rustup release file"))?;
+impl FromStr for SchemaVersion {
+    type Err = RustupError;
 
-    Ok(String::from(available_version))
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Self::V1),
+            _ => Err(RustupError::UnsupportedVersion(s.to_owned())),
+        }
+    }
+}
+
+impl fmt::Display for SchemaVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
 }
 
 pub(crate) async fn check_rustup_update() -> Result<()> {
