@@ -13,6 +13,7 @@
 //! Docs: <https://forge.rust-lang.org/infra/channel-layout.html>
 
 use std::collections::HashMap;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
@@ -25,8 +26,6 @@ use crate::utils::toml_utils::*;
 
 use super::{config::Config, dist::ToolchainDesc};
 
-pub(crate) const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
-
 /// Used by the `installed_components` function
 pub(crate) struct ComponentStatus {
     pub component: Component,
@@ -37,7 +36,7 @@ pub(crate) struct ComponentStatus {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Manifest {
-    manifest_version: String,
+    manifest_version: ManifestVersion,
     pub date: String,
     pub packages: HashMap<String, Package>,
     pub renames: HashMap<String, String>,
@@ -133,12 +132,11 @@ impl Manifest {
 
     pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = get_string(&mut table, "manifest-version", path)?;
-        if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
-            bail!(RustupError::UnsupportedVersion(version));
-        }
+        let manifest_version = ManifestVersion::from_str(&version)?;
+
         let (renames, reverse_renames) = Self::table_to_renames(&mut table, path)?;
         Ok(Self {
-            manifest_version: version,
+            manifest_version,
             date: get_string(&mut table, "date", path)?,
             packages: Self::table_to_packages(&mut table, path)?,
             renames,
@@ -152,7 +150,7 @@ impl Manifest {
         result.insert("date".to_owned(), toml::Value::String(self.date));
         result.insert(
             "manifest-version".to_owned(),
-            toml::Value::String(self.manifest_version),
+            toml::Value::String(self.manifest_version.to_string()),
         );
 
         let renames = Self::renames_to_table(self.renames);
@@ -716,6 +714,37 @@ impl Component {
                 .iter()
                 .any(|other| other.pkg == self.pkg && other.target.is_none())
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum ManifestVersion {
+    #[default]
+    V2,
+}
+
+impl ManifestVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::V2 => "2",
+        }
+    }
+}
+
+impl FromStr for ManifestVersion {
+    type Err = RustupError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "2" => Ok(Self::V2),
+            _ => Err(RustupError::UnsupportedVersion(s.to_owned())),
+        }
+    }
+}
+
+impl fmt::Display for ManifestVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
