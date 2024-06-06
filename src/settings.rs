@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -11,9 +12,6 @@ use crate::errors::*;
 use crate::notifications::*;
 use crate::utils::toml_utils::*;
 use crate::utils::utils;
-
-pub(crate) const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];
-pub(crate) const DEFAULT_METADATA_VERSION: &str = "12";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettingsFile {
@@ -78,7 +76,7 @@ impl SettingsFile {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Settings {
-    pub version: String,
+    pub version: MetadataVersion,
     pub default_host_triple: Option<String>,
     pub default_toolchain: Option<String>,
     pub profile: Option<Profile>,
@@ -90,7 +88,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: DEFAULT_METADATA_VERSION.to_owned(),
+            version: MetadataVersion::default(),
             default_host_triple: None,
             default_toolchain: None,
             profile: Some(Profile::default()),
@@ -152,9 +150,8 @@ impl Settings {
 
     pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = get_string(&mut table, "version", path)?;
-        if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
-            return Err(RustupError::UnknownMetadataVersion(version).into());
-        }
+        let version = MetadataVersion::from_str(&version)?;
+
         let auto_self_update = get_opt_string(&mut table, "auto_self_update", path)?
             .and_then(|mode| SelfUpdateMode::from_str(mode.as_str()).ok());
         let profile = get_opt_string(&mut table, "profile", path)?
@@ -172,7 +169,10 @@ impl Settings {
     pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
-        result.insert("version".to_owned(), toml::Value::String(self.version));
+        result.insert(
+            "version".to_owned(),
+            toml::Value::String(self.version.as_str().to_owned()),
+        );
 
         if let Some(v) = self.default_host_triple {
             result.insert("default_host_triple".to_owned(), toml::Value::String(v));
@@ -225,5 +225,39 @@ impl Settings {
             result.insert(k, toml::Value::String(v));
         }
         result
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum MetadataVersion {
+    V2,
+    #[default]
+    V12,
+}
+
+impl MetadataVersion {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::V2 => "2",
+            Self::V12 => "12",
+        }
+    }
+}
+
+impl FromStr for MetadataVersion {
+    type Err = RustupError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "2" => Ok(Self::V2),
+            "12" => Ok(Self::V12),
+            _ => Err(RustupError::UnknownMetadataVersion(s.to_owned())),
+        }
+    }
+}
+
+impl fmt::Display for MetadataVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }

@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
+use crate::settings::MetadataVersion;
 use crate::{
     dist::{dist::ToolchainDesc, temp},
     toolchain::names::ToolchainName,
@@ -26,9 +27,9 @@ pub(crate) enum Notification<'a> {
     UninstallingToolchain(&'a ToolchainName),
     UninstalledToolchain(&'a ToolchainName),
     UpdateHashMatches,
-    UpgradingMetadata(&'a str, &'a str),
-    MetadataUpgradeNotNeeded(&'a str),
-    ReadMetadataVersion(&'a str),
+    UpgradingMetadata(MetadataVersion, MetadataVersion),
+    MetadataUpgradeNotNeeded(MetadataVersion),
+    ReadMetadataVersion(MetadataVersion),
     NonFatalError(&'a anyhow::Error),
     UpgradeRemovesToolchains,
     /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
