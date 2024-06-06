@@ -19,32 +19,6 @@ pub(crate) fn get_string(table: &mut toml::value::Table, key: &str, path: &str) 
     }
 }
 
-pub(crate) fn get_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result<bool> {
-    get_value(table, key, path).and_then(|v| {
-        if let toml::Value::Boolean(b) = v {
-            Ok(b)
-        } else {
-            Err(ExpectedType("bool", path.to_owned() + key).into())
-        }
-    })
-}
-
-pub(crate) fn get_table(
-    table: &mut toml::value::Table,
-    key: &str,
-    path: &str,
-) -> Result<toml::value::Table> {
-    if let Some(v) = table.remove(key) {
-        if let toml::Value::Table(t) = v {
-            Ok(t)
-        } else {
-            Err(ExpectedType("table", path.to_owned() + key).into())
-        }
-    } else {
-        Ok(toml::value::Table::new())
-    }
-}
-
 pub(crate) fn get_array(
     table: &mut toml::value::Table,
     key: &str,

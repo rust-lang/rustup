@@ -140,7 +140,8 @@ pub struct ToolchainDesc {
     pub target: TargetTriple,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Clone, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[serde(transparent)]
 pub struct TargetTriple(String);
 
 // Linux hosts don't indicate clib in uname, however binaries only

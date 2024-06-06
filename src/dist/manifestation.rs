@@ -275,7 +275,7 @@ impl Manifestation {
         }
 
         // Install new distribution manifest
-        let new_manifest_str = new_manifest.clone().stringify();
+        let new_manifest_str = new_manifest.clone().stringify()?;
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
 
@@ -709,9 +709,9 @@ impl Update {
             // manifest leaves us with the files/hash pairs in preference order.
             components_urls_and_hashes.push((
                 component.clone(),
-                target_package.bins[0].0,
-                target_package.bins[0].1.url.clone(),
-                target_package.bins[0].1.hash.clone(),
+                target_package.bins[0].compression,
+                target_package.bins[0].url.clone(),
+                target_package.bins[0].hash.clone(),
             ));
         }
 
