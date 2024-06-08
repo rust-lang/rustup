@@ -491,53 +491,12 @@ mod tests {
     use proptest::{collection::vec, prelude::*, string::string_regex};
 
     use crate::{
-        dist::dist::PartialToolchainDesc,
+        dist::{
+            dist::PartialToolchainDesc,
+            triple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
+        },
         toolchain::names::{CustomToolchainName, ResolvableToolchainName, ToolchainName},
     };
-
-    //Duplicated from triple.rs as a pragmatic step. TODO: remove duplication.
-    static LIST_ARCHS: &[&str] = &[
-        "i386",
-        "i586",
-        "i686",
-        "x86_64",
-        "arm",
-        "armv7",
-        "armv7s",
-        "aarch64",
-        "mips",
-        "mipsel",
-        "mips64",
-        "mips64el",
-        "powerpc",
-        "powerpc64",
-        "powerpc64le",
-        "riscv64gc",
-        "s390x",
-        "loongarch64",
-    ];
-    static LIST_OSES: &[&str] = &[
-        "pc-windows",
-        "unknown-linux",
-        "apple-darwin",
-        "unknown-netbsd",
-        "apple-ios",
-        "linux",
-        "rumprun-netbsd",
-        "unknown-freebsd",
-        "unknown-illumos",
-    ];
-    static LIST_ENVS: &[&str] = &[
-        "gnu",
-        "gnux32",
-        "msvc",
-        "gnueabi",
-        "gnueabihf",
-        "gnuabi64",
-        "androideabi",
-        "android",
-        "musl",
-    ];
 
     fn partial_toolchain_desc_re() -> String {
         let triple_re = format!(
