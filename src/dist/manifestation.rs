@@ -285,8 +285,10 @@ impl Manifestation {
         // that identify installed components. The rust-installer metadata maintained by
         // `Components` *also* tracks what is installed, but it only tracks names, not
         // name/target. Needs to be fixed in rust-installer.
-        let mut new_config = Config::new();
-        new_config.components = update.final_component_list;
+        let new_config = Config {
+            components: update.final_component_list,
+            ..Config::default()
+        };
         let config_str = new_config.stringify()?;
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(&rel_config_path);
