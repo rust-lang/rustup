@@ -21,10 +21,6 @@ impl Config {
     pub(crate) fn stringify(&self) -> Result<String> {
         Ok(toml::to_string(&self)?)
     }
-
-    pub(crate) fn new() -> Self {
-        Default::default()
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
