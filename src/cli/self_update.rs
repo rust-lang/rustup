@@ -136,6 +136,38 @@ impl<'a> InstallOpts<'a> {
 
         Ok(())
     }
+
+    fn validate(&self) -> Result<()> {
+        common::warn_if_host_is_emulated();
+
+        // Verify that the installation options are vaguely sane
+        (|| {
+            let host_triple = self
+                .default_host_triple
+                .as_ref()
+                .map(dist::TargetTriple::new)
+                .unwrap_or_else(TargetTriple::from_host_or_build);
+            let partial_channel = match &self.default_toolchain {
+                None | Some(MaybeOfficialToolchainName::None) => {
+                    ResolvableToolchainName::try_from("stable")?
+                }
+                Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
+            };
+            let resolved = partial_channel.resolve(&host_triple)?;
+            debug!("Successfully resolved installation toolchain as: {resolved}");
+            Ok(())
+        })()
+        .map_err(|e: Box<dyn std::error::Error>| {
+            anyhow!(
+                "Pre-checks for host and toolchain failed: {}\n\
+             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
+             Valid host triples look something like: {}",
+                e,
+                TargetTriple::from_host_or_build()
+            )
+        })?;
+        Ok(())
+    }
 }
 
 #[cfg(feature = "no-self-update")]
@@ -424,7 +456,7 @@ pub(crate) async fn install(
         do_pre_install_sanity_checks(no_prompt)?;
     }
 
-    do_pre_install_options_sanity_checks(&opts)?;
+    opts.validate()?;
 
     if !process()
         .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
@@ -655,38 +687,6 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
         ignorable_error("cannot install while rustup.sh is installed", no_prompt)?;
     }
 
-    Ok(())
-}
-
-fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
-    common::warn_if_host_is_emulated();
-
-    // Verify that the installation options are vaguely sane
-    (|| {
-        let host_triple = opts
-            .default_host_triple
-            .as_ref()
-            .map(dist::TargetTriple::new)
-            .unwrap_or_else(TargetTriple::from_host_or_build);
-        let partial_channel = match &opts.default_toolchain {
-            None | Some(MaybeOfficialToolchainName::None) => {
-                ResolvableToolchainName::try_from("stable")?
-            }
-            Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
-        };
-        let resolved = partial_channel.resolve(&host_triple)?;
-        debug!("Successfully resolved installation toolchain as: {resolved}");
-        Ok(())
-    })()
-    .map_err(|e: Box<dyn std::error::Error>| {
-        anyhow!(
-            "Pre-checks for host and toolchain failed: {}\n\
-             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
-             Valid host triples look something like: {}",
-            e,
-            TargetTriple::from_host_or_build()
-        )
-    })?;
     Ok(())
 }
 
