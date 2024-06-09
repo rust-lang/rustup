@@ -127,54 +127,52 @@ impl<'a> InstallOpts<'a> {
         // a toolchain (updating if it's already present) and then if neither of
         // those are true, we have a user who doesn't mind, and already has an
         // install, so we leave their setup alone.
-        Ok(
-            if matches!(default_toolchain, Some(MaybeOfficialToolchainName::None)) {
-                info!("skipping toolchain installation");
-                if !components.is_empty() {
-                    warn!(
-                        "ignoring requested component{}: {}",
-                        if components.len() == 1 { "" } else { "s" },
-                        components.join(", ")
-                    );
+        if matches!(default_toolchain, Some(MaybeOfficialToolchainName::None)) {
+            info!("skipping toolchain installation");
+            if !components.is_empty() {
+                warn!(
+                    "ignoring requested component{}: {}",
+                    if components.len() == 1 { "" } else { "s" },
+                    components.join(", ")
+                );
+            }
+            if !targets.is_empty() {
+                warn!(
+                    "ignoring requested target{}: {}",
+                    if targets.len() == 1 { "" } else { "s" },
+                    targets.join(", ")
+                );
+            }
+            writeln!(process().stdout().lock())?;
+            Ok(None)
+        } else if user_specified_something
+            || (!no_update_toolchain && cfg.find_default()?.is_none())
+        {
+            Ok(match default_toolchain {
+                Some(s) => {
+                    let toolchain_name = match s {
+                        MaybeOfficialToolchainName::None => unreachable!(),
+                        MaybeOfficialToolchainName::Some(n) => n,
+                    };
+                    Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
                 }
-                if !targets.is_empty() {
-                    warn!(
-                        "ignoring requested target{}: {}",
-                        if targets.len() == 1 { "" } else { "s" },
-                        targets.join(", ")
-                    );
-                }
-                writeln!(process().stdout().lock())?;
-                None
-            } else if user_specified_something
-                || (!no_update_toolchain && cfg.find_default()?.is_none())
-            {
-                match default_toolchain {
-                    Some(s) => {
-                        let toolchain_name = match s {
-                            MaybeOfficialToolchainName::None => unreachable!(),
-                            MaybeOfficialToolchainName::Some(n) => n,
-                        };
-                        Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
-                    }
-                    None => match cfg.get_default()? {
-                        // Default is installable
-                        Some(ToolchainName::Official(t)) => Some(t),
-                        // Default is custom, presumably from a prior install. Do nothing.
-                        Some(ToolchainName::Custom(_)) => None,
-                        None => Some(
-                            "stable"
-                                .parse::<PartialToolchainDesc>()?
-                                .resolve(&cfg.get_default_host_triple()?)?,
-                        ),
-                    },
-                }
-            } else {
-                info!("updating existing rustup installation - leaving toolchains alone");
-                writeln!(process().stdout().lock())?;
-                None
-            },
-        )
+                None => match cfg.get_default()? {
+                    // Default is installable
+                    Some(ToolchainName::Official(t)) => Some(t),
+                    // Default is custom, presumably from a prior install. Do nothing.
+                    Some(ToolchainName::Custom(_)) => None,
+                    None => Some(
+                        "stable"
+                            .parse::<PartialToolchainDesc>()?
+                            .resolve(&cfg.get_default_host_triple()?)?,
+                    ),
+                },
+            })
+        } else {
+            info!("updating existing rustup installation - leaving toolchains alone");
+            writeln!(process().stdout().lock())?;
+            Ok(None)
+        }
     }
 
     // Interactive editing of the install options
