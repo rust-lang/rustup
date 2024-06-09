@@ -270,7 +270,7 @@ impl FromStr for SelfUpdateMode {
             _ => Err(anyhow!(format!(
                 "unknown self update mode: '{}'; valid modes are {}",
                 mode,
-                valid_self_update_modes(),
+                Self::modes().join(", "),
             ))),
         }
     }
@@ -1301,14 +1301,6 @@ pub(crate) fn cleanup_self_updater() -> Result<()> {
     }
 
     Ok(())
-}
-
-pub(crate) fn valid_self_update_modes() -> String {
-    SelfUpdateMode::modes()
-        .iter()
-        .map(|s| format!("'{s}'"))
-        .collect::<Vec<_>>()
-        .join(", ")
 }
 
 #[cfg(test)]
