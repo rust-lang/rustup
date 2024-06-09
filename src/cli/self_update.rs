@@ -95,6 +95,49 @@ pub(crate) struct InstallOpts<'a> {
     pub targets: &'a [&'a str],
 }
 
+impl<'a> InstallOpts<'a> {
+    // Interactive editing of the install options
+    fn customize(&mut self) -> Result<()> {
+        writeln!(
+            process().stdout().lock(),
+            "I'm going to ask you the value of each of these installation options.\n\
+         You may simply press the Enter key to leave unchanged."
+        )?;
+
+        writeln!(process().stdout().lock())?;
+
+        self.default_host_triple = Some(common::question_str(
+            "Default host triple?",
+            &self
+                .default_host_triple
+                .take()
+                .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string()),
+        )?);
+
+        self.default_toolchain = Some(MaybeOfficialToolchainName::try_from(common::question_str(
+            "Default toolchain? (stable/beta/nightly/none)",
+            &self
+                .default_toolchain
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or("stable".into()),
+        )?)?);
+
+        self.profile = common::question_str(
+            &format!(
+                "Profile (which tools and data to install)? ({})",
+                Profile::names().join("/")
+            ),
+            &self.profile,
+        )?;
+
+        self.no_modify_path =
+            !common::question_bool("Modify PATH variable?", !self.no_modify_path)?;
+
+        Ok(())
+    }
+}
+
 #[cfg(feature = "no-self-update")]
 pub(crate) const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
@@ -456,7 +499,7 @@ pub(crate) async fn install(
                 }
                 Confirm::Advanced => {
                     customized_install = true;
-                    opts = customize_install(opts)?;
+                    opts.customize()?;
                 }
             }
         }
@@ -708,45 +751,6 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
-}
-
-// Interactive editing of the install options
-fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
-    writeln!(
-        process().stdout().lock(),
-        "I'm going to ask you the value of each of these installation options.\n\
-         You may simply press the Enter key to leave unchanged."
-    )?;
-
-    writeln!(process().stdout().lock())?;
-
-    opts.default_host_triple = Some(common::question_str(
-        "Default host triple?",
-        &opts
-            .default_host_triple
-            .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string()),
-    )?);
-
-    opts.default_toolchain = Some(MaybeOfficialToolchainName::try_from(common::question_str(
-        "Default toolchain? (stable/beta/nightly/none)",
-        &opts
-            .default_toolchain
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or("stable".into()),
-    )?)?);
-
-    opts.profile = common::question_str(
-        &format!(
-            "Profile (which tools and data to install)? ({})",
-            Profile::names().join("/")
-        ),
-        &opts.profile,
-    )?;
-
-    opts.no_modify_path = !common::question_bool("Modify PATH variable?", !opts.no_modify_path)?;
-
-    Ok(opts)
 }
 
 fn install_bins() -> Result<()> {
