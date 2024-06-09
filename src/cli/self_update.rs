@@ -532,32 +532,7 @@ pub(crate) async fn install(
     }
 
     let no_modify_path = opts.no_modify_path;
-    let install_res = move || async move {
-        install_bins()?;
-
-        #[cfg(unix)]
-        do_write_env_files()?;
-
-        if !opts.no_modify_path {
-            #[cfg(windows)]
-            do_add_to_programs()?;
-            do_add_to_path()?;
-        }
-
-        // If RUSTUP_HOME is not set, make sure it exists
-        if process().var_os("RUSTUP_HOME").is_none() {
-            let home = utils::home_dir()
-                .map(|p| p.join(".rustup"))
-                .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
-
-            fs::create_dir_all(home).context("unable to create ~/.rustup")?;
-        }
-
-        maybe_install_rust(current_dir, verbose, quiet, opts).await?;
-        Ok(utils::ExitCode(0))
-    };
-
-    if let Err(e) = install_res().await {
+    if let Err(e) = maybe_install_rust(current_dir, verbose, quiet, opts).await {
         report_error(&e);
 
         // On windows, where installation happens in a console
@@ -848,6 +823,26 @@ async fn maybe_install_rust(
     quiet: bool,
     opts: InstallOpts<'_>,
 ) -> Result<()> {
+    install_bins()?;
+
+    #[cfg(unix)]
+    do_write_env_files()?;
+
+    if !opts.no_modify_path {
+        #[cfg(windows)]
+        do_add_to_programs()?;
+        do_add_to_path()?;
+    }
+
+    // If RUSTUP_HOME is not set, make sure it exists
+    if process().var_os("RUSTUP_HOME").is_none() {
+        let home = utils::home_dir()
+            .map(|p| p.join(".rustup"))
+            .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
+
+        fs::create_dir_all(home).context("unable to create ~/.rustup")?;
+    }
+
     let mut cfg = common::set_globals(current_dir, verbose, quiet)?;
 
     let (components, targets) = (opts.components, opts.targets);
