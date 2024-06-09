@@ -96,6 +96,87 @@ pub(crate) struct InstallOpts<'a> {
 }
 
 impl<'a> InstallOpts<'a> {
+    fn install(self, cfg: &mut Cfg) -> Result<Option<ToolchainDesc>> {
+        let Self {
+            default_host_triple,
+            default_toolchain,
+            profile,
+            no_modify_path: _no_modify_path,
+            no_update_toolchain,
+            components,
+            targets,
+        } = self;
+
+        cfg.set_profile(&profile)?;
+
+        if let Some(default_host_triple) = &default_host_triple {
+            // Set host triple now as it will affect resolution of toolchain_str
+            info!("setting default host triple to {}", default_host_triple);
+            cfg.set_default_host_triple(default_host_triple.to_owned())?;
+        } else {
+            info!("default host triple is {}", cfg.get_default_host_triple()?);
+        }
+
+        let user_specified_something = default_toolchain.is_some()
+            || !targets.is_empty()
+            || !components.is_empty()
+            || !no_update_toolchain;
+
+        // If the user specified they want no toolchain, we skip this, otherwise
+        // if they specify something directly, or we have no default, then we install
+        // a toolchain (updating if it's already present) and then if neither of
+        // those are true, we have a user who doesn't mind, and already has an
+        // install, so we leave their setup alone.
+        Ok(
+            if matches!(default_toolchain, Some(MaybeOfficialToolchainName::None)) {
+                info!("skipping toolchain installation");
+                if !components.is_empty() {
+                    warn!(
+                        "ignoring requested component{}: {}",
+                        if components.len() == 1 { "" } else { "s" },
+                        components.join(", ")
+                    );
+                }
+                if !targets.is_empty() {
+                    warn!(
+                        "ignoring requested target{}: {}",
+                        if targets.len() == 1 { "" } else { "s" },
+                        targets.join(", ")
+                    );
+                }
+                writeln!(process().stdout().lock())?;
+                None
+            } else if user_specified_something
+                || (!no_update_toolchain && cfg.find_default()?.is_none())
+            {
+                match default_toolchain {
+                    Some(s) => {
+                        let toolchain_name = match s {
+                            MaybeOfficialToolchainName::None => unreachable!(),
+                            MaybeOfficialToolchainName::Some(n) => n,
+                        };
+                        Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
+                    }
+                    None => match cfg.get_default()? {
+                        // Default is installable
+                        Some(ToolchainName::Official(t)) => Some(t),
+                        // Default is custom, presumably from a prior install. Do nothing.
+                        Some(ToolchainName::Custom(_)) => None,
+                        None => Some(
+                            "stable"
+                                .parse::<PartialToolchainDesc>()?
+                                .resolve(&cfg.get_default_host_triple()?)?,
+                        ),
+                    },
+                }
+            } else {
+                info!("updating existing rustup installation - leaving toolchains alone");
+                writeln!(process().stdout().lock())?;
+                None
+            },
+        )
+    }
+
     // Interactive editing of the install options
     fn customize(&mut self) -> Result<()> {
         writeln!(
@@ -846,7 +927,7 @@ async fn maybe_install_rust(
     let mut cfg = common::set_globals(current_dir, verbose, quiet)?;
 
     let (components, targets) = (opts.components, opts.targets);
-    let toolchain = _install_selection(opts, &mut cfg)?;
+    let toolchain = opts.install(&mut cfg)?;
     if let Some(ref desc) = toolchain {
         let status = if Toolchain::exists(&cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
@@ -877,87 +958,6 @@ async fn maybe_install_rust(
         common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
     }
     Ok(())
-}
-
-fn _install_selection(opts: InstallOpts<'_>, cfg: &mut Cfg) -> Result<Option<ToolchainDesc>> {
-    let InstallOpts {
-        default_host_triple,
-        default_toolchain,
-        profile,
-        no_modify_path: _no_modify_path,
-        no_update_toolchain,
-        components,
-        targets,
-    } = opts;
-
-    cfg.set_profile(&profile)?;
-
-    if let Some(default_host_triple) = &default_host_triple {
-        // Set host triple now as it will affect resolution of toolchain_str
-        info!("setting default host triple to {}", default_host_triple);
-        cfg.set_default_host_triple(default_host_triple.to_owned())?;
-    } else {
-        info!("default host triple is {}", cfg.get_default_host_triple()?);
-    }
-
-    let user_specified_something = default_toolchain.is_some()
-        || !targets.is_empty()
-        || !components.is_empty()
-        || !no_update_toolchain;
-
-    // If the user specified they want no toolchain, we skip this, otherwise
-    // if they specify something directly, or we have no default, then we install
-    // a toolchain (updating if it's already present) and then if neither of
-    // those are true, we have a user who doesn't mind, and already has an
-    // install, so we leave their setup alone.
-    Ok(
-        if matches!(default_toolchain, Some(MaybeOfficialToolchainName::None)) {
-            info!("skipping toolchain installation");
-            if !components.is_empty() {
-                warn!(
-                    "ignoring requested component{}: {}",
-                    if components.len() == 1 { "" } else { "s" },
-                    components.join(", ")
-                );
-            }
-            if !targets.is_empty() {
-                warn!(
-                    "ignoring requested target{}: {}",
-                    if targets.len() == 1 { "" } else { "s" },
-                    targets.join(", ")
-                );
-            }
-            writeln!(process().stdout().lock())?;
-            None
-        } else if user_specified_something
-            || (!no_update_toolchain && cfg.find_default()?.is_none())
-        {
-            match default_toolchain {
-                Some(s) => {
-                    let toolchain_name = match s {
-                        MaybeOfficialToolchainName::None => unreachable!(),
-                        MaybeOfficialToolchainName::Some(n) => n,
-                    };
-                    Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
-                }
-                None => match cfg.get_default()? {
-                    // Default is installable
-                    Some(ToolchainName::Official(t)) => Some(t),
-                    // Default is custom, presumably from a prior install. Do nothing.
-                    Some(ToolchainName::Custom(_)) => None,
-                    None => Some(
-                        "stable"
-                            .parse::<PartialToolchainDesc>()?
-                            .resolve(&cfg.get_default_host_triple()?)?,
-                    ),
-                },
-            }
-        } else {
-            info!("updating existing rustup installation - leaving toolchains alone");
-            writeln!(process().stdout().lock())?;
-            None
-        },
-    )
 }
 
 pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
@@ -1357,7 +1357,7 @@ mod tests {
                         .unwrap()
                         .resolve(&cfg.get_default_host_triple().unwrap())
                         .unwrap(),
-                    super::_install_selection(opts, &mut cfg)
+                    opts.install(&mut cfg)
                         .unwrap() // result
                         .unwrap() // option
                 );
