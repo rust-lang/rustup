@@ -75,7 +75,7 @@ build_test() {
 }
 
 if [ -z "$SKIP_TESTS" ]; then
-  cargo run --locked --profile "$BUILD_PROFILE" --features test --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
+  target_cargo run --features test -- --dump-testament
   build_test build
   build_test test
 fi
