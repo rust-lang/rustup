@@ -10,10 +10,7 @@ use std::path::PathBuf;
 use thiserror::Error as ThisError;
 use url::Url;
 
-use crate::{
-    currentprocess::process,
-    dist::dist::{TargetTriple, ToolchainDesc},
-};
+use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::{
     dist::manifest::{Component, Manifest},
     toolchain::names::{PathBasedToolchainName, ToolchainName},
@@ -92,11 +89,10 @@ pub enum RustupError {
     #[error("path '{0}' not found")]
     PathToolchainNotInstalled(PathBasedToolchainName),
     #[error(
-        "rustup could not choose a version of {} to run, because one wasn't specified explicitly, and no default is configured.\n{}",
-        process().name().unwrap_or_else(|| "Rust".into()),
+        "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n{}",
         "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
     )]
-    ToolchainNotSelected,
+    ToolchainNotSelected(String),
     #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, suggest_message(.suggestion), if .component.contains("rust-std") {
         format!("\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html{}",
             if desc.channel == "nightly" { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
