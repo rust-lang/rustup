@@ -447,7 +447,7 @@ impl<'a> Toolchain<'a> {
             LocalToolchainName::Named(t) => t,
             LocalToolchainName::Path(_) => bail!("Cannot remove a path based toolchain"),
         };
-        match Self::exists(cfg, &(&name).into())? {
+        let fs_modified = match Self::exists(cfg, &(&name).into())? {
             true => {
                 (cfg.notify_handler)(Notification::UninstallingToolchain(&name));
                 let installed_paths = match &name {
@@ -466,19 +466,22 @@ impl<'a> Toolchain<'a> {
                         }
                     }
                 }
+                true
             }
             false => {
                 // Might be a dangling symlink
                 if path.is_symlink() {
                     (cfg.notify_handler)(Notification::UninstallingToolchain(&name));
                     fs::remove_dir_all(&path)?;
+                    true
                 } else {
                     info!("no toolchain installed for '{name}'");
+                    false
                 }
             }
-        }
+        };
 
-        if !path.is_symlink() && !path.exists() {
+        if !path.is_symlink() && !path.exists() && fs_modified {
             (cfg.notify_handler)(Notification::UninstalledToolchain(&name));
         }
         Ok(())
