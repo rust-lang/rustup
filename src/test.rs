@@ -277,26 +277,10 @@ static TRACER: Lazy<opentelemetry_sdk::trace::Tracer> = Lazy::new(|| {
     tracer
 });
 
-pub fn before_test() {
-    #[cfg(feature = "otel")]
-    {
-        Lazy::force(&TRACER);
-    }
-}
-
 pub async fn before_test_async() {
     #[cfg(feature = "otel")]
     {
         Lazy::force(&TRACER);
-    }
-}
-
-pub fn after_test() {
-    #[cfg(feature = "otel")]
-    {
-        let handle = TRACE_RUNTIME.handle();
-        let _guard = handle.enter();
-        TRACER.provider().map(|p| p.force_flush());
     }
 }
 
