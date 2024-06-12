@@ -159,11 +159,6 @@ impl From<TestProcess> for Process {
 
 /// Obtain the current instance of CurrentProcess
 pub fn process() -> Process {
-    home_process()
-}
-
-/// Obtain the current instance of HomeProcess
-pub(crate) fn home_process() -> Process {
     match PROCESS.with(|p| p.borrow().clone()) {
         None => panic!("No process instance"),
         Some(p) => p,
