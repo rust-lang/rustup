@@ -60,34 +60,17 @@ async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
     }
     #[cfg(feature = "otel")]
     {
-        use std::time::Duration;
+        use tracing_subscriber::{layer::SubscriberExt, Registry};
 
-        use opentelemetry::{global, KeyValue};
-        use opentelemetry_otlp::WithExportConfig;
-        use opentelemetry_sdk::{
-            propagation::TraceContextPropagator,
-            trace::{self, Sampler},
-            Resource,
+        let telemetry = {
+            use opentelemetry::global;
+            use opentelemetry_sdk::propagation::TraceContextPropagator;
+
+            global::set_text_map_propagator(TraceContextPropagator::new());
+            rustup::cli::log::telemetry()
         };
-        use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
-        global::set_text_map_propagator(TraceContextPropagator::new());
-        let tracer = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .tonic()
-                    .with_timeout(Duration::from_secs(3)),
-            )
-            .with_trace_config(
-                trace::config()
-                    .with_sampler(Sampler::AlwaysOn)
-                    .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
-            )
-            .install_batch(opentelemetry_sdk::runtime::Tokio)?;
-        let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
-        let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-        let subscriber = Registry::default().with(env_filter).with(telemetry);
+        let subscriber = Registry::default().with(telemetry);
         tracing::subscriber::set_global_default(subscriber)?;
         let result = run_rustup().await;
         // We're tracing, so block until all spans are exported.
