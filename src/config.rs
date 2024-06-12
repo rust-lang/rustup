@@ -165,9 +165,7 @@ impl OverrideCfg {
                     path.display()
                 )
             }
-            (None, None) => cfg
-                .get_default()?
-                .ok_or(RustupError::ToolchainNotSelected)?,
+            (None, None) => cfg.get_default()?.ok_or_else(no_toolchain_error)?,
         };
         Ok(match toolchain_name {
             ToolchainName::Official(desc) => {
@@ -692,7 +690,7 @@ impl Cfg {
     ) -> Result<(Toolchain<'_>, ActiveReason)> {
         self.maybe_find_or_install_active_toolchain(&self.current_dir)
             .await?
-            .ok_or(RustupError::ToolchainNotSelected.into())
+            .ok_or_else(no_toolchain_error)
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
@@ -955,6 +953,10 @@ fn get_default_host_triple(s: &Settings) -> dist::TargetTriple {
         .as_ref()
         .map(dist::TargetTriple::new)
         .unwrap_or_else(dist::TargetTriple::from_host_or_build)
+}
+
+fn no_toolchain_error() -> anyhow::Error {
+    RustupError::ToolchainNotSelected(process().name().unwrap_or_else(|| "Rust".into())).into()
 }
 
 /// Specifies how a `rust-toolchain`/`rust-toolchain.toml` configuration file should be parsed.
