@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 
+use crate::currentprocess::Process;
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
@@ -39,6 +40,7 @@ pub struct Transaction<'a> {
     tmp_cx: &'a temp::Context,
     notify_handler: &'a dyn Fn(Notification<'_>),
     committed: bool,
+    process: &'a Process,
 }
 
 impl<'a> Transaction<'a> {
@@ -46,6 +48,7 @@ impl<'a> Transaction<'a> {
         prefix: InstallPrefix,
         tmp_cx: &'a temp::Context,
         notify_handler: &'a dyn Fn(Notification<'_>),
+        process: &'a Process,
     ) -> Self {
         Transaction {
             prefix,
@@ -53,6 +56,7 @@ impl<'a> Transaction<'a> {
             tmp_cx,
             notify_handler,
             committed: false,
+            process,
         }
     }
 
@@ -101,6 +105,7 @@ impl<'a> Transaction<'a> {
             relpath,
             self.tmp_cx,
             self.notify_handler(),
+            self.process,
         )?;
         self.change(item);
         Ok(())
@@ -116,6 +121,7 @@ impl<'a> Transaction<'a> {
             relpath,
             self.tmp_cx,
             self.notify_handler(),
+            self.process,
         )?;
         self.change(item);
         Ok(())
@@ -155,8 +161,14 @@ impl<'a> Transaction<'a> {
         src: &Path,
     ) -> Result<()> {
         assert!(relpath.is_relative());
-        let item =
-            ChangedItem::move_file(&self.prefix, component, relpath, src, self.notify_handler())?;
+        let item = ChangedItem::move_file(
+            &self.prefix,
+            component,
+            relpath,
+            src,
+            self.notify_handler(),
+            self.process,
+        )?;
         self.change(item);
         Ok(())
     }
@@ -164,8 +176,14 @@ impl<'a> Transaction<'a> {
     /// Recursively move a directory to a relative path of the install prefix.
     pub(crate) fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
-        let item =
-            ChangedItem::move_dir(&self.prefix, component, relpath, src, self.notify_handler())?;
+        let item = ChangedItem::move_dir(
+            &self.prefix,
+            component,
+            relpath,
+            src,
+            self.notify_handler(),
+            self.process,
+        )?;
         self.change(item);
         Ok(())
     }
@@ -187,7 +205,7 @@ impl<'a> Drop for Transaction<'a> {
             for item in self.changes.iter().rev() {
                 // ok_ntfy!(self.notify_handler,
                 //          Notification::NonFatalError,
-                match item.roll_back(&self.prefix, self.notify_handler()) {
+                match item.roll_back(&self.prefix, self.notify_handler(), self.process) {
                     Ok(()) => {}
                     Err(e) => {
                         (self.notify_handler)(Notification::NonFatalError(&e));
@@ -216,17 +234,22 @@ impl<'a> ChangedItem<'a> {
         &self,
         prefix: &InstallPrefix,
         notify: &'a dyn Fn(Notification<'_>),
+        process: &Process,
     ) -> Result<()> {
         use self::ChangedItem::*;
         match self {
             AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
             AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), notify)?,
             RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
-                utils::rename("component", tmp, &prefix.abs_path(path), notify)?
+                utils::rename("component", tmp, &prefix.abs_path(path), notify, process)?
             }
-            RemovedDir(path, tmp) => {
-                utils::rename("component", &tmp.join("bk"), &prefix.abs_path(path), notify)?
-            }
+            RemovedDir(path, tmp) => utils::rename(
+                "component",
+                &tmp.join("bk"),
+                &prefix.abs_path(path),
+                notify,
+                process,
+            )?,
             ModifiedFile(path, None) => {
                 let abs_path = prefix.abs_path(path);
                 if utils::is_file(&abs_path) {
@@ -282,6 +305,7 @@ impl<'a> ChangedItem<'a> {
         relpath: PathBuf,
         tmp_cx: &'a temp::Context,
         notify: &'a dyn Fn(Notification<'_>),
+        process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = tmp_cx.new_file()?;
@@ -292,7 +316,7 @@ impl<'a> ChangedItem<'a> {
             }
             .into())
         } else {
-            utils::rename("component", &abs_path, &backup, notify)?;
+            utils::rename("component", &abs_path, &backup, notify, process)?;
             Ok(ChangedItem::RemovedFile(relpath, backup))
         }
     }
@@ -302,6 +326,7 @@ impl<'a> ChangedItem<'a> {
         relpath: PathBuf,
         tmp_cx: &'a temp::Context,
         notify: &'a dyn Fn(Notification<'_>),
+        process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = tmp_cx.new_directory()?;
@@ -312,7 +337,7 @@ impl<'a> ChangedItem<'a> {
             }
             .into())
         } else {
-            utils::rename("component", &abs_path, &backup.join("bk"), notify)?;
+            utils::rename("component", &abs_path, &backup.join("bk"), notify, process)?;
             Ok(ChangedItem::RemovedDir(relpath, backup))
         }
     }
@@ -340,9 +365,10 @@ impl<'a> ChangedItem<'a> {
         relpath: PathBuf,
         src: &Path,
         notify: &'a dyn Fn(Notification<'_>),
+        process: &Process,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename("component", src, &abs_path, notify)?;
+        utils::rename("component", src, &abs_path, notify, process)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
     fn move_dir(
@@ -351,9 +377,10 @@ impl<'a> ChangedItem<'a> {
         relpath: PathBuf,
         src: &Path,
         notify: &'a dyn Fn(Notification<'_>),
+        process: &Process,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename("component", src, &abs_path, notify)?;
+        utils::rename("component", src, &abs_path, notify, process)?;
         Ok(ChangedItem::AddedDir(relpath))
     }
 }

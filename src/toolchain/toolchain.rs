@@ -16,7 +16,6 @@ use wait_timeout::ChildExt;
 
 use crate::{
     config::{ActiveReason, Cfg},
-    currentprocess::process,
     dist::dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,
@@ -32,7 +31,7 @@ use super::{
 /// A toolchain installed on the local disk
 #[derive(Clone, Debug)]
 pub(crate) struct Toolchain<'a> {
-    cfg: &'a Cfg,
+    pub(super) cfg: &'a Cfg<'a>,
     name: LocalToolchainName,
     path: PathBuf,
 }
@@ -41,7 +40,7 @@ impl<'a> Toolchain<'a> {
     pub(crate) async fn from_local(
         toolchain_name: &LocalToolchainName,
         install_if_missing: bool,
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Toolchain<'a>> {
         match toolchain_name {
             LocalToolchainName::Named(ToolchainName::Official(desc)) => {
@@ -76,7 +75,7 @@ impl<'a> Toolchain<'a> {
 
     pub(crate) async fn from_partial(
         toolchain: Option<PartialToolchainDesc>,
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
             Some(toolchain) => {
@@ -90,7 +89,7 @@ impl<'a> Toolchain<'a> {
     /// Calls Toolchain::new(), but augments the error message with more context
     /// from the ActiveReason if the toolchain isn't installed.
     pub(crate) fn with_reason(
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
         name: LocalToolchainName,
         reason: &ActiveReason,
     ) -> anyhow::Result<Self> {
@@ -125,7 +124,7 @@ impl<'a> Toolchain<'a> {
         Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
     }
 
-    pub(crate) fn new(cfg: &'a Cfg, name: LocalToolchainName) -> Result<Self, RustupError> {
+    pub(crate) fn new(cfg: &'a Cfg<'a>, name: LocalToolchainName) -> Result<Self, RustupError> {
         let path = cfg.toolchain_path(&name);
         if !Toolchain::exists(cfg, &name)? {
             return Err(match name {
@@ -138,7 +137,7 @@ impl<'a> Toolchain<'a> {
 
     /// Ok(True) if the toolchain exists. Ok(False) if the toolchain or its
     /// containing directory don't exist. Err otherwise.
-    pub(crate) fn exists(cfg: &'a Cfg, name: &LocalToolchainName) -> Result<bool, RustupError> {
+    pub(crate) fn exists(cfg: &Cfg<'_>, name: &LocalToolchainName) -> Result<bool, RustupError> {
         let path = cfg.toolchain_path(name);
         // toolchain validation should have prevented a situation where there is
         // no base dir, but defensive programming is defensive.
@@ -158,10 +157,6 @@ impl<'a> Toolchain<'a> {
             .follow(true)
             .open_dir_at(&parent_dir, base_name);
         Ok(opened.is_ok())
-    }
-
-    pub(crate) fn cfg(&self) -> &'a Cfg {
-        self.cfg
     }
 
     pub(crate) fn name(&self) -> &LocalToolchainName {
@@ -190,14 +185,14 @@ impl<'a> Toolchain<'a> {
         // versions of Cargo did. Rustup and Cargo should be in sync now (both
         // using the same `home` crate), but this is retained to ensure cargo
         // and rustup agree in older versions.
-        if let Ok(cargo_home) = utils::cargo_home() {
+        if let Ok(cargo_home) = utils::cargo_home(self.cfg.process) {
             cmd.env("CARGO_HOME", &cargo_home);
         }
 
-        env_var::inc("RUST_RECURSION_COUNT", cmd);
+        env_var::inc("RUST_RECURSION_COUNT", cmd, self.cfg.process);
 
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
-        cmd.env("RUSTUP_HOME", &self.cfg().rustup_dir);
+        cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
     }
 
     /// Apply the appropriate LD path for a command being run from a toolchain.
@@ -224,7 +219,9 @@ impl<'a> Toolchain<'a> {
             pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
         }
         if cfg!(target_os = "macos")
-            && process()
+            && self
+                .cfg
+                .process
                 .var_os(sysenv::LOADER_PATH)
                 .filter(|x| x.len() > 0)
                 .is_none()
@@ -232,21 +229,21 @@ impl<'a> Toolchain<'a> {
             // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
             // set or set to an empty string. Since we are explicitly setting
             // the value, make sure the defaults still work.
-            if let Some(home) = process().var_os("HOME") {
+            if let Some(home) = self.cfg.process.var_os("HOME") {
                 new_path.push(PathBuf::from(home).join("lib"));
             }
             new_path.push(PathBuf::from("/usr/local/lib"));
             new_path.push(PathBuf::from("/usr/lib"));
         }
 
-        env_var::prepend_path(sysenv::LOADER_PATH, new_path, cmd);
+        env_var::prepend_path(sysenv::LOADER_PATH, new_path, cmd, self.cfg.process);
 
         // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
         // proxy bins don't exist. We'll just be running whatever happens to
         // be on the PATH.
         let mut path_entries = vec![];
-        if let Ok(cargo_home) = utils::cargo_home() {
+        if let Ok(cargo_home) = utils::cargo_home(self.cfg.process) {
             path_entries.push(cargo_home.join("bin"));
         }
 
@@ -264,7 +261,9 @@ impl<'a> Toolchain<'a> {
             // testing the fix. The default is now off, but this is left here
             // just in case there are problems. Consider removing in the
             // future if it doesn't seem necessary.
-            if process()
+            if self
+                .cfg
+                .process
                 .var_os("RUSTUP_WINDOWS_PATH_ADD_BIN")
                 .map_or(false, |s| s == "1")
             {
@@ -272,7 +271,7 @@ impl<'a> Toolchain<'a> {
             }
         }
 
-        env_var::prepend_path("PATH", path_entries, cmd);
+        env_var::prepend_path("PATH", path_entries, cmd, self.cfg.process);
     }
 
     /// Infallible function that describes the version of rustc in an installed distribution
@@ -373,7 +372,7 @@ impl<'a> Toolchain<'a> {
         Ok(None)
     }
 
-    #[cfg_attr(feature="otel", tracing::instrument(err,fields(binary, recursion=process().var("RUST_RECURSION_COUNT").ok())))]
+    #[cfg_attr(feature="otel", tracing::instrument(err,fields(binary, recursion=self.cfg.process.var("RUST_RECURSION_COUNT").ok())))]
     fn create_command<T: AsRef<OsStr> + Debug>(&self, binary: T) -> Result<Command, anyhow::Error> {
         // Create the path to this binary within the current toolchain sysroot
         let binary = if let Some(binary_str) = binary.as_ref().to_str() {
@@ -391,7 +390,9 @@ impl<'a> Toolchain<'a> {
         let path = if utils::is_file(&bin_path) {
             &bin_path
         } else {
-            let recursion_count = process()
+            let recursion_count = self
+                .cfg
+                .process
                 .var("RUST_RECURSION_COUNT")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -441,7 +442,7 @@ impl<'a> Toolchain<'a> {
     /// Remove the toolchain from disk
     ///
     ///
-    pub fn ensure_removed(cfg: &'a Cfg, name: LocalToolchainName) -> anyhow::Result<()> {
+    pub fn ensure_removed(cfg: &Cfg<'_>, name: LocalToolchainName) -> anyhow::Result<()> {
         let path = cfg.toolchain_path(&name);
         let name = match name {
             LocalToolchainName::Named(t) => t,

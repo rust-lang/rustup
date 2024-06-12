@@ -13,7 +13,7 @@ use tokio_stream::StreamExt;
 use crate::settings::MetadataVersion;
 use crate::{
     cli::self_update::SelfUpdateMode,
-    currentprocess::process,
+    currentprocess::Process,
     dist::{
         dist::{self, Profile, ToolchainDesc},
         download::DownloadCfg,
@@ -134,7 +134,7 @@ enum OverrideCfg {
 }
 
 impl OverrideCfg {
-    fn from_file(cfg: &Cfg, file: OverrideFile) -> Result<Self> {
+    fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
             (Some(name), None) => {
                 ResolvableToolchainName::try_from(name)?.resolve(&cfg.get_default_host_triple()?)?
@@ -165,7 +165,9 @@ impl OverrideCfg {
                     path.display()
                 )
             }
-            (None, None) => cfg.get_default()?.ok_or_else(no_toolchain_error)?,
+            (None, None) => cfg
+                .get_default()?
+                .ok_or_else(|| no_toolchain_error(cfg.process))?,
         };
         Ok(match toolchain_name {
             ToolchainName::Official(desc) => {
@@ -232,7 +234,7 @@ impl From<LocalToolchainName> for OverrideCfg {
 
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
-pub(crate) struct Cfg {
+pub(crate) struct Cfg<'a> {
     profile_override: Option<dist::Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
@@ -246,15 +248,17 @@ pub(crate) struct Cfg {
     pub dist_root_url: String,
     pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
     pub current_dir: PathBuf,
+    pub process: &'a Process,
 }
 
-impl Cfg {
+impl<'a> Cfg<'a> {
     pub(crate) fn from_env(
         current_dir: PathBuf,
         notify_handler: Arc<dyn Fn(Notification<'_>)>,
+        process: &'a Process,
     ) -> Result<Self> {
         // Set up the rustup home directory
-        let rustup_dir = utils::rustup_home()?;
+        let rustup_dir = utils::rustup_home(process)?;
 
         utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
 
@@ -265,7 +269,7 @@ impl Cfg {
             // If present, use the RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS environment
             // variable as settings path, or UNIX_FALLBACK_SETTINGS otherwise
             FallbackSettings::new(
-                match process().var("RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS") {
+                match process.var("RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS") {
                     Ok(s) => PathBuf::from(s),
                     Err(_) => PathBuf::from(UNIX_FALLBACK_SETTINGS),
                 },
@@ -279,9 +283,10 @@ impl Cfg {
         let download_dir = rustup_dir.join("downloads");
 
         // Figure out get_default_host_triple before Config is populated
-        let default_host_triple = settings_file.with(|s| Ok(get_default_host_triple(s)))?;
+        let default_host_triple =
+            settings_file.with(|s| Ok(get_default_host_triple(s, process)))?;
         // Environment override
-        let env_override = process()
+        let env_override = process
             .var("RUSTUP_TOOLCHAIN")
             .ok()
             .and_then(utils::if_not_empty)
@@ -290,14 +295,14 @@ impl Cfg {
             .map(|t| t.resolve(&default_host_triple))
             .transpose()?;
 
-        let dist_root_server = match process().var("RUSTUP_DIST_SERVER") {
+        let dist_root_server = match process.var("RUSTUP_DIST_SERVER") {
             Ok(s) if !s.is_empty() => {
                 debug!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
                 s
             }
             _ => {
                 // For backward compatibility
-                process()
+                process
                     .var("RUSTUP_DIST_ROOT")
                     .ok()
                     .and_then(utils::if_not_empty)
@@ -331,6 +336,7 @@ impl Cfg {
             env_override,
             dist_root_url: dist_root,
             current_dir,
+            process,
         };
 
         // Run some basic checks against the constructed configuration
@@ -345,7 +351,7 @@ impl Cfg {
     }
 
     /// construct a download configuration
-    pub(crate) fn download_cfg<'a>(
+    pub(crate) fn download_cfg(
         &'a self,
         notify_handler: &'a dyn Fn(crate::dist::Notification<'_>),
     ) -> DownloadCfg<'a> {
@@ -354,6 +360,7 @@ impl Cfg {
             tmp_cx: &self.tmp_cx,
             download_dir: &self.download_dir,
             notify_handler,
+            process: self.process,
         }
     }
 
@@ -550,7 +557,7 @@ impl Cfg {
                 // have an unresolved name. I'm just preserving pre-existing
                 // behaviour by choosing ResolvableToolchainName here.
                 let toolchain_name = ResolvableToolchainName::try_from(name)?
-                    .resolve(&get_default_host_triple(settings))?;
+                    .resolve(&get_default_host_triple(settings, self.process))?;
                 let override_cfg = toolchain_name.into();
                 return Ok(Some((override_cfg, reason)));
             }
@@ -595,7 +602,7 @@ impl Cfg {
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
                     let toolchain_name = ResolvableToolchainName::try_from(toolchain_name_str)?;
-                    let default_host_triple = get_default_host_triple(settings);
+                    let default_host_triple = get_default_host_triple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
                     if let ResolvableToolchainName::Official(ref name) = toolchain_name {
@@ -670,18 +677,18 @@ impl Cfg {
     }
 
     pub(crate) async fn find_or_install_active_toolchain(
-        &self,
-    ) -> Result<(Toolchain<'_>, ActiveReason)> {
+        &'a self,
+    ) -> Result<(Toolchain<'a>, ActiveReason)> {
         self.maybe_find_or_install_active_toolchain(&self.current_dir)
             .await?
-            .ok_or_else(no_toolchain_error)
+            .ok_or_else(|| no_toolchain_error(self.process))
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) async fn maybe_find_or_install_active_toolchain(
-        &self,
+        &'a self,
         path: &Path,
-    ) -> Result<Option<(Toolchain<'_>, ActiveReason)>> {
+    ) -> Result<Option<(Toolchain<'a>, ActiveReason)>> {
         match self.find_override_config(path)? {
             Some((override_config, reason)) => match override_config {
                 OverrideCfg::PathBased(path_based_name) => {
@@ -885,7 +892,8 @@ impl Cfg {
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
-        self.settings_file.with(|s| Ok(get_default_host_triple(s)))
+        self.settings_file
+            .with(|s| Ok(get_default_host_triple(s, self.process)))
     }
 
     /// The path on disk of any concrete toolchain
@@ -897,7 +905,7 @@ impl Cfg {
     }
 }
 
-impl Debug for Cfg {
+impl<'a> Debug for Cfg<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self {
             profile_override,
@@ -913,6 +921,7 @@ impl Debug for Cfg {
             dist_root_url,
             notify_handler: _,
             current_dir,
+            process: _,
         } = self;
 
         f.debug_struct("Cfg")
@@ -932,15 +941,15 @@ impl Debug for Cfg {
     }
 }
 
-fn get_default_host_triple(s: &Settings) -> dist::TargetTriple {
+fn get_default_host_triple(s: &Settings, process: &Process) -> dist::TargetTriple {
     s.default_host_triple
         .as_ref()
         .map(dist::TargetTriple::new)
-        .unwrap_or_else(dist::TargetTriple::from_host_or_build)
+        .unwrap_or_else(|| dist::TargetTriple::from_host_or_build(process))
 }
 
-fn no_toolchain_error() -> anyhow::Error {
-    RustupError::ToolchainNotSelected(process().name().unwrap_or_else(|| "Rust".into())).into()
+fn no_toolchain_error(process: &Process) -> anyhow::Error {
+    RustupError::ToolchainNotSelected(process.name().unwrap_or_else(|| "Rust".into())).into()
 }
 
 /// Specifies how a `rust-toolchain`/`rust-toolchain.toml` configuration file should be parsed.

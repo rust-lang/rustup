@@ -16,7 +16,7 @@ use std::process::Command;
 use anyhow::Result;
 
 pub use crate::cli::self_update::test::{with_saved_global_state, with_saved_path};
-use crate::currentprocess;
+use crate::currentprocess::{self, Process};
 use crate::dist::dist::TargetTriple;
 
 #[cfg(windows)]
@@ -128,7 +128,10 @@ pub fn this_host_triple() -> String {
         // building with i686 toolchain, but on an x86_64 host, so run the
         // actual detection logic and trust it.
         let tp = currentprocess::TestProcess::default();
-        return currentprocess::with(tp.into(), || TargetTriple::from_host().unwrap().to_string());
+        return currentprocess::with(tp.clone().into(), || {
+            let process = Process::from(tp);
+            TargetTriple::from_host(&process).unwrap().to_string()
+        });
     }
     let arch = if cfg!(target_arch = "x86") {
         "i686"

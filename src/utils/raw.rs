@@ -8,7 +8,7 @@ use std::path::Path;
 use std::str;
 
 #[cfg(not(windows))]
-use crate::currentprocess::process;
+use crate::currentprocess::Process;
 
 pub(crate) fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,
@@ -272,17 +272,17 @@ pub(crate) fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
 }
 
 #[cfg(not(windows))]
-fn has_cmd(cmd: &str) -> bool {
+fn has_cmd(cmd: &str, process: &Process) -> bool {
     let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
-    let path = process().var_os("PATH").unwrap_or_default();
+    let path = process.var_os("PATH").unwrap_or_default();
     env::split_paths(&path)
         .map(|p| p.join(&cmd))
         .any(|p| p.exists())
 }
 
 #[cfg(not(windows))]
-pub(crate) fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
-    cmds.iter().cloned().find(|&s| has_cmd(s))
+pub(crate) fn find_cmd<'a>(cmds: &[&'a str], process: &Process) -> Option<&'a str> {
+    cmds.iter().cloned().find(|&s| has_cmd(s, process))
 }
 
 #[cfg(windows)]

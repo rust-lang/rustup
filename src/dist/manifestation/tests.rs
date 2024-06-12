@@ -17,7 +17,7 @@ use url::Url;
 use rustup_macros::unit_test as test;
 
 use crate::{
-    currentprocess,
+    currentprocess::{self, Process, TestProcess},
     dist::{
         dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER},
         download::DownloadCfg,
@@ -462,7 +462,14 @@ async fn update_from_dist(
     // Download the dist manifest and place it into the installation prefix
     let manifest_url = make_manifest_url(dist_server, toolchain)?;
     let manifest_file = tmp_cx.new_file()?;
-    utils::download_file(&manifest_url, &manifest_file, None, &|_| {}).await?;
+    utils::download_file(
+        &manifest_url,
+        &manifest_file,
+        None,
+        &|_| {},
+        download_cfg.process,
+    )
+    .await?;
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let manifest = Manifest::parse(&manifest_str)?;
 
@@ -506,12 +513,13 @@ fn uninstall(
     prefix: &InstallPrefix,
     tmp_cx: &temp::Context,
     notify_handler: &dyn Fn(Notification<'_>),
+    process: &Process,
 ) -> Result<()> {
     let trip = toolchain.target.clone();
     let manifestation = Manifestation::open(prefix.clone(), trip)?;
     let manifest = manifestation.load_manifest()?.unwrap();
 
-    manifestation.uninstall(&manifest, tmp_cx, notify_handler)?;
+    manifestation.uninstall(&manifest, tmp_cx, notify_handler, process)?;
 
     Ok(())
 }
@@ -568,6 +576,14 @@ fn setup_from_dist_server(
 
     let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
     let prefix = InstallPrefix::from(prefix_tempdir.path());
+    let tp = TestProcess::new(
+        env::current_dir().unwrap(),
+        &["rustup"],
+        HashMap::default(),
+        "",
+    )
+    .into();
+
     let download_cfg = DownloadCfg {
         dist_root: "phony",
         tmp_cx: &tmp_cx,
@@ -575,18 +591,12 @@ fn setup_from_dist_server(
         notify_handler: &|event| {
             println!("{event}");
         },
+        process: &tp,
     };
 
-    currentprocess::with(
-        currentprocess::TestProcess::new(
-            env::current_dir().unwrap(),
-            &["rustup"],
-            HashMap::default(),
-            "",
-        )
-        .into(),
-        || f(url, &toolchain, &prefix, &download_cfg, &tmp_cx),
-    );
+    currentprocess::with(tp.clone(), || {
+        f(url, &toolchain, &prefix, &download_cfg, &tmp_cx)
+    });
 }
 
 fn initial_install(comps: Compressions) {
@@ -645,7 +655,7 @@ fn test_uninstall() {
             false,
         ))
         .unwrap();
-        uninstall(toolchain, prefix, tmp_cx, &|_| ()).unwrap();
+        uninstall(toolchain, prefix, tmp_cx, &|_| (), download_cfg.process).unwrap();
 
         assert!(!utils::path_exists(prefix.path().join("bin/rustc")));
         assert!(!utils::path_exists(prefix.path().join("lib/libstd.rlib")));
@@ -673,7 +683,7 @@ fn uninstall_removes_config_file() {
         assert!(utils::path_exists(
             prefix.manifest_file("multirust-config.toml")
         ));
-        uninstall(toolchain, prefix, tmp_cx, &|_| ()).unwrap();
+        uninstall(toolchain, prefix, tmp_cx, &|_| (), download_cfg.process).unwrap();
         assert!(!utils::path_exists(
             prefix.manifest_file("multirust-config.toml")
         ));
@@ -2158,6 +2168,7 @@ fn reuse_downloaded_file() {
                     reuse_notification_fired.set(true);
                 }
             },
+            process: download_cfg.process,
         };
 
         run_future(update_from_dist(
@@ -2225,6 +2236,7 @@ fn checks_files_hashes_before_reuse() {
                     noticed_bad_checksum.set(true);
                 }
             },
+            process: download_cfg.process,
         };
 
         run_future(update_from_dist(

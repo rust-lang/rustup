@@ -11,7 +11,7 @@ use termcolor::{ColorChoice, ColorSpec, StandardStream, StandardStreamLock, Writ
 
 #[cfg(feature = "test")]
 use super::filesource::{TestWriter, TestWriterLock};
-use super::process;
+use super::Process;
 
 /// Select what stream to make a terminal on
 pub(super) enum StreamSelector {
@@ -24,17 +24,17 @@ pub(super) enum StreamSelector {
 }
 
 impl StreamSelector {
-    fn is_a_tty(&self) -> bool {
+    fn is_a_tty(&self, process: &Process) -> bool {
         match self {
-            StreamSelector::Stdout => match process() {
-                super::Process::OSProcess(p) => p.stdout_is_a_tty,
+            StreamSelector::Stdout => match process {
+                Process::OSProcess(p) => p.stdout_is_a_tty,
                 #[cfg(feature = "test")]
-                super::Process::TestProcess(_) => unreachable!(),
+                Process::TestProcess(_) => unreachable!(),
             },
-            StreamSelector::Stderr => match process() {
-                super::Process::OSProcess(p) => p.stderr_is_a_tty,
+            StreamSelector::Stderr => match process {
+                Process::OSProcess(p) => p.stderr_is_a_tty,
                 #[cfg(feature = "test")]
-                super::Process::TestProcess(_) => unreachable!(),
+                Process::TestProcess(_) => unreachable!(),
             },
             #[cfg(feature = "test")]
             StreamSelector::TestWriter(_) => false,
@@ -83,11 +83,11 @@ impl ColorableTerminal {
     /// `RUSTUP_TERM_COLOR` either unset or set to `auto`,
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
-    pub(super) fn new(stream: StreamSelector) -> Self {
-        let choice = match process().var("RUSTUP_TERM_COLOR") {
+    pub(super) fn new(stream: StreamSelector, process: &Process) -> Self {
+        let choice = match process.var("RUSTUP_TERM_COLOR") {
             Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
             Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
-            _ if stream.is_a_tty() => ColorChoice::Auto,
+            _ if stream.is_a_tty(process) => ColorChoice::Auto,
             _ => ColorChoice::Never,
         };
         let inner = match stream {
@@ -252,8 +252,9 @@ mod tests {
                 vars,
                 ..Default::default()
             };
-            currentprocess::with(tp.into(), || {
-                let term = ColorableTerminal::new(stream);
+            currentprocess::with(tp.clone().into(), || {
+                let process = Process::from(tp);
+                let term = ColorableTerminal::new(stream, &process);
                 let inner = term.inner.lock().unwrap();
                 assert!(matches!(
                     &*inner,

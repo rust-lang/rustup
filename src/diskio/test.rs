@@ -27,10 +27,11 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
         vars,
         ..Default::default()
     };
-    currentprocess::with(tp.into(), || -> Result<()> {
+    currentprocess::with(tp.clone().into(), || -> Result<()> {
         let mut written = 0;
         let mut file_finished = false;
-        let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024)?;
+        let process = tp.clone().into();
+        let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024, &process)?;
         let (item, mut sender) = Item::write_file_segmented(
             work_dir.path().join("scratch"),
             0o666,
@@ -100,8 +101,9 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
         vars,
         ..Default::default()
     };
-    currentprocess::with(tp.into(), || -> Result<()> {
-        let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024)?;
+    currentprocess::with(tp.clone().into(), || -> Result<()> {
+        let process = tp.clone().into();
+        let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024, &process)?;
         let mut chunk = io_executor.get_buffer(10);
         chunk.extend(b"0123456789");
         assert_eq!(chunk.len(), 10);

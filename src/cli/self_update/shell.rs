@@ -29,7 +29,7 @@ use std::path::PathBuf;
 use anyhow::{bail, Result};
 
 use super::utils;
-use crate::currentprocess::process;
+use crate::currentprocess::Process;
 
 pub(crate) type Shell = Box<dyn UnixShell>;
 
@@ -40,9 +40,9 @@ pub(crate) struct ShellScript {
 }
 
 impl ShellScript {
-    pub(crate) fn write(&self) -> Result<()> {
-        let home = utils::cargo_home()?;
-        let cargo_bin = format!("{}/bin", cargo_home_str()?);
+    pub(crate) fn write(&self, process: &Process) -> Result<()> {
+        let home = utils::cargo_home(process)?;
+        let cargo_bin = format!("{}/bin", cargo_home_str(process)?);
         let env_name = home.join(self.name);
         let env_file = self.content.replace("{cargo_bin}", &cargo_bin);
         utils::write_file(self.name, &env_name, &env_file)?;
@@ -51,10 +51,10 @@ impl ShellScript {
 }
 
 // TODO: Update into a bytestring.
-pub(crate) fn cargo_home_str() -> Result<Cow<'static, str>> {
-    let path = utils::cargo_home()?;
+pub(crate) fn cargo_home_str(process: &Process) -> Result<Cow<'static, str>> {
+    let path = utils::cargo_home(process)?;
 
-    let default_cargo_home = utils::home_dir()
+    let default_cargo_home = utils::home_dir(process)
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
@@ -79,21 +79,23 @@ fn enumerate_shells() -> Vec<Shell> {
     ]
 }
 
-pub(crate) fn get_available_shells() -> impl Iterator<Item = Shell> {
-    enumerate_shells().into_iter().filter(|sh| sh.does_exist())
+pub(crate) fn get_available_shells(process: &Process) -> impl Iterator<Item = Shell> + '_ {
+    enumerate_shells()
+        .into_iter()
+        .filter(|sh| sh.does_exist(process))
 }
 
 pub(crate) trait UnixShell {
     // Detects if a shell "exists". Users have multiple shells, so an "eager"
     // heuristic should be used, assuming shells exist if any traces do.
-    fn does_exist(&self) -> bool;
+    fn does_exist(&self, process: &Process) -> bool;
 
     // Gives all rcfiles of a given shell that Rustup is concerned with.
     // Used primarily in checking rcfiles for cleanup.
-    fn rcfiles(&self) -> Vec<PathBuf>;
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf>;
 
     // Gives rcs that should be written to.
-    fn update_rcs(&self) -> Vec<PathBuf>;
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf>;
 
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
@@ -103,49 +105,49 @@ pub(crate) trait UnixShell {
         }
     }
 
-    fn source_string(&self) -> Result<String> {
-        Ok(format!(r#". "{}/env""#, cargo_home_str()?))
+    fn source_string(&self, process: &Process) -> Result<String> {
+        Ok(format!(r#". "{}/env""#, cargo_home_str(process)?))
     }
 }
 
 struct Posix;
 impl UnixShell for Posix {
-    fn does_exist(&self) -> bool {
+    fn does_exist(&self, _: &Process) -> bool {
         true
     }
 
-    fn rcfiles(&self) -> Vec<PathBuf> {
-        match utils::home_dir() {
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+        match utils::home_dir(process) {
             Some(dir) => vec![dir.join(".profile")],
             _ => vec![],
         }
     }
 
-    fn update_rcs(&self) -> Vec<PathBuf> {
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
         // Write to .profile even if it doesn't exist. It's the only rc in the
         // POSIX spec so it should always be set up.
-        self.rcfiles()
+        self.rcfiles(process)
     }
 }
 
 struct Bash;
 
 impl UnixShell for Bash {
-    fn does_exist(&self) -> bool {
-        !self.update_rcs().is_empty()
+    fn does_exist(&self, process: &Process) -> bool {
+        !self.update_rcs(process).is_empty()
     }
 
-    fn rcfiles(&self) -> Vec<PathBuf> {
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
         // Bash also may read .profile, however Rustup already includes handling
         // .profile as part of POSIX and always does setup for POSIX shells.
         [".bash_profile", ".bash_login", ".bashrc"]
             .iter()
-            .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
+            .filter_map(|rc| utils::home_dir(process).map(|dir| dir.join(rc)))
             .collect()
     }
 
-    fn update_rcs(&self) -> Vec<PathBuf> {
-        self.rcfiles()
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+        self.rcfiles(process)
             .into_iter()
             .filter(|rc| rc.is_file())
             .collect()
@@ -155,12 +157,12 @@ impl UnixShell for Bash {
 struct Zsh;
 
 impl Zsh {
-    fn zdotdir() -> Result<PathBuf> {
+    fn zdotdir(process: &Process) -> Result<PathBuf> {
         use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
-        if matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh")) {
-            match process().var("ZDOTDIR") {
+        if matches!(process.var("SHELL"), Ok(sh) if sh.contains("zsh")) {
+            match process.var("ZDOTDIR") {
                 Ok(dir) if !dir.is_empty() => Ok(PathBuf::from(dir)),
                 _ => bail!("Zsh setup failed."),
             }
@@ -177,30 +179,30 @@ impl Zsh {
 }
 
 impl UnixShell for Zsh {
-    fn does_exist(&self) -> bool {
+    fn does_exist(&self, process: &Process) -> bool {
         // zsh has to either be the shell or be callable for zsh setup.
-        matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh"))
-            || utils::find_cmd(&["zsh"]).is_some()
+        matches!(process.var("SHELL"), Ok(sh) if sh.contains("zsh"))
+            || utils::find_cmd(&["zsh"], process).is_some()
     }
 
-    fn rcfiles(&self) -> Vec<PathBuf> {
-        [Zsh::zdotdir().ok(), utils::home_dir()]
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+        [Zsh::zdotdir(process).ok(), utils::home_dir(process)]
             .iter()
             .filter_map(|dir| dir.as_ref().map(|p| p.join(".zshenv")))
             .collect()
     }
 
-    fn update_rcs(&self) -> Vec<PathBuf> {
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
         // zsh can change $ZDOTDIR both _before_ AND _during_ reading .zshenv,
         // so we: write to $ZDOTDIR/.zshenv if-exists ($ZDOTDIR changes before)
         // OR write to $HOME/.zshenv if it exists (change-during)
         // if neither exist, we create it ourselves, but using the same logic,
         // because we must still respond to whether $ZDOTDIR is set or unset.
         // In any case we only write once.
-        self.rcfiles()
+        self.rcfiles(process)
             .into_iter()
             .filter(|env| env.is_file())
-            .chain(self.rcfiles())
+            .chain(self.rcfiles(process))
             .take(1)
             .collect()
     }
@@ -209,22 +211,22 @@ impl UnixShell for Zsh {
 struct Fish;
 
 impl UnixShell for Fish {
-    fn does_exist(&self) -> bool {
+    fn does_exist(&self, process: &Process) -> bool {
         // fish has to either be the shell or be callable for fish setup.
-        matches!(process().var("SHELL"), Ok(sh) if sh.contains("fish"))
-            || utils::find_cmd(&["fish"]).is_some()
+        matches!(process.var("SHELL"), Ok(sh) if sh.contains("fish"))
+            || utils::find_cmd(&["fish"], process).is_some()
     }
 
     // > "$XDG_CONFIG_HOME/fish/conf.d" (or "~/.config/fish/conf.d" if that variable is unset) for the user
     // from <https://github.com/fish-shell/fish-shell/issues/3170#issuecomment-228311857>
-    fn rcfiles(&self) -> Vec<PathBuf> {
-        let p0 = process().var("XDG_CONFIG_HOME").ok().map(|p| {
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+        let p0 = process.var("XDG_CONFIG_HOME").ok().map(|p| {
             let mut path = PathBuf::from(p);
             path.push("fish/conf.d/rustup.fish");
             path
         });
 
-        let p1 = utils::home_dir().map(|mut path| {
+        let p1 = utils::home_dir(process).map(|mut path| {
             path.push(".config/fish/conf.d/rustup.fish");
             path
         });
@@ -232,9 +234,9 @@ impl UnixShell for Fish {
         p0.into_iter().chain(p1).collect()
     }
 
-    fn update_rcs(&self) -> Vec<PathBuf> {
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
         // The first rcfile takes precedence.
-        match self.rcfiles().into_iter().next() {
+        match self.rcfiles(process).into_iter().next() {
             Some(path) => vec![path],
             None => vec![],
         }
@@ -247,19 +249,19 @@ impl UnixShell for Fish {
         }
     }
 
-    fn source_string(&self) -> Result<String> {
-        Ok(format!(r#"source "{}/env.fish""#, cargo_home_str()?))
+    fn source_string(&self, process: &Process) -> Result<String> {
+        Ok(format!(r#"source "{}/env.fish""#, cargo_home_str(process)?))
     }
 }
 
-pub(crate) fn legacy_paths() -> impl Iterator<Item = PathBuf> {
-    let zprofiles = Zsh::zdotdir()
+pub(crate) fn legacy_paths(process: &Process) -> impl Iterator<Item = PathBuf> + '_ {
+    let zprofiles = Zsh::zdotdir(process)
         .into_iter()
-        .chain(utils::home_dir())
+        .chain(utils::home_dir(process))
         .map(|d| d.join(".zprofile"));
     let profiles = [".bash_profile", ".profile"]
         .iter()
-        .filter_map(|rc| utils::home_dir().map(|d| d.join(rc)));
+        .filter_map(|rc| utils::home_dir(process).map(|d| d.join(rc)));
 
     profiles.chain(zprofiles)
 }

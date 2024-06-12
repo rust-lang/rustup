@@ -20,8 +20,8 @@ use crate::{
     command,
     config::{ActiveReason, Cfg},
     currentprocess::{
-        process,
         terminalsource::{self, ColorableTerminal},
+        Process,
     },
     dist::{
         dist::{PartialToolchainDesc, Profile, TargetTriple},
@@ -525,28 +525,29 @@ enum SetSubcmd {
     },
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
-pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
-    self_update::cleanup_self_updater()?;
+#[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>()))))]
+pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::ExitCode> {
+    self_update::cleanup_self_updater(process)?;
 
     use clap::error::ErrorKind::*;
-    let matches = match Rustup::try_parse_from(process().args_os()) {
+    let matches = match Rustup::try_parse_from(process.args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
-            write!(process().stdout().lock(), "{err}")?;
+            write!(process.stdout().lock(), "{err}")?;
             return Ok(utils::ExitCode(0));
         }
         Err(err) if err.kind() == DisplayVersion => {
-            write!(process().stdout().lock(), "{err}")?;
+            write!(process.stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             #[cfg_attr(feature = "otel", tracing::instrument)]
             async fn rustc_version(
                 current_dir: PathBuf,
+                process: &Process,
             ) -> std::result::Result<String, Box<dyn std::error::Error>> {
-                let cfg = &mut common::set_globals(current_dir, false, true)?;
+                let cfg = &mut common::set_globals(current_dir, false, true, process)?;
 
-                if let Some(t) = process().args().find(|x| x.starts_with('+')) {
+                if let Some(t) = process.args().find(|x| x.starts_with('+')) {
                     debug!("Fetching rustc version from toolchain `{}`", t);
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
@@ -556,7 +557,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
                 Ok(toolchain.rustc_version())
             }
 
-            match rustc_version(current_dir).await {
+            match rustc_version(current_dir, process).await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
                 Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
@@ -571,17 +572,17 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
             ]
             .contains(&err.kind())
             {
-                write!(process().stdout().lock(), "{err}")?;
+                write!(process.stdout().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
             }
             if err.kind() == ValueValidation && err.to_string().contains(TOOLCHAIN_OVERRIDE_ERROR) {
-                write!(process().stderr().lock(), "{err}")?;
+                write!(process.stderr().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
             }
             Err(err)
         }
     }?;
-    let cfg = &mut common::set_globals(current_dir, matches.verbose, matches.quiet)?;
+    let cfg = &mut common::set_globals(current_dir, matches.verbose, matches.quiet, process)?;
 
     if let Some(t) = &matches.plus_toolchain {
         cfg.set_toolchain_override(t);
@@ -595,7 +596,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
     };
 
     match subcmd {
-        RustupSubcmd::DumpTestament => common::dump_testament(),
+        RustupSubcmd::DumpTestament => common::dump_testament(process),
         RustupSubcmd::Install { opts } => update(cfg, opts).await,
         RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
@@ -603,7 +604,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
             Some(ShowSubcmd::ActiveToolchain { verbose }) => show_active_toolchain(cfg, verbose),
             Some(ShowSubcmd::Home) => show_rustup_home(cfg),
             Some(ShowSubcmd::Profile) => {
-                writeln!(process().stdout().lock(), "{}", cfg.get_profile()?)?;
+                writeln!(process.stdout().lock(), "{}", cfg.get_profile()?)?;
                 Ok(ExitCode(0))
             }
         }),
@@ -692,7 +693,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
         RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain).await,
         RustupSubcmd::Self_ { subcmd } => match subcmd {
             SelfSubcmd::Update => self_update::update(cfg).await,
-            SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt),
+            SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt, process),
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
@@ -706,15 +707,17 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
                 auto_self_update_mode,
             } => set_auto_self_update(cfg, auto_self_update_mode),
         },
-        RustupSubcmd::Completions { shell, command } => output_completion_script(shell, command),
+        RustupSubcmd::Completions { shell, command } => {
+            output_completion_script(shell, command, process)
+        }
     }
 }
 
 async fn default_(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     toolchain: Option<MaybeResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    common::warn_if_host_is_emulated();
+    common::warn_if_host_is_emulated(cfg.process);
 
     if let Some(toolchain) = toolchain {
         match toolchain.to_owned() {
@@ -731,7 +734,7 @@ async fn default_(
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
-                writeln!(process().stdout().lock())?;
+                writeln!(cfg.process.stdout().lock())?;
 
                 common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
             }
@@ -745,10 +748,10 @@ async fn default_(
     } else {
         match cfg.get_default()? {
             Some(default_toolchain) => {
-                writeln!(process().stdout().lock(), "{default_toolchain} (default)")?;
+                writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
             }
             None => writeln!(
-                process().stdout().lock(),
+                cfg.process.stdout().lock(),
                 "no default toolchain is configured"
             )?,
         }
@@ -757,8 +760,8 @@ async fn default_(
     Ok(utils::ExitCode(0))
 }
 
-async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
-    let mut t = process().stdout().terminal();
+async fn check_updates(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+    let mut t = cfg.process.stdout().terminal(cfg.process);
     let channels = cfg.list_channels()?;
 
     for channel in channels {
@@ -793,13 +796,13 @@ async fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    check_rustup_update().await?;
+    check_rustup_update(cfg.process).await?;
 
     Ok(utils::ExitCode(0))
 }
 
-async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
-    common::warn_if_host_is_emulated();
+async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> {
+    common::warn_if_host_is_emulated(cfg.process);
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Update only if rustup does **not** have the no-self-update feature,
@@ -821,7 +824,7 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
         for name in names {
             // This needs another pass to fix it all up
             if name.has_triple() {
-                let host_arch = TargetTriple::from_host_or_build();
+                let host_arch = TargetTriple::from_host_or_build(cfg.process);
 
                 let target_triple = name.clone().resolve(&host_arch)?.target;
                 if !forced && !host_arch.can_run(&target_triple)? {
@@ -864,7 +867,7 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
                 Err(e) => Err(e)?,
             };
 
-            writeln!(process().stdout().lock())?;
+            writeln!(cfg.process.stdout().lock())?;
             common::show_channel_update(
                 cfg,
                 PackageUpdate::Toolchain(desc.clone()),
@@ -875,7 +878,7 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
             }
         }
         if self_update {
-            common::self_update(|| Ok(utils::ExitCode(0))).await?;
+            common::self_update(|| Ok(utils::ExitCode(0)), cfg.process).await?;
         }
     } else {
         common::update_all_channels(cfg, self_update, opts.force).await?;
@@ -885,7 +888,7 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
     }
 
     if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update().await?;
+        check_rustup_update(cfg.process).await?;
     }
 
     if self_update::NEVER_SELF_UPDATE {
@@ -897,7 +900,7 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
 }
 
 async fn run(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     toolchain: ResolvableLocalToolchainName,
     command: Vec<String>,
     install: bool,
@@ -909,7 +912,7 @@ async fn run(
 }
 
 async fn which(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
@@ -923,17 +926,17 @@ async fn which(
 
     utils::assert_is_file(&binary_path)?;
 
-    writeln!(process().stdout().lock(), "{}", binary_path.display())?;
+    writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
     Ok(utils::ExitCode(0))
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    common::warn_if_host_is_emulated();
+fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
+    common::warn_if_host_is_emulated(cfg.process);
 
     // Print host triple
     {
-        let mut t = process().stdout().terminal();
+        let mut t = cfg.process.stdout().terminal(cfg.process);
         t.attr(terminalsource::Attr::Bold)?;
         write!(t.lock(), "Default host: ")?;
         t.reset()?;
@@ -942,7 +945,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 
     // Print rustup home directory
     {
-        let mut t = process().stdout().terminal();
+        let mut t = cfg.process.stdout().terminal(cfg.process);
         t.attr(terminalsource::Attr::Bold)?;
         write!(t.lock(), "rustup home:  ")?;
         t.reset()?;
@@ -983,7 +986,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 
     // show installed toolchains
     {
-        let mut t = process().stdout().terminal();
+        let mut t = cfg.process.stdout().terminal(cfg.process);
 
         print_header::<Error>(&mut t, "installed toolchains")?;
 
@@ -1005,11 +1008,15 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 
             if verbose {
                 let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
-                writeln!(process().stdout().lock(), "  {}", toolchain.rustc_version())?;
+                writeln!(
+                    cfg.process.stdout().lock(),
+                    "  {}",
+                    toolchain.rustc_version()
+                )?;
                 // To make it easy to see which rustc belongs to which
                 // toolchain, we separate each pair with an extra newline.
                 if n != last_index {
-                    writeln!(process().stdout().lock())?;
+                    writeln!(cfg.process.stdout().lock())?;
                 }
             }
         }
@@ -1017,7 +1024,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 
     // show active toolchain
     {
-        let mut t = process().stdout().terminal();
+        let mut t = cfg.process.stdout().terminal(cfg.process);
 
         writeln!(t.lock())?;
 
@@ -1065,37 +1072,40 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show_active_toolchain(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
+fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     match cfg.find_active_toolchain()? {
         Some((toolchain_name, reason)) => {
             let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
             writeln!(
-                process().stdout().lock(),
+                cfg.process.stdout().lock(),
                 "{}\nactive because: {}",
                 toolchain.name(),
                 reason
             )?;
             if verbose {
                 writeln!(
-                    process().stdout().lock(),
+                    cfg.process.stdout().lock(),
                     "compiler: {}",
                     toolchain.rustc_version()
                 )?;
             }
         }
-        None => writeln!(process().stdout().lock(), "There isn't an active toolchain")?,
+        None => writeln!(
+            cfg.process.stdout().lock(),
+            "There isn't an active toolchain"
+        )?,
     }
     Ok(utils::ExitCode(0))
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
-    writeln!(process().stdout().lock(), "{}", cfg.rustup_dir.display())?;
+fn show_rustup_home(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+    writeln!(cfg.process.stdout().lock(), "{}", cfg.rustup_dir.display())?;
     Ok(utils::ExitCode(0))
 }
 
 async fn target_list(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
@@ -1114,11 +1124,12 @@ async fn target_list(
         },
         installed_only,
         quiet,
+        cfg.process,
     )
 }
 
 async fn target_add(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     mut targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
@@ -1167,7 +1178,7 @@ async fn target_add(
 }
 
 async fn target_remove(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
@@ -1201,19 +1212,25 @@ async fn target_remove(
 }
 
 async fn component_list(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
-    common::list_items(distributable, |c| Some(&c.name), installed_only, quiet)?;
+    common::list_items(
+        distributable,
+        |c| Some(&c.name),
+        installed_only,
+        quiet,
+        cfg.process,
+    )?;
     Ok(utils::ExitCode(0))
 }
 
 async fn component_add(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
@@ -1239,7 +1256,7 @@ fn get_target(
 }
 
 async fn component_remove(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
@@ -1256,7 +1273,7 @@ async fn component_remove(
 }
 
 async fn toolchain_link(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     dest: &CustomToolchainName,
     src: &Path,
 ) -> Result<utils::ExitCode> {
@@ -1286,7 +1303,7 @@ async fn toolchain_link(
     Ok(utils::ExitCode(0))
 }
 
-fn toolchain_remove(cfg: &mut Cfg, opts: UninstallOpts) -> Result<utils::ExitCode> {
+fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::ExitCode> {
     for toolchain_name in &opts.toolchain {
         let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
         Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
@@ -1295,7 +1312,7 @@ fn toolchain_remove(cfg: &mut Cfg, opts: UninstallOpts) -> Result<utils::ExitCod
 }
 
 async fn override_add(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
 ) -> Result<utils::ExitCode> {
@@ -1309,7 +1326,7 @@ async fn override_add(
                     DistributableToolchain::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
                         .await?
                         .0;
-                writeln!(process().stdout().lock())?;
+                writeln!(cfg.process.stdout().lock())?;
                 common::show_channel_update(
                     cfg,
                     PackageUpdate::Toolchain(desc.clone()),
@@ -1324,7 +1341,11 @@ async fn override_add(
     Ok(utils::ExitCode(0))
 }
 
-fn override_remove(cfg: &Cfg, path: Option<&Path>, nonexistent: bool) -> Result<utils::ExitCode> {
+fn override_remove(
+    cfg: &Cfg<'_>,
+    path: Option<&Path>,
+    nonexistent: bool,
+) -> Result<utils::ExitCode> {
     let paths = if nonexistent {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
@@ -1418,7 +1439,7 @@ docs_data![
 ];
 
 async fn doc(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     path_only: bool,
     toolchain: Option<PartialToolchainDesc>,
     mut topic: Option<&str>,
@@ -1463,16 +1484,16 @@ async fn doc(
 
     if path_only {
         let doc_path = toolchain.doc_path(doc_url)?;
-        writeln!(process().stdout().lock(), "{}", doc_path.display())?;
+        writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else {
         if let Some(name) = topic {
             writeln!(
-                process().stderr().lock(),
+                cfg.process.stderr().lock(),
                 "Opening docs named `{name}` in your browser"
             )?;
         } else {
-            writeln!(process().stderr().lock(), "Opening docs in your browser")?;
+            writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
         }
         toolchain.open_docs(doc_url)?;
         Ok(utils::ExitCode(0))
@@ -1481,7 +1502,7 @@ async fn doc(
 
 #[cfg(not(windows))]
 async fn man(
-    cfg: &Cfg,
+    cfg: &Cfg<'_>,
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
@@ -1493,7 +1514,7 @@ async fn man(
 
     let mut manpaths = std::ffi::OsString::from(path);
     manpaths.push(":"); // prepend to the default MANPATH list
-    if let Some(path) = process().var_os("MANPATH") {
+    if let Some(path) = cfg.process.var_os("MANPATH") {
         manpaths.push(path);
     }
     std::process::Command::new("man")
@@ -1505,12 +1526,11 @@ async fn man(
 }
 
 fn set_auto_self_update(
-    cfg: &mut Cfg,
+    cfg: &mut Cfg<'_>,
     auto_self_update_mode: SelfUpdateMode,
 ) -> Result<utils::ExitCode> {
     if self_update::NEVER_SELF_UPDATE {
-        let process = process();
-        let mut args = process.args_os();
+        let mut args = cfg.process.args_os();
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
             .as_ref()
@@ -1550,19 +1570,23 @@ impl fmt::Display for CompletionCommand {
     }
 }
 
-fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<utils::ExitCode> {
+fn output_completion_script(
+    shell: Shell,
+    command: CompletionCommand,
+    process: &Process,
+) -> Result<utils::ExitCode> {
     match command {
         CompletionCommand::Rustup => {
             clap_complete::generate(
                 shell,
                 &mut Rustup::command(),
                 "rustup",
-                &mut process().stdout().lock(),
+                &mut process.stdout().lock(),
             );
         }
         CompletionCommand::Cargo => {
             if let Shell::Zsh = shell {
-                writeln!(process().stdout().lock(), "#compdef cargo")?;
+                writeln!(process.stdout().lock(), "#compdef cargo")?;
             }
 
             let script = match shell {
@@ -1578,7 +1602,7 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             };
 
             writeln!(
-                process().stdout().lock(),
+                process.stdout().lock(),
                 "if command -v rustc >/dev/null 2>&1; then\n\
                     \tsource \"$(rustc --print sysroot)\"{script}\n\
                  fi",

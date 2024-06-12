@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use thiserror::Error as ThisError;
 use url::Url;
 
-use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::{
+    dist::dist::{TargetTriple, ToolchainDesc},
     dist::manifest::{Component, Manifest},
     toolchain::names::{PathBasedToolchainName, ToolchainName},
 };

@@ -38,11 +38,11 @@ macro_rules! err {
     ( $ ( $ arg : tt ) * ) => ( ::tracing::error ! ( $ ( $ arg ) * )  )
 }
 
-pub fn tracing_subscriber(process: Process) -> impl tracing::Subscriber {
+pub fn tracing_subscriber(process: &Process) -> impl tracing::Subscriber {
     use tracing_subscriber::{layer::SubscriberExt, Registry};
 
     #[cfg(feature = "otel")]
-    let telemetry = telemetry(&process);
+    let telemetry = telemetry(process);
     let console_logger = console_logger(process);
     #[cfg(feature = "otel")]
     {
@@ -60,7 +60,7 @@ pub fn tracing_subscriber(process: Process) -> impl tracing::Subscriber {
 /// When the `RUST_LOG` environment variable is present, a standard [`tracing_subscriber`]
 /// formatter will be used according to the filtering directives set in its value.
 /// Otherwise, this logger will use [`EventFormatter`] to mimic "classic" Rustup `stderr` output.
-fn console_logger<S>(process: Process) -> impl Layer<S>
+fn console_logger<S>(process: &Process) -> impl Layer<S>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
@@ -69,9 +69,10 @@ where
         Ok(s) if s.eq_ignore_ascii_case("never") => false,
         // `RUSTUP_TERM_COLOR` is prioritized over `NO_COLOR`.
         _ if process.var("NO_COLOR").is_ok() => false,
-        _ => process.stderr().is_a_tty(),
+        _ => process.stderr().is_a_tty(process),
     };
     let maybe_rust_log_directives = process.var("RUST_LOG");
+    let process = process.clone();
     let logger = tracing_subscriber::fmt::layer()
         .with_writer(move || process.stderr())
         .with_ansi(has_ansi);

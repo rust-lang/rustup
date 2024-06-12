@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 
+use rustup::currentprocess::{Process, TestProcess};
 use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
 use rustup::dist::component::{DirectoryPackage, Package};
@@ -117,7 +118,8 @@ fn basic_install() {
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify);
+    let process = Process::from(TestProcess::default());
+    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &process);
 
     let components = Components::open(prefix).unwrap();
 
@@ -163,7 +165,8 @@ fn multiple_component_install() {
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify);
+    let process = Process::from(TestProcess::default());
+    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &process);
 
     let components = Components::open(prefix).unwrap();
 
@@ -213,7 +216,8 @@ fn uninstall() {
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify);
+    let process = Process::from(TestProcess::default());
+    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &process);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -225,9 +229,10 @@ fn uninstall() {
 
     // Now uninstall
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix, &tmp_cx, &notify);
+    let process = Process::from(TestProcess::default());
+    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &process);
     for component in components.list().unwrap() {
-        tx = component.uninstall(tx).unwrap();
+        tx = component.uninstall(tx, &process).unwrap();
     }
     tx.commit();
 
@@ -270,7 +275,8 @@ fn component_bad_version() {
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify);
+    let process = Process::from(TestProcess::default());
+    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &process);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -316,7 +322,8 @@ fn install_to_prefix_that_does_not_exist() {
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify);
+    let process = Process::from(TestProcess::default());
+    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &process);
 
     let components = Components::open(prefix).unwrap();
 

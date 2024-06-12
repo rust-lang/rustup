@@ -28,21 +28,21 @@ use super::{
 #[derive(Debug)]
 pub(crate) struct DistributableToolchain<'a> {
     toolchain: Toolchain<'a>,
-    cfg: &'a Cfg,
+    cfg: &'a Cfg<'a>,
     desc: ToolchainDesc,
 }
 
 impl<'a> DistributableToolchain<'a> {
     pub(crate) async fn from_partial(
         toolchain: Option<PartialToolchainDesc>,
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         Ok(Self::try_from(
             &Toolchain::from_partial(toolchain, cfg).await?,
         )?)
     }
 
-    pub(crate) fn new(cfg: &'a Cfg, desc: ToolchainDesc) -> Result<Self, RustupError> {
+    pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ToolchainDesc) -> Result<Self, RustupError> {
         Toolchain::new(cfg, (&desc).into()).map(|toolchain| Self {
             toolchain,
             cfg,
@@ -331,8 +331,8 @@ impl<'a> DistributableToolchain<'a> {
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
     pub(crate) async fn install(
-        cfg: &'a Cfg,
-        desc: &'_ ToolchainDesc,
+        cfg: &'a Cfg<'a>,
+        desc: &ToolchainDesc,
         components: &[&str],
         targets: &[&str],
         profile: Profile,
@@ -361,8 +361,8 @@ impl<'a> DistributableToolchain<'a> {
 
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
     pub async fn install_if_not_installed(
-        cfg: &'a Cfg,
-        desc: &'a ToolchainDesc,
+        cfg: &'a Cfg<'a>,
+        desc: &ToolchainDesc,
     ) -> anyhow::Result<UpdateStatus> {
         (cfg.notify_handler)(Notification::LookingForToolchain(desc));
         if Toolchain::exists(cfg, &desc.into())? {
@@ -555,7 +555,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub(crate) fn installed_paths<'b>(
-        cfg: &'b Cfg,
+        cfg: &Cfg<'_>,
         desc: &ToolchainDesc,
         path: &'b Path,
     ) -> anyhow::Result<Vec<InstalledPath<'b>>> {
@@ -576,7 +576,7 @@ impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
         match value.name() {
             LocalToolchainName::Named(ToolchainName::Official(desc)) => Ok(Self {
                 toolchain: value.clone(),
-                cfg: value.cfg(),
+                cfg: value.cfg,
                 desc: desc.clone(),
             }),
             n => Err(RustupError::ComponentsUnsupported(n.to_string())),
