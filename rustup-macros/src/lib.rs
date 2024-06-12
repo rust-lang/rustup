@@ -95,7 +95,7 @@ fn test_inner(mod_path: String, mut input: ItemFn) -> syn::Result<TokenStream> {
     let name = input.sig.ident.clone();
     let new_block: Block = parse_quote! {
         {
-            #before_ident().await;
+            let _guard = #before_ident().await;
             // Define a function with same name we can instrument inside the
             // tracing enablement logic.
             #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
