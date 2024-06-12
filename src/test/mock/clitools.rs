@@ -16,11 +16,8 @@ use std::{
 
 use enum_map::{enum_map, Enum, EnumMap};
 use once_cell::sync::Lazy;
-use tokio::runtime::Builder;
 use url::Url;
 
-use crate::cli::rustup_mode;
-use crate::currentprocess;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
 use crate::test::this_host_triple;
@@ -679,13 +676,8 @@ impl Config {
         I: IntoIterator<Item = A> + Clone + Debug,
         A: AsRef<OsStr>,
     {
-        let inprocess = allow_inprocess(name, args.clone());
         let start = Instant::now();
-        let out = if inprocess {
-            self.run_inprocess(name, args.clone(), env)
-        } else {
-            self.run_subprocess(name, args.clone(), env)
-        };
+        let out = self.run_subprocess(name, args.clone(), env);
         let duration = Instant::now() - start;
         let output = SanitizedOutput {
             ok: matches!(out.status, Some(0)),
@@ -694,61 +686,12 @@ impl Config {
         };
 
         println!("ran: {} {:?}", name, args);
-        println!("inprocess: {inprocess}");
         println!("status: {:?}", out.status);
         println!("duration: {:.3}s", duration.as_secs_f32());
         println!("stdout:\n====\n{}\n====\n", output.stdout);
         println!("stderr:\n====\n{}\n====\n", output.stderr);
 
         output
-    }
-
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn run_inprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
-    where
-        I: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        // should we use vars_os, or skip over non-stringable vars? This is test
-        // code after all...
-        let mut vars: HashMap<String, String> = HashMap::default();
-        self::env(self, &mut vars);
-        vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
-        let mut arg_strings: Vec<Box<str>> = Vec::new();
-        arg_strings.push(name.to_owned().into_boxed_str());
-        for arg in args {
-            arg_strings.push(
-                arg.as_ref()
-                    .to_os_string()
-                    .into_string()
-                    .unwrap()
-                    .into_boxed_str(),
-            );
-        }
-        let tp = currentprocess::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
-        let mut builder = Builder::new_multi_thread();
-        builder
-            .enable_all()
-            .worker_threads(2)
-            .max_blocking_threads(2);
-        let process_res = currentprocess::with_runtime(
-            tp.clone().into(),
-            builder,
-            rustup_mode::main(tp.cwd.clone()),
-        );
-        // convert Err's into an ec
-        let ec = match process_res {
-            Ok(process_res) => process_res,
-            Err(e) => {
-                currentprocess::with(tp.clone().into(), || crate::cli::common::report_error(&e));
-                utils::ExitCode(1)
-            }
-        };
-        Output {
-            status: Some(ec.0),
-            stderr: tp.get_stderr(),
-            stdout: tp.get_stdout(),
-        }
     }
 
     #[track_caller]
@@ -852,43 +795,6 @@ where
 
 pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
     config.env(cmd)
-}
-
-fn allow_inprocess<I, A>(name: &str, args: I) -> bool
-where
-    I: IntoIterator<Item = A>,
-    A: AsRef<OsStr>,
-{
-    // Only the rustup alias is currently ready for in-process testing:
-    // - -init performs self-update which monkey with global external state.
-    // - proxies themselves behave appropriately the proxied output needs to be
-    //   collected for assertions to be made on it as our tests traverse layers.
-    // - self update executions cannot run in-process because on windows the
-    //    process replacement dance would replace the test process.
-    // - any command with --version in it is testing to see something was
-    //   installed properly, so we have to shell out to it to be sure
-    if name != "rustup" {
-        return false;
-    }
-    let mut is_update = false;
-    let mut no_self_update = false;
-    let mut self_cmd = false;
-    let mut run = false;
-    let mut version = false;
-    for arg in args {
-        if arg.as_ref() == "update" {
-            is_update = true;
-        } else if arg.as_ref() == "--no-self-update" {
-            no_self_update = true;
-        } else if arg.as_ref() == "self" {
-            self_cmd = true;
-        } else if arg.as_ref() == "run" {
-            run = true;
-        } else if arg.as_ref() == "--version" {
-            version = true;
-        }
-    }
-    !(run || self_cmd || version || (is_update && !no_self_update))
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
