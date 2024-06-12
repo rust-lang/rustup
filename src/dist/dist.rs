@@ -18,7 +18,7 @@ use thiserror::Error as ThisError;
 
 pub(crate) use crate::dist::triple::*;
 use crate::{
-    currentprocess::process,
+    currentprocess::Process,
     dist::{
         download::DownloadCfg,
         manifest::{Component, Manifest as ManifestV2},
@@ -299,7 +299,7 @@ impl TargetTriple {
         }
     }
 
-    pub(crate) fn from_host() -> Option<Self> {
+    pub(crate) fn from_host(process: &Process) -> Option<Self> {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {
             use std::mem;
@@ -429,15 +429,15 @@ impl TargetTriple {
             host_triple.map(TargetTriple::new)
         }
 
-        if let Ok(triple) = process().var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+        if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
             Some(Self(triple))
         } else {
             inner()
         }
     }
 
-    pub(crate) fn from_host_or_build() -> Self {
-        Self::from_host().unwrap_or_else(Self::from_build)
+    pub(crate) fn from_host_or_build(process: &Process) -> Self {
+        Self::from_host(process).unwrap_or_else(Self::from_build)
     }
 
     pub(crate) fn can_run(&self, other: &TargetTriple) -> Result<bool> {
@@ -554,8 +554,8 @@ impl FromStr for ToolchainDesc {
 }
 
 impl ToolchainDesc {
-    pub(crate) fn manifest_v1_url(&self, dist_root: &str) -> String {
-        let do_manifest_staging = process().var("RUSTUP_STAGED_MANIFEST").is_ok();
+    pub(crate) fn manifest_v1_url(&self, dist_root: &str, process: &Process) -> String {
+        let do_manifest_staging = process.var("RUSTUP_STAGED_MANIFEST").is_ok();
         match (self.date.as_ref(), do_manifest_staging) {
             (None, false) => format!("{}/channel-rust-{}", dist_root, self.channel),
             (Some(date), false) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
@@ -564,8 +564,8 @@ impl ToolchainDesc {
         }
     }
 
-    pub(crate) fn manifest_v2_url(&self, dist_root: &str) -> String {
-        format!("{}.toml", self.manifest_v1_url(dist_root))
+    pub(crate) fn manifest_v2_url(&self, dist_root: &str, process: &Process) -> String {
+        format!("{}.toml", self.manifest_v1_url(dist_root, process))
     }
     /// Either "$channel" or "channel-$date"
     pub fn manifest_name(&self) -> String {
@@ -774,7 +774,8 @@ async fn update_from_dist_(
         // We limit the backtracking to 21 days by default (half a release cycle).
         // The limit of 21 days is an arbitrary selection, so we let the user override it.
         const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
-        let provided = process()
+        let provided = download
+            .process
             .var("RUSTUP_BACKTRACK_LIMIT")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -1061,6 +1062,7 @@ async fn try_update_from_dist_(
             update_hash,
             download.tmp_cx,
             &download.notify_handler,
+            download.process,
         )
         .await;
     // inspect, determine what context to add, then process afterwards.
@@ -1087,7 +1089,7 @@ pub(crate) async fn dl_v2_manifest(
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
-    let manifest_url = toolchain.manifest_v2_url(download.dist_root);
+    let manifest_url = toolchain.manifest_v2_url(download.dist_root, download.process);
     match download
         .download_and_check(&manifest_url, update_hash, ".toml")
         .await
@@ -1134,7 +1136,7 @@ async fn dl_v1_manifest(
         return Ok(vec![installer_name]);
     }
 
-    let manifest_url = toolchain.manifest_v1_url(download.dist_root);
+    let manifest_url = toolchain.manifest_v1_url(download.dist_root, download.process);
     let manifest_dl = download.download_and_check(&manifest_url, None, "").await?;
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = utils::read_file("manifest", &manifest_file)?;

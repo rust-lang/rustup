@@ -114,15 +114,6 @@ impl Process {
             Process::TestProcess(p) => Ok(p.cwd.clone()),
         }
     }
-
-    #[cfg(test)]
-    fn id(&self) -> u64 {
-        match self {
-            Process::OSProcess(_) => std::process::id() as u64,
-            #[cfg(feature = "test")]
-            Process::TestProcess(p) => p.id,
-        }
-    }
 }
 
 impl home::env::Env for Process {
@@ -158,14 +149,6 @@ impl From<TestProcess> for Process {
     }
 }
 
-/// Obtain the current instance of CurrentProcess
-pub fn process() -> Process {
-    match PROCESS.with(|p| p.borrow().clone()) {
-        None => panic!("No process instance"),
-        Some(p) => p,
-    }
-}
-
 static HOOK_INSTALLED: Once = Once::new();
 
 /// Run a function in the context of a process definition.
@@ -182,8 +165,8 @@ where
         if let Some(old_p) = &*p.borrow() {
             panic!("current process already set {old_p:?}");
         }
-        *p.borrow_mut() = Some(process.clone());
-        let _guard = crate::cli::log::tracing_subscriber(process).set_default();
+        let _guard = crate::cli::log::tracing_subscriber(&process).set_default();
+        *p.borrow_mut() = Some(process);
         let result = f();
         *p.borrow_mut() = None;
         result
@@ -257,7 +240,7 @@ pub fn with_runtime<'a, R>(
         }
         *p.borrow_mut() = Some(process.clone());
         let result = runtime.block_on(async {
-            let _guard = crate::cli::log::tracing_subscriber(process).set_default();
+            let _guard = crate::cli::log::tracing_subscriber(&process).set_default();
             fut.await
         });
         *p.borrow_mut() = None;
@@ -350,28 +333,5 @@ impl TestProcess {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
-    use std::env;
-
-    use rustup_macros::unit_test as test;
-
-    use super::{process, with, TestProcess};
-
-    #[test]
-    fn test_instance() {
-        let proc = TestProcess::new(
-            env::current_dir().unwrap(),
-            &["foo", "bar", "baz"],
-            HashMap::default(),
-            "",
-        );
-        with(proc.clone().into(), || {
-            assert_eq!(proc.id, process().id(), "{:?} != {:?}", proc, process())
-        });
     }
 }

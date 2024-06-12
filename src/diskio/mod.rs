@@ -66,7 +66,7 @@ use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::{Context, Result};
 
-use crate::currentprocess::process;
+use crate::currentprocess::Process;
 use crate::utils::notifications::Notification;
 use threaded::PoolReference;
 
@@ -450,9 +450,10 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub(crate) fn get_executor<'a>(
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ram_budget: usize,
+    process: &Process,
 ) -> Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
-    let thread_count = match process().var("RUSTUP_IO_THREADS") {
+    let thread_count = match process.var("RUSTUP_IO_THREADS") {
         Err(_) => available_parallelism().map(|p| p.get()).unwrap_or(1),
         Ok(n) => n
             .parse::<usize>()

@@ -3,7 +3,7 @@ use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use crate::currentprocess::{process, terminalsource};
+use crate::currentprocess::{terminalsource, Process};
 use crate::dist::Notification as In;
 use crate::notifications::Notification;
 use crate::utils::units::{Size, Unit, UnitMode};
@@ -45,11 +45,12 @@ pub(crate) struct DownloadTracker {
     units: Vec<Unit>,
     /// Whether we display progress
     display_progress: bool,
+    stdout_is_a_tty: bool,
 }
 
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
-    pub(crate) fn new_with_display_progress(display_progress: bool) -> Self {
+    pub(crate) fn new_with_display_progress(display_progress: bool, process: &Process) -> Self {
         Self {
             content_len: None,
             total_downloaded: 0,
@@ -57,10 +58,11 @@ impl DownloadTracker {
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
             start_sec: None,
             last_sec: None,
-            term: process().stdout().terminal(),
+            term: process.stdout().terminal(process),
             displayed_charcount: None,
             units: vec![Unit::B],
             display_progress,
+            stdout_is_a_tty: process.stdout().is_a_tty(process),
         }
     }
 
@@ -72,7 +74,7 @@ impl DownloadTracker {
                 true
             }
             Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
-                if process().stdout().is_a_tty() {
+                if self.stdout_is_a_tty {
                     self.data_received(data.len());
                 }
                 true

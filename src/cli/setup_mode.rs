@@ -8,7 +8,7 @@ use crate::{
         common,
         self_update::{self, InstallOpts},
     },
-    currentprocess::process,
+    currentprocess::Process,
     dist::dist::Profile,
     toolchain::names::MaybeOfficialToolchainName,
     utils::utils,
@@ -72,7 +72,7 @@ struct RustupInit {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
+pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::ExitCode> {
     use clap::error::ErrorKind;
 
     let RustupInit {
@@ -91,18 +91,18 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
     } = match RustupInit::try_parse() {
         Ok(args) => args,
         Err(e) if [ErrorKind::DisplayHelp, ErrorKind::DisplayVersion].contains(&e.kind()) => {
-            write!(process().stdout().lock(), "{e}")?;
+            write!(process.stdout().lock(), "{e}")?;
             return Ok(utils::ExitCode(0));
         }
         Err(e) => return Err(e.into()),
     };
 
     if self_replace {
-        return self_update::self_replace();
+        return self_update::self_replace(process);
     }
 
     if dump_testament {
-        common::dump_testament()?;
+        common::dump_testament(process)?;
         return Ok(utils::ExitCode(0));
     }
 
@@ -120,5 +120,5 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    self_update::install(current_dir, no_prompt, verbose, quiet, opts).await
+    self_update::install(current_dir, no_prompt, verbose, quiet, opts, process).await
 }

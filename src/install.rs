@@ -28,15 +28,15 @@ pub(crate) enum InstallMethod<'a> {
     Copy {
         src: &'a Path,
         dest: &'a CustomToolchainName,
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
     },
     Link {
         src: &'a Path,
         dest: &'a CustomToolchainName,
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
     },
     Dist {
-        cfg: &'a Cfg,
+        cfg: &'a Cfg<'a>,
         desc: &'a dist::ToolchainDesc,
         profile: dist::Profile,
         update_hash: Option<&'a Path>,
@@ -165,7 +165,7 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    fn cfg(&self) -> &Cfg {
+    fn cfg(&self) -> &Cfg<'_> {
         match self {
             InstallMethod::Copy { cfg, .. } => cfg,
             InstallMethod::Link { cfg, .. } => cfg,

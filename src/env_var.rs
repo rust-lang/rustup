@@ -3,12 +3,17 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::currentprocess::process;
+use crate::currentprocess::Process;
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
-pub(crate) fn prepend_path(name: &str, prepend: Vec<PathBuf>, cmd: &mut Command) {
-    let old_value = process().var_os(name);
+pub(crate) fn prepend_path(
+    name: &str,
+    prepend: Vec<PathBuf>,
+    cmd: &mut Command,
+    process: &Process,
+) {
+    let old_value = process.var_os(name);
     let parts = if let Some(ref v) = old_value {
         let mut tail = env::split_paths(v).collect::<VecDeque<_>>();
         for path in prepend.into_iter().rev() {
@@ -26,8 +31,8 @@ pub(crate) fn prepend_path(name: &str, prepend: Vec<PathBuf>, cmd: &mut Command)
     }
 }
 
-pub(crate) fn inc(name: &str, cmd: &mut Command) {
-    let old_value = process()
+pub(crate) fn inc(name: &str, cmd: &mut Command, process: &Process) {
+    let old_value = process
         .var(name)
         .ok()
         .and_then(|v| v.parse().ok())
@@ -75,7 +80,8 @@ mod tests {
                 let path_z = PathBuf::from(z);
                 path_entries.push(path_z);
 
-                prepend_path("PATH", path_entries, &mut cmd);
+                let process = tp.clone().into();
+                prepend_path("PATH", path_entries, &mut cmd, &process);
                 let envs: Vec<_> = cmd.get_envs().collect();
 
                 assert_eq!(

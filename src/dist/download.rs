@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context, Result};
 use sha2::{Digest, Sha256};
 use url::Url;
 
+use crate::currentprocess::Process;
 use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::errors::*;
@@ -19,6 +20,7 @@ pub struct DownloadCfg<'a> {
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
     pub notify_handler: &'a dyn Fn(Notification<'_>),
+    pub process: &'a Process,
 }
 
 pub(crate) struct File {
@@ -77,6 +79,7 @@ impl<'a> DownloadCfg<'a> {
             Some(&mut hasher),
             true,
             &|n| (self.notify_handler)(n.into()),
+            self.process,
         )
         .await
         {
@@ -111,6 +114,7 @@ impl<'a> DownloadCfg<'a> {
                 &partial_file_path,
                 &target_file,
                 self.notify_handler,
+                self.process,
             )?;
             Ok(File { path: target_file })
         }
@@ -130,9 +134,13 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        utils::download_file(&hash_url, &hash_file, None, &|n| {
-            (self.notify_handler)(n.into())
-        })
+        utils::download_file(
+            &hash_url,
+            &hash_file,
+            None,
+            &|n| (self.notify_handler)(n.into()),
+            self.process,
+        )
         .await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
@@ -171,9 +179,13 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        utils::download_file(&url, &file, Some(&mut hasher), &|n| {
-            (self.notify_handler)(n.into())
-        })
+        utils::download_file(
+            &url,
+            &file,
+            Some(&mut hasher),
+            &|n| (self.notify_handler)(n.into()),
+            self.process,
+        )
         .await?;
         let actual_hash = format!("{:x}", hasher.finalize());
 

@@ -11,7 +11,7 @@ use retry::{retry, OperationResult};
 use sha2::Sha256;
 use url::Url;
 
-use crate::currentprocess::process;
+use crate::currentprocess::Process;
 use crate::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
@@ -121,8 +121,9 @@ pub async fn download_file(
     path: &Path,
     hasher: Option<&mut Sha256>,
     notify_handler: &dyn Fn(Notification<'_>),
+    process: &Process,
 ) -> Result<()> {
-    download_file_with_resume(url, path, hasher, false, &notify_handler).await
+    download_file_with_resume(url, path, hasher, false, &notify_handler, process).await
 }
 
 pub(crate) async fn download_file_with_resume(
@@ -131,9 +132,19 @@ pub(crate) async fn download_file_with_resume(
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
+    process: &Process,
 ) -> Result<()> {
     use download::DownloadError as DEK;
-    match download_file_(url, path, hasher, resume_from_partial, notify_handler).await {
+    match download_file_(
+        url,
+        path,
+        hasher,
+        resume_from_partial,
+        notify_handler,
+        process,
+    )
+    .await
+    {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {
@@ -169,6 +180,7 @@ async fn download_file_(
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
+    process: &Process,
 ) -> Result<()> {
     use download::download_to_path_with_backend;
     use download::{Backend, Event, TlsBackend};
@@ -206,10 +218,10 @@ async fn download_file_(
     // Download the file
 
     // Keep the curl env var around for a bit
-    let use_curl_backend = process()
+    let use_curl_backend = process
         .var_os("RUSTUP_USE_CURL")
         .map_or(false, |it| it != "0");
-    let use_rustls = process()
+    let use_rustls = process
         .var_os("RUSTUP_USE_RUSTLS")
         .map_or(true, |it| it != "0");
     let (backend, notification) = if use_curl_backend {
@@ -471,16 +483,16 @@ pub fn current_exe() -> Result<PathBuf> {
     env::current_exe().context(RustupError::LocatingWorkingDir)
 }
 
-pub(crate) fn home_dir() -> Option<PathBuf> {
-    home::home_dir_with_env(&process())
+pub(crate) fn home_dir(process: &Process) -> Option<PathBuf> {
+    home::home_dir_with_env(process)
 }
 
-pub(crate) fn cargo_home() -> Result<PathBuf> {
-    home::cargo_home_with_env(&process()).context("failed to determine cargo home")
+pub(crate) fn cargo_home(process: &Process) -> Result<PathBuf> {
+    home::cargo_home_with_env(process).context("failed to determine cargo home")
 }
 
-pub(crate) fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home_with_env(&process()).context("failed to determine rustup home dir")
+pub(crate) fn rustup_home(process: &Process) -> Result<PathBuf> {
+    home::rustup_home_with_env(process).context("failed to determine rustup home dir")
 }
 
 pub(crate) fn format_path_for_display(path: &str) -> String {
@@ -522,6 +534,8 @@ pub fn rename<'a, N>(
     src: &'a Path,
     dest: &'a Path,
     notify_handler: &'a dyn Fn(N),
+    #[allow(unused_variables)] // Only used on Linux
+    process: &Process,
 ) -> Result<()>
 where
     N: From<Notification<'a>>,
@@ -542,7 +556,7 @@ where
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]
-                _ if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
+                _ if process.var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
                     && Some(EXDEV) == e.raw_os_error() =>
                 {
                     match copy_and_delete(name, src, dest, notify_handler) {
