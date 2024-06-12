@@ -1,5 +1,13 @@
-use std::fmt;
-use std::io::Write;
+use std::{fmt, io::Write};
+
+#[cfg(feature = "otel")]
+use once_cell::sync::Lazy;
+#[cfg(feature = "otel")]
+use opentelemetry_sdk::trace::Tracer;
+#[cfg(feature = "otel")]
+use tracing::Subscriber;
+#[cfg(feature = "otel")]
+use tracing_subscriber::{registry::LookupSpan, EnvFilter, Layer};
 
 use crate::currentprocess::{process, terminalsource};
 
@@ -71,3 +79,48 @@ pub(crate) fn debug_fmt(args: fmt::Arguments<'_>) {
         let _ = writeln!(t.lock());
     }
 }
+
+/// A [`tracing::Subscriber`] [`Layer`][`tracing_subscriber::Layer`] that corresponds to Rustup's
+/// optional `opentelemetry` (a.k.a. `otel`) feature.
+#[cfg(feature = "otel")]
+pub fn telemetry<S>() -> impl Layer<S>
+where
+    S: Subscriber + for<'span> LookupSpan<'span>,
+{
+    // NOTE: This reads from the real environment variables instead of `process().var_os()`.
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
+    tracing_opentelemetry::layer()
+        .with_tracer(TELEMETRY_DEFAULT_TRACER.clone())
+        .with_filter(env_filter)
+}
+
+/// The default `opentelemetry` tracer used across Rustup.
+///
+/// # Note
+/// The initializer function will panic if not called within the context of a [`tokio`] runtime.
+#[cfg(feature = "otel")]
+static TELEMETRY_DEFAULT_TRACER: Lazy<Tracer> = Lazy::new(|| {
+    use std::time::Duration;
+
+    use opentelemetry::KeyValue;
+    use opentelemetry_otlp::WithExportConfig;
+    use opentelemetry_sdk::{
+        trace::{self, Sampler},
+        Resource,
+    };
+
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_timeout(Duration::from_secs(3)),
+        )
+        .with_trace_config(
+            trace::config()
+                .with_sampler(Sampler::AlwaysOn)
+                .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
+        )
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+        .expect("error installing `OtlpTracePipeline` in the current `tokio` runtime")
+});
