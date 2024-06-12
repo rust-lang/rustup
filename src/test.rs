@@ -224,69 +224,32 @@ where
     f(&rustup_home)
 }
 
-#[cfg(feature = "otel")]
-use once_cell::sync::Lazy;
-
-/// A tokio runtime for the sync tests, permitting the use of tracing. This is
-/// never shutdown, instead it is just dropped at end of process.
-#[cfg(feature = "otel")]
-static TRACE_RUNTIME: Lazy<tokio::runtime::Runtime> =
-    Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
-/// A tracer for the tests.
-#[cfg(feature = "otel")]
-static TRACER: Lazy<opentelemetry_sdk::trace::Tracer> = Lazy::new(|| {
-    use std::time::Duration;
-
-    use opentelemetry::{global, KeyValue};
-    use opentelemetry_otlp::WithExportConfig;
-    use opentelemetry_sdk::{
-        propagation::TraceContextPropagator,
-        trace::{self, Sampler},
-        Resource,
-    };
-    use tokio::runtime::Handle;
-    use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
-
-    // Use the current runtime, or the sync test runtime otherwise.
-    let handle = match Handle::try_current() {
-        Ok(handle) => handle,
-        Err(_) => TRACE_RUNTIME.handle().clone(),
-    };
-    let _guard = handle.enter();
-
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_timeout(Duration::from_secs(3)),
-        )
-        .with_trace_config(
-            trace::config()
-                .with_sampler(Sampler::AlwaysOn)
-                .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
-        )
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .unwrap();
-
-    global::set_text_map_propagator(TraceContextPropagator::new());
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
-    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer.clone());
-    let subscriber = Registry::default().with(env_filter).with(telemetry);
-    tracing::subscriber::set_global_default(subscriber).unwrap();
-    tracer
-});
-
-pub async fn before_test_async() {
+pub async fn before_test_async() -> Option<tracing::dispatcher::DefaultGuard> {
     #[cfg(feature = "otel")]
     {
-        Lazy::force(&TRACER);
+        use tracing_subscriber::{layer::SubscriberExt, Registry};
+
+        let telemetry = {
+            use opentelemetry::global;
+            use opentelemetry_sdk::propagation::TraceContextPropagator;
+
+            global::set_text_map_propagator(TraceContextPropagator::new());
+            crate::cli::log::telemetry()
+        };
+
+        let subscriber = Registry::default().with(telemetry);
+        Some(tracing::subscriber::set_default(subscriber))
+    }
+    #[cfg(not(feature = "otel"))]
+    {
+        None
     }
 }
 
 pub async fn after_test_async() {
     #[cfg(feature = "otel")]
     {
-        TRACER.provider().map(|p| p.force_flush());
+        // We're tracing, so block until all spans are exported.
+        opentelemetry::global::shutdown_tracer_provider();
     }
 }
