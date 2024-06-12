@@ -11,7 +11,7 @@ use retry::{retry, OperationResult};
 use sha2::Sha256;
 use url::Url;
 
-use crate::currentprocess::{home_process, process};
+use crate::currentprocess::process;
 use crate::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
@@ -496,15 +496,15 @@ pub fn current_exe() -> Result<PathBuf> {
 }
 
 pub(crate) fn home_dir() -> Option<PathBuf> {
-    home::home_dir_with_env(&home_process())
+    home::home_dir_with_env(&process())
 }
 
 pub(crate) fn cargo_home() -> Result<PathBuf> {
-    home::cargo_home_with_env(&home_process()).context("failed to determine cargo home")
+    home::cargo_home_with_env(&process()).context("failed to determine cargo home")
 }
 
 pub(crate) fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home_with_env(&home_process()).context("failed to determine rustup home dir")
+    home::rustup_home_with_env(&process()).context("failed to determine rustup home dir")
 }
 
 pub(crate) fn format_path_for_display(path: &str) -> String {
