@@ -469,6 +469,7 @@ pub(crate) async fn install(
         do_write_env_files()?;
 
         if !opts.no_modify_path {
+            #[cfg(windows)]
             do_add_to_programs()?;
             do_add_to_path()?;
         }
@@ -1022,6 +1023,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 
     // Remove CARGO_HOME/bin from PATH
     do_remove_from_path()?;
+    #[cfg(windows)]
     do_remove_from_programs()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin

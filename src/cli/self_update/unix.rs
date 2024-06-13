@@ -123,14 +123,6 @@ pub(crate) fn do_write_env_files() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_add_to_programs() -> Result<()> {
-    Ok(())
-}
-
-pub(crate) fn do_remove_from_programs() -> Result<()> {
-    Ok(())
-}
-
 /// Tell the upgrader to replace the rustup bins, then delete
 /// itself.
 pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
