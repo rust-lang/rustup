@@ -90,30 +90,6 @@ pub(crate) fn write_str(name: &'static str, file: &mut File, path: &Path, s: &st
     })
 }
 
-pub fn rename_file<'a, N>(
-    name: &'static str,
-    src: &'a Path,
-    dest: &'a Path,
-    notify: &'a dyn Fn(N),
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
-    rename(name, src, dest, notify)
-}
-
-pub(crate) fn rename_dir<'a, N>(
-    name: &'static str,
-    src: &'a Path,
-    dest: &'a Path,
-    notify: &'a dyn Fn(N),
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
-    rename(name, src, dest, notify)
-}
-
 pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     name: &'static str,
     src: &Path,
@@ -541,7 +517,7 @@ where
     }
 }
 
-fn rename<'a, N>(
+pub fn rename<'a, N>(
     name: &'static str,
     src: &'a Path,
     dest: &'a Path,

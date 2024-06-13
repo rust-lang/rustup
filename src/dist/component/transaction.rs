@@ -222,10 +222,10 @@ impl<'a> ChangedItem<'a> {
             AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
             AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), notify)?,
             RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
-                utils::rename_file("component", tmp, &prefix.abs_path(path), notify)?
+                utils::rename("component", tmp, &prefix.abs_path(path), notify)?
             }
             RemovedDir(path, tmp) => {
-                utils::rename_dir("component", &tmp.join("bk"), &prefix.abs_path(path), notify)?
+                utils::rename("component", &tmp.join("bk"), &prefix.abs_path(path), notify)?
             }
             ModifiedFile(path, None) => {
                 let abs_path = prefix.abs_path(path);
@@ -292,7 +292,7 @@ impl<'a> ChangedItem<'a> {
             }
             .into())
         } else {
-            utils::rename_file("component", &abs_path, &backup, notify)?;
+            utils::rename("component", &abs_path, &backup, notify)?;
             Ok(ChangedItem::RemovedFile(relpath, backup))
         }
     }
@@ -312,7 +312,7 @@ impl<'a> ChangedItem<'a> {
             }
             .into())
         } else {
-            utils::rename_dir("component", &abs_path, &backup.join("bk"), notify)?;
+            utils::rename("component", &abs_path, &backup.join("bk"), notify)?;
             Ok(ChangedItem::RemovedDir(relpath, backup))
         }
     }
@@ -342,7 +342,7 @@ impl<'a> ChangedItem<'a> {
         notify: &'a dyn Fn(Notification<'_>),
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename_file("component", src, &abs_path, notify)?;
+        utils::rename("component", src, &abs_path, notify)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
     fn move_dir(
@@ -353,7 +353,7 @@ impl<'a> ChangedItem<'a> {
         notify: &'a dyn Fn(Notification<'_>),
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename_dir("component", src, &abs_path, notify)?;
+        utils::rename("component", src, &abs_path, notify)?;
         Ok(ChangedItem::AddedDir(relpath))
     }
 }
