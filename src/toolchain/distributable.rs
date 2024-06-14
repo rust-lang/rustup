@@ -28,7 +28,6 @@ use super::{
 #[derive(Debug)]
 pub(crate) struct DistributableToolchain<'a> {
     pub(super) toolchain: Toolchain<'a>,
-    cfg: &'a Cfg<'a>,
     desc: ToolchainDesc,
 }
 
@@ -43,11 +42,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ToolchainDesc) -> Result<Self, RustupError> {
-        Toolchain::new(cfg, (&desc).into()).map(|toolchain| Self {
-            toolchain,
-            cfg,
-            desc,
-        })
+        Toolchain::new(cfg, (&desc).into()).map(|toolchain| Self { toolchain, desc })
     }
 
     pub(crate) fn desc(&self) -> &ToolchainDesc {
@@ -109,8 +104,8 @@ impl<'a> DistributableToolchain<'a> {
         };
 
         let notify_handler =
-            &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
-        let download_cfg = self.cfg.download_cfg(&notify_handler);
+            &|n: crate::dist::Notification<'_>| (self.toolchain.cfg.notify_handler)(n.into());
+        let download_cfg = self.toolchain.cfg.download_cfg(&notify_handler);
 
         manifestation
             .update(
@@ -204,7 +199,7 @@ impl<'a> DistributableToolchain<'a> {
         // it to do that, because cargo's directory contains the _wrong_ rustc. See
         // the documentation for the lpCommandLine argument of CreateProcess.
         let exe_path = if cfg!(windows) {
-            let fallback_dir = self.cfg.rustup_dir.join("fallback");
+            let fallback_dir = self.toolchain.cfg.rustup_dir.join("fallback");
             fs::create_dir_all(&fallback_dir)
                 .context("unable to create dir to hold fallback exe")?;
             let fallback_file = fallback_dir.join("cargo.exe");
@@ -413,17 +408,16 @@ impl<'a> DistributableToolchain<'a> {
                 })
                 .ok();
 
-        let hash_path = self.cfg.get_hash_file(&self.desc, true)?;
+        let cfg = self.toolchain.cfg;
+        let hash_path = cfg.get_hash_file(&self.desc, true)?;
         let update_hash = Some(&hash_path as &Path);
 
         InstallMethod::Dist {
-            cfg: self.cfg,
+            cfg,
             desc: &self.desc,
             profile,
             update_hash,
-            dl_cfg: self
-                .cfg
-                .download_cfg(&|n| (self.cfg.notify_handler)(n.into())),
+            dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n.into())),
             force,
             allow_downgrade,
             exists: true,
@@ -456,7 +450,7 @@ impl<'a> DistributableToolchain<'a> {
                     "the '{binary_lossy}' binary, normally provided by the '{short_name}' component, is not applicable to the '{desc}' toolchain"))
             } else {
                 // available, not installed, recommend installation
-                let selector = match self.cfg.get_default()? {
+                let selector = match self.toolchain.cfg.get_default()? {
                     Some(ToolchainName::Official(n)) if n == self.desc => String::new(),
                     _ => format!("--toolchain {} ", self.toolchain.name()),
                 };
@@ -516,8 +510,8 @@ impl<'a> DistributableToolchain<'a> {
         };
 
         let notify_handler =
-            &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
-        let download_cfg = self.cfg.download_cfg(&notify_handler);
+            &|n: crate::dist::Notification<'_>| (self.toolchain.cfg.notify_handler)(n.into());
+        let download_cfg = self.toolchain.cfg.download_cfg(&notify_handler);
 
         manifestation
             .update(
@@ -534,10 +528,10 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
-        let update_hash = self.cfg.get_hash_file(&self.desc, false)?;
+        let update_hash = self.toolchain.cfg.get_hash_file(&self.desc, false)?;
         let notify_handler =
-            &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
-        let download_cfg = self.cfg.download_cfg(&notify_handler);
+            &|n: crate::dist::Notification<'_>| (self.toolchain.cfg.notify_handler)(n.into());
+        let download_cfg = self.toolchain.cfg.download_cfg(&notify_handler);
 
         match crate::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc).await? {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
@@ -574,7 +568,6 @@ impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
         match value.name() {
             LocalToolchainName::Named(ToolchainName::Official(desc)) => Ok(Self {
                 toolchain: value.clone(),
-                cfg: value.cfg,
                 desc: desc.clone(),
             }),
             n => Err(RustupError::ComponentsUnsupported(n.to_string())),
