@@ -494,10 +494,13 @@ impl<'a> Cfg<'a> {
         &self,
         toolchain: Option<PartialToolchainDesc>,
     ) -> anyhow::Result<Toolchain<'_>> {
-        match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
+        match toolchain {
             Some(toolchain) => {
                 let desc = toolchain.resolve(&self.get_default_host_triple()?)?;
-                Ok(Toolchain::new(self, desc.into())?)
+                Ok(Toolchain::new(
+                    self,
+                    LocalToolchainName::Named(ToolchainName::Official(desc)),
+                )?)
             }
             None => Ok(self.find_or_install_active_toolchain().await?.0),
         }
