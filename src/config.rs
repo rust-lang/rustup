@@ -456,7 +456,7 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version))?;
         if current_version == MetadataVersion::default() {
@@ -693,7 +693,7 @@ impl Cfg {
             .ok_or_else(no_toolchain_error)
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) async fn maybe_find_or_install_active_toolchain(
         &self,
         path: &Path,
@@ -801,7 +801,7 @@ impl Cfg {
     /// - not files
     /// - named with a valid resolved toolchain name
     /// Currently no notification of incorrect names or entry type is done.
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn list_toolchains(&self) -> Result<Vec<ToolchainName>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
@@ -871,7 +871,7 @@ impl Cfg {
         Ok(channels.collect().await)
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn check_metadata_version(&self) -> Result<()> {
         utils::assert_is_directory(&self.rustup_dir)?;
 
@@ -899,7 +899,7 @@ impl Cfg {
         })
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
         self.settings_file.with(|s| Ok(get_default_host_triple(s)))
     }

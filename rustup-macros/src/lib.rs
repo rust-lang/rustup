@@ -98,7 +98,7 @@ fn test_inner(mod_path: String, mut input: ItemFn) -> syn::Result<TokenStream> {
             let _guard = #before_ident().await;
             // Define a function with same name we can instrument inside the
             // tracing enablement logic.
-            #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+            #[tracing::instrument(level = "trace", skip_all)]
             async fn #name() { #inner }
             // Thunk through a new thread to permit catching the panic
             // without grabbing the entire state machine defined by the

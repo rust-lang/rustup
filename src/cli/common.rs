@@ -179,7 +179,7 @@ impl Notifier {
     }
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument)]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn set_globals(current_dir: PathBuf, verbose: bool, quiet: bool) -> Result<Cfg> {
     let notifier = Notifier::new(verbose, quiet);
     Cfg::from_env(current_dir, Arc::new(move |n| notifier.handle(n)))
