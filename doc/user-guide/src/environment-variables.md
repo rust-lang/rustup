@@ -1,5 +1,10 @@
 # Environment variables
 
+- `RUST_LOG` (default: none). Enables Rustup's "custom logging mode". In this mode,
+  the verbosity of Rustup's log lines can be specified with `tracing_subscriber`'s
+  [directive syntax]. For example, set `RUST_LOG=rustup=DEBUG` to receive log lines
+  from `rustup` itself with a maximal verbosity of `DEBUG`.
+
 - `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%/.rustup`). Sets the
   root `rustup` folder, used for storing installed toolchains and
   configuration options.
@@ -29,8 +34,6 @@
   determines the directory that traces will be written too. Traces are of the
   form PID.trace. Traces can be read by the Catapult project [tracing viewer].
 
-- `RUSTUP_DEBUG` *unstable*. When set, enables rustup's debug logging.
-
 - `RUSTUP_TERM_COLOR` (default: `auto`). Controls whether colored output is used in the terminal.
   Set to `auto` to use colors only in tty streams, to `always` to always enable colors,
   or to `never` to disable colors.
@@ -47,6 +50,7 @@
   feature sacrifices some transactions protections and may be removed at any
   point. Linux only.
 
+[directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
 [tracing viewer]: https://github.com/catapult-project/catapult/blob/master/tracing/README.md
