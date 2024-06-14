@@ -95,7 +95,7 @@ fn test_inner(mod_path: String, mut input: ItemFn) -> syn::Result<TokenStream> {
     let name = input.sig.ident.clone();
     let new_block: Block = parse_quote! {
         {
-            let _guard = #before_ident().await;
+            #before_ident().await;
             // Define a function with same name we can instrument inside the
             // tracing enablement logic.
             #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
@@ -118,7 +118,6 @@ fn test_inner(mod_path: String, mut input: ItemFn) -> syn::Result<TokenStream> {
     input.block = Box::new(new_block);
 
     Ok(quote! {
-        #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
         #[::tokio::test(flavor = "multi_thread", worker_threads = 1)]
         #input
     })
