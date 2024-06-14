@@ -427,6 +427,20 @@ impl<'a> Cfg<'a> {
         Ok(())
     }
 
+    pub(crate) fn installed_paths<'b>(
+        &self,
+        desc: &ToolchainDesc,
+        path: &'b Path,
+    ) -> anyhow::Result<Vec<InstalledPath<'b>>> {
+        Ok(vec![
+            InstalledPath::File {
+                name: "update hash",
+                path: self.get_hash_file(desc, false)?,
+            },
+            InstalledPath::Dir { path },
+        ])
+    }
+
     pub(crate) fn get_hash_file(
         &self,
         toolchain: &ToolchainDesc,
@@ -976,6 +990,12 @@ enum ParseMode {
     /// This variant is used for `rust-toolchain` files (no file extension) for backwards
     /// compatibility.
     Both,
+}
+
+/// Installed paths
+pub(crate) enum InstalledPath<'a> {
+    File { name: &'static str, path: PathBuf },
+    Dir { path: &'a Path },
 }
 
 #[cfg(test)]
