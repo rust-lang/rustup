@@ -26,7 +26,7 @@ use crate::{
 
 use super::{
     distributable::DistributableToolchain,
-    names::{LocalToolchainName, ResolvableToolchainName, ToolchainName},
+    names::{LocalToolchainName, ToolchainName},
 };
 
 /// A toolchain installed on the local disk
@@ -56,19 +56,6 @@ impl<'a> Toolchain<'a> {
                 )
             }
             Err(e) => Err(e.into()),
-        }
-    }
-
-    pub(crate) async fn from_partial(
-        toolchain: Option<PartialToolchainDesc>,
-        cfg: &'a Cfg<'a>,
-    ) -> anyhow::Result<Self> {
-        match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
-            Some(toolchain) => {
-                let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-                Ok(Toolchain::new(cfg, desc.into())?)
-            }
-            None => Ok(cfg.find_or_install_active_toolchain().await?.0),
         }
     }
 

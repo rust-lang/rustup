@@ -1446,7 +1446,7 @@ async fn doc(
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg).await?;
+    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1507,7 +1507,7 @@ async fn man(
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = Toolchain::from_partial(toolchain, cfg).await?;
+    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
     let mut path = toolchain.path().to_path_buf();
     path.push("share");
     path.push("man");
