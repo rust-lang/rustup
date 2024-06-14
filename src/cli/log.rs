@@ -64,7 +64,13 @@ fn console_logger<S>(process: Process) -> impl Layer<S>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
-    let has_ansi = process.stderr().is_a_tty();
+    let has_ansi = match process.var("RUSTUP_TERM_COLOR") {
+        Ok(s) if s.eq_ignore_ascii_case("always") => true,
+        Ok(s) if s.eq_ignore_ascii_case("never") => false,
+        // `RUSTUP_TERM_COLOR` is prioritized over `NO_COLOR`.
+        _ if process.var("NO_COLOR").is_ok() => false,
+        _ => process.stderr().is_a_tty(),
+    };
     let maybe_rust_log_directives = process.var("RUST_LOG");
     let logger = tracing_subscriber::fmt::layer()
         .with_writer(move || process.stderr())
