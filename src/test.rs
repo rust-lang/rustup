@@ -224,25 +224,12 @@ where
     f(&rustup_home)
 }
 
-pub async fn before_test_async() -> Option<tracing::dispatcher::DefaultGuard> {
+pub async fn before_test_async() {
     #[cfg(feature = "otel")]
     {
-        use tracing_subscriber::{layer::SubscriberExt, Registry};
-
-        let telemetry = {
-            use opentelemetry::global;
-            use opentelemetry_sdk::propagation::TraceContextPropagator;
-
-            global::set_text_map_propagator(TraceContextPropagator::new());
-            crate::cli::log::telemetry()
-        };
-
-        let subscriber = Registry::default().with(telemetry);
-        Some(tracing::subscriber::set_default(subscriber))
-    }
-    #[cfg(not(feature = "otel"))]
-    {
-        None
+        opentelemetry::global::set_text_map_propagator(
+            opentelemetry_sdk::propagation::TraceContextPropagator::new(),
+        );
     }
 }
 
