@@ -43,35 +43,20 @@ impl<'a> Toolchain<'a> {
         install_if_missing: bool,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Toolchain<'a>> {
-        match toolchain_name {
-            LocalToolchainName::Named(ToolchainName::Official(desc)) => {
-                match DistributableToolchain::new(cfg, desc.clone()) {
-                    Err(RustupError::ToolchainNotInstalled(_)) => {
-                        if install_if_missing {
-                            DistributableToolchain::install(
-                                cfg,
-                                desc,
-                                &[],
-                                &[],
-                                cfg.get_profile()?,
-                                true,
-                            )
-                            .await?;
-                        }
-                    }
-                    o => {
-                        o?;
-                    }
-                }
+        match Self::new(cfg, toolchain_name.clone()) {
+            Ok(tc) => Ok(tc),
+            Err(RustupError::ToolchainNotInstalled(ToolchainName::Official(desc)))
+                if install_if_missing =>
+            {
+                Ok(
+                    DistributableToolchain::install(cfg, &desc, &[], &[], cfg.get_profile()?, true)
+                        .await?
+                        .1
+                        .toolchain,
+                )
             }
-            n => {
-                if !Self::exists(cfg, n)? {
-                    return Err(RustupError::ToolchainNotInstallable(n.to_string()).into());
-                }
-            }
+            Err(e) => Err(e.into()),
         }
-
-        Ok(Self::new(cfg, toolchain_name.clone())?)
     }
 
     pub(crate) async fn from_partial(
