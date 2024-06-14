@@ -136,7 +136,7 @@ impl<'a> Toolchain<'a> {
         &self.name
     }
 
-    pub(crate) fn path(&self) -> &Path {
+    pub(super) fn path(&self) -> &Path {
         &self.path
     }
 
@@ -393,6 +393,13 @@ impl<'a> Toolchain<'a> {
         let mut cmd = Command::new(path);
         self.set_env(&mut cmd);
         Ok(cmd)
+    }
+
+    #[cfg(not(windows))]
+    pub(crate) fn man_path(&self) -> PathBuf {
+        let mut buf = PathBuf::from(&self.path);
+        buf.extend(["share", "man"]);
+        buf
     }
 
     pub fn doc_path(&self, relative: &str) -> anyhow::Result<PathBuf> {

@@ -1508,9 +1508,7 @@ async fn man(
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
     let toolchain = cfg.toolchain_from_partial(toolchain).await?;
-    let mut path = toolchain.path().to_path_buf();
-    path.push("share");
-    path.push("man");
+    let path = toolchain.man_path();
     utils::assert_is_directory(&path)?;
 
     let mut manpaths = std::ffi::OsString::from(path);
