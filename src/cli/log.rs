@@ -1,94 +1,148 @@
 use std::{fmt, io::Write};
 
+use termcolor::{Color, ColorSpec, WriteColor};
+use tracing::{level_filters::LevelFilter, Event, Subscriber};
+use tracing_subscriber::{
+    fmt::{
+        format::{self, FormatEvent, FormatFields},
+        FmtContext,
+    },
+    registry::LookupSpan,
+    EnvFilter, Layer,
+};
+
 #[cfg(feature = "otel")]
 use once_cell::sync::Lazy;
 #[cfg(feature = "otel")]
 use opentelemetry_sdk::trace::Tracer;
-#[cfg(feature = "otel")]
-use tracing::Subscriber;
-#[cfg(feature = "otel")]
-use tracing_subscriber::{registry::LookupSpan, EnvFilter, Layer};
 
-use crate::currentprocess::{process, terminalsource};
+use crate::{currentprocess::Process, utils::notify::NotificationLevel};
 
 macro_rules! warn {
-    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( ::tracing::warn ! ( $ ( $ arg ) * )  )
 }
+
 macro_rules! err {
-    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( ::tracing::error ! ( $ ( $ arg ) * )  )
 }
+
 macro_rules! info {
-    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( ::tracing::info ! ( $ ( $ arg ) * )  )
 }
 
 macro_rules! verbose {
-    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::verbose_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( ::tracing::debug ! ( $ ( $ arg ) * )  )
 }
 
 macro_rules! debug {
-    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::debug_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( ::tracing::trace ! ( $ ( $ arg ) * )  )
 }
 
-pub(crate) fn warn_fmt(args: fmt::Arguments<'_>) {
-    let mut t = process().stderr().terminal();
-    let _ = t.fg(terminalsource::Color::Yellow);
-    let _ = t.attr(terminalsource::Attr::Bold);
-    let _ = write!(t.lock(), "warning: ");
-    let _ = t.reset();
-    let _ = t.lock().write_fmt(args);
-    let _ = writeln!(t.lock());
+pub fn tracing_subscriber(process: Process) -> impl tracing::Subscriber {
+    use tracing_subscriber::{layer::SubscriberExt, Registry};
+
+    #[cfg(feature = "otel")]
+    let telemetry = telemetry(&process);
+    let console_logger = console_logger(process);
+    #[cfg(feature = "otel")]
+    {
+        Registry::default().with(console_logger).with(telemetry)
+    }
+    #[cfg(not(feature = "otel"))]
+    {
+        Registry::default().with(console_logger)
+    }
 }
 
-pub(crate) fn err_fmt(args: fmt::Arguments<'_>) {
-    let mut t = process().stderr().terminal();
-    let _ = t.fg(terminalsource::Color::Red);
-    let _ = t.attr(terminalsource::Attr::Bold);
-    let _ = write!(t.lock(), "error: ");
-    let _ = t.reset();
-    let _ = t.lock().write_fmt(args);
-    let _ = writeln!(t.lock());
+/// A [`tracing::Subscriber`] [`Layer`][`tracing_subscriber::Layer`] that prints out the log
+/// lines to the current [`Process`]' `stderr`.
+///
+/// When the `RUST_LOG` environment variable is present, a standard [`tracing_subscriber`]
+/// formatter will be used according to the filtering directives set in its value.
+/// Otherwise, this logger will use [`EventFormatter`] to mimic "classic" Rustup `stderr` output.
+fn console_logger<S>(process: Process) -> impl Layer<S>
+where
+    S: Subscriber + for<'span> LookupSpan<'span>,
+{
+    let has_ansi = process.stderr().is_a_tty();
+    let maybe_rust_log_directives = process.var("RUST_LOG");
+    let logger = tracing_subscriber::fmt::layer()
+        .with_writer(move || process.stderr())
+        .with_ansi(has_ansi);
+    if let Ok(directives) = maybe_rust_log_directives {
+        let env_filter = EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .parse_lossy(directives);
+        logger.compact().with_filter(env_filter).boxed()
+    } else {
+        // Receive log lines from Rustup only.
+        let env_filter = EnvFilter::new("rustup=DEBUG");
+        logger
+            .event_format(EventFormatter)
+            .with_filter(env_filter)
+            .boxed()
+    }
 }
 
-pub(crate) fn info_fmt(args: fmt::Arguments<'_>) {
-    let mut t = process().stderr().terminal();
-    let _ = t.attr(terminalsource::Attr::Bold);
-    let _ = write!(t.lock(), "info: ");
-    let _ = t.reset();
-    let _ = t.lock().write_fmt(args);
-    let _ = writeln!(t.lock());
+// Adapted from
+// https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
+struct EventFormatter;
+
+impl<S, N> FormatEvent<S, N> for EventFormatter
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
+{
+    fn format_event(
+        &self,
+        ctx: &FmtContext<'_, S, N>,
+        mut writer: format::Writer<'_>,
+        event: &Event<'_>,
+    ) -> fmt::Result {
+        let has_ansi = writer.has_ansi_escapes();
+        let level = NotificationLevel::from(*event.metadata().level());
+        {
+            let mut buf = termcolor::Buffer::ansi();
+            if has_ansi {
+                _ = buf.set_color(ColorSpec::new().set_bold(true).set_fg(level.fg_color()));
+            }
+            _ = write!(buf, "{level}: ");
+            if has_ansi {
+                _ = buf.reset();
+            }
+            writer.write_str(std::str::from_utf8(buf.as_slice()).unwrap())?;
+        }
+        ctx.field_format().format_fields(writer.by_ref(), event)?;
+        writeln!(writer)
+    }
 }
 
-pub(crate) fn verbose_fmt(args: fmt::Arguments<'_>) {
-    let mut t = process().stderr().terminal();
-    let _ = t.fg(terminalsource::Color::Magenta);
-    let _ = t.attr(terminalsource::Attr::Bold);
-    let _ = write!(t.lock(), "verbose: ");
-    let _ = t.reset();
-    let _ = t.lock().write_fmt(args);
-    let _ = writeln!(t.lock());
-}
-
-pub(crate) fn debug_fmt(args: fmt::Arguments<'_>) {
-    if process().var("RUSTUP_DEBUG").is_ok() {
-        let mut t = process().stderr().terminal();
-        let _ = t.fg(terminalsource::Color::Blue);
-        let _ = t.attr(terminalsource::Attr::Bold);
-        let _ = write!(t.lock(), "debug: ");
-        let _ = t.reset();
-        let _ = t.lock().write_fmt(args);
-        let _ = writeln!(t.lock());
+impl NotificationLevel {
+    fn fg_color(&self) -> Option<Color> {
+        match self {
+            NotificationLevel::Debug => Some(Color::Blue),
+            NotificationLevel::Verbose => Some(Color::Magenta),
+            NotificationLevel::Info => None,
+            NotificationLevel::Warn => Some(Color::Yellow),
+            NotificationLevel::Error => Some(Color::Red),
+        }
     }
 }
 
 /// A [`tracing::Subscriber`] [`Layer`][`tracing_subscriber::Layer`] that corresponds to Rustup's
 /// optional `opentelemetry` (a.k.a. `otel`) feature.
 #[cfg(feature = "otel")]
-pub fn telemetry<S>() -> impl Layer<S>
+fn telemetry<S>(process: &Process) -> impl Layer<S>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
-    // NOTE: This reads from the real environment variables instead of `process().var_os()`.
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("INFO"));
+    let env_filter = if let Ok(directives) = process.var("RUST_LOG") {
+        EnvFilter::builder()
+            .with_default_directive(LevelFilter::TRACE.into())
+            .parse_lossy(directives)
+    } else {
+        EnvFilter::new("rustup=TRACE")
+    };
     tracing_opentelemetry::layer()
         .with_tracer(TELEMETRY_DEFAULT_TRACER.clone())
         .with_filter(env_filter)
