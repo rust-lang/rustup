@@ -21,7 +21,7 @@ use crate::{
 
 use super::{
     names::{LocalToolchainName, ToolchainName},
-    toolchain::{InstalledPath, Toolchain},
+    toolchain::Toolchain,
 };
 
 /// An official toolchain installed on the local disk
@@ -544,20 +544,6 @@ impl<'a> DistributableToolchain<'a> {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
-    }
-
-    pub(crate) fn installed_paths<'b>(
-        cfg: &Cfg<'_>,
-        desc: &ToolchainDesc,
-        path: &'b Path,
-    ) -> anyhow::Result<Vec<InstalledPath<'b>>> {
-        Ok(vec![
-            InstalledPath::File {
-                name: "update hash",
-                path: cfg.get_hash_file(desc, false)?,
-            },
-            InstalledPath::Dir { path },
-        ])
     }
 }
 

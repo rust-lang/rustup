@@ -16,7 +16,7 @@ use tracing::info;
 use wait_timeout::ChildExt;
 
 use crate::{
-    config::{ActiveReason, Cfg},
+    config::{ActiveReason, Cfg, InstalledPath},
     dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,
@@ -424,9 +424,7 @@ impl<'a> Toolchain<'a> {
                 (cfg.notify_handler)(Notification::UninstallingToolchain(&name));
                 let installed_paths = match &name {
                     ToolchainName::Custom(_) => Ok(vec![InstalledPath::Dir { path: &path }]),
-                    ToolchainName::Official(desc) => {
-                        DistributableToolchain::installed_paths(cfg, desc, &path)
-                    }
+                    ToolchainName::Official(desc) => cfg.installed_paths(desc, &path),
                 }?;
                 for path in installed_paths {
                     match path {
@@ -458,10 +456,4 @@ impl<'a> Toolchain<'a> {
         }
         Ok(())
     }
-}
-
-/// Installed paths
-pub(crate) enum InstalledPath<'a> {
-    File { name: &'static str, path: PathBuf },
-    Dir { path: &'a Path },
 }
