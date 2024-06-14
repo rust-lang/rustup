@@ -27,7 +27,7 @@ use super::{
 /// An official toolchain installed on the local disk
 #[derive(Debug)]
 pub(crate) struct DistributableToolchain<'a> {
-    toolchain: Toolchain<'a>,
+    pub(super) toolchain: Toolchain<'a>,
     cfg: &'a Cfg<'a>,
     desc: ToolchainDesc,
 }

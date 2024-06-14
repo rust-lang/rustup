@@ -2450,7 +2450,7 @@ fn non_utf8_toolchain() {
                 [OsStr::from_bytes(b"+\xc3\x28")],
                 &[("RUST_BACKTRACE", "1")],
             );
-            assert!(out.stderr.contains("toolchain '�(' is not installable"));
+            assert!(out.stderr.contains("toolchain '�(' is not installed"));
         })
     });
 }
@@ -2469,7 +2469,7 @@ fn non_utf8_toolchain() {
                 [OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
                 &[("RUST_BACKTRACE", "1")],
             );
-            assert!(out.stderr.contains("toolchain '��' is not installable"));
+            assert!(out.stderr.contains("toolchain '��' is not installed"));
         })
     });
 }

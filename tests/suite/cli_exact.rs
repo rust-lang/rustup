@@ -685,7 +685,7 @@ fn undefined_linked_toolchain() {
             config.expect_err_ex(
                 &["cargo", "+bogus", "test"],
                 r"",
-                "error: toolchain 'bogus' is not installable\n",
+                "error: toolchain 'bogus' is not installed\n",
             );
         })
     });
