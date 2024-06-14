@@ -14,7 +14,7 @@ use tracing::trace;
 use crate::{
     cli::self_update::SelfUpdateMode,
     currentprocess::Process,
-    dist::{self, download::DownloadCfg, temp, Profile, ToolchainDesc},
+    dist::{self, download::DownloadCfg, temp, PartialToolchainDesc, Profile, ToolchainDesc},
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
@@ -488,6 +488,19 @@ impl<'a> Cfg<'a> {
             .get_default()?
             .map(|n| Toolchain::new(self, (&n).into()))
             .transpose()?)
+    }
+
+    pub(crate) async fn toolchain_from_partial(
+        &self,
+        toolchain: Option<PartialToolchainDesc>,
+    ) -> anyhow::Result<Toolchain<'_>> {
+        match toolchain.map(|it| ResolvableToolchainName::from(&it)) {
+            Some(toolchain) => {
+                let desc = toolchain.resolve(&self.get_default_host_triple()?)?;
+                Ok(Toolchain::new(self, desc.into())?)
+            }
+            None => Ok(self.find_or_install_active_toolchain().await?.0),
+        }
     }
 
     pub(crate) fn find_active_toolchain(

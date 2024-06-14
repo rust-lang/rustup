@@ -38,7 +38,7 @@ impl<'a> DistributableToolchain<'a> {
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         Ok(Self::try_from(
-            &Toolchain::from_partial(toolchain, cfg).await?,
+            &cfg.toolchain_from_partial(toolchain).await?,
         )?)
     }
 
