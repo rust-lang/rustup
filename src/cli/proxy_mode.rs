@@ -40,7 +40,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
 
     let toolchain = match toolchain {
         None => cfg.find_or_install_active_toolchain().await?.0,
-        Some(tc) => Toolchain::from_local(&tc, false, &cfg).await?,
+        Some(tc) => Toolchain::from_local(tc, false, &cfg).await?,
     };
 
     let cmd = toolchain.command(arg0)?;
