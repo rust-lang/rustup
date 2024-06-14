@@ -54,29 +54,17 @@ fn main() {
 }
 
 async fn maybe_trace_rustup() -> Result<utils::ExitCode> {
-    #[cfg(not(feature = "otel"))]
-    {
-        run_rustup().await
-    }
     #[cfg(feature = "otel")]
-    {
-        use tracing_subscriber::{layer::SubscriberExt, Registry};
-
-        let telemetry = {
-            use opentelemetry::global;
-            use opentelemetry_sdk::propagation::TraceContextPropagator;
-
-            global::set_text_map_propagator(TraceContextPropagator::new());
-            rustup::cli::log::telemetry()
-        };
-
-        let subscriber = Registry::default().with(telemetry);
-        tracing::subscriber::set_global_default(subscriber)?;
-        let result = run_rustup().await;
-        // We're tracing, so block until all spans are exported.
-        opentelemetry::global::shutdown_tracer_provider();
-        result
-    }
+    opentelemetry::global::set_text_map_propagator(
+        opentelemetry_sdk::propagation::TraceContextPropagator::new(),
+    );
+    let subscriber = rustup::cli::log::tracing_subscriber(process());
+    tracing::subscriber::set_global_default(subscriber)?;
+    let result = run_rustup().await;
+    // We're tracing, so block until all spans are exported.
+    #[cfg(feature = "otel")]
+    opentelemetry::global::shutdown_tracer_provider();
+    result
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]

@@ -17,6 +17,7 @@ use std::{
 
 #[cfg(feature = "test")]
 use rand::{thread_rng, Rng};
+use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod filesource;
 pub mod terminalsource;
@@ -181,7 +182,8 @@ where
         if let Some(old_p) = &*p.borrow() {
             panic!("current process already set {old_p:?}");
         }
-        *p.borrow_mut() = Some(process);
+        *p.borrow_mut() = Some(process.clone());
+        let _guard = crate::cli::log::tracing_subscriber(process).set_default();
         let result = f();
         *p.borrow_mut() = None;
         result
@@ -253,8 +255,11 @@ pub fn with_runtime<'a, R>(
         if let Some(old_p) = &*p.borrow() {
             panic!("current process already set {old_p:?}");
         }
-        *p.borrow_mut() = Some(process);
-        let result = runtime.block_on(fut);
+        *p.borrow_mut() = Some(process.clone());
+        let result = runtime.block_on(async {
+            let _guard = crate::cli::log::tracing_subscriber(process).set_default();
+            fut.await
+        });
         *p.borrow_mut() = None;
         result
     })
