@@ -39,11 +39,11 @@ pub(crate) struct Toolchain<'a> {
 
 impl<'a> Toolchain<'a> {
     pub(crate) async fn from_local(
-        toolchain_name: &LocalToolchainName,
+        name: LocalToolchainName,
         install_if_missing: bool,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Toolchain<'a>> {
-        match Self::new(cfg, toolchain_name.clone()) {
+        match Self::new(cfg, name) {
             Ok(tc) => Ok(tc),
             Err(RustupError::ToolchainNotInstalled(ToolchainName::Official(desc)))
                 if install_if_missing =>

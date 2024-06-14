@@ -907,7 +907,7 @@ async fn run(
     install: bool,
 ) -> Result<ExitStatus> {
     let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-    let toolchain = Toolchain::from_local(&toolchain, install, cfg).await?;
+    let toolchain = Toolchain::from_local(toolchain, install, cfg).await?;
     let cmd = toolchain.command(&command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
 }
