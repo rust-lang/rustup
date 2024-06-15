@@ -27,7 +27,7 @@ use rustup::cli::rustup_mode;
 #[cfg(windows)]
 use rustup::cli::self_update;
 use rustup::cli::setup_mode;
-use rustup::currentprocess::{with_runtime, Process};
+use rustup::currentprocess::Process;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::errors::RustupError;
 use rustup::is_proxyable_tools;
@@ -38,10 +38,11 @@ fn main() {
     pre_rustup_main_init();
 
     let process = Process::os();
-    let mut builder = Builder::new_multi_thread();
-    builder.enable_all();
-    with_runtime(process.clone(), builder, {
-        async move {
+    Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async move {
             match maybe_trace_rustup(&process).await {
                 Err(e) => {
                     common::report_error(&e, &process);
@@ -49,8 +50,7 @@ fn main() {
                 }
                 Ok(utils::ExitCode(c)) => std::process::exit(c),
             }
-        }
-    });
+        });
 }
 
 async fn maybe_trace_rustup(process: &Process) -> Result<utils::ExitCode> {
