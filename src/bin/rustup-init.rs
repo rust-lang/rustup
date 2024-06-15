@@ -19,7 +19,6 @@ use cfg_if::cfg_if;
 use rs_tracing::{
     close_trace_file, close_trace_file_internal, open_trace_file, trace_to_file_internal,
 };
-use tokio::runtime::Builder;
 
 use rustup::cli::common;
 use rustup::cli::proxy_mode;
@@ -33,24 +32,19 @@ use rustup::errors::RustupError;
 use rustup::is_proxyable_tools;
 use rustup::utils::utils::{self, ExitCode};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     #[cfg(windows)]
     pre_rustup_main_init();
 
     let process = Process::os();
-    Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async move {
-            match maybe_trace_rustup(&process).await {
-                Err(e) => {
-                    common::report_error(&e, &process);
-                    std::process::exit(1);
-                }
-                Ok(utils::ExitCode(c)) => std::process::exit(c),
-            }
-        });
+    match maybe_trace_rustup(&process).await {
+        Err(e) => {
+            common::report_error(&e, &process);
+            std::process::exit(1);
+        }
+        Ok(utils::ExitCode(c)) => std::process::exit(c),
+    }
 }
 
 async fn maybe_trace_rustup(process: &Process) -> Result<utils::ExitCode> {
