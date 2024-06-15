@@ -185,7 +185,7 @@ impl<'a> Toolchain<'a> {
         // versions of Cargo did. Rustup and Cargo should be in sync now (both
         // using the same `home` crate), but this is retained to ensure cargo
         // and rustup agree in older versions.
-        if let Ok(cargo_home) = utils::cargo_home(self.cfg.process) {
+        if let Ok(cargo_home) = self.cfg.process.cargo_home() {
             cmd.env("CARGO_HOME", &cargo_home);
         }
 
@@ -243,7 +243,7 @@ impl<'a> Toolchain<'a> {
         // proxy bins don't exist. We'll just be running whatever happens to
         // be on the PATH.
         let mut path_entries = vec![];
-        if let Ok(cargo_home) = utils::cargo_home(self.cfg.process) {
+        if let Ok(cargo_home) = self.cfg.process.cargo_home() {
             path_entries.push(cargo_home.join("bin"));
         }
 

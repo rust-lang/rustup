@@ -258,7 +258,7 @@ impl<'a> Cfg<'a> {
         process: &'a Process,
     ) -> Result<Self> {
         // Set up the rustup home directory
-        let rustup_dir = utils::rustup_home(process)?;
+        let rustup_dir = process.rustup_home()?;
 
         utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
 

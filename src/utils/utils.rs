@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
 use anyhow::{anyhow, bail, Context, Result};
-use home::env as home;
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 use sha2::Sha256;
@@ -481,18 +480,6 @@ pub(crate) fn make_executable(path: &Path) -> Result<()> {
 
 pub fn current_exe() -> Result<PathBuf> {
     env::current_exe().context(RustupError::LocatingWorkingDir)
-}
-
-pub(crate) fn home_dir(process: &Process) -> Option<PathBuf> {
-    home::home_dir_with_env(process)
-}
-
-pub(crate) fn cargo_home(process: &Process) -> Result<PathBuf> {
-    home::cargo_home_with_env(process).context("failed to determine cargo home")
-}
-
-pub(crate) fn rustup_home(process: &Process) -> Result<PathBuf> {
-    home::rustup_home_with_env(process).context("failed to determine rustup home dir")
 }
 
 pub(crate) fn format_path_for_display(path: &str) -> String {

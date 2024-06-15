@@ -504,9 +504,10 @@ fn update_root(process: &Process) -> String {
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
 fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
-    let path = utils::cargo_home(process)?;
+    let path = process.cargo_home()?;
 
-    let default_cargo_home = utils::home_dir(process)
+    let default_cargo_home = process
+        .home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
@@ -727,7 +728,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
 fn do_pre_install_sanity_checks(no_prompt: bool, process: &Process) -> Result<()> {
     let rustc_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
     let uninstaller_path = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
-    let rustup_sh_path = utils::home_dir(process).unwrap().join(".rustup");
+    let rustup_sh_path = process.home_dir().unwrap().join(".rustup");
     let rustup_sh_version_path = rustup_sh_path.join("rustup-version");
 
     let rustc_exists = rustc_manifest_path.exists() && uninstaller_path.exists();
@@ -761,7 +762,7 @@ fn do_pre_install_sanity_checks(no_prompt: bool, process: &Process) -> Result<()
 }
 
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> Result<String> {
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
     let cargo_home_bin = cargo_home.join("bin");
     let rustup_home = home::rustup_home()?;
 
@@ -824,7 +825,7 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
 }
 
 fn install_bins(process: &Process) -> Result<()> {
-    let bin_path = utils::cargo_home(process)?.join("bin");
+    let bin_path = process.cargo_home()?.join("bin");
     let this_exe_path = utils::current_exe()?;
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
@@ -840,7 +841,7 @@ fn install_bins(process: &Process) -> Result<()> {
 }
 
 pub(crate) fn install_proxies(process: &Process) -> Result<()> {
-    let bin_path = utils::cargo_home(process)?.join("bin");
+    let bin_path = process.cargo_home()?.join("bin");
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
     let rustup = Handle::from_path(&rustup_path)?;
@@ -938,7 +939,8 @@ async fn maybe_install_rust(
 
     // If RUSTUP_HOME is not set, make sure it exists
     if process.var_os("RUSTUP_HOME").is_none() {
-        let home = utils::home_dir(process)
+        let home = process
+            .home_dir()
             .map(|p| p.join(".rustup"))
             .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
 
@@ -988,7 +990,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
         return Ok(utils::ExitCode(1));
     }
 
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
 
     if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
@@ -1178,7 +1180,7 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>> {
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
@@ -1319,7 +1321,7 @@ pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
 pub(crate) fn cleanup_self_updater(process: &Process) -> Result<()> {
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
     let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
     if setup.exists() {
