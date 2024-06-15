@@ -279,7 +279,7 @@ pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> 
     wait_for_parent()?;
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
     utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
@@ -492,7 +492,7 @@ where
     F: FnOnce(Vec<u16>, Vec<u16>) -> Option<Vec<u16>>,
 {
     let windows_path = get_windows_path_var()?;
-    let mut path_str = utils::cargo_home(process)?;
+    let mut path_str = process.cargo_home()?;
     path_str.push("bin");
     Ok(windows_path
         .and_then(|old_path| f(old_path, OsString::from(path_str).encode_wide().collect())))
@@ -535,7 +535,7 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
         }
     }
 
-    let mut path = utils::cargo_home(process)?;
+    let mut path = process.cargo_home()?;
     path.push("bin\\rustup.exe");
     let mut uninstall_cmd = OsString::from("\"");
     uninstall_cmd.push(path);
@@ -657,7 +657,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
     };
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
     // The rustup.exe bin
     let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
 

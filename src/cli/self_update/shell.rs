@@ -41,7 +41,7 @@ pub(crate) struct ShellScript {
 
 impl ShellScript {
     pub(crate) fn write(&self, process: &Process) -> Result<()> {
-        let home = utils::cargo_home(process)?;
+        let home = process.cargo_home()?;
         let cargo_bin = format!("{}/bin", cargo_home_str(process)?);
         let env_name = home.join(self.name);
         let env_file = self.content.replace("{cargo_bin}", &cargo_bin);
@@ -52,9 +52,10 @@ impl ShellScript {
 
 // TODO: Update into a bytestring.
 pub(crate) fn cargo_home_str(process: &Process) -> Result<Cow<'static, str>> {
-    let path = utils::cargo_home(process)?;
+    let path = process.cargo_home()?;
 
-    let default_cargo_home = utils::home_dir(process)
+    let default_cargo_home = process
+        .home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
@@ -117,7 +118,7 @@ impl UnixShell for Posix {
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
-        match utils::home_dir(process) {
+        match process.home_dir() {
             Some(dir) => vec![dir.join(".profile")],
             _ => vec![],
         }
@@ -142,7 +143,7 @@ impl UnixShell for Bash {
         // .profile as part of POSIX and always does setup for POSIX shells.
         [".bash_profile", ".bash_login", ".bashrc"]
             .iter()
-            .filter_map(|rc| utils::home_dir(process).map(|dir| dir.join(rc)))
+            .filter_map(|rc| process.home_dir().map(|dir| dir.join(rc)))
             .collect()
     }
 
@@ -186,7 +187,7 @@ impl UnixShell for Zsh {
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
-        [Zsh::zdotdir(process).ok(), utils::home_dir(process)]
+        [Zsh::zdotdir(process).ok(), process.home_dir()]
             .iter()
             .filter_map(|dir| dir.as_ref().map(|p| p.join(".zshenv")))
             .collect()
@@ -226,7 +227,7 @@ impl UnixShell for Fish {
             path
         });
 
-        let p1 = utils::home_dir(process).map(|mut path| {
+        let p1 = process.home_dir().map(|mut path| {
             path.push(".config/fish/conf.d/rustup.fish");
             path
         });
@@ -257,11 +258,11 @@ impl UnixShell for Fish {
 pub(crate) fn legacy_paths(process: &Process) -> impl Iterator<Item = PathBuf> + '_ {
     let zprofiles = Zsh::zdotdir(process)
         .into_iter()
-        .chain(utils::home_dir(process))
+        .chain(process.home_dir())
         .map(|d| d.join(".zprofile"));
     let profiles = [".bash_profile", ".profile"]
         .iter()
-        .filter_map(|rc| utils::home_dir(process).map(|d| d.join(rc)));
+        .filter_map(|rc| process.home_dir().map(|d| d.join(rc)));
 
     profiles.chain(zprofiles)
 }

@@ -48,7 +48,7 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool, process: &Process) -> Result<u
 }
 
 pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
-    let cargo_home = utils::cargo_home(process)?;
+    let cargo_home = process.cargo_home()?;
     utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())
 }
 

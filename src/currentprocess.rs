@@ -12,6 +12,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use anyhow::{Context, Result};
 #[cfg(feature = "test")]
 use tracing::subscriber::DefaultGuard;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -43,6 +44,18 @@ impl Process {
             .and_then(|a| a.file_stem())
             .and_then(std::ffi::OsStr::to_str)
             .map(String::from)
+    }
+
+    pub(crate) fn home_dir(&self) -> Option<PathBuf> {
+        home::env::home_dir_with_env(self)
+    }
+
+    pub(crate) fn cargo_home(&self) -> Result<PathBuf> {
+        home::env::cargo_home_with_env(self).context("failed to determine cargo home")
+    }
+
+    pub(crate) fn rustup_home(&self) -> Result<PathBuf> {
+        home::env::rustup_home_with_env(self).context("failed to determine rustup home dir")
     }
 
     pub fn var(&self, key: &str) -> Result<String, env::VarError> {
