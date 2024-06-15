@@ -4,11 +4,11 @@ use tracing::Level;
 
 #[derive(Debug)]
 pub(crate) enum NotificationLevel {
+    Debug,
     Verbose,
     Info,
     Warn,
     Error,
-    Debug,
 }
 
 impl fmt::Display for NotificationLevel {
