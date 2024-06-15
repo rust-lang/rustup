@@ -276,7 +276,7 @@ impl<'a> Toolchain<'a> {
     }
 
     /// Infallible function that describes the version of rustc in an installed distribution
-    #[cfg_attr(feature = "otel", tracing::instrument)]
+    #[tracing::instrument(level = "trace")]
     pub fn rustc_version(&self) -> String {
         // TODO: use create_command instead of manual construction!
         let rustc_path = self.binary_file("rustc");

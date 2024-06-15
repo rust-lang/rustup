@@ -535,7 +535,7 @@ enum SetSubcmd {
     },
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
+#[tracing::instrument(level = "trace", fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>())))]
 pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
@@ -550,7 +550,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
             write!(process().stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
-            #[cfg_attr(feature = "otel", tracing::instrument)]
+            #[tracing::instrument(level = "trace")]
             async fn rustc_version(
                 current_dir: PathBuf,
             ) -> std::result::Result<String, Box<dyn std::error::Error>> {
@@ -938,7 +938,7 @@ async fn which(
     Ok(utils::ExitCode(0))
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[tracing::instrument(level = "trace", skip_all)]
 fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated();
 
@@ -1075,7 +1075,7 @@ fn show(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[tracing::instrument(level = "trace", skip_all)]
 fn show_active_toolchain(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     match cfg.find_active_toolchain()? {
         Some((toolchain_name, reason)) => {
@@ -1099,7 +1099,7 @@ fn show_active_toolchain(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[tracing::instrument(level = "trace", skip_all)]
 fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     writeln!(process().stdout().lock(), "{}", cfg.rustup_dir.display())?;
     Ok(utils::ExitCode(0))

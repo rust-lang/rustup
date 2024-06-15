@@ -701,7 +701,7 @@ pub(crate) fn valid_profile_names() -> String {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-#[cfg_attr(feature = "otel", tracing::instrument(err, skip_all, fields(profile=format!("{profile:?}"), prefix=prefix.path().to_string_lossy().to_string())))]
+#[tracing::instrument(level = "trace", err, skip_all, fields(profile=format!("{profile:?}"), prefix=prefix.path().to_string_lossy().to_string()))]
 pub(crate) async fn update_from_dist(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
