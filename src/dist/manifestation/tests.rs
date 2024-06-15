@@ -17,7 +17,7 @@ use url::Url;
 use rustup_macros::unit_test as test;
 
 use crate::{
-    currentprocess::{self, Process, TestProcess},
+    currentprocess::{Process, TestProcess},
     dist::{
         dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER},
         download::DownloadCfg,
@@ -581,8 +581,7 @@ fn setup_from_dist_server(
         &["rustup"],
         HashMap::default(),
         "",
-    )
-    .into();
+    );
 
     let download_cfg = DownloadCfg {
         dist_root: "phony",
@@ -591,12 +590,10 @@ fn setup_from_dist_server(
         notify_handler: &|event| {
             println!("{event}");
         },
-        process: &tp,
+        process: &tp.process,
     };
 
-    currentprocess::with(tp.clone(), || {
-        f(url, &toolchain, &prefix, &download_cfg, &tmp_cx)
-    });
+    f(url, &toolchain, &prefix, &download_cfg, &tmp_cx)
 }
 
 fn initial_install(comps: Compressions) {

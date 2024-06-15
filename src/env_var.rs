@@ -49,7 +49,7 @@ mod tests {
     use rustup_macros::unit_test as test;
 
     use super::*;
-    use crate::currentprocess::{self, TestProcess};
+    use crate::currentprocess::TestProcess;
     use crate::test::{with_saved_path, Env};
 
     #[test]
@@ -61,45 +61,42 @@ mod tests {
         );
         let tp = TestProcess::with_vars(vars);
         with_saved_path(&mut || {
-            currentprocess::with(tp.clone().into(), || {
-                let mut path_entries = vec![];
-                let mut cmd = Command::new("test");
+            let mut path_entries = vec![];
+            let mut cmd = Command::new("test");
 
-                let a = OsString::from("/home/a/.cargo/bin");
-                let path_a = PathBuf::from(a);
-                path_entries.push(path_a);
+            let a = OsString::from("/home/a/.cargo/bin");
+            let path_a = PathBuf::from(a);
+            path_entries.push(path_a);
 
-                let _a = OsString::from("/home/a/.cargo/bin");
-                let _path_a = PathBuf::from(_a);
-                path_entries.push(_path_a);
+            let _a = OsString::from("/home/a/.cargo/bin");
+            let _path_a = PathBuf::from(_a);
+            path_entries.push(_path_a);
 
-                let z = OsString::from("/home/z/.cargo/bin");
-                let path_z = PathBuf::from(z);
-                path_entries.push(path_z);
+            let z = OsString::from("/home/z/.cargo/bin");
+            let path_z = PathBuf::from(z);
+            path_entries.push(path_z);
 
-                let process = tp.clone().into();
-                prepend_path("PATH", path_entries, &mut cmd, &process);
-                let envs: Vec<_> = cmd.get_envs().collect();
+            prepend_path("PATH", path_entries, &mut cmd, &tp.process);
+            let envs: Vec<_> = cmd.get_envs().collect();
 
-                assert_eq!(
-                    envs,
-                    &[(
-                        OsStr::new("PATH"),
-                        Some(
-                            env::join_paths(
-                                [
-                                    "/home/z/.cargo/bin",
-                                    "/home/a/.cargo/bin",
-                                    "/home/b/.cargo/bin"
-                                ]
-                                .iter()
-                            )
-                            .unwrap()
-                            .as_os_str()
+            assert_eq!(
+                envs,
+                &[(
+                    OsStr::new("PATH"),
+                    Some(
+                        env::join_paths(
+                            [
+                                "/home/z/.cargo/bin",
+                                "/home/a/.cargo/bin",
+                                "/home/b/.cargo/bin"
+                            ]
+                            .iter()
                         )
-                    ),]
-                );
-            });
+                        .unwrap()
+                        .as_os_str()
+                    )
+                ),]
+            );
         });
     }
 }

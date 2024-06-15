@@ -1333,18 +1333,13 @@ pub(crate) fn cleanup_self_updater(process: &Process) -> Result<()> {
 mod tests {
     use std::collections::HashMap;
 
-    use anyhow::Result;
-
     use rustup_macros::unit_test as test;
 
     use crate::cli::common;
     use crate::cli::self_update::InstallOpts;
     use crate::dist::dist::{PartialToolchainDesc, Profile};
     use crate::test::{test_dir, with_rustup_home, Env};
-    use crate::{
-        currentprocess::{self, TestProcess},
-        for_host,
-    };
+    use crate::{currentprocess::TestProcess, for_host};
 
     #[test]
     fn default_toolchain_is_stable() {
@@ -1352,6 +1347,9 @@ mod tests {
             let mut vars = HashMap::new();
             home.apply(&mut vars);
             let tp = TestProcess::with_vars(vars);
+            let mut cfg =
+                common::set_globals(tp.process.current_dir().unwrap(), false, false, &tp.process)
+                    .unwrap();
 
             let opts = InstallOpts {
                 default_host_triple: None,
@@ -1363,30 +1361,23 @@ mod tests {
                 no_update_toolchain: false,
             };
 
-            currentprocess::with(tp.clone().into(), || -> Result<()> {
-                // TODO: we could pass in a custom cfg to get notification
-                // callbacks rather than output to the tp sink.
-                let process = tp.clone().into();
-                let mut cfg = common::set_globals(tp.cwd.clone(), false, false, &process).unwrap();
-                assert_eq!(
-                    "stable"
-                        .parse::<PartialToolchainDesc>()
-                        .unwrap()
-                        .resolve(&cfg.get_default_host_triple().unwrap())
-                        .unwrap(),
-                    opts.install(&mut cfg)
-                        .unwrap() // result
-                        .unwrap() // option
-                );
-                Ok(())
-            })?;
+            assert_eq!(
+                "stable"
+                    .parse::<PartialToolchainDesc>()
+                    .unwrap()
+                    .resolve(&cfg.get_default_host_triple().unwrap())
+                    .unwrap(),
+                opts.install(&mut cfg)
+                    .unwrap() // result
+                    .unwrap() // option
+            );
             assert_eq!(
                 for_host!(
                     r"info: profile set to 'default'
 info: default host triple is {0}
 "
                 ),
-                &String::from_utf8(tp.get_stderr()).unwrap()
+                &String::from_utf8(tp.stderr()).unwrap()
             );
             Ok(())
         })
@@ -1400,12 +1391,7 @@ info: default host triple is {0}
         let mut vars = HashMap::new();
         vars.env("CARGO_HOME", cargo_home.to_string_lossy().to_string());
         let tp = TestProcess::with_vars(vars);
-        currentprocess::with(tp.clone().into(), || -> Result<()> {
-            let process = tp.clone().into();
-            super::install_bins(&process).unwrap();
-            Ok(())
-        })
-        .unwrap();
+        super::install_bins(&tp.process).unwrap();
         assert!(cargo_home.exists());
     }
 }

@@ -15,6 +15,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+#[cfg(feature = "test")]
+use tracing::subscriber::DefaultGuard;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod filesource;
@@ -25,7 +27,7 @@ pub mod terminalsource;
 pub enum Process {
     OSProcess(OSProcess),
     #[cfg(feature = "test")]
-    TestProcess(TestProcess),
+    TestProcess(TestContext),
 }
 
 impl Process {
@@ -140,36 +142,7 @@ impl home::env::Env for Process {
     }
 }
 
-#[cfg(feature = "test")]
-impl From<TestProcess> for Process {
-    fn from(p: TestProcess) -> Self {
-        Self::TestProcess(p)
-    }
-}
-
 static HOOK_INSTALLED: Once = Once::new();
-
-/// Run a function in the context of a process definition.
-///
-/// If the function panics, the process definition *in that thread* is cleared
-/// by an implicitly installed global panic hook.
-pub fn with<F, R>(process: Process, f: F) -> R
-where
-    F: FnOnce() -> R,
-{
-    ensure_hook();
-
-    PROCESS.with(|p| {
-        if let Some(old_p) = &*p.borrow() {
-            panic!("current process already set {old_p:?}");
-        }
-        let _guard = crate::cli::log::tracing_subscriber(&process).set_default();
-        *p.borrow_mut() = Some(process);
-        let result = f();
-        *p.borrow_mut() = None;
-        result
-    })
-}
 
 fn ensure_hook() {
     HOOK_INSTALLED.call_once(|| {
@@ -279,55 +252,76 @@ impl Default for OSProcess {
 }
 
 // ------------ test process ----------------
+
 #[cfg(feature = "test")]
-#[derive(Clone, Debug, Default)]
 pub struct TestProcess {
-    pub cwd: PathBuf,
-    args: Vec<String>,
-    vars: HashMap<String, String>,
-    stdin: filesource::TestStdinInner,
-    stdout: filesource::TestWriterInner,
-    stderr: filesource::TestWriterInner,
+    pub process: Process,
+    #[allow(dead_code)] // guard is dropped at the end of the test
+    guard: DefaultGuard,
 }
 
 #[cfg(feature = "test")]
 impl TestProcess {
-    pub fn with_vars(vars: HashMap<String, String>) -> Self {
-        Self {
-            vars,
-            ..Default::default()
-        }
-    }
-
     pub fn new<P: AsRef<Path>, A: AsRef<str>>(
         cwd: P,
         args: &[A],
         vars: HashMap<String, String>,
         stdin: &str,
     ) -> Self {
-        TestProcess {
+        Self::from(TestContext {
             cwd: cwd.as_ref().to_path_buf(),
             args: args.iter().map(|s| s.as_ref().to_string()).collect(),
             vars,
             stdin: Arc::new(Mutex::new(Cursor::new(stdin.to_string()))),
             stdout: Arc::new(Mutex::new(Vec::new())),
             stderr: Arc::new(Mutex::new(Vec::new())),
-        }
+        })
     }
 
-    /// Extracts the stdout from the process
-    pub fn get_stdout(&self) -> Vec<u8> {
-        self.stdout
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+    pub fn with_vars(vars: HashMap<String, String>) -> Self {
+        Self::from(TestContext {
+            vars,
+            ..Default::default()
+        })
     }
 
     /// Extracts the stderr from the process
-    pub fn get_stderr(&self) -> Vec<u8> {
-        self.stderr
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+    pub fn stderr(&self) -> Vec<u8> {
+        let tp = match &self.process {
+            Process::TestProcess(tp) => tp,
+            _ => unreachable!(),
+        };
+
+        tp.stderr.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
+}
+
+#[cfg(feature = "test")]
+impl From<TestContext> for TestProcess {
+    fn from(inner: TestContext) -> Self {
+        let inner = Process::TestProcess(inner);
+        let guard = crate::cli::log::tracing_subscriber(&inner).set_default();
+        Self {
+            process: inner,
+            guard,
+        }
+    }
+}
+
+#[cfg(feature = "test")]
+impl Default for TestProcess {
+    fn default() -> Self {
+        Self::from(TestContext::default())
+    }
+}
+
+#[cfg(feature = "test")]
+#[derive(Clone, Debug, Default)]
+pub struct TestContext {
+    pub cwd: PathBuf,
+    args: Vec<String>,
+    vars: HashMap<String, String>,
+    stdin: filesource::TestStdinInner,
+    stdout: filesource::TestWriterInner,
+    stderr: filesource::TestWriterInner,
 }
