@@ -3,7 +3,6 @@ use std::fmt;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
-use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
 use clap::{
@@ -333,8 +332,8 @@ struct UpdateOpts {
     )]
     toolchain: Vec<PartialToolchainDesc>,
 
-    #[arg(long, value_parser = PossibleValuesParser::new(Profile::names()))]
-    profile: Option<String>,
+    #[arg(long, value_enum)]
+    profile: Option<Profile>,
 
     /// Add specific components on installation
     #[arg(short, long, value_delimiter = ',', num_args = 1..)]
@@ -518,11 +517,8 @@ enum SetSubcmd {
 
     /// The default components installed with a toolchain
     Profile {
-        #[arg(
-            default_value = Profile::default_name(),
-            value_parser = PossibleValuesParser::new(Profile::names()),
-        )]
-        profile_name: String,
+        #[arg(value_enum, default_value_t)]
+        profile_name: Profile,
     },
 
     /// The rustup auto self update mode
@@ -710,7 +706,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
                 .set_default_host_triple(host_triple)
                 .map(|_| utils::ExitCode(0)),
             SetSubcmd::Profile { profile_name } => {
-                cfg.set_profile(&profile_name).map(|_| utils::ExitCode(0))
+                cfg.set_profile(profile_name).map(|_| utils::ExitCode(0))
             }
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
@@ -819,8 +815,7 @@ async fn update(cfg: &mut Cfg, opts: UpdateOpts) -> Result<utils::ExitCode> {
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
     let forced = opts.force_non_host;
-    if let Some(p) = &opts.profile {
-        let p = Profile::from_str(p)?;
+    if let Some(p) = opts.profile {
         cfg.set_profile_override(p);
     }
     let cfg = &cfg;

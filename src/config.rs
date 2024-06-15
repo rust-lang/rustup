@@ -370,19 +370,14 @@ impl Cfg {
         Ok(())
     }
 
-    pub(crate) fn set_profile(&mut self, profile: &str) -> Result<()> {
-        match Profile::from_str(profile) {
-            Ok(p) => {
-                self.profile_override = None;
-                self.settings_file.with_mut(|s| {
-                    s.profile = Some(p);
-                    Ok(())
-                })?;
-                (self.notify_handler)(Notification::SetProfile(profile));
-                Ok(())
-            }
-            Err(err) => Err(err),
-        }
+    pub(crate) fn set_profile(&mut self, profile: Profile) -> Result<()> {
+        self.profile_override = None;
+        self.settings_file.with_mut(|s| {
+            s.profile = Some(profile);
+            Ok(())
+        })?;
+        (self.notify_handler)(Notification::SetProfile(profile.as_str()));
+        Ok(())
     }
 
     pub(crate) fn set_auto_self_update(&mut self, mode: &str) -> Result<()> {
@@ -414,13 +409,8 @@ impl Cfg {
         if let Some(p) = self.profile_override {
             return Ok(p);
         }
-        self.settings_file.with(|s| {
-            let p = match s.profile {
-                Some(p) => p,
-                None => Profile::Default,
-            };
-            Ok(p)
-        })
+        self.settings_file
+            .with(|s| Ok(s.profile.unwrap_or_default()))
     }
 
     pub(crate) fn get_self_update_mode(&self) -> Result<SelfUpdateMode> {

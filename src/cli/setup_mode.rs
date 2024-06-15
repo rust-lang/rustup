@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use clap::{builder::PossibleValuesParser, Parser};
+use clap::Parser;
 
 use crate::{
     cli::{
@@ -43,12 +43,8 @@ struct RustupInit {
     #[arg(long)]
     default_toolchain: Option<MaybeOfficialToolchainName>,
 
-    #[arg(
-        long,
-        value_parser = PossibleValuesParser::new(Profile::names()),
-        default_value = Profile::default_name(),
-    )]
-    profile: String,
+    #[arg(long, value_enum, default_value_t)]
+    profile: Profile,
 
     /// Component name to also install
     #[arg(short, long, value_delimiter = ',', num_args = 1..)]
@@ -110,7 +106,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
         return Ok(utils::ExitCode(0));
     }
 
-    if &profile == "complete" {
+    if profile == Profile::Complete {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 

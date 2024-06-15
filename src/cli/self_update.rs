@@ -56,6 +56,8 @@ use std::{env, fmt};
 
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
+use clap::ValueEnum;
+use itertools::Itertools;
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
 
@@ -88,7 +90,7 @@ pub use windows::complete_windows_uninstall;
 pub(crate) struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
     pub default_toolchain: Option<MaybeOfficialToolchainName>,
-    pub profile: String,
+    pub profile: Profile,
     pub no_modify_path: bool,
     pub no_update_toolchain: bool,
     pub components: &'a [&'a str],
@@ -107,7 +109,7 @@ impl<'a> InstallOpts<'a> {
             targets,
         } = self;
 
-        cfg.set_profile(&profile)?;
+        cfg.set_profile(profile)?;
 
         if let Some(default_host_triple) = &default_host_triple {
             // Set host triple now as it will affect resolution of toolchain_str
@@ -202,13 +204,13 @@ impl<'a> InstallOpts<'a> {
                 .unwrap_or("stable".into()),
         )?)?);
 
-        self.profile = common::question_str(
+        self.profile = <Profile as FromStr>::from_str(&common::question_str(
             &format!(
                 "Profile (which tools and data to install)? ({})",
-                Profile::names().join("/")
+                Profile::value_variants().iter().join("/"),
             ),
-            &self.profile,
-        )?;
+            self.profile.as_str(),
+        )?)?;
 
         self.no_modify_path =
             !common::question_bool("Modify PATH variable?", !self.no_modify_path)?;
@@ -1313,7 +1315,7 @@ mod tests {
 
     use crate::cli::common;
     use crate::cli::self_update::InstallOpts;
-    use crate::dist::dist::PartialToolchainDesc;
+    use crate::dist::dist::{PartialToolchainDesc, Profile};
     use crate::test::{test_dir, with_rustup_home, Env};
     use crate::{currentprocess, for_host};
 
@@ -1329,8 +1331,8 @@ mod tests {
 
             let opts = InstallOpts {
                 default_host_triple: None,
-                default_toolchain: None,       // No toolchain specified
-                profile: "default".to_owned(), // default profile
+                default_toolchain: None,   // No toolchain specified
+                profile: Profile::Default, // default profile
                 no_modify_path: false,
                 components: &[],
                 targets: &[],
