@@ -7,7 +7,7 @@ use rustup_macros::unit_test as test;
 use crate::test::test_dir;
 
 use super::{get_executor, Executor, Item, Kind};
-use crate::currentprocess;
+use crate::currentprocess::{self, TestProcess};
 
 impl Item {
     /// The length of the file, for files (for stats)
@@ -23,10 +23,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
     let work_dir = test_dir()?;
     let mut vars = HashMap::new();
     vars.insert("RUSTUP_IO_THREADS".to_string(), io_threads.to_string());
-    let tp = currentprocess::TestProcess {
-        vars,
-        ..Default::default()
-    };
+    let tp = TestProcess::with_vars(vars);
     currentprocess::with(tp.clone().into(), || -> Result<()> {
         let mut written = 0;
         let mut file_finished = false;
@@ -97,10 +94,7 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
     let work_dir = test_dir()?;
     let mut vars = HashMap::new();
     vars.insert("RUSTUP_IO_THREADS".to_string(), io_threads.to_string());
-    let tp = currentprocess::TestProcess {
-        vars,
-        ..Default::default()
-    };
+    let tp = TestProcess::with_vars(vars);
     currentprocess::with(tp.clone().into(), || -> Result<()> {
         let process = tp.clone().into();
         let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024, &process)?;

@@ -49,7 +49,7 @@ mod tests {
     use rustup_macros::unit_test as test;
 
     use super::*;
-    use crate::currentprocess;
+    use crate::currentprocess::{self, TestProcess};
     use crate::test::{with_saved_path, Env};
 
     #[test]
@@ -59,10 +59,7 @@ mod tests {
             "PATH",
             env::join_paths(["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
         );
-        let tp = currentprocess::TestProcess {
-            vars,
-            ..Default::default()
-        };
+        let tp = TestProcess::with_vars(vars);
         with_saved_path(&mut || {
             currentprocess::with(tp.clone().into(), || {
                 let mut path_entries = vec![];

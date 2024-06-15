@@ -1341,17 +1341,17 @@ mod tests {
     use crate::cli::self_update::InstallOpts;
     use crate::dist::dist::{PartialToolchainDesc, Profile};
     use crate::test::{test_dir, with_rustup_home, Env};
-    use crate::{currentprocess, for_host};
+    use crate::{
+        currentprocess::{self, TestProcess},
+        for_host,
+    };
 
     #[test]
     fn default_toolchain_is_stable() {
         with_rustup_home(|home| {
             let mut vars = HashMap::new();
             home.apply(&mut vars);
-            let tp = currentprocess::TestProcess {
-                vars,
-                ..Default::default()
-            };
+            let tp = TestProcess::with_vars(vars);
 
             let opts = InstallOpts {
                 default_host_triple: None,
@@ -1399,10 +1399,7 @@ info: default host triple is {0}
         let cargo_home = root_dir.path().join("cargo");
         let mut vars = HashMap::new();
         vars.env("CARGO_HOME", cargo_home.to_string_lossy().to_string());
-        let tp = currentprocess::TestProcess {
-            vars,
-            ..Default::default()
-        };
+        let tp = TestProcess::with_vars(vars);
         currentprocess::with(tp.clone().into(), || -> Result<()> {
             let process = tp.clone().into();
             super::install_bins(&process).unwrap();
