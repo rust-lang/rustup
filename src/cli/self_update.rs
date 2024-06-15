@@ -56,6 +56,7 @@ use std::{env, fmt};
 
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
+use clap::builder::PossibleValue;
 use clap::ValueEnum;
 use itertools::Itertools;
 use same_file::Handle;
@@ -243,21 +244,36 @@ pub(crate) const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
 pub(crate) const NEVER_SELF_UPDATE: bool = false;
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SelfUpdateMode {
+    #[default]
     Enable,
     Disable,
     CheckOnly,
 }
 
 impl SelfUpdateMode {
-    pub(crate) fn modes() -> &'static [&'static str] {
-        &["enable", "disable", "check-only"]
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Self::Enable => "enable",
+            Self::Disable => "disable",
+            Self::CheckOnly => "check-only",
+        }
+    }
+}
+
+impl ValueEnum for SelfUpdateMode {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::Enable, Self::Disable, Self::CheckOnly]
     }
 
-    pub(crate) fn default_mode() -> &'static str {
-        "enable"
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(PossibleValue::new(self.as_str()))
+    }
+
+    fn from_str(input: &str, _: bool) -> Result<Self, String> {
+        <Self as FromStr>::from_str(input).map_err(|e| e.to_string())
     }
 }
 
@@ -272,7 +288,7 @@ impl FromStr for SelfUpdateMode {
             _ => Err(anyhow!(format!(
                 "unknown self update mode: '{}'; valid modes are {}",
                 mode,
-                Self::modes().join(", "),
+                Self::value_variants().iter().join(", ")
             ))),
         }
     }
@@ -280,11 +296,7 @@ impl FromStr for SelfUpdateMode {
 
 impl std::fmt::Display for SelfUpdateMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            SelfUpdateMode::Enable => "enable",
-            SelfUpdateMode::Disable => "disable",
-            SelfUpdateMode::CheckOnly => "check-only",
-        })
+        f.write_str(self.as_str())
     }
 }
 

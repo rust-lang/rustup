@@ -380,18 +380,13 @@ impl Cfg {
         Ok(())
     }
 
-    pub(crate) fn set_auto_self_update(&mut self, mode: &str) -> Result<()> {
-        match SelfUpdateMode::from_str(mode) {
-            Ok(update_mode) => {
-                self.settings_file.with_mut(|s| {
-                    s.auto_self_update = Some(update_mode);
-                    Ok(())
-                })?;
-                (self.notify_handler)(Notification::SetSelfUpdate(mode));
-                Ok(())
-            }
-            Err(err) => Err(err),
-        }
+    pub(crate) fn set_auto_self_update(&mut self, mode: SelfUpdateMode) -> Result<()> {
+        self.settings_file.with_mut(|s| {
+            s.auto_self_update = Some(mode);
+            Ok(())
+        })?;
+        (self.notify_handler)(Notification::SetSelfUpdate(mode.as_str()));
+        Ok(())
     }
 
     pub(crate) fn set_toolchain_override(&mut self, toolchain_override: &ResolvableToolchainName) {
@@ -415,11 +410,10 @@ impl Cfg {
 
     pub(crate) fn get_self_update_mode(&self) -> Result<SelfUpdateMode> {
         self.settings_file.with(|s| {
-            let mode = match &s.auto_self_update {
-                Some(mode) => mode.clone(),
+            Ok(match s.auto_self_update {
+                Some(mode) => mode,
                 None => SelfUpdateMode::Enable,
-            };
-            Ok(mode)
+            })
         })
     }
 
