@@ -836,13 +836,12 @@ mod tests {
     #[test]
     fn windows_doesnt_mess_with_a_non_string_path() {
         // This writes an error, so we want a sink for it.
-        let tp = currentprocess::TestProcess {
-            vars: [("HOME".to_string(), "/unused".to_string())]
+        let tp = currentprocess::TestProcess::with_vars(
+            [("HOME".to_string(), "/unused".to_string())]
                 .iter()
                 .cloned()
                 .collect(),
-            ..Default::default()
-        };
+        );
         let process = Process::from(tp.clone());
         with_saved_path(&mut || {
             currentprocess::with(tp.clone().into(), || {

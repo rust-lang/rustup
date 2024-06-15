@@ -283,15 +283,22 @@ impl Default for OSProcess {
 #[derive(Clone, Debug, Default)]
 pub struct TestProcess {
     pub cwd: PathBuf,
-    pub args: Vec<String>,
-    pub vars: HashMap<String, String>,
-    pub stdin: filesource::TestStdinInner,
-    pub stdout: filesource::TestWriterInner,
-    pub stderr: filesource::TestWriterInner,
+    args: Vec<String>,
+    vars: HashMap<String, String>,
+    stdin: filesource::TestStdinInner,
+    stdout: filesource::TestWriterInner,
+    stderr: filesource::TestWriterInner,
 }
 
 #[cfg(feature = "test")]
 impl TestProcess {
+    pub fn with_vars(vars: HashMap<String, String>) -> Self {
+        Self {
+            vars,
+            ..Default::default()
+        }
+    }
+
     pub fn new<P: AsRef<Path>, A: AsRef<str>>(
         cwd: P,
         args: &[A],
