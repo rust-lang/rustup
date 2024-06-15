@@ -15,8 +15,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[cfg(feature = "test")]
-use rand::{thread_rng, Rng};
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod filesource;
@@ -287,7 +285,6 @@ pub struct TestProcess {
     pub cwd: PathBuf,
     pub args: Vec<String>,
     pub vars: HashMap<String, String>,
-    pub id: u64,
     pub stdin: filesource::TestStdinInner,
     pub stdout: filesource::TestWriterInner,
     pub stderr: filesource::TestWriterInner,
@@ -305,18 +302,10 @@ impl TestProcess {
             cwd: cwd.as_ref().to_path_buf(),
             args: args.iter().map(|s| s.as_ref().to_string()).collect(),
             vars,
-            id: TestProcess::new_id(),
             stdin: Arc::new(Mutex::new(Cursor::new(stdin.to_string()))),
             stdout: Arc::new(Mutex::new(Vec::new())),
             stderr: Arc::new(Mutex::new(Vec::new())),
         }
-    }
-
-    fn new_id() -> u64 {
-        let low_bits: u64 = std::process::id() as u64;
-        let mut rng = thread_rng();
-        let high_bits = rng.gen_range(0..u32::MAX) as u64;
-        high_bits << 32 | low_bits
     }
 
     /// Extracts the stdout from the process
