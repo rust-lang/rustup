@@ -8,6 +8,9 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDate;
+use clap::builder::PossibleValue;
+use clap::ValueEnum;
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -611,6 +614,30 @@ pub enum Profile {
     Complete,
 }
 
+impl Profile {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Self::Minimal => "minimal",
+            Self::Default => "default",
+            Self::Complete => "complete",
+        }
+    }
+}
+
+impl ValueEnum for Profile {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Profile::Minimal, Profile::Default, Profile::Complete]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(PossibleValue::new(self.as_str()))
+    }
+
+    fn from_str(input: &str, _: bool) -> Result<Self, String> {
+        <Self as FromStr>::from_str(input).map_err(|e| e.to_string())
+    }
+}
+
 impl FromStr for Profile {
     type Err = anyhow::Error;
 
@@ -622,19 +649,9 @@ impl FromStr for Profile {
             _ => Err(anyhow!(format!(
                 "unknown profile name: '{}'; valid profile names are: {}",
                 name,
-                valid_profile_names()
+                Self::value_variants().iter().join(", ")
             ))),
         }
-    }
-}
-
-impl Profile {
-    pub(crate) fn names() -> &'static [&'static str] {
-        &["minimal", "default", "complete"]
-    }
-
-    pub(crate) fn default_name() -> &'static str {
-        "default"
     }
 }
 
@@ -680,20 +697,8 @@ impl fmt::Display for ToolchainDesc {
 
 impl fmt::Display for Profile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Minimal => write!(f, "minimal"),
-            Self::Default => write!(f, "default"),
-            Self::Complete => write!(f, "complete"),
-        }
+        write!(f, "{}", self.as_str())
     }
-}
-
-pub(crate) fn valid_profile_names() -> String {
-    Profile::names()
-        .iter()
-        .map(|s| format!("'{s}'"))
-        .collect::<Vec<_>>()
-        .join(", ")
 }
 
 // Installs or updates a toolchain from a dist server. If an initial
