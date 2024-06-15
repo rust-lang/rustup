@@ -84,12 +84,9 @@ impl ColorableTerminal {
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
     pub(super) fn new(stream: StreamSelector) -> Self {
-        let env_override = process()
-            .var("RUSTUP_TERM_COLOR")
-            .map(|it| it.to_lowercase());
-        let choice = match env_override.as_deref() {
-            Ok("always") => ColorChoice::Always,
-            Ok("never") => ColorChoice::Never,
+        let choice = match process().var("RUSTUP_TERM_COLOR") {
+            Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
+            Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
             _ if stream.is_a_tty() => ColorChoice::Auto,
             _ => ColorChoice::Never,
         };
