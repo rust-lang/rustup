@@ -1,12 +1,9 @@
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Debug;
-use std::future::Future;
 use std::io;
-use std::panic;
+use std::io::IsTerminal;
 use std::path::PathBuf;
-use std::sync::Once;
-use std::{cell::RefCell, io::IsTerminal};
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
@@ -140,92 +137,6 @@ impl home::env::Env for Process {
             Process::TestProcess(_) => self.var_os(key),
         }
     }
-}
-
-static HOOK_INSTALLED: Once = Once::new();
-
-fn ensure_hook() {
-    HOOK_INSTALLED.call_once(|| {
-        let orig_hook = panic::take_hook();
-        panic::set_hook(Box::new(move |info| {
-            clear_process();
-            orig_hook(info);
-        }));
-    });
-}
-
-/// Run a function in the context of a process definition and a tokio runtime.
-///
-/// The process state is injected into a thread-local in every work thread of
-/// the runtime, but this requires access to the runtime builder, so this
-/// function must be the one to create the runtime.
-pub fn with_runtime<'a, R>(
-    process: Process,
-    mut runtime_builder: tokio::runtime::Builder,
-    fut: impl Future<Output = R> + 'a,
-) -> R {
-    ensure_hook();
-
-    let start_process = process.clone();
-    let unpark_process = process.clone();
-    let runtime = runtime_builder
-        // propagate to blocking threads
-        .on_thread_start(move || {
-            // assign the process persistently to the thread local.
-            PROCESS.with(|p| {
-                if let Some(old_p) = &*p.borrow() {
-                    panic!("current process already set {old_p:?}");
-                }
-                *p.borrow_mut() = Some(start_process.clone());
-                // Thread exits will clear the process.
-            });
-        })
-        .on_thread_stop(move || {
-            PROCESS.with(|p| {
-                *p.borrow_mut() = None;
-            });
-        })
-        // propagate to async worker threads
-        .on_thread_unpark(move || {
-            // assign the process persistently to the thread local.
-            PROCESS.with(|p| {
-                if let Some(old_p) = &*p.borrow() {
-                    panic!("current process already set {old_p:?}");
-                }
-                *p.borrow_mut() = Some(unpark_process.clone());
-                // Thread exits will clear the process.
-            });
-        })
-        .on_thread_park(move || {
-            PROCESS.with(|p| {
-                *p.borrow_mut() = None;
-            });
-        })
-        .build()
-        .unwrap();
-
-    // The current thread doesn't get hooks run on it.
-    PROCESS.with(move |p| {
-        if let Some(old_p) = &*p.borrow() {
-            panic!("current process already set {old_p:?}");
-        }
-        *p.borrow_mut() = Some(process.clone());
-        let result = runtime.block_on(async {
-            let _guard = crate::cli::log::tracing_subscriber(&process).set_default();
-            fut.await
-        });
-        *p.borrow_mut() = None;
-        result
-    })
-}
-
-/// Internal - for the panic hook only
-fn clear_process() {
-    PROCESS.with(|p| p.replace(None));
-}
-
-thread_local! {
-    pub(crate) static PROCESS: RefCell<Option<Process>> = const { RefCell::new(None) };
 }
 
 // ----------- real process -----------------
