@@ -5,10 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
 use anyhow::{anyhow, Error, Result};
-use clap::{
-    builder::{PossibleValue, PossibleValuesParser},
-    Args, CommandFactory, Parser, Subcommand, ValueEnum,
-};
+use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 use itertools::Itertools;
 
@@ -523,11 +520,8 @@ enum SetSubcmd {
 
     /// The rustup auto self update mode
     AutoSelfUpdate {
-        #[arg(
-            default_value = SelfUpdateMode::default_mode(),
-            value_parser = PossibleValuesParser::new(SelfUpdateMode::modes()),
-        )]
-        auto_self_update_mode: String,
+        #[arg(value_enum, default_value_t)]
+        auto_self_update_mode: SelfUpdateMode,
     },
 }
 
@@ -710,7 +704,7 @@ pub async fn main(current_dir: PathBuf) -> Result<utils::ExitCode> {
             }
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
-            } => set_auto_self_update(cfg, &auto_self_update_mode),
+            } => set_auto_self_update(cfg, auto_self_update_mode),
         },
         RustupSubcmd::Completions { shell, command } => output_completion_script(shell, command),
     }
@@ -1510,7 +1504,10 @@ async fn man(
     Ok(utils::ExitCode(0))
 }
 
-fn set_auto_self_update(cfg: &mut Cfg, auto_self_update_mode: &str) -> Result<utils::ExitCode> {
+fn set_auto_self_update(
+    cfg: &mut Cfg,
+    auto_self_update_mode: SelfUpdateMode,
+) -> Result<utils::ExitCode> {
     if self_update::NEVER_SELF_UPDATE {
         let process = process();
         let mut args = process.args_os();
