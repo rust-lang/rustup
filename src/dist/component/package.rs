@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Context, Result};
 use tar::EntryType;
+use tracing::warn;
 
 use crate::currentprocess::Process;
 use crate::diskio::{get_executor, CompletedIo, Executor, FileBuffer, Item, Kind, IO_CHUNK_SIZE};

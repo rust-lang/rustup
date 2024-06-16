@@ -8,6 +8,7 @@ use anyhow::{anyhow, Error, Result};
 use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 use itertools::Itertools;
+use tracing::{error, info, trace, warn};
 
 use crate::{
     cli::{
@@ -548,7 +549,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
                 let cfg = &mut common::set_globals(current_dir, false, true, process)?;
 
                 if let Some(t) = process.args().find(|x| x.starts_with('+')) {
-                    debug!("Fetching rustc version from toolchain `{}`", t);
+                    trace!("Fetching rustc version from toolchain `{}`", t);
                     cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
                 }
 
@@ -559,7 +560,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
 
             match rustc_version(current_dir, process).await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
-                Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
+                Err(err) => trace!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
             return Ok(utils::ExitCode(0));
         }
@@ -828,7 +829,7 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
 
                 let target_triple = name.clone().resolve(&host_arch)?.target;
                 if !forced && !host_arch.can_run(&target_triple)? {
-                    err!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain.");
+                    error!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain.");
                     warn!("toolchain '{name}' may not be able to run on this system.");
                     warn!(
                             "If you meant to build software to target that platform, perhaps try `rustup target add {}` instead?",

@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{bail, Context, Result};
+use tracing::{error, warn};
 
 use super::install_bins;
 use super::shell;
@@ -34,11 +35,11 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool, process: &Process) -> Result<u
     match home_mismatch(process) {
         (false, _, _) => {}
         (true, env_home, euid_home) => {
-            err!("$HOME differs from euid-obtained home directory: you may be using sudo");
-            err!("$HOME directory: {}", env_home.display());
-            err!("euid-obtained home directory: {}", euid_home.display());
+            error!("$HOME differs from euid-obtained home directory: you may be using sudo");
+            error!("$HOME directory: {}", env_home.display());
+            error!("euid-obtained home directory: {}", euid_home.display());
             if !no_prompt {
-                err!("if this is what you want, restart the installation with `-y'");
+                error!("if this is what you want, restart the installation with `-y'");
                 return Ok(utils::ExitCode(1));
             }
         }

@@ -40,6 +40,7 @@ mod imp {
     use std::mem;
     use std::ptr;
 
+    use tracing::info;
     use windows_sys::Win32::Foundation::*;
     use windows_sys::Win32::System::JobObjects::*;
     use windows_sys::Win32::System::Threading::*;

@@ -11,6 +11,7 @@ use std::{cmp, env};
 use anyhow::{anyhow, Context, Result};
 use git_testament::{git_testament, render_testament};
 use once_cell::sync::Lazy;
+use tracing::{debug, error, info, trace, warn};
 
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
@@ -159,7 +160,7 @@ impl Notifier {
             match level {
                 NotificationLevel::Verbose => {
                     if self.verbose {
-                        verbose!("{}", n);
+                        debug!("{}", n);
                     }
                 }
                 NotificationLevel::Info => {
@@ -169,10 +170,10 @@ impl Notifier {
                     warn!("{}", n);
                 }
                 NotificationLevel::Error => {
-                    err!("{}", n);
+                    error!("{}", n);
                 }
                 NotificationLevel::Debug => {
-                    debug!("{}", n);
+                    trace!("{}", n);
                 }
             }
         }
@@ -338,7 +339,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
         {
             match e.kind() {
                 ErrorKind::PermissionDenied => {
-                    debug!("Skipping self-update because we cannot write to the rustup dir");
+                    trace!("Skipping self-update because we cannot write to the rustup dir");
                     if explicit {
                         return Ok(SelfUpdatePermission::HardFail);
                     } else {
@@ -359,7 +360,7 @@ where
 {
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
-            err!("Unable to self-update.  STOP");
+            error!("Unable to self-update.  STOP");
             return Ok(utils::ExitCode(1));
         }
         SelfUpdatePermission::Skip => return Ok(utils::ExitCode(0)),
@@ -604,9 +605,9 @@ pub fn report_error(e: &anyhow::Error, process: &Process) {
     // hunk to revisit, that and a similar build.rs auto-detect glue as anyhow
     // has to detect when backtrace is available.
     if show_backtrace(process) {
-        err!("{:?}", e);
+        error!("{:?}", e);
     } else {
-        err!("{:#}", e);
+        error!("{:#}", e);
     }
 }
 

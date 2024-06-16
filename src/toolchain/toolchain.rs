@@ -12,6 +12,7 @@ use std::{
 
 use anyhow::{anyhow, bail};
 use fs_at::OpenOptions;
+use tracing::info;
 use wait_timeout::ChildExt;
 
 use crate::{
