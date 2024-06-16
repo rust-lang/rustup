@@ -2,7 +2,6 @@ use std::{path::PathBuf, process::ExitStatus};
 
 use anyhow::Result;
 
-use crate::toolchain::toolchain::Toolchain;
 use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
@@ -34,15 +33,6 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
 
     let cfg = set_globals(current_dir, false, true, process)?;
     cfg.check_metadata_version()?;
-    let toolchain = toolchain
-        .map(|t| t.resolve(&cfg.get_default_host_triple()?))
-        .transpose()?;
-
-    let toolchain = match toolchain {
-        None => cfg.find_or_install_active_toolchain().await?.0,
-        Some(tc) => Toolchain::from_local(tc, false, &cfg).await?,
-    };
-
-    let cmd = toolchain.command(arg0)?;
+    let cmd = cfg.local_toolchain(toolchain).await?.command(arg0)?;
     run_command_for_dir(cmd, arg0, &cmd_args)
 }

@@ -716,6 +716,20 @@ impl<'a> Cfg<'a> {
             .rustc_version())
     }
 
+    pub(crate) async fn local_toolchain(
+        &self,
+        name: Option<ResolvableLocalToolchainName>,
+    ) -> Result<Toolchain<'_>> {
+        let local = name
+            .map(|name| name.resolve(&self.get_default_host_triple()?))
+            .transpose()?;
+
+        Ok(match local {
+            Some(tc) => Toolchain::from_local(tc, false, self).await?,
+            None => self.find_or_install_active_toolchain().await?.0,
+        })
+    }
+
     pub(crate) async fn find_or_install_active_toolchain(
         &'a self,
     ) -> Result<(Toolchain<'a>, ActiveReason)> {
