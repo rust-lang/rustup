@@ -256,8 +256,7 @@ impl Default for OSProcess {
 #[cfg(feature = "test")]
 pub struct TestProcess {
     pub process: Process,
-    #[allow(dead_code)] // guard is dropped at the end of the test
-    guard: DefaultGuard,
+    _guard: DefaultGuard, // guard is dropped at the end of the test
 }
 
 #[cfg(feature = "test")]
@@ -303,7 +302,7 @@ impl From<TestContext> for TestProcess {
         let guard = crate::cli::log::tracing_subscriber(&inner).set_default();
         Self {
             process: inner,
-            guard,
+            _guard: guard,
         }
     }
 }
