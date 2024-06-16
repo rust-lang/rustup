@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::settings::MetadataVersion;
 use crate::{
     dist::{temp, ToolchainDesc},
-    toolchain::names::ToolchainName,
+    toolchain::ToolchainName,
     utils::notify::NotificationLevel,
 };
 

@@ -6,7 +6,7 @@ use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
     currentprocess::Process,
-    toolchain::names::ResolvableLocalToolchainName,
+    toolchain::ResolvableLocalToolchainName,
 };
 
 #[cfg_attr(feature = "otel", tracing::instrument)]

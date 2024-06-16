@@ -1,4 +1,13 @@
-pub(crate) mod distributable;
-pub(crate) mod names;
+mod distributable;
+pub(crate) use distributable::DistributableToolchain;
+
+mod names;
+pub(crate) use names::{
+    toolchain_sort, CustomToolchainName, LocalToolchainName, MaybeOfficialToolchainName,
+    MaybeResolvableToolchainName, PathBasedToolchainName, ResolvableLocalToolchainName,
+    ResolvableToolchainName, ToolchainName,
+};
+
 #[allow(clippy::module_inception)]
-pub(crate) mod toolchain;
+mod toolchain;
+pub(crate) use toolchain::Toolchain;

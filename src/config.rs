@@ -21,12 +21,8 @@ use crate::{
     notifications::*,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        distributable::DistributableToolchain,
-        names::{
-            CustomToolchainName, LocalToolchainName, PathBasedToolchainName,
-            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
-        },
-        toolchain::Toolchain,
+        CustomToolchainName, DistributableToolchain, LocalToolchainName, PathBasedToolchainName,
+        ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain, ToolchainName,
     },
     utils::utils,
 };
@@ -871,7 +867,7 @@ impl<'a> Cfg<'a> {
                 .filter_map(|n| ToolchainName::try_from(&n).ok())
                 .collect();
 
-            crate::toolchain::names::toolchain_sort(&mut toolchains);
+            crate::toolchain::toolchain_sort(&mut toolchains);
 
             Ok(toolchains)
         } else {

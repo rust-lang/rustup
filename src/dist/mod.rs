@@ -11,9 +11,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
-use crate::{
-    currentprocess::Process, errors::RustupError, toolchain::names::ToolchainName, utils::utils,
-};
+use crate::{currentprocess::Process, errors::RustupError, toolchain::ToolchainName, utils::utils};
 
 pub mod component;
 pub(crate) mod config;

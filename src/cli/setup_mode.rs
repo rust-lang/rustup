@@ -11,7 +11,7 @@ use crate::{
     },
     currentprocess::Process,
     dist::Profile,
-    toolchain::names::MaybeOfficialToolchainName,
+    toolchain::MaybeOfficialToolchainName,
     utils::utils,
 };
 
