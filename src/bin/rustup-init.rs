@@ -13,6 +13,8 @@
 
 #![recursion_limit = "1024"]
 
+use std::process::ExitCode;
+
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 // Public macros require availability of the internal symbols
@@ -30,35 +32,32 @@ use rustup::currentprocess::Process;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::errors::RustupError;
 use rustup::is_proxyable_tools;
-use rustup::utils::utils::{self, ExitCode};
+use rustup::utils::utils;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<ExitCode> {
     #[cfg(windows)]
     pre_rustup_main_init();
 
     let process = Process::os();
-    match maybe_trace_rustup(&process).await {
-        Err(e) => {
-            common::report_error(&e, &process);
-            std::process::exit(1);
-        }
-        Ok(utils::ExitCode(c)) => std::process::exit(c),
-    }
-}
-
-async fn maybe_trace_rustup(process: &Process) -> Result<utils::ExitCode> {
     #[cfg(feature = "otel")]
     opentelemetry::global::set_text_map_propagator(
         opentelemetry_sdk::propagation::TraceContextPropagator::new(),
     );
-    let subscriber = rustup::cli::log::tracing_subscriber(process);
+    let subscriber = rustup::cli::log::tracing_subscriber(&process);
     tracing::subscriber::set_global_default(subscriber)?;
-    let result = run_rustup(process).await;
+    let result = run_rustup(&process).await;
     // We're tracing, so block until all spans are exported.
     #[cfg(feature = "otel")]
     opentelemetry::global::shutdown_tracer_provider();
-    result
+
+    match result {
+        Err(e) => {
+            common::report_error(&e, &process);
+            std::process::exit(1)
+        }
+        Ok(utils::ExitCode(c)) => std::process::exit(c),
+    }
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
@@ -110,7 +109,7 @@ async fn run_rustup_inner(process: &Process) -> Result<utils::ExitCode> {
             is_proxyable_tools(n)?;
             proxy_mode::main(n, current_dir, process)
                 .await
-                .map(ExitCode::from)
+                .map(utils::ExitCode::from)
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
