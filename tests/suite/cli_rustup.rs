@@ -1145,7 +1145,7 @@ active toolchain
 ----------------
 name: nightly-{0}
 compiler: 1.3.0 (hash-nightly-2)
-active because: overriden by environment variable RUSTUP_TOOLCHAIN
+active because: overridden by environment variable RUSTUP_TOOLCHAIN
 installed targets:
   {0}
 "
