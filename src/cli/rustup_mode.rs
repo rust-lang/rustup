@@ -31,12 +31,9 @@ use crate::{
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     toolchain::{
-        distributable::DistributableToolchain,
-        names::{
-            CustomToolchainName, LocalToolchainName, MaybeResolvableToolchainName,
-            ResolvableLocalToolchainName, ResolvableToolchainName, ToolchainName,
-        },
-        toolchain::Toolchain,
+        CustomToolchainName, DistributableToolchain, LocalToolchainName,
+        MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
+        Toolchain, ToolchainName,
     },
     utils::utils::{self, ExitCode},
 };
@@ -827,16 +824,13 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
             let force = opts.force;
             let allow_downgrade = opts.allow_downgrade;
             let profile = cfg.get_profile()?;
-            let status = match crate::toolchain::distributable::DistributableToolchain::new(
-                cfg,
-                desc.clone(),
-            ) {
+            let status = match DistributableToolchain::new(cfg, desc.clone()) {
                 Ok(mut d) => {
                     d.update_extra(&components, &targets, profile, force, allow_downgrade)
                         .await?
                 }
                 Err(RustupError::ToolchainNotInstalled(_)) => {
-                    crate::toolchain::distributable::DistributableToolchain::install(
+                    DistributableToolchain::install(
                         cfg,
                         &desc,
                         &components,

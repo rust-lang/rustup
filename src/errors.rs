@@ -11,9 +11,11 @@ use thiserror::Error as ThisError;
 use url::Url;
 
 use crate::{
-    dist::manifest::{Component, Manifest},
-    dist::{TargetTriple, ToolchainDesc},
-    toolchain::names::{PathBasedToolchainName, ToolchainName},
+    dist::{
+        manifest::{Component, Manifest},
+        {TargetTriple, ToolchainDesc},
+    },
+    toolchain::{PathBasedToolchainName, ToolchainName},
 };
 
 /// A type erasing thunk for the retry crate to permit use with anyhow. See <https://github.com/dtolnay/anyhow/issues/149>

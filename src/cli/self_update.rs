@@ -75,9 +75,8 @@ use crate::{
     errors::RustupError,
     install::UpdateStatus,
     toolchain::{
-        distributable::DistributableToolchain,
-        names::{MaybeOfficialToolchainName, ResolvableToolchainName, ToolchainName},
-        toolchain::Toolchain,
+        DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
+        ToolchainName,
     },
     utils::{utils, Notification},
     DUP_TOOLS, TOOLS,

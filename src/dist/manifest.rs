@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     dist::{config::Config, Profile, TargetTriple, ToolchainDesc},
     errors::*,
-    toolchain::distributable::DistributableToolchain,
+    toolchain::DistributableToolchain,
 };
 
 /// Used by the `installed_components` function

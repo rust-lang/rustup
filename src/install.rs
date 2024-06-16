@@ -9,10 +9,7 @@ use crate::{
     dist::{self, download::DownloadCfg, prefix::InstallPrefix, Notification},
     errors::RustupError,
     notifications::Notification as RootNotification,
-    toolchain::{
-        names::{CustomToolchainName, LocalToolchainName},
-        toolchain::Toolchain,
-    },
+    toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils::utils,
 };
 
