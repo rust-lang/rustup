@@ -899,13 +899,7 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    let binary_path = if let Some(toolchain) = toolchain {
-        let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
-        Toolchain::new(cfg, desc.into())?.binary_file(binary)
-    } else {
-        let (toolchain, _) = cfg.find_or_install_active_toolchain().await?;
-        toolchain.binary_file(binary)
-    };
+    let binary_path = cfg.resolve_toolchain(toolchain).await?.binary_file(binary);
 
     utils::assert_is_file(&binary_path)?;
 

@@ -726,6 +726,19 @@ impl<'a> Cfg<'a> {
             .rustc_version())
     }
 
+    pub(crate) async fn resolve_toolchain(
+        &self,
+        name: Option<ResolvableToolchainName>,
+    ) -> Result<Toolchain<'_>> {
+        Ok(match name {
+            Some(name) => {
+                let desc = name.resolve(&self.get_default_host_triple()?)?;
+                Toolchain::new(self, desc.into())?
+            }
+            None => self.find_or_install_active_toolchain().await?.0,
+        })
+    }
+
     pub(crate) async fn local_toolchain(
         &self,
         name: Option<ResolvableLocalToolchainName>,
@@ -740,7 +753,7 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) async fn find_or_install_active_toolchain(
+    async fn find_or_install_active_toolchain(
         &'a self,
     ) -> Result<(Toolchain<'a>, ActiveReason)> {
         self.maybe_find_or_install_active_toolchain(&self.current_dir)
@@ -749,7 +762,7 @@ impl<'a> Cfg<'a> {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) async fn maybe_find_or_install_active_toolchain(
+    async fn maybe_find_or_install_active_toolchain(
         &'a self,
         path: &Path,
     ) -> Result<Option<(Toolchain<'a>, ActiveReason)>> {
