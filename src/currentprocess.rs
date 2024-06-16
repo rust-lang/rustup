@@ -272,8 +272,8 @@ impl TestProcess {
             args: args.iter().map(|s| s.as_ref().to_string()).collect(),
             vars,
             stdin: Arc::new(Mutex::new(Cursor::new(stdin.to_string()))),
-            stdout: Arc::new(Mutex::new(Vec::new())),
-            stderr: Arc::new(Mutex::new(Vec::new())),
+            stdout: Arc::default(),
+            stderr: Arc::default(),
         })
     }
 
