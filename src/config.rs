@@ -753,28 +753,17 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    async fn find_or_install_active_toolchain(
-        &'a self,
-    ) -> Result<(Toolchain<'a>, ActiveReason)> {
-        self.maybe_find_or_install_active_toolchain(&self.current_dir)
-            .await?
-            .ok_or_else(|| no_toolchain_error(self.process))
-    }
-
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    async fn maybe_find_or_install_active_toolchain(
-        &'a self,
-        path: &Path,
-    ) -> Result<Option<(Toolchain<'a>, ActiveReason)>> {
-        match self.find_override_config(path)? {
+    async fn find_or_install_active_toolchain(&'a self) -> Result<(Toolchain<'a>, ActiveReason)> {
+        match self.find_override_config(&self.current_dir)? {
             Some((override_config, reason)) => match override_config {
                 OverrideCfg::PathBased(path_based_name) => {
                     let toolchain = Toolchain::with_reason(self, path_based_name.into(), &reason)?;
-                    Ok(Some((toolchain, reason)))
+                    Ok((toolchain, reason))
                 }
                 OverrideCfg::Custom(custom_name) => {
                     let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
-                    Ok(Some((toolchain, reason)))
+                    Ok((toolchain, reason))
                 }
                 OverrideCfg::Official {
                     toolchain,
@@ -785,22 +774,22 @@ impl<'a> Cfg<'a> {
                     let toolchain = self
                         .ensure_installed(toolchain, components, targets, profile)
                         .await?;
-                    Ok(Some((toolchain, reason)))
+                    Ok((toolchain, reason))
                 }
             },
             None => match self.get_default()? {
-                None => Ok(None),
+                None => Err(no_toolchain_error(self.process)),
                 Some(ToolchainName::Custom(custom_name)) => {
                     let reason = ActiveReason::Default;
                     let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
-                    Ok(Some((toolchain, reason)))
+                    Ok((toolchain, reason))
                 }
                 Some(ToolchainName::Official(toolchain_desc)) => {
                     let reason = ActiveReason::Default;
                     let toolchain = self
                         .ensure_installed(toolchain_desc, vec![], vec![], None)
                         .await?;
-                    Ok(Some((toolchain, reason)))
+                    Ok((toolchain, reason))
                 }
             },
         }
