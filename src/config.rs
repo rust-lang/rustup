@@ -534,7 +534,7 @@ impl<'a> Cfg<'a> {
         &self,
     ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
         Ok(
-            if let Some((override_config, reason)) = self.find_override_config(&self.current_dir)? {
+            if let Some((override_config, reason)) = self.find_override_config()? {
                 Some((override_config.into_local_toolchain_name(), reason))
             } else {
                 self.get_default()?
@@ -543,7 +543,7 @@ impl<'a> Cfg<'a> {
         )
     }
 
-    fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, ActiveReason)>> {
+    fn find_override_config(&self) -> Result<Option<(OverrideCfg, ActiveReason)>> {
         let override_config: Option<(OverrideCfg, ActiveReason)> =
             // First check +toolchain override from the command line
             if let Some(ref name) = self.toolchain_override {
@@ -562,7 +562,7 @@ impl<'a> Cfg<'a> {
             // directory in the override database, or a `rust-toolchain{.toml}` file,
             // in that order.
             else if let Some((override_cfg, active_reason)) = self.settings_file.with(|s| {
-                    self.find_override_from_dir_walk(path, s)
+                    self.find_override_from_dir_walk(&self.current_dir, s)
                 })? {
                 Some((override_cfg, active_reason))
             }
@@ -755,7 +755,7 @@ impl<'a> Cfg<'a> {
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     async fn find_or_install_active_toolchain(&'a self) -> Result<(Toolchain<'a>, ActiveReason)> {
-        match self.find_override_config(&self.current_dir)? {
+        match self.find_override_config()? {
             Some((override_config, reason)) => match override_config {
                 OverrideCfg::PathBased(path_based_name) => {
                     let toolchain = Toolchain::with_reason(self, path_based_name.into(), &reason)?;
