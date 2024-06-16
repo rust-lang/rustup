@@ -57,7 +57,7 @@ pub fn tracing_subscriber(process: &Process) -> impl tracing::Subscriber {
 /// A [`tracing::Subscriber`] [`Layer`][`tracing_subscriber::Layer`] that prints out the log
 /// lines to the current [`Process`]' `stderr`.
 ///
-/// When the `RUST_LOG` environment variable is present, a standard [`tracing_subscriber`]
+/// When the `RUSTUP_LOG` environment variable is present, a standard [`tracing_subscriber`]
 /// formatter will be used according to the filtering directives set in its value.
 /// Otherwise, this logger will use [`EventFormatter`] to mimic "classic" Rustup `stderr` output.
 fn console_logger<S>(process: &Process) -> impl Layer<S>
@@ -71,12 +71,12 @@ where
         _ if process.var("NO_COLOR").is_ok() => false,
         _ => process.stderr().is_a_tty(process),
     };
-    let maybe_rust_log_directives = process.var("RUST_LOG");
+    let maybe_rustup_log_directives = process.var("RUSTUP_LOG");
     let process = process.clone();
     let logger = tracing_subscriber::fmt::layer()
         .with_writer(move || process.stderr())
         .with_ansi(has_ansi);
-    if let Ok(directives) = maybe_rust_log_directives {
+    if let Ok(directives) = maybe_rustup_log_directives {
         let env_filter = EnvFilter::builder()
             .with_default_directive(LevelFilter::INFO.into())
             .parse_lossy(directives);
@@ -143,7 +143,7 @@ fn telemetry<S>(process: &Process) -> impl Layer<S>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
-    let env_filter = if let Ok(directives) = process.var("RUST_LOG") {
+    let env_filter = if let Ok(directives) = process.var("RUSTUP_LOG") {
         EnvFilter::builder()
             .with_default_directive(LevelFilter::TRACE.into())
             .parse_lossy(directives)

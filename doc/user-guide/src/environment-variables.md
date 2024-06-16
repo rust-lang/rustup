@@ -1,8 +1,8 @@
 # Environment variables
 
-- `RUST_LOG` (default: none). Enables Rustup's "custom logging mode". In this mode,
+- `RUSTUP_LOG` (default: none). Enables Rustup's "custom logging mode". In this mode,
   the verbosity of Rustup's log lines can be specified with `tracing_subscriber`'s
-  [directive syntax]. For example, set `RUST_LOG=rustup=DEBUG` to receive log lines
+  [directive syntax]. For example, set `RUSTUP_LOG=rustup=DEBUG` to receive log lines
   from `rustup` itself with a maximal verbosity of `DEBUG`.
 
 - `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%/.rustup`). Sets the
