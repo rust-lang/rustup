@@ -702,6 +702,20 @@ impl<'a> Cfg<'a> {
         }
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument)]
+    pub(crate) async fn active_rustc_version(&mut self) -> Result<String> {
+        if let Some(t) = self.process.args().find(|x| x.starts_with('+')) {
+            trace!("Fetching rustc version from toolchain `{}`", t);
+            self.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
+        }
+
+        Ok(self
+            .find_or_install_active_toolchain()
+            .await?
+            .0
+            .rustc_version())
+    }
+
     pub(crate) async fn find_or_install_active_toolchain(
         &'a self,
     ) -> Result<(Toolchain<'a>, ActiveReason)> {
