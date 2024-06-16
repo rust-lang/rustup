@@ -109,7 +109,7 @@ impl Display for ActiveReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
             Self::Default => write!(f, "it's the default toolchain"),
-            Self::Environment => write!(f, "overriden by environment variable RUSTUP_TOOLCHAIN"),
+            Self::Environment => write!(f, "overridden by environment variable RUSTUP_TOOLCHAIN"),
             Self::CommandLine => write!(f, "overridden by +toolchain on the command line"),
             Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
