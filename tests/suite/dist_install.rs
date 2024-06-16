@@ -10,7 +10,6 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::Notification;
 use rustup::utils::utils;
-use rustup_macros::integration_test as test;
 
 use rustup::test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 

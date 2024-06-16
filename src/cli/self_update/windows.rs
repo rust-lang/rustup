@@ -728,8 +728,6 @@ mod tests {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    use rustup_macros::unit_test as test;
-
     use crate::currentprocess::TestProcess;
     use crate::test::with_saved_path;
 

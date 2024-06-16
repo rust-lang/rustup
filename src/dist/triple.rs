@@ -54,8 +54,6 @@ impl PartialTargetTriple {
 
 #[cfg(test)]
 mod test {
-    use rustup_macros::unit_test as test;
-
     use super::*;
 
     #[test]

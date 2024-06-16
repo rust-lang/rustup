@@ -7,7 +7,6 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 use rustup::for_host;
 use rustup::test::this_host_triple;
 use rustup::utils::raw;
-use rustup_macros::integration_test as test;
 
 use rustup::test::mock::{
     self,

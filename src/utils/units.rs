@@ -77,8 +77,6 @@ impl Display for Size {
 
 #[cfg(test)]
 mod tests {
-    use rustup_macros::unit_test as test;
-
     #[test]
     fn unit_formatter_test() {
         use crate::utils::units::{Size, Unit, UnitMode};

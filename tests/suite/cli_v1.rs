@@ -4,8 +4,6 @@
 use std::fs;
 
 use rustup::for_host;
-use rustup_macros::integration_test as test;
-
 use rustup::test::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {

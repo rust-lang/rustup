@@ -2,12 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use rustup_macros::unit_test as test;
-
-use crate::test::test_dir;
-
 use super::{get_executor, Executor, Item, Kind};
 use crate::currentprocess::TestProcess;
+use crate::test::test_dir;
 
 impl Item {
     /// The length of the file, for files (for stats)

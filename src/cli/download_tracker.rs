@@ -272,8 +272,6 @@ fn format_dhms(sec: u64) -> (u64, u8, u8, u8) {
 
 #[cfg(test)]
 mod tests {
-    use rustup_macros::unit_test as test;
-
     use super::format_dhms;
 
     #[test]

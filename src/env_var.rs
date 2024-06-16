@@ -46,8 +46,6 @@ mod tests {
     use std::collections::HashMap;
     use std::ffi::{OsStr, OsString};
 
-    use rustup_macros::unit_test as test;
-
     use super::*;
     use crate::currentprocess::TestProcess;
     use crate::test::{with_saved_path, Env};

@@ -21,7 +21,6 @@ use rustup::test::{
 };
 use rustup::utils::{raw, utils};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
-use rustup_macros::integration_test as test;
 
 #[cfg(windows)]
 use rustup::test::with_saved_reg_value;

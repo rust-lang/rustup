@@ -10,7 +10,6 @@ use rustup::test::{
     this_host_triple, with_saved_path,
 };
 use rustup::utils::raw;
-use rustup_macros::integration_test as test;
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
     run_input_with_env(config, args, input, &[])

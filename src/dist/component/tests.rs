@@ -2,8 +2,6 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use rustup_macros::unit_test as test;
-
 use crate::currentprocess::TestProcess;
 use crate::dist::component::Transaction;
 use crate::dist::dist::DEFAULT_DIST_SERVER;
