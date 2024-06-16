@@ -21,7 +21,7 @@ use crate::{
 
 use super::{
     names::{LocalToolchainName, ToolchainName},
-    toolchain::Toolchain,
+    Toolchain,
 };
 
 /// An official toolchain installed on the local disk
