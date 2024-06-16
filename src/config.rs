@@ -259,6 +259,16 @@ impl<'a> Cfg<'a> {
         utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        settings_file.with(|s| {
+            (notify_handler)(Notification::ReadMetadataVersion(s.version));
+            if s.version == MetadataVersion::default() {
+                Ok(())
+            } else {
+                Err(anyhow!(
+                    "rustup's metadata is out of date. run `rustup self upgrade-data`"
+                ))
+            }
+        })?;
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         let fallback_settings = if cfg!(not(windows)) {
@@ -914,22 +924,6 @@ impl<'a> Cfg<'a> {
         });
 
         Ok(channels.collect().await)
-    }
-
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn check_metadata_version(&self) -> Result<()> {
-        utils::assert_is_directory(&self.rustup_dir)?;
-
-        self.settings_file.with(|s| {
-            (self.notify_handler)(Notification::ReadMetadataVersion(s.version));
-            if s.version == MetadataVersion::default() {
-                Ok(())
-            } else {
-                Err(anyhow!(
-                    "rustup's metadata is out of date. run `rustup self upgrade-data`"
-                ))
-            }
-        })
     }
 
     pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {

@@ -573,8 +573,6 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
         cfg.set_toolchain_override(t);
     }
 
-    cfg.check_metadata_version()?;
-
     let Some(subcmd) = matches.subcmd else {
         eprintln!("{}", Rustup::command().render_long_help());
         return Ok(utils::ExitCode(1));
