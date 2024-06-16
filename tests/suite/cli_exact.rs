@@ -6,7 +6,6 @@ use rustup::test::{
     mock::clitools::{self, set_current_dist_date, with_update_server, Config, Scenario},
     this_host_triple,
 };
-use rustup_macros::integration_test as test;
 
 /// Start a test with Scenario::None
 fn test(f: &dyn Fn(&mut Config)) {

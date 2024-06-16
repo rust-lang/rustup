@@ -14,8 +14,6 @@ use anyhow::{anyhow, Result};
 use tokio::{runtime::Handle, task};
 use url::Url;
 
-use rustup_macros::unit_test as test;
-
 use crate::{
     currentprocess::{Process, TestProcess},
     dist::{

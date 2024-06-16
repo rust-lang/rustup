@@ -11,11 +11,9 @@ mod unix {
     use std::fs;
     use std::path::PathBuf;
 
-    use rustup::utils::raw;
-    use rustup_macros::integration_test as test;
-
     use super::INIT_NONE;
     use rustup::test::mock::clitools::{self, Scenario};
+    use rustup::utils::raw;
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -390,11 +388,9 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
+    use super::INIT_NONE;
     use rustup::test::mock::clitools::{self, Scenario};
     use rustup::test::{get_path, with_saved_path};
-    use rustup_macros::integration_test as test;
-
-    use super::INIT_NONE;
 
     #[test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.

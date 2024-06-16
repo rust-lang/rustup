@@ -1967,7 +1967,6 @@ dependencies = [
  "remove_dir_all",
  "retry",
  "rs_tracing",
- "rustup-macros",
  "same-file",
  "scopeguard",
  "semver",
@@ -1995,15 +1994,6 @@ dependencies = [
  "winreg",
  "xz2",
  "zstd",
-]
-
-[[package]]
-name = "rustup-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

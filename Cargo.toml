@@ -120,7 +120,6 @@ version = "0.52.0"
 enum-map = "2.5.0"
 platforms.workspace = true
 proptest.workspace = true
-rustup-macros.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 trycmd = "0.15.0"
 
@@ -130,7 +129,7 @@ platforms.workspace = true
 regex = "1"
 
 [workspace]
-members = ["download", "rustup-macros"]
+members = ["download"]
 
 [workspace.dependencies]
 anyhow = "1.0.69"
@@ -141,7 +140,6 @@ opentelemetry_sdk = { version = "0.23", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.16"
 platforms = "3.4"
 proptest = "1.1.0"
-rustup-macros = { path = "rustup-macros" }
 tempfile = "3.8"
 termcolor = "1.2"
 thiserror = "1.0"

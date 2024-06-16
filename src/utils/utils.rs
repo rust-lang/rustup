@@ -666,8 +666,6 @@ pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use rustup_macros::unit_test as test;
-
     use super::*;
 
     #[test]

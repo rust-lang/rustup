@@ -8,7 +8,6 @@ use rustup::dist::dist::TargetTriple;
 use rustup::for_host;
 use rustup::test::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 use rustup::test::this_host_triple;
-use rustup_macros::integration_test as test;
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::test(Scenario::SimpleV2, f);

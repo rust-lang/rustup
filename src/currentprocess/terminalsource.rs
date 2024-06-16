@@ -238,8 +238,6 @@ impl io::Write for ColorableTerminalLocked {
 mod tests {
     use std::collections::HashMap;
 
-    use rustup_macros::unit_test as test;
-
     use super::*;
     use crate::currentprocess::TestProcess;
     use crate::test::Env;

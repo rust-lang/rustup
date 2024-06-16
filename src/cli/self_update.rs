@@ -1335,8 +1335,6 @@ pub(crate) fn cleanup_self_updater(process: &Process) -> Result<()> {
 mod tests {
     use std::collections::HashMap;
 
-    use rustup_macros::unit_test as test;
-
     use crate::cli::common;
     use crate::cli::self_update::InstallOpts;
     use crate::dist::dist::{PartialToolchainDesc, Profile};
