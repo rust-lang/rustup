@@ -540,25 +540,8 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
         Err(err) if err.kind() == DisplayVersion => {
             write!(process.stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
-
-            #[cfg_attr(feature = "otel", tracing::instrument)]
-            async fn rustc_version(
-                current_dir: PathBuf,
-                process: &Process,
-            ) -> std::result::Result<String, Box<dyn std::error::Error>> {
-                let cfg = &mut common::set_globals(current_dir, false, true, process)?;
-
-                if let Some(t) = process.args().find(|x| x.starts_with('+')) {
-                    trace!("Fetching rustc version from toolchain `{}`", t);
-                    cfg.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
-                }
-
-                let toolchain = cfg.find_or_install_active_toolchain().await?.0;
-
-                Ok(toolchain.rustc_version())
-            }
-
-            match rustc_version(current_dir, process).await {
+            let mut cfg = common::set_globals(current_dir, false, true, process)?;
+            match cfg.active_rustc_version().await {
                 Ok(version) => info!("The currently active `rustc` version is `{}`", version),
                 Err(err) => trace!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
             }
@@ -583,6 +566,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
             Err(err)
         }
     }?;
+
     let cfg = &mut common::set_globals(current_dir, matches.verbose, matches.quiet, process)?;
 
     if let Some(t) = &matches.plus_toolchain {
