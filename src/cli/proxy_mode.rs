@@ -32,7 +32,6 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .collect();
 
     let cfg = set_globals(current_dir, false, true, process)?;
-    cfg.check_metadata_version()?;
     let cmd = cfg.local_toolchain(toolchain).await?.command(arg0)?;
     run_command_for_dir(cmd, arg0, &cmd_args)
 }
