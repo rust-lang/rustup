@@ -248,7 +248,7 @@ impl Display for MaybeOfficialToolchainName {
 /// ToolchainName can be used in calls to Cfg that alter configuration,
 /// like setting overrides, or that depend on configuration, like calculating
 /// the toolchain directory.
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ToolchainName {
     Custom(CustomToolchainName),
     Official(ToolchainDesc),
@@ -353,7 +353,7 @@ impl Display for ResolvableLocalToolchainName {
 /// the toolchain directory. It is not used to model the RUSTUP_TOOLCHAIN
 /// variable, because that can take unresolved toolchain values that are not
 /// invalid for referring to an installed toolchain.
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum LocalToolchainName {
     Named(ToolchainName),
     Path(PathBasedToolchainName),
