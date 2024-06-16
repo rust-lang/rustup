@@ -18,26 +18,6 @@ use opentelemetry_sdk::trace::Tracer;
 
 use crate::{currentprocess::Process, utils::notify::NotificationLevel};
 
-macro_rules! debug {
-    ( $ ( $ arg : tt ) * ) => ( ::tracing::trace ! ( $ ( $ arg ) * )  )
-}
-
-macro_rules! verbose {
-    ( $ ( $ arg : tt ) * ) => ( ::tracing::debug ! ( $ ( $ arg ) * )  )
-}
-
-macro_rules! info {
-    ( $ ( $ arg : tt ) * ) => ( ::tracing::info ! ( $ ( $ arg ) * )  )
-}
-
-macro_rules! warn {
-    ( $ ( $ arg : tt ) * ) => ( ::tracing::warn ! ( $ ( $ arg ) * )  )
-}
-
-macro_rules! err {
-    ( $ ( $ arg : tt ) * ) => ( ::tracing::error ! ( $ ( $ arg ) * )  )
-}
-
 pub fn tracing_subscriber(process: &Process) -> impl tracing::Subscriber {
     use tracing_subscriber::{layer::SubscriberExt, Registry};
 

@@ -61,6 +61,7 @@ use clap::ValueEnum;
 use itertools::Itertools;
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
+use tracing::{error, info, trace, warn};
 
 use crate::currentprocess::terminalsource;
 use crate::errors::RustupError;
@@ -237,7 +238,7 @@ impl<'a> InstallOpts<'a> {
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
         let resolved = partial_channel.resolve(&host_triple)?;
-        debug!("Successfully resolved installation toolchain as: {resolved}");
+        trace!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     }
 }
@@ -497,7 +498,7 @@ static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 fn update_root(process: &Process) -> String {
     process
         .var("RUSTUP_UPDATE_ROOT")
-        .inspect(|url| debug!("`RUSTUP_UPDATE_ROOT` has been set to `{url}`"))
+        .inspect(|url| trace!("`RUSTUP_UPDATE_ROOT` has been set to `{url}`"))
         .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
 }
 
@@ -985,8 +986,8 @@ async fn maybe_install_rust(
 
 pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::ExitCode> {
     if NEVER_SELF_UPDATE {
-        err!("self-uninstall is disabled for this build of rustup");
-        err!("you should probably use your system package manager to uninstall rustup");
+        error!("self-uninstall is disabled for this build of rustup");
+        error!("you should probably use your system package manager to uninstall rustup");
         return Ok(utils::ExitCode(1));
     }
 
@@ -1112,8 +1113,8 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
     match update_permitted {
         HardFail => {
             // TODO: Detect which package manager and be more useful.
-            err!("self-update is disabled for this build of rustup");
-            err!("you should probably use your system package manager to update rustup");
+            error!("self-update is disabled for this build of rustup");
+            error!("you should probably use your system package manager to update rustup");
             return Ok(utils::ExitCode(1));
         }
         Skip => {
@@ -1126,7 +1127,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
     match prepare_update(cfg.process).await? {
         Some(setup_path) => {
             let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
-                err!("failed to get rustup version");
+                error!("failed to get rustup version");
                 return Ok(utils::ExitCode(1));
             };
 

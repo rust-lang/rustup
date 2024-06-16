@@ -9,6 +9,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
+use tracing::trace;
 
 use crate::settings::MetadataVersion;
 use crate::{
@@ -297,7 +298,7 @@ impl<'a> Cfg<'a> {
 
         let dist_root_server = match process.var("RUSTUP_DIST_SERVER") {
             Ok(s) if !s.is_empty() => {
-                debug!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
+                trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
                 s
             }
             _ => {
@@ -306,7 +307,7 @@ impl<'a> Cfg<'a> {
                     .var("RUSTUP_DIST_ROOT")
                     .ok()
                     .and_then(utils::if_not_empty)
-                    .inspect(|url| debug!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
+                    .inspect(|url| trace!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
                     .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)
                     .as_ref()
                     .trim_end_matches("/dist")

@@ -8,6 +8,7 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Context, Result};
+use tracing::{info, warn};
 
 use super::super::errors::*;
 use super::common;
