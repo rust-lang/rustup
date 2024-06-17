@@ -11,20 +11,15 @@ use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
 use tracing::trace;
 
-use crate::settings::MetadataVersion;
 use crate::{
     cli::self_update::SelfUpdateMode,
     currentprocess::Process,
-    dist::{
-        dist::{self, Profile, ToolchainDesc},
-        download::DownloadCfg,
-        temp,
-    },
+    dist::{self, download::DownloadCfg, temp, Profile, ToolchainDesc},
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
     notifications::*,
-    settings::{Settings, SettingsFile},
+    settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
         distributable::DistributableToolchain,
         names::{

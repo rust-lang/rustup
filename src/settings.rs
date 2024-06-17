@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::cli::self_update::SelfUpdateMode;
-use crate::dist::dist::Profile;
+use crate::dist::Profile;
 use crate::errors::*;
 use crate::notifications::*;
 use crate::utils::utils;

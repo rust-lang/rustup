@@ -50,7 +50,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::dist::dist::{PartialToolchainDesc, TargetTriple, ToolchainDesc};
+use crate::dist::{PartialToolchainDesc, TargetTriple, ToolchainDesc};
 
 /// Errors related to toolchains
 #[derive(Error, Debug)]
@@ -492,8 +492,8 @@ mod tests {
 
     use crate::{
         dist::{
-            dist::PartialToolchainDesc,
             triple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
+            PartialToolchainDesc,
         },
         toolchain::names::{CustomToolchainName, ResolvableToolchainName, ToolchainName},
     };

@@ -10,7 +10,7 @@ use crate::{
         self_update::{self, InstallOpts},
     },
     currentprocess::Process,
-    dist::dist::Profile,
+    dist::Profile,
     toolchain::names::MaybeOfficialToolchainName,
     utils::utils,
 };
