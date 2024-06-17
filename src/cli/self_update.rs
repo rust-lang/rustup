@@ -30,21 +30,6 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-#[cfg(unix)]
-mod shell;
-#[cfg(feature = "test")]
-pub(crate) mod test;
-#[cfg(unix)]
-mod unix;
-#[cfg(windows)]
-mod windows;
-mod os {
-    #[cfg(unix)]
-    pub(crate) use super::unix::*;
-    #[cfg(windows)]
-    pub(crate) use super::windows::*;
-}
-
 use std::borrow::Cow;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -82,10 +67,26 @@ use crate::{
     DUP_TOOLS, TOOLS,
 };
 
-use os::*;
-pub(crate) use os::{run_update, self_replace};
+#[cfg(unix)]
+mod shell;
+#[cfg(feature = "test")]
+pub(crate) mod test;
+
+#[cfg(unix)]
+mod unix;
+#[cfg(unix)]
+use unix::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+#[cfg(unix)]
+pub(crate) use unix::{run_update, self_replace};
+
+#[cfg(windows)]
+mod windows;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
+#[cfg(windows)]
+use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+#[cfg(windows)]
+pub(crate) use windows::{run_update, self_replace};
 
 pub(crate) struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
@@ -557,19 +558,20 @@ pub(crate) async fn install(
     }
 
     #[cfg(unix)]
-    do_anti_sudo_check(no_prompt, process)?;
+    unix::do_anti_sudo_check(no_prompt, process)?;
 
     let mut term = process.stdout().terminal(process);
 
     #[cfg(windows)]
-    if let Some(plan) = do_msvc_check(&opts, process) {
+    if let Some(plan) = windows::do_msvc_check(&opts, process) {
+        use windows::{VsInstallPlan, ContinueInstall};
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
         } else if !quiet && plan == VsInstallPlan::Automatic {
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
             match windows::choose_vs_install(process)? {
                 Some(VsInstallPlan::Automatic) => {
-                    match try_install_msvc(&opts, process).await {
+                    match windows::try_install_msvc(&opts, process).await {
                         Err(e) => {
                             // Make sure the console doesn't exit before the user can
                             // see the error and give the option to continue anyway.
@@ -580,7 +582,7 @@ pub(crate) async fn install(
                             }
                         }
                         Ok(ContinueInstall::No) => {
-                            ensure_prompt(process)?;
+                            windows::ensure_prompt(process)?;
                             return Ok(utils::ExitCode(0));
                         }
                         _ => {}
@@ -638,7 +640,7 @@ pub(crate) async fn install(
         // window closes.
         #[cfg(windows)]
         if !no_prompt {
-            ensure_prompt(process)?;
+            windows::ensure_prompt(process)?;
         }
 
         return Ok(utils::ExitCode(1));
@@ -672,7 +674,7 @@ pub(crate) async fn install(
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
-        ensure_prompt(process)?;
+        windows::ensure_prompt(process)?;
     }
 
     Ok(utils::ExitCode(0))
@@ -928,11 +930,11 @@ async fn maybe_install_rust(
     install_bins(process)?;
 
     #[cfg(unix)]
-    do_write_env_files(process)?;
+    unix::do_write_env_files(process)?;
 
     if !opts.no_modify_path {
         #[cfg(windows)]
-        do_add_to_programs(process)?;
+        windows::do_add_to_programs(process)?;
         do_add_to_path(process)?;
     }
 
@@ -1021,7 +1023,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
     // Remove CARGO_HOME/bin from PATH
     do_remove_from_path(process)?;
     #[cfg(windows)]
-    do_remove_from_programs()?;
+    windows::do_remove_from_programs()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin
 
