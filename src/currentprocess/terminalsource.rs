@@ -146,17 +146,6 @@ impl ColorableTerminal {
         }
     }
 
-    pub fn bg(&mut self, color: Color) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, spec) => {
-                spec.set_bg(Some(color));
-                s.set_color(spec)
-            }
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_, _) => Ok(()),
-        }
-    }
-
     pub fn attr(&mut self, attr: Attr) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, spec) => {
