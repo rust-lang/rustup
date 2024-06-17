@@ -12,9 +12,9 @@ use tracing::{info, warn};
 
 use super::super::errors::*;
 use super::common;
-use super::{install_bins, InstallOpts};
-use crate::cli::download_tracker::DownloadTracker;
-use crate::currentprocess::Process;
+use super::{install_bins, report_error, InstallOpts};
+use crate::cli::{download_tracker::DownloadTracker, markdown::md};
+use crate::currentprocess::{terminalsource::ColorableTerminal, Process};
 use crate::dist::TargetTriple;
 use crate::utils::utils;
 use crate::utils::Notification;
@@ -83,6 +83,90 @@ pub(crate) fn choose_vs_install(process: &Process) -> Result<Option<VsInstallPla
     };
     Ok(plan)
 }
+
+pub(super) async fn maybe_install_msvc(
+    term: &mut ColorableTerminal,
+    no_prompt: bool,
+    quiet: bool,
+    opts: &InstallOpts<'_>,
+    process: &Process,
+) -> Result<()> {
+    let Some(plan) = do_msvc_check(opts, process) else {
+        return Ok(());
+    };
+
+    if no_prompt {
+        warn!("installing msvc toolchain without its prerequisites");
+    } else if !quiet && plan == VsInstallPlan::Automatic {
+        md(term, MSVC_AUTO_INSTALL_MESSAGE);
+        match choose_vs_install(process)? {
+            Some(VsInstallPlan::Automatic) => {
+                match try_install_msvc(opts, process).await {
+                    Err(e) => {
+                        // Make sure the console doesn't exit before the user can
+                        // see the error and give the option to continue anyway.
+                        report_error(&e, process);
+                        if !common::question_bool("\nContinue?", false, process)? {
+                            info!("aborting installation");
+                        }
+                    }
+                    Ok(ContinueInstall::No) => ensure_prompt(process)?,
+                    _ => {}
+                }
+            }
+            Some(VsInstallPlan::Manual) => {
+                md(term, MSVC_MANUAL_INSTALL_MESSAGE);
+                if !common::question_bool("\nContinue?", false, process)? {
+                    info!("aborting installation");
+                }
+            }
+            None => {}
+        }
+    } else {
+        md(term, MSVC_MESSAGE);
+        md(term, MSVC_MANUAL_INSTALL_MESSAGE);
+        if !common::question_bool("\nContinue?", false, process)? {
+            info!("aborting installation");
+        }
+    }
+
+    Ok(())
+}
+
+static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
+
+Rust requires the Microsoft C++ build tools for Visual Studio 2017 or
+later, but they don't seem to be installed.
+
+"#;
+
+static MSVC_MANUAL_INSTALL_MESSAGE: &str = r#"
+You can acquire the build tools by installing Microsoft Visual Studio.
+
+    https://visualstudio.microsoft.com/downloads/
+
+Check the box for "Desktop development with C++" which will ensure that the
+needed components are installed. If your locale language is not English,
+then additionally check the box for English under Language packs.
+
+For more details see:
+
+    https://rust-lang.github.io/rustup/installation/windows-msvc.html
+
+_Install the C++ build tools before proceeding_.
+
+If you will be targeting the GNU ABI or otherwise know what you are
+doing then it is fine to continue installation without the build
+tools, but otherwise, install the C++ build tools before proceeding.
+"#;
+
+static MSVC_AUTO_INSTALL_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
+
+Rust requires a linker and Windows API libraries but they don't seem to be available.
+
+These components can be acquired through a Visual Studio installer.
+
+"#;
 
 #[derive(PartialEq, Eq)]
 pub(crate) enum VsInstallPlan {

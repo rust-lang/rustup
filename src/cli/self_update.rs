@@ -454,44 +454,6 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
-#[cfg(windows)]
-static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
-
-Rust requires the Microsoft C++ build tools for Visual Studio 2017 or
-later, but they don't seem to be installed.
-
-"#;
-
-#[cfg(windows)]
-static MSVC_MANUAL_INSTALL_MESSAGE: &str = r#"
-You can acquire the build tools by installing Microsoft Visual Studio.
-
-    https://visualstudio.microsoft.com/downloads/
-
-Check the box for "Desktop development with C++" which will ensure that the
-needed components are installed. If your locale language is not English,
-then additionally check the box for English under Language packs.
-
-For more details see:
-
-    https://rust-lang.github.io/rustup/installation/windows-msvc.html
-
-_Install the C++ build tools before proceeding_.
-
-If you will be targeting the GNU ABI or otherwise know what you are
-doing then it is fine to continue installation without the build
-tools, but otherwise, install the C++ build tools before proceeding.
-"#;
-
-#[cfg(windows)]
-static MSVC_AUTO_INSTALL_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
-
-Rust requires a linker and Windows API libraries but they don't seem to be available.
-
-These components can be acquired through a Visual Studio installer.
-
-"#;
-
 static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 fn update_root(process: &Process) -> String {
@@ -563,49 +525,7 @@ pub(crate) async fn install(
     let mut term = process.stdout().terminal(process);
 
     #[cfg(windows)]
-    if let Some(plan) = windows::do_msvc_check(&opts, process) {
-        use windows::{VsInstallPlan, ContinueInstall};
-        if no_prompt {
-            warn!("installing msvc toolchain without its prerequisites");
-        } else if !quiet && plan == VsInstallPlan::Automatic {
-            md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
-            match windows::choose_vs_install(process)? {
-                Some(VsInstallPlan::Automatic) => {
-                    match windows::try_install_msvc(&opts, process).await {
-                        Err(e) => {
-                            // Make sure the console doesn't exit before the user can
-                            // see the error and give the option to continue anyway.
-                            report_error(&e, process);
-                            if !common::question_bool("\nContinue?", false, process)? {
-                                info!("aborting installation");
-                                return Ok(utils::ExitCode(0));
-                            }
-                        }
-                        Ok(ContinueInstall::No) => {
-                            windows::ensure_prompt(process)?;
-                            return Ok(utils::ExitCode(0));
-                        }
-                        _ => {}
-                    }
-                }
-                Some(VsInstallPlan::Manual) => {
-                    md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
-                    if !common::question_bool("\nContinue?", false, process)? {
-                        info!("aborting installation");
-                        return Ok(utils::ExitCode(0));
-                    }
-                }
-                None => {}
-            }
-        } else {
-            md(&mut term, MSVC_MESSAGE);
-            md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
-            if !common::question_bool("\nContinue?", false, process)? {
-                info!("aborting installation");
-                return Ok(utils::ExitCode(0));
-            }
-        }
-    }
+    windows::maybe_install_msvc(&mut term, no_prompt, quiet, &opts, process).await?;
 
     if !no_prompt {
         let msg = pre_install_msg(opts.no_modify_path, process)?;
