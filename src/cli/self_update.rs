@@ -853,8 +853,6 @@ async fn maybe_install_rust(
     unix::do_write_env_files(process)?;
 
     if !opts.no_modify_path {
-        #[cfg(windows)]
-        windows::do_add_to_programs(process)?;
         do_add_to_path(process)?;
     }
 
@@ -942,8 +940,6 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
 
     // Remove CARGO_HOME/bin from PATH
     do_remove_from_path(process)?;
-    #[cfg(windows)]
-    windows::do_remove_from_programs()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin
 
