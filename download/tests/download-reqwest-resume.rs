@@ -21,7 +21,7 @@ async fn resume_partial_from_file_url() {
 
     let from_url = Url::from_file_path(&from_path).unwrap();
     download_to_path_with_backend(
-        Backend::Reqwest(TlsBackend::Default),
+        Backend::Reqwest(TlsBackend::NativeTls),
         &from_url,
         &target_path,
         true,
@@ -48,7 +48,7 @@ async fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
     let received_in_callback = Mutex::new(Vec::new());
 
     download_to_path_with_backend(
-        Backend::Reqwest(TlsBackend::Default),
+        Backend::Reqwest(TlsBackend::NativeTls),
         &from_url,
         &target_path,
         true,

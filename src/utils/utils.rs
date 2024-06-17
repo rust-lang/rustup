@@ -229,11 +229,11 @@ async fn download_file_(
         let tls_backend = if use_rustls {
             TlsBackend::Rustls
         } else {
-            #[cfg(feature = "reqwest-default-tls")]
+            #[cfg(feature = "reqwest-native-tls")]
             {
-                TlsBackend::Default
+                TlsBackend::NativeTls
             }
-            #[cfg(not(feature = "reqwest-default-tls"))]
+            #[cfg(not(feature = "reqwest-native-tls"))]
             {
                 TlsBackend::Rustls
             }

@@ -5,12 +5,10 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [features]
-
-default = ["reqwest-backend", "reqwest-rustls-tls", "reqwest-default-tls"]
-
+default = ["reqwest-backend", "reqwest-rustls-tls", "reqwest-native-tls"]
 curl-backend = ["curl"]
 reqwest-backend = ["reqwest", "env_proxy"]
-reqwest-default-tls = ["reqwest/default-tls", "dep:once_cell"]
+reqwest-native-tls = ["reqwest/native-tls", "dep:once_cell"]
 reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots", "dep:once_cell"]
 
 [dependencies]

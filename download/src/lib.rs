@@ -14,7 +14,7 @@ use url::Url;
 #[cfg(feature = "curl-backend")]
 const CURL_USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"), " (curl)");
 
-#[cfg(feature = "reqwest-default-tls")]
+#[cfg(feature = "reqwest-native-tls")]
 const REQWEST_DEFAULT_TLS_USER_AGENT: &str = concat!(
     "rustup/",
     env!("CARGO_PKG_VERSION"),
@@ -34,7 +34,7 @@ pub enum Backend {
 #[derive(Debug, Copy, Clone)]
 pub enum TlsBackend {
     Rustls,
-    Default,
+    NativeTls,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -289,7 +289,7 @@ pub mod curl {
 pub mod reqwest_be {
     #[cfg(all(
         not(feature = "reqwest-rustls-tls"),
-        not(feature = "reqwest-default-tls")
+        not(feature = "reqwest-native-tls")
     ))]
     compile_error!("Must select a reqwest TLS backend");
 
@@ -297,7 +297,7 @@ pub mod reqwest_be {
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-default-tls"))]
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use once_cell::sync::Lazy;
     use reqwest::{header, Client, ClientBuilder, Proxy, Response};
     use tokio_stream::StreamExt;
@@ -367,7 +367,7 @@ pub mod reqwest_be {
         catcher().unwrap()
     });
 
-    #[cfg(feature = "reqwest-default-tls")]
+    #[cfg(feature = "reqwest-native-tls")]
     static CLIENT_DEFAULT_TLS: Lazy<Client> = Lazy::new(|| {
         let catcher = || {
             client_generic()
@@ -400,10 +400,10 @@ pub mod reqwest_be {
             TlsBackend::Rustls => {
                 return Err(DownloadError::BackendUnavailable("reqwest rustls"));
             }
-            #[cfg(feature = "reqwest-default-tls")]
-            TlsBackend::Default => &CLIENT_DEFAULT_TLS,
-            #[cfg(not(feature = "reqwest-default-tls"))]
-            TlsBackend::Default => {
+            #[cfg(feature = "reqwest-native-tls")]
+            TlsBackend::NativeTls => &CLIENT_DEFAULT_TLS,
+            #[cfg(not(feature = "reqwest-native-tls"))]
+            TlsBackend::NativeTls => {
                 return Err(DownloadError::BackendUnavailable("reqwest default TLS"));
             }
         };
