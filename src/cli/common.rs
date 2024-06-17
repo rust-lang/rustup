@@ -155,7 +155,7 @@ impl Notifier {
         let level = n.level();
         for n in format!("{n}").lines() {
             match level {
-                NotificationLevel::Verbose => {
+                NotificationLevel::Debug => {
                     if self.verbose {
                         debug!("{}", n);
                     }
@@ -169,7 +169,7 @@ impl Notifier {
                 NotificationLevel::Error => {
                     error!("{}", n);
                 }
-                NotificationLevel::Debug => {
+                NotificationLevel::Trace => {
                     trace!("{}", n);
                 }
             }

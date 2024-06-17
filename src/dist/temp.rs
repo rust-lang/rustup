@@ -83,10 +83,10 @@ impl<'a> Notification<'a> {
     pub(crate) fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
-            CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Verbose,
+            CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Debug,
             FileDeletion(_, result) | DirectoryDeletion(_, result) => {
                 if result.is_ok() {
-                    NotificationLevel::Verbose
+                    NotificationLevel::Debug
                 } else {
                     NotificationLevel::Warn
                 }

@@ -60,7 +60,7 @@ impl<'a> Notification<'a> {
             ChecksumValid(_)
             | NoUpdateHash(_)
             | FileAlreadyDownloaded
-            | DownloadingLegacyManifest => NotificationLevel::Verbose,
+            | DownloadingLegacyManifest => NotificationLevel::Debug,
             Extracting(_, _)
             | DownloadingComponent(_, _, _)
             | InstallingComponent(_, _, _)

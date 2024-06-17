@@ -68,7 +68,7 @@ impl<'a> Notification<'a> {
             | UpdatingToolchain(_)
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
-            | UpdateHashMatches => NotificationLevel::Verbose,
+            | UpdateHashMatches => NotificationLevel::Debug,
             SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
             | SetProfile(_)
