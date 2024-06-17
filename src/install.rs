@@ -6,7 +6,7 @@ use anyhow::Result;
 
 use crate::{
     config::Cfg,
-    dist::{dist, download::DownloadCfg, prefix::InstallPrefix, Notification},
+    dist::{self, download::DownloadCfg, prefix::InstallPrefix, Notification},
     errors::RustupError,
     notifications::Notification as RootNotification,
     toolchain::{

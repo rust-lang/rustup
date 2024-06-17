@@ -4,7 +4,7 @@
 use std::fs;
 use std::io::Write;
 
-use rustup::dist::dist::TargetTriple;
+use rustup::dist::TargetTriple;
 use rustup::for_host;
 use rustup::test::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 use rustup::test::this_host_triple;

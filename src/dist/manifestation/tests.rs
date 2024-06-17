@@ -17,12 +17,11 @@ use url::Url;
 use crate::{
     currentprocess::{Process, TestProcess},
     dist::{
-        dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER},
         download::DownloadCfg,
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
         prefix::InstallPrefix,
-        temp, Notification,
+        temp, Notification, Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER,
     },
     errors::RustupError,
     test::mock::{dist::*, MockComponentBuilder, MockFile, MockInstallerBuilder},

@@ -11,10 +11,12 @@ use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use crate::dist::dist::{Profile, TargetTriple};
-use crate::dist::manifest::{
-    Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package, PackageTargets,
-    Renamed, TargetedPackage,
+use crate::dist::{
+    manifest::{
+        Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package,
+        PackageTargets, Renamed, TargetedPackage,
+    },
+    Profile, TargetTriple,
 };
 
 use super::clitools::hard_link;

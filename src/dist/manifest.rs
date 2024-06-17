@@ -21,10 +21,11 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{config::Config, dist::ToolchainDesc};
-use crate::dist::dist::{Profile, TargetTriple};
-use crate::errors::*;
-use crate::toolchain::distributable::DistributableToolchain;
+use crate::{
+    dist::{config::Config, Profile, TargetTriple, ToolchainDesc},
+    errors::*,
+    toolchain::distributable::DistributableToolchain,
+};
 
 /// Used by the `installed_components` function
 pub(crate) struct ComponentStatus {
@@ -627,8 +628,8 @@ impl fmt::Display for ManifestVersion {
 
 #[cfg(test)]
 mod tests {
-    use crate::dist::dist::TargetTriple;
     use crate::dist::manifest::Manifest;
+    use crate::dist::TargetTriple;
     use crate::RustupError;
 
     // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week

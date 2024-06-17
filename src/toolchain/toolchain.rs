@@ -17,7 +17,7 @@ use wait_timeout::ChildExt;
 
 use crate::{
     config::{ActiveReason, Cfg},
-    dist::dist::PartialToolchainDesc,
+    dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,
     utils::{raw::open_dir_following_links, utils},

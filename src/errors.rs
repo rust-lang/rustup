@@ -11,8 +11,8 @@ use thiserror::Error as ThisError;
 use url::Url;
 
 use crate::{
-    dist::dist::{TargetTriple, ToolchainDesc},
     dist::manifest::{Component, Manifest},
+    dist::{TargetTriple, ToolchainDesc},
     toolchain::names::{PathBasedToolchainName, ToolchainName},
 };
 

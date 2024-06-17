@@ -9,10 +9,10 @@ use crate::{
     config::Cfg,
     dist::{
         config::Config,
-        dist::{PartialToolchainDesc, Profile, ToolchainDesc},
         manifest::{Component, ComponentStatus, Manifest},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
+        PartialToolchainDesc, Profile, ToolchainDesc,
     },
     install::{InstallMethod, UpdateStatus},
     notifications::Notification,
@@ -539,9 +539,7 @@ impl<'a> DistributableToolchain<'a> {
             &|n: crate::dist::Notification<'_>| (self.cfg.notify_handler)(n.into());
         let download_cfg = self.cfg.download_cfg(&notify_handler);
 
-        match crate::dist::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc)
-            .await?
-        {
+        match crate::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc).await? {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }

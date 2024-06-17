@@ -25,8 +25,8 @@ use crate::{
         Process,
     },
     dist::{
-        dist::{PartialToolchainDesc, Profile, TargetTriple},
         manifest::{Component, ComponentStatus},
+        PartialToolchainDesc, Profile, TargetTriple,
     },
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},

@@ -1,6 +1,6 @@
-use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::dist::manifest::Component;
 use crate::dist::temp;
+use crate::dist::{TargetTriple, ToolchainDesc};
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;

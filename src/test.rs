@@ -17,7 +17,7 @@ use anyhow::Result;
 
 pub use crate::cli::self_update::test::{with_saved_global_state, with_saved_path};
 use crate::currentprocess::TestProcess;
-use crate::dist::dist::TargetTriple;
+use crate::dist::TargetTriple;
 
 #[cfg(windows)]
 pub use crate::cli::self_update::test::{get_path, with_saved_reg_value};

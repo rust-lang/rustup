@@ -63,8 +63,6 @@ use same_file::Handle;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, trace, warn};
 
-use crate::currentprocess::terminalsource;
-use crate::errors::RustupError;
 use crate::{
     cli::{
         common::{self, ignorable_error, report_error, Confirm, PackageUpdate},
@@ -72,8 +70,9 @@ use crate::{
         markdown::md,
     },
     config::Cfg,
-    currentprocess::Process,
-    dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
+    currentprocess::{terminalsource, Process},
+    dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
+    errors::RustupError,
     install::UpdateStatus,
     toolchain::{
         distributable::DistributableToolchain,
@@ -1338,7 +1337,7 @@ mod tests {
 
     use crate::cli::common;
     use crate::cli::self_update::InstallOpts;
-    use crate::dist::dist::{PartialToolchainDesc, Profile};
+    use crate::dist::{PartialToolchainDesc, Profile};
     use crate::test::{test_dir, with_rustup_home, Env};
     use crate::{currentprocess::TestProcess, for_host};
 
