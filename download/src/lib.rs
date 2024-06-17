@@ -1,15 +1,13 @@
 //! Easy file downloading
 #![deny(rust_2018_idioms)]
 
+use std::fs::remove_file;
 use std::path::Path;
 
 use anyhow::Context;
 pub use anyhow::Result;
-use std::fs::remove_file;
+use thiserror::Error;
 use url::Url;
-
-mod errors;
-pub use crate::errors::*;
 
 /// User agent header value for HTTP request.
 /// See: https://github.com/rust-lang/rustup/issues/2860.
@@ -185,8 +183,7 @@ pub mod curl {
     use curl::easy::Easy;
     use url::Url;
 
-    use super::Event;
-    use crate::errors::*;
+    use super::{DownloadError, Event};
 
     pub fn download(
         url: &Url,
@@ -306,9 +303,7 @@ pub mod reqwest_be {
     use tokio_stream::StreamExt;
     use url::Url;
 
-    use super::Event;
-    use super::TlsBackend;
-    use crate::errors::*;
+    use super::{DownloadError, Event, TlsBackend};
 
     pub async fn download(
         url: &Url,
@@ -460,14 +455,32 @@ pub mod reqwest_be {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum DownloadError {
+    #[error("http request returned an unsuccessful status code: {0}")]
+    HttpStatus(u32),
+    #[error("file not found")]
+    FileNotFound,
+    #[error("download backend '{0}' unavailable")]
+    BackendUnavailable(&'static str),
+    #[error("{0}")]
+    Message(String),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[cfg(feature = "reqwest-backend")]
+    #[error(transparent)]
+    Reqwest(#[from] ::reqwest::Error),
+    #[cfg(feature = "curl-backend")]
+    #[error(transparent)]
+    CurlError(#[from] ::curl::Error),
+}
+
 #[cfg(not(feature = "curl-backend"))]
 pub mod curl {
-
     use anyhow::{anyhow, Result};
-
-    use super::Event;
-    use crate::errors::*;
     use url::Url;
+
+    use super::{DownloadError, Event};
 
     pub fn download(
         _url: &Url,
@@ -480,13 +493,10 @@ pub mod curl {
 
 #[cfg(not(feature = "reqwest-backend"))]
 pub mod reqwest_be {
-
     use anyhow::{anyhow, Result};
-
-    use super::Event;
-    use super::TlsBackend;
-    use crate::errors::*;
     use url::Url;
+
+    use super::{DownloadError, Event, TlsBackend};
 
     pub fn download(
         _url: &Url,
