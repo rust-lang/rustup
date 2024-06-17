@@ -325,6 +325,7 @@ impl Manifestation {
         Ok(UpdateStatus::Changed)
     }
 
+    #[cfg(test)]
     pub fn uninstall(
         &self,
         manifest: &Manifest,

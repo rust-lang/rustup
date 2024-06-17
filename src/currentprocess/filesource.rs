@@ -6,7 +6,6 @@ use crate::currentprocess::Process;
 /// Stand-in for std::io::Stdin
 pub trait Stdin {
     fn lock(&self) -> Box<dyn StdinLock + '_>;
-    fn read_line(&self, buf: &mut String) -> Result<usize>;
 }
 
 /// Stand-in for std::io::StdinLock
@@ -19,10 +18,6 @@ impl StdinLock for io::StdinLock<'_> {}
 impl Stdin for io::Stdin {
     fn lock(&self) -> Box<dyn StdinLock + '_> {
         Box::new(io::Stdin::lock(self))
-    }
-
-    fn read_line(&self, buf: &mut String) -> Result<usize> {
-        io::Stdin::read_line(self, buf)
     }
 }
 
@@ -132,9 +127,6 @@ mod test_support {
             Box::new(TestStdinLock {
                 inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
             })
-        }
-        fn read_line(&self, buf: &mut String) -> Result<usize> {
-            self.lock().read_line(buf)
         }
     }
 
