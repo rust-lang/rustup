@@ -17,7 +17,7 @@ impl fmt::Display for NotificationLevel {
             NotificationLevel::Trace => "trace",
             NotificationLevel::Debug => "debug",
             NotificationLevel::Info => "info",
-            NotificationLevel::Warn => "warning",
+            NotificationLevel::Warn => "warn",
             NotificationLevel::Error => "error",
         })
     }

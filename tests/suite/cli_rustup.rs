@@ -2065,7 +2065,7 @@ components = [ "rust-bongo" ]
 
             config.expect_stderr_ok(
                 &["rustc", "--version"],
-                "warning: Force-skipping unavailable component 'rust-bongo",
+                "warn: Force-skipping unavailable component 'rust-bongo",
             );
         })
     });
@@ -2533,8 +2533,8 @@ fn warn_on_unmatch_build() {
         config.expect_stderr_ok(
             &["rustup", "toolchain", "install", &format!("nightly-{arch}")],
             &format!(
-                r"warning: toolchain 'nightly-{arch}' may not be able to run on this system.
-warning: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
+                r"warn: toolchain 'nightly-{arch}' may not be able to run on this system.
+warn: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
             ),
         );
         })
@@ -2560,7 +2560,7 @@ fn dont_warn_on_partial_build() {
                 r"info: syncing channel updates for 'nightly-{triple}'"
             )));
             assert!(!stderr.contains(&format!(
-                r"warning: toolchain 'nightly-{arch}' may not be able to run on this system."
+                r"warn: toolchain 'nightly-{arch}' may not be able to run on this system."
             )));
         })
     })
@@ -2613,7 +2613,7 @@ fn warn_on_duplicate_rust_toolchain_file() {
             config.expect_stderr_ok(
                 &["rustc", "--version"],
                 &format!(
-                    "warning: both `{0}` and `{1}` exist. Using `{0}`",
+                    "warn: both `{0}` and `{1}` exist. Using `{0}`",
                     toolchain_file_1.canonicalize().unwrap().display(),
                     toolchain_file_2.canonicalize().unwrap().display(),
                 ),
