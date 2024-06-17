@@ -852,7 +852,7 @@ mod tests {
             );
         });
         assert_eq!(
-            r"warning: the registry key HKEY_CURRENT_USER\Environment\PATH is not a string. Not modifying the PATH variable
+            r"warn: the registry key HKEY_CURRENT_USER\Environment\PATH is not a string. Not modifying the PATH variable
 ",
             String::from_utf8(tp.stderr()).unwrap()
         );

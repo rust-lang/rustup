@@ -287,7 +287,7 @@ ensure_loongarch_uapi() {
             exit 1
             ;;
         *)
-            echo "Warning: Cannot determine current system's ABI flavor, continuing anyway." >&2
+            echo "warn: Cannot determine current system's ABI flavor, continuing anyway." >&2
             echo >&2
             echo 'Note that the official Rust distribution only works with the upstream' >&2
             echo 'kernel ABI.  Installation will fail if your running kernel happens to be' >&2
@@ -601,9 +601,9 @@ downloader() {
             _err=$(curl $_retry --proto '=https' --tlsv1.2 --ciphers "$_ciphersuites" --silent --show-error --fail --location "$1" --output "$2" 2>&1)
             _status=$?
         else
-            echo "Warning: Not enforcing strong cipher suites for TLS, this is potentially less secure"
+            echo "warn: Not enforcing strong cipher suites for TLS, this is potentially less secure"
             if ! check_help_for "$3" curl --proto --tlsv1.2; then
-                echo "Warning: Not enforcing TLS v1.2, this is potentially less secure"
+                echo "warn: Not enforcing TLS v1.2, this is potentially less secure"
                 _err=$(curl $_retry --silent --show-error --fail --location "$1" --output "$2" 2>&1)
                 _status=$?
             else
@@ -620,7 +620,7 @@ downloader() {
         return $_status
     elif [ "$_dld" = wget ]; then
         if [ "$(wget -V 2>&1|head -2|tail -1|cut -f1 -d" ")" = "BusyBox" ]; then
-            echo "Warning: using the BusyBox version of wget.  Not enforcing strong cipher suites for TLS or TLS v1.2, this is potentially less secure"
+            echo "warn: using the BusyBox version of wget.  Not enforcing strong cipher suites for TLS or TLS v1.2, this is potentially less secure"
             _err=$(wget "$1" -O "$2" 2>&1)
             _status=$?
         else
@@ -630,9 +630,9 @@ downloader() {
                 _err=$(wget --https-only --secure-protocol=TLSv1_2 --ciphers "$_ciphersuites" "$1" -O "$2" 2>&1)
                 _status=$?
             else
-                echo "Warning: Not enforcing strong cipher suites for TLS, this is potentially less secure"
+                echo "warn: Not enforcing strong cipher suites for TLS, this is potentially less secure"
                 if ! check_help_for "$3" wget --https-only --secure-protocol; then
-                    echo "Warning: Not enforcing TLS v1.2, this is potentially less secure"
+                    echo "warn: Not enforcing TLS v1.2, this is potentially less secure"
                     _err=$(wget "$1" -O "$2" 2>&1)
                     _status=$?
                 else
@@ -679,7 +679,7 @@ check_help_for() {
                     # fail to find these options to force fallback
                     if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
                         # Older than 10.13
-                        echo "Warning: Detected macOS platform older than 10.13"
+                        echo "warn: Detected macOS platform older than 10.13"
                         return 1
                     fi
                     ;;
@@ -688,7 +688,7 @@ check_help_for() {
                     ;;
                 *)
                     # Unknown product version, warn and continue
-                    echo "Warning: Detected unknown macOS major version: $(sw_vers -productVersion)"
+                    echo "warn: Detected unknown macOS major version: $(sw_vers -productVersion)"
                     echo "Warning TLS capabilities detection may fail"
                     ;;
             esac

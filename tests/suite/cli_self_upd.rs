@@ -744,13 +744,13 @@ fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
         assert!(out.ok);
         assert!(out
             .stderr
-            .contains("warning: it looks like you have existing rustup.sh metadata"));
+            .contains("warn: it looks like you have existing rustup.sh metadata"));
         assert!(out
             .stderr
             .contains("error: cannot install while rustup.sh is installed"));
-        assert!(out.stderr.contains(
-            "warning: continuing (because the -y flag is set and the error is ignorable)"
-        ));
+        assert!(out
+            .stderr
+            .contains("warn: continuing (because the -y flag is set and the error is ignorable)"));
         assert!(!out.stdout.contains("Continue? (y/N)"));
     })
 }
@@ -767,13 +767,13 @@ fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
         assert!(out.ok);
         assert!(!out
             .stderr
-            .contains("warning: it looks like you have existing rustup.sh metadata"));
+            .contains("warn: it looks like you have existing rustup.sh metadata"));
         assert!(!out
             .stderr
             .contains("error: cannot install while rustup.sh is installed"));
-        assert!(!out.stderr.contains(
-            "warning: continuing (because the -y flag is set and the error is ignorable)"
-        ));
+        assert!(!out
+            .stderr
+            .contains("warn: continuing (because the -y flag is set and the error is ignorable)"));
         assert!(!out.stdout.contains("Continue? (y/N)"));
     })
 }

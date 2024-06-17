@@ -1353,7 +1353,7 @@ fn test_warn_if_complete_profile_is_used() {
                 "complete",
                 "stable",
             ],
-            "warning: downloading with complete profile",
+            "warn: downloading with complete profile",
         );
     });
 }
@@ -1377,7 +1377,7 @@ fn test_complete_profile_skips_missing_when_forced() {
         // Now try and force
         config.expect_stderr_ok(
             &["rustup", "toolchain", "install", "--force", "nightly"],
-            for_host!("warning: Force-skipping unavailable component 'rls-{}'"),
+            for_host!("warn: Force-skipping unavailable component 'rls-{}'"),
         );
 
         // Ensure that the skipped component (rls) is not installed
@@ -1407,7 +1407,7 @@ fn run_with_install_flag_against_unavailable_component() {
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-warning: Force-skipping unavailable component 'rust-std-{0}'
+warn: Force-skipping unavailable component 'rust-std-{0}'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
 info: downloading component 'rustc'

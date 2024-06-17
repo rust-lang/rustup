@@ -432,7 +432,7 @@ fn install_forces_and_skips_rls() {
         assert!(out.ok);
         assert!(out
             .stderr
-            .contains("warning: Force-skipping unavailable component"));
+            .contains("warn: Force-skipping unavailable component"));
     });
 }
 
@@ -447,7 +447,7 @@ fn test_warn_if_complete_profile_is_used() {
                 "complete",
                 "--no-modify-path",
             ],
-            "warning: downloading with complete profile",
+            "warn: downloading with complete profile",
         );
     });
 }
@@ -460,7 +460,7 @@ fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
         assert!(!out.ok);
         assert!(out
             .stderr
-            .contains("warning: it looks like you have existing rustup.sh metadata"));
+            .contains("warn: it looks like you have existing rustup.sh metadata"));
         assert!(out
             .stderr
             .contains("error: cannot install while rustup.sh is installed"));
@@ -476,7 +476,7 @@ fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
         assert!(!out.ok);
         assert!(out
             .stderr
-            .contains("warning: it looks like you have existing rustup.sh metadata"));
+            .contains("warn: it looks like you have existing rustup.sh metadata"));
         assert!(out
             .stderr
             .contains("error: cannot install while rustup.sh is installed"));
@@ -491,14 +491,14 @@ fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "yes\n\n\n");
         assert!(out
             .stderr
-            .contains("warning: it looks like you have existing rustup.sh metadata"));
+            .contains("warn: it looks like you have existing rustup.sh metadata"));
         assert!(out
             .stderr
             .contains("error: cannot install while rustup.sh is installed"));
         assert!(out.stdout.contains("Continue? (y/N)"));
-        assert!(!out.stdout.contains(
-            "warning: continuing (because the -y flag is set and the error is ignorable)"
-        ));
+        assert!(!out
+            .stdout
+            .contains("warn: continuing (because the -y flag is set and the error is ignorable)"));
         assert!(out.ok);
     })
 }
