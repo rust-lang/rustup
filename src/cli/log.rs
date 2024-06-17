@@ -107,8 +107,8 @@ where
 impl NotificationLevel {
     fn fg_color(&self) -> Option<Color> {
         match self {
-            NotificationLevel::Debug => Some(Color::Blue),
-            NotificationLevel::Verbose => Some(Color::Magenta),
+            NotificationLevel::Trace => Some(Color::Blue),
+            NotificationLevel::Debug => Some(Color::Magenta),
             NotificationLevel::Info => None,
             NotificationLevel::Warn => Some(Color::Yellow),
             NotificationLevel::Error => Some(Color::Red),
