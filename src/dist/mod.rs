@@ -120,7 +120,7 @@ pub enum DistError {
 
 #[derive(Debug, PartialEq)]
 struct ParsedToolchainDesc {
-    channel: String,
+    channel: Channel,
     date: Option<String>,
     target: Option<String>,
 }
@@ -132,8 +132,7 @@ struct ParsedToolchainDesc {
 // are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
-    // Either "nightly", "stable", "beta", or an explicit version number
-    pub channel: String,
+    pub channel: Channel,
     pub date: Option<String>,
     pub target: PartialTargetTriple,
 }
@@ -146,10 +145,79 @@ pub struct PartialToolchainDesc {
 /// 1.55-x86_64-pc-windows-msvc
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ToolchainDesc {
-    // Either "nightly", "stable", "beta", or an explicit version number
-    pub channel: String,
+    pub channel: Channel,
     pub date: Option<String>,
     pub target: TargetTriple,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
+pub enum Channel {
+    Stable,
+    Beta,
+    Nightly,
+    Version(PartialVersion),
+}
+
+impl fmt::Display for Channel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Stable => write!(f, "stable"),
+            Self::Beta => write!(f, "beta"),
+            Self::Nightly => write!(f, "nightly"),
+            Self::Version(ver) => write!(f, "{ver}"),
+        }
+    }
+}
+
+impl FromStr for Channel {
+    type Err = anyhow::Error;
+    fn from_str(chan: &str) -> Result<Self> {
+        match chan {
+            "stable" => Ok(Self::Stable),
+            "beta" => Ok(Self::Beta),
+            "nightly" => Ok(Self::Nightly),
+            ver => ver.parse().map(Self::Version),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
+pub struct PartialVersion {
+    pub major: u64,
+    pub minor: Option<u64>,
+    pub patch: Option<u64>,
+    pub pre: semver::Prerelease,
+}
+
+impl fmt::Display for PartialVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.major)?;
+        if let Some(minor) = self.minor {
+            write!(f, ".{minor}")?;
+        }
+        if let Some(patch) = self.patch {
+            write!(f, ".{patch}")?;
+        }
+        if !self.pre.is_empty() {
+            write!(f, "-{}", self.pre)?;
+        }
+        Ok(())
+    }
+}
+
+impl FromStr for PartialVersion {
+    type Err = anyhow::Error;
+    fn from_str(ver: &str) -> Result<Self> {
+        let (ver, pre) = ver.split_once('-').unwrap_or((ver, ""));
+        let comparator =
+            semver::Comparator::from_str(ver).context("error parsing `PartialVersion`")?;
+        Ok(Self {
+            major: comparator.major,
+            minor: comparator.minor,
+            patch: comparator.patch,
+            pre: semver::Prerelease::new(pre).context("error parsing `PartialVersion`")?,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
@@ -229,7 +297,7 @@ impl FromStr for ParsedToolchainDesc {
             };
 
             Self {
-                channel: channel.to_owned(),
+                channel: Channel::from_str(channel).unwrap(),
                 date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
                 target: c.get(3).map(|s| s.as_str()).and_then(fn_map),
             }
@@ -579,7 +647,7 @@ impl ToolchainDesc {
     /// Either "$channel" or "channel-$date"
     pub fn manifest_name(&self) -> String {
         match self.date {
-            None => self.channel.clone(),
+            None => self.channel.to_string(),
             Some(ref date) => format!("{}-{}", self.channel, date),
         }
     }
@@ -595,11 +663,11 @@ impl ToolchainDesc {
     /// such as `stable`, or is an incomplete version such as `1.48`, and the
     /// date field is empty.
     pub(crate) fn is_tracking(&self) -> bool {
-        let channels = ["nightly", "beta", "stable"];
-        static TRACKING_VERSION: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r"^\d{1}\.\d{1,3}$").unwrap());
-        (channels.iter().any(|x| *x == self.channel) || TRACKING_VERSION.is_match(&self.channel))
-            && self.date.is_none()
+        match &self.channel {
+            _ if self.date.is_some() => false,
+            Channel::Stable | Channel::Beta | Channel::Nightly => true,
+            Channel::Version(ver) => ver.patch.is_none() || &*ver.pre == "beta",
+        }
     }
 }
 
@@ -752,7 +820,7 @@ pub(crate) async fn update_from_dist(
 
     let mut fetched = String::new();
     let mut first_err = None;
-    let backtrack = opts.toolchain.channel == "nightly" && opts.toolchain.date.is_none();
+    let backtrack = opts.toolchain.channel == Channel::Nightly && opts.toolchain.date.is_none();
     // We want to limit backtracking if we do not already have a toolchain
     let mut backtrack_limit: Option<i32> = if opts.toolchain.date.is_some() {
         None
@@ -1099,13 +1167,10 @@ async fn dl_v1_manifest(
 ) -> Result<Vec<String>> {
     let root_url = toolchain.package_dir(download.dist_root);
 
-    if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
+    if let Channel::Version(ver) = &toolchain.channel {
         // This is an explicit version. In v1 there was no manifest,
         // you just know the file to download, so synthesize one.
-        let installer_name = format!(
-            "{}/rust-{}-{}.tar.gz",
-            root_url, toolchain.channel, toolchain.target
-        );
+        let installer_name = format!("{}/rust-{}-{}.tar.gz", root_url, ver, toolchain.target);
         return Ok(vec![installer_name]);
     }
 
@@ -1191,7 +1256,7 @@ mod tests {
             );
 
             let expected = ParsedToolchainDesc {
-                channel: channel.into(),
+                channel: Channel::from_str(channel).unwrap(),
                 date: date.map(String::from),
                 target: target.map(String::from),
             };
@@ -1226,6 +1291,9 @@ mod tests {
             ("nightly-2020-10-04", false),
             ("1.48", true),
             ("1.47.0", false),
+            ("1.23-beta", true),
+            ("1.23.0-beta", true),
+            ("1.23.0-beta.2", false),
         ];
         for case in CASES {
             let full_tcn = format!("{}-x86_64-unknown-linux-gnu", case.0);
