@@ -1218,11 +1218,11 @@ rustup home:  {1}
 
 installed toolchains
 --------------------
-nightly-2015-01-01-{0}
-  1.2.0 (hash-nightly-1)
-
 nightly-{0} (active, default)
   1.3.0 (hash-nightly-2)
+
+nightly-2015-01-01-{0}
+  1.2.0 (hash-nightly-1)
 
 active toolchain
 ----------------

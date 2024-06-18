@@ -248,10 +248,10 @@ impl Display for MaybeOfficialToolchainName {
 /// ToolchainName can be used in calls to Cfg that alter configuration,
 /// like setting overrides, or that depend on configuration, like calculating
 /// the toolchain directory.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ToolchainName {
-    Custom(CustomToolchainName),
     Official(ToolchainDesc),
+    Custom(CustomToolchainName),
 }
 
 impl ToolchainName {
@@ -278,31 +278,6 @@ impl Display for ToolchainName {
             ToolchainName::Official(t) => write!(f, "{t}"),
         }
     }
-}
-
-/// Sorts [`ToolchainName`]s in the following order:
-/// 1. `stable`/`beta`/`nightly`-prefixed names, in this exact order.
-/// 2. `X.Y.Z-suffix` names, sorted by semver rules on `X.Y.Z`, then by `suffix`.
-/// 3. Other names, sorted alphanumerically.
-pub(crate) fn toolchain_sort(v: &mut [ToolchainName]) {
-    v.sort_by_key(|name| {
-        let s = name.to_string();
-        if s.starts_with("stable") {
-            return (0, None, s);
-        }
-        if s.starts_with("beta") {
-            return (1, None, s);
-        }
-        if s.starts_with("nightly") {
-            return (2, None, s);
-        }
-        if let Some((ver_str, suffix)) = s.split_once('-') {
-            if let Ok(ver) = semver::Version::parse(ver_str) {
-                return (3, Some(ver), suffix.to_owned());
-            }
-        }
-        (4, None, s)
-    })
 }
 
 /// ResolvableLocalToolchainName is used to process values set in
@@ -582,12 +557,18 @@ mod tests {
             "stable-x86_64-unknown-linux-gnu",
             "beta-x86_64-unknown-linux-gnu",
             "nightly-x86_64-unknown-linux-gnu",
+            "nightly-2015-01-01-x86_64-unknown-linux-gnu",
             "1.0.0-x86_64-unknown-linux-gnu",
             "1.2.0-x86_64-unknown-linux-gnu",
+            "1.8-beta-x86_64-apple-darwin",
+            "1.8.0-beta-x86_64-apple-darwin",
+            "1.8.0-beta.2-x86_64-apple-darwin",
+            "1.8.0-x86_64-apple-darwin",
             "1.8.0-x86_64-unknown-linux-gnu",
             "1.10.0-x86_64-unknown-linux-gnu",
             "bar(baz)",
             "foo#bar",
+            "the cake is a lie",
             "this.is.not-a+semver",
         ]
         .into_iter()
@@ -598,20 +579,28 @@ mod tests {
             "1.8.0-x86_64-unknown-linux-gnu",
             "1.0.0-x86_64-unknown-linux-gnu",
             "nightly-x86_64-unknown-linux-gnu",
+            "nightly-2015-01-01-x86_64-unknown-linux-gnu",
             "stable-x86_64-unknown-linux-gnu",
             "1.10.0-x86_64-unknown-linux-gnu",
             "beta-x86_64-unknown-linux-gnu",
             "1.2.0-x86_64-unknown-linux-gnu",
+            // https://github.com/rust-lang/rustup/issues/1329
+            "1.8.0-x86_64-apple-darwin",
+            "1.8-beta-x86_64-apple-darwin",
+            "1.8.0-beta-x86_64-apple-darwin",
+            "1.8.0-beta.2-x86_64-apple-darwin",
             // https://github.com/rust-lang/rustup/issues/3517
             "foo#bar",
             "bar(baz)",
             "this.is.not-a+semver",
+            // https://github.com/rust-lang/rustup/issues/3168
+            "the cake is a lie",
         ]
         .into_iter()
         .map(|s| ToolchainName::try_from(s).unwrap())
         .collect::<Vec<_>>();
 
-        super::toolchain_sort(&mut v);
+        v.sort();
 
         assert_eq!(expected, v);
     }

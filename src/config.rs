@@ -867,7 +867,7 @@ impl<'a> Cfg<'a> {
                 .filter_map(|n| ToolchainName::try_from(&n).ok())
                 .collect();
 
-            crate::toolchain::toolchain_sort(&mut toolchains);
+            toolchains.sort();
 
             Ok(toolchains)
         } else {
