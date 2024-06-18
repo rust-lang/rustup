@@ -1,6 +1,5 @@
 #![deny(rust_2018_idioms)]
 #![allow(
-    clippy::too_many_arguments,
     clippy::type_complexity,
     clippy::upper_case_acronyms, // see https://github.com/rust-lang/rust-clippy/issues/6974
     clippy::vec_init_then_push, // uses two different styles of initialization
