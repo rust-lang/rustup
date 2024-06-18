@@ -16,6 +16,7 @@ use std::{
 
 use enum_map::{enum_map, Enum, EnumMap};
 use once_cell::sync::Lazy;
+use tempfile::TempDir;
 use tokio::runtime::Builder;
 use url::Url;
 
@@ -302,25 +303,34 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
     (test_dir, config)
 }
 
-/// Run this to create the test environment containing rustup, and
-/// a mock dist server.
 pub fn test(s: Scenario, f: &dyn Fn(&mut Config)) {
-    // Things we might cache or what not
+    let mut cx = CliTestContext::from(s);
+    f(&mut cx.config);
+}
 
-    // Mutable dist server - working toward elimination
-    let test_dist_dir = crate::test::test_dist_dir().unwrap();
-    create_mock_dist_server(test_dist_dir.path(), s);
+pub struct CliTestContext {
+    pub config: Config,
+    _test_dir: TempDir,
+}
 
-    // Things that are just about the test itself
-    let (_test_dir, mut config) = setup_test_state(test_dist_dir);
-    // Pulled out of setup_test_state for clarity: the long term intent is to
-    // not have this at all.
-    if s != Scenario::None {
-        config.distdir = Some(config.test_dist_dir.path().to_path_buf());
+impl From<Scenario> for CliTestContext {
+    fn from(scenario: Scenario) -> Self {
+        // Things we might cache or what not
+
+        // Mutable dist server - working toward elimination
+        let test_dist_dir = crate::test::test_dist_dir().unwrap();
+        create_mock_dist_server(test_dist_dir.path(), scenario);
+
+        // Things that are just about the test itself
+        let (_test_dir, mut config) = setup_test_state(test_dist_dir);
+        // Pulled out of setup_test_state for clarity: the long term intent is to
+        // not have this at all.
+        if scenario != Scenario::None {
+            config.distdir = Some(config.test_dist_dir.path().to_path_buf());
+        }
+
+        Self { config, _test_dir }
     }
-
-    // Run the test
-    f(&mut config);
 }
 
 fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) -> String {
