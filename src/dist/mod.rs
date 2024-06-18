@@ -1001,24 +1001,14 @@ async fn try_update_from_dist_(
             };
         }
         Ok(None) => return Ok(None),
-        Err(any) => {
-            enum Cases {
-                DNE,
-                CF,
-                Other,
-            }
-            let case = match any.downcast_ref::<RustupError>() {
-                Some(RustupError::ChecksumFailed { .. }) => Cases::CF,
-                Some(RustupError::DownloadNotExists { .. }) => Cases::DNE,
-                _ => Cases::Other,
-            };
-            match case {
-                Cases::CF => return Ok(None),
-                Cases::DNE => {
+        Err(err) => {
+            match err.downcast_ref::<RustupError>() {
+                Some(RustupError::ChecksumFailed { .. }) => return Ok(None),
+                Some(RustupError::DownloadNotExists { .. }) => {
                     // Proceed to try v1 as a fallback
-                    (download.notify_handler)(Notification::DownloadingLegacyManifest);
+                    (download.notify_handler)(Notification::DownloadingLegacyManifest)
                 }
-                Cases::Other => return Err(any),
+                _ => return Err(err),
             }
         }
     }
@@ -1026,35 +1016,24 @@ async fn try_update_from_dist_(
     // If the v2 manifest is not found then try v1
     let manifest = match dl_v1_manifest(download, toolchain).await {
         Ok(m) => m,
-        Err(any) => {
-            enum Cases {
-                DNE,
-                CF,
-                Other,
+        Err(err) => match err.downcast_ref::<RustupError>() {
+            Some(RustupError::ChecksumFailed { .. }) => return Err(err),
+            Some(RustupError::DownloadNotExists { .. }) => {
+                bail!(DistError::MissingReleaseForToolchain(
+                    toolchain.manifest_name()
+                ));
             }
-            let case = match any.downcast_ref::<RustupError>() {
-                Some(RustupError::ChecksumFailed { .. }) => Cases::CF,
-                Some(RustupError::DownloadNotExists { .. }) => Cases::DNE,
-                _ => Cases::Other,
-            };
-            match case {
-                Cases::DNE => {
-                    bail!(DistError::MissingReleaseForToolchain(
+            _ => {
+                return Err(err).with_context(|| {
+                    format!(
+                        "failed to download manifest for '{}'",
                         toolchain.manifest_name()
-                    ));
-                }
-                Cases::CF => return Err(any),
-                Cases::Other => {
-                    return Err(any).with_context(|| {
-                        format!(
-                            "failed to download manifest for '{}'",
-                            toolchain.manifest_name()
-                        )
-                    });
-                }
+                    )
+                });
             }
-        }
+        },
     };
+
     let result = manifestation
         .update_v1(
             &manifest,
