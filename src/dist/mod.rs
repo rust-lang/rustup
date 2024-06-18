@@ -1043,23 +1043,17 @@ async fn try_update_from_dist_(
             download.process,
         )
         .await;
+
     // inspect, determine what context to add, then process afterwards.
-    let mut download_not_exists = false;
-    match &result {
-        Ok(_) => (),
-        Err(e) => {
-            if let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>() {
-                download_not_exists = true
-            }
+    if let Err(e) = &result {
+        if let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>() {
+            return result.with_context(|| {
+                format!("could not download nonexistent rust version `{toolchain_str}`")
+            });
         }
     }
-    if download_not_exists {
-        result.with_context(|| {
-            format!("could not download nonexistent rust version `{toolchain_str}`")
-        })
-    } else {
-        result
-    }
+
+    result
 }
 
 pub(crate) async fn dl_v2_manifest(
