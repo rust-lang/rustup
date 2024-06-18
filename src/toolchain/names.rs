@@ -480,11 +480,7 @@ mod tests {
             LIST_OSES.join("|"),
             LIST_ENVS.join("|")
         );
-        let partial_toolchain_desc_re = format!(
-            r"(nightly|beta|stable|\d{{1}}\.\d{{1,3}}(\.\d{{1,2}})?)(-(\d{{4}}-\d{{2}}-\d{{2}}))?{triple_re}"
-        );
-
-        partial_toolchain_desc_re
+        r"(nightly|beta|stable|[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?)(-([0-9]{4}-[0-9]{2}-[0-9]{2}))?".to_owned() + &triple_re
     }
 
     prop_compose! {

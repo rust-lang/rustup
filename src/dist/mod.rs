@@ -256,7 +256,7 @@ impl FromStr for ParsedToolchainDesc {
         // and an optional match of the date (2) and target (3)
         static TOOLCHAIN_CHANNEL_RE: Lazy<Regex> = Lazy::new(|| {
             Regex::new(&format!(
-                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.+))?$",
+                r"^({})(?:-([0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}))?(?:-(.+))?$",
                 // The channel patterns we support
                 [
                     "nightly",
@@ -264,7 +264,7 @@ impl FromStr for ParsedToolchainDesc {
                     "stable",
                     // Allow from 1.0.0 through to 9.999.99 with optional patch version
                     // and optional beta tag
-                    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?(?:-beta(?:\.\d{1,2})?)?",
+                    r"[0-9]{1}\.[0-9]{1,3}(?:\.[0-9]{1,2})?(?:-beta(?:\.[0-9]{1,2})?)?",
                 ]
                 .join("|")
             ))
