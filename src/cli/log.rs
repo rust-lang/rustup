@@ -12,8 +12,6 @@ use tracing_subscriber::{
 };
 
 #[cfg(feature = "otel")]
-use once_cell::sync::Lazy;
-#[cfg(feature = "otel")]
 use opentelemetry_sdk::trace::Tracer;
 
 use crate::{currentprocess::Process, utils::notify::NotificationLevel};
@@ -131,16 +129,16 @@ where
         EnvFilter::new("rustup=TRACE")
     };
     tracing_opentelemetry::layer()
-        .with_tracer(TELEMETRY_DEFAULT_TRACER.clone())
+        .with_tracer(telemetry_default_tracer())
         .with_filter(env_filter)
 }
 
 /// The default `opentelemetry` tracer used across Rustup.
 ///
 /// # Note
-/// The initializer function will panic if not called within the context of a [`tokio`] runtime.
+/// This function will panic if not called within the context of a [`tokio`] runtime.
 #[cfg(feature = "otel")]
-static TELEMETRY_DEFAULT_TRACER: Lazy<Tracer> = Lazy::new(|| {
+fn telemetry_default_tracer() -> Tracer {
     use std::time::Duration;
 
     use opentelemetry::KeyValue;
@@ -164,4 +162,4 @@ static TELEMETRY_DEFAULT_TRACER: Lazy<Tracer> = Lazy::new(|| {
         )
         .install_batch(opentelemetry_sdk::runtime::Tokio)
         .expect("error installing `OtlpTracePipeline` in the current `tokio` runtime")
-});
+}
