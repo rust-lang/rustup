@@ -750,25 +750,7 @@ pub(crate) async fn update_from_dist(
         }
     }
 
-    let res = update_from_dist_(
-        opts.dl_cfg,
-        opts.update_hash,
-        opts.desc,
-        match opts.exists {
-            true => None,
-            false => Some(opts.profile),
-        },
-        prefix,
-        opts.force,
-        opts.allow_downgrade,
-        opts.old_date_version
-            .as_ref()
-            .map(|(date, _)| date.as_str()),
-        opts.components,
-        opts.targets,
-    )
-    .await;
-
+    let res = update_from_dist_(prefix, opts).await;
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
         // FIXME Ignoring cascading errors
@@ -779,29 +761,21 @@ pub(crate) async fn update_from_dist(
 }
 
 async fn update_from_dist_(
-    download: DownloadCfg<'_>,
-    update_hash: Option<&Path>,
-    toolchain: &ToolchainDesc,
-    profile: Option<Profile>,
     prefix: &InstallPrefix,
-    force_update: bool,
-    allow_downgrade: bool,
-    old_date: Option<&str>,
-    components: &[&str],
-    targets: &[&str],
+    opts: &DistOptions<'_>,
 ) -> Result<Option<String>> {
-    let mut toolchain = toolchain.clone();
     let mut fetched = String::new();
     let mut first_err = None;
-    let backtrack = toolchain.channel == "nightly" && toolchain.date.is_none();
+    let backtrack = opts.desc.channel == "nightly" && opts.desc.date.is_none();
     // We want to limit backtracking if we do not already have a toolchain
-    let mut backtrack_limit: Option<i32> = if toolchain.date.is_some() {
+    let mut backtrack_limit: Option<i32> = if opts.desc.date.is_some() {
         None
     } else {
         // We limit the backtracking to 21 days by default (half a release cycle).
         // The limit of 21 days is an arbitrary selection, so we let the user override it.
         const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
-        let provided = download
+        let provided = opts
+            .dl_cfg
             .process
             .var("RUSTUP_BACKTRACK_LIMIT")
             .ok()
@@ -820,30 +794,36 @@ async fn update_from_dist_(
     // We could arguably use the date of the first rustup release here, but that would break a
     // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
     let first_manifest = date_from_manifest_date("2014-12-20").unwrap();
-    let old_manifest = old_date
-        .and_then(date_from_manifest_date)
+    let old_manifest = opts
+        .old_date_version
+        .as_ref()
+        .and_then(|(d, _)| date_from_manifest_date(d))
         .unwrap_or(first_manifest);
-    let last_manifest = if allow_downgrade {
+    let last_manifest = if opts.allow_downgrade {
         first_manifest
     } else {
         old_manifest
     };
 
     let current_manifest = {
-        let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
+        let manifestation = Manifestation::open(prefix.clone(), opts.desc.target.clone())?;
         manifestation.load_manifest()?
     };
 
+    let mut toolchain = opts.desc.clone();
     loop {
         match try_update_from_dist_(
-            download,
-            update_hash,
+            opts.dl_cfg,
+            opts.update_hash,
             &toolchain,
-            profile,
+            match opts.exists {
+                false => Some(opts.profile),
+                true => None,
+            },
             prefix,
-            force_update,
-            components,
-            targets,
+            opts.force,
+            opts.components,
+            opts.targets,
             &mut fetched,
         )
         .await
@@ -857,11 +837,13 @@ async fn update_from_dist_(
                 let cause = e.downcast_ref::<DistError>();
                 match cause {
                     Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
-                        (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
-                            &toolchain,
-                            current_manifest.as_ref().unwrap_or(manifest),
-                            components,
-                        ));
+                        (opts.dl_cfg.notify_handler)(
+                            Notification::SkippingNightlyMissingComponent(
+                                &toolchain,
+                                current_manifest.as_ref().unwrap_or(manifest),
+                                components,
+                            ),
+                        );
 
                         if first_err.is_none() {
                             first_err = Some(e);
