@@ -13,7 +13,7 @@ use url::Url;
 use crate::{
     dist::{
         manifest::{Component, Manifest},
-        {TargetTriple, ToolchainDesc},
+        Channel, TargetTriple, ToolchainDesc,
     },
     toolchain::{PathBasedToolchainName, ToolchainName},
 };
@@ -97,7 +97,7 @@ pub enum RustupError {
     ToolchainNotSelected(String),
     #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, suggest_message(.suggestion), if .component.contains("rust-std") {
         format!("\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html{}",
-            if desc.channel == "nightly" { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
+            if desc.channel == Channel::Nightly { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
         )
     } else { "".to_string() })]
     UnknownComponent {
