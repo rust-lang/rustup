@@ -713,7 +713,7 @@ impl fmt::Display for Profile {
 #[derive(Clone)]
 pub(crate) struct DistOptions<'a> {
     pub(crate) cfg: &'a Cfg<'a>,
-    pub(crate) desc: &'a ToolchainDesc,
+    pub(crate) toolchain: &'a ToolchainDesc,
     pub(crate) profile: Profile,
     pub(crate) update_hash: Option<&'a Path>,
     pub(crate) dl_cfg: DownloadCfg<'a>,
@@ -752,9 +752,9 @@ pub(crate) async fn update_from_dist(
 
     let mut fetched = String::new();
     let mut first_err = None;
-    let backtrack = opts.desc.channel == "nightly" && opts.desc.date.is_none();
+    let backtrack = opts.toolchain.channel == "nightly" && opts.toolchain.date.is_none();
     // We want to limit backtracking if we do not already have a toolchain
-    let mut backtrack_limit: Option<i32> = if opts.desc.date.is_some() {
+    let mut backtrack_limit: Option<i32> = if opts.toolchain.date.is_some() {
         None
     } else {
         // We limit the backtracking to 21 days by default (half a release cycle).
@@ -792,11 +792,11 @@ pub(crate) async fn update_from_dist(
     };
 
     let current_manifest = {
-        let manifestation = Manifestation::open(prefix.clone(), opts.desc.target.clone())?;
+        let manifestation = Manifestation::open(prefix.clone(), opts.toolchain.target.clone())?;
         manifestation.load_manifest()?
     };
 
-    let mut toolchain = opts.desc.clone();
+    let mut toolchain = opts.toolchain.clone();
     let res = loop {
         let result = try_update_from_dist_(
             opts.dl_cfg,
