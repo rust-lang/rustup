@@ -889,6 +889,7 @@ pub(crate) async fn update_from_dist(
     res
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn try_update_from_dist_(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
