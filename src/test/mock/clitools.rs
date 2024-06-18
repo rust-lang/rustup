@@ -350,38 +350,37 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 }
 
 pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
-    test(Scenario::SimpleV2, &|config| {
-        // Create a mock self-update server
+    let mut cx = CliTestContext::from(Scenario::SimpleV2);
 
-        let self_dist_tmp = tempfile::Builder::new()
-            .prefix("self_dist")
-            .tempdir_in(&config.test_root_dir)
-            .unwrap();
-        let self_dist = self_dist_tmp.path();
+    // Create a mock self-update server
+    let self_dist_tmp = tempfile::Builder::new()
+        .prefix("self_dist")
+        .tempdir_in(&cx.config.test_root_dir)
+        .unwrap();
+    let self_dist = self_dist_tmp.path();
 
-        let root_url = create_local_update_server(self_dist, &config.exedir, version);
-        config.rustup_update_root = Some(root_url);
+    let root_url = create_local_update_server(self_dist, &cx.config.exedir, version);
+    cx.config.rustup_update_root = Some(root_url);
 
-        let trip = this_host_triple();
-        let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
-        let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
-        let dist_tmp = dist_dir.join("rustup-init-tmp");
+    let trip = this_host_triple();
+    let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
+    let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let dist_tmp = dist_dir.join("rustup-init-tmp");
 
-        // Modify the exe so it hashes different
-        // 1) move out of the way the file
-        fs::rename(&dist_exe, &dist_tmp).unwrap();
-        // 2) copy it
-        fs::copy(dist_tmp, &dist_exe).unwrap();
-        // modify it
-        let mut dest_file = fs::OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(dist_exe)
-            .unwrap();
-        writeln!(dest_file).unwrap();
+    // Modify the exe so it hashes different
+    // 1) move out of the way the file
+    fs::rename(&dist_exe, &dist_tmp).unwrap();
+    // 2) copy it
+    fs::copy(dist_tmp, &dist_exe).unwrap();
+    // modify it
+    let mut dest_file = fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(dist_exe)
+        .unwrap();
+    writeln!(dest_file).unwrap();
 
-        f(config, self_dist);
-    });
+    f(&mut cx.config, self_dist);
 }
 
 pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Config)) {
