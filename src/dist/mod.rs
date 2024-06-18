@@ -742,12 +742,12 @@ pub(crate) async fn update_from_dist(
     opts: &DistOptions<'_>,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
-    let hash_exists = opts.update_hash.map(Path::exists).unwrap_or(false);
-    // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-    if fresh_install && hash_exists {
-        // It's ok to unwrap, because hash have to exist at this point
-        (opts.dl_cfg.notify_handler)(Notification::StrayHash(opts.update_hash.unwrap()));
-        std::fs::remove_file(opts.update_hash.unwrap())?;
+    if let Some(hash) = opts.update_hash {
+        // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
+        if fresh_install && Path::exists(hash) {
+            (opts.dl_cfg.notify_handler)(Notification::StrayHash(hash));
+            std::fs::remove_file(hash)?;
+        }
     }
 
     let res = update_from_dist_(
