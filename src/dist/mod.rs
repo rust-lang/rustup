@@ -750,20 +750,6 @@ pub(crate) async fn update_from_dist(
         }
     }
 
-    let res = update_from_dist_(prefix, opts).await;
-    // Don't leave behind an empty / broken installation directory
-    if res.is_err() && fresh_install {
-        // FIXME Ignoring cascading errors
-        let _ = utils::remove_dir("toolchain", prefix.path(), opts.dl_cfg.notify_handler);
-    }
-
-    res
-}
-
-async fn update_from_dist_(
-    prefix: &InstallPrefix,
-    opts: &DistOptions<'_>,
-) -> Result<Option<String>> {
     let mut fetched = String::new();
     let mut first_err = None;
     let backtrack = opts.desc.channel == "nightly" && opts.desc.date.is_none();
@@ -811,7 +797,7 @@ async fn update_from_dist_(
     };
 
     let mut toolchain = opts.desc.clone();
-    loop {
+    let res = loop {
         let result = try_update_from_dist_(
             opts.dl_cfg,
             opts.update_hash,
@@ -829,8 +815,8 @@ async fn update_from_dist_(
         .await;
 
         let e = match result {
-            Ok(v) => return Ok(v),
-            Err(e) if !backtrack => return Err(e),
+            Ok(v) => break Ok(v),
+            Err(e) if !backtrack => break Err(e),
             Err(e) => e,
         };
 
@@ -892,7 +878,15 @@ async fn update_from_dist_(
         }
 
         toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
+    };
+
+    // Don't leave behind an empty / broken installation directory
+    if res.is_err() && fresh_install {
+        // FIXME Ignoring cascading errors
+        let _ = utils::remove_dir("toolchain", prefix.path(), opts.dl_cfg.notify_handler);
     }
+
+    res
 }
 
 async fn try_update_from_dist_(
