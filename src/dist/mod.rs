@@ -812,7 +812,7 @@ async fn update_from_dist_(
 
     let mut toolchain = opts.desc.clone();
     loop {
-        match try_update_from_dist_(
+        let result = try_update_from_dist_(
             opts.dl_cfg,
             opts.update_hash,
             &toolchain,
@@ -826,76 +826,72 @@ async fn update_from_dist_(
             opts.targets,
             &mut fetched,
         )
-        .await
-        {
-            Ok(v) => break Ok(v),
-            Err(e) => {
-                if !backtrack {
-                    break Err(e);
+        .await;
+
+        let e = match result {
+            Ok(v) => return Ok(v),
+            Err(e) if !backtrack => return Err(e),
+            Err(e) => e,
+        };
+
+        let cause = e.downcast_ref::<DistError>();
+        match cause {
+            Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
+                (opts.dl_cfg.notify_handler)(Notification::SkippingNightlyMissingComponent(
+                    &toolchain,
+                    current_manifest.as_ref().unwrap_or(manifest),
+                    components,
+                ));
+
+                if first_err.is_none() {
+                    first_err = Some(e);
                 }
+                // We decrement the backtrack count only on unavailable component errors
+                // so that the limit only applies to nightlies that were indeed available,
+                // and ignores missing ones.
+                backtrack_limit = backtrack_limit.map(|n| n - 1);
+            }
 
-                let cause = e.downcast_ref::<DistError>();
-                match cause {
-                    Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
-                        (opts.dl_cfg.notify_handler)(
-                            Notification::SkippingNightlyMissingComponent(
-                                &toolchain,
-                                current_manifest.as_ref().unwrap_or(manifest),
-                                components,
-                            ),
-                        );
+            Some(DistError::MissingReleaseForToolchain(..)) => {
+                // no need to even print anything for missing nightlies,
+                // since we don't really "skip" them
+            }
+            _ => {
+                // All other errors break the loop
+                break Err(e);
+            }
+        };
 
-                        if first_err.is_none() {
-                            first_err = Some(e);
-                        }
-                        // We decrement the backtrack count only on unavailable component errors
-                        // so that the limit only applies to nightlies that were indeed available,
-                        // and ignores missing ones.
-                        backtrack_limit = backtrack_limit.map(|n| n - 1);
-                    }
-
-                    Some(DistError::MissingReleaseForToolchain(..)) => {
-                        // no need to even print anything for missing nightlies,
-                        // since we don't really "skip" them
-                    }
-                    _ => {
-                        // All other errors break the loop
-                        break Err(e);
-                    }
-                };
-
-                if let Some(backtrack_limit) = backtrack_limit {
-                    if backtrack_limit < 1 {
-                        // This unwrap is safe because we can only hit this if we've
-                        // had a chance to set first_err
-                        break Err(first_err.unwrap());
-                    }
-                }
-
-                // The user asked to update their nightly, but the latest nightly does not have all
-                // the components that the user currently has installed. Let's try the previous
-                // nightlies in reverse chronological order until we find a nightly that does,
-                // starting at one date earlier than the current manifest's date.
-                let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
-                let try_next = date_from_manifest_date(toolchain_date)
-                    .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
-                    .pred_opt()
-                    .unwrap();
-
-                if try_next < last_manifest {
-                    // Wouldn't be an update if we go further back than the user's current nightly.
-                    if let Some(e) = first_err {
-                        break Err(e);
-                    } else {
-                        // In this case, all newer nightlies are missing, which means there are no
-                        // updates, so the user is already at the latest nightly.
-                        break Ok(None);
-                    }
-                }
-
-                toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
+        if let Some(backtrack_limit) = backtrack_limit {
+            if backtrack_limit < 1 {
+                // This unwrap is safe because we can only hit this if we've
+                // had a chance to set first_err
+                break Err(first_err.unwrap());
             }
         }
+
+        // The user asked to update their nightly, but the latest nightly does not have all
+        // the components that the user currently has installed. Let's try the previous
+        // nightlies in reverse chronological order until we find a nightly that does,
+        // starting at one date earlier than the current manifest's date.
+        let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
+        let try_next = date_from_manifest_date(toolchain_date)
+            .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
+            .pred_opt()
+            .unwrap();
+
+        if try_next < last_manifest {
+            // Wouldn't be an update if we go further back than the user's current nightly.
+            if let Some(e) = first_err {
+                break Err(e);
+            } else {
+                // In this case, all newer nightlies are missing, which means there are no
+                // updates, so the user is already at the latest nightly.
+                break Ok(None);
+            }
+        }
+
+        toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
     }
 }
 
