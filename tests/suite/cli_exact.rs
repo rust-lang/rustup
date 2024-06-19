@@ -3,7 +3,7 @@
 
 use rustup::for_host;
 use rustup::test::{
-    mock::clitools::{self, set_current_dist_date, with_update_server, CliTestContext, Scenario},
+    mock::clitools::{self, set_current_dist_date, CliTestContext, Scenario},
     this_host_triple,
 };
 
@@ -39,25 +39,27 @@ info: default toolchain set to 'nightly-{0}'
 fn update_once_and_check_self_update() {
     let test_version = "2.0.0";
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    with_update_server(&mut cx.config, test_version, &|config| {
-        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
-        config.expect_ok(&["rustup", "set", "auto-self-update", "check-only"]);
-        let current_version = env!("CARGO_PKG_VERSION");
+    let _dist_guard = cx.with_update_server(test_version);
+    cx.config
+        .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+    cx.config
+        .expect_ok(&["rustup", "set", "auto-self-update", "check-only"]);
+    let current_version = env!("CARGO_PKG_VERSION");
 
-        config.expect_ok_ex(
-            &["rustup", "update", "nightly"],
-            &format!(
-                r"
+    cx.config.expect_ok_ex(
+        &["rustup", "update", "nightly"],
+        &format!(
+            r"
   nightly-{} installed - 1.3.0 (hash-nightly-2)
 
 rustup - Update available : {} -> {}
 ",
-                &this_host_triple(),
-                current_version,
-                test_version
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'nightly-{0}'
+            &this_host_triple(),
+            current_version,
+            test_version
+        ),
+        for_host!(
+            r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -68,28 +70,29 @@ info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 "
-            ),
-        );
-    })
+        ),
+    );
 }
 
 #[test]
 fn update_once_and_self_update() {
     let test_version = "2.0.0";
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    with_update_server(&mut cx.config, test_version, &|config| {
-        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
-        config.expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
-        config.expect_ok_ex(
-            &["rustup", "update", "nightly"],
-            for_host!(
-                r"
+    let _dist_guard = cx.with_update_server(test_version);
+    cx.config
+        .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+    cx.config
+        .expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
+    cx.config.expect_ok_ex(
+        &["rustup", "update", "nightly"],
+        for_host!(
+            r"
   nightly-{0} installed - 1.3.0 (hash-nightly-2)
 
 "
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'nightly-{0}'
+        ),
+        for_host!(
+            r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -102,9 +105,8 @@ info: installing component 'rustc'
 info: checking for self-update
 info: downloading self-update
 "
-            ),
-        );
-    });
+        ),
+    );
 }
 
 #[test]
@@ -182,32 +184,30 @@ nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2
 fn check_updates_self() {
     let test_version = "2.0.0";
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    with_update_server(&mut cx.config, test_version, &|config| {
-        let current_version = env!("CARGO_PKG_VERSION");
+    let _dist_guard = cx.with_update_server(test_version);
+    let current_version = env!("CARGO_PKG_VERSION");
 
-        config.expect_stdout_ok(
-            &["rustup", "check"],
-            &format!(
-                r"rustup - Update available : {current_version} -> {test_version}
+    cx.config.expect_stdout_ok(
+        &["rustup", "check"],
+        &format!(
+            r"rustup - Update available : {current_version} -> {test_version}
 "
-            ),
-        );
-    });
+        ),
+    );
 }
 
 #[test]
 fn check_updates_self_no_change() {
     let current_version = env!("CARGO_PKG_VERSION");
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    with_update_server(&mut cx.config, current_version, &|config| {
-        config.expect_stdout_ok(
-            &["rustup", "check"],
-            &format!(
-                r"rustup - Up to date : {current_version}
+    let _dist_guard = cx.with_update_server(current_version);
+    cx.config.expect_stdout_ok(
+        &["rustup", "check"],
+        &format!(
+            r"rustup - Up to date : {current_version}
 "
-            ),
-        );
-    });
+        ),
+    );
 }
 
 #[test]

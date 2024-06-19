@@ -366,6 +366,43 @@ impl CliTestContext {
         self.config.distdir = Some(CONST_TEST_STATE.dist_server_for(scenario).unwrap());
         DistDirGuard { inner: self }
     }
+
+    pub fn with_update_server(&mut self, version: &str) -> UpdateServerGuard {
+        let self_dist_tmp = tempfile::Builder::new()
+            .prefix("self_dist")
+            .tempdir()
+            .unwrap();
+        let self_dist = self_dist_tmp.path();
+
+        let root_url = create_local_update_server(self_dist, &self.config.exedir, version);
+        let trip = this_host_triple();
+        let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
+        let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+        let dist_tmp = dist_dir.join("rustup-init-tmp");
+
+        // Modify the exe so it hashes different
+        // 1) move out of the way the file
+        fs::rename(&dist_exe, &dist_tmp).unwrap();
+        // 2) copy it
+        fs::copy(dist_tmp, &dist_exe).unwrap();
+        // modify it
+        let mut dest_file = fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(dist_exe)
+            .unwrap();
+        writeln!(dest_file).unwrap();
+
+        self.config.rustup_update_root = Some(root_url);
+        UpdateServerGuard {
+            _self_dist: self_dist_tmp,
+        }
+    }
+}
+
+#[must_use]
+pub struct UpdateServerGuard {
+    _self_dist: TempDir,
 }
 
 impl From<Scenario> for CliTestContext {
@@ -384,10 +421,7 @@ impl From<Scenario> for CliTestContext {
             config.distdir = Some(config.test_dist_dir.path().to_path_buf());
         }
 
-        Self {
-            config,
-            _test_dir,
-        }
+        Self { config, _test_dir }
     }
 }
 
@@ -430,37 +464,6 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 
     let root_url = format!("file://{}", self_dist.display());
     root_url
-}
-
-pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Config)) {
-    let self_dist_tmp = tempfile::Builder::new()
-        .prefix("self_dist")
-        .tempdir()
-        .unwrap();
-    let self_dist = self_dist_tmp.path();
-
-    let root_url = create_local_update_server(self_dist, &config.exedir, version);
-    let trip = this_host_triple();
-    let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
-    let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
-    let dist_tmp = dist_dir.join("rustup-init-tmp");
-
-    // Modify the exe so it hashes different
-    // 1) move out of the way the file
-    fs::rename(&dist_exe, &dist_tmp).unwrap();
-    // 2) copy it
-    fs::copy(dist_tmp, &dist_exe).unwrap();
-    // modify it
-    let mut dest_file = fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(dist_exe)
-        .unwrap();
-    writeln!(dest_file).unwrap();
-
-    config.rustup_update_root = Some(root_url);
-    f(config);
-    config.rustup_update_root = None;
 }
 
 pub fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
