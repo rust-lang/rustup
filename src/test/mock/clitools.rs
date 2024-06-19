@@ -303,6 +303,56 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
     (test_dir, config)
 }
 
+pub struct SelfUpdateTestContext {
+    pub config: Config,
+    _test_dir: TempDir,
+    self_dist_tmp: TempDir,
+}
+
+impl SelfUpdateTestContext {
+    pub fn new(version: &str) -> Self {
+        let mut cx = CliTestContext::from(Scenario::SimpleV2);
+
+        // Create a mock self-update server
+        let self_dist_tmp = tempfile::Builder::new()
+            .prefix("self_dist")
+            .tempdir_in(&cx.config.test_root_dir)
+            .unwrap();
+        let self_dist = self_dist_tmp.path();
+
+        let root_url = create_local_update_server(self_dist, &cx.config.exedir, version);
+        cx.config.rustup_update_root = Some(root_url);
+
+        let trip = this_host_triple();
+        let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
+        let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+        let dist_tmp = dist_dir.join("rustup-init-tmp");
+
+        // Modify the exe so it hashes different
+        // 1) move out of the way the file
+        fs::rename(&dist_exe, &dist_tmp).unwrap();
+        // 2) copy it
+        fs::copy(dist_tmp, &dist_exe).unwrap();
+        // modify it
+        let mut dest_file = fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(dist_exe)
+            .unwrap();
+        writeln!(dest_file).unwrap();
+
+        Self {
+            config: cx.config,
+            _test_dir: cx._test_dir,
+            self_dist_tmp,
+        }
+    }
+
+    pub fn path(&self) -> &Path {
+        self.self_dist_tmp.path()
+    }
+}
+
 pub fn test(s: Scenario, f: &dyn Fn(&mut Config)) {
     let mut cx = CliTestContext::from(s);
     f(&mut cx.config);
@@ -347,40 +397,6 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 
     let root_url = format!("file://{}", self_dist.display());
     root_url
-}
-
-pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-
-    // Create a mock self-update server
-    let self_dist_tmp = tempfile::Builder::new()
-        .prefix("self_dist")
-        .tempdir_in(&cx.config.test_root_dir)
-        .unwrap();
-    let self_dist = self_dist_tmp.path();
-
-    let root_url = create_local_update_server(self_dist, &cx.config.exedir, version);
-    cx.config.rustup_update_root = Some(root_url);
-
-    let trip = this_host_triple();
-    let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
-    let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
-    let dist_tmp = dist_dir.join("rustup-init-tmp");
-
-    // Modify the exe so it hashes different
-    // 1) move out of the way the file
-    fs::rename(&dist_exe, &dist_tmp).unwrap();
-    // 2) copy it
-    fs::copy(dist_tmp, &dist_exe).unwrap();
-    // modify it
-    let mut dest_file = fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(dist_exe)
-        .unwrap();
-    writeln!(dest_file).unwrap();
-
-    f(&mut cx.config, self_dist);
 }
 
 pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Config)) {
