@@ -353,11 +353,6 @@ impl SelfUpdateTestContext {
     }
 }
 
-pub fn test(s: Scenario, f: &dyn Fn(&mut Config)) {
-    let mut cx = CliTestContext::from(s);
-    f(&mut cx.config);
-}
-
 pub struct CliTestContext {
     pub config: Config,
     _test_dir: TempDir,
