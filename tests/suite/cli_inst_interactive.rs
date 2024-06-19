@@ -51,9 +51,9 @@ fn run_input_with_env(
     }
 }
 
-#[test]
-fn update() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn update() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
     let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
@@ -65,9 +65,9 @@ fn update() {
 // Testing that the right number of blank lines are printed after the
 // 'pre-install' message and before the 'post-install' message - overall smoke
 // test for the install case.
-#[test]
-fn smoke_case_install_no_modify_path() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn smoke_case_install_no_modify_path() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n");
     assert!(out.ok);
     // During an interactive session, after "Press the Enter
@@ -113,9 +113,9 @@ Rust is installed now. Great!
     }
 }
 
-#[test]
-fn smoke_case_install_with_path_install() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn smoke_case_install_with_path_install() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
     let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
@@ -126,11 +126,12 @@ fn smoke_case_install_with_path_install() {
         .contains("This path needs to be in your PATH environment variable"));
 }
 
-#[test]
-fn blank_lines_around_stderr_log_output_update() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn blank_lines_around_stderr_log_output_update() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
+        .await;
     let out = run_input(
         &cx.config,
         &[
@@ -154,9 +155,9 @@ Rust is installed now. Great!
     ));
 }
 
-#[test]
-fn installer_shows_default_host_triple() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_host_triple() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n");
 
     println!("-- stdout --\n {}", out.stdout);
@@ -168,9 +169,9 @@ Default host triple? [{0}]
     )));
 }
 
-#[test]
-fn installer_shows_default_toolchain_as_stable() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_toolchain_as_stable() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n\n");
 
     println!("-- stdout --\n {}", out.stdout);
@@ -182,9 +183,9 @@ Default toolchain? (stable/beta/nightly/none) [stable]
     ));
 }
 
-#[test]
-fn installer_shows_default_toolchain_when_set_in_args() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_toolchain_when_set_in_args() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &[
@@ -204,9 +205,9 @@ Default toolchain? (stable/beta/nightly/none) [nightly]
     ));
 }
 
-#[test]
-fn installer_shows_default_profile() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_profile() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n\n\n");
 
     println!("-- stdout --\n {}", out.stdout);
@@ -218,9 +219,9 @@ Profile (which tools and data to install)? (minimal/default/complete) [default]
     ));
 }
 
-#[test]
-fn installer_shows_default_profile_when_set_in_args() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_profile_when_set_in_args() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path", "--profile=minimal"],
@@ -236,9 +237,9 @@ Profile (which tools and data to install)? (minimal/default/complete) [minimal]
     ));
 }
 
-#[test]
-fn installer_shows_default_for_modify_path() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_for_modify_path() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(&cx.config, &["rustup-init"], "2\n\n\n\n");
 
     println!("-- stdout --\n {}", out.stdout);
@@ -250,9 +251,9 @@ Modify PATH variable? (Y/n)
     ));
 }
 
-#[test]
-fn installer_shows_default_for_modify_path_when_set_with_args() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installer_shows_default_for_modify_path_when_set_with_args() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -268,17 +269,17 @@ Modify PATH variable? (y/N)
     ));
 }
 
-#[test]
-fn user_says_nope() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn user_says_nope() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "n\n\n");
     assert!(out.ok);
     assert!(!cx.config.cargodir.join("bin").exists());
 }
 
-#[test]
-fn with_no_toolchain() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn with_no_toolchain() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &[
@@ -291,12 +292,13 @@ fn with_no_toolchain() {
     assert!(out.ok);
 
     cx.config
-        .expect_stdout_ok(&["rustup", "show"], "no active toolchain");
+        .expect_stdout_ok(&["rustup", "show"], "no active toolchain")
+        .await;
 }
 
-#[test]
-fn with_non_default_toolchain_still_prompts() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn with_non_default_toolchain_still_prompts() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &[
@@ -308,12 +310,14 @@ fn with_non_default_toolchain_still_prompts() {
     );
     assert!(out.ok);
 
-    cx.config.expect_stdout_ok(&["rustup", "show"], "nightly");
+    cx.config
+        .expect_stdout_ok(&["rustup", "show"], "nightly")
+        .await;
 }
 
-#[test]
-fn with_non_release_channel_non_default_toolchain() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn with_non_release_channel_non_default_toolchain() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &[
@@ -325,14 +329,17 @@ fn with_non_release_channel_non_default_toolchain() {
     );
     assert!(out.ok);
 
-    cx.config.expect_stdout_ok(&["rustup", "show"], "nightly");
     cx.config
-        .expect_stdout_ok(&["rustup", "show"], "2015-01-02");
+        .expect_stdout_ok(&["rustup", "show"], "nightly")
+        .await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "show"], "2015-01-02")
+        .await;
 }
 
-#[test]
-fn set_nightly_toolchain() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn set_nightly_toolchain() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -340,12 +347,14 @@ fn set_nightly_toolchain() {
     );
     assert!(out.ok);
 
-    cx.config.expect_stdout_ok(&["rustup", "show"], "nightly");
+    cx.config
+        .expect_stdout_ok(&["rustup", "show"], "nightly")
+        .await;
 }
 
-#[test]
-fn set_no_modify_path() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn set_no_modify_path() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -358,9 +367,9 @@ fn set_no_modify_path() {
     }
 }
 
-#[test]
-fn set_nightly_toolchain_and_unset() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn set_nightly_toolchain_and_unset() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -370,12 +379,14 @@ fn set_nightly_toolchain_and_unset() {
     println!("{:?}", out.stdout);
     assert!(out.ok);
 
-    cx.config.expect_stdout_ok(&["rustup", "show"], "beta");
+    cx.config
+        .expect_stdout_ok(&["rustup", "show"], "beta")
+        .await;
 }
 
-#[test]
-fn user_says_nope_after_advanced_install() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn user_says_nope_after_advanced_install() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -385,29 +396,32 @@ fn user_says_nope_after_advanced_install() {
     assert!(!cx.config.cargodir.join("bin").exists());
 }
 
-#[test]
-fn install_with_components() {
-    fn go(comp_args: &[&str]) {
+#[tokio::test]
+async fn install_with_components() {
+    async fn go(comp_args: &[&str]) {
         let mut args = vec!["rustup-init", "-y", "--no-modify-path"];
         args.extend_from_slice(comp_args);
 
-        let mut cx = CliTestContext::from(Scenario::SimpleV2);
-        cx.config.expect_ok(&args);
+        let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+        cx.config.expect_ok(&args).await;
         cx.config
-            .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
-        cx.config.expect_stdout_ok(
-            &["rustup", "component", "list"],
-            &format!("rust-analysis-{} (installed)", this_host_triple()),
-        );
+            .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)")
+            .await;
+        cx.config
+            .expect_stdout_ok(
+                &["rustup", "component", "list"],
+                &format!("rust-analysis-{} (installed)", this_host_triple()),
+            )
+            .await;
     }
 
-    go(&["-c", "rust-src", "-c", "rust-analysis"]);
-    go(&["-c", "rust-src,rust-analysis"]);
+    go(&["-c", "rust-src", "-c", "rust-analysis"]).await;
+    go(&["-c", "rust-src,rust-analysis"]).await;
 }
 
-#[test]
-fn install_forces_and_skips_rls() {
-    let cx = CliTestContext::from(Scenario::UnavailableRls);
+#[tokio::test]
+async fn install_forces_and_skips_rls() {
+    let cx = CliTestContext::new(Scenario::UnavailableRls).await;
     set_current_dist_date(&cx.config, "2015-01-01");
 
     let out = run_input(
@@ -428,24 +442,26 @@ fn install_forces_and_skips_rls() {
         .contains("warn: Force-skipping unavailable component"));
 }
 
-#[test]
-fn test_warn_if_complete_profile_is_used() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_stderr_ok(
-        &[
-            "rustup-init",
-            "-y",
-            "--profile",
-            "complete",
-            "--no-modify-path",
-        ],
-        "warn: downloading with complete profile",
-    );
+#[tokio::test]
+async fn test_warn_if_complete_profile_is_used() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_stderr_ok(
+            &[
+                "rustup-init",
+                "-y",
+                "--profile",
+                "complete",
+                "--no-modify-path",
+            ],
+            "warn: downloading with complete profile",
+        )
+        .await;
 }
 
-#[test]
-fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.create_rustup_sh_metadata();
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n");
     assert!(!out.ok);
@@ -458,9 +474,9 @@ fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
     assert!(out.stdout.contains("Continue? (y/N)"));
 }
 
-#[test]
-fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.create_rustup_sh_metadata();
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "no\n");
     assert!(!out.ok);
@@ -473,9 +489,9 @@ fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
     assert!(out.stdout.contains("Continue? (y/N)"));
 }
 
-#[test]
-fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.create_rustup_sh_metadata();
     let out = run_input(
         &cx.config,
@@ -495,11 +511,12 @@ fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
     assert!(out.ok);
 }
 
-#[test]
-fn installing_when_already_installed_updates_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn installing_when_already_installed_updates_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
+        .await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n");
     println!("stdout:\n{}\n...\n", out.stdout);
     assert!(out
@@ -507,8 +524,8 @@ fn installing_when_already_installed_updates_toolchain() {
         .contains(for_host!("stable-{} unchanged - 1.1.0 (hash-stable-1.1.0)")));
 }
 
-#[test]
-fn install_stops_if_rustc_exists() {
+#[tokio::test]
+async fn install_stops_if_rustc_exists() {
     let temp_dir = tempfile::Builder::new()
         .prefix("fakebin")
         .tempdir()
@@ -518,15 +535,18 @@ fn install_stops_if_rustc_exists() {
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
-    let cx = CliTestContext::from(Scenario::SimpleV2);
-    let out = cx.config.run(
-        "rustup-init",
-        ["--no-modify-path"],
-        &[
-            ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-            ("PATH", temp_dir_path),
-        ],
-    );
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let out = cx
+        .config
+        .run(
+            "rustup-init",
+            ["--no-modify-path"],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", temp_dir_path),
+            ],
+        )
+        .await;
     assert!(!out.ok);
     assert!(out
         .stderr
@@ -536,8 +556,8 @@ fn install_stops_if_rustc_exists() {
         .contains("If you are sure that you want both rustup and your already installed Rust"));
 }
 
-#[test]
-fn install_stops_if_cargo_exists() {
+#[tokio::test]
+async fn install_stops_if_cargo_exists() {
     let temp_dir = tempfile::Builder::new()
         .prefix("fakebin")
         .tempdir()
@@ -547,15 +567,18 @@ fn install_stops_if_cargo_exists() {
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
-    let cx = CliTestContext::from(Scenario::SimpleV2);
-    let out = cx.config.run(
-        "rustup-init",
-        ["--no-modify-path"],
-        &[
-            ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-            ("PATH", temp_dir_path),
-        ],
-    );
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let out = cx
+        .config
+        .run(
+            "rustup-init",
+            ["--no-modify-path"],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", temp_dir_path),
+            ],
+        )
+        .await;
     assert!(!out.ok);
     assert!(out
         .stderr
@@ -565,8 +588,8 @@ fn install_stops_if_cargo_exists() {
         .contains("If you are sure that you want both rustup and your already installed Rust"));
 }
 
-#[test]
-fn with_no_prompt_install_succeeds_if_rustc_exists() {
+#[tokio::test]
+async fn with_no_prompt_install_succeeds_if_rustc_exists() {
     let temp_dir = tempfile::Builder::new()
         .prefix("fakebin")
         .tempdir()
@@ -576,30 +599,35 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
-    let cx = CliTestContext::from(Scenario::SimpleV2);
-    let out = cx.config.run(
-        "rustup-init",
-        ["-y", "--no-modify-path"],
-        &[
-            ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-            ("PATH", temp_dir_path),
-        ],
-    );
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let out = cx
+        .config
+        .run(
+            "rustup-init",
+            ["-y", "--no-modify-path"],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", temp_dir_path),
+            ],
+        )
+        .await;
     assert!(out.ok);
 }
 
 // Issue 2547
-#[test]
-fn install_non_installable_toolchain() {
-    let cx = CliTestContext::from(Scenario::Unavailable);
-    cx.config.expect_err(
-        &[
-            "rustup-init",
-            "-y",
-            "--no-modify-path",
-            "--default-toolchain",
-            "nightly",
-        ],
-        "is not installable",
-    );
+#[tokio::test]
+async fn install_non_installable_toolchain() {
+    let cx = CliTestContext::new(Scenario::Unavailable).await;
+    cx.config
+        .expect_err(
+            &[
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "nightly",
+            ],
+            "is not installable",
+        )
+        .await;
 }

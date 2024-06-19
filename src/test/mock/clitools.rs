@@ -19,7 +19,6 @@ use std::{
 use enum_map::{enum_map, Enum, EnumMap};
 use once_cell::sync::Lazy;
 use tempfile::TempDir;
-use tokio::runtime::Builder;
 use url::Url;
 
 use crate::cli::rustup_mode;
@@ -189,7 +188,7 @@ impl ConstState {
 }
 
 /// State a test can interact and mutate
-pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
+pub async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_UPDATE_ROOT");
     env::remove_var("RUSTUP_TOOLCHAIN");
@@ -294,10 +293,14 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
-    config.run("rustup", ["set", "default-host", &this_host_triple()], &[]);
+    config
+        .run("rustup", ["set", "default-host", &this_host_triple()], &[])
+        .await;
 
     // Set the auto update mode to disable, as most tests do not want to update rustup itself during the test.
-    config.run("rustup", ["set", "auto-self-update", "disable"], &[]);
+    config
+        .run("rustup", ["set", "auto-self-update", "disable"], &[])
+        .await;
 
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
@@ -312,8 +315,8 @@ pub struct SelfUpdateTestContext {
 }
 
 impl SelfUpdateTestContext {
-    pub fn new(version: &str) -> Self {
-        let mut cx = CliTestContext::from(Scenario::SimpleV2);
+    pub async fn new(version: &str) -> Self {
+        let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
 
         // Create a mock self-update server
         let self_dist_tmp = tempfile::Builder::new()
@@ -361,6 +364,24 @@ pub struct CliTestContext {
 }
 
 impl CliTestContext {
+    pub async fn new(scenario: Scenario) -> Self {
+        // Things we might cache or what not
+
+        // Mutable dist server - working toward elimination
+        let test_dist_dir = crate::test::test_dist_dir().unwrap();
+        create_mock_dist_server(test_dist_dir.path(), scenario);
+
+        // Things that are just about the test itself
+        let (_test_dir, mut config) = setup_test_state(test_dist_dir).await;
+        // Pulled out of setup_test_state for clarity: the long term intent is to
+        // not have this at all.
+        if scenario != Scenario::None {
+            config.distdir = Some(config.test_dist_dir.path().to_path_buf());
+        }
+
+        Self { config, _test_dir }
+    }
+
     /// Move the dist server to the specified scenario and restore it
     /// afterwards.
     pub fn with_dist_dir(&mut self, scenario: Scenario) -> DistDirGuard<'_> {
@@ -409,26 +430,6 @@ impl CliTestContext {
 #[must_use]
 pub struct UpdateServerGuard {
     _self_dist: TempDir,
-}
-
-impl From<Scenario> for CliTestContext {
-    fn from(scenario: Scenario) -> Self {
-        // Things we might cache or what not
-
-        // Mutable dist server - working toward elimination
-        let test_dist_dir = crate::test::test_dist_dir().unwrap();
-        create_mock_dist_server(test_dist_dir.path(), scenario);
-
-        // Things that are just about the test itself
-        let (_test_dir, mut config) = setup_test_state(test_dist_dir);
-        // Pulled out of setup_test_state for clarity: the long term intent is to
-        // not have this at all.
-        if scenario != Scenario::None {
-            config.distdir = Some(config.test_dist_dir.path().to_path_buf());
-        }
-
-        Self { config, _test_dir }
-    }
 }
 
 #[must_use]
@@ -592,9 +593,8 @@ impl Config {
     }
 
     /// Expect an ok status
-    #[track_caller]
-    pub fn expect_ok(&mut self, args: &[&str]) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_ok(&mut self, args: &[&str]) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok {
             print_command(args, &out);
             println!("expected.ok: true");
@@ -603,9 +603,8 @@ impl Config {
     }
 
     /// Expect an err status and a string in stderr
-    #[track_caller]
-    pub fn expect_err(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_err(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || !out.stderr.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: false");
@@ -615,9 +614,8 @@ impl Config {
     }
 
     /// Expect an ok status and a string in stdout
-    #[track_caller]
-    pub fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stdout.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: true");
@@ -626,9 +624,8 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stdout.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: true");
@@ -637,9 +634,8 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stderr.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: false");
@@ -648,9 +644,8 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stderr.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: false");
@@ -660,9 +655,8 @@ impl Config {
     }
 
     /// Expect an ok status and a string in stderr
-    #[track_caller]
-    pub fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stderr.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: true");
@@ -672,9 +666,8 @@ impl Config {
     }
 
     /// Expect an exact strings on stdout/stderr with an ok status code
-    #[track_caller]
-    pub fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
             println!("expected.ok: true");
@@ -687,9 +680,8 @@ impl Config {
     }
 
     /// Expect an exact strings on stdout/stderr with an error status code
-    #[track_caller]
-    pub fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
             println!("expected.ok: false");
@@ -707,9 +699,8 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]);
+    pub async fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
             print_command(args, &out);
             println!("expected.ok: true");
@@ -719,10 +710,9 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
-        let out1 = self.run(args1[0], &args1[1..], &[]);
-        let out2 = self.run(args2[0], &args2[1..], &[]);
+    pub async fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
+        let out1 = self.run(args1[0], &args1[1..], &[]).await;
+        let out2 = self.run(args2[0], &args2[1..], &[]).await;
         if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
             print_command(args1, &out1);
             println!("expected.ok: true");
@@ -732,9 +722,8 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_component_executable(&self, cmd: &str) {
-        let out1 = self.run(cmd, ["--version"], &[]);
+    pub async fn expect_component_executable(&self, cmd: &str) {
+        let out1 = self.run(cmd, ["--version"], &[]).await;
         if !out1.ok {
             print_command(&[cmd, "--version"], &out1);
             println!("expected.ok: true");
@@ -742,9 +731,8 @@ impl Config {
         }
     }
 
-    #[track_caller]
-    pub fn expect_component_not_executable(&self, cmd: &str) {
-        let out1 = self.run(cmd, ["--version"], &[]);
+    pub async fn expect_component_not_executable(&self, cmd: &str) {
+        let out1 = self.run(cmd, ["--version"], &[]).await;
         if out1.ok {
             print_command(&[cmd, "--version"], &out1);
             println!("expected.ok: false");
@@ -752,7 +740,7 @@ impl Config {
         }
     }
 
-    pub fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
+    pub async fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
     where
         I: IntoIterator<Item = A> + Clone + Debug,
         A: AsRef<OsStr>,
@@ -760,7 +748,7 @@ impl Config {
         let inprocess = allow_inprocess(name, args.clone());
         let start = Instant::now();
         let out = if inprocess {
-            self.run_inprocess(name, args.clone(), env)
+            self.run_inprocess(name, args.clone(), env).await
         } else {
             self.run_subprocess(name, args.clone(), env)
         };
@@ -782,7 +770,12 @@ impl Config {
     }
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn run_inprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
+    pub(crate) async fn run_inprocess<I, A>(
+        &self,
+        name: &str,
+        args: I,
+        env: &[(&str, &str)],
+    ) -> Output
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
@@ -803,31 +796,22 @@ impl Config {
                     .into_boxed_str(),
             );
         }
-        let mut builder = Builder::new_multi_thread();
-        builder
-            .enable_all()
-            .worker_threads(2)
-            .max_blocking_threads(2);
-        let rt = builder.build().unwrap();
-        rt.block_on(async {
-            let tp =
-                currentprocess::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
-            let process_res =
-                rustup_mode::main(tp.process.current_dir().unwrap(), &tp.process).await;
-            // convert Err's into an ec
-            let ec = match process_res {
-                Ok(process_res) => process_res,
-                Err(e) => {
-                    crate::cli::common::report_error(&e, &tp.process);
-                    utils::ExitCode(1)
-                }
-            };
-            Output {
-                status: Some(ec.0),
-                stderr: tp.stderr(),
-                stdout: tp.stdout(),
+
+        let tp = currentprocess::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
+        let process_res = rustup_mode::main(tp.process.current_dir().unwrap(), &tp.process).await;
+        // convert Err's into an ec
+        let ec = match process_res {
+            Ok(process_res) => process_res,
+            Err(e) => {
+                crate::cli::common::report_error(&e, &tp.process);
+                utils::ExitCode(1)
             }
-        })
+        };
+        Output {
+            status: Some(ec.0),
+            stderr: tp.stderr(),
+            stdout: tp.stdout(),
+        }
     }
 
     #[track_caller]
