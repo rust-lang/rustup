@@ -8,6 +8,7 @@ use std::{
     fmt::Debug,
     fs,
     io::{self, Write},
+    mem,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     process::Command,
@@ -398,6 +399,11 @@ impl CliTestContext {
             _self_dist: self_dist_tmp,
         }
     }
+
+    pub fn change_dir(&mut self, path: &Path) -> WorkDirGuard<'_> {
+        let prev = self.config.workdir.replace(path.to_owned());
+        WorkDirGuard { inner: self, prev }
+    }
 }
 
 #[must_use]
@@ -422,6 +428,32 @@ impl From<Scenario> for CliTestContext {
         }
 
         Self { config, _test_dir }
+    }
+}
+
+#[must_use]
+pub struct WorkDirGuard<'a> {
+    inner: &'a mut CliTestContext,
+    prev: PathBuf,
+}
+
+impl Deref for WorkDirGuard<'_> {
+    type Target = CliTestContext;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.inner
+    }
+}
+
+impl DerefMut for WorkDirGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.inner
+    }
+}
+
+impl Drop for WorkDirGuard<'_> {
+    fn drop(&mut self) {
+        self.inner.config.workdir.replace(mem::take(&mut self.prev));
     }
 }
 
@@ -480,12 +512,6 @@ version = "{version}"
 impl Config {
     pub fn current_dir(&self) -> PathBuf {
         self.workdir.borrow().clone()
-    }
-
-    pub fn change_dir(&mut self, path: &Path, f: &dyn Fn(&mut Config)) {
-        let prev = self.workdir.replace(path.to_owned());
-        f(self);
-        *self.workdir.borrow_mut() = prev;
     }
 
     pub fn create_rustup_sh_metadata(&self) {

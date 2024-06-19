@@ -255,12 +255,13 @@ fn remove_default_toolchain_autoinstalls() {
 fn remove_override_toolchain_err_handling() {
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    cx.config.change_dir(tempdir.path(), &|config| {
-        config.expect_ok(&["rustup", "default", "nightly"]);
-        config.expect_ok(&["rustup", "override", "add", "beta"]);
-        config.expect_ok(&["rustup", "toolchain", "remove", "beta"]);
-        config.expect_stderr_ok(&["rustc", "--version"], "info: installing component");
-    });
+    let mut cx = cx.change_dir(tempdir.path());
+    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+    cx.config.expect_ok(&["rustup", "override", "add", "beta"]);
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "remove", "beta"]);
+    cx.config
+        .expect_stderr_ok(&["rustc", "--version"], "info: installing component");
 }
 
 #[test]
@@ -411,10 +412,11 @@ fn override_overrides_default() {
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.change_dir(tempdir.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "beta"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
-    });
+
+    let mut cx = cx.change_dir(tempdir.path());
+    cx.config.expect_ok(&["rustup", "override", "add", "beta"]);
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
 }
 
 #[test]
@@ -424,22 +426,32 @@ fn multiple_overrides() {
     let tempdir2 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.change_dir(tempdir1.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "beta"]);
-    });
-    cx.config.change_dir(tempdir2.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "stable"]);
-    });
+
+    {
+        let mut cx = cx.change_dir(tempdir1.path());
+        cx.config.expect_ok(&["rustup", "override", "add", "beta"]);
+    }
+
+    {
+        let mut cx = cx.change_dir(tempdir2.path());
+        cx.config
+            .expect_ok(&["rustup", "override", "add", "stable"]);
+    }
 
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
 
-    cx.config.change_dir(tempdir1.path(), &|config| {
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
-    });
-    cx.config.change_dir(tempdir2.path(), &|config| {
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
-    });
+    {
+        let cx = cx.change_dir(tempdir1.path());
+        cx.config
+            .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
+    }
+
+    {
+        let cx = cx.change_dir(tempdir2.path());
+        cx.config
+            .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+    }
 }
 
 // #316
@@ -460,50 +472,53 @@ fn override_windows_root() {
     // Really sketchy to be messing with C:\ in a test...
     let prefix = prefix.as_os_str().to_str().unwrap();
     let prefix = format!("{prefix}\\");
-    cx.config.change_dir(&PathBuf::from(&prefix), &|config| {
-        config.expect_ok(&["rustup", "default", "stable"]);
-        config.expect_ok(&["rustup", "override", "add", "nightly"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
-        config.expect_ok(&["rustup", "override", "remove"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
-    });
+    let mut cx = cx.change_dir(&PathBuf::from(&prefix));
+    cx.config.expect_ok(&["rustup", "default", "stable"]);
+    cx.config
+        .expect_ok(&["rustup", "override", "add", "nightly"]);
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+    cx.config.expect_ok(&["rustup", "override", "remove"]);
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
 }
 
 #[test]
 fn change_override() {
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    cx.config.change_dir(tempdir.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "nightly"]);
-        config.expect_ok(&["rustup", "override", "add", "beta"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
-    });
+    let mut cx = cx.change_dir(tempdir.path());
+    cx.config
+        .expect_ok(&["rustup", "override", "add", "nightly"]);
+    cx.config.expect_ok(&["rustup", "override", "add", "beta"]);
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
 }
 
 #[test]
 fn remove_override_no_default() {
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    cx.config.change_dir(tempdir.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "nightly"]);
-        config.expect_ok(&["rustup", "override", "remove"]);
-        config.expect_err(
-            &["rustc"],
-            "rustup could not choose a version of rustc to run",
-        );
-    });
+    let mut cx = cx.change_dir(tempdir.path());
+    cx.config
+        .expect_ok(&["rustup", "override", "add", "nightly"]);
+    cx.config.expect_ok(&["rustup", "override", "remove"]);
+    cx.config.expect_err(
+        &["rustc"],
+        "rustup could not choose a version of rustc to run",
+    );
 }
 
 #[test]
 fn remove_override_with_default() {
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    cx.config.change_dir(tempdir.path(), &|config| {
-        config.expect_ok(&["rustup", "default", "nightly"]);
-        config.expect_ok(&["rustup", "override", "add", "beta"]);
-        config.expect_ok(&["rustup", "override", "remove"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
-    });
+    let mut cx = cx.change_dir(tempdir.path());
+    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+    cx.config.expect_ok(&["rustup", "override", "add", "beta"]);
+    cx.config.expect_ok(&["rustup", "override", "remove"]);
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
 }
 
 #[test]
@@ -512,21 +527,33 @@ fn remove_override_with_multiple_overrides() {
     let tempdir1 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let tempdir2 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.change_dir(tempdir1.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "beta"]);
-    });
-    cx.config.change_dir(tempdir2.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "add", "stable"]);
-    });
+
+    {
+        let mut cx = cx.change_dir(tempdir1.path());
+        cx.config.expect_ok(&["rustup", "override", "add", "beta"]);
+    }
+
+    {
+        let mut cx = cx.change_dir(tempdir2.path());
+        cx.config
+            .expect_ok(&["rustup", "override", "add", "stable"]);
+    }
+
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
-    cx.config.change_dir(tempdir1.path(), &|config| {
-        config.expect_ok(&["rustup", "override", "remove"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
-    });
-    cx.config.change_dir(tempdir2.path(), &|config| {
-        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
-    });
+
+    {
+        let mut cx = cx.change_dir(tempdir1.path());
+        cx.config.expect_ok(&["rustup", "override", "remove"]);
+        cx.config
+            .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+    }
+
+    {
+        let cx = cx.change_dir(tempdir2.path());
+        cx.config
+            .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+    }
 }
 
 #[test]

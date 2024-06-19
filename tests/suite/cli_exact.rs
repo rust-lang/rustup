@@ -337,9 +337,13 @@ fn remove_override_with_path() {
             .prefix("rustup-test")
             .tempdir()
             .unwrap();
-        cx.config.change_dir(dir.path(), &|config| {
-            config.expect_ok(&["rustup", "override", "add", "nightly"]);
-        });
+
+        {
+            let mut cx = cx.change_dir(dir.path());
+            cx.config
+                .expect_ok(&["rustup", "override", "add", "nightly"]);
+        }
+
         cx.config.expect_ok_ex(
             &[
                 "rustup",
@@ -367,9 +371,9 @@ fn remove_override_with_path_deleted() {
                 .tempdir()
                 .unwrap();
             let path = std::fs::canonicalize(dir.path()).unwrap();
-            cx.config.change_dir(&path, &|config| {
-                config.expect_ok(&["rustup", "override", "add", "nightly"]);
-            });
+            let mut cx = cx.change_dir(&path);
+            cx.config
+                .expect_ok(&["rustup", "override", "add", "nightly"]);
             path
         };
         cx.config.expect_ok_ex(
@@ -400,9 +404,9 @@ fn remove_override_nonexistent() {
                 .tempdir()
                 .unwrap();
             let path = std::fs::canonicalize(dir.path()).unwrap();
-            cx.config.change_dir(&path, &|config| {
-                config.expect_ok(&["rustup", "override", "add", "nightly"]);
-            });
+            let mut cx = cx.change_dir(&path);
+            cx.config
+                .expect_ok(&["rustup", "override", "add", "nightly"]);
             path
         };
         // FIXME TempDir seems to succumb to difficulties removing dirs on windows
@@ -453,9 +457,9 @@ fn list_overrides_with_nonexistent() {
             .prefix("rustup-test")
             .tempdir()
             .unwrap();
-        cx.config.change_dir(dir.path(), &|config| {
-            config.expect_ok(&["rustup", "override", "add", "nightly"]);
-        });
+        let mut cx = cx.change_dir(dir.path());
+        cx.config
+            .expect_ok(&["rustup", "override", "add", "nightly"]);
         std::fs::canonicalize(dir.path()).unwrap()
     };
     // FIXME TempDir seems to succumb to difficulties removing dirs on windows
