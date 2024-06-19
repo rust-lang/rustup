@@ -1046,15 +1046,14 @@ fn warn_about_and_remove_stray_hash() {
         .expect("Unable to write update-hash");
     drop(file);
 
-    cx.config.with_scenario(Scenario::SimpleV2, &|config| {
-        config.expect_stderr_ok(
-            &["rustup", "toolchain", "install", "nightly"],
-            &format!(
-                "removing stray hash found at '{}' in order to continue",
-                hash_path.display()
-            ),
-        );
-    })
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    cx.config.expect_stderr_ok(
+        &["rustup", "toolchain", "install", "nightly"],
+        &format!(
+            "removing stray hash found at '{}' in order to continue",
+            hash_path.display()
+        ),
+    );
 }
 
 fn make_component_unavailable(config: &Config, name: &str, target: String) {

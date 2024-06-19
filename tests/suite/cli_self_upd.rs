@@ -796,9 +796,13 @@ fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
 #[test]
 fn rls_proxy_set_up_after_install() {
     let mut cx = CliTestContext::from(Scenario::None);
-    cx.config.with_scenario(Scenario::SimpleV2, &|config| {
-        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
-    });
+
+    {
+        let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
+        cx.config
+            .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+    }
+
     cx.config.expect_err(
         &["rls", "--version"],
         &format!(

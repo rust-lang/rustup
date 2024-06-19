@@ -8,6 +8,7 @@ use std::{
     fmt::Debug,
     fs,
     io::{self, Write},
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     process::Command,
     sync::{Arc, RwLock, RwLockWriteGuard},
@@ -358,6 +359,15 @@ pub struct CliTestContext {
     _test_dir: TempDir,
 }
 
+impl CliTestContext {
+    /// Move the dist server to the specified scenario and restore it
+    /// afterwards.
+    pub fn with_dist_dir(&mut self, scenario: Scenario) -> DistDirGuard<'_> {
+        self.config.distdir = Some(CONST_TEST_STATE.dist_server_for(scenario).unwrap());
+        DistDirGuard { inner: self }
+    }
+}
+
 impl From<Scenario> for CliTestContext {
     fn from(scenario: Scenario) -> Self {
         // Things we might cache or what not
@@ -374,7 +384,35 @@ impl From<Scenario> for CliTestContext {
             config.distdir = Some(config.test_dist_dir.path().to_path_buf());
         }
 
-        Self { config, _test_dir }
+        Self {
+            config,
+            _test_dir,
+        }
+    }
+}
+
+#[must_use]
+pub struct DistDirGuard<'a> {
+    inner: &'a mut CliTestContext,
+}
+
+impl Deref for DistDirGuard<'_> {
+    type Target = CliTestContext;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.inner
+    }
+}
+
+impl DerefMut for DistDirGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.inner
+    }
+}
+
+impl Drop for DistDirGuard<'_> {
+    fn drop(&mut self) {
+        self.inner.config.distdir = None;
     }
 }
 
@@ -452,15 +490,6 @@ impl Config {
         fs::create_dir_all(&rustup_dir).unwrap();
         let version_file = rustup_dir.join("rustup-version");
         raw::write_file(&version_file, "").unwrap();
-    }
-
-    /// Move the dist server to the specified scenario and restore it
-    /// afterwards.
-    pub fn with_scenario(&mut self, s: Scenario, f: &dyn Fn(&mut Config)) {
-        let dist_path = CONST_TEST_STATE.dist_server_for(s).unwrap();
-        self.const_dist_dir = Some(dist_path);
-        f(self);
-        self.const_dist_dir = None;
     }
 
     pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
