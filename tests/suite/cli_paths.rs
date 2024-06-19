@@ -37,9 +37,9 @@ export PATH="$HOME/apple/bin"
         format!("source \"{dir}/{sh}\"\n")
     }
 
-    #[test]
-    fn install_creates_necessary_scripts() {
-        let cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_creates_necessary_scripts() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
         // Override the test harness so that cargo home looks like
         // $HOME/.cargo by removing CARGO_HOME from the environment,
         // otherwise the literal path will be written to the file.
@@ -68,9 +68,9 @@ export PATH="$HOME/apple/bin"
         }
     }
 
-    #[test]
-    fn install_updates_bash_rcs() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_updates_bash_rcs() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
             .iter()
             .map(|rc| cx.config.homedir.join(rc))
@@ -79,7 +79,7 @@ export PATH="$HOME/apple/bin"
             raw::write_file(rc, FAKE_RC).unwrap();
         }
 
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
 
         let expected = FAKE_RC.to_owned() + &source(cx.config.cargodir.display(), POSIX_SH);
         for rc in &rcs {
@@ -88,15 +88,15 @@ export PATH="$HOME/apple/bin"
         }
     }
 
-    #[test]
-    fn install_does_not_create_bash_rcs() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_does_not_create_bash_rcs() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login"]
             .iter()
             .map(|rc| cx.config.homedir.join(rc))
             .collect();
         let rcs_before = rcs.iter().map(|rc| rc.exists());
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
 
         for (before, after) in rcs_before.zip(rcs.iter().map(|rc| rc.exists())) {
             assert!(!before);
@@ -105,21 +105,21 @@ export PATH="$HOME/apple/bin"
     }
 
     // This test should NOT be run as root!
-    #[test]
-    fn install_errors_when_rc_cannot_be_updated() {
-        let cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_errors_when_rc_cannot_be_updated() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
         let rc = cx.config.homedir.join(".profile");
         fs::File::create(&rc).unwrap();
         let mut perms = fs::metadata(&rc).unwrap().permissions();
         perms.set_readonly(true);
         fs::set_permissions(&rc, perms).unwrap();
 
-        cx.config.expect_err(&INIT_NONE, "amend shell");
+        cx.config.expect_err(&INIT_NONE, "amend shell").await;
     }
 
-    #[test]
-    fn install_with_zdotdir() {
-        let cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_with_zdotdir() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
         let zdotdir = tempfile::Builder::new()
             .prefix("zdotdir")
             .tempdir()
@@ -137,8 +137,8 @@ export PATH="$HOME/apple/bin"
         assert_eq!(new_rc, expected);
     }
 
-    #[test]
-    fn install_with_zdotdir_from_calling_zsh() {
+    #[tokio::test]
+    async fn install_with_zdotdir_from_calling_zsh() {
         // This test requires that zsh is callable.
         if std::process::Command::new("zsh")
             .arg("-c")
@@ -149,7 +149,7 @@ export PATH="$HOME/apple/bin"
             return;
         }
 
-        let cx = CliTestContext::from(Scenario::Empty);
+        let cx = CliTestContext::new(Scenario::Empty).await;
         let zdotdir = tempfile::Builder::new()
             .prefix("zdotdir")
             .tempdir()
@@ -176,38 +176,38 @@ export PATH="$HOME/apple/bin"
         assert_eq!(new_rc, expected);
     }
 
-    #[test]
-    fn install_adds_path_to_rc_just_once() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_adds_path_to_rc_just_once() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let profile = cx.config.homedir.join(".profile");
         raw::write_file(&profile, FAKE_RC).unwrap();
-        cx.config.expect_ok(&INIT_NONE);
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
+        cx.config.expect_ok(&INIT_NONE).await;
 
         let new_profile = fs::read_to_string(&profile).unwrap();
         let expected = FAKE_RC.to_owned() + &source(cx.config.cargodir.display(), POSIX_SH);
         assert_eq!(new_profile, expected);
     }
 
-    #[test]
-    fn install_adds_path_to_rc_handling_no_newline() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_adds_path_to_rc_handling_no_newline() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let profile = cx.config.homedir.join(".profile");
         let fake_rc_modified = FAKE_RC.strip_suffix('\n').expect("Should end in a newline");
         raw::write_file(&profile, fake_rc_modified).unwrap();
         // Run once to add the configuration
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
         // Run twice to test that the process is idempotent
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
 
         let new_profile = fs::read_to_string(&profile).unwrap();
         let expected = FAKE_RC.to_owned() + &source(cx.config.cargodir.display(), POSIX_SH);
         assert_eq!(new_profile, expected);
     }
 
-    #[test]
-    fn install_adds_path_to_multiple_rc_files() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_adds_path_to_multiple_rc_files() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         // Two RC files that are both from the same shell
         let bash_profile = cx.config.homedir.join(".bash_profile");
         let bashrc = cx.config.homedir.join(".bashrc");
@@ -219,7 +219,7 @@ export PATH="$HOME/apple/bin"
             raw::write_file(path1, &expected).unwrap();
             raw::write_file(path2, FAKE_RC).unwrap();
 
-            cx.config.expect_ok(&INIT_NONE);
+            cx.config.expect_ok(&INIT_NONE).await;
 
             let new1 = fs::read_to_string(path1).unwrap();
             assert_eq!(new1, expected);
@@ -228,9 +228,9 @@ export PATH="$HOME/apple/bin"
         }
     }
 
-    #[test]
-    fn uninstall_removes_source_from_rcs() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn uninstall_removes_source_from_rcs() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let rcs: Vec<PathBuf> = [
             ".bashrc",
             ".bash_profile",
@@ -246,8 +246,10 @@ export PATH="$HOME/apple/bin"
             raw::write_file(rc, FAKE_RC).unwrap();
         }
 
-        cx.config.expect_ok(&INIT_NONE);
-        cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
+        cx.config.expect_ok(&INIT_NONE).await;
+        cx.config
+            .expect_ok(&["rustup", "self", "uninstall", "-y"])
+            .await;
 
         for rc in &rcs {
             let new_rc = fs::read_to_string(rc).unwrap();
@@ -255,9 +257,9 @@ export PATH="$HOME/apple/bin"
         }
     }
 
-    #[test]
-    fn install_adds_sources_while_removing_legacy_paths() {
-        let cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_adds_sources_while_removing_legacy_paths() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
         let zdotdir = tempfile::Builder::new()
             .prefix("zdotdir")
             .tempdir()
@@ -292,11 +294,11 @@ export PATH="$HOME/apple/bin"
         }
     }
 
-    #[test]
-    fn uninstall_cleans_up_legacy_paths() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn uninstall_cleans_up_legacy_paths() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         // Install first, then overwrite.
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
 
         let zdotdir = tempfile::Builder::new()
             .prefix("zdotdir")
@@ -333,9 +335,9 @@ export PATH="$HOME/apple/bin"
 
     // In the default case we want to write $HOME/.cargo/bin as the path,
     // not the full path.
-    #[test]
-    fn when_cargo_home_is_the_default_write_path_specially() {
-        let cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn when_cargo_home_is_the_default_write_path_specially() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
         // Override the test harness so that cargo home looks like
         // $HOME/.cargo by removing CARGO_HOME from the environment,
         // otherwise the literal path will be written to the file.
@@ -358,17 +360,19 @@ export PATH="$HOME/apple/bin"
         assert_eq!(new_profile, FAKE_RC);
     }
 
-    #[test]
-    fn install_doesnt_modify_path_if_passed_no_modify_path() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    #[tokio::test]
+    async fn install_doesnt_modify_path_if_passed_no_modify_path() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let profile = cx.config.homedir.join(".profile");
-        cx.config.expect_ok(&[
-            "rustup-init",
-            "-y",
-            "--no-modify-path",
-            "--default-toolchain",
-            "none",
-        ]);
+        cx.config
+            .expect_ok(&[
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ])
+            .await;
         assert!(!profile.exists());
     }
 }
@@ -379,15 +383,15 @@ mod windows {
     use rustup::test::mock::clitools::{CliTestContext, Scenario};
     use rustup::test::{get_path, RegistryGuard, USER_PATH};
 
-    #[test]
+    #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
-    fn install_uninstall_affect_path() {
-        let mut cx = CliTestContext::from(Scenario::Empty);
+    async fn install_uninstall_affect_path() {
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || get_path().unwrap().unwrap().to_string();
 
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
         assert!(
             get_path_().contains(cfg_path.trim_matches('"')),
             "`{}` not in `{}`",
@@ -395,19 +399,21 @@ mod windows {
             get_path_()
         );
 
-        cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
+        cx.config
+            .expect_ok(&["rustup", "self", "uninstall", "-y"])
+            .await;
         assert!(!get_path_().contains(&cfg_path));
     }
 
-    #[test]
+    #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
-    fn install_uninstall_affect_path_with_non_unicode() {
+    async fn install_uninstall_affect_path_with_non_unicode() {
         use std::ffi::OsString;
         use std::os::windows::ffi::OsStrExt;
         use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
         use winreg::{RegKey, RegValue};
 
-        let mut cx = CliTestContext::from(Scenario::Empty);
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();
         // Set up a non unicode PATH
         let reg_value = RegValue {
@@ -435,10 +441,12 @@ mod windows {
             vtype: RegType::REG_EXPAND_SZ,
         };
 
-        cx.config.expect_ok(&INIT_NONE);
+        cx.config.expect_ok(&INIT_NONE).await;
         assert_eq!(get_path().unwrap().unwrap(), expected);
 
-        cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
+        cx.config
+            .expect_ok(&["rustup", "self", "uninstall", "-y"])
+            .await;
         assert_eq!(get_path().unwrap().unwrap(), reg_value);
     }
 }

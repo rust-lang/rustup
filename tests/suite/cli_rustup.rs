@@ -20,27 +20,29 @@ macro_rules! for_host_and_home {
     };
 }
 
-#[test]
-fn rustup_stable() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn rustup_stable() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
         cx.config
-            .expect_ok(&["rustup", "toolchain", "add", "stable"]);
+            .expect_ok(&["rustup", "toolchain", "add", "stable"])
+            .await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-    cx.config.expect_ok_ex(
-        &["rustup", "update"],
-        for_host!(
-            r"
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "update"],
+            for_host!(
+                r"
   stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
 
 "
-        ),
-        for_host!(
-            r"info: syncing channel updates for 'stable-{0}'
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -56,31 +58,34 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: cleaning up downloads & tmp directories
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn rustup_stable_quiet() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn rustup_stable_quiet() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
         cx.config
-            .expect_ok(&["rustup", "--quiet", "update", "stable"]);
+            .expect_ok(&["rustup", "--quiet", "update", "stable"])
+            .await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-    cx.config.expect_ok_ex(
-        &["rustup", "--quiet", "update"],
-        for_host!(
-            r"
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "--quiet", "update"],
+            for_host!(
+                r"
   stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
 
 "
-        ),
-        for_host!(
-            r"info: syncing channel updates for 'stable-{0}'
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -96,53 +101,58 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: cleaning up downloads & tmp directories
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn rustup_stable_no_change() {
-    let mut cx = CliTestContext::from(Scenario::ArchivesV2_2015_01_01);
-    cx.config.expect_ok(&["rustup", "update", "stable"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "update"],
-        for_host!(
-            r"
+#[tokio::test]
+async fn rustup_stable_no_change() {
+    let mut cx = CliTestContext::new(Scenario::ArchivesV2_2015_01_01).await;
+    cx.config.expect_ok(&["rustup", "update", "stable"]).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "update"],
+            for_host!(
+                r"
   stable-{0} unchanged - 1.0.0 (hash-stable-1.0.0)
 
 "
-        ),
-        for_host!(
-            r"info: syncing channel updates for 'stable-{0}'
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: cleaning up downloads & tmp directories
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn rustup_all_channels() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn rustup_all_channels() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
         cx.config
-            .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"]);
+            .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
+            .await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-    cx.config.expect_ok_ex(
-        &["rustup", "update"],
-        for_host!(
-            r"
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "update"],
+            for_host!(
+                r"
    stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
      beta-{0} updated - 1.2.0 (hash-beta-1.2.0) (from 1.1.0 (hash-beta-1.1.0))
   nightly-{0} updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
 
 "
-        ),
-        for_host!(
-            r"info: syncing channel updates for 'stable-{0}'
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -186,34 +196,37 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: cleaning up downloads & tmp directories
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn rustup_some_channels_up_to_date() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn rustup_some_channels_up_to_date() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
         cx.config
-            .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"]);
+            .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
+            .await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "update", "beta"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "update"],
-        for_host!(
-            r"
+    cx.config.expect_ok(&["rustup", "update", "beta"]).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "update"],
+            for_host!(
+                r"
    stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
    beta-{0} unchanged - 1.2.0 (hash-beta-1.2.0)
   nightly-{0} updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
 
 "
-        ),
-        for_host!(
-            r"info: syncing channel updates for 'stable-{0}'
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -244,35 +257,39 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: cleaning up downloads & tmp directories
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn rustup_no_channels() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok_ex(
-        &["rustup", "update"],
-        r"",
-        r"info: no updatable toolchains installed
+#[tokio::test]
+async fn rustup_no_channels() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "update"],
+            r"",
+            r"info: no updatable toolchains installed
 info: cleaning up downloads & tmp directories
 ",
-    );
+        )
+        .await;
 }
 
-#[test]
-fn default() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok_ex(
-        &["rustup", "default", "nightly"],
-        for_host!(
-            r"
+#[tokio::test]
+async fn default() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "default", "nightly"],
+            for_host!(
+                r"
   nightly-{0} installed - 1.3.0 (hash-nightly-2)
 
 "
-        ),
-        for_host!(
-            r"info: syncing channel updates for 'nightly-{0}'
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -284,216 +301,248 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: default toolchain set to 'nightly-{0}'
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn default_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn default_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "add", "nightly"]);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+        .expect_ok(&["rustup", "toolchain", "add", "nightly"])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "override", "set", "nightly"]);
-    cx.config.expect_stderr_ok(
-        &["rustup", "default", "stable"],
-        for_host!(
-            r"info: using existing install for 'stable-{0}'
+        .expect_ok(&["rustup", "override", "set", "nightly"])
+        .await;
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "default", "stable"],
+            for_host!(
+                r"info: using existing install for 'stable-{0}'
 info: default toolchain set to 'stable-{0}'
 info: note that the toolchain 'nightly-{0}' is currently in use (directory override for"
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn rustup_zstd() {
-    let cx = CliTestContext::from(Scenario::ArchivesV2_2015_01_01);
-    cx.config.expect_stderr_ok(
-        &["rustup", "--verbose", "toolchain", "add", "nightly"],
-        for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.zst"),
-    );
+#[tokio::test]
+async fn rustup_zstd() {
+    let cx = CliTestContext::new(Scenario::ArchivesV2_2015_01_01).await;
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "--verbose", "toolchain", "add", "nightly"],
+            for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.zst"),
+        )
+        .await;
 }
 
-#[test]
-fn add_target() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn add_target() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
         &this_host_triple(),
         clitools::CROSS_ARCH1
     );
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1])
+        .await;
     assert!(cx.config.rustupdir.has(path));
 }
 
-#[test]
-fn remove_target() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn remove_target() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
         &this_host_triple(),
         clitools::CROSS_ARCH1
     );
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1])
+        .await;
     assert!(cx.config.rustupdir.has(&path));
     cx.config
-        .expect_ok(&["rustup", "target", "remove", clitools::CROSS_ARCH1]);
+        .expect_ok(&["rustup", "target", "remove", clitools::CROSS_ARCH1])
+        .await;
     assert!(!cx.config.rustupdir.has(&path));
 }
 
-#[test]
-fn add_remove_multiple_targets() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok(&[
-        "rustup",
-        "target",
-        "add",
-        clitools::CROSS_ARCH1,
-        clitools::CROSS_ARCH2,
-    ]);
-    let path = format!(
-        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
-        clitools::CROSS_ARCH1
-    );
-    assert!(cx.config.rustupdir.has(path));
-    let path = format!(
-        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
-        clitools::CROSS_ARCH2
-    );
-    assert!(cx.config.rustupdir.has(path));
-
-    cx.config.expect_ok(&[
-        "rustup",
-        "target",
-        "remove",
-        clitools::CROSS_ARCH1,
-        clitools::CROSS_ARCH2,
-    ]);
-    let path = format!(
-        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
-        clitools::CROSS_ARCH1
-    );
-    assert!(!cx.config.rustupdir.has(path));
-    let path = format!(
-        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
-        clitools::CROSS_ARCH2
-    );
-    assert!(!cx.config.rustupdir.has(path));
-}
-
-#[test]
-fn list_targets() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+#[tokio::test]
+async fn add_remove_multiple_targets() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_stdout_ok(&["rustup", "target", "list"], clitools::CROSS_ARCH1);
+        .expect_ok(&[
+            "rustup",
+            "target",
+            "add",
+            clitools::CROSS_ARCH1,
+            clitools::CROSS_ARCH2,
+        ])
+        .await;
+    let path = format!(
+        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+        &this_host_triple(),
+        clitools::CROSS_ARCH1
+    );
+    assert!(cx.config.rustupdir.has(path));
+    let path = format!(
+        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+        &this_host_triple(),
+        clitools::CROSS_ARCH2
+    );
+    assert!(cx.config.rustupdir.has(path));
+
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "target",
+            "remove",
+            clitools::CROSS_ARCH1,
+            clitools::CROSS_ARCH2,
+        ])
+        .await;
+    let path = format!(
+        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+        &this_host_triple(),
+        clitools::CROSS_ARCH1
+    );
+    assert!(!cx.config.rustupdir.has(path));
+    let path = format!(
+        "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+        &this_host_triple(),
+        clitools::CROSS_ARCH2
+    );
+    assert!(!cx.config.rustupdir.has(path));
 }
 
-#[test]
-fn list_installed_targets() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn list_targets() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "target", "list"], clitools::CROSS_ARCH1)
+        .await;
+}
+
+#[tokio::test]
+async fn list_installed_targets() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let trip = this_host_triple();
 
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_stdout_ok(&["rustup", "target", "list", "--installed"], &trip);
+        .expect_stdout_ok(&["rustup", "target", "list", "--installed"], &trip)
+        .await;
 }
 
-#[test]
-fn add_target_explicit() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn add_target_explicit() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
         &this_host_triple(),
         clitools::CROSS_ARCH1
     );
     cx.config
-        .expect_ok(&["rustup", "toolchain", "add", "nightly"]);
-    cx.config.expect_ok(&[
-        "rustup",
-        "target",
-        "add",
-        "--toolchain",
-        "nightly",
-        clitools::CROSS_ARCH1,
-    ]);
+        .expect_ok(&["rustup", "toolchain", "add", "nightly"])
+        .await;
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "target",
+            "add",
+            "--toolchain",
+            "nightly",
+            clitools::CROSS_ARCH1,
+        ])
+        .await;
     assert!(cx.config.rustupdir.has(path));
 }
 
-#[test]
-fn remove_target_explicit() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn remove_target_explicit() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
         &this_host_triple(),
         clitools::CROSS_ARCH1
     );
     cx.config
-        .expect_ok(&["rustup", "toolchain", "add", "nightly"]);
-    cx.config.expect_ok(&[
-        "rustup",
-        "target",
-        "add",
-        "--toolchain",
-        "nightly",
-        clitools::CROSS_ARCH1,
-    ]);
+        .expect_ok(&["rustup", "toolchain", "add", "nightly"])
+        .await;
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "target",
+            "add",
+            "--toolchain",
+            "nightly",
+            clitools::CROSS_ARCH1,
+        ])
+        .await;
     assert!(cx.config.rustupdir.has(&path));
-    cx.config.expect_ok(&[
-        "rustup",
-        "target",
-        "remove",
-        "--toolchain",
-        "nightly",
-        clitools::CROSS_ARCH1,
-    ]);
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "target",
+            "remove",
+            "--toolchain",
+            "nightly",
+            clitools::CROSS_ARCH1,
+        ])
+        .await;
     assert!(!cx.config.rustupdir.has(&path));
 }
 
-#[test]
-fn list_targets_explicit() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn list_targets_explicit() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "add", "nightly"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "target", "list", "--toolchain", "nightly"],
-        clitools::CROSS_ARCH1,
-    );
+        .expect_ok(&["rustup", "toolchain", "add", "nightly"])
+        .await;
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "target", "list", "--toolchain", "nightly"],
+            clitools::CROSS_ARCH1,
+        )
+        .await;
 }
 
-#[test]
-fn link() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn link() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = cx.config.customdir.join("custom-1");
     let path = path.to_string_lossy();
     cx.config
-        .expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
-    cx.config.expect_ok(&["rustup", "default", "custom"]);
+        .expect_ok(&["rustup", "toolchain", "link", "custom", &path])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "custom"]).await;
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-c-1");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-c-1")
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustup", "show"], "custom (active, default)");
-    cx.config.expect_ok(&["rustup", "update", "nightly"]);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_stdout_ok(&["rustup", "show"], "custom");
+        .expect_stdout_ok(&["rustup", "show"], "custom (active, default)")
+        .await;
+    cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "show"], "custom")
+        .await;
 }
 
 // Issue #809. When we call the fallback cargo, when it in turn invokes
 // "rustc", that rustc should actually be the rustup proxy, not the toolchain rustc.
 // That way the proxy can pick the correct toolchain.
-#[test]
-fn fallback_cargo_calls_correct_rustc() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn fallback_cargo_calls_correct_rustc() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     // Hm, this is the _only_ test that assumes that toolchain proxies
     // exist in CARGO_HOME. Adding that proxy here.
     let rustup_path = cx.config.exedir.join(format!("rustup{EXE_SUFFIX}"));
@@ -506,13 +555,16 @@ fn fallback_cargo_calls_correct_rustc() {
     let path = cx.config.customdir.join("custom-1");
     let path = path.to_string_lossy();
     cx.config
-        .expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
-    cx.config.expect_ok(&["rustup", "default", "custom"]);
-    cx.config.expect_ok(&["rustup", "update", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "link", "custom", &path])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "custom"]).await;
+    cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-c-1");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-c-1")
+        .await;
     cx.config
-        .expect_stdout_ok(&["cargo", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["cargo", "--version"], "hash-nightly-2")
+        .await;
 
     assert!(rustc_path.exists());
 
@@ -521,7 +573,8 @@ fn fallback_cargo_calls_correct_rustc() {
     // RUSTUP_TOOLCHAIN variable set by the original "cargo" proxy, and
     // interpreted by the nested "rustc" proxy.
     cx.config
-        .expect_stdout_ok(&["cargo", "--call-rustc"], "hash-c-1");
+        .expect_stdout_ok(&["cargo", "--call-rustc"], "hash-c-1")
+        .await;
 }
 
 // Checks that cargo can recursively invoke itself with rustup shorthand (via
@@ -542,10 +595,10 @@ fn fallback_cargo_calls_correct_rustc() {
 // If the toolchain `bin` directory is in PATH, then this test would fail in
 // step 5 because the `cargo` executable would be the "mock" nightly cargo,
 // and the first argument would be `+nightly` which would be an error.
-#[test]
-fn recursive_cargo() {
-    let mut cx = CliTestContext::from(Scenario::ArchivesV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+#[tokio::test]
+async fn recursive_cargo() {
+    let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
     // We need an intermediary to run cargo itself.
     // The "mock" cargo can't do that because on Windows it will check
@@ -554,7 +607,7 @@ fn recursive_cargo() {
     // The solution here is to copy from the "mock" `cargo.exe` into
     // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
     // needing to build another executable just for this test.
-    let output = cx.config.run("rustup", ["which", "cargo"], &[]);
+    let output = cx.config.run("rustup", ["which", "cargo"], &[]).await;
     let real_mock_cargo = output.stdout.trim();
     let cargo_bin_path = cx.config.cargodir.join("bin");
     let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
@@ -562,31 +615,35 @@ fn recursive_cargo() {
     fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
 
     cx.config
-        .expect_stdout_ok(&["cargo", "--recursive-cargo-subcommand"], "hash-nightly-2");
+        .expect_stdout_ok(&["cargo", "--recursive-cargo-subcommand"], "hash-nightly-2")
+        .await;
 }
 
-#[test]
-fn show_home() {
-    let mut cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_ok_ex(
-        &["rustup", "show", "home"],
-        &format!(
-            r"{}
+#[tokio::test]
+async fn show_home() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show", "home"],
+            &format!(
+                r"{}
 ",
-            cx.config.rustupdir
-        ),
-        r"",
-    );
+                cx.config.rustupdir
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_toolchain_none() {
-    let mut cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        for_host_and_home!(
-            &cx.config,
-            r"Default host: {0}
+#[tokio::test]
+async fn show_toolchain_none() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            for_host_and_home!(
+                &cx.config,
+                r"Default host: {0}
 rustup home:  {1}
 
 installed toolchains
@@ -596,20 +653,22 @@ active toolchain
 ----------------
 no active toolchain
 "
-        ),
-        r"",
-    );
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_toolchain_default() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        for_host_and_home!(
-            cx.config,
-            r"Default host: {0}
+#[tokio::test]
+async fn show_toolchain_default() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            for_host_and_home!(
+                cx.config,
+                r"Default host: {0}
 rustup home:  {1}
 
 installed toolchains
@@ -624,59 +683,65 @@ active because: it's the default toolchain
 installed targets:
   {0}
 "
-        ),
-        r"",
-    );
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_no_default() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "install", "nightly"]);
-    cx.config.expect_ok(&["rustup", "default", "none"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "show"],
-        for_host!(
-            "\
+#[tokio::test]
+async fn show_no_default() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "install", "nightly"]).await;
+    cx.config.expect_ok(&["rustup", "default", "none"]).await;
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "show"],
+            for_host!(
+                "\
 installed toolchains
 --------------------
 nightly-{0}
 
 active toolchain
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn show_no_default_active() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "install", "nightly"]);
-    cx.config.expect_ok(&["rustup", "default", "none"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "+nightly", "show"],
-        for_host!(
-            "\
+#[tokio::test]
+async fn show_no_default_active() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "install", "nightly"]).await;
+    cx.config.expect_ok(&["rustup", "default", "none"]).await;
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "+nightly", "show"],
+            for_host!(
+                "\
 installed toolchains
 --------------------
 nightly-{0} (active)
 
 active toolchain
 "
-        ),
-    );
+            ),
+        )
+        .await;
 }
 
-#[test]
-fn show_multiple_toolchains() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok(&["rustup", "update", "stable"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        for_host_and_home!(
-            cx.config,
-            r"Default host: {0}
+#[tokio::test]
+async fn show_multiple_toolchains() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config.expect_ok(&["rustup", "update", "stable"]).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            for_host_and_home!(
+                cx.config,
+                r"Default host: {0}
 rustup home:  {1}
 
 installed toolchains
@@ -692,25 +757,30 @@ active because: it's the default toolchain
 installed targets:
   {0}
 "
-        ),
-        r"",
-    );
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_multiple_targets() {
-    let mut cx = CliTestContext::from(Scenario::MultiHost);
-    cx.config.expect_ok(&[
-        "rustup",
-        "default",
-        &format!("nightly-{}", clitools::MULTI_ARCH1),
-    ]);
+#[tokio::test]
+async fn show_multiple_targets() {
+    let mut cx = CliTestContext::new(Scenario::MultiHost).await;
     cx.config
-        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH2]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        &format!(
-            r"Default host: {2}
+        .expect_ok(&[
+            "rustup",
+            "default",
+            &format!("nightly-{}", clitools::MULTI_ARCH1),
+        ])
+        .await;
+    cx.config
+        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH2])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {2}
 rustup home:  {3}
 
 installed toolchains
@@ -726,38 +796,45 @@ installed targets:
   {1}
   {0}
 ",
-            clitools::MULTI_ARCH1,
-            clitools::CROSS_ARCH2,
-            this_host_triple(),
-            cx.config.rustupdir
-        ),
-        r"",
-    );
+                clitools::MULTI_ARCH1,
+                clitools::CROSS_ARCH2,
+                this_host_triple(),
+                cx.config.rustupdir
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_multiple_toolchains_and_targets() {
+#[tokio::test]
+async fn show_multiple_toolchains_and_targets() {
     if cfg!(target_os = "linux") && cfg!(target_arch = "x86") {
         return;
     }
 
-    let mut cx = CliTestContext::from(Scenario::MultiHost);
-    cx.config.expect_ok(&[
-        "rustup",
-        "default",
-        &format!("nightly-{}", clitools::MULTI_ARCH1),
-    ]);
+    let mut cx = CliTestContext::new(Scenario::MultiHost).await;
     cx.config
-        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH2]);
-    cx.config.expect_ok(&[
-        "rustup",
-        "update",
-        &format!("stable-{}", clitools::MULTI_ARCH1),
-    ]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        &format!(
-            r"Default host: {2}
+        .expect_ok(&[
+            "rustup",
+            "default",
+            &format!("nightly-{}", clitools::MULTI_ARCH1),
+        ])
+        .await;
+    cx.config
+        .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH2])
+        .await;
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "update",
+            &format!("stable-{}", clitools::MULTI_ARCH1),
+        ])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {2}
 rustup home:  {3}
 
 installed toolchains
@@ -774,80 +851,94 @@ installed targets:
   {1}
   {0}
 ",
-            clitools::MULTI_ARCH1,
-            clitools::CROSS_ARCH2,
-            this_host_triple(),
-            cx.config.rustupdir
-        ),
-        r"",
-    );
+                clitools::MULTI_ARCH1,
+                clitools::CROSS_ARCH2,
+                this_host_triple(),
+                cx.config.rustupdir
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn list_default_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "toolchain", "list"],
-        for_host!("nightly-{0} (active, default)\n"),
-        r"",
-    );
-}
-
-#[test]
-fn list_default_toolchain_quiet() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "toolchain", "list", "--quiet"],
-        for_host!("nightly-{0}\n"),
-        r"",
-    );
-}
-
-#[test]
-fn list_no_default_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "install", "nightly"]);
-    cx.config.expect_ok(&["rustup", "default", "none"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "toolchain", "list"],
-        for_host!("nightly-{0}\n"),
-        r"",
-    );
-}
-
-#[test]
-fn list_no_default_override_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn list_default_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_ok(&["rustup", "override", "set", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "toolchain", "list"],
-        for_host!("nightly-{0} (active)\n"),
-        r"",
-    );
+        .expect_ok_ex(
+            &["rustup", "toolchain", "list"],
+            for_host!("nightly-{0} (active, default)\n"),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn list_default_and_override_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+#[tokio::test]
+async fn list_default_toolchain_quiet() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_ok(&["rustup", "override", "set", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "toolchain", "list"],
-        for_host!("nightly-{0} (active, default)\n"),
-        r"",
-    );
+        .expect_ok_ex(
+            &["rustup", "toolchain", "list", "--quiet"],
+            for_host!("nightly-{0}\n"),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn heal_damaged_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+#[tokio::test]
+async fn list_no_default_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "install", "nightly"]).await;
+    cx.config.expect_ok(&["rustup", "default", "none"]).await;
     cx.config
-        .expect_not_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates");
+        .expect_ok_ex(
+            &["rustup", "toolchain", "list"],
+            for_host!("nightly-{0}\n"),
+            r"",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn list_no_default_override_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok(&["rustup", "override", "set", "nightly"])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "toolchain", "list"],
+            for_host!("nightly-{0} (active)\n"),
+            r"",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn list_default_and_override_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok(&["rustup", "override", "set", "nightly"])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "toolchain", "list"],
+            for_host!("nightly-{0} (active, default)\n"),
+            r"",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn heal_damaged_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_not_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates")
+        .await;
     let manifest_path = format!(
         "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
         this_host_triple()
@@ -869,57 +960,65 @@ fn heal_damaged_toolchain() {
     }
 
     fs::remove_file(cx.config.rustupdir.join(manifest_path)).unwrap();
-    cx.config.expect_ok_ex(
-        &["rustup", "which", "rustc"],
-        &format!("{}\n", rustc_path.to_str().unwrap()),
-        for_host!("info: syncing channel updates for 'nightly-{0}'\n"),
-    );
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
     cx.config
-        .expect_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates");
+        .expect_ok_ex(
+            &["rustup", "which", "rustc"],
+            &format!("{}\n", rustc_path.to_str().unwrap()),
+            for_host!("info: syncing channel updates for 'nightly-{0}'\n"),
+        )
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates")
+        .await;
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "FIXME: Windows shows UNC paths"]
-fn show_toolchain_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+async fn show_toolchain_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cwd = cx.config.current_dir();
     cx.config
-        .expect_ok(&["rustup", "override", "add", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        &format!(
-            r"Default host: {0}
+        .expect_ok(&["rustup", "override", "add", "nightly"])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {0}
 rustup home:  {1}
 
 nightly-{0} (directory override for '{2}')
 1.3.0 (hash-nightly-2)
 ",
-            this_host_triple(),
-            cx.config.rustupdir,
-            cwd.display(),
-        ),
-        r"",
-    );
+                this_host_triple(),
+                cx.config.rustupdir,
+                cwd.display(),
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "FIXME: Windows shows UNC paths"]
-fn show_toolchain_toolchain_file_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+async fn show_toolchain_toolchain_file_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
 
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        &format!(
-            r"Default host: {0}
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {0}
 rustup home:  {1}
 
 installed toolchains
@@ -935,23 +1034,26 @@ nightly-{0} (overridden by '{2}')
 1.3.0 (hash-nightly-2)
 
 ",
-            this_host_triple(),
-            cx.config.rustupdir,
-            toolchain_file.display()
-        ),
-        r"",
-    );
+                this_host_triple(),
+                cx.config.rustupdir,
+                toolchain_file.display()
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "FIXME: Windows shows UNC paths"]
-fn show_toolchain_version_nested_file_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+async fn show_toolchain_version_nested_file_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"]);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+        .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -962,10 +1064,11 @@ fn show_toolchain_version_nested_file_override() {
 
     fs::create_dir_all(&subdir).unwrap();
     let mut cx = cx.change_dir(&subdir);
-    cx.config.expect_ok_ex(
-        &["rustup", "show"],
-        &format!(
-            r"Default host: {0}
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {0}
 
 installed toolchains
 --------------------
@@ -980,18 +1083,19 @@ nightly-{0} (overridden by '{1}')
 1.3.0 (hash-nightly-2)
 
 ",
-            this_host_triple(),
-            toolchain_file.display()
-        ),
-        r"",
-    );
+                this_host_triple(),
+                toolchain_file.display()
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "FIXME: Windows shows UNC paths"]
-fn show_toolchain_toolchain_file_override_not_installed() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+async fn show_toolchain_toolchain_file_override_not_installed() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1012,14 +1116,16 @@ fn show_toolchain_toolchain_file_override_not_installed() {
     )));
 }
 
-#[test]
-fn show_toolchain_override_not_installed() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn show_toolchain_override_not_installed() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "override", "add", "nightly"]);
+        .expect_ok(&["rustup", "override", "add", "nightly"])
+        .await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "remove", "nightly"]);
-    let out = cx.config.run("rustup", ["show"], &[]);
+        .expect_ok(&["rustup", "toolchain", "remove", "nightly"])
+        .await;
+    let out = cx.config.run("rustup", ["show"], &[]).await;
     assert!(!out.ok);
     assert!(out
         .stderr
@@ -1027,9 +1133,9 @@ fn show_toolchain_override_not_installed() {
     assert!(!out.stderr.contains("info: installing component 'rustc'"));
 }
 
-#[test]
-fn override_set_unset_with_path() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn override_set_unset_with_path() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cwd = fs::canonicalize(cx.config.current_dir()).unwrap();
     let mut cwd_str = cwd.to_str().unwrap();
 
@@ -1041,32 +1147,38 @@ fn override_set_unset_with_path() {
     {
         let mut cx = cx.change_dir(emptydir.path());
         cx.config
-            .expect_ok(&["rustup", "override", "set", "nightly", "--path", cwd_str]);
+            .expect_ok(&["rustup", "override", "set", "nightly", "--path", cwd_str])
+            .await;
     }
 
-    cx.config.expect_ok_ex(
-        &["rustup", "override", "list"],
-        &format!("{}\tnightly-{}\n", cwd_str, this_host_triple()),
-        r"",
-    );
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "override", "list"],
+            &format!("{}\tnightly-{}\n", cwd_str, this_host_triple()),
+            r"",
+        )
+        .await;
 
     {
         let mut cx = cx.change_dir(emptydir.path());
         cx.config
-            .expect_ok(&["rustup", "override", "unset", "--path", cwd_str]);
+            .expect_ok(&["rustup", "override", "unset", "--path", cwd_str])
+            .await;
     }
 
     cx.config
-        .expect_ok_ex(&["rustup", "override", "list"], "no overrides\n", r"");
+        .expect_ok_ex(&["rustup", "override", "list"], "no overrides\n", r"")
+        .await;
 }
 
-#[test]
-fn show_toolchain_env() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+#[tokio::test]
+async fn show_toolchain_env() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     let out = cx
         .config
-        .run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")]);
+        .run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")])
+        .await;
     assert!(out.ok);
     assert_eq!(
         &out.stdout,
@@ -1091,12 +1203,13 @@ installed targets:
     );
 }
 
-#[test]
-fn show_toolchain_env_not_installed() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn show_toolchain_env_not_installed() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = cx
         .config
-        .run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")]);
+        .run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")])
+        .await;
 
     assert!(!out.ok);
 
@@ -1123,34 +1236,39 @@ active toolchain
     );
 }
 
-#[test]
-fn show_active_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show", "active-toolchain"],
-        for_host!("nightly-{0}\nactive because: it's the default toolchain\n"),
-        r"",
-    );
+#[tokio::test]
+async fn show_active_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show", "active-toolchain"],
+            for_host!("nightly-{0}\nactive because: it's the default toolchain\n"),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_with_verbose() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn show_with_verbose() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-        cx.config.expect_ok(&["rustup", "default", "nightly"]);
+        cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
     let config = &mut cx.config;
-    config.expect_ok(&["rustup", "update", "nightly-2015-01-01"]);
-    config.expect_ok_ex(
-        &["rustup", "show", "--verbose"],
-        for_host_and_home!(
-            config,
-            r"Default host: {0}
+    config
+        .expect_ok(&["rustup", "update", "nightly-2015-01-01"])
+        .await;
+    config
+        .expect_ok_ex(
+            &["rustup", "show", "--verbose"],
+            for_host_and_home!(
+                config,
+                r"Default host: {0}
 rustup home:  {1}
 
 installed toolchains
@@ -1169,111 +1287,131 @@ active because: it's the default toolchain
 installed targets:
   {0}
 "
-        ),
-        r"",
-    );
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_active_toolchain_with_verbose() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok_ex(
-        &["rustup", "show", "active-toolchain", "--verbose"],
-        for_host!(
-            r"nightly-{0}
+#[tokio::test]
+async fn show_active_toolchain_with_verbose() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show", "active-toolchain", "--verbose"],
+            for_host!(
+                r"nightly-{0}
 active because: it's the default toolchain
 compiler: 1.3.0 (hash-nightly-2)
 "
-        ),
-        r"",
-    );
+            ),
+            r"",
+        )
+        .await;
 }
 
-#[test]
-fn show_active_toolchain_with_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+#[tokio::test]
+async fn show_active_toolchain_with_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
-        .expect_ok(&["rustup", "override", "set", "stable"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "show", "active-toolchain"],
-        for_host!("stable-{0}\nactive because: directory override for"),
-    );
-}
-
-#[test]
-fn show_active_toolchain_none() {
-    let mut cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_ok_ex(
-        &["rustup", "show", "active-toolchain"],
-        "There isn't an active toolchain\n",
-        "",
-    );
-}
-
-#[test]
-fn show_profile() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+        .expect_ok(&["rustup", "override", "set", "stable"])
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustup", "show", "profile"], "default");
+        .expect_stdout_ok(
+            &["rustup", "show", "active-toolchain"],
+            for_host!("stable-{0}\nactive because: directory override for"),
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn show_active_toolchain_none() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show", "active-toolchain"],
+            "There isn't an active toolchain\n",
+            "",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn show_profile() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "show", "profile"], "default")
+        .await;
 
     // Check we get the same thing after we add or remove a component.
     cx.config
-        .expect_ok(&["rustup", "component", "add", "rust-src"]);
+        .expect_ok(&["rustup", "component", "add", "rust-src"])
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustup", "show", "profile"], "default");
+        .expect_stdout_ok(&["rustup", "show", "profile"], "default")
+        .await;
     cx.config
-        .expect_ok(&["rustup", "component", "remove", "rustc"]);
+        .expect_ok(&["rustup", "component", "remove", "rustc"])
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustup", "show", "profile"], "default");
+        .expect_stdout_ok(&["rustup", "show", "profile"], "default")
+        .await;
 }
 
 // #846
-#[test]
-fn set_default_host() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn set_default_host() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
     cx.config
-        .expect_ok(&["rustup", "set", "default-host", &this_host_triple()]);
+        .expect_ok(&["rustup", "set", "default-host", &this_host_triple()])
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustup", "show"], for_host!("Default host: {0}"));
+        .expect_stdout_ok(&["rustup", "show"], for_host!("Default host: {0}"))
+        .await;
 }
 
 // #846
-#[test]
-fn set_default_host_invalid_triple() {
-    let cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_err(
-        &["rustup", "set", "default-host", "foo"],
-        "error: Provided host 'foo' couldn't be converted to partial triple",
-    );
+#[tokio::test]
+async fn set_default_host_invalid_triple() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_err(
+            &["rustup", "set", "default-host", "foo"],
+            "error: Provided host 'foo' couldn't be converted to partial triple",
+        )
+        .await;
 }
 
 // #745
-#[test]
-fn set_default_host_invalid_triple_valid_partial() {
-    let cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_err(
-        &["rustup", "set", "default-host", "x86_64-msvc"],
-        "error: Provided host 'x86_64-msvc' did not specify an operating system",
-    );
+#[tokio::test]
+async fn set_default_host_invalid_triple_valid_partial() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_err(
+            &["rustup", "set", "default-host", "x86_64-msvc"],
+            "error: Provided host 'x86_64-msvc' did not specify an operating system",
+        )
+        .await;
 }
 
 // #422
-#[test]
-fn update_doesnt_update_non_tracking_channels() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn update_doesnt_update_non_tracking_channels() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-        cx.config.expect_ok(&["rustup", "default", "nightly"]);
+        cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
     cx.config
-        .expect_ok(&["rustup", "update", "nightly-2015-01-01"]);
+        .expect_ok(&["rustup", "update", "nightly-2015-01-01"])
+        .await;
     let mut cmd = clitools::cmd(&cx.config, "rustup", ["update"]);
     clitools::env(&cx.config, &mut cmd);
     let out = cmd.output().unwrap();
@@ -1283,93 +1421,115 @@ fn update_doesnt_update_non_tracking_channels() {
     )));
 }
 
-#[test]
-fn toolchain_install_is_like_update() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn toolchain_install_is_like_update() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "run", "nightly", "rustc", "--version"],
-        "hash-nightly-2",
-    );
-}
-
-#[test]
-fn toolchain_install_is_like_update_quiet() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
     cx.config
-        .expect_ok(&["rustup", "--quiet", "toolchain", "install", "nightly"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "run", "nightly", "rustc", "--version"],
-        "hash-nightly-2",
-    );
+        .expect_stdout_ok(
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            "hash-nightly-2",
+        )
+        .await;
 }
 
-#[test]
-fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
-    let cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_err(
-        &["rustup", "toolchain", "install"],
-        "arguments were not provided",
-    );
-}
-
-#[test]
-fn toolchain_update_is_like_update() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn toolchain_install_is_like_update_quiet() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "update", "nightly"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "run", "nightly", "rustc", "--version"],
-        "hash-nightly-2",
-    );
+        .expect_ok(&["rustup", "--quiet", "toolchain", "install", "nightly"])
+        .await;
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            "hash-nightly-2",
+        )
+        .await;
 }
 
-#[test]
-fn toolchain_uninstall_is_like_uninstall() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_err(
+            &["rustup", "toolchain", "install"],
+            "arguments were not provided",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn toolchain_update_is_like_update() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "update", "nightly"])
+        .await;
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            "hash-nightly-2",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn toolchain_uninstall_is_like_uninstall() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
         cx.config
-            .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+            .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+            .await;
     }
 
-    cx.config.expect_ok(&["rustup", "default", "none"]);
-    cx.config.expect_ok(&["rustup", "uninstall", "nightly"]);
+    cx.config.expect_ok(&["rustup", "default", "none"]).await;
     cx.config
-        .expect_not_stdout_ok(&["rustup", "show"], for_host!("'nightly-{}'"));
+        .expect_ok(&["rustup", "uninstall", "nightly"])
+        .await;
+    cx.config
+        .expect_not_stdout_ok(&["rustup", "show"], for_host!("'nightly-{}'"))
+        .await;
 }
 
-#[test]
-fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
-    let cx = CliTestContext::from(Scenario::None);
-    cx.config.expect_err(
-        &["rustup", "toolchain", "update"],
-        "arguments were not provided",
-    );
+#[tokio::test]
+async fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_err(
+            &["rustup", "toolchain", "update"],
+            "arguments were not provided",
+        )
+        .await;
 }
 
-#[test]
-fn proxy_toolchain_shorthand() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn proxy_toolchain_shorthand() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "update", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "update", "nightly"])
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustc", "+stable", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "+stable", "--version"], "hash-stable-1.1.0")
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustc", "+nightly", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["rustc", "+nightly", "--version"], "hash-nightly-2")
+        .await;
 }
 
-#[test]
-fn add_component() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn add_component() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "component", "add", "rust-src"]);
+        .expect_ok(&["rustup", "component", "add", "rust-src"])
+        .await;
     let path = format!(
         "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
         this_host_triple()
@@ -1377,16 +1537,18 @@ fn add_component() {
     assert!(cx.config.rustupdir.has(path));
 }
 
-#[test]
-fn add_component_by_target_triple() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
-    cx.config.expect_ok(&[
-        "rustup",
-        "component",
-        "add",
-        &format!("rust-std-{}", clitools::CROSS_ARCH1),
-    ]);
+#[tokio::test]
+async fn add_component_by_target_triple() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "component",
+            "add",
+            &format!("rust-std-{}", clitools::CROSS_ARCH1),
+        ])
+        .await;
     let path = format!(
         "toolchains/stable-{}/lib/rustlib/{}/lib/libstd.rlib",
         this_host_triple(),
@@ -1395,30 +1557,32 @@ fn add_component_by_target_triple() {
     assert!(cx.config.rustupdir.has(path));
 }
 
-#[test]
-fn fail_invalid_component_name() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
-    cx.config.expect_err(
-        &[
-            "rustup",
-            "component",
-            "add",
-            &format!("dummy-{}", clitools::CROSS_ARCH1),
-        ],
-        &format!(
+#[tokio::test]
+async fn fail_invalid_component_name() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config
+        .expect_err(
+            &[
+                "rustup",
+                "component",
+                "add",
+                &format!("dummy-{}", clitools::CROSS_ARCH1),
+            ],
+            &format!(
             "error: toolchain 'stable-{}' does not contain component 'dummy-{}' for target '{}'",
             this_host_triple(),
             clitools::CROSS_ARCH1,
             this_host_triple()
         ),
-    );
+        )
+        .await;
 }
 
-#[test]
-fn fail_invalid_component_target() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn fail_invalid_component_target() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config.expect_err(
         &[
             "rustup",
@@ -1427,32 +1591,35 @@ fn fail_invalid_component_target() {
             "rust-std-invalid-target",
         ],
         &format!("error: toolchain 'stable-{}' does not contain component 'rust-std-invalid-target' for target '{}'",this_host_triple(),  this_host_triple()),
-    );
+    ).await;
 }
 
-#[test]
-fn remove_component() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn remove_component() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "component", "add", "rust-src"]);
+        .expect_ok(&["rustup", "component", "add", "rust-src"])
+        .await;
     let path = PathBuf::from(format!(
         "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
         this_host_triple()
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
-        .expect_ok(&["rustup", "component", "remove", "rust-src"]);
+        .expect_ok(&["rustup", "component", "remove", "rust-src"])
+        .await;
     assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
 }
 
-#[test]
-fn remove_component_by_target_triple() {
+#[tokio::test]
+async fn remove_component_by_target_triple() {
     let component_with_triple = format!("rust-std-{}", clitools::CROSS_ARCH1);
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "component", "add", &component_with_triple]);
+        .expect_ok(&["rustup", "component", "add", &component_with_triple])
+        .await;
     let path = PathBuf::from(format!(
         "toolchains/stable-{}/lib/rustlib/{}/lib/libstd.rlib",
         this_host_triple(),
@@ -1460,12 +1627,13 @@ fn remove_component_by_target_triple() {
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
-        .expect_ok(&["rustup", "component", "remove", &component_with_triple]);
+        .expect_ok(&["rustup", "component", "remove", &component_with_triple])
+        .await;
     assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
 }
 
-#[test]
-fn add_remove_multiple_components() {
+#[tokio::test]
+async fn add_remove_multiple_components() {
     let files = [
         "lib/rustlib/src/rust-src/foo.rs".to_owned(),
         format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple()),
@@ -1475,30 +1643,34 @@ fn add_remove_multiple_components() {
     let component_with_triple1 = format!("rust-std-{}", clitools::CROSS_ARCH1);
     let component_with_triple2 = format!("rust-std-{}", clitools::CROSS_ARCH2);
 
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_ok(&[
-        "rustup",
-        "component",
-        "add",
-        "rust-src",
-        "rust-analysis",
-        &component_with_triple1,
-        &component_with_triple2,
-    ]);
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "component",
+            "add",
+            "rust-src",
+            "rust-analysis",
+            &component_with_triple1,
+            &component_with_triple2,
+        ])
+        .await;
     for file in &files {
         let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
         assert!(cx.config.rustupdir.has(&path));
     }
-    cx.config.expect_ok(&[
-        "rustup",
-        "component",
-        "remove",
-        "rust-src",
-        "rust-analysis",
-        &component_with_triple1,
-        &component_with_triple2,
-    ]);
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "component",
+            "remove",
+            "rust-src",
+            "rust-analysis",
+            &component_with_triple1,
+            &component_with_triple2,
+        ])
+        .await;
     for file in &files {
         let path = PathBuf::from(format!(
             "toolchains/nightly-{}/{}",
@@ -1509,30 +1681,34 @@ fn add_remove_multiple_components() {
     }
 }
 
-#[test]
-fn file_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn file_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
+        .await;
 }
 
-#[test]
-fn env_override_path() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn env_override_path() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let toolchain_path = cx
         .config
@@ -1540,109 +1716,125 @@ fn env_override_path() {
         .join("toolchains")
         .join(format!("nightly-{}", this_host_triple()));
 
-    let out = cx.config.run(
-        "rustc",
-        ["--version"],
-        &[("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap())],
-    );
+    let out = cx
+        .config
+        .run(
+            "rustc",
+            ["--version"],
+            &[("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap())],
+        )
+        .await;
     assert!(out.ok);
     assert!(out.stdout.contains("hash-nightly-2"));
 }
 
-#[test]
-fn plus_override_relpath_is_not_supported() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn plus_override_relpath_is_not_supported() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let toolchain_path = Path::new("..")
         .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
         .join("toolchains")
         .join(format!("nightly-{}", this_host_triple()));
-    cx.config.expect_err(
-        &[
+    cx.config
+        .expect_err(
+            &[
+                "rustc",
+                format!("+{}", toolchain_path.to_str().unwrap()).as_str(),
+                "--version",
+            ],
+            "error: relative path toolchain",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn run_with_relpath_is_not_supported() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
+
+    let toolchain_path = Path::new("..")
+        .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
+        .join("toolchains")
+        .join(format!("nightly-{}", this_host_triple()));
+    cx.config
+        .expect_err(
+            &[
+                "rustup",
+                "run",
+                toolchain_path.to_str().unwrap(),
+                "rustc",
+                "--version",
+            ],
+            "relative path toolchain",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn plus_override_abspath_is_supported() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
+
+    let toolchain_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("nightly-{}", this_host_triple()))
+        .canonicalize()
+        .unwrap();
+    cx.config
+        .expect_ok(&[
             "rustc",
             format!("+{}", toolchain_path.to_str().unwrap()).as_str(),
             "--version",
-        ],
-        "error: relative path toolchain",
-    );
+        ])
+        .await;
 }
 
-#[test]
-fn run_with_relpath_is_not_supported() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn run_with_abspath_is_supported() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
-    let toolchain_path = Path::new("..")
-        .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
+    let toolchain_path = cx
+        .config
+        .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
-    cx.config.expect_err(
-        &[
+        .join(format!("nightly-{}", this_host_triple()))
+        .canonicalize()
+        .unwrap();
+    cx.config
+        .expect_ok(&[
             "rustup",
             "run",
             toolchain_path.to_str().unwrap(),
             "rustc",
             "--version",
-        ],
-        "relative path toolchain",
-    );
+        ])
+        .await;
 }
 
-#[test]
-fn plus_override_abspath_is_supported() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn file_override_path() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
-
-    let toolchain_path = cx
-        .config
-        .rustupdir
-        .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
-        .canonicalize()
-        .unwrap();
-    cx.config.expect_ok(&[
-        "rustc",
-        format!("+{}", toolchain_path.to_str().unwrap()).as_str(),
-        "--version",
-    ]);
-}
-
-#[test]
-fn run_with_abspath_is_supported() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
-    cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
-
-    let toolchain_path = cx
-        .config
-        .rustupdir
-        .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
-        .canonicalize()
-        .unwrap();
-    cx.config.expect_ok(&[
-        "rustup",
-        "run",
-        toolchain_path.to_str().unwrap(),
-        "rustc",
-        "--version",
-    ]);
-}
-
-#[test]
-fn file_override_path() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
-    cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let toolchain_path = cx
         .config
@@ -1657,21 +1849,25 @@ fn file_override_path() {
     .unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
+        .await;
 
     // Check that the toolchain has the right name
-    cx.config.expect_stdout_ok(
-        &["rustup", "show", "active-toolchain"],
-        &format!("nightly-{}", this_host_triple()),
-    );
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "show", "active-toolchain"],
+            &format!("nightly-{}", this_host_triple()),
+        )
+        .await;
 }
 
-#[test]
-fn proxy_override_path() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn proxy_override_path() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let toolchain_path = cx
         .config
@@ -1686,15 +1882,17 @@ fn proxy_override_path() {
     .unwrap();
 
     cx.config
-        .expect_stdout_ok(&["cargo", "--call-rustc"], "hash-nightly-2");
+        .expect_stdout_ok(&["cargo", "--call-rustc"], "hash-nightly-2")
+        .await;
 }
 
-#[test]
-fn file_override_path_relative_not_supported() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn file_override_path_relative_not_supported() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let toolchain_path = cx
         .config
@@ -1737,12 +1935,13 @@ fn file_override_path_relative_not_supported() {
 
     let cx = cx.change_dir(&ephemeral);
     cx.config
-        .expect_err(&["rustc", "--version"], "relative path toolchain");
+        .expect_err(&["rustc", "--version"], "relative path toolchain")
+        .await;
 }
 
-#[test]
-fn file_override_path_no_options() {
-    let cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn file_override_path_no_options() {
+    let cx = CliTestContext::new(Scenario::None).await;
     // Make a plausible-looking toolchain
     let cwd = cx.config.current_dir();
     let toolchain_path = cwd.join("ephemeral");
@@ -1756,10 +1955,12 @@ fn file_override_path_no_options() {
     )
     .unwrap();
 
-    cx.config.expect_err(
-        &["rustc", "--version"],
-        "toolchain options are ignored for path toolchain (ephemeral)",
-    );
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        )
+        .await;
 
     raw::write_file(
         &toolchain_file,
@@ -1767,10 +1968,12 @@ fn file_override_path_no_options() {
     )
     .unwrap();
 
-    cx.config.expect_err(
-        &["rustc", "--version"],
-        "toolchain options are ignored for path toolchain (ephemeral)",
-    );
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        )
+        .await;
 
     raw::write_file(
         &toolchain_file,
@@ -1778,15 +1981,17 @@ fn file_override_path_no_options() {
     )
     .unwrap();
 
-    cx.config.expect_err(
-        &["rustc", "--version"],
-        "toolchain options are ignored for path toolchain (ephemeral)",
-    );
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        )
+        .await;
 }
 
-#[test]
-fn file_override_path_xor_channel() {
-    let cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn file_override_path_xor_channel() {
+    let cx = CliTestContext::new(Scenario::None).await;
     // Make a plausible-looking toolchain
     let cwd = cx.config.current_dir();
     let toolchain_path = cwd.join("ephemeral");
@@ -1800,21 +2005,25 @@ fn file_override_path_xor_channel() {
     )
     .unwrap();
 
-    cx.config.expect_err(
-        &["rustc", "--version"],
-        "cannot specify both channel (nightly) and path (ephemeral) simultaneously",
-    );
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "cannot specify both channel (nightly) and path (ephemeral) simultaneously",
+        )
+        .await;
 }
 
-#[test]
-fn file_override_subdir() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn file_override_subdir() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1824,48 +2033,54 @@ fn file_override_subdir() {
     fs::create_dir_all(&subdir).unwrap();
     let cx = cx.change_dir(&subdir);
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
+        .await;
 }
 
-#[test]
-fn file_override_with_archive() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn file_override_with_archive() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-        cx.config.expect_ok(&["rustup", "default", "stable"]);
+        cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly-2015-01-01"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly-2015-01-01"])
+        .await;
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "nightly-2015-01-01").unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
+        .await;
 }
 
-#[test]
-fn file_override_toml_format_select_installed_toolchain() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn file_override_toml_format_select_installed_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-        cx.config.expect_ok(&["rustup", "default", "stable"]);
+        cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     }
 
     let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly-2015-01-01"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly-2015-01-01"])
+        .await;
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1879,23 +2094,26 @@ channel = "nightly-2015-01-01"
     .unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
+        .await;
 }
 
-#[test]
-fn file_override_toml_format_install_both_toolchain_and_components() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn file_override_toml_format_install_both_toolchain_and_components() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
-        cx.config.expect_ok(&["rustup", "default", "stable"]);
+        cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     }
 
     let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
+        .await;
     cx.config
-        .expect_not_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
+        .expect_not_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1910,17 +2128,20 @@ components = [ "rust-src" ]
     .unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
+        .await;
     cx.config
-        .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
+        .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)")
+        .await;
 }
 
-#[test]
-fn file_override_toml_format_add_missing_components() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn file_override_toml_format_add_missing_components() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_not_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
+        .expect_not_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1934,17 +2155,20 @@ components = [ "rust-src" ]
     .unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
+        .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)")
+        .await;
 }
 
-#[test]
-fn file_override_toml_format_add_missing_targets() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
-    cx.config.expect_not_stdout_ok(
-        &["rustup", "component", "list"],
-        "arm-linux-androideabi (installed)",
-    );
+#[tokio::test]
+async fn file_override_toml_format_add_missing_targets() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config
+        .expect_not_stdout_ok(
+            &["rustup", "component", "list"],
+            "arm-linux-androideabi (installed)",
+        )
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1957,16 +2181,18 @@ targets = [ "arm-linux-androideabi" ]
     )
     .unwrap();
 
-    cx.config.expect_stdout_ok(
-        &["rustup", "component", "list"],
-        "arm-linux-androideabi (installed)",
-    );
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "component", "list"],
+            "arm-linux-androideabi (installed)",
+        )
+        .await;
 }
 
-#[test]
-fn file_override_toml_format_skip_invalid_component() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn file_override_toml_format_skip_invalid_component() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -1979,21 +2205,26 @@ components = [ "rust-bongo" ]
     )
     .unwrap();
 
-    cx.config.expect_stderr_ok(
-        &["rustc", "--version"],
-        "warn: Force-skipping unavailable component 'rust-bongo",
-    );
+    cx.config
+        .expect_stderr_ok(
+            &["rustc", "--version"],
+            "warn: Force-skipping unavailable component 'rust-bongo",
+        )
+        .await;
 }
 
-#[test]
-fn file_override_toml_format_specify_profile() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn file_override_toml_format_specify_profile() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "set", "profile", "default"]);
-    cx.config.expect_stderr_ok(
-        &["rustup", "default", "stable"],
-        "downloading component 'rust-docs'",
-    );
+        .expect_ok(&["rustup", "set", "profile", "default"])
+        .await;
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "default", "stable"],
+            "downloading component 'rust-docs'",
+        )
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -2006,24 +2237,31 @@ channel = "nightly"
 "#,
     )
     .unwrap();
-    cx.config.expect_not_stdout_ok(
-        &["rustup", "component", "list"],
-        for_host!("rust-docs-{} (installed)"),
-    );
+    cx.config
+        .expect_not_stdout_ok(
+            &["rustup", "component", "list"],
+            for_host!("rust-docs-{} (installed)"),
+        )
+        .await;
 }
 
-#[test]
-fn close_file_override_beats_far_directory_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn close_file_override_beats_far_directory_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "beta"]);
+        .expect_ok(&["rustup", "toolchain", "install", "beta"])
+        .await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
-    cx.config.expect_ok(&["rustup", "override", "set", "beta"]);
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
+        .expect_ok(&["rustup", "override", "set", "beta"])
+        .await;
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0")
+        .await;
 
     let cwd = cx.config.current_dir();
 
@@ -2035,13 +2273,14 @@ fn close_file_override_beats_far_directory_override() {
 
     let cx = cx.change_dir(&subdir);
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
+        .await;
 }
 
-#[test]
 // Check that toolchain overrides have the correct priority.
-fn override_order() {
-    let mut cx = CliTestContext::from(Scenario::ArchivesV2);
+#[tokio::test]
+async fn override_order() {
+    let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
     let host = this_host_triple();
     // give each override type a different toolchain
     let default_tc = &format!("beta-2015-01-01-{}", host);
@@ -2049,23 +2288,32 @@ fn override_order() {
     let dir_tc = &format!("beta-2015-01-02-{}", host);
     let file_tc = &format!("stable-2015-01-02-{}", host);
     let command_tc = &format!("nightly-2015-01-01-{}", host);
-    cx.config.expect_ok(&["rustup", "install", default_tc]);
-    cx.config.expect_ok(&["rustup", "install", env_tc]);
-    cx.config.expect_ok(&["rustup", "install", dir_tc]);
-    cx.config.expect_ok(&["rustup", "install", file_tc]);
-    cx.config.expect_ok(&["rustup", "install", command_tc]);
+    cx.config
+        .expect_ok(&["rustup", "install", default_tc])
+        .await;
+    cx.config.expect_ok(&["rustup", "install", env_tc]).await;
+    cx.config.expect_ok(&["rustup", "install", dir_tc]).await;
+    cx.config.expect_ok(&["rustup", "install", file_tc]).await;
+    cx.config
+        .expect_ok(&["rustup", "install", command_tc])
+        .await;
 
     // No default
-    cx.config.expect_ok(&["rustup", "default", "none"]);
-    cx.config.expect_stdout_ok(
-        &["rustup", "show", "active-toolchain"],
-        "There isn't an active toolchain\n",
-    );
+    cx.config.expect_ok(&["rustup", "default", "none"]).await;
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "show", "active-toolchain"],
+            "There isn't an active toolchain\n",
+        )
+        .await;
 
     // Default
-    cx.config.expect_ok(&["rustup", "default", default_tc]);
     cx.config
-        .expect_stdout_ok(&["rustup", "show", "active-toolchain"], default_tc);
+        .expect_ok(&["rustup", "default", default_tc])
+        .await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "show", "active-toolchain"], default_tc)
+        .await;
 
     // file > default
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
@@ -2075,60 +2323,77 @@ fn override_order() {
     )
     .unwrap();
     cx.config
-        .expect_stdout_ok(&["rustup", "show", "active-toolchain"], file_tc);
+        .expect_stdout_ok(&["rustup", "show", "active-toolchain"], file_tc)
+        .await;
 
     // dir override > file > default
-    cx.config.expect_ok(&["rustup", "override", "set", dir_tc]);
     cx.config
-        .expect_stdout_ok(&["rustup", "show", "active-toolchain"], dir_tc);
+        .expect_ok(&["rustup", "override", "set", dir_tc])
+        .await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "show", "active-toolchain"], dir_tc)
+        .await;
 
     // env > dir override > file > default
-    let out = cx.config.run(
-        "rustup",
-        ["show", "active-toolchain"],
-        &[("RUSTUP_TOOLCHAIN", env_tc)],
-    );
+    let out = cx
+        .config
+        .run(
+            "rustup",
+            ["show", "active-toolchain"],
+            &[("RUSTUP_TOOLCHAIN", env_tc)],
+        )
+        .await;
     assert!(out.ok);
     assert!(out.stdout.contains(env_tc));
 
     // +toolchain > env > dir override > file > default
-    let out = cx.config.run(
-        "rustup",
-        [&format!("+{}", command_tc), "show", "active-toolchain"],
-        &[("RUSTUP_TOOLCHAIN", env_tc)],
-    );
+    let out = cx
+        .config
+        .run(
+            "rustup",
+            [&format!("+{}", command_tc), "show", "active-toolchain"],
+            &[("RUSTUP_TOOLCHAIN", env_tc)],
+        )
+        .await;
     assert!(out.ok);
     assert!(out.stdout.contains(command_tc));
 }
 
-#[test]
-fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "beta"]);
+        .expect_ok(&["rustup", "toolchain", "install", "beta"])
+        .await;
     // not installing nightly
 
-    cx.config.expect_ok(&["rustup", "override", "set", "beta"]);
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
+        .expect_ok(&["rustup", "override", "set", "beta"])
+        .await;
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0")
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0")
+        .await;
 }
 
-#[test]
-fn env_override_beats_file_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn env_override_beats_file_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "beta"]);
+        .expect_ok(&["rustup", "toolchain", "install", "beta"])
+        .await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -2144,95 +2409,105 @@ fn env_override_beats_file_override() {
         .contains("hash-beta-1.2.0"));
 }
 
-#[test]
-fn plus_override_beats_file_override() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn plus_override_beats_file_override() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "beta"]);
+        .expect_ok(&["rustup", "toolchain", "install", "beta"])
+        .await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "+beta", "--version"], "hash-beta-1.2.0");
+        .expect_stdout_ok(&["rustc", "+beta", "--version"], "hash-beta-1.2.0")
+        .await;
 }
 
-#[test]
-fn file_override_not_installed_custom() {
-    let cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn file_override_not_installed_custom() {
+    let cx = CliTestContext::new(Scenario::None).await;
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "gumbo").unwrap();
 
     cx.config
-        .expect_err(&["rustc", "--version"], "custom and not installed");
+        .expect_err(&["rustc", "--version"], "custom and not installed")
+        .await;
 }
 
-#[test]
-fn bad_file_override() {
-    let cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn bad_file_override() {
+    let cx = CliTestContext::new(Scenario::None).await;
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     // invalid name - cannot specify no toolchain in a toolchain file
     raw::write_file(&toolchain_file, "none").unwrap();
 
     cx.config
-        .expect_err(&["rustc", "--version"], "invalid toolchain name 'none'");
+        .expect_err(&["rustc", "--version"], "invalid toolchain name 'none'")
+        .await;
 }
 
-#[test]
-fn valid_override_settings() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn valid_override_settings() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     raw::write_file(&toolchain_file, "nightly").unwrap();
-    cx.config.expect_ok(&["rustc", "--version"]);
+    cx.config.expect_ok(&["rustc", "--version"]).await;
     // Special case: same version as is installed is permitted.
     raw::write_file(&toolchain_file, for_host!("nightly-{}")).unwrap();
-    cx.config.expect_ok(&["rustc", "--version"]);
+    cx.config.expect_ok(&["rustc", "--version"]).await;
     let fullpath = cx
         .config
         .rustupdir
         .clone()
         .join("toolchains")
         .join(for_host!("nightly-{}"));
-    cx.config.expect_ok(&[
-        "rustup",
-        "toolchain",
-        "link",
-        "system",
-        &format!("{}", fullpath.display()),
-    ]);
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "link",
+            "system",
+            &format!("{}", fullpath.display()),
+        ])
+        .await;
     raw::write_file(&toolchain_file, "system").unwrap();
-    cx.config.expect_ok(&["rustc", "--version"]);
+    cx.config.expect_ok(&["rustc", "--version"]).await;
 }
 
-#[test]
-fn file_override_with_target_info() {
+#[tokio::test]
+async fn file_override_with_target_info() {
     // Target info is not portable between machines, so we reject toolchain
     // files that include it.
-    let cx = CliTestContext::from(Scenario::None);
+    let cx = CliTestContext::new(Scenario::None).await;
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
 
-    cx.config.expect_err(
-        &["rustc", "--version"],
-        "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'",
-    );
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'",
+        )
+        .await;
 }
 
-#[test]
-fn docs_with_path() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn docs_with_path() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let mut cmd = clitools::cmd(&cx.config, "rustup", ["doc", "--path"]);
     clitools::env(&cx.config, &mut cmd);
@@ -2241,18 +2516,21 @@ fn docs_with_path() {
     let path = format!("share{MAIN_SEPARATOR}doc{MAIN_SEPARATOR}rust{MAIN_SEPARATOR}html");
     assert!(String::from_utf8(out.stdout).unwrap().contains(&path));
 
-    cx.config.expect_stdout_ok(
-        &["rustup", "doc", "--path", "--toolchain", "nightly"],
-        "nightly",
-    );
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "doc", "--path", "--toolchain", "nightly"],
+            "nightly",
+        )
+        .await;
 }
 
-#[test]
-fn docs_topical_with_path() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "stable"]);
+#[tokio::test]
+async fn docs_topical_with_path() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     for (topic, path) in mock::topical_doc_data::test_cases() {
         let mut cmd = clitools::cmd(&cx.config, "rustup", ["doc", "--path", topic]);
@@ -2268,125 +2546,145 @@ fn docs_topical_with_path() {
     }
 }
 
-#[test]
-fn docs_missing() {
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn docs_missing() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "set", "profile", "minimal"]);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    cx.config.expect_err(
-        &["rustup", "doc"],
-        "error: unable to view documentation which is not installed",
-    );
+        .expect_ok(&["rustup", "set", "profile", "minimal"])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_err(
+            &["rustup", "doc"],
+            "error: unable to view documentation which is not installed",
+        )
+        .await;
 }
 
-#[test]
-fn docs_custom() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn docs_custom() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
     let path = cx.config.customdir.join("custom-1");
     let path = path.to_string_lossy();
     cx.config
-        .expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
-    cx.config.expect_ok(&["rustup", "default", "custom"]);
+        .expect_ok(&["rustup", "toolchain", "link", "custom", &path])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "custom"]).await;
     cx.config
-        .expect_stdout_ok(&["rustup", "doc", "--path"], "custom");
+        .expect_stdout_ok(&["rustup", "doc", "--path"], "custom")
+        .await;
 }
 
 #[cfg(unix)]
-#[test]
-fn non_utf8_arg() {
+#[tokio::test]
+async fn non_utf8_arg() {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt;
 
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    let out = cx.config.run(
-        "rustc",
-        [
-            OsStr::new("--echo-args"),
-            OsStr::new("echoed non-utf8 arg:"),
-            OsStr::from_bytes(b"\xc3\x28"),
-        ],
-        &[("RUST_BACKTRACE", "1")],
-    );
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    let out = cx
+        .config
+        .run(
+            "rustc",
+            [
+                OsStr::new("--echo-args"),
+                OsStr::new("echoed non-utf8 arg:"),
+                OsStr::from_bytes(b"\xc3\x28"),
+            ],
+            &[("RUST_BACKTRACE", "1")],
+        )
+        .await;
     assert!(out.stderr.contains("echoed non-utf8 arg"));
 }
 
 #[cfg(windows)]
-#[test]
-fn non_utf8_arg() {
+#[tokio::test]
+async fn non_utf8_arg() {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
 
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    let out = cx.config.run(
-        "rustc",
-        [
-            OsString::from("--echo-args".to_string()),
-            OsString::from("echoed non-utf8 arg:".to_string()),
-            OsString::from_wide(&[0xd801, 0xd801]),
-        ],
-        &[("RUST_BACKTRACE", "1")],
-    );
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    let out = cx
+        .config
+        .run(
+            "rustc",
+            [
+                OsString::from("--echo-args".to_string()),
+                OsString::from("echoed non-utf8 arg:".to_string()),
+                OsString::from_wide(&[0xd801, 0xd801]),
+            ],
+            &[("RUST_BACKTRACE", "1")],
+        )
+        .await;
     assert!(out.stderr.contains("echoed non-utf8 arg"));
 }
 
 #[cfg(unix)]
-#[test]
-fn non_utf8_toolchain() {
+#[tokio::test]
+async fn non_utf8_toolchain() {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt;
 
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    let out = cx.config.run(
-        "rustc",
-        [OsStr::from_bytes(b"+\xc3\x28")],
-        &[("RUST_BACKTRACE", "1")],
-    );
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    let out = cx
+        .config
+        .run(
+            "rustc",
+            [OsStr::from_bytes(b"+\xc3\x28")],
+            &[("RUST_BACKTRACE", "1")],
+        )
+        .await;
     assert!(out.stderr.contains("toolchain '�(' is not installed"));
 }
 
 #[cfg(windows)]
-#[test]
-fn non_utf8_toolchain() {
+#[tokio::test]
+async fn non_utf8_toolchain() {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
 
-    let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_ok(&["rustup", "default", "nightly"]);
-    let out = cx.config.run(
-        "rustc",
-        [OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
-        &[("RUST_BACKTRACE", "1")],
-    );
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    let out = cx
+        .config
+        .run(
+            "rustc",
+            [OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
+            &[("RUST_BACKTRACE", "1")],
+        )
+        .await;
     assert!(out.stderr.contains("toolchain '��' is not installed"));
 }
 
-#[test]
-fn check_host_goes_away() {
-    let mut cx = CliTestContext::from(Scenario::None);
+#[tokio::test]
+async fn check_host_goes_away() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
         let mut cx = cx.with_dist_dir(Scenario::HostGoesMissingBefore);
-        cx.config.expect_ok(&["rustup", "default", "nightly"]);
+        cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     }
 
     let cx = cx.with_dist_dir(Scenario::HostGoesMissingAfter);
-    cx.config.expect_err(
-        &["rustup", "update", "nightly"],
-        for_host!("target '{}' not found in channel"),
-    );
+    cx.config
+        .expect_err(
+            &["rustup", "update", "nightly"],
+            for_host!("target '{}' not found in channel"),
+        )
+        .await;
 }
 
 #[cfg(unix)]
-#[test]
-fn check_unix_settings_fallback() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn check_unix_settings_fallback() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     // No default toolchain specified yet
     cx.config
-        .expect_stdout_ok(&["rustup", "default"], "no default toolchain is configured");
+        .expect_stdout_ok(&["rustup", "default"], "no default toolchain is configured")
+        .await;
 
     // Default toolchain specified in fallback settings file
     let mock_settings_file = cx.config.current_dir().join("mock_fallback_settings.toml");
@@ -2414,9 +2712,9 @@ fn check_unix_settings_fallback() {
     );
 }
 
-#[test]
-fn warn_on_unmatch_build() {
-    let cx = CliTestContext::from(Scenario::MultiHost);
+#[tokio::test]
+async fn warn_on_unmatch_build() {
+    let cx = CliTestContext::new(Scenario::MultiHost).await;
     let arch = clitools::MULTI_ARCH1;
     cx.config.expect_stderr_ok(
         &["rustup", "toolchain", "install", &format!("nightly-{arch}")],
@@ -2424,12 +2722,12 @@ fn warn_on_unmatch_build() {
             r"warn: toolchain 'nightly-{arch}' may not be able to run on this system.
 warn: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
         ),
-    );
+    ).await;
 }
 
-#[test]
-fn dont_warn_on_partial_build() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn dont_warn_on_partial_build() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let triple = this_host_triple();
     let arch = triple.split('-').next().unwrap();
     let mut cmd = clitools::cmd(
@@ -2450,50 +2748,56 @@ fn dont_warn_on_partial_build() {
 }
 
 /// Checks that `rust-toolchain.toml` files are considered
-#[test]
-fn rust_toolchain_toml() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
-    cx.config.expect_err(
-        &["rustc", "--version"],
-        "rustup could not choose a version of rustc to run",
-    );
+#[tokio::test]
+async fn rust_toolchain_toml() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "rustup could not choose a version of rustc to run",
+        )
+        .await;
 
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain.toml");
     raw::write_file(&toolchain_file, "[toolchain]\nchannel = \"nightly\"").unwrap();
 
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
+        .await;
 }
 
 /// Ensures that `rust-toolchain.toml` files (with `.toml` extension) only allow TOML contents
-#[test]
-fn only_toml_in_rust_toolchain_toml() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn only_toml_in_rust_toolchain_toml() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain.toml");
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
     cx.config
-        .expect_err(&["rustc", "--version"], "error parsing override file");
+        .expect_err(&["rustc", "--version"], "error parsing override file")
+        .await;
 }
 
 /// Checks that a warning occurs if both `rust-toolchain` and `rust-toolchain.toml` files exist
-#[test]
-fn warn_on_duplicate_rust_toolchain_file() {
-    let cx = CliTestContext::from(Scenario::SimpleV2);
+#[tokio::test]
+async fn warn_on_duplicate_rust_toolchain_file() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cwd = cx.config.current_dir();
     let toolchain_file_1 = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file_1, "stable").unwrap();
     let toolchain_file_2 = cwd.join("rust-toolchain.toml");
     raw::write_file(&toolchain_file_2, "[toolchain]").unwrap();
 
-    cx.config.expect_stderr_ok(
-        &["rustc", "--version"],
-        &format!(
-            "warn: both `{0}` and `{1}` exist. Using `{0}`",
-            toolchain_file_1.canonicalize().unwrap().display(),
-            toolchain_file_2.canonicalize().unwrap().display(),
-        ),
-    );
+    cx.config
+        .expect_stderr_ok(
+            &["rustc", "--version"],
+            &format!(
+                "warn: both `{0}` and `{1}` exist. Using `{0}`",
+                toolchain_file_1.canonicalize().unwrap().display(),
+                toolchain_file_2.canonicalize().unwrap().display(),
+            ),
+        )
+        .await;
 }
