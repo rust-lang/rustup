@@ -147,6 +147,14 @@ jobs: # skip-master skip-pr skip-stable
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
+      - name: Deploy build to rustup-builds bucket for release team
+        # if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
+        run: |
+          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean
