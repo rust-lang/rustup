@@ -15,6 +15,7 @@ use std::{
 use anyhow::{Context, Result};
 #[cfg(feature = "test")]
 use tracing::subscriber::DefaultGuard;
+#[cfg(feature = "test")]
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod filesource;
