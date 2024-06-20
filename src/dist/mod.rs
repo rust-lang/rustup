@@ -125,11 +125,11 @@ struct ParsedToolchainDesc {
     target: Option<String>,
 }
 
-// A toolchain descriptor from rustup's perspective. These contain
-// 'partial target triples', which allow toolchain names like
-// 'stable-msvc' to work. Partial target triples though are parsed
-// from a hardcoded set of known triples, whereas target triples
-// are nearly-arbitrary strings.
+/// A toolchain descriptor from rustup's perspective. These contain
+/// 'partial target triples', which allow toolchain names like
+/// 'stable-msvc' to work. Partial target triples though are parsed
+/// from a hardcoded set of known triples, whereas target triples
+/// are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
     pub channel: Channel,
@@ -137,11 +137,11 @@ pub struct PartialToolchainDesc {
     pub target: PartialTargetTriple,
 }
 
-// Fully-resolved toolchain descriptors. These always have full target
-// triples attached to them and are used for canonical identification,
-// such as naming their installation directory.
-//
-// as strings they look like stable-x86_64-pc-windows-msvc or
+/// Fully-resolved toolchain descriptors. These always have full target
+/// triples attached to them and are used for canonical identification,
+/// such as naming their installation directory.
+///
+/// As strings they look like stable-x86_64-pc-windows-msvc or
 /// 1.55-x86_64-pc-windows-msvc
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ToolchainDesc {
@@ -181,6 +181,8 @@ impl FromStr for Channel {
     }
 }
 
+/// A possibly incomplete Rust toolchain version that
+/// can be converted from and to its string form.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialVersion {
     pub major: u64,
