@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, Read, Result, Write};
+use std::io::{self, BufRead, Read, Write};
 
 use super::terminalsource::{ColorableTerminal, StreamSelector};
 use crate::currentprocess::Process;
@@ -139,11 +139,11 @@ mod test_support {
     impl WriterLock for TestWriterLock<'_> {}
 
     impl Write for TestWriterLock<'_> {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.inner.write(buf)
         }
 
-        fn flush(&mut self) -> Result<()> {
+        fn flush(&mut self) -> io::Result<()> {
             Ok(())
         }
     }
@@ -179,11 +179,11 @@ mod test_support {
     }
 
     impl Write for TestWriter {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.lock().write(buf)
         }
 
-        fn flush(&mut self) -> Result<()> {
+        fn flush(&mut self) -> io::Result<()> {
             Ok(())
         }
     }
