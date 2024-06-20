@@ -208,6 +208,17 @@ impl fmt::Display for PartialVersion {
 impl FromStr for PartialVersion {
     type Err = anyhow::Error;
     fn from_str(ver: &str) -> Result<Self> {
+        // `semver::Comparator::from_str` supports an optional operator
+        // (e.g. `=`, `>`, `>=`, `<`, `<=`, `~`, `^`, `*`) before the
+        // partial version, so we should exclude that case first.
+        if let Some(ch) = ver.chars().nth(0) {
+            if !ch.is_ascii_digit() {
+                return Err(anyhow!(
+                    "expected ASCII digit at the beginning of `{ver}`, found `{ch}`"
+                )
+                .context("error parsing `PartialVersion`"));
+            }
+        }
         let (ver, pre) = ver.split_once('-').unwrap_or((ver, ""));
         let comparator =
             semver::Comparator::from_str(ver).context("error parsing `PartialVersion`")?;
