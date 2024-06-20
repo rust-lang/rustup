@@ -1205,6 +1205,8 @@ fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
+
     use super::*;
 
     #[test]
@@ -1313,6 +1315,54 @@ mod tests {
             let tcd = ToolchainDesc::from_str(&full_tcn).unwrap();
             eprintln!("Considering {}", case.0);
             assert_eq!(tcd.is_tracking(), case.1);
+        }
+    }
+
+    #[test]
+    fn partial_version_from_str() -> Result<()> {
+        assert_eq!(
+            PartialVersion::from_str("0.12")?,
+            PartialVersion {
+                major: 0,
+                minor: Some(12),
+                patch: None,
+                pre: semver::Prerelease::EMPTY,
+            },
+        );
+        assert_eq!(
+            PartialVersion::from_str("1.23-beta")?,
+            PartialVersion {
+                major: 1,
+                minor: Some(23),
+                patch: None,
+                pre: semver::Prerelease::new("beta").unwrap(),
+            },
+        );
+        assert_eq!(
+            PartialVersion::from_str("1.23.0-beta.4")?,
+            PartialVersion {
+                major: 1,
+                minor: Some(23),
+                patch: Some(0),
+                pre: semver::Prerelease::new("beta.4").unwrap(),
+            },
+        );
+
+        assert!(PartialVersion::from_str("1.01").is_err()); // no leading zeros
+        assert!(PartialVersion::from_str("^1.23").is_err()); // no comparing operators
+        assert!(PartialVersion::from_str(">=1").is_err());
+        assert!(PartialVersion::from_str("*").is_err());
+        assert!(PartialVersion::from_str("stable").is_err());
+
+        Ok(())
+    }
+
+    proptest! {
+        #[test]
+        fn partial_version_from_str_to_str(
+            ver in r"[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?"
+        ) {
+            prop_assert_eq!(PartialVersion::from_str(&ver).unwrap().to_string(), ver);
         }
     }
 
