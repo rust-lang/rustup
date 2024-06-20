@@ -38,5 +38,7 @@ jobs: # skip-all
         run: |
           rustup target install "$TARGET"
       - name: Build every combination
+        env:
+          RUSTFLAGS: -D warnings
         run: |
           cargo check-all-features --root-only
