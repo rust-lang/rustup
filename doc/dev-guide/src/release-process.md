@@ -1,8 +1,8 @@
 # Release Process
 
-This document describes the process for making a new release of Rustup. It is
-split into the two sections. The first section explains the release process,
-while the second section documents for maintainers how to make a release.
+This document describes the release process of Rustup and is split into two
+sections: the first section explains the release process, while the second
+section documents the steps that need to be followed to cut a release.
 
 - [About the Release Process](#about-the-release-process)
     - [Historic Context](#historic-context)
@@ -28,7 +28,7 @@ This section explains the release process for Rustup.
 The Rustup release process has evolved over time. In the past, the process
 involved more manual steps and large parts of it were executed locally. This
 required careful execution and coordination to avoid accidentally overwriting
-exiting releases, since the tooling did not implement sanity checks that would
+existing releases, since the tooling did not implement sanity checks that would
 prevent destructive actions.
 
 A full step-by-step guide for the old process can be found in
