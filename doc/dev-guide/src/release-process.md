@@ -70,13 +70,13 @@ By switching between those two values, Rustup effectively provides two
 ### Release Artifacts
 
 The release artifacts are produced by CI when a new commit is merged into the
-`stable` branch, and they are uploaded to the `dev-static` bucket on S3. There,
-they are put into a folder named after their commit hash, for example the
+`master` branch, and they are uploaded to the `rustup-builds` bucket on S3.
+There, they are put into a folder named after their commit hash, for example the
 artifacts for commit `1cf1b5a` would be uploaded to
-`s3://dev-static-rust-lang-org/rustup/builds/1cf1b5a`.
+`s3://rustup-builds/1cf1b5a`.
 
 When a new `beta` release is cut, the artifacts are copied to two new locations
-within the same bucket:
+in the `dev-static` bucket on S3:
 
 - One copy is put into an archive named after the version, e.g.
   `/rustup/archive/1.0.0`.
@@ -111,14 +111,14 @@ credentials that would give write access (past) releases.
 For a `beta` release, `promote-release` performs the following actions:
 
 1. Query GitHub's API to get the latest commit on the `stable` branch
-2. Confirm that `/rustup/builds/${commit}` exists in the `dev-static` bucket
+2. Confirm that `s3://rustup-builds/${commit}` exists
 3. Get the new version number from the `stable` branch
     1. Download `Cargo.toml` from `stable`
     2. Parse the file and read the `version` field
-4. Confirm that `/rustup/archive/${version}` does not exist yet
-5. Copy `/rustup/builds/${commit}` to `/rustup/archive/${version}`
-6. Copy `/rustup/builds/${commit}` to `/rustup/dist`
-7. Generate a new manifest and upload it to `/rustup/dist`
+4. Confirm that `s3://dev-static/rustup/archive/${version}` does not exist yet
+5. Copy `s3://rustup-builds/${commit}` to `s3://dev-static/rustup/archive/${version}`
+6. Copy `s3://rustup-builds/${commit}` to `s3://dev-static/rustup/dist`
+7. Generate a new manifest and upload it to `s3://dev-static/rustup/dist`
 
 For a new `stable` release, the process is the same. The only difference is that
 the steps 4-6 copy the artifacts to the `static` bucket.
