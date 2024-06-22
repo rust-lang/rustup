@@ -17,10 +17,10 @@ use rustup::test::{
         clitools::{self, output_release_file, CliTestContext, Scenario, SelfUpdateTestContext},
         dist::calc_hash,
     },
-    this_host_triple, with_saved_path,
+    this_host_triple,
 };
 #[cfg(windows)]
-use rustup::test::{with_saved_reg_value, RegistryValueId};
+use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
 
@@ -53,17 +53,19 @@ fn setup_installed() -> CliTestContext {
 /// status of the proxies.
 fn install_bins_to_cargo_home() {
     let cx = CliTestContext::from(Scenario::SimpleV2);
-    with_saved_path(&mut || {
-        cx.config.expect_ok_contains(
-            &["rustup-init", "-y"],
-            for_host!(
-                r"
+    #[cfg(windows)]
+    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+
+    cx.config.expect_ok_contains(
+        &["rustup-init", "-y"],
+        for_host!(
+            r"
   stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
 
 "
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
+        ),
+        for_host!(
+            r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -75,38 +77,38 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: default toolchain set to 'stable-{0}'
 "
-            ),
-        );
-        #[cfg(windows)]
-        fn check(path: &Path) {
-            assert!(path.exists());
+        ),
+    );
+    #[cfg(windows)]
+    fn check(path: &Path) {
+        assert!(path.exists());
+    }
+    #[cfg(not(windows))]
+    fn check(path: &Path) {
+        fn is_exe(path: &Path) -> bool {
+            use std::os::unix::fs::MetadataExt;
+            let mode = path.metadata().unwrap().mode();
+            mode & 0o777 == 0o755
         }
-        #[cfg(not(windows))]
-        fn check(path: &Path) {
-            fn is_exe(path: &Path) -> bool {
-                use std::os::unix::fs::MetadataExt;
-                let mode = path.metadata().unwrap().mode();
-                mode & 0o777 == 0o755
-            }
-            assert!(is_exe(path));
-        }
+        assert!(is_exe(path));
+    }
 
-        for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
-            let path = &cx.config.cargodir.join(&format!("bin/{tool}{EXE_SUFFIX}"));
-            check(path);
-        }
-    })
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        let path = &cx.config.cargodir.join(&format!("bin/{tool}{EXE_SUFFIX}"));
+        check(path);
+    }
 }
 
 #[test]
 fn install_twice() {
     let mut cx = CliTestContext::from(Scenario::SimpleV2);
-    with_saved_path(&mut || {
-        cx.config.expect_ok(&["rustup-init", "-y"]);
-        cx.config.expect_ok(&["rustup-init", "-y"]);
-        let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
-        assert!(rustup.exists());
-    })
+    #[cfg(windows)]
+    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+
+    cx.config.expect_ok(&["rustup-init", "-y"]);
+    cx.config.expect_ok(&["rustup-init", "-y"]);
+    let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+    assert!(rustup.exists());
 }
 
 #[test]
@@ -318,19 +320,18 @@ fn update_overwrites_programs_display_version() {
     let version = env!("CARGO_PKG_VERSION");
 
     let mut cx = SelfUpdateTestContext::new(TEST_VERSION);
-    with_saved_reg_value(&USER_RUSTUP_VERSION, &mut || {
-        cx.config
-            .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+    let _guard = RegistryGuard::new(&USER_RUSTUP_VERSION).unwrap();
+    cx.config
+        .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
-        USER_RUSTUP_VERSION
-            .set_value(Some(PLACEHOLDER_VERSION))
-            .unwrap();
-        cx.config.expect_ok(&["rustup", "self", "update"]);
-        assert_eq!(
-            USER_RUSTUP_VERSION.get_value::<String>().unwrap().unwrap(),
-            version,
-        );
-    });
+    USER_RUSTUP_VERSION
+        .set_value(Some(PLACEHOLDER_VERSION))
+        .unwrap();
+    cx.config.expect_ok(&["rustup", "self", "update"]);
+    assert_eq!(
+        USER_RUSTUP_VERSION.get_value::<String>().unwrap().unwrap(),
+        version,
+    );
 }
 
 #[cfg(windows)]

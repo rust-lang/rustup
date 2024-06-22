@@ -816,7 +816,7 @@ mod tests {
     use winreg::{RegKey, RegValue};
 
     use crate::currentprocess::TestProcess;
-    use crate::test::with_saved_path;
+    use crate::test::{RegistryGuard, USER_PATH};
 
     fn wide(str: &str) -> Vec<u16> {
         OsString::from(str).encode_wide().collect()
@@ -856,26 +856,25 @@ mod tests {
     #[test]
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
-        with_saved_path(&mut || {
-            let root = RegKey::predef(HKEY_CURRENT_USER);
-            let environment = root
-                .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                .unwrap();
-            environment.delete_value("PATH").unwrap();
+        let _guard = RegistryGuard::new(&USER_PATH);
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        environment.delete_value("PATH").unwrap();
 
-            {
-                // Can't compare the Results as Eq isn't derived; thanks error-chain.
-                #![allow(clippy::unit_cmp)]
-                assert_eq!((), super::_apply_new_path(Some(wide("foo"))).unwrap());
-            }
-            let root = RegKey::predef(HKEY_CURRENT_USER);
-            let environment = root
-                .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                .unwrap();
-            let path = environment.get_raw_value("PATH").unwrap();
-            assert_eq!(path.vtype, RegType::REG_EXPAND_SZ);
-            assert_eq!(super::to_winreg_bytes(wide("foo")), &path.bytes[..]);
-        });
+        {
+            // Can't compare the Results as Eq isn't derived; thanks error-chain.
+            #![allow(clippy::unit_cmp)]
+            assert_eq!((), super::_apply_new_path(Some(wide("foo"))).unwrap());
+        }
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert_eq!(path.vtype, RegType::REG_EXPAND_SZ);
+        assert_eq!(super::to_winreg_bytes(wide("foo")), &path.bytes[..]);
     }
 
     #[test]
@@ -883,33 +882,32 @@ mod tests {
         use std::io;
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
-        with_saved_path(&mut || {
-            let root = RegKey::predef(HKEY_CURRENT_USER);
-            let environment = root
-                .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                .unwrap();
-            environment
-                .set_raw_value(
-                    "PATH",
-                    &RegValue {
-                        bytes: super::to_winreg_bytes(wide("foo")),
-                        vtype: RegType::REG_EXPAND_SZ,
-                    },
-                )
-                .unwrap();
+        let _guard = RegistryGuard::new(&USER_PATH);
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        environment
+            .set_raw_value(
+                "PATH",
+                &RegValue {
+                    bytes: super::to_winreg_bytes(wide("foo")),
+                    vtype: RegType::REG_EXPAND_SZ,
+                },
+            )
+            .unwrap();
 
-            {
-                // Can't compare the Results as Eq isn't derived; thanks error-chain.
-                #![allow(clippy::unit_cmp)]
-                assert_eq!((), super::_apply_new_path(Some(Vec::new())).unwrap());
-            }
-            let reg_value = environment.get_raw_value("PATH");
-            match reg_value {
-                Ok(_) => panic!("key not deleted"),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {}
-                Err(ref e) => panic!("error {e}"),
-            }
-        });
+        {
+            // Can't compare the Results as Eq isn't derived; thanks error-chain.
+            #![allow(clippy::unit_cmp)]
+            assert_eq!((), super::_apply_new_path(Some(Vec::new())).unwrap());
+        }
+        let reg_value = environment.get_raw_value("PATH");
+        match reg_value {
+            Ok(_) => panic!("key not deleted"),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(ref e) => panic!("error {e}"),
+        }
     }
 
     #[test]
@@ -921,22 +919,23 @@ mod tests {
                 .cloned()
                 .collect(),
         );
-        with_saved_path(&mut || {
-            let root = RegKey::predef(HKEY_CURRENT_USER);
-            let environment = root
-                .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                .unwrap();
-            let reg_value = RegValue {
-                bytes: vec![0x12, 0x34],
-                vtype: RegType::REG_BINARY,
-            };
-            environment.set_raw_value("PATH", &reg_value).unwrap();
-            // Ok(None) signals no change to the PATH setting layer
-            assert_eq!(
-                None,
-                super::_with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
-            );
-        });
+
+        let _guard = RegistryGuard::new(&USER_PATH);
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        let reg_value = RegValue {
+            bytes: vec![0x12, 0x34],
+            vtype: RegType::REG_BINARY,
+        };
+        environment.set_raw_value("PATH", &reg_value).unwrap();
+        // Ok(None) signals no change to the PATH setting layer
+        assert_eq!(
+            None,
+            super::_with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+        );
+
         assert_eq!(
             r"warn: the registry key HKEY_CURRENT_USER\Environment\PATH is not a string. Not modifying the PATH variable
 ",
@@ -947,15 +946,14 @@ mod tests {
     #[test]
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
-        with_saved_path(&mut || {
-            let root = RegKey::predef(HKEY_CURRENT_USER);
-            let environment = root
-                .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                .unwrap();
-            environment.delete_value("PATH").unwrap();
+        let _guard = RegistryGuard::new(&USER_PATH);
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        environment.delete_value("PATH").unwrap();
 
-            assert_eq!(Some(Vec::new()), super::get_windows_path_var().unwrap());
-        });
+        assert_eq!(Some(Vec::new()), super::get_windows_path_var().unwrap());
     }
 
     #[test]
