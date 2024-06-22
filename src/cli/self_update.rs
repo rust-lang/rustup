@@ -69,8 +69,6 @@ use crate::{
 
 #[cfg(unix)]
 mod shell;
-#[cfg(feature = "test")]
-pub(crate) mod test;
 
 #[cfg(unix)]
 mod unix;
@@ -85,6 +83,8 @@ mod windows;
 pub use windows::complete_windows_uninstall;
 #[cfg(windows)]
 use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+#[cfg(all(windows, feature = "test"))]
+pub use windows::{get_path, RegistryGuard, RegistryValueId, USER_PATH};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 

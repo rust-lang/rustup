@@ -48,7 +48,7 @@ mod tests {
 
     use super::*;
     #[cfg(windows)]
-    use crate::cli::self_update::test::{RegistryGuard, USER_PATH};
+    use crate::cli::self_update::{RegistryGuard, USER_PATH};
     use crate::currentprocess::TestProcess;
     use crate::test::Env;
 
