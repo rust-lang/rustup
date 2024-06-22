@@ -1,5 +1,6 @@
 //! Support for functional tests.
 
+#[cfg(windows)]
 use std::{io, sync::Mutex};
 
 #[cfg(windows)]
@@ -9,7 +10,8 @@ use winreg::{
 };
 
 /// Support testing of code that mutates global state
-pub fn with_saved_global_state<S>(
+#[cfg(windows)]
+fn with_saved_global_state<S>(
     getter: impl Fn() -> io::Result<S>,
     setter: impl Fn(S),
     f: &mut dyn FnMut(),

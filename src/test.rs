@@ -15,7 +15,7 @@ use std::process::Command;
 #[cfg(test)]
 use anyhow::Result;
 
-pub use crate::cli::self_update::test::{with_saved_global_state, with_saved_path};
+pub use crate::cli::self_update::test::with_saved_path;
 use crate::currentprocess::TestProcess;
 use crate::dist::TargetTriple;
 
