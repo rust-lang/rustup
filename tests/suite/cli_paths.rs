@@ -377,27 +377,26 @@ export PATH="$HOME/apple/bin"
 mod windows {
     use super::INIT_NONE;
     use rustup::test::mock::clitools::{CliTestContext, Scenario};
-    use rustup::test::{get_path, with_saved_path};
+    use rustup::test::{get_path, RegistryGuard, USER_PATH};
 
     #[test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     fn install_uninstall_affect_path() {
         let mut cx = CliTestContext::from(Scenario::Empty);
-        with_saved_path(&mut || {
-            let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-            let get_path_ = || get_path().unwrap().unwrap().to_string();
+        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let cfg_path = cx.config.cargodir.join("bin").display().to_string();
+        let get_path_ = || get_path().unwrap().unwrap().to_string();
 
-            cx.config.expect_ok(&INIT_NONE);
-            assert!(
-                get_path_().contains(cfg_path.trim_matches('"')),
-                "`{}` not in `{}`",
-                cfg_path,
-                get_path_()
-            );
+        cx.config.expect_ok(&INIT_NONE);
+        assert!(
+            get_path_().contains(cfg_path.trim_matches('"')),
+            "`{}` not in `{}`",
+            cfg_path,
+            get_path_()
+        );
 
-            cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
-            assert!(!get_path_().contains(&cfg_path));
-        })
+        cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
+        assert!(!get_path_().contains(&cfg_path));
     }
 
     #[test]
@@ -409,38 +408,37 @@ mod windows {
         use winreg::{RegKey, RegValue};
 
         let mut cx = CliTestContext::from(Scenario::Empty);
-        with_saved_path(&mut || {
-            // Set up a non unicode PATH
-            let reg_value = RegValue {
-                bytes: vec![
-                    0x00, 0xD8, // leading surrogate
-                    0x01, 0x01, // bogus trailing surrogate
-                    0x00, 0x00, // null
-                ],
-                vtype: RegType::REG_EXPAND_SZ,
-            };
-            RegKey::predef(HKEY_CURRENT_USER)
-                .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                .unwrap()
-                .set_raw_value("PATH", &reg_value)
-                .unwrap();
+        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        // Set up a non unicode PATH
+        let reg_value = RegValue {
+            bytes: vec![
+                0x00, 0xD8, // leading surrogate
+                0x01, 0x01, // bogus trailing surrogate
+                0x00, 0x00, // null
+            ],
+            vtype: RegType::REG_EXPAND_SZ,
+        };
+        RegKey::predef(HKEY_CURRENT_USER)
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap()
+            .set_raw_value("PATH", &reg_value)
+            .unwrap();
 
-            // compute expected path after installation
-            let expected = RegValue {
-                bytes: OsString::from(cx.config.cargodir.join("bin"))
-                    .encode_wide()
-                    .flat_map(|v| vec![v as u8, (v >> 8) as u8])
-                    .chain(vec![b';', 0])
-                    .chain(reg_value.bytes.iter().copied())
-                    .collect(),
-                vtype: RegType::REG_EXPAND_SZ,
-            };
+        // compute expected path after installation
+        let expected = RegValue {
+            bytes: OsString::from(cx.config.cargodir.join("bin"))
+                .encode_wide()
+                .flat_map(|v| vec![v as u8, (v >> 8) as u8])
+                .chain(vec![b';', 0])
+                .chain(reg_value.bytes.iter().copied())
+                .collect(),
+            vtype: RegType::REG_EXPAND_SZ,
+        };
 
-            cx.config.expect_ok(&INIT_NONE);
-            assert_eq!(get_path().unwrap().unwrap(), expected);
+        cx.config.expect_ok(&INIT_NONE);
+        assert_eq!(get_path().unwrap().unwrap(), expected);
 
-            cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
-            assert_eq!(get_path().unwrap().unwrap(), reg_value);
-        })
+        cx.config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
+        assert_eq!(get_path().unwrap().unwrap(), reg_value);
     }
 }

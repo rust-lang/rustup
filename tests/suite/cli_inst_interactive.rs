@@ -8,8 +8,10 @@ use rustup::for_host;
 use rustup::test::mock::clitools::CliTestContext;
 use rustup::test::{
     mock::clitools::{self, set_current_dist_date, Config, SanitizedOutput, Scenario},
-    this_host_triple, with_saved_path,
+    this_host_triple,
 };
+#[cfg(windows)]
+use rustup::test::{RegistryGuard, USER_PATH};
 use rustup::utils::raw;
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
@@ -52,11 +54,12 @@ fn run_input_with_env(
 #[test]
 fn update() {
     let cx = CliTestContext::from(Scenario::SimpleV2);
-    with_saved_path(&mut || {
-        run_input(&cx.config, &["rustup-init"], "\n\n");
-        let out = run_input(&cx.config, &["rustup-init"], "\n\n");
-        assert!(out.ok, "stdout:\n{}\nstderr:\n{}", out.stdout, out.stderr);
-    })
+    #[cfg(windows)]
+    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+
+    run_input(&cx.config, &["rustup-init"], "\n\n");
+    let out = run_input(&cx.config, &["rustup-init"], "\n\n");
+    assert!(out.ok, "stdout:\n{}\nstderr:\n{}", out.stdout, out.stderr);
 }
 
 // Testing that the right number of blank lines are printed after the
@@ -113,13 +116,14 @@ Rust is installed now. Great!
 #[test]
 fn smoke_case_install_with_path_install() {
     let cx = CliTestContext::from(Scenario::SimpleV2);
-    with_saved_path(&mut || {
-        let out = run_input(&cx.config, &["rustup-init"], "\n\n");
-        assert!(out.ok);
-        assert!(!out
-            .stdout
-            .contains("This path needs to be in your PATH environment variable"));
-    });
+    #[cfg(windows)]
+    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+
+    let out = run_input(&cx.config, &["rustup-init"], "\n\n");
+    assert!(out.ok);
+    assert!(!out
+        .stdout
+        .contains("This path needs to be in your PATH environment variable"));
 }
 
 #[test]

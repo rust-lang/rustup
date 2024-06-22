@@ -1,7 +1,10 @@
 //! Support for functional tests.
 
 #[cfg(windows)]
-use std::{io, sync::Mutex};
+use std::{
+    io,
+    sync::{LockResult, Mutex, MutexGuard},
+};
 
 #[cfg(windows)]
 use winreg::{
@@ -11,37 +14,40 @@ use winreg::{
 };
 
 #[cfg(windows)]
-pub fn with_saved_path(f: &mut dyn FnMut()) {
-    with_saved_reg_value(&USER_PATH, f)
-}
-
-#[cfg(unix)]
-pub fn with_saved_path(f: &mut dyn FnMut()) {
-    f()
-}
-
-#[cfg(windows)]
 pub fn get_path() -> io::Result<Option<RegValue>> {
     USER_PATH.get()
 }
 
 #[cfg(windows)]
-pub fn with_saved_reg_value(id: &RegistryValueId, f: &mut dyn FnMut()) {
-    // Lock protects concurrent mutation of registry
-    static LOCK: Mutex<()> = Mutex::new(());
-    let _g = LOCK.lock();
-
-    // Save and restore the global state here to keep from trashing things.
-    let saved_state = id
-        .get()
-        .expect("Error getting global state: Better abort to avoid trashing it");
-    let _g = scopeguard::guard(saved_state, |p| id.set(p.as_ref()).unwrap());
-
-    f();
+pub struct RegistryGuard<'a> {
+    _locked: LockResult<MutexGuard<'a, ()>>,
+    id: &'static RegistryValueId,
+    prev: Option<RegValue>,
 }
 
 #[cfg(windows)]
-const USER_PATH: RegistryValueId = RegistryValueId {
+impl<'a> RegistryGuard<'a> {
+    pub fn new(id: &'static RegistryValueId) -> io::Result<Self> {
+        Ok(Self {
+            _locked: REGISTRY_LOCK.lock(),
+            id,
+            prev: id.get()?,
+        })
+    }
+}
+
+#[cfg(windows)]
+impl<'a> Drop for RegistryGuard<'a> {
+    fn drop(&mut self) {
+        self.id.set(self.prev.as_ref()).unwrap();
+    }
+}
+
+#[cfg(windows)]
+static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
+
+#[cfg(windows)]
+pub const USER_PATH: RegistryValueId = RegistryValueId {
     sub_key: "Environment",
     value_name: "PATH",
 };
