@@ -38,6 +38,11 @@ jobs: # skip-all
           echo "OPENSSL_LIB_DIR=C:/Program Files/OpenSSL/lib" >> $env:GITHUB_ENV
           echo "OPENSSL_DIR=C:/Program Files/OpenSSL/" >> $env:GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=C:/Program Files/OpenSSL/include" >> $env:GITHUB_ENV
+      - name: Install NASM
+        # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
+        # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
+        uses: ilammy/setup-nasm@v1
+        if: ${{ contains(matrix.os, 'windows') }}
       - name: Set environment variables appropriately for the build
         shell: bash
         run: |

@@ -303,7 +303,7 @@ pub mod reqwest_be {
     use anyhow::{anyhow, Context, Result};
     use reqwest::{header, Client, ClientBuilder, Proxy, Response};
     #[cfg(feature = "reqwest-rustls-tls")]
-    use rustls::crypto::ring;
+    use rustls::crypto::aws_lc_rs;
     use tokio_stream::StreamExt;
     use url::Url;
 
@@ -359,7 +359,7 @@ pub mod reqwest_be {
             client_generic()
                 .use_preconfigured_tls(
                     rustls_platform_verifier::tls_config_with_provider(Arc::new(
-                        ring::default_provider(),
+                        aws_lc_rs::default_provider(),
                     ))
                     .expect("failed to initialize pre-configured rustls backend"),
                 )

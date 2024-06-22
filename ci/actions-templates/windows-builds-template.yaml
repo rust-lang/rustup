@@ -55,6 +55,11 @@ jobs: # skip-master skip-pr skip-stable
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
+        # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
