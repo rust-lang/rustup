@@ -19,7 +19,7 @@ use crate::currentprocess::TestProcess;
 use crate::dist::TargetTriple;
 
 #[cfg(windows)]
-pub use crate::cli::self_update::test::{get_path, RegistryGuard, RegistryValueId, USER_PATH};
+pub use crate::cli::self_update::{get_path, RegistryGuard, RegistryValueId, USER_PATH};
 
 // Things that can have environment variables applied to them.
 pub trait Env {

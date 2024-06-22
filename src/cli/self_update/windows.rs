@@ -1,11 +1,11 @@
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
-use std::io::Write;
+use std::io::{self, Write};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LockResult, Mutex, MutexGuard};
 
 use anyhow::{anyhow, Context, Result};
 use tracing::{info, warn};
@@ -20,6 +20,7 @@ use crate::utils::utils;
 use crate::utils::Notification;
 
 use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+use winreg::types::{FromRegValue, ToRegValue};
 use winreg::{RegKey, RegValue};
 
 pub(crate) fn ensure_prompt(process: &Process) -> Result<()> {
@@ -807,16 +808,85 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
     Ok(())
 }
 
+#[cfg(any(test, feature = "test"))]
+pub fn get_path() -> io::Result<Option<RegValue>> {
+    USER_PATH.get()
+}
+
+#[cfg(any(test, feature = "test"))]
+pub struct RegistryGuard<'a> {
+    _locked: LockResult<MutexGuard<'a, ()>>,
+    id: &'static RegistryValueId,
+    prev: Option<RegValue>,
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<'a> RegistryGuard<'a> {
+    pub fn new(id: &'static RegistryValueId) -> io::Result<Self> {
+        Ok(Self {
+            _locked: REGISTRY_LOCK.lock(),
+            id,
+            prev: id.get()?,
+        })
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl<'a> Drop for RegistryGuard<'a> {
+    fn drop(&mut self) {
+        self.id.set(self.prev.as_ref()).unwrap();
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
+
+#[cfg(any(test, feature = "test"))]
+pub const USER_PATH: RegistryValueId = RegistryValueId {
+    sub_key: "Environment",
+    value_name: "PATH",
+};
+
+#[cfg(any(test, feature = "test"))]
+pub struct RegistryValueId {
+    pub sub_key: &'static str,
+    pub value_name: &'static str,
+}
+
+#[cfg(any(test, feature = "test"))]
+impl RegistryValueId {
+    pub fn get_value<T: FromRegValue>(&self) -> io::Result<Option<T>> {
+        self.get()?.map(|v| T::from_reg_value(&v)).transpose()
+    }
+
+    fn get(&self) -> io::Result<Option<RegValue>> {
+        let sub_key = RegKey::predef(HKEY_CURRENT_USER)
+            .open_subkey_with_flags(self.sub_key, KEY_READ | KEY_WRITE)?;
+        match sub_key.get_raw_value(self.value_name) {
+            Ok(val) => Ok(Some(val)),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn set_value(&self, new: Option<impl ToRegValue>) -> io::Result<()> {
+        self.set(new.map(|s| s.to_reg_value()).as_ref())
+    }
+
+    fn set(&self, new: Option<&RegValue>) -> io::Result<()> {
+        let sub_key = RegKey::predef(HKEY_CURRENT_USER)
+            .open_subkey_with_flags(self.sub_key, KEY_READ | KEY_WRITE)?;
+        match new {
+            Some(new) => sub_key.set_raw_value(self.value_name, new),
+            None => sub_key.delete_value(self.value_name),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStrExt;
-
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::{RegKey, RegValue};
-
+    use super::*;
     use crate::currentprocess::TestProcess;
-    use crate::test::{RegistryGuard, USER_PATH};
 
     fn wide(str: &str) -> Vec<u16> {
         OsString::from(str).encode_wide().collect()
