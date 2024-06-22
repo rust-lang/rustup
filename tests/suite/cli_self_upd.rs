@@ -19,11 +19,10 @@ use rustup::test::{
     },
     this_host_triple, with_saved_path,
 };
+#[cfg(windows)]
+use rustup::test::{with_saved_reg_value, RegistryValueId};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
-
-#[cfg(windows)]
-use rustup::test::with_saved_reg_value;
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -315,35 +314,30 @@ info: downloading self-update
 #[test]
 #[cfg(windows)]
 fn update_overwrites_programs_display_version() {
-    let root = &winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
-    let key = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
-    let name = "DisplayVersion";
-
     const PLACEHOLDER_VERSION: &str = "9.999.99";
     let version = env!("CARGO_PKG_VERSION");
 
     let mut cx = SelfUpdateTestContext::new(TEST_VERSION);
-    with_saved_reg_value(root, key, name, &mut || {
+    with_saved_reg_value(&USER_RUSTUP_VERSION, &mut || {
         cx.config
             .expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
-        root.create_subkey(key)
-            .unwrap()
-            .0
-            .set_value(name, &PLACEHOLDER_VERSION)
+        USER_RUSTUP_VERSION
+            .set_value(Some(PLACEHOLDER_VERSION))
             .unwrap();
-
         cx.config.expect_ok(&["rustup", "self", "update"]);
-
         assert_eq!(
-            root.open_subkey(key)
-                .unwrap()
-                .get_value::<String, _>(name)
-                .unwrap(),
+            USER_RUSTUP_VERSION.get_value::<String>().unwrap().unwrap(),
             version,
         );
     });
 }
+
+#[cfg(windows)]
+const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayVersion",
+};
 
 #[test]
 fn update_but_not_installed() {
