@@ -9,25 +9,6 @@ use winreg::{
     RegKey, RegValue,
 };
 
-/// Support testing of code that mutates global state
-#[cfg(windows)]
-fn with_saved_global_state<S>(
-    getter: impl Fn() -> io::Result<S>,
-    setter: impl Fn(S),
-    f: &mut dyn FnMut(),
-) {
-    // Lock protects concurrent mutation of registry
-    static LOCK: Mutex<()> = Mutex::new(());
-    let _g = LOCK.lock();
-
-    // Save and restore the global state here to keep from trashing things.
-    let saved_state =
-        getter().expect("Error getting global state: Better abort to avoid trashing it");
-    let _g = scopeguard::guard(saved_state, setter);
-
-    f();
-}
-
 #[cfg(windows)]
 pub fn with_saved_path(f: &mut dyn FnMut()) {
     with_saved_reg_value(&RegKey::predef(HKEY_CURRENT_USER), "Environment", "PATH", f)
@@ -45,11 +26,16 @@ pub fn get_path() -> io::Result<Option<RegValue>> {
 
 #[cfg(windows)]
 pub fn with_saved_reg_value(root: &RegKey, subkey: &str, name: &str, f: &mut dyn FnMut()) {
-    with_saved_global_state(
-        || get_reg_value(root, subkey, name),
-        |p| restore_reg_value(root, subkey, name, p),
-        f,
-    )
+    // Lock protects concurrent mutation of registry
+    static LOCK: Mutex<()> = Mutex::new(());
+    let _g = LOCK.lock();
+
+    // Save and restore the global state here to keep from trashing things.
+    let saved_state = get_reg_value(root, subkey, name)
+        .expect("Error getting global state: Better abort to avoid trashing it");
+    let _g = scopeguard::guard(saved_state, |p| restore_reg_value(root, subkey, name, p));
+
+    f();
 }
 
 #[cfg(windows)]
