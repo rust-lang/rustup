@@ -637,7 +637,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
         warn!("it looks like you have an existing installation of Rust at:");
         warn!("{}", path);
         warn!("It is recommended that rustup be the primary Rust installation.");
-        warn!("Otherwise you may have confusion unless you are careful with your PATH");
+        warn!("Otherwise you may have confusion unless you are careful with your PATH.");
         warn!("If you are sure that you want both rustup and your already installed Rust");
         warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
         warn!("or pass `-y' to ignore all ignorable checks.");
