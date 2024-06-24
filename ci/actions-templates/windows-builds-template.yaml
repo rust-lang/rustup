@@ -147,13 +147,17 @@ jobs: # skip-master skip-pr skip-stable
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
+      - name: Configure AWS credentials
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
+          aws-region: us-east-1
       - name: Deploy build to rustup-builds bucket for release team
-        # if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
         run: |
-          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}
+          aws --debug s3 cp --recursive deploy/ s3://rustup-builds/${{ github.sha }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
         run: |
