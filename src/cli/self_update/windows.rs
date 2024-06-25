@@ -1,14 +1,22 @@
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
-use std::io::{self, Write};
+#[cfg(any(test, feature = "test"))]
+use std::io;
+use std::io::Write;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, LockResult, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
+#[cfg(any(test, feature = "test"))]
+use std::sync::{LockResult, MutexGuard};
 
 use anyhow::{anyhow, Context, Result};
 use tracing::{info, warn};
+use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+#[cfg(any(test, feature = "test"))]
+use winreg::types::{FromRegValue, ToRegValue};
+use winreg::{RegKey, RegValue};
 
 use super::super::errors::*;
 use super::common;
@@ -18,10 +26,6 @@ use crate::currentprocess::{terminalsource::ColorableTerminal, Process};
 use crate::dist::TargetTriple;
 use crate::utils::utils;
 use crate::utils::Notification;
-
-use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-use winreg::types::{FromRegValue, ToRegValue};
-use winreg::{RegKey, RegValue};
 
 pub(crate) fn ensure_prompt(process: &Process) -> Result<()> {
     writeln!(process.stdout().lock(),)?;
