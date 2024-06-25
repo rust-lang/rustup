@@ -3,6 +3,7 @@ use std::fmt;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
 use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
@@ -135,7 +136,7 @@ enum RustupSubcmd {
     )]
     Update {
         /// Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help toolchain`
-        #[arg(num_args = 1..)]
+        #[arg(num_args = 1.., value_parser = update_toolchain_value_parser)]
         toolchain: Vec<PartialToolchainDesc>,
 
         /// Don't perform self update when running the `rustup update` command
@@ -256,6 +257,14 @@ enum RustupSubcmd {
         #[arg(default_value = "rustup")]
         command: CompletionCommand,
     },
+}
+
+fn update_toolchain_value_parser(s: &str) -> Result<PartialToolchainDesc> {
+    PartialToolchainDesc::from_str(s).inspect_err(|_| {
+        if s == "self" {
+            info!("if you meant to update rustup itself, use `rustup self update`");
+        }
+    })
 }
 
 #[derive(Debug, Subcommand)]
