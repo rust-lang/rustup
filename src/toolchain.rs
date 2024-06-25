@@ -457,7 +457,13 @@ impl<'a> Toolchain<'a> {
                     fs::remove_dir_all(&path)?;
                     true
                 } else {
+                    let name = name.to_string();
                     info!("no toolchain installed for '{name}'");
+                    if name == "self" {
+                        info!(
+                            "if you meant to uninstall rustup itself, use `rustup self uninstall`"
+                        );
+                    }
                     false
                 }
             }
