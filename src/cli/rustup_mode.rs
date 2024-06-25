@@ -529,7 +529,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
 
     use clap::error::ErrorKind::*;
     let matches = match Rustup::try_parse_from(process.args_os()) {
-        Ok(matches) => Ok(matches),
+        Ok(matches) => matches,
         Err(err) if err.kind() == DisplayHelp => {
             write!(process.stdout().lock(), "{err}")?;
             return Ok(utils::ExitCode(0));
@@ -554,15 +554,12 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
             .contains(&err.kind())
             {
                 write!(process.stdout().lock(), "{err}")?;
-                return Ok(utils::ExitCode(1));
-            }
-            if err.kind() == ValueValidation && err.to_string().contains(TOOLCHAIN_OVERRIDE_ERROR) {
+            } else {
                 write!(process.stderr().lock(), "{err}")?;
-                return Ok(utils::ExitCode(1));
             }
-            Err(err)
+            return Ok(utils::ExitCode(1));
         }
-    }?;
+    };
 
     let cfg = &mut common::set_globals(current_dir, matches.verbose, matches.quiet, process)?;
 
