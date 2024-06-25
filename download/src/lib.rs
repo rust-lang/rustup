@@ -294,12 +294,16 @@ pub mod reqwest_be {
     compile_error!("Must select a reqwest TLS backend");
 
     use std::io;
+    #[cfg(feature = "reqwest-rustls-tls")]
+    use std::sync::Arc;
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use once_cell::sync::Lazy;
     use reqwest::{header, Client, ClientBuilder, Proxy, Response};
+    #[cfg(feature = "reqwest-rustls-tls")]
+    use rustls::crypto::ring;
     use tokio_stream::StreamExt;
     use url::Url;
 
@@ -353,7 +357,12 @@ pub mod reqwest_be {
     static CLIENT_RUSTLS_TLS: Lazy<Client> = Lazy::new(|| {
         let catcher = || {
             client_generic()
-                .use_rustls_tls()
+                .use_preconfigured_tls(
+                    rustls_platform_verifier::tls_config_with_provider(Arc::new(
+                        ring::default_provider(),
+                    ))
+                    .expect("failed to initialize pre-configured rustls backend"),
+                )
                 .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
                 .build()
         };

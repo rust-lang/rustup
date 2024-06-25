@@ -9,7 +9,12 @@ default = ["reqwest-backend", "reqwest-rustls-tls", "reqwest-native-tls"]
 curl-backend = ["curl"]
 reqwest-backend = ["reqwest", "env_proxy"]
 reqwest-native-tls = ["reqwest/native-tls", "dep:once_cell"]
-reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots", "dep:once_cell"]
+reqwest-rustls-tls = [
+  "reqwest/rustls-tls-manual-roots-no-provider",
+  "dep:rustls",
+  "dep:rustls-platform-verifier",
+  "dep:once_cell",
+]
 
 [dependencies]
 anyhow.workspace = true
@@ -17,6 +22,8 @@ curl = { version = "0.4.44", optional = true }
 env_proxy = { version = "0.4.1", optional = true }
 once_cell = { workspace = true, optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "socks", "stream"], optional = true }
+rustls = { version = "0.23", optional = true, default-features = false, features = ["logging", "ring", "tls12"] }
+rustls-platform-verifier = { version = "0.3", optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, default-features = false, features = ["sync"] }
 tokio-stream.workspace = true
