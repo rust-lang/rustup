@@ -8,14 +8,17 @@ jobs: # skip-all
   # nor run on the rust docker images. This permits a smaller workflow without the
   # templating and so on.
   build-all-features: # job-name
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }}
     strategy:
       fail-fast: false
       matrix:
-        # Might add more targets in future.
-        target:
-          - x86_64-unknown-linux-gnu
+        include:
+          # Might add more targets in future.
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
@@ -26,7 +29,17 @@ jobs: # skip-all
         with:
           version: "3.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install OpenSSL
+        if: ${{ contains(matrix.os, 'windows') }}
+        run: |
+          choco install openssl -y --no-progress
+          Get-Command openssl
+          openssl version
+          echo "OPENSSL_LIB_DIR=C:/Program Files/OpenSSL/lib" >> $env:GITHUB_ENV
+          echo "OPENSSL_DIR=C:/Program Files/OpenSSL/" >> $env:GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=C:/Program Files/OpenSSL/include" >> $env:GITHUB_ENV
       - name: Set environment variables appropriately for the build
+        shell: bash
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
@@ -36,7 +49,7 @@ jobs: # skip-all
         run: cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install "$TARGET"
+          rustup target install ${{ matrix.target }}
       - name: Build every combination
         env:
           RUSTFLAGS: -D warnings
