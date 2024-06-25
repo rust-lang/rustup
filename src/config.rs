@@ -418,6 +418,12 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn get_self_update_mode(&self) -> Result<SelfUpdateMode> {
+        if self.process.var("CI").is_ok() && self.process.var("RUSTUP_CI").is_err() {
+            // If we're in CI (but not rustup's own CI, which wants to test this stuff!),
+            // disable automatic self updates.
+            return Ok(SelfUpdateMode::Disable);
+        }
+
         self.settings_file.with(|s| {
             Ok(match s.auto_self_update {
                 Some(mode) => mode,

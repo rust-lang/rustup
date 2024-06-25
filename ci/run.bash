@@ -77,5 +77,5 @@ build_test() {
 if [ -z "$SKIP_TESTS" ]; then
   target_cargo run --features test -- --dump-testament
   build_test build
-  build_test test
+  RUSTUP_CI=1 build_test test
 fi
