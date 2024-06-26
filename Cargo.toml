@@ -152,6 +152,9 @@ tracing-subscriber = "0.3.16"
 url = "2.4"
 walkdir = "2"
 
+[patch.crates-io]
+rustls-platform-verifier = { git = "https://github.com/rami3l/rustls-platform-verifier.git", branch = "patch-1" }
+
 [lib]
 name = "rustup"
 path = "src/lib.rs"
