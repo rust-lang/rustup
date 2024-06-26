@@ -1,5 +1,7 @@
 use std::{fmt, io::Write};
 
+#[cfg(feature = "otel")]
+use opentelemetry_sdk::trace::Tracer;
 use termcolor::{Color, ColorSpec, WriteColor};
 use tracing::{level_filters::LevelFilter, Event, Subscriber};
 use tracing_subscriber::{
@@ -7,28 +9,32 @@ use tracing_subscriber::{
         format::{self, FormatEvent, FormatFields},
         FmtContext,
     },
+    layer::SubscriberExt,
     registry::LookupSpan,
-    EnvFilter, Layer,
+    reload, EnvFilter, Layer, Registry,
 };
-
-#[cfg(feature = "otel")]
-use opentelemetry_sdk::trace::Tracer;
 
 use crate::{currentprocess::Process, utils::notify::NotificationLevel};
 
-pub fn tracing_subscriber(process: &Process) -> impl tracing::Subscriber {
-    use tracing_subscriber::{layer::SubscriberExt, Registry};
-
+pub fn tracing_subscriber(
+    process: &Process,
+) -> (
+    impl tracing::Subscriber,
+    reload::Handle<EnvFilter, Registry>,
+) {
     #[cfg(feature = "otel")]
     let telemetry = telemetry(process);
-    let console_logger = console_logger(process);
+    let (console_logger, console_filter) = console_logger(process);
     #[cfg(feature = "otel")]
     {
-        Registry::default().with(console_logger).with(telemetry)
+        (
+            Registry::default().with(console_logger).with(telemetry),
+            console_filter,
+        )
     }
     #[cfg(not(feature = "otel"))]
     {
-        Registry::default().with(console_logger)
+        (Registry::default().with(console_logger), console_filter)
     }
 }
 
@@ -38,7 +44,7 @@ pub fn tracing_subscriber(process: &Process) -> impl tracing::Subscriber {
 /// When the `RUSTUP_LOG` environment variable is present, a standard [`tracing_subscriber`]
 /// formatter will be used according to the filtering directives set in its value.
 /// Otherwise, this logger will use [`EventFormatter`] to mimic "classic" Rustup `stderr` output.
-fn console_logger<S>(process: &Process) -> impl Layer<S>
+fn console_logger<S>(process: &Process) -> (impl Layer<S>, reload::Handle<EnvFilter, S>)
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
@@ -55,17 +61,22 @@ where
         .with_writer(move || process.stderr())
         .with_ansi(has_ansi);
     if let Ok(directives) = maybe_rustup_log_directives {
-        let env_filter = EnvFilter::builder()
-            .with_default_directive(LevelFilter::INFO.into())
-            .parse_lossy(directives);
-        logger.compact().with_filter(env_filter).boxed()
+        let (env_filter, handle) = reload::Layer::new(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .parse_lossy(directives),
+        );
+        (logger.compact().with_filter(env_filter).boxed(), handle)
     } else {
         // Receive log lines from Rustup only.
-        let env_filter = EnvFilter::new("rustup=DEBUG");
-        logger
-            .event_format(EventFormatter)
-            .with_filter(env_filter)
-            .boxed()
+        let (env_filter, handle) = reload::Layer::new(EnvFilter::new("rustup=DEBUG"));
+        (
+            logger
+                .event_format(EventFormatter)
+                .with_filter(env_filter)
+                .boxed(),
+            handle,
+        )
     }
 }
 

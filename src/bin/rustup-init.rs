@@ -21,6 +21,7 @@ use cfg_if::cfg_if;
 use rs_tracing::{
     close_trace_file, close_trace_file_internal, open_trace_file, trace_to_file_internal,
 };
+use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
 
 use rustup::cli::common;
 use rustup::cli::proxy_mode;
@@ -44,9 +45,9 @@ async fn main() -> Result<ExitCode> {
     opentelemetry::global::set_text_map_propagator(
         opentelemetry_sdk::propagation::TraceContextPropagator::new(),
     );
-    let subscriber = rustup::cli::log::tracing_subscriber(&process);
+    let (subscriber, console_filter) = rustup::cli::log::tracing_subscriber(&process);
     tracing::subscriber::set_global_default(subscriber)?;
-    let result = run_rustup(&process).await;
+    let result = run_rustup(&process, console_filter).await;
     // We're tracing, so block until all spans are exported.
     #[cfg(feature = "otel")]
     opentelemetry::global::shutdown_tracer_provider();
@@ -61,11 +62,14 @@ async fn main() -> Result<ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-async fn run_rustup(process: &Process) -> Result<utils::ExitCode> {
+async fn run_rustup(
+    process: &Process,
+    console_filter: Handle<EnvFilter, Registry>,
+) -> Result<utils::ExitCode> {
     if let Ok(dir) = process.var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
     }
-    let result = run_rustup_inner(process).await;
+    let result = run_rustup_inner(process, console_filter).await;
     if process.var("RUSTUP_TRACE_DIR").is_ok() {
         close_trace_file!();
     }
@@ -73,7 +77,10 @@ async fn run_rustup(process: &Process) -> Result<utils::ExitCode> {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument(err))]
-async fn run_rustup_inner(process: &Process) -> Result<utils::ExitCode> {
+async fn run_rustup_inner(
+    process: &Process,
+    console_filter: Handle<EnvFilter, Registry>,
+) -> Result<utils::ExitCode> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard(process)?;
@@ -92,7 +99,7 @@ async fn run_rustup_inner(process: &Process) -> Result<utils::ExitCode> {
             // name. Browsers rename duplicates to
             // e.g. rustup-setup(2), and this allows all variations
             // to work.
-            setup_mode::main(current_dir, process).await
+            setup_mode::main(current_dir, process, console_filter).await
         }
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
