@@ -43,7 +43,7 @@ Options:
   -v, --verbose
           Enable verbose output
   -q, --quiet
-          Disable progress output
+          Disable progress output, limit console logger level to 'WARN' if 'RUSTUP_LOG' is unset
   -y
           Disable confirmation prompt
       --default-host <DEFAULT_HOST>
