@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::Parser;
 use tracing::warn;
+use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
 
 use crate::{
     cli::{
@@ -28,7 +29,7 @@ struct RustupInit {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Disable progress output
+    /// Disable progress output, limit console logger level to 'WARN' if 'RUSTUP_LOG' is unset
     #[arg(short, long)]
     quiet: bool,
 
@@ -73,7 +74,11 @@ struct RustupInit {
 }
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
-pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::ExitCode> {
+pub async fn main(
+    current_dir: PathBuf,
+    process: &Process,
+    console_filter: Handle<EnvFilter, Registry>,
+) -> Result<utils::ExitCode> {
     use clap::error::ErrorKind;
 
     let RustupInit {
@@ -109,6 +114,12 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
 
     if profile == Profile::Complete {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
+    }
+
+    if quiet && process.var("RUSTUP_LOG").is_err() {
+        console_filter
+            .modify(|it| *it = EnvFilter::new("rustup=WARN"))
+            .expect("error reloading `EnvFilter` for console_logger");
     }
 
     let opts = InstallOpts {
