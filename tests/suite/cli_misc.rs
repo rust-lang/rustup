@@ -1180,3 +1180,27 @@ async fn toolchain_link_then_list_verbose() {
         .expect_stdout_ok(&["rustup", "toolchain", "list", "-v"], "/custom-1")
         .await;
 }
+
+#[tokio::test]
+async fn update_self_smart_guess() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let out = cx.config.run("rustup", &["update", "self"], &[]).await;
+    let invalid_toolchain = out.stderr.contains("invalid toolchain name");
+    if !out.ok && invalid_toolchain {
+        assert!(out
+            .stderr
+            .contains("if you meant to update rustup itself, use `rustup self update`"))
+    }
+}
+
+#[tokio::test]
+async fn uninstall_self_smart_guess() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let out = cx.config.run("rustup", &["uninstall", "self"], &[]).await;
+    let no_toolchain_installed = out.stdout.contains("no toolchain installed");
+    if out.ok && no_toolchain_installed {
+        assert!(out
+            .stdout
+            .contains("if you meant to uninstall rustup itself, use `rustup self uninstall`"))
+    }
+}
