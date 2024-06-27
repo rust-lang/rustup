@@ -2,13 +2,9 @@
 // server (mocked on the file system)
 #![allow(clippy::type_complexity)]
 
-use std::collections::HashMap;
-use std::env;
-use std::fs;
-use std::path::Path;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::{cell::Cell, future::Future};
+use std::{
+    cell::Cell, collections::HashMap, env, fs, future::Future, path::Path, str::FromStr, sync::Arc,
+};
 
 use anyhow::{anyhow, Result};
 use tokio::{runtime::Handle, task};
