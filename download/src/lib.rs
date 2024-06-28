@@ -294,8 +294,6 @@ pub mod reqwest_be {
     compile_error!("Must select a reqwest TLS backend");
 
     use std::io;
-    #[cfg(feature = "reqwest-rustls-tls")]
-    use std::sync::Arc;
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
@@ -356,13 +354,9 @@ pub mod reqwest_be {
     #[cfg(feature = "reqwest-rustls-tls")]
     static CLIENT_RUSTLS_TLS: Lazy<Client> = Lazy::new(|| {
         let catcher = || {
+            let _ = aws_lc_rs::default_provider().install_default();
             client_generic()
-                .use_preconfigured_tls(
-                    rustls_platform_verifier::tls_config_with_provider(Arc::new(
-                        aws_lc_rs::default_provider(),
-                    ))
-                    .expect("failed to initialize pre-configured rustls backend"),
-                )
+                .use_rustls_tls()
                 .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
                 .build()
         };
