@@ -28,6 +28,7 @@ const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
 #[derive(Debug, Copy, Clone)]
 pub enum Backend {
     Curl,
+    #[cfg(feature = "reqwest-backend")]
     Reqwest(TlsBackend),
 }
 
@@ -56,6 +57,7 @@ async fn download_with_backend(
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
+        #[cfg(feature = "reqwest-backend")]
         Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls).await,
     }
 }
