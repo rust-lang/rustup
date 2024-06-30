@@ -630,6 +630,7 @@ version = "1.27.1"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
+ "aws-lc-sys",
  "curl",
  "env_proxy",
  "http-body-util",
