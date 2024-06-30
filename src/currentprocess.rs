@@ -234,7 +234,7 @@ impl TestProcess {
 impl From<TestContext> for TestProcess {
     fn from(inner: TestContext) -> Self {
         let inner = Process::TestProcess(inner);
-        let guard = crate::cli::log::tracing_subscriber(&inner).set_default();
+        let guard = crate::cli::log::tracing_subscriber(&inner).0.set_default();
         Self {
             process: inner,
             _guard: guard,
