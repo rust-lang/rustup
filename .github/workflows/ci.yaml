@@ -22,8 +22,6 @@ jobs:
   build-windows-pr: # job-name skip-master skip-stable
     runs-on: windows-latest
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
-    env:
-      RUSTFLAGS: -Ctarget-feature=+crt-static
     strategy:
       fail-fast: false
       matrix:
@@ -170,8 +168,6 @@ jobs:
   build-windows-master: # job-name skip-pr skip-stable
     runs-on: windows-latest
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
-    env:
-      RUSTFLAGS: -Ctarget-feature=+crt-static
     strategy:
       fail-fast: false
       matrix:
@@ -318,8 +314,6 @@ jobs:
   build-windows-stable: # job-name skip-master skip-pr
     runs-on: windows-latest
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
-    env:
-      RUSTFLAGS: -Ctarget-feature=+crt-static
     strategy:
       fail-fast: false
       matrix:
