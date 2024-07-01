@@ -22,8 +22,6 @@ jobs:
   build-windows-pr: # job-name skip-master skip-stable
     runs-on: windows-latest
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
-    env:
-      RUSTFLAGS: -Ctarget-feature=+crt-static
     strategy:
       fail-fast: false
       matrix:
@@ -58,6 +56,12 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
+      - name: Install ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+        if: matrix.mingwdir == ''
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
@@ -164,8 +168,6 @@ jobs:
   build-windows-master: # job-name skip-pr skip-stable
     runs-on: windows-latest
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
-    env:
-      RUSTFLAGS: -Ctarget-feature=+crt-static
     strategy:
       fail-fast: false
       matrix:
@@ -200,6 +202,12 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
+      - name: Install ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+        if: matrix.mingwdir == ''
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
@@ -306,8 +314,6 @@ jobs:
   build-windows-stable: # job-name skip-master skip-pr
     runs-on: windows-latest
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
-    env:
-      RUSTFLAGS: -Ctarget-feature=+crt-static
     strategy:
       fail-fast: false
       matrix:
@@ -348,6 +354,12 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
+      - name: Install ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+        if: matrix.mingwdir == ''
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
