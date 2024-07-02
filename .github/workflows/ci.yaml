@@ -58,6 +58,14 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
+      - name: Install ninja
+        if: matrix.mingwdir == ''
+        run: |
+          choco install ninja -y
+          ninja.exe --version
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
@@ -200,6 +208,14 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
+      - name: Install ninja
+        if: matrix.mingwdir == ''
+        run: |
+          choco install ninja -y
+          ninja.exe --version
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
@@ -348,6 +364,14 @@ jobs:
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
+      - name: Install NASM
+        uses: ilammy/setup-nasm@v1
+        if: matrix.mingwdir == ''
+      - name: Install ninja
+        if: matrix.mingwdir == ''
+        run: |
+          choco install ninja -y
+          ninja.exe --version
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1
         if: matrix.mingwdir != ''
