@@ -75,15 +75,6 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
                 c.description(manifest),
                 toolchain,
             );
-
-            if toolchain.starts_with("nightly") {
-                let _ = write!(buf, "{nightly_tips}");
-            }
-
-            let _ = write!(
-                buf,
-                "If you don't need the component, you could try a minimal installation with:\n\n{suggestion}\n\n{TOOLSTATE_MSG}"
-            );
         }
         cs => {
             let cs_str = cs
@@ -95,18 +86,17 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
                 buf,
                 "some components are unavailable for download for channel '{toolchain}': {cs_str}"
             );
-
-            if toolchain.starts_with("nightly") {
-                let _ = write!(buf, "{nightly_tips}");
-            }
-
-            let _ = write!(
-                buf,
-                "If you don't need the components, you could try a minimal installation with:\n\n{suggestion}\n\n{TOOLSTATE_MSG}"
-            );
         }
     }
 
+    if toolchain.starts_with("nightly") {
+        let _ = write!(buf, "{nightly_tips}");
+
+        let _ = write!(
+            buf,
+            "If you don't need these components, you could try a minimal installation with:\n\n{suggestion}\n\n{TOOLSTATE_MSG}"
+        );
+    }
     String::from_utf8(buf).unwrap()
 }
 
