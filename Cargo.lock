@@ -165,7 +165,7 @@ dependencies = [
 [[package]]
 name = "aws-lc-fips-sys"
 version = "0.12.10"
-source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#3c235d9ae22f0a2df1e15b02bf5852845321f494"
+source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#63bd01b9c7a486aa4c81d26d4d9e8cc5f20a55e0"
 dependencies = [
  "bindgen",
  "cmake",
@@ -178,7 +178,7 @@ dependencies = [
 [[package]]
 name = "aws-lc-rs"
 version = "1.8.0"
-source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#3c235d9ae22f0a2df1e15b02bf5852845321f494"
+source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#63bd01b9c7a486aa4c81d26d4d9e8cc5f20a55e0"
 dependencies = [
  "aws-lc-fips-sys",
  "aws-lc-sys",
@@ -191,7 +191,7 @@ dependencies = [
 [[package]]
 name = "aws-lc-sys"
 version = "0.19.0"
-source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#3c235d9ae22f0a2df1e15b02bf5852845321f494"
+source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#63bd01b9c7a486aa4c81d26d4d9e8cc5f20a55e0"
 dependencies = [
  "bindgen",
  "cc",
@@ -1283,7 +1283,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
 dependencies = [
  "cfg-if 1.0.0",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
