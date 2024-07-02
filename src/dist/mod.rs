@@ -46,14 +46,6 @@ pub(crate) use triple::*;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
-const TOOLSTATE_MSG: &str =
-    "If you require these components, please install and use the latest successfully built version,\n\
-     which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
-     the correct date, install it with a command such as:\n\n    \
-     rustup toolchain install nightly-2018-12-27\n\n\
-     Then you can use the toolchain with commands such as:\n\n    \
-     cargo +nightly-2018-12-27 build";
-
 /// Returns a error message indicating that certain [`Component`]s are missing in a toolchain distribution.
 ///
 /// This message is currently used exclusively in toolchain-wide operations,
@@ -63,8 +55,6 @@ const TOOLSTATE_MSG: &str =
 /// This function will panic when the collection of unavailable components `cs` is empty.
 fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &str) -> String {
     let mut buf = vec![];
-    let suggestion = format!("    rustup toolchain add {toolchain} --profile minimal");
-    let nightly_tips = "Sometimes not all components are available in any given nightly. ";
 
     match cs {
         [] => panic!("`components_missing_msg` should not be called with an empty collection of unavailable components"),
@@ -90,13 +80,27 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
     }
 
     if toolchain.starts_with("nightly") {
-        let _ = write!(buf, "{nightly_tips}");
-
         let _ = write!(
             buf,
-            "If you don't need these components, you could try a minimal installation with:\n\n{suggestion}\n\n{TOOLSTATE_MSG}"
+            "\
+Sometimes not all components are available in any given nightly.
+If you don't need these components, you could try a minimal installation with:
+
+    rustup toolchain add {toolchain} --profile minimal
+
+If you require these components, please install and use the latest successfully built version,
+which you can find at <https://rust-lang.github.io/rustup-components-history>.
+
+After determining the correct date, install it with a command such as:
+
+    rustup toolchain install nightly-2018-12-27
+
+Then you can use the toolchain with commands such as:
+
+    cargo +nightly-2018-12-27 build"
         );
     }
+
     String::from_utf8(buf).unwrap()
 }
 
