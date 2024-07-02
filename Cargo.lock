@@ -165,7 +165,7 @@ dependencies = [
 [[package]]
 name = "aws-lc-fips-sys"
 version = "0.12.10"
-source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#63bd01b9c7a486aa4c81d26d4d9e8cc5f20a55e0"
+source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#815f887c8e265f74eedd9dc8cbebcc308aaf1c15"
 dependencies = [
  "bindgen",
  "cmake",
@@ -178,7 +178,7 @@ dependencies = [
 [[package]]
 name = "aws-lc-rs"
 version = "1.8.0"
-source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#63bd01b9c7a486aa4c81d26d4d9e8cc5f20a55e0"
+source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#815f887c8e265f74eedd9dc8cbebcc308aaf1c15"
 dependencies = [
  "aws-lc-fips-sys",
  "aws-lc-sys",
@@ -191,7 +191,7 @@ dependencies = [
 [[package]]
 name = "aws-lc-sys"
 version = "0.19.0"
-source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#63bd01b9c7a486aa4c81d26d4d9e8cc5f20a55e0"
+source = "git+https://github.com/justsmth/aws-lc-rs.git?branch=more-windows-tests#815f887c8e265f74eedd9dc8cbebcc308aaf1c15"
 dependencies = [
  "bindgen",
  "cc",
