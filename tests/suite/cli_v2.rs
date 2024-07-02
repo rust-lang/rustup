@@ -1379,6 +1379,43 @@ Then you can use the toolchain with commands such as:
 }
 
 #[tokio::test]
+async fn update_removed_component_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::RemovedRls).await;
+    set_current_dist_date(&cx.config, "2024-05-01");
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+
+    // Install `rls` on the first day.
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "1.78.0")
+        .await;
+    cx.config
+        .expect_ok(&["rustup", "component", "add", "rls"])
+        .await;
+    cx.config.expect_component_executable("rls").await;
+
+    // `rls` is missing on the second day.
+    set_current_dist_date(&cx.config, "2024-06-15");
+
+    // An update at this time should inform the user of an unavailable component.
+    cx.config
+        .expect_err(
+            &["rustup", "update", "stable"],
+            for_host!(
+                r"component 'rls' for target '{0}' is unavailable for download for channel 'stable'
+One or many components listed above might have been permanently removed from newer versions
+of the official Rust distribution due to deprecation."
+            ),
+        )
+        .await;
+
+    // We're still stuck with the old version.
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "1.78.0")
+        .await;
+    cx.config.expect_component_executable("rls").await;
+}
+
+#[tokio::test]
 async fn update_unavailable_force() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let trip = this_host_triple();

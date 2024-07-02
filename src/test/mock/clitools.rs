@@ -93,6 +93,8 @@ pub enum Scenario {
     Unavailable,
     /// Two dates, v2 manifests, RLS unavailable in first date, restored on second.
     UnavailableRls,
+    /// Two dates, v2 manifests, RLS available in first stable, removed on second.
+    RemovedRls,
     /// Three dates, v2 manifests, RLS available in first and second, not last
     MissingComponent,
     /// Three dates, v2 manifests, RLS available in first, middle missing nightly
@@ -152,6 +154,7 @@ impl ConstState {
                 Scenario::MissingNightly => RwLock::new(None),
                 Scenario::MultiHost => RwLock::new(None),
                 Scenario::None => RwLock::new(None),
+                Scenario::RemovedRls => RwLock::new(None),
                 Scenario::SimpleV1 => RwLock::new(None),
                 Scenario::SimpleV2 => RwLock::new(None),
                 Scenario::Unavailable => RwLock::new(None),
@@ -1152,6 +1155,10 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
                 Release::stable("1.1.0", "2015-01-02"),
             ]
         }
+        Scenario::RemovedRls => vec![
+            Release::stable("1.78.0", "2024-05-01"),
+            Release::stable("1.79.0", "2024-06-15").with_rls(RlsStatus::Unavailable),
+        ],
         Scenario::SimpleV1 | Scenario::SimpleV2 => vec![
             Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
             Release::beta("1.2.0", "2015-01-02"),
@@ -1199,6 +1206,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::MultiHost
         | Scenario::Unavailable
         | Scenario::UnavailableRls
+        | Scenario::RemovedRls
         | Scenario::MissingNightly
         | Scenario::HostGoesMissingBefore
         | Scenario::HostGoesMissingAfter
