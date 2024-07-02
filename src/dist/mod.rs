@@ -47,7 +47,7 @@ pub(crate) use triple::*;
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
 const TOOLSTATE_MSG: &str =
-    "If you require these components, please install and use the latest successful build version,\n\
+    "If you require these components, please install and use the latest successfully built version,\n\
      which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
      the correct date, install it with a command such as:\n\n    \
      rustup toolchain install nightly-2018-12-27\n\n\
@@ -93,7 +93,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
                 .join(", ");
             let _ = write!(
                 buf,
-                "some components unavailable for download for channel '{toolchain}': {cs_str}"
+                "some components are unavailable for download for channel '{toolchain}': {cs_str}"
             );
 
             if toolchain.starts_with("nightly") {

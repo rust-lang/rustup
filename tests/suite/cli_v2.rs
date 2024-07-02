@@ -1363,7 +1363,7 @@ Sometimes not all components are available in any given nightly. If you don't ne
 
     rustup toolchain add nightly --profile minimal
 
-If you require these components, please install and use the latest successful build version,
+If you require these components, please install and use the latest successfully built version,
 which you can find at <https://rust-lang.github.io/rustup-components-history>.
 
 After determining the correct date, install it with a command such as:

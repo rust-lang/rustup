@@ -148,7 +148,7 @@ fn suggest_message(suggestion: &Option<String>) -> String {
 
 /// Returns a error message indicating that certain [`Component`]s are unavailable.
 ///
-/// See also [`component_missing_msg`](../dist/dist/fn.components_missing_msg.html)
+/// See also [`components_missing_msg`](../dist/dist/fn.components_missing_msg.html)
 /// which generates error messages for component unavailability toolchain-wide operations.
 ///
 /// # Panics
@@ -192,7 +192,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
 
             let _ = write!(
                 buf,
-                "some components unavailable for download for channel '{toolchain}': {cs_str}"
+                "some components are unavailable for download for channel '{toolchain}': {cs_str}"
             );
 
             if toolchain.starts_with("nightly") {
