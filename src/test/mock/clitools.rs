@@ -93,7 +93,7 @@ pub enum Scenario {
     Unavailable,
     /// Two dates, v2 manifests, RLS unavailable in first date, restored on second.
     UnavailableRls,
-    /// Three dates, v2 manifests, RLS available in first and last, not middle
+    /// Three dates, v2 manifests, RLS available in first and second, not last
     MissingComponent,
     /// Three dates, v2 manifests, RLS available in first, middle missing nightly
     MissingNightly,
