@@ -1359,7 +1359,8 @@ async fn add_missing_component_toolchain() {
         &["rustup", "toolchain", "add", "nightly"],
         for_host!(
             r"component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'
-Sometimes not all components are available in any given nightly. If you don't need the component, you could try a minimal installation with:
+Sometimes not all components are available in any given nightly.
+If you don't need these components, you could try a minimal installation with:
 
     rustup toolchain add nightly --profile minimal
 
