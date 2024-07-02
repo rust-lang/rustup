@@ -91,7 +91,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
                 .join(", ");
             let _ = write!(
                 buf,
-                "some components unavailable for download for channel '{toolchain}': {cs_str}"
+                "some components are unavailable for download for channel '{toolchain}': {cs_str}"
             );
 
             if toolchain.starts_with("nightly") {
