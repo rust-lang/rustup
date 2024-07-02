@@ -99,6 +99,23 @@ Then you can use the toolchain with commands such as:
 
     cargo +nightly-2018-12-27 build"
         );
+    } else if ["beta", "stable"].iter().any(|&p| toolchain.starts_with(p)) {
+        let _ = write!(
+            buf,
+            "\
+One or many components listed above might have been permanently removed from newer versions
+of the official Rust distribution due to deprecation.
+
+You can find the list of removed components at
+<https://rust-lang.github.io/rustup/devel/concepts/components.html#previous-components>.
+
+If you are updating an existing toolchain, after determining the deprecated component(s)
+in question, please remove them with a command such as:
+
+    rustup component remove --toolchain {toolchain} <COMPONENT>...
+
+After that, you should be able to continue with the update as usual.",
+        );
     }
 
     String::from_utf8(buf).unwrap()
