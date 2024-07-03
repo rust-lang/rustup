@@ -608,9 +608,9 @@ jobs:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
-          - aarch64-unknown-linux-gnu     # skip-pr
-          - powerpc64-unknown-linux-gnu   # skip-pr
-          - x86_64-unknown-linux-musl     # skip-pr
+          - aarch64-unknown-linux-gnu      # skip-pr
+          - powerpc64-unknown-linux-gnu    # skip-pr
+          - x86_64-unknown-linux-musl      # skip-pr
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
@@ -757,24 +757,24 @@ jobs:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
-          - aarch64-unknown-linux-gnu     # skip-pr
-          - aarch64-unknown-linux-musl    # skip-pr skip-master
-          - powerpc64-unknown-linux-gnu   # skip-pr
-          - x86_64-unknown-linux-musl     # skip-pr
-          - i686-unknown-linux-gnu        # skip-pr skip-master
-          - arm-unknown-linux-gnueabi     # skip-pr skip-master
-          - arm-unknown-linux-gnueabihf   # skip-pr skip-master
-          - x86_64-unknown-freebsd        # skip-pr skip-master
-          - x86_64-unknown-netbsd         # skip-pr skip-master
-          - x86_64-unknown-illumos        # skip-pr skip-master
-          - powerpc-unknown-linux-gnu     # skip-pr skip-master
-          - powerpc64le-unknown-linux-gnu # skip-pr skip-master
-          - s390x-unknown-linux-gnu       # skip-pr skip-master
-          - arm-linux-androideabi         # skip-pr skip-master
-          - armv7-linux-androideabi       # skip-pr skip-master
-          - x86_64-linux-android          # skip-pr skip-master
-          - riscv64gc-unknown-linux-gnu   # skip-pr skip-master
-          - loongarch64-unknown-linux-gnu # skip-pr skip-master
+          - aarch64-unknown-linux-gnu      # skip-pr
+          - aarch64-unknown-linux-musl     # skip-pr skip-master
+          - powerpc64-unknown-linux-gnu    # skip-pr
+          - x86_64-unknown-linux-musl      # skip-pr
+          - i686-unknown-linux-gnu         # skip-pr skip-master
+          - arm-unknown-linux-gnueabi      # skip-pr skip-master
+          - arm-unknown-linux-gnueabihf    # skip-pr skip-master
+          - x86_64-unknown-freebsd         # skip-pr skip-master
+          - x86_64-unknown-netbsd          # skip-pr skip-master
+          - x86_64-unknown-illumos         # skip-pr skip-master
+          - powerpc-unknown-linux-gnu      # skip-pr skip-master
+          - powerpc64le-unknown-linux-gnu  # skip-pr skip-master
+          - s390x-unknown-linux-gnu        # skip-pr skip-master
+          - arm-linux-androideabi          # skip-pr skip-master
+          - armv7-linux-androideabi        # skip-pr skip-master
+          - x86_64-linux-android           # skip-pr skip-master
+          - riscv64gc-unknown-linux-gnu    # skip-pr skip-master
+          - loongarch64-unknown-linux-gnu  # skip-pr skip-master
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES

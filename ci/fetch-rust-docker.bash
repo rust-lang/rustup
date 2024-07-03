@@ -42,6 +42,7 @@ case "$TARGET" in
   x86_64-unknown-netbsd)           image=dist-x86_64-netbsd ;;
   riscv64gc-unknown-linux-gnu)     image=dist-riscv64-linux ;;
   loongarch64-unknown-linux-gnu)   image=dist-loongarch64-linux ;;
+  loongarch64-unknown-linux-musl)  image=dist-loongarch64-musl ;;
   *) exit ;;
 esac
 
