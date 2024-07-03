@@ -33,6 +33,8 @@ rustup/dist/i686-unknown-linux-gnu/rustup-init
 rustup/dist/i686-unknown-linux-gnu/rustup-init.sha256
 rustup/dist/loongarch64-unknown-linux-gnu/rustup-init
 rustup/dist/loongarch64-unknown-linux-gnu/rustup-init.sha256
+rustup/dist/loongarch64-unknown-linux-musl/rustup-init
+rustup/dist/loongarch64-unknown-linux-musl/rustup-init.sha256
 rustup/dist/mips-unknown-linux-gnu/rustup-init
 rustup/dist/mips-unknown-linux-gnu/rustup-init.sha256
 rustup/dist/mips64-unknown-linux-gnuabi64/rustup-init
