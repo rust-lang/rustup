@@ -507,7 +507,7 @@ pub mod reqwest_be {
 
     use super::{DownloadError, Event, TlsBackend};
 
-    pub fn download(
+    pub async fn download(
         _url: &Url,
         _resume_from: u64,
         _callback: &dyn Fn(Event<'_>) -> Result<()>,
