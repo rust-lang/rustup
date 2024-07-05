@@ -27,56 +27,20 @@ to S3 so that we can then make a release of rustup.
 
 ## Targets we need to build
 
-We build for all the Tier one targets and a non-trivial number of the tier two
-targets of Rust. We do not even attempt tier three builds.
+We follow `rustc`'s [platform support policy] closely, and so `rustup` is expected
+to build for all targets listed in the _tier 1_ or the _tier 2 with host tools_ section.
 
-We don't run the tests on all the targets because many are cross-built. If we
-cross-build we don't run the tests. All the builds which aren't mac or windows
-are built on an x86_64 system because that's the easiest way to get a performant
-system.
+[platform support policy]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
 
-| Target                        | Cross      | Tier  | On PR? | On master? |
-| ----------------------------- | ---------- | ----- | ------ | ---------- |
-| x86_64-unknown-linux-gnu      | No         | One   | Yes    | Yes        |
-| armv7-unknown-linux-gnueabihf | Yes        | Two   | Yes    | Yes        |
-| aarch64-linux-android         | Yes        | Two   | Yes    | Yes        |
-| aarch64-unknown-linux-gnu     | Yes        | Two   | No     | Yes        |
-| aarch64-unknown-linux-musl    | Yes        | Two   | No     | Yes        |
-| powerpc64-unknown-linux-gnu   | Yes        | Two   | No     | Yes        |
-| x86_64-unknown-linux-musl     | Yes        | Two   | No     | Yes        |
-| i686-unknown-linux-gnu        | Yes        | One   | No     | No         |
-| arm-unknown-linux-gnueabi     | Yes        | Two   | No     | No         |
-| arm-unknown-linux-gnueabihf   | Yes        | Two   | No     | No         |
-| x86_64-unknown-freebsd        | Yes        | Two   | No     | No         |
-| x86_64-unknown-netbsd         | Yes        | Two   | No     | No         |
-| x86_64-unknown-illumos        | Yes        | Two   | No     | No         |
-| powerpc-unknown-linux-gnu     | Yes        | Two   | No     | No         |
-| powerpc64le-unknown-linux-gnu | Yes        | Two   | No     | No         |
-| mips-unknown-linux-gnu        | Yes        | Two   | No     | No         |
-| mips64-unknown-linux-gnu      | Yes        | Two   | No     | No         |
-| mipsel-unknown-linux-gnu      | Yes        | Two   | No     | No         |
-| mips64el-unknown-linux-gnu    | Yes        | Two   | No     | No         |
-| s390x-unknown-linux-gnu       | Yes        | Two   | No     | No         |
-| arm-linux-androideabi         | Yes        | Two   | No     | No         |
-| armv7-linux-androideabi       | Yes        | Two   | No     | No         |
-| i686-linux-android            | Yes        | Two   | No     | No         |
-| x86_64-linux-android          | Yes        | Two   | No     | No         |
-| riscv64gc-unknown-linux-gnu   | Yes        | ---   | No     | No         |
-| loongarch64-unknown-linux-gnu | Yes        | Two   | No     | No         |
-| ----------------------------- | ---------- | ----- | ------ | ---------- |
-| aarch64-apple-darwin          | Yes        | Two   | Yes    | Yes        |
-| x86_64-apple-darwin           | No         | One   | Yes    | Yes        |
-| ----------------------------- | ---------- | ----- | ------ | ---------- |
-| x86_64-pc-windows-msvc        | No         | One   | Yes    | Yes        |
-| x86_64-pc-windows-gnu         | No         | One   | No     | Yes        |
-| i686-pc-windows-msvc          | No         | One   | No     | No         |
-| i686-pc-windows-gnu           | No         | One   | No     | No         |
-| aarch64-pc-windows-msvc       | Yes        | Two   | No     | Yes        |
+In order to reduce the maintainance burden, targets listed in the _tier 2 without host
+tools_ section might get limited support, but should by no means become a blocker.
+We should not build for targets listed in the _tier 3_ section, and if a target gets
+downgraded to tier 3, its CI workflows should be dropped accordingly.
 
-We also have a clippy/shellcheck target which runs on x86_64 linux and is
-run in all cases. It does a `cargo fmt` check, a `cargo clippy` check on the
-beta toolchain, and also runs `rustup-init.sh` through to completion inside
-a centos 6 docker to ensure that we continue to work on there OK.
+If a platform is directly supported by GitHub Action's free runners, we should always
+build for it natively with the full test suite activated.
+Otherwise, we might consider performing a cross-build, in which case we won't run the
+tests for the the target.
 
 ## Useful notes about how we run builds
 
