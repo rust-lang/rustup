@@ -39,31 +39,27 @@ impl<'a> InstallMethod<'a> {
     // Install a toolchain
     #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
     pub(crate) async fn install(&self) -> Result<UpdateStatus> {
-        let nh = self.cfg().notify_handler.clone();
+        let nh = &self.cfg().notify_handler;
         match self {
             InstallMethod::Copy { .. }
             | InstallMethod::Link { .. }
             | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
-            }) => (nh)(RootNotification::InstallingToolchain(&self.dest_basename())),
-            _ => (nh)(RootNotification::UpdatingToolchain(&self.dest_basename())),
+            }) => nh(RootNotification::InstallingToolchain(&self.dest_basename())),
+            _ => nh(RootNotification::UpdatingToolchain(&self.dest_basename())),
         }
 
-        (self.cfg().notify_handler)(RootNotification::ToolchainDirectory(&self.dest_path()));
-        let updated = self
-            .run(&self.dest_path(), &|n| {
-                (self.cfg().notify_handler)(n.into())
-            })
-            .await?;
+        nh(RootNotification::ToolchainDirectory(&self.dest_path()));
+        let updated = self.run(&self.dest_path(), &|n| nh(n.into())).await?;
 
         let status = match updated {
             false => {
-                (nh)(RootNotification::UpdateHashMatches);
+                nh(RootNotification::UpdateHashMatches);
                 UpdateStatus::Unchanged
             }
             true => {
-                (nh)(RootNotification::InstalledToolchain(&self.dest_basename()));
+                nh(RootNotification::InstalledToolchain(&self.dest_basename()));
                 match self {
                     InstallMethod::Dist(DistOptions {
                         old_date_version: Some((_, v)),
