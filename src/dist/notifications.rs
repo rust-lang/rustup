@@ -32,7 +32,6 @@ pub enum Notification<'a> {
     DownloadingLegacyManifest,
     SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a Manifest, &'a [Component]),
     ForcingUnavailableComponent(&'a str),
-    ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
     StrayHash(&'a Path),
     SignatureInvalid(&'a str),
@@ -67,7 +66,6 @@ impl<'a> Notification<'a> {
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
             | ComponentAlreadyInstalled(_)
-            | ManifestChecksumFailedHack
             | RollingBack
             | DownloadingManifest(_)
             | SkippingNightlyMissingComponent(_, _, _)
@@ -150,9 +148,6 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "latest update on {date}, no rust version")
             }
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
-            ManifestChecksumFailedHack => {
-                write!(f, "update not yet available, sorry! try again later")
-            }
             ComponentUnavailable(pkg, toolchain) => {
                 if let Some(tc) = toolchain {
                     write!(f, "component '{pkg}' is not available on target '{tc}'")
