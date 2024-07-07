@@ -10,6 +10,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
+use tracing::info;
 
 use crate::{
     config::Cfg, currentprocess::Process, errors::RustupError, toolchain::ToolchainName,
@@ -1169,7 +1170,7 @@ pub(crate) async fn dl_v2_manifest(
         Err(any) => {
             if let Some(RustupError::ChecksumFailed { .. }) = any.downcast_ref::<RustupError>() {
                 // Checksum failed - issue warning to try again later
-                (download.notify_handler)(Notification::ManifestChecksumFailedHack);
+                info!("update not yet available, sorry! try again later")
             }
             Err(any)
         }
