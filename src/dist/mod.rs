@@ -1153,9 +1153,7 @@ pub(crate) async fn dl_v2_manifest(
     {
         Ok(manifest_dl) => {
             // Downloaded ok!
-            let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl {
-                m
-            } else {
+            let Some((manifest_file, manifest_hash)) = manifest_dl else {
                 return Ok(None);
             };
             let manifest_str = utils::read_file("manifest", &manifest_file)?;
