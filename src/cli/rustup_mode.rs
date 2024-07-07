@@ -1281,8 +1281,25 @@ async fn toolchain_link(
 }
 
 fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::ExitCode> {
+    let default_toolchain = cfg.get_default().ok().flatten();
+    let active_toolchain = cfg.find_active_toolchain().ok().flatten().map(|(it, _)| it);
+
     for toolchain_name in &opts.toolchain {
         let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
+
+        if active_toolchain
+            .as_ref()
+            .is_some_and(|n| n == &toolchain_name)
+        {
+            warn!("removing the active toolchain; a toolchain override will be required for running Rust tools");
+        }
+        if default_toolchain
+            .as_ref()
+            .is_some_and(|n| n == &toolchain_name)
+        {
+            warn!("removing the default toolchain; proc-macros and build scripts might no longer build");
+        }
+
         Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
     }
     Ok(utils::ExitCode(0))

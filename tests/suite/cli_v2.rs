@@ -212,15 +212,36 @@ async fn list_toolchains_with_none() {
 }
 
 #[tokio::test]
-async fn remove_toolchain() {
+async fn remove_toolchain_default() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "remove", "nightly"])
+        .expect_stderr_ok(
+            &["rustup", "toolchain", "remove", "nightly"],
+            "removing the default toolchain; proc-macros and build scripts might no longer build",
+        )
         .await;
     cx.config.expect_ok(&["rustup", "toolchain", "list"]).await;
     cx.config
         .expect_stdout_ok(&["rustup", "toolchain", "list"], "no installed toolchains")
+        .await;
+}
+
+#[tokio::test]
+async fn remove_toolchain_active() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok(&["rustup", "override", "set", "stable"])
+        .await;
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "toolchain", "remove", "stable"],
+            "removing the active toolchain; a toolchain override will be required for running Rust tools",
+        )
+        .await;
+    cx.config
+        .expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly")
         .await;
 }
 
