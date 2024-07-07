@@ -359,6 +359,15 @@ from_variant!(
     LocalToolchainName::Path
 );
 
+impl PartialEq<ToolchainName> for LocalToolchainName {
+    fn eq(&self, other: &ToolchainName) -> bool {
+        match self {
+            LocalToolchainName::Named(n) => n == other,
+            _ => false,
+        }
+    }
+}
+
 impl Display for LocalToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
