@@ -10,10 +10,13 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
-    config::Cfg, currentprocess::Process, errors::RustupError, toolchain::ToolchainName,
+    config::{dist_root_server, Cfg},
+    currentprocess::Process,
+    errors::RustupError,
+    toolchain::ToolchainName,
     utils::utils,
 };
 
@@ -1166,9 +1169,20 @@ pub(crate) async fn dl_v2_manifest(
             Ok(Some((manifest, manifest_hash)))
         }
         Err(any) => {
-            if let Some(RustupError::ChecksumFailed { .. }) = any.downcast_ref::<RustupError>() {
-                // Checksum failed - issue warning to try again later
-                info!("update not yet available, sorry! try again later")
+            if let Some(err @ RustupError::ChecksumFailed { .. }) =
+                any.downcast_ref::<RustupError>()
+            {
+                // Manifest checksum mismatched.
+                warn!("{err}");
+
+                let server = dist_root_server(download.process)?;
+                if server == DEFAULT_DIST_SERVER {
+                    info!("this is likely due to an ongoing update of the official release server, please try again later");
+                    info!("see <https://github.com/rust-lang/rustup/issues/3390> for more details");
+                } else {
+                    info!("this might indicate an issue with the third-party release server '{server}'");
+                    info!("see <https://github.com/rust-lang/rustup/issues/3885> for more details");
+                }
             }
             Err(any)
         }

@@ -381,7 +381,7 @@ async fn bad_sha_on_manifest() {
     cx.config
         .expect_err(
             &["rustup", "default", "nightly"],
-            "update not yet available",
+            "info: this might indicate an issue with the third-party release server",
         )
         .await;
 }
