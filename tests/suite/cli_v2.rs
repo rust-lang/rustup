@@ -1343,11 +1343,12 @@ async fn add_missing_component_toolchain() {
         &["rustup", "toolchain", "add", "nightly"],
         for_host!(
             r"component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'
-Sometimes not all components are available in any given nightly. If you don't need the component, you could try a minimal installation with:
+Sometimes not all components are available in any given nightly.
+If you don't need the component(s), you could try a minimal installation with:
 
     rustup toolchain add nightly --profile minimal
 
-If you require these components, please install and use the latest successful build version,
+If you require the component(s), please install and use the latest successful build version,
 which you can find at <https://rust-lang.github.io/rustup-components-history>.
 
 After determining the correct date, install it with a command such as:
@@ -1359,6 +1360,50 @@ Then you can use the toolchain with commands such as:
     cargo +nightly-2018-12-27 build"
         ),
     ).await;
+}
+
+#[tokio::test]
+async fn update_removed_component_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::RemovedRls).await;
+    set_current_dist_date(&cx.config, "2024-05-01");
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+
+    // Install `rls` on the first day.
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "1.78.0")
+        .await;
+    cx.config
+        .expect_ok(&["rustup", "component", "add", "rls"])
+        .await;
+    cx.config.expect_component_executable("rls").await;
+
+    // `rls` is missing on the second day.
+    set_current_dist_date(&cx.config, "2024-06-15");
+
+    // An update at this time should inform the user of an unavailable component.
+    cx.config
+        .expect_err(
+            &["rustup", "update", "stable"],
+            for_host!(
+                r"component 'rls' for target '{0}' is unavailable for download for channel 'stable'
+One or many components listed above might have been permanently removed from newer versions
+of the official Rust distribution due to deprecation.
+
+If you are updating an existing toolchain, after determining the deprecated component(s)
+in question, please remove them with a command such as:
+
+    rustup component remove --toolchain stable <COMPONENT>...
+
+After that, you should be able to continue with the update as usual."
+            ),
+        )
+        .await;
+
+    // We're still stuck with the old version.
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "1.78.0")
+        .await;
+    cx.config.expect_component_executable("rls").await;
 }
 
 #[tokio::test]
