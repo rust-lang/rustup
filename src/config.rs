@@ -293,21 +293,7 @@ impl<'a> Cfg<'a> {
             .map(|t| t.resolve(&default_host_triple))
             .transpose()?;
 
-        let dist_root_server = match non_empty_env_var("RUSTUP_DIST_SERVER", process)? {
-            Some(s) => {
-                trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
-                s
-            }
-            None => {
-                // For backward compatibility
-                non_empty_env_var("RUSTUP_DIST_ROOT", process)?
-                    .inspect(|url| trace!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
-                    .as_ref()
-                    .map(|root| root.trim_end_matches("/dist"))
-                    .unwrap_or(dist::DEFAULT_DIST_SERVER)
-                    .to_owned()
-            }
-        };
+        let dist_root_server = dist_root_server(process)?;
 
         let notify_clone = notify_handler.clone();
         let tmp_cx = temp::Context::new(
@@ -948,6 +934,24 @@ impl<'a> Cfg<'a> {
             LocalToolchainName::Path(p) => p.to_path_buf(),
         }
     }
+}
+
+pub(crate) fn dist_root_server(process: &Process) -> Result<String> {
+    Ok(match non_empty_env_var("RUSTUP_DIST_SERVER", process)? {
+        Some(s) => {
+            trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
+            s
+        }
+        None => {
+            // For backward compatibility
+            non_empty_env_var("RUSTUP_DIST_ROOT", process)?
+                .inspect(|url| trace!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
+                .as_ref()
+                .map(|root| root.trim_end_matches("/dist"))
+                .unwrap_or(dist::DEFAULT_DIST_SERVER)
+                .to_owned()
+        }
+    })
 }
 
 impl<'a> Debug for Cfg<'a> {
