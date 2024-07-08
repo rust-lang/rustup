@@ -1208,10 +1208,12 @@ async fn remove_target_host() {
     cx.config
         .expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1])
         .await;
-    cx.config.expect_stderr_ok(
-        &["rustup", "target", "remove", &host],
-        "after removing the default host target, proc-macros and build scripts might no longer build",
-    ).await;
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "target", "remove", &host],
+            "removing the default host target; proc-macros and build scripts might no longer build",
+        )
+        .await;
     let path = format!("toolchains/nightly-{host}/lib/rustlib/{host}/lib/libstd.rlib");
     assert!(!cx.config.rustupdir.has(path));
     let path = format!("toolchains/nightly-{host}/lib/rustlib/{host}/lib");
@@ -1228,7 +1230,7 @@ async fn remove_target_last() {
     cx.config
         .expect_stderr_ok(
             &["rustup", "target", "remove", &host],
-            "after removing the last target, no build targets will be available",
+            "removing the last target; no build targets will be available",
         )
         .await;
 }
