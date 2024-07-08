@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::{self, Debug, Display};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -303,9 +302,9 @@ impl<'a> Cfg<'a> {
                 // For backward compatibility
                 non_empty_env_var("RUSTUP_DIST_ROOT", process)?
                     .inspect(|url| trace!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
-                    .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)
                     .as_ref()
-                    .trim_end_matches("/dist")
+                    .map(|root| root.trim_end_matches("/dist"))
+                    .unwrap_or(dist::DEFAULT_DIST_SERVER)
                     .to_owned()
             }
         };

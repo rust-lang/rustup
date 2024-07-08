@@ -41,9 +41,6 @@ pub(crate) use triple::*;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
-// Deprecated
-pub(crate) static DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
-
 const TOOLSTATE_MSG: &str =
     "If you require these components, please install and use the latest successful build version,\n\
      which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
