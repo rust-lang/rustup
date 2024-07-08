@@ -17,7 +17,7 @@ use crate::utils::raw;
 
 #[cfg(not(windows))]
 pub(crate) use crate::utils::utils::raw::find_cmd;
-pub(crate) use crate::utils::utils::raw::{if_not_empty, is_directory};
+pub(crate) use crate::utils::utils::raw::is_directory;
 
 pub use crate::utils::utils::raw::{is_file, path_exists};
 

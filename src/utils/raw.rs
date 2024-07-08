@@ -65,14 +65,6 @@ pub(crate) fn random_string(length: usize) -> String {
         .collect()
 }
 
-pub(crate) fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
-    if s == *"" {
-        None
-    } else {
-        Some(s)
-    }
-}
-
 pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
     let mut file = fs::OpenOptions::new()
         .write(true)
