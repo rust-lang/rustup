@@ -291,7 +291,7 @@ impl<'a> Cfg<'a> {
         let env_override = process
             .var("RUSTUP_TOOLCHAIN")
             .ok()
-            .and_then(utils::if_not_empty)
+            .and_then(if_not_empty)
             .map(ResolvableLocalToolchainName::try_from)
             .transpose()?
             .map(|t| t.resolve(&default_host_triple))
@@ -307,7 +307,7 @@ impl<'a> Cfg<'a> {
                 process
                     .var("RUSTUP_DIST_ROOT")
                     .ok()
-                    .and_then(utils::if_not_empty)
+                    .and_then(if_not_empty)
                     .inspect(|url| trace!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
                     .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)
                     .as_ref()
@@ -998,6 +998,14 @@ fn get_default_host_triple(s: &Settings, process: &Process) -> dist::TargetTripl
         .as_ref()
         .map(dist::TargetTriple::new)
         .unwrap_or_else(|| dist::TargetTriple::from_host_or_build(process))
+}
+
+fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
+    if s == *"" {
+        None
+    } else {
+        Some(s)
+    }
 }
 
 fn no_toolchain_error(process: &Process) -> anyhow::Error {
