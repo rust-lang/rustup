@@ -10,7 +10,7 @@
         "enabled": true,
         "automerge": true
     },
-    "prCreation": "not-pending",
+    "prCreation": "immediate",
     "rangeStrategy": "update-lockfile",
     "stabilityDays": 3,
     "github-actions": {
