@@ -24,6 +24,9 @@ jobs:
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -178,6 +181,9 @@ jobs:
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -332,6 +338,9 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -490,6 +499,9 @@ jobs:
   build-linux-pr: # job-name skip-master skip-stable
     runs-on: ubuntu-latest
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -646,6 +658,9 @@ jobs:
   build-linux-master: # job-name skip-pr skip-stable
     runs-on: ubuntu-latest
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -807,6 +822,9 @@ jobs:
   build-linux-stable: # job-name skip-master skip-pr
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -990,6 +1008,9 @@ jobs:
     runs-on: macos-13 # skip-aarch64
     env: # skip-aarch64
       MACOSX_DEPLOYMENT_TARGET: 10.12 # skip-aarch64
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix:
         mode:
@@ -1118,6 +1139,9 @@ jobs:
     runs-on: macos-latest # skip-x86_64
     env: # skip-x86_64
       MACOSX_DEPLOYMENT_TARGET: 11.0 # skip-x86_64
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix:
         mode:

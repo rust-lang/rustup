@@ -9,6 +9,9 @@ jobs: # skip-master skip-pr skip-stable
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:

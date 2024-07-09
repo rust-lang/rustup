@@ -11,6 +11,9 @@ jobs: # skip-master skip-pr skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
