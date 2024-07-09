@@ -159,7 +159,7 @@ jobs: # skip-master skip-pr skip-stable
       - name: Deploy build to rustup-builds bucket for release team
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
         run: |
-          aws --debug s3 cp --recursive deploy/ s3://rustup-builds/${{ github.sha }}
+          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}
         env:
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
