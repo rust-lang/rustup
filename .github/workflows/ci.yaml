@@ -156,7 +156,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -310,7 +310,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -470,7 +470,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -626,7 +626,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -787,7 +787,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -969,7 +969,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -1091,7 +1091,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
@@ -1219,7 +1219,7 @@ jobs:
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
