@@ -97,12 +97,12 @@ jobs: # skip-x86_64 skip-aarch64
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
       - name: Ensure that awscli is installed
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
+        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
           which aws
           aws --version
       - name: Prepare the dist
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
+        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
           bash ci/prepare-deploy.bash
       - name: Deploy build to dev-static dist tree for release team
