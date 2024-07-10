@@ -24,6 +24,7 @@ jobs:
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-master skip-stable
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+      RUST_MIN_STACK: 16777216
     permissions:
       id-token: write
       contents: read
@@ -181,6 +182,7 @@ jobs:
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-pr skip-stable
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+      RUST_MIN_STACK: 16777216
     permissions:
       id-token: write
       contents: read
@@ -338,6 +340,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-pr skip-master
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
+      RUST_MIN_STACK: 16777216
     permissions:
       id-token: write
       contents: read
