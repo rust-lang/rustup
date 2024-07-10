@@ -101,7 +101,7 @@ when enabled. Instrumenting a currently uninstrumented function is mostly simply
 done like so:
 
 ```rust
-#[tracing::instrument(level = "trace", err, skip_all)]
+#[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
 ```
 
 `skip_all` is not required, but some core structs don't implement Debug yet, and
