@@ -76,7 +76,7 @@ async fn run_rustup(
     result
 }
 
-#[tracing::instrument(level = "trace", err)]
+#[tracing::instrument(level = "trace", err(level = "trace"))]
 async fn run_rustup_inner(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,

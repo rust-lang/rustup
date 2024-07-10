@@ -37,7 +37,7 @@ pub(crate) enum InstallMethod<'a> {
 
 impl<'a> InstallMethod<'a> {
     // Install a toolchain
-    #[tracing::instrument(level = "trace", err, skip_all)]
+    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn install(&self) -> Result<UpdateStatus> {
         let nh = &self.cfg().notify_handler;
         match self {
