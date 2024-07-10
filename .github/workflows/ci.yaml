@@ -166,7 +166,7 @@ jobs:
       - name: Deploy build to rustup-builds bucket for release team
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
         run: |
-          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}
+          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}/dist
         env:
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
@@ -323,7 +323,7 @@ jobs:
       - name: Deploy build to rustup-builds bucket for release team
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
         run: |
-          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}
+          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}/dist
         env:
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
@@ -486,7 +486,7 @@ jobs:
       - name: Deploy build to rustup-builds bucket for release team
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
         run: |
-          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}
+          aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}/dist
         env:
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
