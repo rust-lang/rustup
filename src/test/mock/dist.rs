@@ -132,7 +132,7 @@ pub enum MockManifestVersion {
 }
 
 impl MockDistServer {
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn write(&self, vs: &[MockManifestVersion], enable_xz: bool, enable_zst: bool) {
         fs::create_dir_all(&self.path).unwrap();
 
@@ -151,7 +151,7 @@ impl MockDistServer {
         }
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn build_package(
         &self,
         channel: &MockChannel,
@@ -192,7 +192,7 @@ impl MockDistServer {
     }
 
     // Returns the hash of the tarball
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all, fields(format=%format)))]
+    #[tracing::instrument(level = "trace", skip_all, fields(format=%format))]
     fn build_target_package(
         &self,
         channel: &MockChannel,
@@ -279,7 +279,7 @@ impl MockDistServer {
     }
 
     // The v1 manifest is just the directory listing of the rust tarballs
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn write_manifest_v1(&self, channel: &MockChannel) {
         let mut buf = String::new();
         let package = channel.packages.iter().find(|p| p.name == "rust").unwrap();
@@ -308,7 +308,7 @@ impl MockDistServer {
         hard_link(&hash_path, archive_hash_path).unwrap();
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     fn write_manifest_v2(
         &self,
         channel: &MockChannel,

@@ -448,7 +448,7 @@ impl<'a> Cfg<'a> {
         Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version))?;
         if current_version == MetadataVersion::default() {
@@ -693,7 +693,7 @@ impl<'a> Cfg<'a> {
         }
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument)]
+    #[tracing::instrument(level = "trace")]
     pub(crate) async fn active_rustc_version(&mut self) -> Result<String> {
         if let Some(t) = self.process.args().find(|x| x.starts_with('+')) {
             trace!("Fetching rustc version from toolchain `{}`", t);
@@ -734,7 +734,7 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     async fn find_or_install_active_toolchain(&'a self) -> Result<(Toolchain<'a>, ActiveReason)> {
         match self.find_override_config()? {
             Some((override_config, reason)) => match override_config {
@@ -839,7 +839,7 @@ impl<'a> Cfg<'a> {
     /// - not files
     /// - named with a valid resolved toolchain name
     /// Currently no notification of incorrect names or entry type is done.
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn list_toolchains(&self) -> Result<Vec<ToolchainName>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
@@ -921,7 +921,7 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
         self.settings_file
             .with(|s| Ok(get_default_host_triple(s, self.process)))

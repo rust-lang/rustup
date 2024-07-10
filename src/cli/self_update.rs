@@ -1237,7 +1237,7 @@ pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
     Ok(())
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument)]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn cleanup_self_updater(process: &Process) -> Result<()> {
     let cargo_home = process.cargo_home()?;
     let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));

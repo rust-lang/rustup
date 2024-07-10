@@ -9,7 +9,7 @@ use crate::{
     toolchain::ResolvableLocalToolchainName,
 };
 
-#[cfg_attr(feature = "otel", tracing::instrument)]
+#[tracing::instrument(level = "trace")]
 pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result<ExitStatus> {
     self_update::cleanup_self_updater(process)?;
 
