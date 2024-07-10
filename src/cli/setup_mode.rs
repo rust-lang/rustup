@@ -73,7 +73,7 @@ struct RustupInit {
     dump_testament: bool,
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument)]
+#[tracing::instrument(level = "trace")]
 pub async fn main(
     current_dir: PathBuf,
     process: &Process,

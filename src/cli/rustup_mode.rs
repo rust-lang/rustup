@@ -532,7 +532,7 @@ enum SetSubcmd {
     },
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>()))))]
+#[tracing::instrument(level = "trace", fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>())))]
 pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater(process)?;
 
@@ -907,7 +907,7 @@ async fn which(
     Ok(utils::ExitCode(0))
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[tracing::instrument(level = "trace", skip_all)]
 fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
@@ -1048,7 +1048,7 @@ fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[tracing::instrument(level = "trace", skip_all)]
 fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     match cfg.find_active_toolchain()? {
         Some((toolchain_name, reason)) => {
@@ -1075,7 +1075,7 @@ fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode
     Ok(utils::ExitCode(0))
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+#[tracing::instrument(level = "trace", skip_all)]
 fn show_rustup_home(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
     writeln!(cfg.process.stdout().lock(), "{}", cfg.rustup_dir.display())?;
     Ok(utils::ExitCode(0))

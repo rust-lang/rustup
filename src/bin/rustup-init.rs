@@ -61,7 +61,7 @@ async fn main() -> Result<ExitCode> {
     }
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument)]
+#[tracing::instrument(level = "trace")]
 async fn run_rustup(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
@@ -76,7 +76,7 @@ async fn run_rustup(
     result
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument(err))]
+#[tracing::instrument(level = "trace", err)]
 async fn run_rustup_inner(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,

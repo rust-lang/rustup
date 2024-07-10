@@ -301,14 +301,14 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn get_manifestation(&self) -> anyhow::Result<Manifestation> {
         let prefix = InstallPrefix::from(self.toolchain.path());
         Manifestation::open(prefix, self.desc.target.clone())
     }
 
     /// Get the manifest associated with this distribution
-    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn get_manifest(&self) -> anyhow::Result<Manifest> {
         self.get_manifestation()?
             .load_manifest()
@@ -324,7 +324,7 @@ impl<'a> DistributableToolchain<'a> {
         InstallPrefix::from(self.toolchain.path().to_owned()).guess_v1_manifest()
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
+    #[tracing::instrument(level = "trace", err, skip_all)]
     pub(crate) async fn install(
         cfg: &'a Cfg<'a>,
         toolchain: &ToolchainDesc,
@@ -354,7 +354,7 @@ impl<'a> DistributableToolchain<'a> {
         Ok((status, Self::new(cfg, toolchain.clone())?))
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
+    #[tracing::instrument(level = "trace", err, skip_all)]
     pub async fn install_if_not_installed(
         cfg: &'a Cfg<'a>,
         desc: &ToolchainDesc,
@@ -372,7 +372,7 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
-    #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
+    #[tracing::instrument(level = "trace", err, skip_all)]
     pub(crate) async fn update(
         &mut self,
         components: &[&str],
@@ -384,7 +384,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     /// Update a toolchain with control over the channel behaviour
-    #[cfg_attr(feature = "otel", tracing::instrument(err, skip_all))]
+    #[tracing::instrument(level = "trace", err, skip_all)]
     pub(crate) async fn update_extra(
         &mut self,
         components: &[&str],

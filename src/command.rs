@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 
 use crate::errors::*;
 
-#[cfg_attr(feature = "otel", tracing::instrument(err))]
+#[tracing::instrument(level = "trace", err)]
 pub(crate) fn run_command_for_dir<S: AsRef<OsStr> + Debug>(
     mut cmd: Command,
     arg0: &str,

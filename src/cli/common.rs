@@ -177,7 +177,7 @@ impl Notifier {
     }
 }
 
-#[cfg_attr(feature = "otel", tracing::instrument)]
+#[tracing::instrument(level = "trace")]
 pub(crate) fn set_globals(
     current_dir: PathBuf,
     verbose: bool,
