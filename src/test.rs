@@ -15,8 +15,8 @@ use std::process::Command;
 #[cfg(test)]
 use anyhow::Result;
 
-use crate::currentprocess::TestProcess;
 use crate::dist::TargetTriple;
+use crate::process::TestProcess;
 
 #[cfg(windows)]
 pub use crate::cli::self_update::{get_path, RegistryGuard, RegistryValueId, USER_PATH};
@@ -112,15 +112,15 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
 /// ... perhaps this is so that the test data we have is only exercised on known
 /// triples?
 ///
-/// NOTE: This *cannot* be called within a currentprocess context as it creates
+/// NOTE: This *cannot* be called within a process context as it creates
 /// its own context on Windows hosts. This is partly by chance but also partly
 /// deliberate: If you need the host triple, or to call for_host(), you can do
-/// so outside of calls to run() or unit test code that runs in a currentprocess
+/// so outside of calls to run() or unit test code that runs in a process
 /// context.
 ///
 /// IF it becomes very hard to workaround that, then we can either make a second
-/// this_host_triple that doesn't make its own currentprocess or use
-/// TargetTriple::from_host() from within the currentprocess context as needed.
+/// this_host_triple that doesn't make its own process or use
+/// TargetTriple::from_host() from within the process context as needed.
 pub fn this_host_triple() -> String {
     if cfg!(target_os = "windows") {
         // For windows, this host may be different to the target: we may be

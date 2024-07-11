@@ -15,11 +15,11 @@ use tracing::{debug, error, info, trace, warn};
 
 use super::self_update;
 use crate::cli::download_tracker::DownloadTracker;
-use crate::currentprocess::{terminalsource, Process};
 use crate::dist::{
     manifest::ComponentStatus, notifications as dist_notifications, TargetTriple, ToolchainDesc,
 };
 use crate::install::UpdateStatus;
+use crate::process::{terminalsource, Process};
 use crate::toolchain::{DistributableToolchain, LocalToolchainName, Toolchain, ToolchainName};
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;

@@ -14,11 +14,11 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 
-use crate::currentprocess::Process;
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::process::Process;
 use crate::utils::utils;
 
 /// A Transaction tracks changes to the file system, allowing them to

@@ -22,7 +22,7 @@ use tempfile::TempDir;
 use url::Url;
 
 use crate::cli::rustup_mode;
-use crate::currentprocess;
+use crate::process;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
 use crate::test::this_host_triple;
@@ -797,7 +797,7 @@ impl Config {
             );
         }
 
-        let tp = currentprocess::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
+        let tp = process::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
         let process_res = rustup_mode::main(tp.process.current_dir().unwrap(), &tp.process).await;
         // convert Err's into an ec
         let ec = match process_res {

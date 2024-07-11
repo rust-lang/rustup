@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 
 use super::{get_executor, Executor, Item, Kind};
-use crate::currentprocess::TestProcess;
+use crate::process::TestProcess;
 use crate::test::test_dir;
 
 impl Item {

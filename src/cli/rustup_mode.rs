@@ -21,16 +21,16 @@ use crate::{
     },
     command,
     config::{ActiveReason, Cfg},
-    currentprocess::{
-        terminalsource::{self, ColorableTerminal},
-        Process,
-    },
     dist::{
         manifest::{Component, ComponentStatus},
         PartialToolchainDesc, Profile, TargetTriple,
     },
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
+    process::{
+        terminalsource::{self, ColorableTerminal},
+        Process,
+    },
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName,
         MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,

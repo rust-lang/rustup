@@ -3,7 +3,7 @@ use std::io::Write;
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
-use crate::currentprocess::terminalsource::{Attr, Color, ColorableTerminal};
+use crate::process::terminalsource::{Attr, Color, ColorableTerminal};
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a> {

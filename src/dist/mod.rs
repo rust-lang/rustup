@@ -14,8 +14,8 @@ use tracing::{info, warn};
 
 use crate::{
     config::{dist_root_server, Cfg},
-    currentprocess::Process,
     errors::RustupError,
+    process::Process,
     toolchain::ToolchainName,
     utils::utils,
 };

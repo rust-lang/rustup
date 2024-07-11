@@ -228,7 +228,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::currentprocess::TestProcess;
+    use crate::process::TestProcess;
     use crate::test::Env;
 
     #[test]

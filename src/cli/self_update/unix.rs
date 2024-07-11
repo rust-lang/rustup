@@ -6,7 +6,7 @@ use tracing::{error, warn};
 
 use super::install_bins;
 use super::shell;
-use crate::currentprocess::Process;
+use crate::process::Process;
 use crate::utils::utils;
 use crate::utils::Notification;
 

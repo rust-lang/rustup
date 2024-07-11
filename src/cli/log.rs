@@ -14,7 +14,7 @@ use tracing_subscriber::{
     reload, EnvFilter, Layer, Registry,
 };
 
-use crate::{currentprocess::Process, utils::notify::NotificationLevel};
+use crate::{process::Process, utils::notify::NotificationLevel};
 
 pub fn tracing_subscriber(
     process: &Process,

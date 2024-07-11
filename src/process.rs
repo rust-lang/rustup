@@ -21,7 +21,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 pub mod filesource;
 pub mod terminalsource;
 
-/// Allows concrete types for the currentprocess abstraction.
+/// Allows concrete types for the process abstraction.
 #[derive(Clone, Debug)]
 pub enum Process {
     OSProcess(OSProcess),

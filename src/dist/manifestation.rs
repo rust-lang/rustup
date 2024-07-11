@@ -9,7 +9,6 @@ use std::path::Path;
 use anyhow::{anyhow, bail, Context, Result};
 use tokio_retry::{strategy::FixedInterval, RetryIf};
 
-use crate::currentprocess::Process;
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
@@ -21,6 +20,7 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
 use crate::errors::RustupError;
+use crate::process::Process;
 use crate::utils::utils;
 
 pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
