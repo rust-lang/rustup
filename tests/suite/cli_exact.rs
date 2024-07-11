@@ -691,6 +691,23 @@ info: installing component 'rust-std' for '{0}'
         .await;
 }
 
+// issue #3573
+#[tokio::test]
+async fn show_suggestion_for_missing_toolchain() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_err_ex(
+            &["cargo", "+nightly", "fmt"],
+            r"",
+            for_host!(
+                r"error: toolchain 'nightly-{0}' is not installed
+help: run `rustup toolchain install nightly-{0}` to install it
+"
+            ),
+        )
+        .await;
+}
+
 // issue #927
 #[tokio::test]
 async fn undefined_linked_toolchain() {

@@ -86,7 +86,14 @@ pub enum RustupError {
     RunningCommand { name: OsString },
     #[error("toolchain '{0}' is not installable")]
     ToolchainNotInstallable(String),
-    #[error("toolchain '{0}' is not installed")]
+    #[error(
+        "toolchain '{0}' is not installed{}",
+        if let ToolchainName::Official(t) = .0 {
+            format!("\nhelp: run `rustup toolchain install {t}` to install it")
+        } else {
+            String::new()
+        },
+    )]
     ToolchainNotInstalled(ToolchainName),
     #[error("path '{0}' not found")]
     PathToolchainNotInstalled(PathBasedToolchainName),
