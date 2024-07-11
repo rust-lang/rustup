@@ -8,7 +8,7 @@ use std::path::Path;
 use std::str;
 
 #[cfg(not(windows))]
-use crate::currentprocess::Process;
+use crate::process::Process;
 
 pub(crate) fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,

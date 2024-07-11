@@ -12,12 +12,12 @@ use tracing::trace;
 
 use crate::{
     cli::self_update::SelfUpdateMode,
-    currentprocess::Process,
     dist::{self, download::DownloadCfg, temp, PartialToolchainDesc, Profile, ToolchainDesc},
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
     notifications::*,
+    process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName, PathBasedToolchainName,

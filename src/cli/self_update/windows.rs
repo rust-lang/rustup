@@ -22,8 +22,8 @@ use super::super::errors::*;
 use super::common;
 use super::{install_bins, report_error, InstallOpts};
 use crate::cli::{download_tracker::DownloadTracker, markdown::md};
-use crate::currentprocess::{terminalsource::ColorableTerminal, Process};
 use crate::dist::TargetTriple;
+use crate::process::{terminalsource::ColorableTerminal, Process};
 use crate::utils::utils;
 use crate::utils::Notification;
 
@@ -890,7 +890,7 @@ impl RegistryValueId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::currentprocess::TestProcess;
+    use crate::process::TestProcess;
 
     fn wide(str: &str) -> Vec<u16> {
         OsString::from(str).encode_wide().collect()

@@ -15,7 +15,6 @@ use anyhow::{anyhow, Result};
 use url::Url;
 
 use crate::{
-    currentprocess::TestProcess,
     dist::{
         download::DownloadCfg,
         manifest::{Component, Manifest},
@@ -24,6 +23,7 @@ use crate::{
         temp, Notification, Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER,
     },
     errors::RustupError,
+    process::TestProcess,
     test::mock::{dist::*, MockComponentBuilder, MockFile, MockInstallerBuilder},
     utils::{raw as utils_raw, utils},
 };

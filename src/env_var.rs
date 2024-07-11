@@ -3,7 +3,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::currentprocess::Process;
+use crate::process::Process;
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
@@ -49,7 +49,7 @@ mod tests {
     use super::*;
     #[cfg(windows)]
     use crate::cli::self_update::{RegistryGuard, USER_PATH};
-    use crate::currentprocess::TestProcess;
+    use crate::process::TestProcess;
     use crate::test::Env;
 
     #[test]

@@ -3,9 +3,9 @@ use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use crate::currentprocess::{terminalsource, Process};
 use crate::dist::Notification as In;
 use crate::notifications::Notification;
+use crate::process::{terminalsource, Process};
 use crate::utils::units::{Size, Unit, UnitMode};
 use crate::utils::Notification as Un;
 

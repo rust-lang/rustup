@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::Write;
 
-use rustup::currentprocess::TestProcess;
 use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
 use rustup::dist::component::{DirectoryPackage, Package};
@@ -9,6 +8,7 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::Notification;
 use rustup::dist::DEFAULT_DIST_SERVER;
+use rustup::process::TestProcess;
 use rustup::utils::utils;
 
 use rustup::test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};

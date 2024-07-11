@@ -20,9 +20,9 @@ order. Any file that is not grouped like this can be rearranged whenever the
 file is touched - we're not precious about having it done in a separate commit,
 though that is helpful.
 
-## No direct use of process state outside rustup::currentprocess
+## No direct use of process state outside rustup::process
 
-The `rustup::currentprocess` module abstracts the global state that is
+The `rustup::process` module abstracts the global state that is
 `std::env::args`, `std::env::vars`, `std::io::std*`, `std::process::id`,
 `std::env::current_dir` and `std::process::exit` permitting threaded tests of
 the CLI logic; use `process()` rather than those APIs directly.

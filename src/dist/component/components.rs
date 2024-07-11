@@ -7,11 +7,11 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
-use crate::currentprocess::Process;
 use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
 use crate::dist::component::transaction::Transaction;
 use crate::dist::prefix::InstallPrefix;
 use crate::errors::RustupError;
+use crate::process::Process;
 use crate::utils::utils;
 
 const COMPONENTS_FILE: &str = "components";

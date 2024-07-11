@@ -1,7 +1,7 @@
 use std::io::{self, BufRead, Read, Write};
 
 use super::terminalsource::{ColorableTerminal, StreamSelector};
-use crate::currentprocess::Process;
+use crate::process::Process;
 
 /// Stand-in for std::io::Stdin
 pub trait Stdin {
@@ -48,9 +48,9 @@ impl WriterLock for io::StdoutLock<'_> {}
 impl Writer for io::Stdout {
     fn is_a_tty(&self, process: &Process) -> bool {
         match process {
-            crate::currentprocess::Process::OSProcess(p) => p.stdout_is_a_tty,
+            crate::process::Process::OSProcess(p) => p.stdout_is_a_tty,
             #[cfg(feature = "test")]
-            crate::currentprocess::Process::TestProcess(_) => unreachable!(),
+            crate::process::Process::TestProcess(_) => unreachable!(),
         }
     }
 
@@ -68,9 +68,9 @@ impl WriterLock for io::StderrLock<'_> {}
 impl Writer for io::Stderr {
     fn is_a_tty(&self, process: &Process) -> bool {
         match process {
-            crate::currentprocess::Process::OSProcess(p) => p.stderr_is_a_tty,
+            crate::process::Process::OSProcess(p) => p.stderr_is_a_tty,
             #[cfg(feature = "test")]
-            crate::currentprocess::Process::TestProcess(_) => unreachable!(),
+            crate::process::Process::TestProcess(_) => unreachable!(),
         }
     }
 

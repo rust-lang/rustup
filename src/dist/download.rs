@@ -6,10 +6,10 @@ use anyhow::{anyhow, Context, Result};
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use crate::currentprocess::Process;
 use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::process::Process;
 use crate::utils::utils;
 
 const UPDATE_HASH_LEN: usize = 20;

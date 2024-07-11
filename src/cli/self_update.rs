@@ -55,10 +55,10 @@ use crate::{
         markdown::md,
     },
     config::Cfg,
-    currentprocess::{terminalsource, Process},
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
+    process::{terminalsource, Process},
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
@@ -1257,7 +1257,7 @@ mod tests {
     use crate::cli::self_update::InstallOpts;
     use crate::dist::{PartialToolchainDesc, Profile};
     use crate::test::{test_dir, with_rustup_home, Env};
-    use crate::{currentprocess::TestProcess, for_host};
+    use crate::{for_host, process::TestProcess};
 
     #[test]
     fn default_toolchain_is_stable() {

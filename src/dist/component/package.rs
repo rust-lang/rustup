@@ -12,12 +12,12 @@ use anyhow::{anyhow, bail, Context, Result};
 use tar::EntryType;
 use tracing::warn;
 
-use crate::currentprocess::Process;
 use crate::diskio::{get_executor, CompletedIo, Executor, FileBuffer, Item, Kind, IO_CHUNK_SIZE};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::process::Process;
 use crate::utils::notifications::Notification;
 use crate::utils::utils;
 

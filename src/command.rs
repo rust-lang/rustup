@@ -19,7 +19,7 @@ pub(crate) fn run_command_for_dir<S: AsRef<OsStr> + Debug>(
 
     // FIXME rust-lang/rust#32254. It's not clear to me
     // when and why this is needed.
-    // TODO: currentprocess support for mocked file descriptor inheritance here: until
+    // TODO: process support for mocked file descriptor inheritance here: until
     // then tests that depend on rustups stdin being inherited won't work in-process.
     cmd.stdin(process::Stdio::inherit());
 
