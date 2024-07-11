@@ -130,17 +130,17 @@ impl Process {
 impl home::env::Env for Process {
     fn home_dir(&self) -> Option<PathBuf> {
         match self {
-            Process::OSProcess(_) => self.var("HOME").ok().map(|v| v.into()),
+            Process::OSProcess(_) => home::env::OS_ENV.home_dir(),
             #[cfg(feature = "test")]
-            Process::TestProcess(_) => home::env::OS_ENV.home_dir(),
+            Process::TestProcess(_) => self.var("HOME").ok().map(|v| v.into()),
         }
     }
 
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
         match self {
-            Process::OSProcess(_) => self.current_dir(),
+            Process::OSProcess(_) => home::env::OS_ENV.current_dir(),
             #[cfg(feature = "test")]
-            Process::TestProcess(_) => home::env::OS_ENV.current_dir(),
+            Process::TestProcess(_) => self.current_dir(),
         }
     }
 
