@@ -27,12 +27,12 @@ impl StreamSelector {
     fn is_a_tty(&self, process: &Process) -> bool {
         match self {
             StreamSelector::Stdout => match process {
-                Process::OSProcess(p) => p.stdout_is_a_tty,
+                Process::OsProcess(p) => p.stdout_is_a_tty,
                 #[cfg(feature = "test")]
                 Process::TestProcess(_) => unreachable!(),
             },
             StreamSelector::Stderr => match process {
-                Process::OSProcess(p) => p.stderr_is_a_tty,
+                Process::OsProcess(p) => p.stderr_is_a_tty,
                 #[cfg(feature = "test")]
                 Process::TestProcess(_) => unreachable!(),
             },
