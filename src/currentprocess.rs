@@ -145,11 +145,7 @@ impl home::env::Env for Process {
     }
 
     fn var_os(&self, key: &str) -> Option<OsString> {
-        match self {
-            Process::OSProcess(_) => self.var_os(key),
-            #[cfg(feature = "test")]
-            Process::TestProcess(_) => self.var_os(key),
-        }
+        self.var_os(key)
     }
 }
 
