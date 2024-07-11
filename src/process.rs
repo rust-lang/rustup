@@ -24,14 +24,14 @@ pub mod terminalsource;
 /// Allows concrete types for the process abstraction.
 #[derive(Clone, Debug)]
 pub enum Process {
-    OSProcess(OSProcess),
+    OsProcess(OsProcess),
     #[cfg(feature = "test")]
     TestProcess(TestContext),
 }
 
 impl Process {
     pub fn os() -> Self {
-        Self::OSProcess(OSProcess::new())
+        Self::OsProcess(OsProcess::new())
     }
 
     pub fn name(&self) -> Option<String> {
@@ -61,7 +61,7 @@ impl Process {
 
     pub fn var(&self, key: &str) -> Result<String, env::VarError> {
         match self {
-            Process::OSProcess(_) => env::var(key),
+            Process::OsProcess(_) => env::var(key),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => match p.vars.get(key) {
                 Some(val) => Ok(val.to_owned()),
@@ -72,7 +72,7 @@ impl Process {
 
     pub(crate) fn var_os(&self, key: &str) -> Option<OsString> {
         match self {
-            Process::OSProcess(_) => env::var_os(key),
+            Process::OsProcess(_) => env::var_os(key),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => p.vars.get(key).map(OsString::from),
         }
@@ -80,7 +80,7 @@ impl Process {
 
     pub(crate) fn args(&self) -> Box<dyn Iterator<Item = String> + '_> {
         match self {
-            Process::OSProcess(_) => Box::new(env::args()),
+            Process::OsProcess(_) => Box::new(env::args()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(p.args.iter().cloned()),
         }
@@ -88,7 +88,7 @@ impl Process {
 
     pub(crate) fn args_os(&self) -> Box<dyn Iterator<Item = OsString> + '_> {
         match self {
-            Process::OSProcess(_) => Box::new(env::args_os()),
+            Process::OsProcess(_) => Box::new(env::args_os()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(p.args.iter().map(OsString::from)),
         }
@@ -96,7 +96,7 @@ impl Process {
 
     pub(crate) fn stdin(&self) -> Box<dyn filesource::Stdin> {
         match self {
-            Process::OSProcess(_) => Box::new(io::stdin()),
+            Process::OsProcess(_) => Box::new(io::stdin()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(filesource::TestStdin(p.stdin.clone())),
         }
@@ -104,7 +104,7 @@ impl Process {
 
     pub(crate) fn stdout(&self) -> Box<dyn filesource::Writer> {
         match self {
-            Process::OSProcess(_) => Box::new(io::stdout()),
+            Process::OsProcess(_) => Box::new(io::stdout()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stdout.clone())),
         }
@@ -112,7 +112,7 @@ impl Process {
 
     pub(crate) fn stderr(&self) -> Box<dyn filesource::Writer> {
         match self {
-            Process::OSProcess(_) => Box::new(io::stderr()),
+            Process::OsProcess(_) => Box::new(io::stderr()),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stderr.clone())),
         }
@@ -120,7 +120,7 @@ impl Process {
 
     pub fn current_dir(&self) -> io::Result<PathBuf> {
         match self {
-            Process::OSProcess(_) => env::current_dir(),
+            Process::OsProcess(_) => env::current_dir(),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Ok(p.cwd.clone()),
         }
@@ -130,7 +130,7 @@ impl Process {
 impl home::env::Env for Process {
     fn home_dir(&self) -> Option<PathBuf> {
         match self {
-            Process::OSProcess(_) => home::env::OS_ENV.home_dir(),
+            Process::OsProcess(_) => home::env::OS_ENV.home_dir(),
             #[cfg(feature = "test")]
             Process::TestProcess(_) => self.var("HOME").ok().map(|v| v.into()),
         }
@@ -138,7 +138,7 @@ impl home::env::Env for Process {
 
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
         match self {
-            Process::OSProcess(_) => home::env::OS_ENV.current_dir(),
+            Process::OsProcess(_) => home::env::OS_ENV.current_dir(),
             #[cfg(feature = "test")]
             Process::TestProcess(_) => self.current_dir(),
         }
@@ -152,23 +152,23 @@ impl home::env::Env for Process {
 // ----------- real process -----------------
 
 #[derive(Clone, Debug)]
-pub struct OSProcess {
+pub struct OsProcess {
     pub(self) stderr_is_a_tty: bool,
     pub(self) stdout_is_a_tty: bool,
 }
 
-impl OSProcess {
+impl OsProcess {
     pub fn new() -> Self {
-        OSProcess {
+        OsProcess {
             stderr_is_a_tty: io::stderr().is_terminal(),
             stdout_is_a_tty: io::stdout().is_terminal(),
         }
     }
 }
 
-impl Default for OSProcess {
+impl Default for OsProcess {
     fn default() -> Self {
-        OSProcess::new()
+        OsProcess::new()
     }
 }
 
