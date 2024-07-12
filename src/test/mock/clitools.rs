@@ -26,7 +26,7 @@ use crate::process;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
 use crate::test::this_host_triple;
-use crate::utils::{raw, utils};
+use crate::utils::utils;
 
 use super::{
     dist::{
@@ -513,13 +513,6 @@ version = "{version}"
 impl Config {
     pub fn current_dir(&self) -> PathBuf {
         self.workdir.borrow().clone()
-    }
-
-    pub fn create_rustup_sh_metadata(&self) {
-        let rustup_dir = self.homedir.join(".rustup");
-        fs::create_dir_all(&rustup_dir).unwrap();
-        let version_file = rustup_dir.join("rustup-version");
-        raw::write_file(&version_file, "").unwrap();
     }
 
     pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
