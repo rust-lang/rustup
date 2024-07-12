@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["override","--help"]
+args = ["override", "--help"]
 stdout = """
 ...
 Modify toolchain overrides for directories

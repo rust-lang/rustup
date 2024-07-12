@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["show","profile","--help"]
+args = ["show", "profile", "--help"]
 stdout = """
 ...
 Show the default profile used for the `rustup install` command

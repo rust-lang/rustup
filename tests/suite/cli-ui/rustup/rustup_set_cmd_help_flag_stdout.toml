@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["set","--help"]
+args = ["set", "--help"]
 stdout = """
 ...
 Alter rustup settings

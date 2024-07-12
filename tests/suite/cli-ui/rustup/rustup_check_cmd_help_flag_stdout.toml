@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["check","--help"]
+args = ["check", "--help"]
 stdout = """
 ...
 Check for updates to Rust toolchains and rustup

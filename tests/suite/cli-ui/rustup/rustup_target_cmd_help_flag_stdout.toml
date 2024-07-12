@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["target","--help"]
+args = ["target", "--help"]
 stdout = """
 ...
 Modify a toolchain's supported targets

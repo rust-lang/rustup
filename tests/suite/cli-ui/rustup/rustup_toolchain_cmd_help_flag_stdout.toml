@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["toolchain","--help"]
+args = ["toolchain", "--help"]
 stdout = """
 ...
 Modify or query the installed toolchains
