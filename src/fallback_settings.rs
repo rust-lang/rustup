@@ -1,9 +1,11 @@
-use serde::Deserialize;
-use std::io;
-use std::path::Path;
+#[cfg(unix)]
+use std::{io, path::Path};
 
+#[cfg(unix)]
 use anyhow::{Context, Result};
+use serde::Deserialize;
 
+#[cfg(unix)]
 use crate::utils::utils;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Default)]
@@ -12,6 +14,7 @@ pub struct FallbackSettings {
 }
 
 impl FallbackSettings {
+    #[cfg(unix)]
     pub(crate) fn new<P: AsRef<Path>>(path: P) -> Result<Option<Self>> {
         // Users cannot fix issues with missing/unreadable/invalid centralised files, but logging isn't setup early so
         // we can't simply trap all errors and log diagnostics. Ideally we would, and then separate these into different

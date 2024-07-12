@@ -233,9 +233,12 @@ pub(crate) fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
 
 pub fn remove_dir(path: &Path) -> io::Result<()> {
     if fs::symlink_metadata(path)?.file_type().is_symlink() {
-        if cfg!(windows) {
+        #[cfg(windows)]
+        {
             fs::remove_dir(path)
-        } else {
+        }
+        #[cfg(not(windows))]
+        {
             fs::remove_file(path)
         }
     } else {

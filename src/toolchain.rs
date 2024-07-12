@@ -175,6 +175,7 @@ impl<'a> Toolchain<'a> {
 
     /// Apply the appropriate LD path for a command being run from a toolchain.
     fn set_ldpath(&self, cmd: &mut Command) {
+        #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
         let mut new_path = vec![self.path.join("lib")];
 
         #[cfg(not(target_os = "macos"))]
@@ -196,13 +197,14 @@ impl<'a> Toolchain<'a> {
             // consequences.
             pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
         }
-        if cfg!(target_os = "macos")
-            && self
-                .cfg
-                .process
-                .var_os(sysenv::LOADER_PATH)
-                .filter(|x| x.len() > 0)
-                .is_none()
+
+        #[cfg(target_os = "macos")]
+        if self
+            .cfg
+            .process
+            .var_os(sysenv::LOADER_PATH)
+            .filter(|x| x.len() > 0)
+            .is_none()
         {
             // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
             // set or set to an empty string. Since we are explicitly setting
@@ -225,28 +227,27 @@ impl<'a> Toolchain<'a> {
             path_entries.push(cargo_home.join("bin"));
         }
 
-        if cfg!(target_os = "windows") {
-            // Historically rustup included the bin directory in PATH to
-            // work around some bugs (see
-            // https://github.com/rust-lang/rustup/pull/3178 for more
-            // information). This shouldn't be needed anymore, and it causes
-            // problems because calling tools recursively (like `cargo
-            // +nightly metadata` from within a cargo subcommand). The
-            // recursive call won't work because it is not executing the
-            // proxy, so the `+` toolchain override doesn't work.
-            //
-            // The RUSTUP_WINDOWS_PATH_ADD_BIN env var was added to opt-in to
-            // testing the fix. The default is now off, but this is left here
-            // just in case there are problems. Consider removing in the
-            // future if it doesn't seem necessary.
-            if self
-                .cfg
-                .process
-                .var_os("RUSTUP_WINDOWS_PATH_ADD_BIN")
-                .map_or(false, |s| s == "1")
-            {
-                path_entries.push(self.path.join("bin"));
-            }
+        // Historically rustup included the bin directory in PATH to
+        // work around some bugs (see
+        // https://github.com/rust-lang/rustup/pull/3178 for more
+        // information). This shouldn't be needed anymore, and it causes
+        // problems because calling tools recursively (like `cargo
+        // +nightly metadata` from within a cargo subcommand). The
+        // recursive call won't work because it is not executing the
+        // proxy, so the `+` toolchain override doesn't work.
+        //
+        // The RUSTUP_WINDOWS_PATH_ADD_BIN env var was added to opt-in to
+        // testing the fix. The default is now off, but this is left here
+        // just in case there are problems. Consider removing in the
+        // future if it doesn't seem necessary.
+        #[cfg(target_os = "windows")]
+        if self
+            .cfg
+            .process
+            .var_os("RUSTUP_WINDOWS_PATH_ADD_BIN")
+            .map_or(false, |s| s == "1")
+        {
+            path_entries.push(self.path.join("bin"));
         }
 
         env_var::prepend_path("PATH", path_entries, cmd, self.cfg.process);

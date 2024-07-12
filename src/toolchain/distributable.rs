@@ -1,8 +1,10 @@
-use std::{
-    convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, fs, path::Path, process::Command,
-};
+#[cfg(windows)]
+use std::fs;
+use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, path::Path, process::Command};
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
+#[cfg(windows)]
+use anyhow::Context;
 
 use crate::{
     component_for_bin,
@@ -198,7 +200,8 @@ impl<'a> DistributableToolchain<'a> {
         // directory for the exe to spawn before searching PATH, and we don't want
         // it to do that, because cargo's directory contains the _wrong_ rustc. See
         // the documentation for the lpCommandLine argument of CreateProcess.
-        let exe_path = if cfg!(windows) {
+        #[cfg(windows)]
+        let exe_path = {
             let fallback_dir = self.toolchain.cfg.rustup_dir.join("fallback");
             fs::create_dir_all(&fallback_dir)
                 .context("unable to create dir to hold fallback exe")?;
@@ -206,11 +209,12 @@ impl<'a> DistributableToolchain<'a> {
             if fallback_file.exists() {
                 fs::remove_file(&fallback_file).context("unable to unlink old fallback exe")?;
             }
-            fs::hard_link(&src_file, &fallback_file).context("unable to hard link fallback exe")?;
+            fs::hard_link(src_file, &fallback_file).context("unable to hard link fallback exe")?;
             fallback_file
-        } else {
-            src_file
         };
+        #[cfg(not(windows))]
+        let exe_path = src_file;
+
         let mut cmd = Command::new(exe_path);
         installed_primary.set_env(&mut cmd); // set up the environment to match rustc, not cargo
         cmd.env("RUSTUP_TOOLCHAIN", installed_primary.name().to_string());
