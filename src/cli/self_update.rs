@@ -990,6 +990,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
             error!("you should probably use your system package manager to update rustup");
             return Ok(utils::ExitCode(1));
         }
+        #[cfg(not(windows))]
         Skip => {
             info!("Skipping self-update at this time");
             return Ok(utils::ExitCode(0));

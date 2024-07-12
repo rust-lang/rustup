@@ -3,7 +3,9 @@
 use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
-use std::io::{BufRead, ErrorKind, Write};
+#[cfg(not(windows))]
+use std::io::ErrorKind;
+use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::{cmp, env};
@@ -319,35 +321,38 @@ pub(crate) async fn update_all_channels(
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum SelfUpdatePermission {
     HardFail,
+    #[cfg(not(windows))]
     Skip,
     Permit,
 }
 
+#[cfg(windows)]
+pub(crate) fn self_update_permitted(_explicit: bool) -> Result<SelfUpdatePermission> {
+    Ok(SelfUpdatePermission::Permit)
+}
+
+#[cfg(not(windows))]
 pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
-    if cfg!(windows) {
-        Ok(SelfUpdatePermission::Permit)
-    } else {
-        // Detect if rustup is not meant to self-update
-        let current_exe = env::current_exe()?;
-        let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
-        if let Err(e) = tempfile::Builder::new()
-            .prefix("updtest")
-            .tempdir_in(current_exe_dir)
-        {
-            match e.kind() {
-                ErrorKind::PermissionDenied => {
-                    trace!("Skipping self-update because we cannot write to the rustup dir");
-                    if explicit {
-                        return Ok(SelfUpdatePermission::HardFail);
-                    } else {
-                        return Ok(SelfUpdatePermission::Skip);
-                    }
+    // Detect if rustup is not meant to self-update
+    let current_exe = env::current_exe()?;
+    let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
+    if let Err(e) = tempfile::Builder::new()
+        .prefix("updtest")
+        .tempdir_in(current_exe_dir)
+    {
+        match e.kind() {
+            ErrorKind::PermissionDenied => {
+                trace!("Skipping self-update because we cannot write to the rustup dir");
+                if explicit {
+                    return Ok(SelfUpdatePermission::HardFail);
+                } else {
+                    return Ok(SelfUpdatePermission::Skip);
                 }
-                _ => return Err(e.into()),
             }
+            _ => return Err(e.into()),
         }
-        Ok(SelfUpdatePermission::Permit)
     }
+    Ok(SelfUpdatePermission::Permit)
 }
 
 /// Performs all of a self-update: check policy, download, apply and exit.
@@ -360,6 +365,7 @@ where
             error!("Unable to self-update.  STOP");
             return Ok(utils::ExitCode(1));
         }
+        #[cfg(not(windows))]
         SelfUpdatePermission::Skip => return Ok(utils::ExitCode(0)),
         SelfUpdatePermission::Permit => {}
     }
