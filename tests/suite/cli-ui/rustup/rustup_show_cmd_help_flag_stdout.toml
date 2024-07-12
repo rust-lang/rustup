@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["show","--help"]
+args = ["show", "--help"]
 stdout = """
 ...
 Show the active and installed toolchains or profiles

@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["show","home","--help"]
+args = ["show", "home", "--help"]
 stdout = """
 ...
 Display the computed value of RUSTUP_HOME

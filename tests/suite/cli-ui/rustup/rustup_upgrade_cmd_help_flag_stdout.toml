@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["upgrade","--help"]
+args = ["upgrade", "--help"]
 stdout = """
 ...
 Update Rust toolchains and rustup

@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["self","update","--help"]
+args = ["self", "update", "--help"]
 stdout = """
 ...
 Download and install updates to rustup

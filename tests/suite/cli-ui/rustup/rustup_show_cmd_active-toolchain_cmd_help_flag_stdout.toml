@@ -1,5 +1,5 @@
 bin.name = "rustup"
-args = ["show","active-toolchain","--help"]
+args = ["show", "active-toolchain", "--help"]
 stdout = """
 ...
 Show the active toolchain

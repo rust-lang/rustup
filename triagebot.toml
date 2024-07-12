@@ -1,9 +1,17 @@
 [relabel]
 
 allow-unauthenticated = [
-    "bug", "duplicate", "enhancement", "forwarded",
-    "performance", "question", "security", "tracking", "website",
-    "O-*", "A-*"
+  "bug",
+  "duplicate",
+  "enhancement",
+  "forwarded",
+  "performance",
+  "question",
+  "security",
+  "tracking",
+  "website",
+  "O-*",
+  "A-*",
 ]
 
 [assign]
