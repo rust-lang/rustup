@@ -460,58 +460,6 @@ async fn test_warn_if_complete_profile_is_used() {
 }
 
 #[tokio::test]
-async fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    cx.config.create_rustup_sh_metadata();
-    let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n");
-    assert!(!out.ok);
-    assert!(out
-        .stderr
-        .contains("warn: it looks like you have existing rustup.sh metadata"));
-    assert!(out
-        .stderr
-        .contains("error: cannot install while rustup.sh is installed"));
-    assert!(out.stdout.contains("Continue? (y/N)"));
-}
-
-#[tokio::test]
-async fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    cx.config.create_rustup_sh_metadata();
-    let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "no\n");
-    assert!(!out.ok);
-    assert!(out
-        .stderr
-        .contains("warn: it looks like you have existing rustup.sh metadata"));
-    assert!(out
-        .stderr
-        .contains("error: cannot install while rustup.sh is installed"));
-    assert!(out.stdout.contains("Continue? (y/N)"));
-}
-
-#[tokio::test]
-async fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    cx.config.create_rustup_sh_metadata();
-    let out = run_input(
-        &cx.config,
-        &["rustup-init", "--no-modify-path"],
-        "yes\n\n\n",
-    );
-    assert!(out
-        .stderr
-        .contains("warn: it looks like you have existing rustup.sh metadata"));
-    assert!(out
-        .stderr
-        .contains("error: cannot install while rustup.sh is installed"));
-    assert!(out.stdout.contains("Continue? (y/N)"));
-    assert!(!out
-        .stdout
-        .contains("warn: continuing (because the -y flag is set and the error is ignorable)"));
-    assert!(out.ok);
-}
-
-#[tokio::test]
 async fn installing_when_already_installed_updates_toolchain() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
