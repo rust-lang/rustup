@@ -1349,7 +1349,7 @@ jobs:
       - name: Run CI workflow generation checks
         run: |
           ./ci/actions-templates/gen-workflows.sh
-          git diff --quiet
+          git diff --exit-code
       - name: Prep cargo dirs
         run: |
           mkdir -p ~/.cargo/{registry,git}
