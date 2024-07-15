@@ -22,24 +22,24 @@ async fn smoke_test() {
 #[tokio::test]
 async fn version_mentions_rustc_version_confusion() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let out = cx.config.run("rustup", vec!["--version"], &[]).await;
-    assert!(out.ok);
-    assert!(out
-        .stderr
-        .contains("This is the version for the rustup toolchain manager"));
+
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "--version"],
+            "This is the version for the rustup toolchain manager",
+        )
+        .await;
 
     cx.config
         .expect_ok(&["rustup", "toolchain", "install", "nightly"])
         .await;
 
-    let out = cx
-        .config
-        .run("rustup", vec!["+nightly", "--version"], &[])
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "+nightly", "--version"],
+            "The currently active `rustc` version is `1.3.0",
+        )
         .await;
-    assert!(out.ok);
-    assert!(out
-        .stderr
-        .contains("The currently active `rustc` version is `1.3.0"));
 }
 
 #[tokio::test]
