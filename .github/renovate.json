@@ -8,7 +8,10 @@
     ],
     "lockFileMaintenance": {
         "enabled": true,
-        "automerge": true
+        "automerge": true,
+        "schedule": "before 4am on Monday",
+        "automergeSchedule": "after 4am on Monday",
+        "platformAutomerge": false
     },
     "prCreation": "immediate",
     "rangeStrategy": "update-lockfile",
