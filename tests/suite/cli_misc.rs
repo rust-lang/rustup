@@ -21,12 +21,16 @@ async fn smoke_test() {
 
 #[tokio::test]
 async fn version_mentions_rustc_version_confusion() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let out = cx.config.run("rustup", vec!["--version"], &[]).await;
     assert!(out.ok);
     assert!(out
         .stderr
         .contains("This is the version for the rustup toolchain manager"));
+
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
 
     let out = cx
         .config

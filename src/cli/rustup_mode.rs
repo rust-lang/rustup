@@ -547,9 +547,13 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
             write!(process.stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
             let mut cfg = common::set_globals(current_dir, false, true, process)?;
-            match cfg.active_rustc_version().await {
-                Ok(version) => info!("The currently active `rustc` version is `{}`", version),
-                Err(err) => trace!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
+            match cfg.active_rustc_version() {
+                Ok(Some(version)) => info!("The currently active `rustc` version is `{}`", version),
+                Ok(None) => info!("No `rustc` is currently active"),
+                Err(err) => trace!(
+                    "Wanted to tell you the current rustc version, too, but ran into this error: {}",
+                    err
+                ),
             }
             return Ok(utils::ExitCode(0));
         }
