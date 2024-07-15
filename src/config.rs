@@ -694,17 +694,16 @@ impl<'a> Cfg<'a> {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub(crate) async fn active_rustc_version(&mut self) -> Result<String> {
+    pub(crate) fn active_rustc_version(&mut self) -> Result<Option<String>> {
         if let Some(t) = self.process.args().find(|x| x.starts_with('+')) {
             trace!("Fetching rustc version from toolchain `{}`", t);
             self.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
         }
 
-        Ok(self
-            .find_or_install_active_toolchain()
-            .await?
-            .0
-            .rustc_version())
+        let Some((name, _)) = self.find_active_toolchain()? else {
+            return Ok(None);
+        };
+        Ok(Some(Toolchain::new(self, name)?.rustc_version()))
     }
 
     pub(crate) async fn resolve_toolchain(
