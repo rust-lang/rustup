@@ -862,7 +862,7 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
             }
         }
         if self_update {
-            common::self_update(|| Ok(utils::ExitCode(0)), cfg.process).await?;
+            common::self_update(|| Ok(()), cfg.process).await?;
         }
     } else {
         common::update_all_channels(cfg, self_update, opts.force).await?;
