@@ -314,10 +314,7 @@ pub(crate) async fn update_all_channels(
     };
 
     if do_self_update {
-        let self_update_exit_code = self_update(show_channel_updates, cfg.process).await?;
-        if self_update_exit_code != utils::ExitCode(0) {
-            exit_code = self_update_exit_code;
-        }
+        exit_code &= self_update(show_channel_updates, cfg.process).await?;
     } else {
         show_channel_updates()?;
     }

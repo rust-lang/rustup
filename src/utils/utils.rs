@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
+use std::ops::{BitAnd, BitAndAssign};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
@@ -23,6 +24,27 @@ pub use crate::utils::utils::raw::{is_file, path_exists};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExitCode(pub i32);
+
+impl BitAnd for ExitCode {
+    type Output = Self;
+
+    // If `self` is `0` (success), yield `rhs`.
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match self.0 {
+            0 => rhs,
+            _ => self,
+        }
+    }
+}
+
+impl BitAndAssign for ExitCode {
+    // If `self` is `0` (success), set `self` to `rhs`.
+    fn bitand_assign(&mut self, rhs: Self) {
+        if self.0 == 0 {
+            *self = rhs
+        }
+    }
+}
 
 impl From<ExitStatus> for ExitCode {
     fn from(status: ExitStatus) -> Self {
