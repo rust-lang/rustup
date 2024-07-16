@@ -789,6 +789,8 @@ async fn check_updates(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
 }
 
 async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> {
+    let mut exit_code = utils::ExitCode(0);
+
     common::warn_if_host_is_emulated(cfg.process);
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
@@ -865,7 +867,7 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
             common::self_update(|| Ok(()), cfg.process).await?;
         }
     } else {
-        common::update_all_channels(cfg, self_update, opts.force).await?;
+        exit_code = common::update_all_channels(cfg, self_update, opts.force).await?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
@@ -880,7 +882,7 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
         info!("any updates to rustup will need to be fetched with your system package manager")
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(exit_code)
 }
 
 async fn run(
