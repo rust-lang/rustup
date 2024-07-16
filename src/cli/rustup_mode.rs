@@ -867,7 +867,7 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
             common::self_update(|| Ok(()), cfg.process).await?;
         }
     } else {
-        exit_code = common::update_all_channels(cfg, self_update, opts.force).await?;
+        exit_code &= common::update_all_channels(cfg, self_update, opts.force).await?;
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
