@@ -53,7 +53,7 @@ fn main() {
     // This will work on all supported Windows versions but it relies on
     // us using `SetDefaultDllDirectories` before any libraries are loaded.
     // See also: src/bin/rustup-init.rs
-    let delay_load_dlls = ["bcrypt", "powrprof", "secur32"];
+    let delay_load_dlls = ["bcrypt", "secur32"];
     for dll in delay_load_dlls {
         println!("cargo:rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
     }
