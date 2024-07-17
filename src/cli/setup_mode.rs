@@ -108,8 +108,7 @@ pub async fn main(
     }
 
     if dump_testament {
-        common::dump_testament(process)?;
-        return Ok(utils::ExitCode(0));
+        return common::dump_testament(process);
     }
 
     if profile == Profile::Complete {

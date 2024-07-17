@@ -864,7 +864,7 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
             }
         }
         if self_update {
-            common::self_update(|| Ok(()), cfg.process).await?;
+            exit_code &= common::self_update(|| Ok(()), cfg.process).await?;
         }
     } else {
         exit_code &= common::update_all_channels(cfg, self_update, opts.force).await?;
@@ -1205,8 +1205,7 @@ async fn component_list(
         installed_only,
         quiet,
         cfg.process,
-    )?;
-    Ok(utils::ExitCode(0))
+    )
 }
 
 async fn component_add(
