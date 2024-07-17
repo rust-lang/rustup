@@ -22,6 +22,7 @@ pub(crate) use crate::utils::utils::raw::is_directory;
 
 pub use crate::utils::utils::raw::{is_file, path_exists};
 
+#[must_use]
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExitCode(pub i32);
 

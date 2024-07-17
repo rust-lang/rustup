@@ -496,6 +496,9 @@ pub(crate) async fn install(
     mut opts: InstallOpts<'_>,
     process: &Process,
 ) -> Result<utils::ExitCode> {
+    #[cfg_attr(not(unix), allow(unused_mut))]
+    let mut exit_code = utils::ExitCode(0);
+
     opts.validate(process).map_err(|e| {
         anyhow!(
             "Pre-checks for host and toolchain failed: {e}\n\
@@ -513,7 +516,9 @@ pub(crate) async fn install(
     }
 
     #[cfg(unix)]
-    unix::do_anti_sudo_check(no_prompt, process)?;
+    {
+        exit_code &= unix::do_anti_sudo_check(no_prompt, process)?;
+    }
 
     let mut term = process.stdout().terminal(process);
 
@@ -590,7 +595,7 @@ pub(crate) async fn install(
         windows::ensure_prompt(process)?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(exit_code)
 }
 
 fn rustc_or_cargo_exists_in_path(process: &Process) -> Result<()> {
