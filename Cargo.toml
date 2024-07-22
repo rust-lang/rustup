@@ -135,9 +135,9 @@ members = ["download"]
 anyhow = "1.0.69"
 fs_at = "0.1.6"
 once_cell = "1.18.0"
-opentelemetry = "0.23"
-opentelemetry-otlp = "0.16"
-opentelemetry_sdk = { version = "0.23", features = ["rt-tokio"] }
+opentelemetry = "0.24"
+opentelemetry-otlp = "0.17"
+opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
 platforms = "3.4"
 proptest = "1.1.0"
 tempfile = "3.8"
@@ -147,7 +147,7 @@ tokio = { version = "1.26.0", default-features = false, features = ["macros", "r
 tokio-retry = { version = "0.3.0" }
 tokio-stream = { version = "0.1.14" }
 tracing = "0.1"
-tracing-opentelemetry = "0.24"
+tracing-opentelemetry = "0.25"
 tracing-subscriber = "0.3.16"
 url = "2.4"
 walkdir = "2"
