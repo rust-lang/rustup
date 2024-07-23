@@ -38,6 +38,39 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile
 > If you have encountered any problems installing `rustup` with a package manager,
 > please contact the package maintainer(s) for further information.
 
+### General tips
+
+Different package managers take slightly different approaches towards managing rustup.
+After installing rustup with your favorite package manager, there are usually two possibilities:
+
+- If your package manager has made the `rustup` command available
+  together with proxies for Rust tools such as `rustc` and `cargo`,
+  picking a default toolchain (e.g. `stable`) would usually be enough:
+
+  ```sh
+  $ rustup default stable
+  ```
+
+  > As of 2024/07/24, this is the case for
+  > [DNF](https://developer.fedoraproject.org/tech/languages/rust/further-reading.html).
+
+- If your package manager has only made the `rustup-init` command available, simply run:
+
+  ```sh
+  $ rustup-init
+  ```
+
+  This will allow you to perform the initial setup of `rustup`, populate all the proxies
+  managed by rustup, and install a default toolchain. When the installation is completed,
+  please make sure that these proxies (usually under `$HOME/.cargo/bin`) are exposed via your `$PATH`.
+
+  > As of 2024/07/24, this is the case for
+  > [APT](https://packages.debian.org/search?searchon=names&keywords=rustup),
+  > [homebrew](https://formulae.brew.sh/formula/rustup)
+  > and [pacman](https://wiki.archlinux.org/title/Rust#Arch_Linux_package).
+
+Now you should be able to run `rustup`, `rustc`, `cargo`, etc. normally.
+
 ### APT
 
 Starting from Debian 13 (trixie) and Ubuntu 24.04 (noble),
@@ -49,17 +82,16 @@ $ sudo apt install rustup
 
 ### Homebrew
 
-You can use `brew` to install `rustup-init`[^not-rust]:
+You can use `brew` to install `rustup`[^not-rust]:
 
 ```sh
-$ brew install rustup-init
+$ brew install rustup
 ```
 
-Then execute `rustup-init` to proceed with the installation.
-
-When the installation is complete,
-make sure that `$HOME/.cargo/bin` is in your `$PATH`,
-and you should be able to use `rustup` normally.
+Please note that Rust tools like `rustc` and `cargo` are not available via `$PATH` by default
+in this `rustup` distribution
+(see [homebrew-core#177582](https://github.com/Homebrew/homebrew-core/pull/177582) for more details).
+You might want to add `$(brew --prefix rustup)/bin` to `$PATH` to make them easier to access.
 
 [^not-rust]: This is not to be confused with the `rust` package,
 which is a `brew`-managed `rust` toolchain installation.
