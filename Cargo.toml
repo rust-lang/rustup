@@ -133,7 +133,7 @@ members = ["download"]
 
 [workspace.dependencies]
 anyhow = "1.0.69"
-fs_at = "0.1.6"
+fs_at = "0.2.1"
 once_cell = "1.18.0"
 opentelemetry = "0.24"
 opentelemetry-otlp = "0.17"
