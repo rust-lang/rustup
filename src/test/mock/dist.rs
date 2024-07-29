@@ -64,7 +64,7 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
         let dir = dir.unwrap();
         if dir.file_name().to_str().unwrap().contains("rust-") {
             let path = path.join(format!("dist/{}", dir.file_name().to_str().unwrap()));
-            hard_link(&dir.path(), path).unwrap();
+            hard_link(dir.path(), path).unwrap();
         }
     }
 }
