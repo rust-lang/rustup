@@ -1,9 +1,13 @@
-
 # Coding standards
 
 Generally we just follow good sensible Rust practices, clippy and so forth.
 However there are some practices we've agreed on that are not machine-enforced;
 meeting those requirements in a PR will make it easier to merge.
+
+## Atomic commits
+
+We use atomic commits across the repo. Each commit should represent a single unit of change.
+You can read more about atomic commits [here](https://www.aleksandrhovhannisyan.com/blog/atomic-git-commits).
 
 ## Import grouping
 
