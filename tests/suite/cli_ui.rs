@@ -26,7 +26,7 @@ fn rustup_init_ui_doc_text_tests() {
     let rustup_init = trycmd::cargo::cargo_bin("rustup-init");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     t.register_bin("rustup-init", &rustup_init);
-    t.register_bin("rustup-init.sh", &project_root.join("rustup-init.sh"));
+    t.register_bin("rustup-init.sh", project_root.join("rustup-init.sh"));
     t.case("tests/suite/cli-ui/rustup-init/*.toml");
     #[cfg(target_os = "windows")]
     {
