@@ -27,9 +27,12 @@ though that is helpful.
 ## No direct use of process state outside rustup::process
 
 The `rustup::process` module abstracts the global state that is
-`std::env::args`, `std::env::vars`, `std::io::std*`, `std::process::id`,
-`std::env::current_dir` and `std::process::exit` permitting threaded tests of
-the CLI logic; use `process()` rather than those APIs directly.
+`std::env::args`, `std::env::vars`, `std::io::std*` and `std::env::current_dir`
+permitting threaded tests of the CLI logic; use the relevant methods of the
+`rustup::process::Process` type rather than those APIs directly.
+Usually, a `process: &Process` variable will be available to you in the current context.
+For example, it could be in the form of a parameter of the current function,
+or a field of a `Cfg` instance, etc.
 
 ## Clippy lints
 
