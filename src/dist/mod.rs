@@ -422,7 +422,7 @@ impl TargetTriple {
                 )
                     -> BOOL = unsafe {
                     let module = GetModuleHandleA(s!("kernel32.dll"));
-                    if module == 0 {
+                    if module.is_null() {
                         return None;
                     }
                     mem::transmute(GetProcAddress(module, s!("IsWow64Process2"))?)

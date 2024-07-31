@@ -68,7 +68,7 @@ mod imp {
         // we're otherwise part of someone else's job object in this case.
 
         let job = CreateJobObjectW(ptr::null_mut(), ptr::null());
-        if job == 0 {
+        if job.is_null() {
             return None;
         }
         let job = Handle { inner: job };
