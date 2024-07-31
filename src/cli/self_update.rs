@@ -1046,11 +1046,12 @@ fn get_new_rustup_version(path: &Path) -> Option<String> {
 }
 
 fn parse_new_rustup_version(version: String) -> String {
-    use once_cell::sync::Lazy;
+    use std::sync::LazyLock;
+
     use regex::Regex;
 
-    static RE: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"[0-9]+.[0-9]+.[0-9]+[0-9a-zA-Z-]*").unwrap());
+    static RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"[0-9]+.[0-9]+.[0-9]+[0-9a-zA-Z-]*").unwrap());
 
     let capture = RE.captures(&version);
     let matched_version = match capture {

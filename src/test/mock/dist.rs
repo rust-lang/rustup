@@ -5,9 +5,8 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
-use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -226,7 +225,7 @@ impl MockDistServer {
         type Tarball = HashMap<(String, MockTargetedPackage, String), (Vec<u8>, String)>;
         // Tarball creation can be super slow, so cache created tarballs
         // globally to avoid recreating and recompressing tons of tarballs.
-        static TARBALLS: Lazy<Mutex<Tarball>> = Lazy::new(|| Mutex::new(HashMap::new()));
+        static TARBALLS: LazyLock<Mutex<Tarball>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
         let key = (
             installer_name.to_string(),

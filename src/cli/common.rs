@@ -7,12 +7,11 @@ use std::fs;
 use std::io::ErrorKind;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::{cmp, env};
 
 use anyhow::{anyhow, Context, Result};
 use git_testament::{git_testament, render_testament};
-use once_cell::sync::Lazy;
 use tracing::{debug, error, info, trace, warn};
 
 use super::self_update;
@@ -529,7 +528,7 @@ pub(crate) fn version() -> &'static str {
     // Because we trust our `stable` branch given the careful release
     // process, we mark it trusted here so that our version numbers look
     // right when built from CI before the tag is pushed
-    static RENDERED: Lazy<String> = Lazy::new(|| render_testament!(TESTAMENT, "stable"));
+    static RENDERED: LazyLock<String> = LazyLock::new(|| render_testament!(TESTAMENT, "stable"));
     &RENDERED
 }
 

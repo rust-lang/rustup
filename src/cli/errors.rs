@@ -3,8 +3,8 @@
 
 use std::io;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use strsim::damerau_levenshtein;
 use thiserror::Error as ThisError;
@@ -24,7 +24,7 @@ pub enum CLIError {
 fn maybe_suggest_toolchain(bad_name: &str) -> String {
     let bad_name = &bad_name.to_ascii_lowercase();
     static VALID_CHANNELS: &[&str] = &["stable", "beta", "nightly"];
-    static NUMBERED: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[0-9]+\.[0-9]+$").unwrap());
+    static NUMBERED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9]+\.[0-9]+$").unwrap());
     if NUMBERED.is_match(bad_name) {
         return format!(". Toolchain numbers tend to have three parts, e.g. {bad_name}.0");
     }

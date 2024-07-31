@@ -4,16 +4,16 @@ use std::env::{remove_var, set_var};
 use std::error::Error;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::LazyLock;
 use std::thread;
 use std::time::Duration;
 
 use env_proxy::for_url;
-use once_cell::sync::Lazy;
 use reqwest::{Client, Proxy};
 use tokio::sync::Mutex;
 use url::Url;
 
-static SERIALISE_TESTS: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+static SERIALISE_TESTS: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 fn scrub_env() {
     remove_var("http_proxy");

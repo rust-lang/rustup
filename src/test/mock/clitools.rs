@@ -12,12 +12,11 @@ use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     process::Command,
-    sync::{Arc, RwLock, RwLockWriteGuard},
+    sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     time::Instant,
 };
 
 use enum_map::{enum_map, Enum, EnumMap};
-use once_cell::sync::Lazy;
 use tempfile::TempDir;
 use url::Url;
 
@@ -116,8 +115,8 @@ pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
 #[cfg(not(target_pointer_width = "64"))]
 pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 
-static CONST_TEST_STATE: Lazy<ConstState> =
-    Lazy::new(|| ConstState::new(const_dist_dir().unwrap()));
+static CONST_TEST_STATE: LazyLock<ConstState> =
+    LazyLock::new(|| ConstState::new(const_dist_dir().unwrap()));
 
 /// Const test state - test dirs that can be reused across tests.
 struct ConstState {
@@ -132,7 +131,7 @@ struct ConstState {
 /// environments. In doing this we can ensure that new test environment creation
 /// does not result in ETXTBSY because the FDs in question happen to be in
 /// newly `fork()`d but not yet `exec()`d subprocesses of other tests.
-pub static CMD_LOCK: Lazy<RwLock<usize>> = Lazy::new(|| RwLock::new(0));
+pub static CMD_LOCK: LazyLock<RwLock<usize>> = LazyLock::new(|| RwLock::new(0));
 
 impl ConstState {
     fn new(const_dist_dir: tempfile::TempDir) -> Self {
@@ -1583,7 +1582,7 @@ fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstall
 /// and then we store some associated files next to it which indicate
 /// the version/version hash information.
 fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
-    static MOCK_BIN: Lazy<Arc<Vec<u8>>> = Lazy::new(|| {
+    static MOCK_BIN: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
         // Create a temp directory to hold the source and the output
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         let source_path = tempdir.path().join("in.rs");

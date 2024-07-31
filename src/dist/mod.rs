@@ -1,12 +1,13 @@
 //! Installation from a Rust distribution server
 
-use std::{collections::HashSet, env, fmt, io::Write, ops::Deref, path::Path, str::FromStr};
+use std::{
+    collections::HashSet, env, fmt, io::Write, ops::Deref, path::Path, str::FromStr, sync::LazyLock,
+};
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDate;
 use clap::{builder::PossibleValue, ValueEnum};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
@@ -272,7 +273,7 @@ impl FromStr for ParsedToolchainDesc {
     fn from_str(desc: &str) -> Result<Self> {
         // Note this regex gives you a guaranteed match of the channel (1)
         // and an optional match of the date (2) and target (3)
-        static TOOLCHAIN_CHANNEL_RE: Lazy<Regex> = Lazy::new(|| {
+        static TOOLCHAIN_CHANNEL_RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(&format!(
                 r"^({})(?:-([0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}))?(?:-(.+))?$",
                 // The channel patterns we support
