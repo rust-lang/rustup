@@ -296,11 +296,11 @@ pub mod reqwest_be {
     use std::io;
     #[cfg(feature = "reqwest-rustls-tls")]
     use std::sync::Arc;
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+    use std::sync::LazyLock;
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use once_cell::sync::Lazy;
     use reqwest::{header, Client, ClientBuilder, Proxy, Response};
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls::crypto::ring;
@@ -354,7 +354,7 @@ pub mod reqwest_be {
     }
 
     #[cfg(feature = "reqwest-rustls-tls")]
-    static CLIENT_RUSTLS_TLS: Lazy<Client> = Lazy::new(|| {
+    static CLIENT_RUSTLS_TLS: LazyLock<Client> = LazyLock::new(|| {
         let catcher = || {
             client_generic()
                 .use_preconfigured_tls(
@@ -377,7 +377,7 @@ pub mod reqwest_be {
     });
 
     #[cfg(feature = "reqwest-native-tls")]
-    static CLIENT_DEFAULT_TLS: Lazy<Client> = Lazy::new(|| {
+    static CLIENT_DEFAULT_TLS: LazyLock<Client> = LazyLock::new(|| {
         let catcher = || {
             client_generic()
                 .user_agent(super::REQWEST_DEFAULT_TLS_USER_AGENT)

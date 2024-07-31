@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 
 pub mod known;
@@ -24,7 +25,7 @@ impl PartialTargetTriple {
         // we can count  on all triple components being
         // delineated by it.
         let name = format!("-{name}");
-        static RE: Lazy<Regex> = Lazy::new(|| {
+        static RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(&format!(
                 r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
                 known::LIST_ARCHS.join("|"),
