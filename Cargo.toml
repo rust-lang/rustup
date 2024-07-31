@@ -113,7 +113,7 @@ features = [
   "Win32_System_Threading",
   "Win32_System_WindowsProgramming",
 ]
-version = "0.52.0"
+version = "0.59.0"
 
 [dev-dependencies]
 enum-map = "2.5.0"
