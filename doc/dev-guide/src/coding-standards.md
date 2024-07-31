@@ -64,8 +64,3 @@ Clippy is also run in GitHub Actions, in the `General Checks / Checks` build
 task, but not currently run per-platform, which means there is no way to find
 out the status of clippy per platform without running it on that platform as a
 developer.
-
-### import rustup-macros::{integration,unit}_test into test modules
-
-These test helpers add pre-and-post logic to tests to enable the use of tracing
-inside tests, which can be helpful for tracking down behaviours in larger tests.
