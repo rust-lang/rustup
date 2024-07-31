@@ -185,7 +185,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
             ptr::null_mut(),
             OPEN_EXISTING,
             FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-            0,
+            ptr::null_mut(),
         );
 
         let mut data = [0u8; MAXIMUM_REPARSE_DATA_BUFFER_SIZE];

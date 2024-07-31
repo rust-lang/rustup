@@ -438,7 +438,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 
         // Get a handle to the parent process
         let parent = OpenProcess(SYNCHRONIZE, 0, parent_id);
-        if parent == 0 {
+        if parent.is_null() {
             // This just means the parent has already exited.
             return Ok(());
         }
@@ -783,7 +783,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
             &sa,
             OPEN_EXISTING,
             FILE_FLAG_DELETE_ON_CLOSE,
-            0,
+            ptr::null_mut(),
         );
 
         if gc_handle == INVALID_HANDLE_VALUE {
