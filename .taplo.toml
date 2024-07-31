@@ -11,3 +11,4 @@ keys = [
 
 [rule.formatting]
 column_width = 160
+reorder_keys = true
