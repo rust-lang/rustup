@@ -64,8 +64,7 @@ build_test() {
   if [ "build" = "${cmd}" ]; then
     target_cargo "${cmd}" --workspace --all-targets --features test
   else
-    #  free runners have 2 or 3(mac) cores
-    target_cargo "${cmd}" --workspace --features test --tests -- --test-threads 2
+    target_cargo "${cmd}" --workspace --features test --tests
   fi
 
   if [ "build" != "${cmd}" ]; then
