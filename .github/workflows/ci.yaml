@@ -1302,7 +1302,9 @@ jobs:
         usesh: true
         copyback: false
         prepare: |
-          pkg install -y git gmake bash sudo ca_root_nss
+          pkg install -y git gmake bash sudo \
+            `# The following packages are required by 'aws-lc-rs':` \
+            cmake-core llvm-devel-lite rust-bindgen-cli
         run: |
           echo "========="
           echo "create non-root user and log into it"
@@ -1332,7 +1334,9 @@ jobs:
         usesh: true
         copyback: false
         prepare: |
-          pkg install -y git gmake bash sudo ca_root_nss
+          pkg install -y git gmake bash sudo \
+            `# The following packages are required by 'aws-lc-rs':` \
+            cmake-core llvm-devel-lite rust-bindgen-cli
         run: |
           echo "========="
           echo "create non-root user and log into it"
