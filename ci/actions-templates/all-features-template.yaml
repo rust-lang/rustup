@@ -32,7 +32,6 @@ jobs: # skip-all
       - name: Install OpenSSL
         if: ${{ contains(matrix.os, 'windows') }}
         run: |
-          choco install openssl -y --no-progress
           Get-Command openssl
           openssl version
           echo "OPENSSL_LIB_DIR=C:/Program Files/OpenSSL/lib" >> $env:GITHUB_ENV
