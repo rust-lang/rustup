@@ -65,12 +65,8 @@ build_test() {
     target_cargo "${cmd}" --workspace --all-targets --features test
   else
     target_cargo "${cmd}" --workspace --features test --tests
-  fi
-
-  if [ "build" != "${cmd}" ]; then
     target_cargo "${cmd}" --doc --workspace --features test
   fi
-
 }
 
 if [ -z "$SKIP_TESTS" ]; then
