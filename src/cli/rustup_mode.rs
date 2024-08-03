@@ -718,7 +718,7 @@ async fn default_(
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
                 let status = cfg
-                    .ensure_installed(desc.clone(), vec![], vec![], None, true)
+                    .ensure_installed(&desc, vec![], vec![], None, true)
                     .await?
                     .0;
 

@@ -752,7 +752,7 @@ impl<'a> Cfg<'a> {
                     profile,
                 } => {
                     let toolchain = self
-                        .ensure_installed(toolchain, components, targets, profile, false)
+                        .ensure_installed(&toolchain, components, targets, profile, false)
                         .await?
                         .1;
                     Ok((toolchain, reason))
@@ -768,7 +768,7 @@ impl<'a> Cfg<'a> {
                 Some(ToolchainName::Official(toolchain_desc)) => {
                     let reason = ActiveReason::Default;
                     let toolchain = self
-                        .ensure_installed(toolchain_desc, vec![], vec![], None, false)
+                        .ensure_installed(&toolchain_desc, vec![], vec![], None, false)
                         .await?
                         .1;
                     Ok((toolchain, reason))
@@ -782,14 +782,14 @@ impl<'a> Cfg<'a> {
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn ensure_installed(
         &self,
-        toolchain: ToolchainDesc,
+        toolchain: &ToolchainDesc,
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
         verbose: bool,
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
         if verbose {
-            (self.notify_handler)(Notification::LookingForToolchain(&toolchain));
+            (self.notify_handler)(Notification::LookingForToolchain(toolchain));
         }
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
@@ -801,7 +801,7 @@ impl<'a> Cfg<'a> {
             Err(RustupError::ToolchainNotInstalled(_)) => {
                 DistributableToolchain::install(
                     self,
-                    &toolchain,
+                    toolchain,
                     &components,
                     &targets,
                     profile,
@@ -811,7 +811,7 @@ impl<'a> Cfg<'a> {
             }
             Ok(mut distributable) => {
                 if verbose {
-                    (self.notify_handler)(Notification::UsingExistingToolchain(&toolchain));
+                    (self.notify_handler)(Notification::UsingExistingToolchain(toolchain));
                 }
                 let status = if !distributable.components_exist(&components, &targets)? {
                     distributable.update(&components, &targets, profile).await?
