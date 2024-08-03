@@ -9,7 +9,7 @@ use anyhow::{anyhow, Error, Result};
 use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 use itertools::Itertools;
-use tracing::{error, info, trace, warn};
+use tracing::{info, trace, warn};
 
 use crate::{
     cli::{
@@ -817,16 +817,8 @@ async fn update(cfg: &mut Cfg<'_>, opts: UpdateOpts) -> Result<utils::ExitCode> 
             // This needs another pass to fix it all up
             if name.has_triple() {
                 let host_arch = TargetTriple::from_host_or_build(cfg.process);
-
                 let target_triple = name.clone().resolve(&host_arch)?.target;
-                if !forced && !host_arch.can_run(&target_triple)? {
-                    error!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain.");
-                    warn!("toolchain '{name}' may not be able to run on this system.");
-                    warn!(
-                            "If you meant to build software to target that platform, perhaps try `rustup target add {}` instead?",
-                            target_triple.to_string()
-                        );
-                }
+                common::warn_if_host_is_incompatible(&name, &host_arch, &target_triple, forced)?;
             }
             let desc = name.resolve(&cfg.get_default_host_triple()?)?;
 
