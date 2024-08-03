@@ -80,13 +80,13 @@ tempfile.workspace = true
 termcolor.workspace = true
 thiserror.workspace = true
 threadpool = "1"
-tokio.workspace = true
 tokio-retry.workspace = true
 tokio-stream.workspace = true
+tokio.workspace = true
 toml = "0.8"
-tracing.workspace = true
 tracing-opentelemetry = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing.workspace = true
 url.workspace = true
 wait-timeout = "0.2"
 walkdir = { workspace = true, optional = true }
@@ -95,7 +95,12 @@ zstd = "0.13"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.52"
+windows-registry = "0.2.0"
+windows-result = "0.2.0"
+
+[patch.crates-io]
+windows-registry = { git = "https://github.com/microsoft/windows-rs.git" }
+windows-result = { git = "https://github.com/microsoft/windows-rs.git" }
 
 [target."cfg(windows)".dependencies.windows-sys]
 features = [

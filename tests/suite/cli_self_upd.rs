@@ -350,13 +350,12 @@ async fn update_overwrites_programs_display_version() {
         .await;
 
     USER_RUSTUP_VERSION
-        .set_value(Some(PLACEHOLDER_VERSION))
+        .set_value(Some(PLACEHOLDER_VERSION.as_bytes()))
         .unwrap();
     cx.config.expect_ok(&["rustup", "self", "update"]).await;
-    assert_eq!(
-        USER_RUSTUP_VERSION.get_value::<String>().unwrap().unwrap(),
-        version,
-    );
+    assert_eq!(USER_RUSTUP_VERSION.get_value().unwrap().unwrap(), {
+        version.as_bytes()
+    });
 }
 
 #[cfg(windows)]
