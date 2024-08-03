@@ -11,8 +11,11 @@ use tokio_stream::StreamExt;
 use tracing::trace;
 
 use crate::{
-    cli::self_update::SelfUpdateMode,
-    dist::{self, download::DownloadCfg, temp, PartialToolchainDesc, Profile, ToolchainDesc},
+    cli::{common, self_update::SelfUpdateMode},
+    dist::{
+        self, download::DownloadCfg, temp, PartialToolchainDesc, Profile, TargetTriple,
+        ToolchainDesc,
+    },
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
@@ -788,6 +791,12 @@ impl<'a> Cfg<'a> {
         profile: Option<Profile>,
         verbose: bool,
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
+        common::warn_if_host_is_incompatible(
+            toolchain,
+            &TargetTriple::from_host_or_build(self.process),
+            &toolchain.target,
+            false,
+        )?;
         if verbose {
             (self.notify_handler)(Notification::LookingForToolchain(toolchain));
         }

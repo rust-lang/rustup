@@ -2726,6 +2726,19 @@ warn: If you meant to build software to target that platform, perhaps try `rustu
 }
 
 #[tokio::test]
+async fn warn_on_unmatch_build_default() {
+    let cx = CliTestContext::new(Scenario::MultiHost).await;
+    let arch = clitools::MULTI_ARCH1;
+    cx.config.expect_stderr_ok(
+        &["rustup", "default", &format!("nightly-{arch}")],
+        &format!(
+            r"warn: toolchain 'nightly-{arch}' may not be able to run on this system.
+warn: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
+        ),
+    ).await;
+}
+
+#[tokio::test]
 async fn dont_warn_on_partial_build() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let triple = this_host_triple();
