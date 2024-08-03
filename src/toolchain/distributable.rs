@@ -17,7 +17,6 @@ use crate::{
         DistOptions, PartialToolchainDesc, Profile, ToolchainDesc,
     },
     install::{InstallMethod, UpdateStatus},
-    notifications::Notification,
     RustupError,
 };
 
@@ -356,24 +355,6 @@ impl<'a> DistributableToolchain<'a> {
         .install()
         .await?;
         Ok((status, Self::new(cfg, toolchain.clone())?))
-    }
-
-    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub async fn install_if_not_installed(
-        cfg: &'a Cfg<'a>,
-        desc: &ToolchainDesc,
-    ) -> anyhow::Result<UpdateStatus> {
-        (cfg.notify_handler)(Notification::LookingForToolchain(desc));
-        if Toolchain::exists(cfg, &desc.into())? {
-            (cfg.notify_handler)(Notification::UsingExistingToolchain(desc));
-            Ok(UpdateStatus::Unchanged)
-        } else {
-            Ok(
-                Self::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
-                    .await?
-                    .0,
-            )
-        }
     }
 
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
