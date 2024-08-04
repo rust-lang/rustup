@@ -440,11 +440,11 @@ mod windows {
             .collect::<Vec<u8>>();
 
         cx.config.expect_ok(&INIT_NONE).await;
-        assert_eq!(get_path().unwrap().unwrap(), expected);
+        assert_eq!(get_path().unwrap().unwrap().as_ref(), expected);
 
         cx.config
             .expect_ok(&["rustup", "self", "uninstall", "-y"])
             .await;
-        assert_eq!(get_path().unwrap().unwrap(), reg_value);
+        assert_eq!(get_path().unwrap().unwrap().as_ref(), reg_value);
     }
 }

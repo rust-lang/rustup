@@ -798,7 +798,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub fn get_path() -> Result<Option<Vec<u8>>> {
+pub fn get_path() -> Result<Option<Value>> {
     USER_PATH.get()
 }
 
@@ -806,7 +806,7 @@ pub fn get_path() -> Result<Option<Vec<u8>>> {
 pub struct RegistryGuard<'a> {
     _locked: LockResult<MutexGuard<'a, ()>>,
     id: &'static RegistryValueId,
-    prev: Option<Vec<u8>>,
+    prev: Option<Value>,
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -823,7 +823,8 @@ impl<'a> RegistryGuard<'a> {
 #[cfg(any(test, feature = "test"))]
 impl<'a> Drop for RegistryGuard<'a> {
     fn drop(&mut self) {
-        self.id.set(self.prev.as_deref()).unwrap();
+        let val = self.prev.clone().unwrap();
+        self.id.set(Some(val.ty()), Some(val.as_ref())).unwrap();
     }
 }
 
@@ -844,28 +845,28 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    pub fn get_value(&self) -> Result<Option<Vec<u8>>> {
+    pub fn get_value(&self) -> Result<Option<Value>> {
         self.get()
     }
 
-    fn get(&self) -> Result<Option<Vec<u8>>> {
+    fn get(&self) -> Result<Option<Value>> {
         let sub_key = CURRENT_USER.create(self.sub_key)?;
         match sub_key.get_value(self.value_name) {
-            Ok(val) => Ok(Some(val.as_ref().to_owned())),
+            Ok(val) => Ok(Some(val)),
             Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(None),
             Err(e) => Err(e.into()),
         }
     }
 
-    pub fn set_value(&self, new: Option<&[u8]>) -> Result<()> {
-        self.set(new)
+    pub fn set_value(&self, ty: Option<Type>, new: Option<&[u8]>) -> Result<()> {
+        self.set(ty, new)
     }
 
-    fn set(&self, new: Option<&[u8]>) -> Result<()> {
+    fn set(&self, ty: Option<Type>, new: Option<&[u8]>) -> Result<()> {
         let sub_key = CURRENT_USER.create(self.sub_key)?;
-        match new {
-            Some(new) => Ok(sub_key.set_bytes(self.value_name, Type::String, new)?),
-            None => Ok(sub_key.remove_value(self.value_name)?),
+        match (ty, new) {
+            (Some(ty), Some(new)) => Ok(sub_key.set_bytes(self.value_name, ty, new)?),
+            _ => Ok(sub_key.remove_value(self.value_name)?),
         }
     }
 }
