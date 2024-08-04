@@ -2,8 +2,10 @@
 
 use std::env;
 use std::env::consts::EXE_SUFFIX;
+#[cfg(windows)]
 use std::ffi::OsString;
 use std::fs;
+#[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
@@ -25,6 +27,7 @@ use rustup::test::{
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
+#[cfg(windows)]
 use windows_registry::Type;
 
 const TEST_VERSION: &str = "1.1.1";
