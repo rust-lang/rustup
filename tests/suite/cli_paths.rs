@@ -391,9 +391,12 @@ mod windows {
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let path = get_path().unwrap().unwrap();
-        let path = unsafe { from_raw_parts(path.as_ptr() as *const u16, path.len() / 2) };
-        let get_path_ = || String::from_utf16_lossy(path);
+
+        let get_path_ = || {
+            let path = get_path().unwrap().unwrap();
+            let path = unsafe { from_raw_parts(path.as_ptr() as *const u16, path.len() / 2) };
+            String::from_utf16_lossy(path)
+        };
 
         cx.config.expect_ok(&INIT_NONE).await;
         assert!(
