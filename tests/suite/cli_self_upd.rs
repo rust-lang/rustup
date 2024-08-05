@@ -368,6 +368,10 @@ async fn update_overwrites_programs_display_version() {
         USER_RUSTUP_VERSION.get_value().unwrap().unwrap().as_ref(),
         version
     );
+    assert_eq!(
+        USER_RUSTUP_VERSION.get_value().unwrap().unwrap().ty(),
+        Type::String
+    );
 }
 
 #[cfg(windows)]

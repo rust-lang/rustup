@@ -444,10 +444,12 @@ mod windows {
 
         cx.config.expect_ok(&INIT_NONE).await;
         assert_eq!(get_path().unwrap().unwrap().as_ref(), expected);
+        assert_eq!(get_path().unwrap().unwrap().ty(), Type::ExpandString);
 
         cx.config
             .expect_ok(&["rustup", "self", "uninstall", "-y"])
             .await;
         assert_eq!(get_path().unwrap().unwrap().as_ref(), reg_value);
+        assert_eq!(get_path().unwrap().unwrap().ty(), Type::ExpandString);
     }
 }
