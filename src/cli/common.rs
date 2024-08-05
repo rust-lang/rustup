@@ -642,11 +642,12 @@ pub(crate) fn warn_if_host_is_incompatible(
     target_triple: &TargetTriple,
     force_non_host: bool,
 ) -> Result<()> {
-    if !force_non_host && !host_arch.can_run(target_triple)? {
-        error!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain.");
-        warn!("toolchain '{toolchain}' may not be able to run on this system.");
-        warn!("If you meant to build software to target that platform, perhaps try `rustup target add {target_triple}` instead?");
+    if force_non_host || host_arch.can_run(target_triple)? {
+        return Ok(());
     }
+    error!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain.");
+    warn!("toolchain '{toolchain}' may not be able to run on this system.");
+    warn!("If you meant to build software to target that platform, perhaps try `rustup target add {target_triple}` instead?");
     Ok(())
 }
 
