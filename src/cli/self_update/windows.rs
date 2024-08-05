@@ -824,7 +824,7 @@ impl<'a> RegistryGuard<'a> {
 impl<'a> Drop for RegistryGuard<'a> {
     fn drop(&mut self) {
         let val = self.prev.clone().unwrap();
-        self.id.set(Some(val.ty()), Some(val.as_ref())).unwrap();
+        self.id.set(Some((val.ty(), val.as_ref()))).unwrap();
     }
 }
 
@@ -858,15 +858,15 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set_value(&self, ty: Option<Type>, new: Option<&[u8]>) -> Result<()> {
-        self.set(ty, new)
+    pub fn set_value(&self, new: Option<(Type, &[u8])>) -> Result<()> {
+        self.set(new)
     }
 
-    fn set(&self, ty: Option<Type>, new: Option<&[u8]>) -> Result<()> {
+    fn set(&self, new: Option<(Type, &[u8])>) -> Result<()> {
         let sub_key = CURRENT_USER.create(self.sub_key)?;
-        match (ty, new) {
-            (Some(ty), Some(new)) => Ok(sub_key.set_bytes(self.value_name, ty, new)?),
-            _ => Ok(sub_key.remove_value(self.value_name)?),
+        match new {
+            Some((ty, new)) => Ok(sub_key.set_bytes(self.value_name, ty, new)?),
+            None => Ok(sub_key.remove_value(self.value_name)?),
         }
     }
 }
