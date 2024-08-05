@@ -123,7 +123,7 @@ enum OverrideCfg {
         toolchain: ToolchainDesc,
         components: Vec<String>,
         targets: Vec<String>,
-        profile: Option<dist::Profile>,
+        profile: Option<Profile>,
     },
 }
 
@@ -175,7 +175,7 @@ impl OverrideCfg {
                         .toolchain
                         .profile
                         .as_deref()
-                        .map(dist::Profile::from_str)
+                        .map(Profile::from_str)
                         .transpose()?,
                 }
             }
@@ -230,7 +230,7 @@ impl From<LocalToolchainName> for OverrideCfg {
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
 pub(crate) struct Cfg<'a> {
-    profile_override: Option<dist::Profile>,
+    profile_override: Option<Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
     pub fallback_settings: Option<FallbackSettings>,
@@ -348,7 +348,7 @@ impl<'a> Cfg<'a> {
         }
     }
 
-    pub(crate) fn set_profile_override(&mut self, profile: dist::Profile) {
+    pub(crate) fn set_profile_override(&mut self, profile: Profile) {
         self.profile_override = Some(profile);
     }
 
@@ -391,7 +391,7 @@ impl<'a> Cfg<'a> {
     // if there is no profile in the settings file. The last variant happens when
     // a user upgrades from a version of Rustup without profiles to a version of
     // Rustup with profiles.
-    pub(crate) fn get_profile(&self) -> Result<dist::Profile> {
+    pub(crate) fn get_profile(&self) -> Result<Profile> {
         if let Some(p) = self.profile_override {
             return Ok(p);
         }
