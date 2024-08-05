@@ -5,6 +5,7 @@ use std::io::Write;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
+use std::slice;
 use std::sync::{Arc, Mutex};
 #[cfg(any(test, feature = "test"))]
 use std::sync::{LockResult, MutexGuard};
@@ -643,22 +644,18 @@ pub(crate) fn do_remove_from_programs() -> Result<()> {
 /// Convert a vector UCS-2 chars to a null-terminated UCS-2 string in bytes
 pub(crate) fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
     v.push(0);
-    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
+    unsafe { slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
 }
 
 /// This is used to decode the value of HKCU\Environment\PATH. If that key is
 /// not REG_SZ | REG_EXPAND_SZ then this returns None. The winreg library itself
 /// does a lossy unicode conversion.
 pub(crate) fn from_winreg_value(val: Value) -> Option<Vec<u16>> {
-    use std::slice;
-
     match val.ty() {
         Type::String | Type::ExpandString => {
             // Copied from winreg
             let mut words = unsafe {
-                #[allow(clippy::cast_ptr_alignment)]
-                slice::from_raw_parts(val.as_ref().as_ptr().cast::<u16>(), val.as_ref().len() / 2)
-                    .to_owned()
+                slice::from_raw_parts(val.as_ptr().cast::<u16>(), val.as_ref().len() / 2).to_owned()
             };
             while words.last() == Some(&0) {
                 words.pop();

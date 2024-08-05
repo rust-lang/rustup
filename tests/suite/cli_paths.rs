@@ -379,7 +379,7 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
-    use std::slice::from_raw_parts;
+    use std::slice;
 
     use super::INIT_NONE;
     use rustup::test::mock::clitools::{CliTestContext, Scenario};
@@ -393,7 +393,8 @@ mod windows {
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             let path = get_path().unwrap().unwrap();
-            let path = unsafe { from_raw_parts(path.as_ptr() as *const u16, path.len() / 2) };
+            let path =
+                unsafe { slice::from_raw_parts(path.as_ptr().cast::<u16>(), path.len() / 2) };
             String::from_utf16_lossy(path)
         };
 
