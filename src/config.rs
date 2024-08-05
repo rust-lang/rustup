@@ -787,6 +787,10 @@ impl<'a> Cfg<'a> {
     ) -> Result<Toolchain<'_>> {
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
+        let profile = match profile {
+            Some(profile) => profile,
+            None => self.get_profile()?,
+        };
         let toolchain = match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled(_)) => {
                 DistributableToolchain::install(
@@ -794,7 +798,7 @@ impl<'a> Cfg<'a> {
                     &toolchain,
                     &components,
                     &targets,
-                    profile.unwrap_or(Profile::Default),
+                    profile,
                     false,
                 )
                 .await?
@@ -802,9 +806,7 @@ impl<'a> Cfg<'a> {
             }
             Ok(mut distributable) => {
                 if !distributable.components_exist(&components, &targets)? {
-                    distributable
-                        .update(&components, &targets, profile.unwrap_or(Profile::Default))
-                        .await?;
+                    distributable.update(&components, &targets, profile).await?;
                 }
                 distributable
             }
