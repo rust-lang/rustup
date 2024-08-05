@@ -753,7 +753,8 @@ impl<'a> Cfg<'a> {
                 } => {
                     let toolchain = self
                         .ensure_installed(toolchain, components, targets, profile)
-                        .await?;
+                        .await?
+                        .1;
                     Ok((toolchain, reason))
                 }
             },
@@ -768,7 +769,8 @@ impl<'a> Cfg<'a> {
                     let reason = ActiveReason::Default;
                     let toolchain = self
                         .ensure_installed(toolchain_desc, vec![], vec![], None)
-                        .await?;
+                        .await?
+                        .1;
                     Ok((toolchain, reason))
                 }
             },
@@ -784,14 +786,14 @@ impl<'a> Cfg<'a> {
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
-    ) -> Result<Toolchain<'_>> {
+    ) -> Result<(UpdateStatus, Toolchain<'_>)> {
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
         let profile = match profile {
             Some(profile) => profile,
             None => self.get_profile()?,
         };
-        let toolchain = match DistributableToolchain::new(self, toolchain.clone()) {
+        let (status, toolchain) = match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled(_)) => {
                 DistributableToolchain::install(
                     self,
@@ -802,18 +804,18 @@ impl<'a> Cfg<'a> {
                     false,
                 )
                 .await?
-                .1
             }
             Ok(mut distributable) => {
-                if !distributable.components_exist(&components, &targets)? {
-                    distributable.update(&components, &targets, profile).await?;
-                }
-                distributable
+                let status = if !distributable.components_exist(&components, &targets)? {
+                    distributable.update(&components, &targets, profile).await?
+                } else {
+                    UpdateStatus::Unchanged
+                };
+                (status, distributable)
             }
             Err(e) => return Err(e.into()),
-        }
-        .into();
-        Ok(toolchain)
+        };
+        Ok((status, toolchain.into()))
     }
 
     /// Get the configured default toolchain.
