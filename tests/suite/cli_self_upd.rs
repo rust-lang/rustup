@@ -356,7 +356,7 @@ async fn update_overwrites_programs_display_version() {
         .await;
 
     USER_RUSTUP_VERSION
-        .set_value(Some(Type::String), Some(PLACEHOLDER_VERSION.as_bytes()))
+        .set_value(Some((Type::String, PLACEHOLDER_VERSION.as_bytes())))
         .unwrap();
     cx.config.expect_ok(&["rustup", "self", "update"]).await;
     let version = OsString::from(version)
