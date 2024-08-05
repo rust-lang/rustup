@@ -777,6 +777,7 @@ impl<'a> Cfg<'a> {
 
     // Returns a Toolchain matching the given ToolchainDesc, installing it and
     // the given components and targets if they aren't already installed.
+    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     async fn ensure_installed(
         &self,
         toolchain: ToolchainDesc,
