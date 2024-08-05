@@ -15,17 +15,18 @@ use git_testament::{git_testament, render_testament};
 use tracing::{debug, error, info, trace, warn};
 
 use super::self_update;
-use crate::cli::download_tracker::DownloadTracker;
-use crate::dist::{
-    manifest::ComponentStatus, notifications as dist_notifications, TargetTriple, ToolchainDesc,
+use crate::{
+    cli::download_tracker::DownloadTracker,
+    config::Cfg,
+    dist::{
+        manifest::ComponentStatus, notifications as dist_notifications, TargetTriple, ToolchainDesc,
+    },
+    install::UpdateStatus,
+    notifications::Notification,
+    process::{terminalsource, Process},
+    toolchain::{DistributableToolchain, LocalToolchainName, Toolchain, ToolchainName},
+    utils::{notifications as util_notifications, notify::NotificationLevel, utils},
 };
-use crate::install::UpdateStatus;
-use crate::process::{terminalsource, Process};
-use crate::toolchain::{DistributableToolchain, LocalToolchainName, Toolchain, ToolchainName};
-use crate::utils::notifications as util_notifications;
-use crate::utils::notify::NotificationLevel;
-use crate::utils::utils;
-use crate::{config::Cfg, notifications::Notification};
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
