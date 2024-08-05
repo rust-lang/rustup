@@ -934,7 +934,7 @@ impl<'a> Cfg<'a> {
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
         dist::PartialToolchainDesc::from_str("stable")?
-            .resolve(&dist::TargetTriple::new(host_triple.clone()))?;
+            .resolve(&TargetTriple::new(host_triple.clone()))?;
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple);
             Ok(())
@@ -942,7 +942,7 @@ impl<'a> Cfg<'a> {
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
+    pub(crate) fn get_default_host_triple(&self) -> Result<TargetTriple> {
         self.settings_file
             .with(|s| Ok(get_default_host_triple(s, self.process)))
     }
@@ -1010,11 +1010,11 @@ impl<'a> Debug for Cfg<'a> {
     }
 }
 
-fn get_default_host_triple(s: &Settings, process: &Process) -> dist::TargetTriple {
+fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTriple {
     s.default_host_triple
         .as_ref()
-        .map(dist::TargetTriple::new)
-        .unwrap_or_else(|| dist::TargetTriple::from_host_or_build(process))
+        .map(TargetTriple::new)
+        .unwrap_or_else(|| TargetTriple::from_host_or_build(process))
 }
 
 fn non_empty_env_var(name: &str, process: &Process) -> anyhow::Result<Option<String>> {
