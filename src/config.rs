@@ -752,7 +752,7 @@ impl<'a> Cfg<'a> {
                     profile,
                 } => {
                     let toolchain = self
-                        .ensure_installed(toolchain, components, targets, profile)
+                        .ensure_installed(toolchain, components, targets, profile, false)
                         .await?
                         .1;
                     Ok((toolchain, reason))
@@ -768,7 +768,7 @@ impl<'a> Cfg<'a> {
                 Some(ToolchainName::Official(toolchain_desc)) => {
                     let reason = ActiveReason::Default;
                     let toolchain = self
-                        .ensure_installed(toolchain_desc, vec![], vec![], None)
+                        .ensure_installed(toolchain_desc, vec![], vec![], None, false)
                         .await?
                         .1;
                     Ok((toolchain, reason))
@@ -786,7 +786,11 @@ impl<'a> Cfg<'a> {
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
+        verbose: bool,
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
+        if verbose {
+            (self.notify_handler)(Notification::LookingForToolchain(&toolchain));
+        }
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
         let profile = match profile {
@@ -806,6 +810,9 @@ impl<'a> Cfg<'a> {
                 .await?
             }
             Ok(mut distributable) => {
+                if verbose {
+                    (self.notify_handler)(Notification::UsingExistingToolchain(&toolchain));
+                }
                 let status = if !distributable.components_exist(&components, &targets)? {
                     distributable.update(&components, &targets, profile).await?
                 } else {
