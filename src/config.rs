@@ -737,7 +737,7 @@ impl<'a> Cfg<'a> {
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    async fn find_or_install_active_toolchain(
+    pub(crate) async fn find_or_install_active_toolchain(
         &'a self,
         verbose: bool,
     ) -> Result<(Toolchain<'a>, ActiveReason)> {
