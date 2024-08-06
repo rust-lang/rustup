@@ -8,7 +8,7 @@ Usage: rustup[EXE] toolchain <COMMAND>
 
 Commands:
   list       List installed toolchains
-  install    Install or update a given toolchain
+  install    Install or update the given toolchains, or by default the active toolchain
   uninstall  Uninstall the given toolchains
   link       Create a custom toolchain by symlinking to a directory
   help       Print this message or the help of the given subcommand(s)

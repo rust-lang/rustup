@@ -100,7 +100,7 @@ fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolcha
 #[derive(Debug, Subcommand)]
 #[command(name = "rustup", bin_name = "rustup[EXE]")]
 enum RustupSubcmd {
-    /// Update Rust toolchains
+    /// Install or update the given toolchains, or by default the active toolchain
     #[command(hide = true, after_help = INSTALL_HELP)]
     Install {
         #[command(flatten)]
@@ -302,7 +302,7 @@ enum ToolchainSubcmd {
         quiet: bool,
     },
 
-    /// Install or update a given toolchain
+    /// Install or update the given toolchains, or by default the active toolchain
     #[command(aliases = ["update", "add"] )]
     Install {
         #[command(flatten)]
@@ -330,7 +330,6 @@ enum ToolchainSubcmd {
 #[derive(Debug, Default, Args)]
 struct UpdateOpts {
     #[arg(
-        required = true,
         help = OFFICIAL_TOOLCHAIN_ARG_HELP,
         num_args = 1..,
     )]
@@ -584,7 +583,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
 
     match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
-        RustupSubcmd::Install { opts } => update(cfg, opts, false).await,
+        RustupSubcmd::Install { opts } => update(cfg, opts, true).await,
         RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
             None => show(cfg, verbose),
@@ -615,7 +614,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
             .await
         }
         RustupSubcmd::Toolchain { subcmd } => match subcmd {
-            ToolchainSubcmd::Install { opts } => update(cfg, opts, false).await,
+            ToolchainSubcmd::Install { opts } => update(cfg, opts, true).await,
             ToolchainSubcmd::List { verbose, quiet } => {
                 handle_epipe(common::list_toolchains(cfg, verbose, quiet))
             }
