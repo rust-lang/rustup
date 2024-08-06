@@ -1,8 +1,7 @@
 bin.name = "rustup"
 args = ["toolchain", "uninstall", "--help"]
 stdout = """
-...
-Uninstall a toolchain
+Uninstall the given toolchains
 
 Usage: rustup[EXE] toolchain uninstall <TOOLCHAIN>...
 
