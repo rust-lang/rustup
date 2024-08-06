@@ -1450,12 +1450,49 @@ async fn toolchain_install_is_like_update_quiet() {
 }
 
 #[tokio::test]
-async fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
-    let cx = CliTestContext::new(Scenario::None).await;
+async fn toolchain_install_without_args_installs_active() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+    raw::write_file(
+        &toolchain_file,
+        r#"
+[toolchain]
+profile = "minimal"
+channel = "nightly"
+"#,
+    )
+    .unwrap();
+
     cx.config
-        .expect_err(
+        .expect_stderr_ok(
             &["rustup", "toolchain", "install"],
-            "arguments were not provided",
+            &format!(
+                "\
+info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: downloading component 'rustc'
+info: installing component 'rustc'
+info: the active toolchain `nightly-{0}` has been installed
+info: it's active because: overridden by '{1}'",
+                this_host_triple(),
+                toolchain_file.display(),
+            ),
+        )
+        .await;
+
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "toolchain", "install"],
+            &format!(
+                "\
+info: using existing install for 'nightly-{0}'
+info: the active toolchain `nightly-{0}` has been installed
+info: it's active because: overridden by '{1}'",
+                this_host_triple(),
+                toolchain_file.display(),
+            ),
         )
         .await;
 }
@@ -1491,17 +1528,6 @@ async fn toolchain_uninstall_is_like_uninstall() {
         .await;
     cx.config
         .expect_not_stdout_ok(&["rustup", "show"], for_host!("'nightly-{}'"))
-        .await;
-}
-
-#[tokio::test]
-async fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
-    let cx = CliTestContext::new(Scenario::None).await;
-    cx.config
-        .expect_err(
-            &["rustup", "toolchain", "update"],
-            "arguments were not provided",
-        )
         .await;
 }
 

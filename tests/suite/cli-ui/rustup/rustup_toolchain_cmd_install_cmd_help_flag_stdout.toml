@@ -1,13 +1,12 @@
 bin.name = "rustup"
 args = ["toolchain", "install", "--help"]
 stdout = """
-...
-Install or update a given toolchain
+Install or update the given toolchains, or by default the active toolchain
 
-Usage: rustup[EXE] toolchain install [OPTIONS] <TOOLCHAIN>...
+Usage: rustup[EXE] toolchain install [OPTIONS] [TOOLCHAIN]...
 
 Arguments:
-  <TOOLCHAIN>...  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+  [TOOLCHAIN]...  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
                   `rustup help toolchain`
 
 Options:
