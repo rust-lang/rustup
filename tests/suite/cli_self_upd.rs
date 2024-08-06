@@ -2,11 +2,7 @@
 
 use std::env;
 use std::env::consts::EXE_SUFFIX;
-#[cfg(windows)]
-use std::ffi::OsString;
 use std::fs;
-#[cfg(windows)]
-use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
 
@@ -28,7 +24,7 @@ use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
 #[cfg(windows)]
-use windows_registry::Type;
+use windows_registry::Value;
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -356,21 +352,13 @@ async fn update_overwrites_programs_display_version() {
         .await;
 
     USER_RUSTUP_VERSION
-        .set_value(Some((Type::String, PLACEHOLDER_VERSION.as_bytes())))
+        .set_value(Some(&Value::try_from(PLACEHOLDER_VERSION).unwrap()))
         .unwrap();
     cx.config.expect_ok(&["rustup", "self", "update"]).await;
-    let version = OsString::from(version)
-        .encode_wide()
-        .flat_map(|v| vec![v as u8, (v >> 8) as u8])
-        .chain([0, 0])
-        .collect::<Vec<u8>>();
+
     assert_eq!(
-        USER_RUSTUP_VERSION.get_value().unwrap().unwrap().as_ref(),
-        version
-    );
-    assert_eq!(
-        USER_RUSTUP_VERSION.get_value().unwrap().unwrap().ty(),
-        Type::String
+        USER_RUSTUP_VERSION.get_value().unwrap().unwrap(),
+        Value::try_from(version).unwrap()
     );
 }
 

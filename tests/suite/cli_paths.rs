@@ -379,11 +379,11 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
-    use std::slice;
-
     use super::INIT_NONE;
     use rustup::test::mock::clitools::{CliTestContext, Scenario};
     use rustup::test::{get_path, RegistryGuard, USER_PATH};
+
+    use windows_registry::HSTRING;
 
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
@@ -392,10 +392,9 @@ mod windows {
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
-            let path = get_path().unwrap().unwrap();
-            let path =
-                unsafe { slice::from_raw_parts(path.as_ptr().cast::<u16>(), path.len() / 2) };
-            String::from_utf16_lossy(path)
+            HSTRING::try_from(get_path().unwrap().unwrap())
+                .unwrap()
+                .to_string()
         };
 
         cx.config.expect_ok(&INIT_NONE).await;
@@ -443,13 +442,13 @@ mod windows {
             .collect::<Vec<u8>>();
 
         cx.config.expect_ok(&INIT_NONE).await;
-        assert_eq!(get_path().unwrap().unwrap().as_ref(), expected);
         assert_eq!(get_path().unwrap().unwrap().ty(), Type::ExpandString);
+        assert_eq!(get_path().unwrap().unwrap().as_ref(), expected);
 
         cx.config
             .expect_ok(&["rustup", "self", "uninstall", "-y"])
             .await;
-        assert_eq!(get_path().unwrap().unwrap().as_ref(), reg_value);
         assert_eq!(get_path().unwrap().unwrap().ty(), Type::ExpandString);
+        assert_eq!(get_path().unwrap().unwrap().as_ref(), reg_value);
     }
 }

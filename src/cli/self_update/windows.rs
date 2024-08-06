@@ -820,8 +820,7 @@ impl<'a> RegistryGuard<'a> {
 #[cfg(any(test, feature = "test"))]
 impl<'a> Drop for RegistryGuard<'a> {
     fn drop(&mut self) {
-        let val = self.prev.clone().unwrap();
-        self.id.set(Some((val.ty(), val.as_ref()))).unwrap();
+        self.id.set(self.prev.as_ref()).unwrap();
     }
 }
 
@@ -855,14 +854,14 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set_value(&self, new: Option<(Type, &[u8])>) -> Result<()> {
+    pub fn set_value(&self, new: Option<&Value>) -> Result<()> {
         self.set(new)
     }
 
-    fn set(&self, new: Option<(Type, &[u8])>) -> Result<()> {
+    fn set(&self, new: Option<&Value>) -> Result<()> {
         let sub_key = CURRENT_USER.create(self.sub_key)?;
         match new {
-            Some((ty, new)) => Ok(sub_key.set_bytes(self.value_name, ty, new)?),
+            Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
             None => Ok(sub_key.remove_value(self.value_name)?),
         }
     }

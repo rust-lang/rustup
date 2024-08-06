@@ -658,9 +658,9 @@ dependencies = [
 
 [[package]]
 name = "dunce"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
+checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "effective-limits"
@@ -3154,7 +3154,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "windows-registry"
 version = "0.2.0"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 dependencies = [
  "windows-result",
  "windows-strings",
@@ -3164,7 +3164,7 @@ dependencies = [
 [[package]]
 name = "windows-result"
 version = "0.2.0"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 dependencies = [
  "windows-targets 0.52.6 (git+https://github.com/microsoft/windows-rs.git)",
 ]
@@ -3172,7 +3172,7 @@ dependencies = [
 [[package]]
 name = "windows-strings"
 version = "0.1.0"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 dependencies = [
  "windows-result",
  "windows-targets 0.52.6 (git+https://github.com/microsoft/windows-rs.git)",
@@ -3239,7 +3239,7 @@ dependencies = [
 [[package]]
 name = "windows-targets"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 dependencies = [
  "windows_aarch64_gnullvm 0.52.6 (git+https://github.com/microsoft/windows-rs.git)",
  "windows_aarch64_msvc 0.52.6 (git+https://github.com/microsoft/windows-rs.git)",
@@ -3266,7 +3266,7 @@ checksum = "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3"
 [[package]]
 name = "windows_aarch64_gnullvm"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_aarch64_msvc"
@@ -3283,7 +3283,7 @@ checksum = "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469"
 [[package]]
 name = "windows_aarch64_msvc"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_i686_gnu"
@@ -3300,7 +3300,7 @@ checksum = "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b"
 [[package]]
 name = "windows_i686_gnu"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_i686_gnullvm"
@@ -3311,7 +3311,7 @@ checksum = "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66"
 [[package]]
 name = "windows_i686_gnullvm"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_i686_msvc"
@@ -3328,7 +3328,7 @@ checksum = "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66"
 [[package]]
 name = "windows_i686_msvc"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_x86_64_gnu"
@@ -3345,7 +3345,7 @@ checksum = "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78"
 [[package]]
 name = "windows_x86_64_gnu"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_x86_64_gnullvm"
@@ -3362,7 +3362,7 @@ checksum = "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d"
 [[package]]
 name = "windows_x86_64_gnullvm"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "windows_x86_64_msvc"
@@ -3379,7 +3379,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "windows_x86_64_msvc"
 version = "0.52.6"
-source = "git+https://github.com/microsoft/windows-rs.git#a6b49e94f4c6c1781d58e0c3496c8302a3533892"
+source = "git+https://github.com/microsoft/windows-rs.git#fdc5149dad3773c7cf249e85c98758d54a1c3ac9"
 
 [[package]]
 name = "winnow"
