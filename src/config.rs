@@ -510,7 +510,7 @@ impl<'a> Cfg<'a> {
                     LocalToolchainName::Named(ToolchainName::Official(desc)),
                 )?)
             }
-            None => Ok(self.find_or_install_active_toolchain().await?.0),
+            None => Ok(self.find_or_install_active_toolchain(false).await?.0),
         }
     }
 
@@ -718,7 +718,7 @@ impl<'a> Cfg<'a> {
                 let desc = name.resolve(&self.get_default_host_triple()?)?;
                 Toolchain::new(self, desc.into())?
             }
-            None => self.find_or_install_active_toolchain().await?.0,
+            None => self.find_or_install_active_toolchain(false).await?.0,
         })
     }
 
@@ -732,12 +732,15 @@ impl<'a> Cfg<'a> {
 
         Ok(match local {
             Some(tc) => Toolchain::from_local(tc, false, self).await?,
-            None => self.find_or_install_active_toolchain().await?.0,
+            None => self.find_or_install_active_toolchain(false).await?.0,
         })
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    async fn find_or_install_active_toolchain(&'a self) -> Result<(Toolchain<'a>, ActiveReason)> {
+    async fn find_or_install_active_toolchain(
+        &'a self,
+        verbose: bool,
+    ) -> Result<(Toolchain<'a>, ActiveReason)> {
         match self.find_override_config()? {
             Some((override_config, reason)) => match override_config {
                 OverrideCfg::PathBased(path_based_name) => {
@@ -755,7 +758,7 @@ impl<'a> Cfg<'a> {
                     profile,
                 } => {
                     let toolchain = self
-                        .ensure_installed(&toolchain, components, targets, profile, false)
+                        .ensure_installed(&toolchain, components, targets, profile, verbose)
                         .await?
                         .1;
                     Ok((toolchain, reason))
@@ -771,7 +774,7 @@ impl<'a> Cfg<'a> {
                 Some(ToolchainName::Official(toolchain_desc)) => {
                     let reason = ActiveReason::Default;
                     let toolchain = self
-                        .ensure_installed(&toolchain_desc, vec![], vec![], None, false)
+                        .ensure_installed(&toolchain_desc, vec![], vec![], None, verbose)
                         .await?
                         .1;
                     Ok((toolchain, reason))
