@@ -107,7 +107,7 @@ enum RustupSubcmd {
         opts: UpdateOpts,
     },
 
-    /// Uninstall Rust toolchains
+    /// Uninstall the given toolchains
     #[command(hide = true)]
     Uninstall {
         #[command(flatten)]
@@ -309,7 +309,7 @@ enum ToolchainSubcmd {
         opts: UpdateOpts,
     },
 
-    /// Uninstall a toolchain
+    /// Uninstall the given toolchains
     #[command(alias = "remove")]
     Uninstall {
         #[command(flatten)]
