@@ -908,7 +908,7 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    let binary_path = cfg.resolve_toolchain(toolchain).await?.binary_file(binary);
+    let binary_path = cfg.resolve_toolchain(toolchain)?.binary_file(binary);
 
     utils::assert_is_file(&binary_path)?;
 

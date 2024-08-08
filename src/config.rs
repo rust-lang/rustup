@@ -709,7 +709,7 @@ impl<'a> Cfg<'a> {
         Ok(Some(Toolchain::new(self, name)?.rustc_version()))
     }
 
-    pub(crate) async fn resolve_toolchain(
+    pub(crate) fn resolve_toolchain(
         &self,
         name: Option<ResolvableToolchainName>,
     ) -> Result<Toolchain<'_>> {
