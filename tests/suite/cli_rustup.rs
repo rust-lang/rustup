@@ -2143,6 +2143,12 @@ components = [ "rust-src" ]
     .unwrap();
 
     cx.config
+        .expect_stderr_ok(
+            &["rustup", "toolchain", "install"],
+            "info: installing component 'rust-src'",
+        )
+        .await;
+    cx.config
         .expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)")
         .await;
 }
@@ -2169,6 +2175,12 @@ targets = [ "arm-linux-androideabi" ]
     )
     .unwrap();
 
+    cx.config
+        .expect_stderr_ok(
+            &["rustup", "toolchain", "install"],
+            "info: installing component 'rust-std' for 'arm-linux-androideabi'",
+        )
+        .await;
     cx.config
         .expect_stdout_ok(
             &["rustup", "component", "list"],
@@ -2225,6 +2237,9 @@ channel = "nightly"
 "#,
     )
     .unwrap();
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install"])
+        .await;
     cx.config
         .expect_not_stdout_ok(
             &["rustup", "component", "list"],
