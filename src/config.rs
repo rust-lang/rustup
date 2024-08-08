@@ -729,16 +729,15 @@ impl<'a> Cfg<'a> {
         let local = name
             .map(|name| name.resolve(&self.get_default_host_triple()?))
             .transpose()?;
-
-        Ok(match local {
-            Some(tc) => Toolchain::new(self, tc)?,
-            None => Toolchain::new(
-                self,
+        let toolchain = match local {
+            Some(tc) => tc,
+            None => {
                 self.find_active_toolchain()?
                     .ok_or_else(|| no_toolchain_error(self.process))?
-                    .0,
-            )?,
-        })
+                    .0
+            }
+        };
+        Ok(Toolchain::new(self, toolchain)?)
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
