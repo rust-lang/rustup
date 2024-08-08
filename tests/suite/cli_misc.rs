@@ -1099,6 +1099,10 @@ async fn which_asking_uninstalled_toolchain() {
 #[tokio::test]
 async fn override_by_toolchain_on_the_command_line() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install", "stable", "nightly"])
+        .await;
+
     #[cfg(windows)]
     cx.config
         .expect_stdout_ok(
