@@ -713,13 +713,14 @@ impl<'a> Cfg<'a> {
         &self,
         name: Option<ResolvableToolchainName>,
     ) -> Result<Toolchain<'_>> {
-        Ok(match name {
+        let toolchain = match name {
             Some(name) => {
                 let desc = name.resolve(&self.get_default_host_triple()?)?;
-                Toolchain::new(self, desc.into())?
+                Some(desc.into())
             }
-            None => self.find_or_install_active_toolchain(false).await?.0,
-        })
+            None => None,
+        };
+        self.local_toolchain(toolchain)
     }
 
     pub(crate) fn resolve_local_toolchain(
