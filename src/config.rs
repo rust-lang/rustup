@@ -502,16 +502,14 @@ impl<'a> Cfg<'a> {
         &self,
         toolchain: Option<PartialToolchainDesc>,
     ) -> anyhow::Result<Toolchain<'_>> {
-        match toolchain {
+        let toolchain = match toolchain {
             Some(toolchain) => {
                 let desc = toolchain.resolve(&self.get_default_host_triple()?)?;
-                Ok(Toolchain::new(
-                    self,
-                    LocalToolchainName::Named(ToolchainName::Official(desc)),
-                )?)
+                Some(LocalToolchainName::Named(ToolchainName::Official(desc)))
             }
-            None => Ok(self.find_or_install_active_toolchain(false).await?.0),
-        }
+            None => None,
+        };
+        self.local_toolchain(toolchain)
     }
 
     pub(crate) fn find_active_toolchain(
