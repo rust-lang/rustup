@@ -498,7 +498,7 @@ impl<'a> Cfg<'a> {
             .transpose()?)
     }
 
-    pub(crate) async fn toolchain_from_partial(
+    pub(crate) fn toolchain_from_partial(
         &self,
         toolchain: Option<PartialToolchainDesc>,
     ) -> anyhow::Result<Toolchain<'_>> {

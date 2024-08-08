@@ -1097,7 +1097,7 @@ async fn target_list(
     quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     common::list_items(
         distributable,
         |c| {
@@ -1124,7 +1124,7 @@ async fn target_add(
     // isn't a feature yet.
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let components = distributable.components()?;
 
     if targets.contains(&"all".to_string()) {
@@ -1168,7 +1168,7 @@ async fn target_remove(
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
 
     for target in targets {
         let target = TargetTriple::new(target);
@@ -1204,7 +1204,7 @@ async fn component_list(
     quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     common::list_items(
         distributable,
         |c| Some(&c.name),
@@ -1220,7 +1220,7 @@ async fn component_add(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1246,7 +1246,7 @@ async fn component_remove(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1447,7 +1447,7 @@ async fn doc(
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> Result<utils::ExitCode> {
-    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
+    let toolchain = cfg.toolchain_from_partial(toolchain)?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1508,7 +1508,7 @@ async fn man(
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
+    let toolchain = cfg.toolchain_from_partial(toolchain)?;
     let path = toolchain.man_path();
     utils::assert_is_directory(&path)?;
 
