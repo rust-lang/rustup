@@ -170,18 +170,6 @@ async fn remove_toolchain() {
 }
 
 #[tokio::test]
-async fn remove_default_toolchain_autoinstalls() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV1).await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    cx.config
-        .expect_ok(&["rustup", "toolchain", "remove", "nightly"])
-        .await;
-    cx.config
-        .expect_stderr_ok(&["rustc", "--version"], "info: installing component")
-        .await;
-}
-
-#[tokio::test]
 async fn remove_override_toolchain_err_handling() {
     let mut cx = CliTestContext::new(Scenario::SimpleV1).await;
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
@@ -194,7 +182,15 @@ async fn remove_override_toolchain_err_handling() {
         .expect_ok(&["rustup", "toolchain", "remove", "beta"])
         .await;
     cx.config
-        .expect_stderr_ok(&["rustc", "--version"], "info: installing component")
+        .expect_err_ex(
+            &["rustc", "--version"],
+            "",
+            for_host!(
+                r"error: toolchain 'beta-{0}' is not installed
+help: run `rustup toolchain install beta-{0}` to install it
+"
+            ),
+        )
         .await;
 }
 

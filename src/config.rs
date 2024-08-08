@@ -731,8 +731,13 @@ impl<'a> Cfg<'a> {
             .transpose()?;
 
         Ok(match local {
-            Some(tc) => Toolchain::from_local(tc, false, self).await?,
-            None => self.find_or_install_active_toolchain(false).await?.0,
+            Some(tc) => Toolchain::new(self, tc)?,
+            None => Toolchain::new(
+                self,
+                self.find_active_toolchain()?
+                    .ok_or_else(|| no_toolchain_error(self.process))?
+                    .0,
+            )?,
         })
     }
 

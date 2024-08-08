@@ -2133,7 +2133,7 @@ async fn file_override_toml_format_install_both_toolchain_and_components() {
         cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     }
 
-    let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+    let mut cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0")
         .await;
@@ -2153,6 +2153,9 @@ components = [ "rust-src" ]
     )
     .unwrap();
 
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install"])
+        .await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
         .await;
@@ -2233,7 +2236,7 @@ components = [ "rust-bongo" ]
 
     cx.config
         .expect_stderr_ok(
-            &["rustc", "--version"],
+            &["rustup", "toolchain", "install"],
             "warn: Force-skipping unavailable component 'rust-bongo",
         )
         .await;
@@ -2789,7 +2792,7 @@ async fn dont_warn_on_partial_build() {
 /// Checks that `rust-toolchain.toml` files are considered
 #[tokio::test]
 async fn rust_toolchain_toml() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect_err(
             &["rustc", "--version"],
@@ -2800,7 +2803,9 @@ async fn rust_toolchain_toml() {
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain.toml");
     raw::write_file(&toolchain_file, "[toolchain]\nchannel = \"nightly\"").unwrap();
-
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install"])
+        .await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
         .await;
@@ -2831,7 +2836,7 @@ async fn warn_on_duplicate_rust_toolchain_file() {
 
     cx.config
         .expect_stderr_ok(
-            &["rustc", "--version"],
+            &["rustup", "toolchain", "install"],
             &format!(
                 "warn: both `{0}` and `{1}` exist. Using `{0}`",
                 toolchain_file_1.canonicalize().unwrap().display(),

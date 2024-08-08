@@ -312,18 +312,6 @@ async fn add_remove_multiple_toolchains() {
 }
 
 #[tokio::test]
-async fn remove_default_toolchain_autoinstalls() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    cx.config
-        .expect_ok(&["rustup", "toolchain", "remove", "nightly"])
-        .await;
-    cx.config
-        .expect_stderr_ok(&["rustc", "--version"], "info: installing component")
-        .await;
-}
-
-#[tokio::test]
 async fn remove_override_toolchain_err_handling() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
@@ -336,7 +324,15 @@ async fn remove_override_toolchain_err_handling() {
         .expect_ok(&["rustup", "toolchain", "remove", "beta"])
         .await;
     cx.config
-        .expect_stderr_ok(&["rustc", "--version"], "info: installing component")
+        .expect_err_ex(
+            &["rustc", "--version"],
+            "",
+            for_host!(
+                r"error: toolchain 'beta-{0}' is not installed
+help: run `rustup toolchain install beta-{0}` to install it
+"
+            ),
+        )
         .await;
 }
 
@@ -347,7 +343,10 @@ async fn file_override_toolchain_err_handling() {
     let toolchain_file = cwd.join("rust-toolchain");
     rustup::utils::raw::write_file(&toolchain_file, "beta").unwrap();
     cx.config
-        .expect_stderr_ok(&["rustc", "--version"], "info: installing component")
+        .expect_err(
+            &["rustc", "--version"],
+            for_host!("toolchain 'beta-{0}' is not installed"),
+        )
         .await;
 }
 
@@ -420,12 +419,6 @@ async fn bad_manifest() {
     cx.config
         .expect_err(
             &["rustup", "check"],
-            &format!("error: could not parse manifest file: '{}'", path.display()),
-        )
-        .await;
-    cx.config
-        .expect_err(
-            &["cargo", "--help"],
             &format!("error: could not parse manifest file: '{}'", path.display()),
         )
         .await;
