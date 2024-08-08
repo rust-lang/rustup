@@ -722,7 +722,7 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) async fn resolve_local_toolchain(
+    pub(crate) fn resolve_local_toolchain(
         &self,
         name: Option<ResolvableLocalToolchainName>,
     ) -> Result<Toolchain<'_>> {
