@@ -729,7 +729,11 @@ impl<'a> Cfg<'a> {
         let local = name
             .map(|name| name.resolve(&self.get_default_host_triple()?))
             .transpose()?;
-        let toolchain = match local {
+        self.local_toolchain(local)
+    }
+
+    fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
+        let toolchain = match name {
             Some(tc) => tc,
             None => {
                 self.find_active_toolchain()?
