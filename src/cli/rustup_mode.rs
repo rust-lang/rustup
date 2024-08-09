@@ -867,10 +867,7 @@ async fn update(
         }
     } else if ensure_active_toolchain {
         let (toolchain, reason) = cfg.find_or_install_active_toolchain(true).await?;
-        info!(
-            "the active toolchain `{}` has been installed",
-            toolchain.name()
-        );
+        info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {reason}");
     } else {
         exit_code &= common::update_all_channels(cfg, self_update, opts.force).await?;

@@ -115,7 +115,7 @@ impl Display for ActiveReason {
 // RUSTUP_TOOLCHAIN environment variable, or rust-toolchain.toml file etc. Can
 // include components and targets from a rust-toolchain.toml that should be
 // downloaded and installed.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum OverrideCfg {
     PathBased(PathBasedToolchainName),
     Custom(CustomToolchainName),
@@ -502,13 +502,13 @@ impl<'a> Cfg<'a> {
         &self,
         toolchain: Option<PartialToolchainDesc>,
     ) -> anyhow::Result<Toolchain<'_>> {
-        let toolchain = match toolchain {
-            Some(toolchain) => {
-                let desc = toolchain.resolve(&self.get_default_host_triple()?)?;
-                Some(LocalToolchainName::Named(ToolchainName::Official(desc)))
-            }
-            None => None,
-        };
+        let toolchain = toolchain
+            .map(|desc| {
+                anyhow::Ok(LocalToolchainName::Named(ToolchainName::Official(
+                    desc.resolve(&self.get_default_host_triple()?)?,
+                )))
+            })
+            .transpose()?;
         self.local_toolchain(toolchain)
     }
 
@@ -711,13 +711,9 @@ impl<'a> Cfg<'a> {
         &self,
         name: Option<ResolvableToolchainName>,
     ) -> Result<Toolchain<'_>> {
-        let toolchain = match name {
-            Some(name) => {
-                let desc = name.resolve(&self.get_default_host_triple()?)?;
-                Some(desc.into())
-            }
-            None => None,
-        };
+        let toolchain = name
+            .map(|name| anyhow::Ok(name.resolve(&self.get_default_host_triple()?)?.into()))
+            .transpose()?;
         self.local_toolchain(toolchain)
     }
 
@@ -745,48 +741,35 @@ impl<'a> Cfg<'a> {
 
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) async fn find_or_install_active_toolchain(
-        &'a self,
+        &self,
         verbose: bool,
-    ) -> Result<(Toolchain<'a>, ActiveReason)> {
-        match self.find_override_config()? {
-            Some((override_config, reason)) => match override_config {
-                OverrideCfg::PathBased(path_based_name) => {
-                    let toolchain = Toolchain::with_reason(self, path_based_name.into(), &reason)?;
-                    Ok((toolchain, reason))
-                }
-                OverrideCfg::Custom(custom_name) => {
-                    let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
-                    Ok((toolchain, reason))
-                }
-                OverrideCfg::Official {
-                    toolchain,
-                    components,
-                    targets,
-                    profile,
-                } => {
-                    let toolchain = self
-                        .ensure_installed(&toolchain, components, targets, profile, verbose)
-                        .await?
-                        .1;
-                    Ok((toolchain, reason))
-                }
-            },
-            None => match self.get_default()? {
-                None => Err(no_toolchain_error(self.process)),
-                Some(ToolchainName::Custom(custom_name)) => {
-                    let reason = ActiveReason::Default;
-                    let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
-                    Ok((toolchain, reason))
-                }
-                Some(ToolchainName::Official(toolchain_desc)) => {
-                    let reason = ActiveReason::Default;
-                    let toolchain = self
-                        .ensure_installed(&toolchain_desc, vec![], vec![], None, verbose)
-                        .await?
-                        .1;
-                    Ok((toolchain, reason))
-                }
-            },
+    ) -> Result<(LocalToolchainName, ActiveReason)> {
+        if let Some((override_config, reason)) = self.find_override_config()? {
+            let toolchain = override_config.clone().into_local_toolchain_name();
+            if let OverrideCfg::Official {
+                toolchain,
+                components,
+                targets,
+                profile,
+            } = override_config
+            {
+                self.ensure_installed(&toolchain, components, targets, profile, verbose)
+                    .await?;
+            } else {
+                Toolchain::with_reason(self, toolchain.clone(), &reason)?;
+            }
+            Ok((toolchain, reason))
+        } else if let Some(toolchain) = self.get_default()? {
+            let reason = ActiveReason::Default;
+            if let ToolchainName::Official(desc) = &toolchain {
+                self.ensure_installed(desc, vec![], vec![], None, verbose)
+                    .await?;
+            } else {
+                Toolchain::with_reason(self, toolchain.clone().into(), &reason)?;
+            }
+            Ok((toolchain.into(), reason))
+        } else {
+            Err(no_toolchain_error(self.process))
         }
     }
 
