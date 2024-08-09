@@ -741,18 +741,18 @@ impl<'a> Cfg<'a> {
 
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) async fn find_or_install_active_toolchain(
-        &'a self,
+        &self,
         verbose: bool,
-    ) -> Result<(Toolchain<'a>, ActiveReason)> {
+    ) -> Result<(LocalToolchainName, ActiveReason)> {
         match self.find_override_config()? {
             Some((override_config, reason)) => match override_config {
                 OverrideCfg::PathBased(path_based_name) => {
                     let toolchain = Toolchain::with_reason(self, path_based_name.into(), &reason)?;
-                    Ok((toolchain, reason))
+                    Ok((toolchain.name().clone(), reason))
                 }
                 OverrideCfg::Custom(custom_name) => {
                     let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
-                    Ok((toolchain, reason))
+                    Ok((toolchain.name().clone(), reason))
                 }
                 OverrideCfg::Official {
                     toolchain,
@@ -764,7 +764,7 @@ impl<'a> Cfg<'a> {
                         .ensure_installed(&toolchain, components, targets, profile, verbose)
                         .await?
                         .1;
-                    Ok((toolchain, reason))
+                    Ok((toolchain.name().clone(), reason))
                 }
             },
             None => match self.get_default()? {
@@ -772,7 +772,7 @@ impl<'a> Cfg<'a> {
                 Some(ToolchainName::Custom(custom_name)) => {
                     let reason = ActiveReason::Default;
                     let toolchain = Toolchain::with_reason(self, custom_name.into(), &reason)?;
-                    Ok((toolchain, reason))
+                    Ok((toolchain.name().clone(), reason))
                 }
                 Some(ToolchainName::Official(toolchain_desc)) => {
                     let reason = ActiveReason::Default;
@@ -780,7 +780,7 @@ impl<'a> Cfg<'a> {
                         .ensure_installed(&toolchain_desc, vec![], vec![], None, verbose)
                         .await?
                         .1;
-                    Ok((toolchain, reason))
+                    Ok((toolchain.name().clone(), reason))
                 }
             },
         }
