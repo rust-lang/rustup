@@ -502,13 +502,13 @@ impl<'a> Cfg<'a> {
         &self,
         toolchain: Option<PartialToolchainDesc>,
     ) -> anyhow::Result<Toolchain<'_>> {
-        let toolchain = match toolchain {
-            Some(toolchain) => {
-                let desc = toolchain.resolve(&self.get_default_host_triple()?)?;
-                Some(LocalToolchainName::Named(ToolchainName::Official(desc)))
-            }
-            None => None,
-        };
+        let toolchain = toolchain
+            .map(|desc| {
+                anyhow::Ok(LocalToolchainName::Named(ToolchainName::Official(
+                    desc.resolve(&self.get_default_host_triple()?)?,
+                )))
+            })
+            .transpose()?;
         self.local_toolchain(toolchain)
     }
 
