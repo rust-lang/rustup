@@ -711,13 +711,9 @@ impl<'a> Cfg<'a> {
         &self,
         name: Option<ResolvableToolchainName>,
     ) -> Result<Toolchain<'_>> {
-        let toolchain = match name {
-            Some(name) => {
-                let desc = name.resolve(&self.get_default_host_triple()?)?;
-                Some(desc.into())
-            }
-            None => None,
-        };
+        let toolchain = name
+            .map(|name| anyhow::Ok(name.resolve(&self.get_default_host_triple()?)?.into()))
+            .transpose()?;
         self.local_toolchain(toolchain)
     }
 
