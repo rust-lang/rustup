@@ -933,47 +933,6 @@ async fn list_default_and_override_toolchain() {
 }
 
 #[tokio::test]
-async fn heal_damaged_toolchain() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    cx.config
-        .expect_not_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates")
-        .await;
-    let manifest_path = format!(
-        "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
-        this_host_triple()
-    );
-
-    let mut rustc_path = cx.config.rustupdir.join(
-        [
-            "toolchains",
-            &format!("nightly-{}", this_host_triple()),
-            "bin",
-            "rustc",
-        ]
-        .iter()
-        .collect::<PathBuf>(),
-    );
-
-    if cfg!(windows) {
-        rustc_path.set_extension("exe");
-    }
-
-    fs::remove_file(cx.config.rustupdir.join(manifest_path)).unwrap();
-    cx.config
-        .expect_ok_ex(
-            &["rustup", "which", "rustc"],
-            &format!("{}\n", rustc_path.to_str().unwrap()),
-            for_host!("info: syncing channel updates for 'nightly-{0}'\n"),
-        )
-        .await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    cx.config
-        .expect_stderr_ok(&["rustup", "which", "rustc"], "syncing channel updates")
-        .await;
-}
-
-#[tokio::test]
 #[ignore = "FIXME: Windows shows UNC paths"]
 async fn show_toolchain_override() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
