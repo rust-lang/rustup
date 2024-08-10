@@ -131,5 +131,5 @@ pub async fn main(
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    self_update::install(current_dir, no_prompt, verbose, quiet, opts, process).await
+    self_update::install(current_dir, no_prompt, quiet, opts, process).await
 }

@@ -31,7 +31,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .skip(1 + toolchain.is_some() as usize)
         .collect();
 
-    let cfg = set_globals(current_dir, false, true, process)?;
+    let cfg = set_globals(current_dir, true, process)?;
     let cmd = cfg.resolve_local_toolchain(toolchain)?.command(arg0)?;
     run_command_for_dir(cmd, arg0, &cmd_args)
 }

@@ -545,7 +545,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
         Err(err) if err.kind() == DisplayVersion => {
             write!(process.stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
-            let mut cfg = common::set_globals(current_dir, false, true, process)?;
+            let mut cfg = common::set_globals(current_dir, true, process)?;
             match cfg.active_rustc_version() {
                 Ok(Some(version)) => info!("The currently active `rustc` version is `{version}`"),
                 Ok(None) => info!("No `rustc` is currently active"),
@@ -570,7 +570,7 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
         }
     };
 
-    let cfg = &mut common::set_globals(current_dir, matches.verbose, matches.quiet, process)?;
+    let cfg = &mut common::set_globals(current_dir, matches.quiet, process)?;
 
     if let Some(t) = &matches.plus_toolchain {
         cfg.set_toolchain_override(t);
