@@ -127,15 +127,13 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
 pub(super) struct Notifier {
     tracker: Mutex<DownloadTracker>,
     ram_notice_shown: RefCell<bool>,
-    verbose: bool,
 }
 
 impl Notifier {
-    pub(super) fn new(verbose: bool, quiet: bool, process: &Process) -> Self {
+    pub(super) fn new(quiet: bool, process: &Process) -> Self {
         Self {
             tracker: Mutex::new(DownloadTracker::new_with_display_progress(!quiet, process)),
             ram_notice_shown: RefCell::new(false),
-            verbose,
         }
     }
 
@@ -158,9 +156,7 @@ impl Notifier {
         for n in format!("{n}").lines() {
             match level {
                 NotificationLevel::Debug => {
-                    if self.verbose {
-                        debug!("{}", n);
-                    }
+                    debug!("{}", n);
                 }
                 NotificationLevel::Info => {
                     info!("{}", n);
@@ -180,13 +176,8 @@ impl Notifier {
 }
 
 #[tracing::instrument(level = "trace")]
-pub(crate) fn set_globals(
-    current_dir: PathBuf,
-    verbose: bool,
-    quiet: bool,
-    process: &Process,
-) -> Result<Cfg<'_>> {
-    let notifier = Notifier::new(verbose, quiet, process);
+pub(crate) fn set_globals(current_dir: PathBuf, quiet: bool, process: &Process) -> Result<Cfg<'_>> {
+    let notifier = Notifier::new(quiet, process);
     Cfg::from_env(current_dir, Arc::new(move |n| notifier.handle(n)), process)
 }
 

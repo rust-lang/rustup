@@ -491,7 +491,6 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
 pub(crate) async fn install(
     current_dir: PathBuf,
     no_prompt: bool,
-    verbose: bool,
     quiet: bool,
     mut opts: InstallOpts<'_>,
     process: &Process,
@@ -549,7 +548,7 @@ pub(crate) async fn install(
     }
 
     let no_modify_path = opts.no_modify_path;
-    if let Err(e) = maybe_install_rust(current_dir, verbose, quiet, opts, process).await {
+    if let Err(e) = maybe_install_rust(current_dir, quiet, opts, process).await {
         report_error(&e, process);
 
         // On windows, where installation happens in a console
@@ -804,7 +803,6 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
 
 async fn maybe_install_rust(
     current_dir: PathBuf,
-    verbose: bool,
     quiet: bool,
     opts: InstallOpts<'_>,
     process: &Process,
@@ -828,7 +826,7 @@ async fn maybe_install_rust(
         fs::create_dir_all(home).context("unable to create ~/.rustup")?;
     }
 
-    let mut cfg = common::set_globals(current_dir, verbose, quiet, process)?;
+    let mut cfg = common::set_globals(current_dir, quiet, process)?;
 
     let (components, targets) = (opts.components, opts.targets);
     let toolchain = opts.install(&mut cfg)?;
@@ -1230,8 +1228,7 @@ mod tests {
             home.apply(&mut vars);
             let tp = TestProcess::with_vars(vars);
             let mut cfg =
-                common::set_globals(tp.process.current_dir().unwrap(), false, false, &tp.process)
-                    .unwrap();
+                common::set_globals(tp.process.current_dir().unwrap(), false, &tp.process).unwrap();
 
             let opts = InstallOpts {
                 default_host_triple: None,

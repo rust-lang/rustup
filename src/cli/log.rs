@@ -69,7 +69,7 @@ where
         (logger.compact().with_filter(env_filter).boxed(), handle)
     } else {
         // Receive log lines from Rustup only.
-        let (env_filter, handle) = reload::Layer::new(EnvFilter::new("rustup=DEBUG"));
+        let (env_filter, handle) = reload::Layer::new(EnvFilter::new("rustup=INFO"));
         (
             logger
                 .event_format(EventFormatter)
