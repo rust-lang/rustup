@@ -32,10 +32,10 @@ Arguments:
 
 Options:
   -v, --verbose
-          Enable verbose output
+          Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
 
   -q, --quiet
-          Disable progress output
+          Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset
 
   -h, --help
           Print help

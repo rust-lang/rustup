@@ -10,10 +10,11 @@ use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, Val
 use clap_complete::Shell;
 use itertools::Itertools;
 use tracing::{info, trace, warn};
+use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
 
 use crate::{
     cli::{
-        common::{self, PackageUpdate},
+        common::{self, update_console_filter, PackageUpdate},
         errors::CLIError,
         help::*,
         self_update::{self, check_rustup_update, SelfUpdateMode},
@@ -68,11 +69,11 @@ fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     after_help = RUSTUP_HELP,
 )]
 struct Rustup {
-    /// Enable verbose output
-    #[arg(short, long)]
+    /// Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
+    #[arg(short, long, conflicts_with = "quiet")]
     verbose: bool,
 
-    /// Disable progress output
+    /// Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset
     #[arg(short, long, conflicts_with = "verbose")]
     quiet: bool,
 
@@ -532,7 +533,11 @@ enum SetSubcmd {
 }
 
 #[tracing::instrument(level = "trace", fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>())))]
-pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::ExitCode> {
+pub async fn main(
+    current_dir: PathBuf,
+    process: &Process,
+    console_filter: Handle<EnvFilter, Registry>,
+) -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater(process)?;
 
     use clap::error::ErrorKind::*;
@@ -569,6 +574,8 @@ pub async fn main(current_dir: PathBuf, process: &Process) -> Result<utils::Exit
             return Ok(utils::ExitCode(1));
         }
     };
+
+    update_console_filter(process, &console_filter, matches.quiet, matches.verbose);
 
     let cfg = &mut common::set_globals(current_dir, matches.quiet, process)?;
 

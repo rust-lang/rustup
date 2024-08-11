@@ -793,7 +793,12 @@ impl Config {
         }
 
         let tp = process::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
-        let process_res = rustup_mode::main(tp.process.current_dir().unwrap(), &tp.process).await;
+        let process_res = rustup_mode::main(
+            tp.process.current_dir().unwrap(),
+            &tp.process,
+            tp.console_filter.clone(),
+        )
+        .await;
         // convert Err's into an ec
         let ec = match process_res {
             Ok(process_res) => process_res,
