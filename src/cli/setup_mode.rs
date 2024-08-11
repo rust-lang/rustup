@@ -25,12 +25,12 @@ use crate::{
     before_help = format!("rustup-init {}", common::version()),
 )]
 struct RustupInit {
-    /// Enable verbose output
-    #[arg(short, long)]
+    /// Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
+    #[arg(short, long, conflicts_with = "quiet")]
     verbose: bool,
 
     /// Disable progress output, limit console logger level to 'WARN' if 'RUSTUP_LOG' is unset
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "verbose")]
     quiet: bool,
 
     /// Disable confirmation prompt
@@ -115,10 +115,17 @@ pub async fn main(
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 
-    if quiet && process.var("RUSTUP_LOG").is_err() {
-        console_filter
-            .modify(|it| *it = EnvFilter::new("rustup=WARN"))
-            .expect("error reloading `EnvFilter` for console_logger");
+    if process.var("RUSTUP_LOG").is_err() {
+        if quiet {
+            console_filter
+                .modify(|it| *it = EnvFilter::new("rustup=WARN"))
+                .expect("error reloading `EnvFilter` for console_logger");
+        }
+        if verbose {
+            console_filter
+                .modify(|it| *it = EnvFilter::new("rustup=DEBUG"))
+                .expect("error reloading `EnvFilter` for console_logger");
+        }
     }
 
     let opts = InstallOpts {
