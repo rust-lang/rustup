@@ -30,8 +30,8 @@ Arguments:
   [+toolchain]  Release channel (e.g. +stable) or custom toolchain to set override
 
 Options:
-  -v, --verbose  Enable verbose output
-  -q, --quiet    Disable progress output
+  -v, --verbose  Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
+  -q, --quiet    Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset
   -h, --help     Print help
   -V, --version  Print version
 

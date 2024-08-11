@@ -17,6 +17,8 @@ use anyhow::{Context, Result};
 use tracing::subscriber::DefaultGuard;
 #[cfg(feature = "test")]
 use tracing_subscriber::util::SubscriberInitExt;
+#[cfg(feature = "test")]
+use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
 
 pub mod filesource;
 pub mod terminalsource;
@@ -177,6 +179,7 @@ impl Default for OsProcess {
 #[cfg(feature = "test")]
 pub struct TestProcess {
     pub process: Process,
+    pub console_filter: Handle<EnvFilter, Registry>,
     _guard: DefaultGuard, // guard is dropped at the end of the test
 }
 
@@ -230,10 +233,11 @@ impl TestProcess {
 impl From<TestContext> for TestProcess {
     fn from(inner: TestContext) -> Self {
         let inner = Process::TestProcess(inner);
-        let guard = crate::cli::log::tracing_subscriber(&inner).0.set_default();
+        let (tracing_subscriber, console_filter) = crate::cli::log::tracing_subscriber(&inner);
         Self {
             process: inner,
-            _guard: guard,
+            console_filter,
+            _guard: tracing_subscriber.set_default(),
         }
     }
 }

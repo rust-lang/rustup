@@ -84,24 +84,7 @@ async fn rustup_stable_quiet() {
 
 "
             ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
-info: cleaning up downloads & tmp directories
-"
-            ),
+            "",
         )
         .await;
 }

@@ -93,7 +93,7 @@ async fn run_rustup_inner(
     utils::current_exe()?;
 
     match process.name().as_deref() {
-        Some("rustup") => rustup_mode::main(current_dir, process).await,
+        Some("rustup") => rustup_mode::main(current_dir, process, console_filter).await,
         Some(n) if n.starts_with("rustup-setup") || n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
