@@ -63,6 +63,9 @@ toolchains. The following is an overview of the different components:
 
 ### Previous components
 
+> See [here](https://rust-lang.github.io/rustup/devel/concepts/components.html#previous-components)
+> for the latest version of this section.
+
 These components have been deprecated and are not published in new Rust releases.
 
 * `rls` --- [RLS] is a language server that is deprecated and has been replaced
