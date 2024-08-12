@@ -1114,6 +1114,7 @@ jobs:
       - name: Ensure that awscli is installed
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
+          brew install --overwrite awscli
           which aws
           aws --version
       - name: Prepare the dist
@@ -1245,6 +1246,7 @@ jobs:
       - name: Ensure that awscli is installed
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
+          brew install --overwrite awscli
           which aws
           aws --version
       - name: Prepare the dist
