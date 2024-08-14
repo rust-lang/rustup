@@ -498,19 +498,11 @@ impl Component {
         distributable: &DistributableToolchain<'_>,
         fallback_target: Option<&TargetTriple>,
     ) -> Result<Self> {
+        let manifest = distributable.get_manifest()?;
         for component_status in distributable.components()? {
-            let short_name = component_status.component.short_name_in_manifest();
-            let target = component_status.component.target.as_ref();
-
-            if name.starts_with(short_name)
-                && target.is_some()
-                && name == format!("{}-{}", short_name, target.unwrap())
-            {
-                return Ok(Component::new(
-                    short_name.to_string(),
-                    target.cloned(),
-                    false,
-                ));
+            let component = component_status.component;
+            if name == component.name_in_manifest() || name == component.name(&manifest) {
+                return Ok(component);
             }
         }
 

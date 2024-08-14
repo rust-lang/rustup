@@ -1543,6 +1543,38 @@ async fn add_component_by_target_triple() {
 }
 
 #[tokio::test]
+async fn add_component_by_target_triple_renamed_from() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok(&["rustup", "component", "add", for_host!("rls-{}")])
+        .await;
+    cx.config
+        .expect_ok_contains(
+            &["rustup", "component", "list", "--installed"],
+            for_host!("rls-{}"),
+            "",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn add_component_by_target_triple_renamed_to() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok(&["rustup", "component", "add", for_host!("rls-preview-{}")])
+        .await;
+    cx.config
+        .expect_ok_contains(
+            &["rustup", "component", "list", "--installed"],
+            for_host!("rls-{}"),
+            "",
+        )
+        .await;
+}
+
+#[tokio::test]
 async fn fail_invalid_component_name() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.expect_ok(&["rustup", "default", "stable"]).await;
