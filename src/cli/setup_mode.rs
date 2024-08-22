@@ -7,7 +7,7 @@ use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
 
 use crate::{
     cli::{
-        common,
+        common::{self, update_console_filter},
         self_update::{self, InstallOpts},
     },
     dist::Profile,
@@ -115,18 +115,7 @@ pub async fn main(
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 
-    if process.var("RUSTUP_LOG").is_err() {
-        if quiet {
-            console_filter
-                .modify(|it| *it = EnvFilter::new("rustup=WARN"))
-                .expect("error reloading `EnvFilter` for console_logger");
-        }
-        if verbose {
-            console_filter
-                .modify(|it| *it = EnvFilter::new("rustup=DEBUG"))
-                .expect("error reloading `EnvFilter` for console_logger");
-        }
-    }
+    update_console_filter(process, &console_filter, quiet, verbose);
 
     let opts = InstallOpts {
         default_host_triple: default_host,
