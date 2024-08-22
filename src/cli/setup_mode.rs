@@ -29,7 +29,7 @@ struct RustupInit {
     #[arg(short, long, conflicts_with = "quiet")]
     verbose: bool,
 
-    /// Disable progress output, limit console logger level to 'WARN' if 'RUSTUP_LOG' is unset
+    /// Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset
     #[arg(short, long, conflicts_with = "verbose")]
     quiet: bool,
 
