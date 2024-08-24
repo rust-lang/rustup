@@ -47,7 +47,7 @@ pub(crate) fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
     // be changed.
     // https://github.com/rust-lang/rustup/issues/2076#issuecomment-546613036
     let keywords_top = vec!["keyword", "primitive", "macro"];
-    let keywords_mod = ["fn", "struct", "trait", "enum", "type", "constant"];
+    let keywords_mod = ["fn", "struct", "trait", "enum", "type", "constant", "union"];
 
     let topic_vec: Vec<&str> = topic.split("::").collect();
     let work_path = topic_vec.iter().fold(PathBuf::new(), |acc, e| acc.join(e));
