@@ -19,6 +19,7 @@ static TEST_CASES: &[&[&str]] = &[
     &["usize", "std/primitive.usize.html"],
     &["eprintln", "std/macro.eprintln.html"],
     &["alloc::format", "alloc/macro.format.html"],
+    &["std::mem::MaybeUninit", "std/mem/union.MaybeUninit.html"],
 ];
 
 fn repath(origin: &str) -> String {
