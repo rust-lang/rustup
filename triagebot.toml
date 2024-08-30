@@ -15,3 +15,7 @@ allow-unauthenticated = [
 ]
 
 [assign]
+
+# Enable issue transfers within the org
+# Documentation at: https://forge.rust-lang.org/triagebot/transfer.html
+[transfer]
