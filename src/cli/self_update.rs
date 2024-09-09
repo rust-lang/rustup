@@ -753,7 +753,7 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
     // `tool_handles` later on. This'll allow us, afterwards, to actually
     // overwrite all the previous hard links with new ones.
     for tool in TOOLS {
-        let tool_path = bin_path.join(&format!("{tool}{EXE_SUFFIX}"));
+        let tool_path = bin_path.join(format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             tool_handles.push(handle);
             if rustup == *tool_handles.last().unwrap() {
@@ -764,7 +764,7 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
     }
 
     for tool in DUP_TOOLS {
-        let tool_path = bin_path.join(&format!("{tool}{EXE_SUFFIX}"));
+        let tool_path = bin_path.join(format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             // Like above, don't clobber anything that's already hardlinked to
             // avoid extraneous errors from being returned.

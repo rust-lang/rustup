@@ -99,7 +99,7 @@ info: default toolchain set to 'stable-{0}'
     }
 
     for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
-        let path = &cx.config.cargodir.join(&format!("bin/{tool}{EXE_SUFFIX}"));
+        let path = &cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
         check(path);
     }
 }
