@@ -731,8 +731,8 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
     let mut tool_handles = Vec::new();
     let mut link_afterwards = Vec::new();
 
-    // Try to hardlink all the Rust exes to the rustup exe. Some systems,
-    // like Android, does not support hardlinks, so we fallback to symlinks.
+    // Try to symlink all the Rust exes to the rustup exe. Some systems,
+    // like Windows, do not always support symlinks, so we fallback to hard links.
     //
     // Note that this function may not be running in the context of a fresh
     // self update but rather as part of a normal update to fill in missing
@@ -751,7 +751,7 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
     // actually delete files (they'll say they're deleted but they won't
     // actually be on Windows). As a result we manually drop all the
     // `tool_handles` later on. This'll allow us, afterwards, to actually
-    // overwrite all the previous hard links with new ones.
+    // overwrite all the previous soft or hard links with new ones.
     for tool in TOOLS {
         let tool_path = bin_path.join(format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
@@ -766,7 +766,7 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
     for tool in DUP_TOOLS {
         let tool_path = bin_path.join(format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
-            // Like above, don't clobber anything that's already hardlinked to
+            // Like above, don't clobber anything that's already linked to
             // avoid extraneous errors from being returned.
             if rustup == handle {
                 continue;
@@ -790,12 +790,12 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
                 continue;
             }
         }
-        utils::hard_or_symlink_file(&rustup_path, &tool_path)?;
+        utils::symlink_or_hardlink_file(&rustup_path, &tool_path)?;
     }
 
     drop(tool_handles);
     for path in link_afterwards {
-        utils::hard_or_symlink_file(&rustup_path, &path)?;
+        utils::symlink_or_hardlink_file(&rustup_path, &path)?;
     }
 
     Ok(())
