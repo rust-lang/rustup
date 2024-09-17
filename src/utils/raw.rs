@@ -226,11 +226,6 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     }
 }
 
-pub(crate) fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
-    let _ = fs::remove_file(dest);
-    fs::hard_link(src, dest)
-}
-
 pub fn remove_dir(path: &Path) -> io::Result<()> {
     if fs::symlink_metadata(path)?.file_type().is_symlink() {
         #[cfg(windows)]

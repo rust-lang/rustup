@@ -312,7 +312,11 @@ where
     })
 }
 
+/// Attempts to symlink a file, falling back to hard linking if that fails.
+///
+/// If `dest` already exists then it will be replaced.
 pub(crate) fn symlink_or_hardlink_file(src: &Path, dest: &Path) -> Result<()> {
+    let _ = fs::remove_file(dest);
     // The error is only used by macos
     let Err(_err) = symlink_file(src, dest) else {
         return Ok(());
@@ -332,7 +336,7 @@ pub(crate) fn symlink_or_hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 }
 
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
-    raw::hardlink(src, dest).with_context(|| RustupError::LinkingFile {
+    fs::hard_link(src, dest).with_context(|| RustupError::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
     })
