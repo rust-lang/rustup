@@ -19,6 +19,9 @@ And it runs on all platforms Rust supports, including Windows.
 See [**The Rustup book**](https://rust-lang.github.io/rustup/) for
 documentation on installing and using Rustup.
 
+The latest documentation for the master branch can be found
+under [devel](https://rust-lang.github.io/rustup/devel/).
+
 ## Contributing
 
 See [**The Rustup dev guide**](https://rust-lang.github.io/rustup/dev-guide) for information on contributing to Rustup.
