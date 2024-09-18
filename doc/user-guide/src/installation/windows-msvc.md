@@ -52,11 +52,16 @@ Note that the specific version of the Windows SDK doesn't matter for pure Rust c
 ![Select the latest MSVC component](images/component-msvc.png)
 ![Select the Windows 11 SDK component](images/component-sdk.png)
 
-### Completing the install
+### Adding Language Packs (optional)
 
-After choosing the components, switch to the "Language Packs" tab and add the English language pack in addition to your preferred language.
+After choosing the components, you may also want to select the language packs to install.
+Switch to the "Language Packs" tab and add the languages.
+It is recommended that you add the English language pack in addition to your preferred language.
+This will provide English language error messages, which may help when reporting errors.
 
 ![Add the English language](images/step4.png)
+
+### Completing the install
 
 Finally click the install button and wait for everything to be installed.
 
