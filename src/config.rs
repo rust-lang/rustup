@@ -742,6 +742,7 @@ impl<'a> Cfg<'a> {
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) async fn find_or_install_active_toolchain(
         &self,
+        force_non_host: bool,
         verbose: bool,
     ) -> Result<(LocalToolchainName, ActiveReason)> {
         if let Some((override_config, reason)) = self.find_override_config()? {
@@ -753,8 +754,15 @@ impl<'a> Cfg<'a> {
                 profile,
             } = override_config
             {
-                self.ensure_installed(&toolchain, components, targets, profile, verbose)
-                    .await?;
+                self.ensure_installed(
+                    &toolchain,
+                    components,
+                    targets,
+                    profile,
+                    force_non_host,
+                    verbose,
+                )
+                .await?;
             } else {
                 Toolchain::with_reason(self, toolchain.clone(), &reason)?;
             }
@@ -762,7 +770,7 @@ impl<'a> Cfg<'a> {
         } else if let Some(toolchain) = self.get_default()? {
             let reason = ActiveReason::Default;
             if let ToolchainName::Official(desc) = &toolchain {
-                self.ensure_installed(desc, vec![], vec![], None, verbose)
+                self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
                     .await?;
             } else {
                 Toolchain::with_reason(self, toolchain.clone().into(), &reason)?;
@@ -782,13 +790,14 @@ impl<'a> Cfg<'a> {
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
+        force_non_host: bool,
         verbose: bool,
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
         common::warn_if_host_is_incompatible(
             toolchain,
             &TargetTriple::from_host_or_build(self.process),
             &toolchain.target,
-            false,
+            force_non_host,
         )?;
         if verbose {
             (self.notify_handler)(Notification::LookingForToolchain(toolchain));
