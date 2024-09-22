@@ -23,6 +23,8 @@ use rustup::test::{
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
+#[cfg(windows)]
+use windows_registry::Value;
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -350,12 +352,12 @@ async fn update_overwrites_programs_display_version() {
         .await;
 
     USER_RUSTUP_VERSION
-        .set_value(Some(PLACEHOLDER_VERSION))
+        .set_value(Some(&Value::from(PLACEHOLDER_VERSION)))
         .unwrap();
     cx.config.expect_ok(&["rustup", "self", "update"]).await;
     assert_eq!(
-        USER_RUSTUP_VERSION.get_value::<String>().unwrap().unwrap(),
-        version,
+        USER_RUSTUP_VERSION.get_value().unwrap().unwrap(),
+        Value::from(version)
     );
 }
 

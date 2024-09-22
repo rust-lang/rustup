@@ -95,7 +95,8 @@ zstd = "0.13"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.52"
+windows-registry = "0.3.0"
+windows-result = "0.2.0"
 
 [target."cfg(windows)".dependencies.windows-sys]
 features = [
