@@ -629,7 +629,7 @@ pub(crate) fn ignorable_error(
 /// Warns if rustup is trying to install a toolchain that might not be
 /// able to run on the host system.
 pub(crate) fn warn_if_host_is_incompatible(
-    toolchain: impl Display,
+    toolchain: String,
     host_arch: &TargetTriple,
     target_triple: &TargetTriple,
     force_non_host: bool,
