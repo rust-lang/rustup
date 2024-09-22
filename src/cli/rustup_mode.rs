@@ -161,6 +161,10 @@ enum RustupSubcmd {
     Default {
         #[arg(help = MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)]
         toolchain: Option<MaybeResolvableToolchainName>,
+
+        /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
+        #[arg(long)]
+        force_non_host: bool,
     },
 
     /// Modify or query the installed toolchains
@@ -631,7 +635,10 @@ pub async fn main(
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
         },
         RustupSubcmd::Check => check_updates(cfg).await,
-        RustupSubcmd::Default { toolchain } => default_(cfg, toolchain).await,
+        RustupSubcmd::Default {
+            toolchain,
+            force_non_host,
+        } => default_(cfg, toolchain, force_non_host).await,
         RustupSubcmd::Target { subcmd } => match subcmd {
             TargetSubcmd::List {
                 toolchain,
@@ -710,6 +717,7 @@ pub async fn main(
 async fn default_(
     cfg: &Cfg<'_>,
     toolchain: Option<MaybeResolvableToolchainName>,
+    force_non_host: bool,
 ) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
@@ -725,7 +733,7 @@ async fn default_(
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
                 let status = cfg
-                    .ensure_installed(&desc, vec![], vec![], None, false, true)
+                    .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
                     .0;
 
