@@ -814,7 +814,7 @@ async fn update(
     let self_update = !self_update::NEVER_SELF_UPDATE
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
-    let forced = opts.force_non_host;
+    let force_non_host = opts.force_non_host;
     if let Some(p) = opts.profile {
         cfg.set_profile_override(p);
     }
@@ -829,7 +829,12 @@ async fn update(
             if name.has_triple() {
                 let host_arch = TargetTriple::from_host_or_build(cfg.process);
                 let target_triple = name.clone().resolve(&host_arch)?.target;
-                common::warn_if_host_is_incompatible(&name, &host_arch, &target_triple, forced)?;
+                common::warn_if_host_is_incompatible(
+                    &name,
+                    &host_arch,
+                    &target_triple,
+                    force_non_host,
+                )?;
             }
             let desc = name.resolve(&cfg.get_default_host_triple()?)?;
 
