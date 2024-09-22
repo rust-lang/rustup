@@ -210,7 +210,7 @@ async fn multi_host_smoke_test() {
     let mut cx = CliTestContext::new(Scenario::MultiHost).await;
     let toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
     cx.config
-        .expect_ok(&["rustup", "default", &toolchain])
+        .expect_ok(&["rustup", "default", &toolchain, "--force-non-host"])
         .await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "xxxx-nightly-2")

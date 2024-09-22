@@ -837,7 +837,7 @@ async fn update(
             if name.has_triple() {
                 let host_arch = TargetTriple::from_host_or_build(cfg.process);
                 let target_triple = name.clone().resolve(&host_arch)?.target;
-                common::warn_if_host_is_incompatible(
+                common::check_non_host_toolchain(
                     name.to_string(),
                     &host_arch,
                     &target_triple,
