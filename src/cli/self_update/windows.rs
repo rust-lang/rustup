@@ -1,10 +1,8 @@
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
-#[cfg(any(test, feature = "test"))]
-use std::io;
 use std::io::Write;
-use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -13,10 +11,11 @@ use std::sync::{LockResult, MutexGuard};
 
 use anyhow::{anyhow, Context, Result};
 use tracing::{info, warn};
-use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 #[cfg(any(test, feature = "test"))]
-use winreg::types::{FromRegValue, ToRegValue};
-use winreg::{RegKey, RegValue};
+use windows_registry::Value;
+use windows_registry::{Key, CURRENT_USER, HSTRING};
+use windows_result::HRESULT;
+use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
 use super::super::errors::*;
 use super::common;
@@ -465,7 +464,7 @@ pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     do_add_to_programs(process)
 }
 
-fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
+fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
     use std::ptr;
     use windows_sys::Win32::Foundation::*;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -477,17 +476,12 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
         None => return Ok(()), // No need to set the path
     };
 
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)?;
+    let environment = CURRENT_USER.create("Environment")?;
 
     if new_path.is_empty() {
-        environment.delete_value("PATH")?;
+        environment.remove_value("PATH")?;
     } else {
-        let reg_value = RegValue {
-            bytes: to_winreg_bytes(new_path),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment.set_raw_value("PATH", &reg_value)?;
+        environment.set_expand_hstring("PATH", &new_path)?;
     }
 
     // Tell other processes to update their environment
@@ -510,55 +504,49 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
 // Get the windows PATH variable out of the registry as a String. If
 // this returns None then the PATH variable is not a string and we
 // should not mess with it.
-fn get_windows_path_var() -> Result<Option<Vec<u16>>> {
-    use std::io;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+fn get_windows_path_var() -> Result<Option<HSTRING>> {
+    let environment = CURRENT_USER
+        .create("Environment")
         .context("Failed opening Environment key")?;
 
-    let reg_value = environment.get_raw_value("PATH");
+    let reg_value = environment.get_hstring("PATH");
     match reg_value {
-        Ok(val) => {
-            if let Some(s) = from_winreg_value(&val) {
-                Ok(Some(s))
-            } else {
-                warn!(
-                    "the registry key HKEY_CURRENT_USER\\Environment\\PATH is not a string. \
-                       Not modifying the PATH variable"
-                );
-                Ok(None)
-            }
+        Ok(val) => Ok(Some(val)),
+        Err(e) if e.code() == HRESULT::from_win32(ERROR_INVALID_DATA) => {
+            warn!(
+                "the registry key HKEY_CURRENT_USER\\Environment\\PATH is not a string. \
+                   Not modifying the PATH variable"
+            );
+            Ok(None)
         }
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Some(Vec::new())),
+        Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(Some(HSTRING::new())),
         Err(e) => Err(e).context(CLIError::WindowsUninstallMadness),
     }
 }
 
 // Returns None if the existing old_path does not need changing, otherwise
 // prepends the path_str to old_path, handling empty old_path appropriately.
-fn _add_to_path(old_path: Vec<u16>, path_str: Vec<u16>) -> Option<Vec<u16>> {
+fn _add_to_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     if old_path.is_empty() {
         Some(path_str)
     } else if old_path
         .windows(path_str.len())
-        .any(|path| path == path_str)
+        .any(|path| *path == *path_str)
     {
         None
     } else {
-        let mut new_path = path_str;
-        new_path.push(b';' as u16);
-        new_path.extend_from_slice(&old_path);
-        Some(new_path)
+        let mut new_path = path_str.to_os_string();
+        new_path.push(";");
+        new_path.push(old_path.to_os_string());
+        Some(HSTRING::from(new_path))
     }
 }
 
 // Returns None if the existing old_path does not need changing
-fn _remove_from_path(old_path: Vec<u16>, path_str: Vec<u16>) -> Option<Vec<u16>> {
+fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     let idx = old_path
         .windows(path_str.len())
-        .position(|path| path == path_str)?;
+        .position(|path| *path == *path_str)?;
     // If there's a trailing semicolon (likely, since we probably added one
     // during install), include that in the substring to remove. We don't search
     // for that to find the string, because if it's the last string in the path,
@@ -575,18 +563,17 @@ fn _remove_from_path(old_path: Vec<u16>, path_str: Vec<u16>) -> Option<Vec<u16>>
     if new_path.last() == Some(&(b';' as u16)) {
         new_path.pop();
     }
-    Some(new_path)
+    Some(HSTRING::from_wide(&new_path))
 }
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> Result<Option<Vec<u16>>>
+fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> Result<Option<HSTRING>>
 where
-    F: FnOnce(Vec<u16>, Vec<u16>) -> Option<Vec<u16>>,
+    F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
     let windows_path = get_windows_path_var()?;
     let mut path_str = process.cargo_home()?;
     path_str.push("bin");
-    Ok(windows_path
-        .and_then(|old_path| f(old_path, OsString::from(path_str).encode_wide().collect())))
+    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
 }
 
 pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
@@ -597,16 +584,15 @@ pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
 
-fn rustup_uninstall_reg_key() -> Result<RegKey> {
-    Ok(RegKey::predef(HKEY_CURRENT_USER)
-        .create_subkey(RUSTUP_UNINSTALL_ENTRY)
-        .context("Failed creating uninstall key")?
-        .0)
+fn rustup_uninstall_reg_key() -> Result<Key> {
+    CURRENT_USER
+        .create(RUSTUP_UNINSTALL_ENTRY)
+        .context("Failed creating uninstall key")
 }
 
 pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
     rustup_uninstall_reg_key()?
-        .set_value("DisplayVersion", &version)
+        .set_string("DisplayVersion", version)
         .context("Failed to set `DisplayVersion`")
 }
 
@@ -616,11 +602,9 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
     let key = rustup_uninstall_reg_key()?;
 
     // Don't overwrite registry if Rustup is already installed
-    let prev = key
-        .get_raw_value("UninstallString")
-        .map(|val| from_winreg_value(&val));
-    if let Ok(Some(s)) = prev {
-        let mut path = PathBuf::from(OsString::from_wide(&s));
+    let prev = key.get_hstring("UninstallString");
+    if let Ok(s) = prev {
+        let mut path = PathBuf::from(s.to_os_string());
         path.pop();
         if path.exists() {
             return Ok(());
@@ -633,14 +617,9 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
     uninstall_cmd.push(path);
     uninstall_cmd.push("\" self uninstall");
 
-    let reg_value = RegValue {
-        bytes: to_winreg_bytes(uninstall_cmd.encode_wide().collect()),
-        vtype: RegType::REG_SZ,
-    };
-
-    key.set_raw_value("UninstallString", &reg_value)
+    key.set_hstring("UninstallString", &HSTRING::from(uninstall_cmd))
         .context("Failed to set `UninstallString`")?;
-    key.set_value("DisplayName", &"Rustup: the Rust toolchain installer")
+    key.set_string("DisplayName", "Rustup: the Rust toolchain installer")
         .context("Failed to set `DisplayName`")?;
     do_update_programs_display_version(env!("CARGO_PKG_VERSION"))?;
 
@@ -648,39 +627,10 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
 }
 
 pub(crate) fn do_remove_from_programs() -> Result<()> {
-    match RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(RUSTUP_UNINSTALL_ENTRY) {
+    match CURRENT_USER.remove_tree(RUSTUP_UNINSTALL_ENTRY) {
         Ok(()) => Ok(()),
-        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
         Err(e) => Err(anyhow!(e)),
-    }
-}
-
-/// Convert a vector UCS-2 chars to a null-terminated UCS-2 string in bytes
-pub(crate) fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
-    v.push(0);
-    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
-}
-
-/// This is used to decode the value of HKCU\Environment\PATH. If that key is
-/// not REG_SZ | REG_EXPAND_SZ then this returns None. The winreg library itself
-/// does a lossy unicode conversion.
-pub(crate) fn from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
-    use std::slice;
-
-    match val.vtype {
-        RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
-            // Copied from winreg
-            let mut words = unsafe {
-                #[allow(clippy::cast_ptr_alignment)]
-                slice::from_raw_parts(val.bytes.as_ptr().cast::<u16>(), val.bytes.len() / 2)
-                    .to_owned()
-            };
-            while words.last() == Some(&0) {
-                words.pop();
-            }
-            Some(words)
-        }
-        _ => None,
     }
 }
 
@@ -813,7 +763,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub fn get_path() -> io::Result<Option<RegValue>> {
+pub fn get_path() -> Result<Option<Value>> {
     USER_PATH.get()
 }
 
@@ -821,12 +771,12 @@ pub fn get_path() -> io::Result<Option<RegValue>> {
 pub struct RegistryGuard<'a> {
     _locked: LockResult<MutexGuard<'a, ()>>,
     id: &'static RegistryValueId,
-    prev: Option<RegValue>,
+    prev: Option<Value>,
 }
 
 #[cfg(any(test, feature = "test"))]
 impl<'a> RegistryGuard<'a> {
-    pub fn new(id: &'static RegistryValueId) -> io::Result<Self> {
+    pub fn new(id: &'static RegistryValueId) -> Result<Self> {
         Ok(Self {
             _locked: REGISTRY_LOCK.lock(),
             id,
@@ -859,50 +809,48 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    pub fn get_value<T: FromRegValue>(&self) -> io::Result<Option<T>> {
-        self.get()?.map(|v| T::from_reg_value(&v)).transpose()
+    pub fn get_value(&self) -> Result<Option<Value>> {
+        self.get()
     }
 
-    fn get(&self) -> io::Result<Option<RegValue>> {
-        let sub_key = RegKey::predef(HKEY_CURRENT_USER)
-            .open_subkey_with_flags(self.sub_key, KEY_READ | KEY_WRITE)?;
-        match sub_key.get_raw_value(self.value_name) {
+    fn get(&self) -> Result<Option<Value>> {
+        let sub_key = CURRENT_USER.create(self.sub_key)?;
+        match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(e) => Err(e),
+            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(None),
+            Err(e) => Err(e.into()),
         }
     }
 
-    pub fn set_value(&self, new: Option<impl ToRegValue>) -> io::Result<()> {
-        self.set(new.map(|s| s.to_reg_value()).as_ref())
+    pub fn set_value(&self, new: Option<&Value>) -> Result<()> {
+        self.set(new)
     }
 
-    fn set(&self, new: Option<&RegValue>) -> io::Result<()> {
-        let sub_key = RegKey::predef(HKEY_CURRENT_USER)
-            .open_subkey_with_flags(self.sub_key, KEY_READ | KEY_WRITE)?;
+    fn set(&self, new: Option<&Value>) -> Result<()> {
+        let sub_key = CURRENT_USER.create(self.sub_key)?;
         match new {
-            Some(new) => sub_key.set_raw_value(self.value_name, new),
-            None => sub_key.delete_value(self.value_name),
+            Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
+            None => Ok(sub_key.remove_value(self.value_name)?),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::os::windows::ffi::OsStringExt;
+
+    use windows_registry::Type;
+
     use super::*;
     use crate::process::TestProcess;
-
-    fn wide(str: &str) -> Vec<u16> {
-        OsString::from(str).encode_wide().collect()
-    }
 
     #[test]
     fn windows_install_does_not_add_path_twice() {
         assert_eq!(
             None,
             super::_add_to_path(
-                wide(r"c:\users\example\.cargo\bin;foo"),
-                wide(r"c:\users\example\.cargo\bin")
+                HSTRING::from(r"c:\users\example\.cargo\bin;foo"),
+                HSTRING::from(r"c:\users\example\.cargo\bin")
             )
         );
     }
@@ -914,16 +862,19 @@ mod tests {
             0x0101, // bogus trailing surrogate
             0x0000, // null
         ];
-        let cargo_home = wide(r"c:\users\example\.cargo\bin");
-        let final_path = [&cargo_home, &[b';' as u16][..], &initial_path].join(&[][..]);
+        let cargo_home = r"c:\users\example\.cargo\bin";
+        let mut final_path = OsString::from(cargo_home);
+        final_path.push(";");
+        final_path.push(OsString::from_wide(&initial_path));
 
         assert_eq!(
-            &final_path,
-            &super::_add_to_path(initial_path.clone(), cargo_home.clone(),).unwrap()
+            final_path,
+            super::_add_to_path(HSTRING::from_wide(&initial_path), HSTRING::from(cargo_home))
+                .unwrap()
         );
         assert_eq!(
-            &initial_path,
-            &super::_remove_from_path(final_path, cargo_home,).unwrap()
+            HSTRING::from_wide(&initial_path),
+            super::_remove_from_path(HSTRING::from(final_path), HSTRING::from(cargo_home)).unwrap()
         );
     }
 
@@ -931,56 +882,44 @@ mod tests {
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
         let _guard = RegistryGuard::new(&USER_PATH);
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        environment.delete_value("PATH").unwrap();
+        let environment = CURRENT_USER.create("Environment").unwrap();
+        environment.remove_value("PATH").unwrap();
 
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), super::_apply_new_path(Some(wide("foo"))).unwrap());
+            assert_eq!(
+                (),
+                super::_apply_new_path(Some(HSTRING::from("foo"))).unwrap()
+            );
         }
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert_eq!(path.vtype, RegType::REG_EXPAND_SZ);
-        assert_eq!(super::to_winreg_bytes(wide("foo")), &path.bytes[..]);
+        let environment = CURRENT_USER.create("Environment").unwrap();
+        let path = environment.get_value("PATH").unwrap();
+        let path_hstring = environment.get_hstring("PATH").unwrap();
+        assert_eq!(path.ty(), Type::ExpandString);
+        assert_eq!(HSTRING::from("foo"), path_hstring);
     }
 
     #[test]
     fn windows_path_delete_key_when_empty() {
-        use std::io;
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
         let _guard = RegistryGuard::new(&USER_PATH);
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
+        let environment = CURRENT_USER.create("Environment").unwrap();
         environment
-            .set_raw_value(
-                "PATH",
-                &RegValue {
-                    bytes: super::to_winreg_bytes(wide("foo")),
-                    vtype: RegType::REG_EXPAND_SZ,
-                },
-            )
+            .set_expand_hstring("PATH", &HSTRING::from("foo"))
             .unwrap();
 
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), super::_apply_new_path(Some(Vec::new())).unwrap());
+            assert_eq!((), super::_apply_new_path(Some(HSTRING::new())).unwrap());
         }
-        let reg_value = environment.get_raw_value("PATH");
+        let reg_value = environment.get_value("PATH");
         match reg_value {
             Ok(_) => panic!("key not deleted"),
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {}
-            Err(ref e) => panic!("error {e}"),
+            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+            Err(e) => panic!("error {e}"),
         }
     }
 
@@ -995,15 +934,10 @@ mod tests {
         );
 
         let _guard = RegistryGuard::new(&USER_PATH);
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = CURRENT_USER.create("Environment").unwrap();
+        environment
+            .set_bytes("PATH", Type::Bytes, &[0x12, 0x34])
             .unwrap();
-        let reg_value = RegValue {
-            bytes: vec![0x12, 0x34],
-            vtype: RegType::REG_BINARY,
-        };
-        environment.set_raw_value("PATH", &reg_value).unwrap();
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
@@ -1021,22 +955,19 @@ mod tests {
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
         let _guard = RegistryGuard::new(&USER_PATH);
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        environment.delete_value("PATH").unwrap();
+        let environment = CURRENT_USER.create("Environment").unwrap();
+        environment.remove_value("PATH").unwrap();
 
-        assert_eq!(Some(Vec::new()), super::get_windows_path_var().unwrap());
+        assert_eq!(Some(HSTRING::new()), super::get_windows_path_var().unwrap());
     }
 
     #[test]
     fn windows_uninstall_removes_semicolon_from_path_prefix() {
         assert_eq!(
-            wide("foo"),
+            HSTRING::from("foo"),
             super::_remove_from_path(
-                wide(r"c:\users\example\.cargo\bin;foo"),
-                wide(r"c:\users\example\.cargo\bin"),
+                HSTRING::from(r"c:\users\example\.cargo\bin;foo"),
+                HSTRING::from(r"c:\users\example\.cargo\bin"),
             )
             .unwrap()
         )
@@ -1045,10 +976,10 @@ mod tests {
     #[test]
     fn windows_uninstall_removes_semicolon_from_path_suffix() {
         assert_eq!(
-            wide("foo"),
+            HSTRING::from("foo"),
             super::_remove_from_path(
-                wide(r"foo;c:\users\example\.cargo\bin"),
-                wide(r"c:\users\example\.cargo\bin"),
+                HSTRING::from(r"foo;c:\users\example\.cargo\bin"),
+                HSTRING::from(r"c:\users\example\.cargo\bin"),
             )
             .unwrap()
         )

@@ -383,13 +383,19 @@ mod windows {
     use rustup::test::mock::clitools::{CliTestContext, Scenario};
     use rustup::test::{get_path, RegistryGuard, USER_PATH};
 
+    use windows_registry::{Value, HSTRING};
+
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     async fn install_uninstall_affect_path() {
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let get_path_ = || get_path().unwrap().unwrap().to_string();
+        let get_path_ = || {
+            HSTRING::try_from(get_path().unwrap().unwrap())
+                .unwrap()
+                .to_string()
+        };
 
         cx.config.expect_ok(&INIT_NONE).await;
         assert!(
@@ -408,38 +414,39 @@ mod windows {
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     async fn install_uninstall_affect_path_with_non_unicode() {
-        use std::ffi::OsString;
         use std::os::windows::ffi::OsStrExt;
-        use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-        use winreg::{RegKey, RegValue};
+
+        use windows_registry::{Type, CURRENT_USER};
 
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();
         // Set up a non unicode PATH
-        let reg_value = RegValue {
-            bytes: vec![
-                0x00, 0xD8, // leading surrogate
-                0x01, 0x01, // bogus trailing surrogate
-                0x00, 0x00, // null
-            ],
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        RegKey::predef(HKEY_CURRENT_USER)
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let mut reg_value = Value::from([
+            0x00, 0xD8, // leading surrogate
+            0x01, 0x01, // bogus trailing surrogate
+            0x00, 0x00, // null
+        ]);
+        reg_value.set_ty(Type::ExpandString);
+        CURRENT_USER
+            .create("Environment")
             .unwrap()
-            .set_raw_value("PATH", &reg_value)
+            .set_value("PATH", &reg_value)
             .unwrap();
 
         // compute expected path after installation
-        let expected = RegValue {
-            bytes: OsString::from(cx.config.cargodir.join("bin"))
+        let mut expected = Value::from(
+            cx.config
+                .cargodir
+                .join("bin")
+                .as_os_str()
                 .encode_wide()
                 .flat_map(|v| vec![v as u8, (v >> 8) as u8])
                 .chain(vec![b';', 0])
-                .chain(reg_value.bytes.iter().copied())
-                .collect(),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
+                .chain(reg_value.iter().copied())
+                .collect::<Vec<u8>>()
+                .as_slice(),
+        );
+        expected.set_ty(Type::ExpandString);
 
         cx.config.expect_ok(&INIT_NONE).await;
         assert_eq!(get_path().unwrap().unwrap(), expected);
