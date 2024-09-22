@@ -725,7 +725,7 @@ async fn default_(
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
                 let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
                 let status = cfg
-                    .ensure_installed(&desc, vec![], vec![], None, true)
+                    .ensure_installed(&desc, vec![], vec![], None, false, true)
                     .await?
                     .0;
 
@@ -878,7 +878,9 @@ async fn update(
             exit_code &= common::self_update(|| Ok(()), cfg.process).await?;
         }
     } else if ensure_active_toolchain {
-        let (toolchain, reason) = cfg.find_or_install_active_toolchain(true).await?;
+        let (toolchain, reason) = cfg
+            .find_or_install_active_toolchain(force_non_host, true)
+            .await?;
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {reason}");
     } else {
