@@ -4,14 +4,16 @@ stdout = """
 ...
 Set the default toolchain
 
-Usage: rustup[EXE] default [TOOLCHAIN]
+Usage: rustup[EXE] default [OPTIONS] [TOOLCHAIN]
 
 Arguments:
   [TOOLCHAIN]  'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
                name. For more information see `rustup help toolchain`
 
 Options:
-  -h, --help  Print help
+      --force-non-host  Install toolchains that require an emulator. See
+                        https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
+  -h, --help            Print help
 
 Discussion:
     Sets the default toolchain to the one specified. If the toolchain
