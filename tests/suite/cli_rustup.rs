@@ -754,6 +754,7 @@ async fn show_multiple_targets() {
             "rustup",
             "default",
             &format!("nightly-{}", clitools::MULTI_ARCH1),
+            "--force-non-host",
         ])
         .await;
     cx.config
@@ -801,6 +802,7 @@ async fn show_multiple_toolchains_and_targets() {
             "rustup",
             "default",
             &format!("nightly-{}", clitools::MULTI_ARCH1),
+            "--force-non-host",
         ])
         .await;
     cx.config
@@ -810,6 +812,7 @@ async fn show_multiple_toolchains_and_targets() {
         .expect_ok(&[
             "rustup",
             "update",
+            "--force-non-host",
             &format!("stable-{}", clitools::MULTI_ARCH1),
         ])
         .await;
@@ -2731,29 +2734,33 @@ async fn check_unix_settings_fallback() {
 }
 
 #[tokio::test]
-async fn warn_on_unmatch_build() {
+async fn deny_incompatible_toolchain_install() {
     let cx = CliTestContext::new(Scenario::MultiHost).await;
     let arch = clitools::MULTI_ARCH1;
-    cx.config.expect_stderr_ok(
-        &["rustup", "toolchain", "install", &format!("nightly-{arch}")],
-        &format!(
-            r"warn: toolchain 'nightly-{arch}' may not be able to run on this system.
-warn: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
-        ),
-    ).await;
+    cx.config
+        .expect_err(
+            &["rustup", "toolchain", "install", &format!("nightly-{arch}")],
+            &format!(
+                "error: toolchain 'nightly-{arch}' may not be able to run on this system
+note: to build software for that platform, try `rustup target add {arch}` instead",
+            ),
+        )
+        .await;
 }
 
 #[tokio::test]
-async fn warn_on_unmatch_build_default() {
+async fn deny_incompatible_toolchain_default() {
     let cx = CliTestContext::new(Scenario::MultiHost).await;
     let arch = clitools::MULTI_ARCH1;
-    cx.config.expect_stderr_ok(
-        &["rustup", "default", &format!("nightly-{arch}")],
-        &format!(
-            r"warn: toolchain 'nightly-{arch}' may not be able to run on this system.
-warn: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
-        ),
-    ).await;
+    cx.config
+        .expect_err(
+            &["rustup", "default", &format!("nightly-{arch}")],
+            &format!(
+                "error: toolchain 'nightly-{arch}' may not be able to run on this system
+note: to build software for that platform, try `rustup target add {arch}` instead",
+            ),
+        )
+        .await;
 }
 
 #[tokio::test]

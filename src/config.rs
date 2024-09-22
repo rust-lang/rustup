@@ -793,7 +793,7 @@ impl<'a> Cfg<'a> {
         force_non_host: bool,
         verbose: bool,
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
-        common::warn_if_host_is_incompatible(
+        common::check_non_host_toolchain(
             toolchain.to_string(),
             &TargetTriple::from_host_or_build(self.process),
             &toolchain.target,
