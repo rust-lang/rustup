@@ -352,11 +352,11 @@ async fn update_overwrites_programs_display_version() {
         .await;
 
     USER_RUSTUP_VERSION
-        .set_value(Some(&Value::from(PLACEHOLDER_VERSION)))
+        .set(Some(&Value::from(PLACEHOLDER_VERSION)))
         .unwrap();
     cx.config.expect_ok(&["rustup", "self", "update"]).await;
     assert_eq!(
-        USER_RUSTUP_VERSION.get_value().unwrap().unwrap(),
+        USER_RUSTUP_VERSION.get().unwrap().unwrap(),
         Value::from(version)
     );
 }
