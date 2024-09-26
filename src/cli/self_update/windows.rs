@@ -809,11 +809,7 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    pub fn get_value(&self) -> Result<Option<Value>> {
-        self.get()
-    }
-
-    fn get(&self) -> Result<Option<Value>> {
+    pub fn get(&self) -> Result<Option<Value>> {
         let sub_key = CURRENT_USER.create(self.sub_key)?;
         match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
@@ -822,11 +818,7 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set_value(&self, new: Option<&Value>) -> Result<()> {
-        self.set(new)
-    }
-
-    fn set(&self, new: Option<&Value>) -> Result<()> {
+    pub fn set(&self, new: Option<&Value>) -> Result<()> {
         let sub_key = CURRENT_USER.create(self.sub_key)?;
         match new {
             Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
