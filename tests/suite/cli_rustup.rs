@@ -2267,6 +2267,35 @@ channel = "nightly"
 }
 
 #[tokio::test]
+async fn default_profile_is_respected_with_rust_toolchain_file() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok(&["rustup", "set", "profile", "minimal"])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain");
+    raw::write_file(
+        &toolchain_file,
+        r#"
+[toolchain]
+channel = "nightly"
+"#,
+    )
+    .unwrap();
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install"])
+        .await;
+    cx.config
+        .expect_not_stdout_ok(
+            &["rustup", "component", "list"],
+            for_host!("rust-docs-{} (installed)"),
+        )
+        .await;
+}
+
+#[tokio::test]
 async fn close_file_override_beats_far_directory_override() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.expect_ok(&["rustup", "default", "stable"]).await;
