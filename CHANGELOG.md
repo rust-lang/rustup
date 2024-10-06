@@ -6,7 +6,6 @@
 
 - Replace remaining `winapi` usage with `windows-sys` by @kennykerr in https://github.com/rust-lang/rustup/pull/3802
 - Make `rustup show` output info in a more logical order by @majaha in https://github.com/rust-lang/rustup/pull/3225
-- chore(dist/features): ship `tracing` and friends by default by @rami3l in https://github.com/rust-lang/rustup/pull/3803
 
 - Stop showing ETA after download is complete by @djc in https://github.com/rust-lang/rustup/pull/3827
 - consistently add context with file path when parsing fails by @Skgland in https://github.com/rust-lang/rustup/pull/3853
@@ -15,7 +14,6 @@
 - Use serde to encode/decode various TOML formats by @djc in https://github.com/rust-lang/rustup/pull/3864
 - Fix misleading "uninstalled toolchain" notification by @scimas in https://github.com/rust-lang/rustup/pull/3869
 - fix(dist/linux): handle the possible unavailability of `/proc` in `rustup-init.sh` by @rami3l in https://github.com/rust-lang/rustup/pull/3800
-- docs(dev-guide/tracing): mention `RUSTUP_LOG` and console-based tracing by @rami3l in https://github.com/rust-lang/rustup/pull/3879
 - feat: add hint to run `rustup self` when err desc is `self` by @Xerxes-2 in https://github.com/rust-lang/rustup/pull/3901
 - implements quiet flag in `rustup-init.sh` by @vic1707 in https://github.com/rust-lang/rustup/pull/3910
 - feat(rustup-init): set log level to `WARN` on `-q` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3911
