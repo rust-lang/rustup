@@ -1,11 +1,11 @@
 [package]
 name = "rustup"
-version = "1.27.1"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 description = "Manage multiple rust installations with ease"
 homepage = "https://github.com/rust-lang/rustup"
 keywords = ["rustup", "multirust", "install", "proxy"]
-license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/rust-lang/rustup"
 build = "build.rs"
@@ -132,6 +132,11 @@ regex = "1"
 
 [workspace]
 members = ["download"]
+
+[workspace.package]
+version = "1.27.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 anyhow = "1.0.69"
