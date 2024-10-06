@@ -5,30 +5,17 @@
 ## What's Changed
 
 - Replace remaining `winapi` usage with `windows-sys` by @kennykerr in https://github.com/rust-lang/rustup/pull/3802
-- feat(download-backend)!: make `reqwest/rustls` the new default by @rami3l in https://github.com/rust-lang/rustup/pull/3798
-- Reduce code duplication for show commands by @djc in https://github.com/rust-lang/rustup/pull/3813
-- refactor(cli): rewrite `rustup-init` with `clap_derive` by @rami3l in https://github.com/rust-lang/rustup/pull/3814
 - Make `rustup show` output info in a more logical order by @majaha in https://github.com/rust-lang/rustup/pull/3225
-- feat(download): reflect the download/TLS backends in the user agent by @rami3l in https://github.com/rust-lang/rustup/pull/3815
-- refactor(cli): rewrite `rustup` with `clap_derive` by @rami3l in https://github.com/rust-lang/rustup/pull/3596
+- chore(dist/features): ship `tracing` and friends by default by @rami3l in https://github.com/rust-lang/rustup/pull/3803
+
 - Stop showing ETA after download is complete by @djc in https://github.com/rust-lang/rustup/pull/3827
-- Switch from sync to a tokio runtime by @rbtcollins in https://github.com/rust-lang/rustup/pull/3367
 - consistently add context with file path when parsing fails by @Skgland in https://github.com/rust-lang/rustup/pull/3853
 - feat: support for parsing beta versions with tags in the toolchain by @roife in https://github.com/rust-lang/rustup/pull/3858
-- fix(download): work around `hyper` hang issue by adjusting `reqwest` config by @rami3l in https://github.com/rust-lang/rustup/pull/3855
-- Simplify process interface by @djc in https://github.com/rust-lang/rustup/pull/3764
-- Add Windows Arm64 to Other Installation Methods by @Alovchin91 in https://github.com/rust-lang/rustup/pull/3854
-- Finalise Rustup Windows Arm64 support by @Alovchin91 in https://github.com/rust-lang/rustup/pull/3840
-- Refactoring around use of `Process` by @djc in https://github.com/rust-lang/rustup/pull/3860
-- Pass Process around explicitly by @djc in https://github.com/rust-lang/rustup/pull/3871
 - feat(cli): add `--quiet` to `rustup toolchain list` and friends by @rami3l in https://github.com/rust-lang/rustup/pull/3862
 - Use serde to encode/decode various TOML formats by @djc in https://github.com/rust-lang/rustup/pull/3864
 - Fix misleading "uninstalled toolchain" notification by @scimas in https://github.com/rust-lang/rustup/pull/3869
-- chore(dist/features): ship `tracing` and friends by default by @rami3l in https://github.com/rust-lang/rustup/pull/3803
-- download: inline errors, rename TLS backend by @djc in https://github.com/rust-lang/rustup/pull/3888
 - fix(dist/linux): handle the possible unavailability of `/proc` in `rustup-init.sh` by @rami3l in https://github.com/rust-lang/rustup/pull/3800
 - docs(dev-guide/tracing): mention `RUSTUP_LOG` and console-based tracing by @rami3l in https://github.com/rust-lang/rustup/pull/3879
-- feat(download/rustls): use `rustls-platform-verifier` by @rami3l in https://github.com/rust-lang/rustup/pull/3903
 - feat: add hint to run `rustup self` when err desc is `self` by @Xerxes-2 in https://github.com/rust-lang/rustup/pull/3901
 - implements quiet flag in `rustup-init.sh` by @vic1707 in https://github.com/rust-lang/rustup/pull/3910
 - feat(rustup-init): set log level to `WARN` on `-q` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3911
@@ -37,17 +24,10 @@
 - feat(dist): refine suggestions regarding manifest checksum mismatches by @rami3l in https://github.com/rust-lang/rustup/pull/3923
 - Fix home_dir() and current_dir() regression by @djc in https://github.com/rust-lang/rustup/pull/3938
 - Add help message for missing toolchain by @jtr860830 in https://github.com/rust-lang/rustup/pull/3939
-- fix(rustup-mode)!: don't install toolchain on `rustup --version` by @rami3l in https://github.com/rust-lang/rustup/pull/3948
 - fix(rustup-mode): return `ExitCode(1)` when `update()` fails by @rami3l in https://github.com/rust-lang/rustup/pull/3952
-- feat(download/rustls): use `aws-lc` instead of `ring` by @rami3l in https://github.com/rust-lang/rustup/pull/3898
-- fix(config): warn if host is incompatible with the toolchain in `rustup default` by @rami3l in https://github.com/rust-lang/rustup/pull/3980
-- feat(rustup-mode): install the active toolchain by default on `rustup toolchain install` by @rami3l in https://github.com/rust-lang/rustup/pull/3983
-- feat(cli)!: remove implicit toolchain installation by @rami3l in https://github.com/rust-lang/rustup/pull/3985
 - fix(manifest): consider possible renames in `Component::try_new()` by @rami3l in https://github.com/rust-lang/rustup/pull/3991
 - Allow `rustup doc` to search for unions by @taylordotfish in https://github.com/rust-lang/rustup/pull/4004
 - feat(cli)!: set log level to `INFO`/`DEBUG` on `--quiet`/`--verbose` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3987
-- Try symlinking proxies first, falling back to hardlinking if that fails by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4023
-- refactor(cli/common)!: deny installing a host-incompatible toolchain w/o `--force-non-host` by @rami3l in https://github.com/rust-lang/rustup/pull/4028
 - Replace `winreg` with `windows-registry` by @InfyniteHeap in https://github.com/rust-lang/rustup/pull/3896
 
 ## New Contributors
