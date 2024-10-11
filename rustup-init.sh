@@ -706,7 +706,7 @@ check_help_for() {
     shift
 
     local _category
-    if "$_cmd" --help | grep -q 'For all options use the manual or "--help all".'; then
+    if "$_cmd" --help | grep -q '"--help all"'; then
       _category="all"
     else
       _category=""
