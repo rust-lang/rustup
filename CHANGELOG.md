@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.28.0] - 2024-10-07
+
+## What's Changed
+
+- Replace remaining `winapi` usage with `windows-sys` by @kennykerr in https://github.com/rust-lang/rustup/pull/3802
+- Make `rustup show` output info in a more logical order by @majaha in https://github.com/rust-lang/rustup/pull/3225
+
+- Stop showing ETA after download is complete by @djc in https://github.com/rust-lang/rustup/pull/3827
+- consistently add context with file path when parsing fails by @Skgland in https://github.com/rust-lang/rustup/pull/3853
+- feat: support for parsing beta versions with tags in the toolchain by @roife in https://github.com/rust-lang/rustup/pull/3858
+- feat(cli): add `--quiet` to `rustup toolchain list` and friends by @rami3l in https://github.com/rust-lang/rustup/pull/3862
+- Use serde to encode/decode various TOML formats by @djc in https://github.com/rust-lang/rustup/pull/3864
+- Fix misleading "uninstalled toolchain" notification by @scimas in https://github.com/rust-lang/rustup/pull/3869
+- fix(dist/linux): handle the possible unavailability of `/proc` in `rustup-init.sh` by @rami3l in https://github.com/rust-lang/rustup/pull/3800
+- feat: add hint to run `rustup self` when err desc is `self` by @Xerxes-2 in https://github.com/rust-lang/rustup/pull/3901
+- implements quiet flag in `rustup-init.sh` by @vic1707 in https://github.com/rust-lang/rustup/pull/3910
+- feat(rustup-init): set log level to `WARN` on `-q` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3911
+- Add loongarch64-unknown-linux-musl support by @heiher in https://github.com/rust-lang/rustup/pull/3921
+- feat(cli): warn when removing the default/active toolchain by @rami3l in https://github.com/rust-lang/rustup/pull/3924
+- feat(dist): refine suggestions regarding manifest checksum mismatches by @rami3l in https://github.com/rust-lang/rustup/pull/3923
+- Fix home_dir() and current_dir() regression by @djc in https://github.com/rust-lang/rustup/pull/3938
+- Add help message for missing toolchain by @jtr860830 in https://github.com/rust-lang/rustup/pull/3939
+- fix(rustup-mode): return `ExitCode(1)` when `update()` fails by @rami3l in https://github.com/rust-lang/rustup/pull/3952
+- fix(manifest): consider possible renames in `Component::try_new()` by @rami3l in https://github.com/rust-lang/rustup/pull/3991
+- Allow `rustup doc` to search for unions by @taylordotfish in https://github.com/rust-lang/rustup/pull/4004
+- feat(cli)!: set log level to `INFO`/`DEBUG` on `--quiet`/`--verbose` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3987
+- Replace `winreg` with `windows-registry` by @InfyniteHeap in https://github.com/rust-lang/rustup/pull/3896
+
+## New Contributors
+
+- @kennykerr made their first contribution in https://github.com/rust-lang/rustup/pull/3802
+- @dpaoliello made their first contribution in https://github.com/rust-lang/rustup/pull/3799
+- @Skgland made their first contribution in https://github.com/rust-lang/rustup/pull/3853
+- @roife made their first contribution in https://github.com/rust-lang/rustup/pull/3858
+- @scimas made their first contribution in https://github.com/rust-lang/rustup/pull/3869
+- @InfyniteHeap made their first contribution in https://github.com/rust-lang/rustup/pull/3881
+- @Uaitt made their first contribution in https://github.com/rust-lang/rustup/pull/3899
+- @Xerxes-2 made their first contribution in https://github.com/rust-lang/rustup/pull/3901
+- @vic1707 made their first contribution in https://github.com/rust-lang/rustup/pull/3910
+- @jtr860830 made their first contribution in https://github.com/rust-lang/rustup/pull/3939
+- @taylordotfish made their first contribution in https://github.com/rust-lang/rustup/pull/4004
+- @LunarLambda made their first contribution in https://github.com/rust-lang/rustup/pull/4026
+- @lucacasonato made their first contribution in https://github.com/rust-lang/rustup/pull/4040
+
+**Full Changelog**: https://github.com/rust-lang/rustup/compare/1.27.1...1.28.0
+
 ## [1.27.1] - 2024-04-14
 
 This new Rustup release involves some minor bug fixes.
@@ -27,7 +73,7 @@ Many thanks for your hard work, and we hope to see you again!
 - Fixed incorrect color state after `ColorableTerminal::reset` [pr#3711]
 - Replaced `.` with `source` in fish shell's `source_string` [pr#3715]
 - Fixed "component add" error message format [pr#3724]
-- Fixed file paths in CI-generated `*.sha256` files on *nix [pr#3730]
+- Fixed file paths in CI-generated `*.sha256` files on \*nix [pr#3730]
 - Removed an unnecessary debug print [pr#3734]
 - Disabled the "doc opening" output on `rustup doc --path` [pr#3748]
 - Fixed the update of `DisplayVersion` in the Windows registry on `rustup self update` [pr#3770]
@@ -76,6 +122,7 @@ This long-awaited Rustup release has gathered all the new features and fixes sin
 These changes include improvements in Rustup's maintainability, user experience, compatibility and documentation quality.
 
 The headlines of this release are:
+
 - Basic support for `fish` shell has been added.
 - Support for the `loongarch64-unknown-linux-gnu` host platform has been added.
 
@@ -85,7 +132,7 @@ Finally, the project seems to have attracted a total of 23 new contributors with
 
 ### Added
 
-- Add basic support for `fish` shell [pr#3108] 
+- Add basic support for `fish` shell [pr#3108]
 - Add the `RUSTUP_TERM_COLOR` environment variable to force the use of colored output [pr#3435]
 - Improve `rustup-init.sh`'s compatibility with `ksh` and `zsh` [pr#3475]
 - Add a warning when running under Rosetta 2 [pr#3068]
@@ -135,7 +182,7 @@ Thanks go to:
 - Pavel Roskin (proski)
 - rami3l (rami3l)
 - Robert Collins (rbtcollins)
-- Sandesh  Pyakurel (Sandesh-Pyakurel)
+- Sandesh Pyakurel (Sandesh-Pyakurel)
 - Waffle Maybe (WaffleLapkin)
 - Jubilee (workingjubilee)
 - WÁNG Xuěruì (xen0n)
