@@ -619,7 +619,13 @@ impl<'a> Cfg<'a> {
                         }
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
-                    let toolchain_name = ResolvableToolchainName::try_from(toolchain_name_str)?;
+                    let toolchain_name = ResolvableToolchainName::try_from(toolchain_name_str)
+                        .map_err(|_| {
+                            anyhow!(
+                                "invalid toolchain name detected in override file '{}'",
+                                toolchain_file.display()
+                            )
+                        })?;
                     let default_host_triple = get_default_host_triple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.

