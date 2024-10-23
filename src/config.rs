@@ -649,7 +649,7 @@ impl<'a> Cfg<'a> {
                         Err(RustupError::ToolchainNotInstalled(_)) => {
                             if matches!(toolchain_name, ToolchainName::Custom(_)) {
                                 bail!(
-                                    "Toolchain {toolchain_name} in {} is custom and not installed",
+                                    "custom toolchain specified in override file '{}' is not installed",
                                     toolchain_file.display()
                                 )
                             }

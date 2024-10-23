@@ -2487,7 +2487,37 @@ async fn file_override_not_installed_custom() {
     raw::write_file(&toolchain_file, "gumbo").unwrap();
 
     cx.config
-        .expect_err(&["rustc", "--version"], "custom and not installed")
+        .expect_err(
+            &["rustup", "show", "active-toolchain"],
+            "custom toolchain specified in override file",
+        )
+        .await;
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "custom toolchain specified in override file",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn file_override_not_installed_custom_toml() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+    raw::write_file(&toolchain_file, r#"toolchain.channel = "i-am-the-walrus""#).unwrap();
+
+    cx.config
+        .expect_err(
+            &["rustup", "show", "active-toolchain"],
+            "custom toolchain specified in override file",
+        )
+        .await;
+    cx.config
+        .expect_err(
+            &["rustc", "--version"],
+            "custom toolchain specified in override file",
+        )
         .await;
 }
 
