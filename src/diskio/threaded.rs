@@ -268,6 +268,7 @@ impl<'a> Executor for Threaded<'a> {
                 prev_files as u64,
             ));
         }
+        #[allow(clippy::print_stderr)]
         if prev_files > 50 {
             eprintln!("{prev_files} deferred IO operations");
         }
