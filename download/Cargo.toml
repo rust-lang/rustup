@@ -32,3 +32,6 @@ http-body-util = "0.1.0"
 hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.1", features = ["tokio"] }
 tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -130,6 +130,9 @@ trycmd = "0.15.0"
 platforms.workspace = true
 regex = "1"
 
+[lints]
+workspace = true
+
 [workspace]
 members = ["download"]
 
@@ -157,6 +160,9 @@ tracing-opentelemetry = "0.27"
 tracing-subscriber = "0.3.16"
 url = "2.4"
 walkdir = "2"
+
+[workspace.lints.rust]
+rust_2018_idioms = "deny"
 
 [lib]
 name = "rustup"
