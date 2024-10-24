@@ -1,4 +1,4 @@
-#![allow(clippy::box_default)]
+#![allow(clippy::box_default, clippy::print_stdout, clippy::print_stderr)]
 //! Test support module; public to permit use from integration tests.
 
 pub mod mock;

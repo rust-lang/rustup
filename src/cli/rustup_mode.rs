@@ -588,7 +588,8 @@ pub async fn main(
     }
 
     let Some(subcmd) = matches.subcmd else {
-        eprintln!("{}", Rustup::command().render_long_help());
+        let help = Rustup::command().render_long_help();
+        writeln!(process.stderr().lock(), "{help}")?;
         return Ok(utils::ExitCode(1));
     };
 
