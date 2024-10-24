@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "download"
-version = "1.27.1"
+version = "1.28.0"
 dependencies = [
  "anyhow",
  "curl",
@@ -2130,7 +2130,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.27.1"
+version = "1.28.0"
 dependencies = [
  "anyhow",
  "cc",
