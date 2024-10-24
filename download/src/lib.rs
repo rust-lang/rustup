@@ -1,5 +1,4 @@
 //! Easy file downloading
-#![deny(rust_2018_idioms)]
 
 use std::fs::remove_file;
 use std::path::Path;
