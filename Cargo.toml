@@ -164,6 +164,11 @@ walkdir = "2"
 [workspace.lints.rust]
 rust_2018_idioms = "deny"
 
+[workspace.lints.clippy]
+# `dbg!()` and `todo!()` clearly shouldn't make it to production:
+dbg_macro = "warn"
+todo = "warn"
+
 [lib]
 name = "rustup"
 path = "src/lib.rs"
