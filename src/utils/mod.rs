@@ -1,8 +1,4 @@
 //!  Utility functions for Rustup
-pub(crate) mod notifications;
-pub(crate) mod notify;
-pub mod raw;
-pub(crate) mod units;
 
 use std::env;
 use std::fs::{self, File};
@@ -24,6 +20,11 @@ use crate::process::Process;
 pub(crate) use crate::utils::raw::find_cmd;
 pub use crate::utils::raw::{is_file, path_exists};
 pub(crate) use crate::utils::{notifications::Notification, raw::is_directory};
+
+pub(crate) mod notifications;
+pub(crate) mod notify;
+pub mod raw;
+pub(crate) mod units;
 
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
