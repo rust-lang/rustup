@@ -631,7 +631,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
     }
 
     if let Err(path) = rustc_or_cargo_exists_in_path(process) {
-        warn!("it looks like you have an existing installation of Rust at:");
+        warn!("It looks like you have an existing installation of Rust at:");
         warn!("{}", path);
         warn!("It is recommended that rustup be the primary Rust installation.");
         warn!("Otherwise you may have confusion unless you are careful with your PATH.");

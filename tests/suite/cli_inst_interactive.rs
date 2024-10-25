@@ -498,7 +498,7 @@ async fn install_stops_if_rustc_exists() {
     assert!(!out.ok);
     assert!(out
         .stderr
-        .contains("it looks like you have an existing installation of Rust at:"));
+        .contains("It looks like you have an existing installation of Rust at:"));
     assert!(out
         .stderr
         .contains("If you are sure that you want both rustup and your already installed Rust"));
@@ -530,7 +530,7 @@ async fn install_stops_if_cargo_exists() {
     assert!(!out.ok);
     assert!(out
         .stderr
-        .contains("it looks like you have an existing installation of Rust at:"));
+        .contains("It looks like you have an existing installation of Rust at:"));
     assert!(out
         .stderr
         .contains("If you are sure that you want both rustup and your already installed Rust"));
