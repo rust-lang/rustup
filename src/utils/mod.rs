@@ -22,10 +22,8 @@ use crate::process::Process;
 
 #[cfg(not(windows))]
 pub(crate) use crate::utils::raw::find_cmd;
-pub(crate) use crate::utils::raw::is_directory;
-
-pub(crate) use crate::utils::notifications::Notification;
 pub use crate::utils::raw::{is_file, path_exists};
+pub(crate) use crate::utils::{notifications::Notification, raw::is_directory};
 
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
