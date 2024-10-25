@@ -668,11 +668,8 @@ impl Config {
             println!("expected.ok: true");
             print_indented("expected.stdout", stdout);
             print_indented("expected.stderr", stderr);
-            #[allow(clippy::dbg_macro)]
-            {
-                dbg!(out.stdout == stdout);
-                dbg!(out.stderr == stderr);
-            }
+            dbg!(out.stdout == stdout);
+            dbg!(out.stderr == stderr);
             panic!();
         }
     }
