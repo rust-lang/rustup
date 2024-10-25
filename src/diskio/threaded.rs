@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 use enum_map::{enum_map, Enum, EnumMap};
 use sharded_slab::pool::{OwnedRef, OwnedRefMut};
+use tracing::debug;
 
 use super::{perform, CompletedIo, Executor, Item};
 use crate::utils::notifications::Notification;
@@ -268,9 +269,8 @@ impl<'a> Executor for Threaded<'a> {
                 prev_files as u64,
             ));
         }
-        #[allow(clippy::print_stderr)]
         if prev_files > 50 {
-            eprintln!("{prev_files} deferred IO operations");
+            debug!("{prev_files} deferred IO operations");
         }
         let buf: Vec<u8> = vec![0; prev_files];
         // Cheap wrap-around correctness check - we have 20k files, more than
