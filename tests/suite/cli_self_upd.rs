@@ -21,7 +21,7 @@ use rustup::test::{
 };
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
-use rustup::utils::{raw, utils};
+use rustup::utils::{self, raw};
 use rustup::{for_host, DUP_TOOLS, TOOLS};
 #[cfg(windows)]
 use windows_registry::Value;

@@ -37,7 +37,7 @@ use crate::{
         MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
         Toolchain, ToolchainName,
     },
-    utils::utils::{self, ExitCode},
+    utils::{self, ExitCode},
 };
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str =

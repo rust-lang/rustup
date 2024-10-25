@@ -194,7 +194,7 @@ async fn list_toolchains_with_bogus_file() {
 
     let name = "bogus_regular_file.txt";
     let path = cx.config.rustupdir.join("toolchains").join(name);
-    rustup::utils::utils::write_file(name, &path, "").unwrap();
+    rustup::utils::write_file(name, &path, "").unwrap();
     cx.config
         .expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly")
         .await;

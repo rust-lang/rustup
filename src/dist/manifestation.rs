@@ -21,7 +21,7 @@ use crate::dist::temp;
 use crate::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
 use crate::errors::RustupError;
 use crate::process::Process;
-use crate::utils::utils;
+use crate::utils;
 
 pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";

@@ -20,7 +20,7 @@ use crate::{
     dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,
-    utils::{raw::open_dir_following_links, utils},
+    utils::{self, raw::open_dir_following_links},
     RustupError,
 };
 

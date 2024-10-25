@@ -12,7 +12,7 @@ use crate::dist::component::transaction::Transaction;
 use crate::dist::prefix::InstallPrefix;
 use crate::errors::RustupError;
 use crate::process::Process;
-use crate::utils::utils;
+use crate::utils;
 
 const COMPONENTS_FILE: &str = "components";
 

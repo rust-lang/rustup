@@ -10,7 +10,7 @@ use crate::{
     errors::RustupError,
     notifications::Notification as RootNotification,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
-    utils::utils,
+    utils,
 };
 
 #[derive(Clone, Debug)]

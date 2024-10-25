@@ -63,7 +63,7 @@ use crate::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
     },
-    utils::{utils, Notification},
+    utils::{self, Notification},
     DUP_TOOLS, TOOLS,
 };
 

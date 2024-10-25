@@ -13,7 +13,7 @@ use crate::{
     dist::Profile,
     process::Process,
     toolchain::MaybeOfficialToolchainName,
-    utils::utils,
+    utils,
 };
 
 /// The installer for rustup

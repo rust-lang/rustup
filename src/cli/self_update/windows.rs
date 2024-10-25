@@ -23,7 +23,7 @@ use super::{install_bins, report_error, InstallOpts};
 use crate::cli::{download_tracker::DownloadTracker, markdown::md};
 use crate::dist::TargetTriple;
 use crate::process::{terminalsource::ColorableTerminal, Process};
-use crate::utils::utils;
+use crate::utils;
 use crate::utils::Notification;
 
 pub(crate) fn ensure_prompt(process: &Process) -> Result<()> {

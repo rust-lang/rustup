@@ -18,7 +18,7 @@ use crate::{
     errors::RustupError,
     process::Process,
     toolchain::ToolchainName,
-    utils::utils,
+    utils,
 };
 
 pub mod component;
