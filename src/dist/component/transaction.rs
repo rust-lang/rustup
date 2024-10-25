@@ -19,7 +19,7 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::process::Process;
-use crate::utils::utils;
+use crate::utils;
 
 /// A Transaction tracks changes to the file system, allowing them to
 /// be rolled back in case of an error. Instead of deleting or

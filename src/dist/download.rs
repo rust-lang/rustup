@@ -10,7 +10,7 @@ use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::process::Process;
-use crate::utils::utils;
+use crate::utils;
 
 const UPDATE_HASH_LEN: usize = 20;
 

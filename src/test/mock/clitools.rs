@@ -25,7 +25,7 @@ use crate::process;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
 use crate::test::this_host_triple;
-use crate::utils::utils;
+use crate::utils;
 
 use super::{
     dist::{

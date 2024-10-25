@@ -10,8 +10,8 @@ use rustup::test::{
     mock::clitools::{self, set_current_dist_date, CliTestContext, Config, Scenario},
     this_host_triple,
 };
+use rustup::utils;
 use rustup::utils::raw::symlink_dir;
-use rustup::utils::utils;
 
 #[tokio::test]
 async fn smoke_test() {

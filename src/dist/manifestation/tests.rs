@@ -25,7 +25,7 @@ use crate::{
     errors::RustupError,
     process::TestProcess,
     test::mock::{dist::*, MockComponentBuilder, MockFile, MockInstallerBuilder},
-    utils::{raw as utils_raw, utils},
+    utils::{self, raw as utils_raw},
 };
 
 const SHA256_HASH_LEN: usize = 64;

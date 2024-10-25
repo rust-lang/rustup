@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 pub(crate) use anyhow::{Context as _, Result};
 use thiserror::Error as ThisError;
 
+use crate::utils;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::raw;
-use crate::utils::utils;
 
 #[derive(Debug, ThisError)]
 pub(crate) enum CreatingError {

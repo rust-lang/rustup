@@ -9,7 +9,7 @@ use rustup::dist::temp;
 use rustup::dist::Notification;
 use rustup::dist::DEFAULT_DIST_SERVER;
 use rustup::process::TestProcess;
-use rustup::utils::utils;
+use rustup::utils;
 
 use rustup::test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 

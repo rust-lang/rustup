@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::utils::utils;
+use crate::utils;
 
 const REL_MANIFEST_DIR: &str = "lib/rustlib";
 static V1_COMMON_COMPONENT_LIST: &[&str] = &["cargo", "rustc", "rust-docs"];

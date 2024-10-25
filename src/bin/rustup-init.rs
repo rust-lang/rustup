@@ -33,7 +33,7 @@ use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::errors::RustupError;
 use rustup::is_proxyable_tools;
 use rustup::process::Process;
-use rustup::utils::utils;
+use rustup::utils;
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {

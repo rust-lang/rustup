@@ -9,8 +9,8 @@ use crate::dist::Notification;
 use crate::dist::DEFAULT_DIST_SERVER;
 use crate::errors::RustupError;
 use crate::process::TestProcess;
+use crate::utils;
 use crate::utils::raw as utils_raw;
-use crate::utils::utils;
 
 #[test]
 fn add_file() {

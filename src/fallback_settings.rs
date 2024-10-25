@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 
 #[cfg(unix)]
-use crate::utils::utils;
+use crate::utils;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Default)]
 pub struct FallbackSettings {

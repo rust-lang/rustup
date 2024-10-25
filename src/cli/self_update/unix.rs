@@ -7,7 +7,7 @@ use tracing::{error, warn};
 use super::install_bins;
 use super::shell;
 use crate::process::Process;
-use crate::utils::utils;
+use crate::utils;
 use crate::utils::Notification;
 
 // If the user is trying to install with sudo, on some systems this will

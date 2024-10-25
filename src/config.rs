@@ -26,7 +26,7 @@ use crate::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName, PathBasedToolchainName,
         ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain, ToolchainName,
     },
-    utils::utils,
+    utils,
 };
 
 #[derive(Debug, ThisError)]

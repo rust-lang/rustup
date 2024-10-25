@@ -11,7 +11,7 @@ use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::Profile;
 use crate::errors::*;
 use crate::notifications::*;
-use crate::utils::utils;
+use crate::utils;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettingsFile {
