@@ -1,4 +1,9 @@
-#![allow(clippy::box_default, clippy::print_stdout, clippy::print_stderr)]
+#![allow(
+    clippy::box_default,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::dbg_macro
+)]
 //! Test support module; public to permit use from integration tests.
 
 pub mod mock;
