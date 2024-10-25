@@ -7,8 +7,7 @@ use tracing::{error, warn};
 use super::install_bins;
 use super::shell;
 use crate::process::Process;
-use crate::utils;
-use crate::utils::Notification;
+use crate::utils::{self, Notification};
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
