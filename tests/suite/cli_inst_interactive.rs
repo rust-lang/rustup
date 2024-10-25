@@ -579,3 +579,40 @@ async fn install_non_installable_toolchain() {
         )
         .await;
 }
+
+#[tokio::test]
+async fn install_warns_about_existing_settings_file() {
+    let temp_dir = tempfile::Builder::new()
+        .prefix("fakehome")
+        .tempdir()
+        .unwrap();
+    // Create `settings.toml`
+    let settings_file = temp_dir.path().join("settings.toml");
+    raw::write_file(
+        &settings_file,
+        for_host!(
+            r#"default_toolchain = "{}"
+profile = "default"
+version = "12""#
+        ),
+    )
+    .unwrap();
+    let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let out = cx
+        .config
+        .run(
+            "rustup-init",
+            ["-y", "--no-modify-path"],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("RUSTUP_HOME", temp_dir_path),
+            ],
+        )
+        .await;
+    assert!(out.ok);
+    assert!(out
+        .stderr
+        .contains("It looks like you have an existing rustup settings file at:"));
+}

@@ -512,6 +512,7 @@ pub(crate) async fn install(
         .map_or(false, |s| s == "yes")
     {
         check_existence_of_rustc_or_cargo_in_path(no_prompt, process)?;
+        check_existence_of_settings_file(process)?;
     }
 
     #[cfg(unix)]
@@ -639,6 +640,18 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
         warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
         warn!("or pass `-y' to ignore all ignorable checks.");
         ignorable_error("cannot install while Rust is installed", no_prompt, process)?;
+    }
+    Ok(())
+}
+
+fn check_existence_of_settings_file(process: &Process) -> Result<()> {
+    let rustup_dir = process.rustup_home()?;
+    let settings_file_path = rustup_dir.join("settings.toml");
+    if utils::path_exists(&settings_file_path) {
+        warn!("It looks like you have an existing rustup settings file at:");
+        warn!("{}", settings_file_path.display());
+        warn!("Rustup will install the default toolchain as specified in the settings file,");
+        warn!("instead of the one inferred from the default host triple.");
     }
     Ok(())
 }
