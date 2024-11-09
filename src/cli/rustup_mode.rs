@@ -1507,7 +1507,7 @@ async fn doc(
         }
     };
 
-    let doc_url = if let Some(topic) = topic {
+    let doc_path = if let Some(topic) = topic {
         Cow::Owned(topical_doc::local_path(
             &toolchain.doc_path("").unwrap(),
             topic,
@@ -1518,7 +1518,7 @@ async fn doc(
     };
 
     if path_only {
-        let doc_path = toolchain.doc_path(&doc_url)?;
+        let doc_path = toolchain.doc_path(&doc_path)?;
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
         return Ok(utils::ExitCode(0));
     }
@@ -1531,7 +1531,7 @@ async fn doc(
     } else {
         writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
     }
-    toolchain.open_docs(&doc_url)?;
+    toolchain.open_docs(&doc_path)?;
     Ok(utils::ExitCode(0))
 }
 
