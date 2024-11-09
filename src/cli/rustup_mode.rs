@@ -1531,7 +1531,7 @@ async fn doc(
     } else {
         writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
     }
-    toolchain.open_docs(&doc_path)?;
+    toolchain.open_docs(&doc_path, None)?;
     Ok(utils::ExitCode(0))
 }
 
