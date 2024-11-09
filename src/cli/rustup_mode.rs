@@ -1445,6 +1445,7 @@ docs_data![
     (cargo, "The Cargo Book", "cargo/index.html"),
     (core, "The Rust Core Library", "core/index.html"),
     (edition_guide, "The Rust Edition Guide", "edition-guide/index.html"),
+    (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
     (nomicon, "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
 
     #[arg(long = "proc_macro")]
@@ -1457,7 +1458,6 @@ docs_data![
     (std, "Standard library API documentation", "std/index.html"),
     (test, "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
     (unstable_book, "The Unstable Book", "unstable-book/index.html"),
-    (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
 async fn doc(

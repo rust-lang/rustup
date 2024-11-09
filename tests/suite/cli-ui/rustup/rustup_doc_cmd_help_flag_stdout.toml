@@ -20,6 +20,7 @@ Options:
       --cargo                  The Cargo Book
       --core                   The Rust Core Library
       --edition-guide          The Rust Edition Guide
+      --embedded-book          The Embedded Rust Book
       --nomicon                The Dark Arts of Advanced and Unsafe Rust Programming
       --proc_macro             A support library for macro authors when defining new macros
       --reference              The Rust Reference
@@ -31,7 +32,6 @@ Options:
       --test                   Support code for rustc's built in unit-test and micro-benchmarking
                                framework
       --unstable-book          The Unstable Book
-      --embedded-book          The Embedded Rust Book
   -h, --help                   Print help
 
 Discussion:
