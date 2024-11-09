@@ -408,7 +408,12 @@ impl<'a> Toolchain<'a> {
         buf
     }
 
-    pub fn doc_path(&self, relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+    pub fn doc_path(&self, maybe_relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+        let relative = maybe_relative.as_ref();
+        if relative.is_absolute() {
+            return Ok(relative.to_owned());
+        }
+
         let mut doc_dir = self.path.clone();
         doc_dir.extend(["share", "doc", "rust", "html"]);
         doc_dir.push(relative);
@@ -416,8 +421,8 @@ impl<'a> Toolchain<'a> {
         Ok(doc_dir)
     }
 
-    pub fn open_docs(&self, relative: impl AsRef<Path>) -> anyhow::Result<()> {
-        utils::open_browser(&self.doc_path(relative)?)
+    pub fn open_docs(&self, maybe_relative: impl AsRef<Path>) -> anyhow::Result<()> {
+        utils::open_browser(&self.doc_path(maybe_relative)?)
     }
 
     /// Remove the toolchain from disk
