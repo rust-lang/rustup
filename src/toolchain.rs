@@ -408,7 +408,7 @@ impl<'a> Toolchain<'a> {
         buf
     }
 
-    pub fn doc_path(&self, relative: &str) -> anyhow::Result<PathBuf> {
+    pub fn doc_path(&self, relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
         let parts = vec!["share", "doc", "rust", "html"];
         let mut doc_dir = self.path.clone();
         for part in parts {
@@ -419,7 +419,7 @@ impl<'a> Toolchain<'a> {
         Ok(doc_dir)
     }
 
-    pub fn open_docs(&self, relative: &str) -> anyhow::Result<()> {
+    pub fn open_docs(&self, relative: impl AsRef<Path>) -> anyhow::Result<()> {
         utils::open_browser(&self.doc_path(relative)?)
     }
 
