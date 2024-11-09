@@ -1513,19 +1513,19 @@ async fn doc(
     if path_only {
         let doc_path = toolchain.doc_path(doc_url)?;
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
-        Ok(utils::ExitCode(0))
-    } else {
-        if let Some(name) = topic {
-            writeln!(
-                cfg.process.stderr().lock(),
-                "Opening docs named `{name}` in your browser"
-            )?;
-        } else {
-            writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
-        }
-        toolchain.open_docs(doc_url)?;
-        Ok(utils::ExitCode(0))
+        return Ok(utils::ExitCode(0));
     }
+
+    if let Some(name) = topic {
+        writeln!(
+            cfg.process.stderr().lock(),
+            "Opening docs named `{name}` in your browser"
+        )?;
+    } else {
+        writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
+    }
+    toolchain.open_docs(doc_url)?;
+    Ok(utils::ExitCode(0))
 }
 
 #[cfg(not(windows))]
