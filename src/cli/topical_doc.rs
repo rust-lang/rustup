@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 struct DocData<'a> {
     topic: &'a str,
@@ -19,13 +19,10 @@ fn index_html(doc: &DocData<'_>, wpath: &Path) -> Option<PathBuf> {
 }
 
 fn dir_into_vec(dir: &Path) -> Result<Vec<OsString>> {
-    let entries = fs::read_dir(dir).with_context(|| format!("Failed to read_dir {dir:?}"))?;
-    let mut v = Vec::new();
-    for entry in entries {
-        let entry = entry?;
-        v.push(entry.file_name());
-    }
-    Ok(v)
+    fs::read_dir(dir)
+        .with_context(|| format!("Failed to read_dir {dir:?}"))?
+        .map(|f| Ok(f?.file_name()))
+        .collect()
 }
 
 fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<PathBuf> {
@@ -118,18 +115,14 @@ pub(crate) fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
     // topic.split.count cannot be 0
     let subpath_os_path = match topic_vec.len() {
         1 => match topic {
-            "std" | "core" | "alloc" => match index_html(&doc, &work_path) {
-                Some(f) => f,
-                None => bail!(format!("No document for '{}'", doc.topic)),
-            },
-            _ => {
-                let std = PathBuf::from("std");
-                let search_keywords = match forced_keyword {
-                    Some(k) => k,
-                    None => keywords_top,
-                };
-                search_path(&doc, &std, &search_keywords)?
+            "std" | "core" | "alloc" => {
+                index_html(&doc, &work_path).context(anyhow!("No document for '{}'", doc.topic))?
             }
+            _ => search_path(
+                &doc,
+                Path::new("std"),
+                &forced_keyword.unwrap_or(keywords_top),
+            )?,
         },
         2 => match index_html(&doc, &work_path) {
             Some(f) => f,
