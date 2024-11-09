@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env::consts::EXE_SUFFIX;
 use std::fmt;
 use std::io::Write;
@@ -1425,7 +1426,7 @@ macro_rules! docs_data {
         }
 
         impl DocPage {
-            fn path(&self) -> Option<&'static str> {
+            fn path_str(&self) -> Option<&'static str> {
                 $( if self.$ident { return Some($path); } )+
                 None
             }
@@ -1463,8 +1464,12 @@ docs_data![
 ];
 
 impl DocPage {
+    fn path(&self) -> Option<&'static Path> {
+        self.path_str().map(Path::new)
+    }
+
     fn name(&self) -> Option<&'static str> {
-        Some(self.path()?.rsplit_once('/')?.0)
+        Some(self.path_str()?.rsplit_once('/')?.0)
     }
 }
 
@@ -1502,18 +1507,18 @@ async fn doc(
         }
     };
 
-    let topical_path: PathBuf;
-
     let doc_url = if let Some(topic) = topic {
-        topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
-        topical_path.to_str().unwrap()
+        Cow::Owned(topical_doc::local_path(
+            &toolchain.doc_path("").unwrap(),
+            topic,
+        )?)
     } else {
         topic = doc_page.name();
-        doc_page.path().unwrap_or("index.html")
+        Cow::Borrowed(doc_page.path().unwrap_or(Path::new("index.html")))
     };
 
     if path_only {
-        let doc_path = toolchain.doc_path(doc_url)?;
+        let doc_path = toolchain.doc_path(&doc_url)?;
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
         return Ok(utils::ExitCode(0));
     }
@@ -1526,7 +1531,7 @@ async fn doc(
     } else {
         writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
     }
-    toolchain.open_docs(doc_url)?;
+    toolchain.open_docs(&doc_url)?;
     Ok(utils::ExitCode(0))
 }
 
