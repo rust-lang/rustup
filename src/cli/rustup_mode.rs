@@ -1443,9 +1443,14 @@ docs_data![
     (alloc, "The Rust core allocation and collections library", "alloc/index.html"),
     (book, "The Rust Programming Language book", "book/index.html"),
     (cargo, "The Cargo Book", "cargo/index.html"),
+    (clippy, "The Clippy Documentation", "clippy/index.html"),
     (core, "The Rust Core Library", "core/index.html"),
     (edition_guide, "The Rust Edition Guide", "edition-guide/index.html"),
     (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
+
+    #[arg(long = "error_codes")]
+    (error_codes, "The Rust Error Codes Index", "error_codes/index.html"),
+
     (nomicon, "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
 
     #[arg(long = "proc_macro")]
@@ -1456,6 +1461,7 @@ docs_data![
     (rustc, "The compiler for the Rust programming language", "rustc/index.html"),
     (rustdoc, "Documentation generator for Rust projects", "rustdoc/index.html"),
     (std, "Standard library API documentation", "std/index.html"),
+    (style_guide, "The Rust Style Guide", "style-guide/index.html"),
     (test, "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
     (unstable_book, "The Unstable Book", "unstable-book/index.html"),
 ];
