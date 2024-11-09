@@ -10,9 +10,10 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use fs_at::OpenOptions;
 use tracing::info;
+use url::Url;
 use wait_timeout::ChildExt;
 
 use crate::{
@@ -421,8 +422,22 @@ impl<'a> Toolchain<'a> {
         Ok(doc_dir)
     }
 
-    pub fn open_docs(&self, maybe_relative: impl AsRef<Path>) -> anyhow::Result<()> {
-        utils::open_browser(&self.doc_path(maybe_relative)?)
+    pub fn open_docs(
+        &self,
+        maybe_relative: impl AsRef<Path>,
+        fragment: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let maybe_relative = maybe_relative.as_ref();
+        let mut doc_url = Url::from_file_path(self.doc_path(maybe_relative)?)
+            .ok()
+            .with_context(|| {
+                anyhow!(
+                    "invalid doc file absolute path `{}`",
+                    maybe_relative.display()
+                )
+            })?;
+        doc_url.set_fragment(fragment);
+        utils::open_browser(doc_url.to_string())
     }
 
     /// Remove the toolchain from disk
