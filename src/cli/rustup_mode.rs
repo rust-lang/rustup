@@ -1425,10 +1425,6 @@ macro_rules! docs_data {
         }
 
         impl DocPage {
-            fn name(&self) -> Option<&'static str> {
-                Some(self.path()?.rsplit_once('/')?.0)
-            }
-
             fn path(&self) -> Option<&'static str> {
                 $( if self.$ident { return Some($path); } )+
                 None
@@ -1465,6 +1461,12 @@ docs_data![
     (test, "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
     (unstable_book, "The Unstable Book", "unstable-book/index.html"),
 ];
+
+impl DocPage {
+    fn name(&self) -> Option<&'static str> {
+        Some(self.path()?.rsplit_once('/')?.0)
+    }
+}
 
 async fn doc(
     cfg: &Cfg<'_>,
