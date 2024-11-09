@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::str::FromStr;
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 use itertools::Itertools;
@@ -1471,6 +1471,32 @@ impl DocPage {
     fn name(&self) -> Option<&'static str> {
         Some(self.path_str()?.rsplit_once('/')?.0)
     }
+
+    fn resolve<'t>(&self, root: &Path, topic: &'t str) -> Option<(PathBuf, Option<&'t str>)> {
+        // Save the components in case the last one is used later with `parent_html`.
+        let components = topic.split("::").collect::<Vec<_>>();
+
+        // Use `.parent()` to chop off the default top-level `index.html`.
+        let mut base = root.join(Path::new(self.path()?).parent()?);
+        base.extend(&components);
+        let base_index_html = base.join("index.html");
+
+        if base_index_html.is_file() {
+            return Some((base_index_html, None));
+        }
+
+        let base_html = base.with_extension("html");
+        if base_html.is_file() {
+            return Some((base_html, None));
+        }
+
+        let parent_html = base.parent()?.with_extension("html");
+        if parent_html.is_file() {
+            return Some((parent_html, components.last().copied()));
+        }
+
+        None
+    }
 }
 
 async fn doc(
@@ -1507,11 +1533,22 @@ async fn doc(
         }
     };
 
-    let doc_path: Cow<'_, Path> = if let Some(topic) = topic {
-        topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?.into()
-    } else {
-        topic = doc_page.name();
-        doc_page.path().unwrap_or(Path::new("index.html")).into()
+    let (doc_path, fragment): (Cow<'_, Path>, _) = match (topic, doc_page.name()) {
+        (Some(topic), Some(name)) => {
+            let (doc_path, fragment) = doc_page
+                .resolve(&toolchain.doc_path("")?, topic)
+                .context(format!("no document for {name} on {topic}"))?;
+            (doc_path.into(), fragment)
+        }
+        (Some(topic), None) => {
+            let doc_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
+            (doc_path.into(), None)
+        }
+        (None, name) => {
+            topic = name;
+            let doc_path = doc_page.path().unwrap_or(Path::new("index.html"));
+            (doc_path.into(), None)
+        }
     };
 
     if path_only {
@@ -1528,7 +1565,7 @@ async fn doc(
     } else {
         writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
     }
-    toolchain.open_docs(&doc_path, None)?;
+    toolchain.open_docs(&doc_path, fragment)?;
     Ok(utils::ExitCode(0))
 }
 
