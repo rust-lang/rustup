@@ -409,11 +409,8 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn doc_path(&self, relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
-        let parts = vec!["share", "doc", "rust", "html"];
         let mut doc_dir = self.path.clone();
-        for part in parts {
-            doc_dir.push(part);
-        }
+        doc_dir.extend(["share", "doc", "rust", "html"]);
         doc_dir.push(relative);
 
         Ok(doc_dir)
