@@ -409,6 +409,11 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn doc_path(&self, relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+        let relative = relative.as_ref();
+        if relative.is_absolute() {
+            return Ok(relative.to_owned());
+        }
+
         let mut doc_dir = self.path.clone();
         doc_dir.extend(["share", "doc", "rust", "html"]);
         doc_dir.push(relative);
