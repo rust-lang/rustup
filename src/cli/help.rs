@@ -55,7 +55,9 @@ pub(crate) static TOOLCHAIN_HELP: &str = r"Discussion:
 
         <channel>[-<date>][-<host>]
 
-        <channel>       = stable|beta|nightly|<major.minor>|<major.minor.patch>
+        <channel>       = stable|beta|nightly|<versioned>[-<prerelease>]
+        <versioned>     = <major.minor>|<major.minor.patch>
+        <prerelease>    = beta[.<number>]
         <date>          = YYYY-MM-DD
         <host>          = <target-triple>
 

@@ -122,7 +122,9 @@ string in the following form:
 ```
 (<channel>[-<date>])|<custom toolchain name>
 
-<channel>       = stable|beta|nightly|<major.minor.patch>
+<channel>       = stable|beta|nightly|<versioned>[-<prerelease>]
+<versioned>     = <major.minor>|<major.minor.patch>
+<prerelease>    = beta[.<number>]
 <date>          = YYYY-MM-DD
 ```
 
