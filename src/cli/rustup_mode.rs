@@ -197,7 +197,7 @@ enum RustupSubcmd {
         #[arg(help = RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)]
         toolchain: ResolvableLocalToolchainName,
 
-        #[arg(required = true, num_args = 1.., use_value_delimiter = false)]
+        #[arg(required = true, num_args = 1..)]
         command: Vec<String>,
 
         /// Install the requested toolchain if needed
