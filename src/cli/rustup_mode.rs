@@ -343,12 +343,12 @@ struct UpdateOpts {
     #[arg(long, value_enum)]
     profile: Option<Profile>,
 
-    /// Add specific components on installation
-    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
+    /// Comma-separated list of components to be added on installation
+    #[arg(short, long, value_delimiter = ',')]
     component: Vec<String>,
 
-    /// Add specific targets on installation
-    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
+    /// Comma-separated list of targets to be added on installation
+    #[arg(short, long, value_delimiter = ',')]
     target: Vec<String>,
 
     /// Don't perform self update when running the `rustup toolchain install` command

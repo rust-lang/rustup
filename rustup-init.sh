@@ -52,10 +52,10 @@ Options:
           Choose a default toolchain to install. Use 'none' to not install any toolchains at all
       --profile <PROFILE>
           [default: default] [possible values: minimal, default, complete]
-  -c, --component <COMPONENT>...
-          Component name to also install
-  -t, --target <TARGET>...
-          Target name to also install
+  -c, --component <COMPONENT>
+          Comma-separated list of component names to also install
+  -t, --target <TARGET>
+          Comma-separated list of target names to also install
       --no-update-default-toolchain
           Don't update any existing default toolchain after install
       --no-modify-path
