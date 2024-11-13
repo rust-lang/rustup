@@ -48,12 +48,12 @@ struct RustupInit {
     #[arg(long, value_enum, default_value_t)]
     profile: Profile,
 
-    /// Component name to also install
-    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
+    /// Comma-separated list of component names to also install
+    #[arg(short, long, value_delimiter = ',')]
     component: Vec<String>,
 
-    /// Target name to also install
-    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
+    /// Comma-separated list of target names to also install
+    #[arg(short, long, value_delimiter = ',')]
     target: Vec<String>,
 
     /// Don't update any existing default toolchain after install

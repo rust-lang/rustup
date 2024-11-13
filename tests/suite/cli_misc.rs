@@ -1212,3 +1212,30 @@ async fn uninstall_self_smart_guess() {
             .contains("if you meant to uninstall rustup itself, use `rustup self uninstall`"))
     }
 }
+
+// https://github.com/rust-lang/rustup/issues/4073
+#[tokio::test]
+async fn toolchain_install_multi_components_comma() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let components = ["rls", "rust-docs"];
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "install",
+            "--profile=minimal",
+            "--component",
+            &components.join(","),
+            "nightly",
+        ])
+        .await;
+    for component in components {
+        cx.config
+            .expect_ok_contains(
+                &["rustup", "+nightly", "component", "list", "--installed"],
+                for_host!("{component}-{}"),
+                "",
+            )
+            .await;
+    }
+}
