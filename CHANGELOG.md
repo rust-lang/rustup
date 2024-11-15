@@ -1,5 +1,192 @@
 # Changelog
 
+## [1.28.0] - ?
+
+The new release of rustup has been a long time in the making and comes with substantial changes.
+
+The following improvements might require changes to how you use rustup:
+
+- rustup will no longer automatically install the active toolchain if it is not installed. [pr#3985]
+
+  * To ensure its installation, run `rustup toolchain install` with no arguments.
+  * The following command installs the active toolchain both before and after this change:
+    ```sh
+    rustup show active-toolchain || rustup toolchain install
+    # Or, on older versions of PowerShell:
+    rustup show active-toolchain; if ($LASTEXITCODE -ne 0) { rustup toolchain install }
+    ```
+
+- Installing a host-incompatible toolchain via `rustup toolchain install` or `rustup default` will
+  now be rejected unless you explicitly add the `--force-non-host` flag. [pr#4028]
+
+rustup now officially supports the following host platforms:
+
+  - `aarch64-pc-windows-msvc` [pr#3840]
+  - `loongarch64-unknown-linux-musl` [pr#3921]
+
+We have additionally made the following internal changes:
+
+- The default download backend has been changed from reqwest with native-tls to reqwest with rustls. [pr#3798]
+  - `RUSTUP_USE_CURL` and `RUSTUP_USE_RUSTLS` can still be used to change the download backend
+    if the new backend causes issues. If issues do happen, please [let us know](https://github.com/rust-lang/rustup/issues/3806).
+  - The default backend now uses rustls-platform-verifier to verify server certificates, taking
+    advantage of the platform's certificate store on platforms that support it. [pr#3903]
+- When creating proxy links, rustup will now try symlinks first and fall back to hardlinks,
+  as opposed to trying hardlinks first. [pr#4023]
+- A new `RUSTUP_LOG` environment variable can be used to control tracing-based logging in
+  rustup binaries. See the [dev guide](https://rust-lang.github.io/rustup/dev-guide/tracing.html) for more details. [pr#3875]
+
+Additionally, [Chris Denton](https://github.com/chrisdenton) joined the team. Chris has a lot of experience contributing to
+Windows-related parts of the Rust Project, expertise which was sorely lacking in existing team
+members, so we're happy to have him on board to help address Windows-specific issues.
+
+### Detailed changes
+
+* Replace remaining `winapi` usage with `windows-sys` by @kennykerr in https://github.com/rust-lang/rustup/pull/3802
+* docs(dev-guide): remove “pushing to master” in the release process by @rami3l in https://github.com/rust-lang/rustup/pull/3789
+* refactor(download): use `DownloadCallBack` in `download_with_backend()` by @rami3l in https://github.com/rust-lang/rustup/pull/3795
+* Update MSVC requirements to VS 2017 to match Rust repo by @dpaoliello in https://github.com/rust-lang/rustup/pull/3799
+* feat(download-backend)!: make `reqwest/rustls` the new default by @rami3l in https://github.com/rust-lang/rustup/pull/3798
+* fix(ci/freebsd): fix `invalid peer certificate: UnknownIssuer` by @rami3l in https://github.com/rust-lang/rustup/pull/3810
+* fix(filesource): make some constructs only available via the `test` feature by @rami3l in https://github.com/rust-lang/rustup/pull/3811
+* Reduce code duplication for show commands by @djc in https://github.com/rust-lang/rustup/pull/3813
+* refactor(cli): rewrite `rustup-init` with `clap_derive` by @rami3l in https://github.com/rust-lang/rustup/pull/3814
+* Make `rustup show` output info in a more logical order by @majaha in https://github.com/rust-lang/rustup/pull/3225
+* feat(download): reflect the download/TLS backends in the user agent by @rami3l in https://github.com/rust-lang/rustup/pull/3815
+* fix(rustup-init): fix typo in `rustup-init[.sh]` args by @rami3l in https://github.com/rust-lang/rustup/pull/3818
+* refactor(cli): rewrite `rustup` with `clap_derive` by @rami3l in https://github.com/rust-lang/rustup/pull/3596
+* Stop showing ETA after download is complete by @djc in https://github.com/rust-lang/rustup/pull/3827
+* Fix ETA display after regression by @djc in https://github.com/rust-lang/rustup/pull/3829
+* refactor(filesource): replace repetitive `#[cfg()]` usages with a new `mod` by @rami3l in https://github.com/rust-lang/rustup/pull/3833
+* Tweaks from derived clap parser review by @djc in https://github.com/rust-lang/rustup/pull/3834
+* fix(deps): update rust crate pulldown-cmark to 0.11 by @rami3l in https://github.com/rust-lang/rustup/pull/3838
+* fix(deps): update rust crate itertools to 0.13 by @rami3l in https://github.com/rust-lang/rustup/pull/3839
+* ci(macos): use `macos-latest` instead of `macos-14` by @rami3l in https://github.com/rust-lang/rustup/pull/3842
+* Re-enable Ring support on Windows Arm64 by @Alovchin91 in https://github.com/rust-lang/rustup/pull/3845
+* Switch from sync to a tokio runtime by @rbtcollins in https://github.com/rust-lang/rustup/pull/3367
+* ci(windows): fix CI failure on `x86_64-pc-windows-gnu` by @rami3l in https://github.com/rust-lang/rustup/pull/3849
+* consistently add context with file path when parsing fails by @Skgland in https://github.com/rust-lang/rustup/pull/3853
+* refactor: restrict `run_future()` usages to tests by @rami3l in https://github.com/rust-lang/rustup/pull/3856
+* feat: support for parsing beta versions with tags in the toolchain by @roife in https://github.com/rust-lang/rustup/pull/3858
+* fix(download): work around `hyper` hang issue by adjusting `reqwest` config by @rami3l in https://github.com/rust-lang/rustup/pull/3855
+* Simplify process interface by @djc in https://github.com/rust-lang/rustup/pull/3764
+* Add Windows Arm64 to Other Installation Methods by @Alovchin91 in https://github.com/rust-lang/rustup/pull/3854
+* Store current_dir in Cfg by @djc in https://github.com/rust-lang/rustup/pull/3859
+* Finalise Rustup Windows Arm64 support by @Alovchin91 in https://github.com/rust-lang/rustup/pull/3840
+* Refactoring around use of `Process` by @djc in https://github.com/rust-lang/rustup/pull/3860
+* feat(cli): add `--quiet` to `rustup toolchain list` and friends by @rami3l in https://github.com/rust-lang/rustup/pull/3862
+* fix(dist/triple): ensure `dist::triple::known` is up to date with `platforms` by @rami3l in https://github.com/rust-lang/rustup/pull/3841
+* Simplify notification handling setup by @djc in https://github.com/rust-lang/rustup/pull/3863
+* Use serde to encode/decode various TOML formats by @djc in https://github.com/rust-lang/rustup/pull/3864
+* refactor(ci/run): use more `target_cargo()` in `run.bash` by @rami3l in https://github.com/rust-lang/rustup/pull/3867
+* Fix misleading "uninstalled toolchain" notification by @scimas in https://github.com/rust-lang/rustup/pull/3869
+* Small refactoring tweaks to improve further changes by @djc in https://github.com/rust-lang/rustup/pull/3872
+* refactor(test): execute all `#[rustup_macros::unit_test]`s within a `tokio` context by @rami3l in https://github.com/rust-lang/rustup/pull/3868
+* chore(dist/features): ship `tracing` and friends by default by @rami3l in https://github.com/rust-lang/rustup/pull/3803
+* Simplify installation code by @djc in https://github.com/rust-lang/rustup/pull/3865
+* Let argument parser handle enum conversions by @djc in https://github.com/rust-lang/rustup/pull/3874
+* Pass Process around explicitly by @djc in https://github.com/rust-lang/rustup/pull/3871
+* fix(log): use `RUSTUP_LOG` for internal `tracing` instead of `RUST_LOG` by @rami3l in https://github.com/rust-lang/rustup/pull/3876
+* Process cleanup by @djc in https://github.com/rust-lang/rustup/pull/3877
+* Use tracing macros directly by @djc in https://github.com/rust-lang/rustup/pull/3878
+* Fix the `TODO` in `src\toolchain\toolchain.rs` by @InfyniteHeap in https://github.com/rust-lang/rustup/pull/3881
+* refactor(dist): hoist `dist::dist` into `dist` by @rami3l in https://github.com/rust-lang/rustup/pull/3882
+* Simplify toolchain construction by @djc in https://github.com/rust-lang/rustup/pull/3880
+* Remove unused code by @djc in https://github.com/rust-lang/rustup/pull/3886
+* refactor(log): rename `NotificationLevel` variants to align with `tracing::Level` by @rami3l in https://github.com/rust-lang/rustup/pull/3890
+* Refactor platform-dependent code in self_update by @djc in https://github.com/rust-lang/rustup/pull/3887
+* download: inline errors, rename TLS backend by @djc in https://github.com/rust-lang/rustup/pull/3888
+* fix(dist/linux): handle the possible unavailability of `/proc` in `rustup-init.sh` by @rami3l in https://github.com/rust-lang/rustup/pull/3800
+* test(clitools): revive `run_inprocess()` by @rami3l in https://github.com/rust-lang/rustup/pull/3891
+* Extract types by @djc in https://github.com/rust-lang/rustup/pull/3766
+* refactor(toolchain/names): replace `toolchain_sort()` with `ToolchainName`'s `Ord` instance by @rami3l in https://github.com/rust-lang/rustup/pull/3892
+* ci(all-features): add `-D warnings` to `cargo check-all-features` by @rami3l in https://github.com/rust-lang/rustup/pull/3894
+* fix(dist): throw an error when a `PartialVersion` string doesn't start with an ASCII digit by @rami3l in https://github.com/rust-lang/rustup/pull/3895
+* docs(dev-guide/tracing): mention `RUSTUP_LOG` and console-based tracing by @rami3l in https://github.com/rust-lang/rustup/pull/3879
+* Port tests to CliTestContext by @djc in https://github.com/rust-lang/rustup/pull/3893
+* Add missing period in warning while checking existing Rust installations by @Uaitt in https://github.com/rust-lang/rustup/pull/3899
+* fix(rustup-mode): improve `clap` error format by @rami3l in https://github.com/rust-lang/rustup/pull/3906
+* ci(windows): run `cargo all-features` by @rami3l in https://github.com/rust-lang/rustup/pull/3904
+* feat(download/rustls): use `rustls-platform-verifier` by @rami3l in https://github.com/rust-lang/rustup/pull/3903
+* Disable automatic self updates in CI environments by @djc in https://github.com/rust-lang/rustup/pull/3907
+* feat: add hint to run `rustup self` when err desc is `self` by @Xerxes-2 in https://github.com/rust-lang/rustup/pull/3901
+* test(manifestation): replace `run_future()` with `TestContext` by @rami3l in https://github.com/rust-lang/rustup/pull/3915
+* implements quiet flag in `rustup-init.sh` by @vic1707 in https://github.com/rust-lang/rustup/pull/3910
+* feat(rustup-init): set log level to `WARN` on `-q` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3911
+* fix(download): fix build error with `--no-default-features --features=curl-backend` by @rami3l in https://github.com/rust-lang/rustup/pull/3922
+* Add loongarch64-unknown-linux-musl support by @heiher in https://github.com/rust-lang/rustup/pull/3921
+* feat(cli): warn when removing the default/active toolchain by @rami3l in https://github.com/rust-lang/rustup/pull/3924
+* Clean up usage of if_not_empty() by @djc in https://github.com/rust-lang/rustup/pull/3925
+* feat(dist): refine suggestions regarding manifest checksum mismatches by @rami3l in https://github.com/rust-lang/rustup/pull/3923
+* Upload Rustup build artifacts to new S3 bucket by @jdno in https://github.com/rust-lang/rustup/pull/3909
+* Grant GitHub Actions workflows access to OIDC token by @jdno in https://github.com/rust-lang/rustup/pull/3930
+* Prepare deployment on master branch by @jdno in https://github.com/rust-lang/rustup/pull/3931
+* Fix uploading of Windows build artifacts by @jdno in https://github.com/rust-lang/rustup/pull/3933
+* Upload Windows artifacts into correct subdirectory by @jdno in https://github.com/rust-lang/rustup/pull/3934
+* feat(log): unhide `tracing::instrument` from behind `feature = "otel"` by @rami3l in https://github.com/rust-lang/rustup/pull/3873
+* Fix home_dir() and current_dir() regression by @djc in https://github.com/rust-lang/rustup/pull/3938
+* Add help message for missing toolchain by @jtr860830 in https://github.com/rust-lang/rustup/pull/3939
+* refactor: clean up platform-specific logic by @rami3l in https://github.com/rust-lang/rustup/pull/3941
+* style: reformat all TOML files with `taplo` by @rami3l in https://github.com/rust-lang/rustup/pull/3942
+* fix(rustup-mode)!: don't install toolchain on `rustup --version` by @rami3l in https://github.com/rust-lang/rustup/pull/3948
+* fix(rustup-mode): return `ExitCode(1)` when `update()` fails by @rami3l in https://github.com/rust-lang/rustup/pull/3952
+* fix(utils): make `ExitCode` `#[must_use]` by @rami3l in https://github.com/rust-lang/rustup/pull/3954
+* build(windows): fix typo in `build.rs` by @rami3l in https://github.com/rust-lang/rustup/pull/3955
+* Upgrade to opentelemetry 0.24 by @djc in https://github.com/rust-lang/rustup/pull/3959
+* Bump fs_at to 0.2.1 by @djc in https://github.com/rust-lang/rustup/pull/3965
+* docs(user-guide): use `brew install rustup` instead of `rustup-init` by @rami3l in https://github.com/rust-lang/rustup/pull/3963
+* docs(dev-guide): add guideline for atomic commits to the developer guide by @jtr860830 in https://github.com/rust-lang/rustup/pull/3969
+* Remove `once_cell` dependency and use `LazyLock` instead by @InfyniteHeap in https://github.com/rust-lang/rustup/pull/3971
+* docs(dev-guide): update `coding-standards` to reflect recent API changes. by @rami3l in https://github.com/rust-lang/rustup/pull/3974
+* fix: fix unreachable code lints on Android by @rami3l in https://github.com/rust-lang/rustup/pull/3975
+* Upgrade windows-sys to 0.59 by @djc in https://github.com/rust-lang/rustup/pull/3976
+* style(taplo): enable `reorder_keys` for `*dependencies` in `Cargo.toml` by @rami3l in https://github.com/rust-lang/rustup/pull/3977
+* feat(download/rustls): use `aws-lc` instead of `ring` by @rami3l in https://github.com/rust-lang/rustup/pull/3898
+* ci(run): accelerate workflows by @rami3l in https://github.com/rust-lang/rustup/pull/3978
+* ci(freebsd): fix build failure related to `aws-lc` by @rami3l in https://github.com/rust-lang/rustup/pull/3979
+* fix(config): warn if host is incompatible with the toolchain in `rustup default` by @rami3l in https://github.com/rust-lang/rustup/pull/3980
+* feat(rustup-mode): install the active toolchain by default on `rustup toolchain install` by @rami3l in https://github.com/rust-lang/rustup/pull/3983
+* feat(cli)!: remove implicit toolchain installation by @rami3l in https://github.com/rust-lang/rustup/pull/3985
+* ci(macos): install `awscli` from `brew` by @rami3l in https://github.com/rust-lang/rustup/pull/3989
+* fix(manifest): consider possible renames in `Component::try_new()` by @rami3l in https://github.com/rust-lang/rustup/pull/3991
+* Upgrade pulldown-cmark to 0.12 by @djc in https://github.com/rust-lang/rustup/pull/3999
+* feat(dist): add notes for `stable` and `beta` in `components_missing_msg()` by @rami3l in https://github.com/rust-lang/rustup/pull/3920
+* Allow `rustup doc` to search for unions by @taylordotfish in https://github.com/rust-lang/rustup/pull/4004
+* refactor(config)!: simplify logic by @rami3l in https://github.com/rust-lang/rustup/pull/3986
+* feat(cli)!: set log level to `INFO`/`DEBUG` on `--quiet`/`--verbose` if `RUSTUP_LOG` is unset by @rami3l in https://github.com/rust-lang/rustup/pull/3987
+* Apply clippy suggestions from 1.81 by @djc in https://github.com/rust-lang/rustup/pull/4015
+* Update semver-compatible dependencies, except openssl-src by @djc in https://github.com/rust-lang/rustup/pull/4021
+* Try symlinking proxies first, falling back to hardlinking if that fails by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4023
+* Note that selecting VS lang packs is optional by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4025
+* docs(README): Point out where to find nightly/master docs. by @LunarLambda in https://github.com/rust-lang/rustup/pull/4026
+* refactor(cli/common)!: deny installing a host-incompatible toolchain w/o `--force-non-host` by @rami3l in https://github.com/rust-lang/rustup/pull/4028
+* Update semver-compatible dependencies by @djc in https://github.com/rust-lang/rustup/pull/4031
+* Update remove_dir_all by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4032
+* Replace `winreg` with `windows-registry` by @InfyniteHeap in https://github.com/rust-lang/rustup/pull/3896
+* Remove unnecessary methods by @InfyniteHeap in https://github.com/rust-lang/rustup/pull/4034
+* tests:  rust-toolchain + profile in settings by @lucacasonato in https://github.com/rust-lang/rustup/pull/4040
+* Update semver-compatible dependencies by @djc in https://github.com/rust-lang/rustup/pull/4044
+* fix(rustup-init/sh): fix incorrect TLS warning with curl v8.10 by @rami3l in https://github.com/rust-lang/rustup/pull/4046
+* Update semver-compatible dependencies, except openssl-src by @djc in https://github.com/rust-lang/rustup/pull/4056
+* fix(config): don't show toolchain names from `rust-toolchain.toml` in error message by @rami3l in https://github.com/rust-lang/rustup/pull/4060
+* chore: use more workspace-wide configurations by @rami3l in https://github.com/rust-lang/rustup/pull/4061
+* refactor(diskio): replace `eprintln!()` with `debug!()` by @rami3l in https://github.com/rust-lang/rustup/pull/4063
+* feat(rustup-init): detect and warn about existing `settings.toml` by @rami3l in https://github.com/rust-lang/rustup/pull/4064
+* refactor(utils): hoist `utils::utils` into `utils` by @rami3l in https://github.com/rust-lang/rustup/pull/4065
+* fix: add powerpc64 and s390x to known target_arch values for tests by @decathorpe in https://github.com/rust-lang/rustup/pull/4067
+* feat(cli/rustup-mode): support more books in `rustup doc` by @rami3l in https://github.com/rust-lang/rustup/pull/4071
+* docs: update channel toolchain syntax by @kyle-leonhard in https://github.com/rust-lang/rustup/pull/4074
+* fix(cli/rustup-mode): remove `.num_args()` when `.value_delimiter(',')` is present by @rami3l in https://github.com/rust-lang/rustup/pull/4076
+
+[pr#3985]: https://github.com/rust-lang/rustup/pull/3985
+[pr#4028]: https://github.com/rust-lang/rustup/pull/4028
+[pr#3840]: https://github.com/rust-lang/rustup/pull/3840
+[pr#3921]: https://github.com/rust-lang/rustup/pull/3921
+[pr#3798]: https://github.com/rust-lang/rustup/pull/3798
+[pr#3903]: https://github.com/rust-lang/rustup/pull/3903
+[pr#4023]: https://github.com/rust-lang/rustup/pull/4023
+[pr#3875]: https://github.com/rust-lang/rustup/pull/3875
+
 ## [1.27.1] - 2024-04-14
 
 This new Rustup release involves some minor bug fixes.
@@ -85,7 +272,7 @@ Finally, the project seems to have attracted a total of 23 new contributors with
 
 ### Added
 
-- Add basic support for `fish` shell [pr#3108] 
+- Add basic support for `fish` shell [pr#3108]
 - Add the `RUSTUP_TERM_COLOR` environment variable to force the use of colored output [pr#3435]
 - Improve `rustup-init.sh`'s compatibility with `ksh` and `zsh` [pr#3475]
 - Add a warning when running under Rosetta 2 [pr#3068]
