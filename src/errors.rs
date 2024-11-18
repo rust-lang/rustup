@@ -96,19 +96,19 @@ pub enum RustupError {
     #[error("toolchain '{0}' is not installable")]
     ToolchainNotInstallable(String),
     #[error(
-        "toolchain '{0}' is not installed{}",
-        if let ToolchainName::Official(t) = .0 {
+        "toolchain '{name}' is not installed{}",
+        if let ToolchainName::Official(t) = name {
             format!("\nhelp: run `rustup toolchain install {t}` to install it")
         } else {
             String::new()
         },
     )]
-    ToolchainNotInstalled(ToolchainName),
+    ToolchainNotInstalled { name: ToolchainName },
     #[error("path '{0}' not found")]
     PathToolchainNotInstalled(PathBasedToolchainName),
     #[error(
-        "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n{}",
-        "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
+        "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n\
+        help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
     )]
     ToolchainNotSelected(String),
     #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, suggest_message(.suggestion), if .component.contains("rust-std") {

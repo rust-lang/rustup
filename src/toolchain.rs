@@ -50,9 +50,9 @@ impl<'a> Toolchain<'a> {
     ) -> anyhow::Result<Toolchain<'a>> {
         match Self::new(cfg, name) {
             Ok(tc) => Ok(tc),
-            Err(RustupError::ToolchainNotInstalled(ToolchainName::Official(desc)))
-                if install_if_missing =>
-            {
+            Err(RustupError::ToolchainNotInstalled {
+                name: ToolchainName::Official(desc),
+            }) if install_if_missing => {
                 Ok(
                     DistributableToolchain::install(cfg, &desc, &[], &[], cfg.get_profile()?, true)
                         .await?
@@ -72,7 +72,7 @@ impl<'a> Toolchain<'a> {
         reason: &ActiveReason,
     ) -> anyhow::Result<Self> {
         match Self::new(cfg, name.clone()) {
-            Err(RustupError::ToolchainNotInstalled(_)) => (),
+            Err(RustupError::ToolchainNotInstalled { .. }) => (),
             result => {
                 return Ok(result?);
             }
@@ -106,7 +106,7 @@ impl<'a> Toolchain<'a> {
         let path = cfg.toolchain_path(&name);
         if !Toolchain::exists(cfg, &name)? {
             return Err(match name {
-                LocalToolchainName::Named(name) => RustupError::ToolchainNotInstalled(name),
+                LocalToolchainName::Named(name) => RustupError::ToolchainNotInstalled { name },
                 LocalToolchainName::Path(name) => RustupError::PathToolchainNotInstalled(name),
             });
         }

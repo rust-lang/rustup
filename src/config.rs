@@ -646,7 +646,7 @@ impl<'a> Cfg<'a> {
                     // XXX: this awkwardness deals with settings file being locked already
                     let toolchain_name = toolchain_name.resolve(&default_host_triple)?;
                     match Toolchain::new(self, (&toolchain_name).into()) {
-                        Err(RustupError::ToolchainNotInstalled(_)) => {
+                        Err(RustupError::ToolchainNotInstalled { .. }) => {
                             if matches!(toolchain_name, ToolchainName::Custom(_)) {
                                 bail!(
                                     "custom toolchain specified in override file '{}' is not installed",
@@ -815,7 +815,7 @@ impl<'a> Cfg<'a> {
             None => self.get_profile()?,
         };
         let (status, toolchain) = match DistributableToolchain::new(self, toolchain.clone()) {
-            Err(RustupError::ToolchainNotInstalled(_)) => {
+            Err(RustupError::ToolchainNotInstalled { .. }) => {
                 DistributableToolchain::install(
                     self,
                     toolchain,
