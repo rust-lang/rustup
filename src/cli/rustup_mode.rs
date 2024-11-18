@@ -858,7 +858,7 @@ async fn update(
                     d.update_extra(&components, &targets, profile, force, allow_downgrade)
                         .await?
                 }
-                Err(RustupError::ToolchainNotInstalled(_)) => {
+                Err(RustupError::ToolchainNotInstalled { .. }) => {
                     DistributableToolchain::install(
                         cfg,
                         &desc,
@@ -1341,7 +1341,7 @@ async fn override_add(
     let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
     match Toolchain::new(cfg, (&toolchain_name).into()) {
         Ok(_) => {}
-        Err(e @ RustupError::ToolchainNotInstalled(_)) => match &toolchain_name {
+        Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
                 let status =
