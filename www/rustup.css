@@ -105,7 +105,6 @@ body#idx p.other-platforms-help {
 }
 
 .instructions {
-    background-color: rgb(250, 250, 250);
     margin-left: auto;
     margin-right: auto;
     text-align: center;
@@ -136,20 +135,19 @@ hr {
 }
 
 .rustup-command::before {
-    color: #999;
+    color: black;
     content: " $ ";
 	margin-left: 15px;
 }
 
 .rustup-command {
-    background-color: #515151;
-    color: white;
+    color: black;
     padding: 1rem 1rem 1rem 0;
     width: 45rem;
     height: auto;
     text-align: center;
     border-radius: 3px 0 0 3px;
-    box-shadow: inset 0px 0px 20px 0px #333333;
+    box-shadow: inset 0px 0px 20px 0px #f1eeee;
     overflow: hidden;
     font-size: 0.6em;
     white-space: nowrap;
