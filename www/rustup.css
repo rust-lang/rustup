@@ -78,12 +78,13 @@ header > div > h2 {
 }
 
 a {
-    color: #428bca;
-    text-decoration: none;
+    color: #0b7261;
+    text-decoration: underline;
 }
 
 a:hover {
-    color: rgb(42, 100, 150);
+    color: #0d8b75;
+    text-decoration: underline;
 }
 
 main {
@@ -120,6 +121,7 @@ body#idx p.other-platforms-help {
 }
 
 hr {
+    border-color: #0b7261;
     margin-top: 2em;
     margin-bottom: 2em;
 }
@@ -202,7 +204,7 @@ hr {
     transition: opacity 0.2s ease-in-out;
     opacity: 0;
     font-size: 10px;
-    color: green;
+    color: #0b7261;
     width: 41px;
     height: 15px;
     position: relative;
