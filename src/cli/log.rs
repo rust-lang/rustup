@@ -152,27 +152,28 @@ where
 fn telemetry_default_tracer() -> Tracer {
     use std::time::Duration;
 
-    use opentelemetry::{global, trace::TracerProvider, KeyValue};
+    use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
     use opentelemetry_otlp::WithExportConfig;
     use opentelemetry_sdk::{
-        trace::{Config, Sampler},
+        runtime::Tokio,
+        trace::{Config, Sampler, TracerProvider},
         Resource,
     };
 
-    let provider = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_timeout(Duration::from_secs(3)),
-        )
-        .with_trace_config(
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()
+        .with_timeout(Duration::from_secs(3))
+        .build()
+        .unwrap();
+
+    let provider = TracerProvider::builder()
+        .with_config(
             Config::default()
                 .with_sampler(Sampler::AlwaysOn)
                 .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
         )
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .expect("error installing `OtlpTracePipeline` in the current `tokio` runtime");
+        .with_batch_exporter(exporter, Tokio)
+        .build();
 
     global::set_tracer_provider(provider.clone());
     provider.tracer("tracing-otel-subscriber")
