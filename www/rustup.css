@@ -114,7 +114,6 @@ body#idx p.other-platforms-help {
 }
 
 .instructions > * {
-    width: 45rem;
     margin-left: auto;
     margin-right: auto;
 }
@@ -131,7 +130,7 @@ hr {
 #platform-instructions-win-arm64 > p,
 #platform-instructions-default > p,
 #platform-instructions-unknown > p {
-    width: 40rem;
+    width: 80%;
 }
 
 .rustup-command::before {
@@ -143,7 +142,6 @@ hr {
 .rustup-command {
     color: black;
     padding: 1rem 1rem 1rem 0;
-    width: 45rem;
     height: auto;
     text-align: center;
     border-radius: 3px 0 0 3px;
@@ -153,6 +151,7 @@ hr {
     white-space: nowrap;
     height: 26px;
     line-height: 26px;
+    overflow-x: auto;
 }
 
 #platform-instructions-unix div.copy-container,
@@ -163,6 +162,8 @@ hr {
 #platform-instructions-unknown div.copy-container {
     display: flex;
     align-items: center;
+    width: 90%;
+    justify-content: center;
 }
 
 #platform-instructions-unix button.copy-button,
