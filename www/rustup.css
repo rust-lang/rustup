@@ -45,11 +45,6 @@ pre {
     font-weight: 400;
 }
 
-body#idx #pitch > a {
-    font-weight: 500;
-    line-height: 2em;
-}
-
 a {
     color: #428bca;
     text-decoration: none;
@@ -64,15 +59,6 @@ body#idx > * {
     margin-right: auto;
     text-align: center;
     width: 35em;
-}
-
-body#idx > #pitch {
-    width: 35rem;
-}
-
-#pitch em {
-    font-style: normal;
-    font-weight: 400;
 }
 
 body#idx p {
