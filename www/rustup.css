@@ -31,6 +31,15 @@
     src: local('Work Sans Medium'), url("fonts/WorkSans-Medium.ttf") format('truetype');
 }
 
+@font-face {
+    font-family: 'Alfa Slab One';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Alfa Slab One'),
+        url("fonts/AlfaSlabOne-Regular.woff2") format('woff2'),
+        url("fonts/AlfaSlabOne-Regular.woff") format('woff');
+}
+
 body {
     margin-top: 2em;
     background-color: white;
@@ -45,6 +54,29 @@ pre {
     font-weight: 400;
 }
 
+header > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+header > div > h1 {
+    font-family: "Alfa Slab One", serif;
+    color: black;
+    font-size: 4rem;
+    margin-bottom: 0;
+    margin-top: 1rem;
+    line-height: 1;
+    font-weight: 300;
+    letter-spacing: 1px;
+}
+
+header > div > h2 {
+    color: black;
+    font-size: 2rem;
+    font-weight: 300;
+}
+
 a {
     color: #428bca;
     text-decoration: none;
@@ -54,11 +86,12 @@ a:hover {
     color: rgb(42, 100, 150);
 }
 
-body#idx > * {
+main {
+    width: 80%;
+    max-width: 1200px;
+    padding: 0 20px;
     margin-left: auto;
     margin-right: auto;
-    text-align: center;
-    width: 35em;
 }
 
 body#idx p {
@@ -195,9 +228,15 @@ hr {
     line-height: 2rem;
 }
 
+#help {
+    font-size: 20px;
+    text-align: center;
+}
+
 #about {
     font-size: 16px;
     line-height: 2em;
+    text-align: center;
 }
 
 #about > img {
