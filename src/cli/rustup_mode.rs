@@ -315,7 +315,7 @@ enum ToolchainSubcmd {
     },
 
     /// Uninstall the given toolchains
-    #[command(alias = "remove")]
+    #[command(aliases = ["remove", "rm", "delete", "del"])]
     Uninstall {
         #[command(flatten)]
         opts: UninstallOpts,
@@ -410,7 +410,7 @@ enum TargetSubcmd {
     },
 
     /// Remove a target from a Rust toolchain
-    #[command(alias = "uninstall")]
+    #[command(aliases = ["uninstall", "rm", "delete", "del"])]
     Remove {
         /// List of targets to uninstall
         #[arg(required = true, num_args = 1..)]
@@ -485,7 +485,7 @@ enum OverrideSubcmd {
     },
 
     /// Remove the override toolchain for a directory
-    #[command(alias = "remove", after_help = OVERRIDE_UNSET_HELP)]
+    #[command(aliases = ["remove", "rm", "delete", "del"], after_help = OVERRIDE_UNSET_HELP)]
     Unset {
         /// Path to the directory
         #[arg(long)]
