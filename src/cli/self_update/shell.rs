@@ -77,6 +77,7 @@ fn enumerate_shells() -> Vec<Shell> {
         Box::new(Bash),
         Box::new(Zsh),
         Box::new(Fish),
+        Box::new(Nu),
     ]
 }
 
@@ -252,6 +253,53 @@ impl UnixShell for Fish {
 
     fn source_string(&self, process: &Process) -> Result<String> {
         Ok(format!(r#"source "{}/env.fish""#, cargo_home_str(process)?))
+    }
+}
+
+struct Nu;
+
+impl UnixShell for Nu {
+    fn does_exist(&self, process: &Process) -> bool {
+        // nu has to either be the shell or be callable for nu setup.
+        matches!(process.var("SHELL"), Ok(sh) if sh.contains("nu"))
+            || utils::find_cmd(&["nu"], process).is_some()
+    }
+
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+        let mut paths = vec![];
+
+        if let Ok(p) = process.var("XDG_CONFIG_HOME") {
+            let path = PathBuf::from(p).join("nushell/");
+            paths.push(path.join("env.nu"));
+            paths.push(path.join("config.nu"));
+        }
+
+        if let Some(p) = process.home_dir() {
+            let path = p.join(".config/nushell/");
+            paths.push(path.join("env.nu"));
+            paths.push(path.join("config.nu"));
+        }
+        paths
+    }
+
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+        let mut rcs = self.rcfiles(process);
+        if rcs.len() == 4 {
+            // The first two rcfile takes precedence (XDG_CONFIG_HOME).
+            rcs.truncate(2);
+        }
+        rcs
+    }
+
+    fn env_script(&self) -> ShellScript {
+        ShellScript {
+            name: "env.nu",
+            content: include_str!("env.nu"),
+        }
+    }
+
+    fn source_string(&self, process: &Process) -> Result<String> {
+        Ok(format!(r#"source "{}/env.nu""#, cargo_home_str(process)?))
     }
 }
 
