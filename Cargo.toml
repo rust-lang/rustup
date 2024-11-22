@@ -65,7 +65,7 @@ opentelemetry_sdk = { workspace = true, optional = true }
 pulldown-cmark = { version = "0.12", default-features = false }
 rand = "0.8"
 regex = "1"
-remove_dir_all = { version = "0.8.1", features = ["parallel"] }
+remove_dir_all = { version = "1.0.0", features = ["parallel"] }
 retry = { version = "2", default-features = false, features = ["random"] }
 rs_tracing = { version = "1.1", features = ["rs_tracing"] }
 same-file = "1"
