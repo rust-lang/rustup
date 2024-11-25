@@ -154,8 +154,8 @@ main() {
     ensure downloader "$_url" "$_file" "$_arch"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
-        err "Cannot execute $_file (likely because of mounting /tmp as noexec)." 
-        err "Please copy the file to a location where you can execute binaries and run ./rustup-init${_ext}." 
+        err "Cannot execute $_file (likely because of mounting /tmp as noexec)."
+        err "Please copy the file to a location where you can execute binaries and run ./rustup-init${_ext}."
         exit 1
     fi
 
@@ -508,7 +508,7 @@ get_architecture() {
                         err "This host is running an x32 userland, for which no native toolchain is provided."
                         err "You will have to install multiarch compatibility with i686 or amd64."
                         err "To do so, set the RUSTUP_CPUTYPE environment variable set to i686 or amd64 and re-run this script."
-                        err "You will be able to add an x32 target after installation by running \`rustup target add x86_64-unknown-linux-gnux32\`." 
+                        err "You will be able to add an x32 target after installation by running \`rustup target add x86_64-unknown-linux-gnux32\`."
                          exit 1
                     }; else
                         _cputype=i686
@@ -588,7 +588,7 @@ check_cmd() {
 }
 
 assert_nz() {
-    if [ -z "$1" ]; then 
+    if [ -z "$1" ]; then
         err "assert_nz $2"
         exit 1
     fi
