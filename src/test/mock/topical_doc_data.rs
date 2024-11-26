@@ -20,6 +20,12 @@ static TEST_CASES: &[(&[&str], &str)] = &[
     (&["eprintln"], "std/macro.eprintln.html"),
     (&["alloc::format"], "alloc/macro.format.html"),
     (&["std::mem::MaybeUninit"], "std/mem/union.MaybeUninit.html"),
+    (&["--rustc", "lints"], "rustc/lints/index.html"),
+    (&["--rustdoc", "lints"], "rustdoc/lints.html"),
+    (
+        &["lints::broken_intra_doc_links", "--rustdoc"],
+        "rustdoc/lints.html",
+    ),
 ];
 
 fn repath(origin: &str) -> String {
