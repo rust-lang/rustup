@@ -982,7 +982,7 @@ pub(crate) fn dist_root_server(process: &Process) -> Result<String> {
     })
 }
 
-impl<'a> Debug for Cfg<'a> {
+impl Debug for Cfg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self {
             profile_override,

@@ -247,10 +247,10 @@ async fn download_file_(
     // Keep the curl env var around for a bit
     let use_curl_backend = process
         .var_os("RUSTUP_USE_CURL")
-        .map_or(false, |it| it != "0");
+        .is_some_and(|it| it != "0");
     let use_rustls = process
         .var_os("RUSTUP_USE_RUSTLS")
-        .map_or(true, |it| it != "0");
+        .is_none_or(|it| it != "0");
     let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
     } else {
@@ -648,7 +648,7 @@ impl<'a> FileReaderWithProgress<'a> {
     }
 }
 
-impl<'a> io::Read for FileReaderWithProgress<'a> {
+impl io::Read for FileReaderWithProgress<'_> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.fh.read(buf) {
             Ok(nbytes) => {

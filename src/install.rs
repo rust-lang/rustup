@@ -35,7 +35,7 @@ pub(crate) enum InstallMethod<'a> {
     Dist(DistOptions<'a>),
 }
 
-impl<'a> InstallMethod<'a> {
+impl InstallMethod<'_> {
     // Install a toolchain
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn install(&self) -> Result<UpdateStatus> {

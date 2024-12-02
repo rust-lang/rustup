@@ -198,7 +198,7 @@ impl<'a> Transaction<'a> {
 
 /// If a Transaction is dropped without being committed, the changes
 /// are automatically rolled back.
-impl<'a> Drop for Transaction<'a> {
+impl Drop for Transaction<'_> {
     fn drop(&mut self) {
         if !self.committed {
             (self.notify_handler)(Notification::RollingBack);

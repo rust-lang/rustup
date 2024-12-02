@@ -234,7 +234,7 @@ impl<'a> Threaded<'a> {
     }
 }
 
-impl<'a> Executor for Threaded<'a> {
+impl Executor for Threaded<'_> {
     fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         // Yield any completed work before accepting new work - keep memory
         // pressure under control
@@ -351,7 +351,7 @@ impl<'a> Executor for Threaded<'a> {
     }
 }
 
-impl<'a> Drop for Threaded<'a> {
+impl Drop for Threaded<'_> {
     fn drop(&mut self) {
         // We are not permitted to fail - consume but do not handle the items.
         self.join().for_each(drop);
@@ -363,7 +363,7 @@ struct JoinIterator<'a, 'b> {
     consume_sentinel: bool,
 }
 
-impl<'a, 'b> JoinIterator<'a, 'b> {
+impl JoinIterator<'_, '_> {
     fn inner<T: Iterator<Item = Task>>(&self, mut iter: T) -> Option<CompletedIo> {
         loop {
             let task_o = iter.next();
@@ -387,7 +387,7 @@ impl<'a, 'b> JoinIterator<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Iterator for JoinIterator<'a, 'b> {
+impl Iterator for JoinIterator<'_, '_> {
     type Item = CompletedIo;
 
     fn next(&mut self) -> Option<CompletedIo> {
@@ -404,7 +404,7 @@ struct SubmitIterator<'a, 'b> {
     item: Cell<Option<Item>>,
 }
 
-impl<'a, 'b> Iterator for SubmitIterator<'a, 'b> {
+impl Iterator for SubmitIterator<'_, '_> {
     type Item = CompletedIo;
 
     fn next(&mut self) -> Option<CompletedIo> {
