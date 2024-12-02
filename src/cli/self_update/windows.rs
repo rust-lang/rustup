@@ -490,7 +490,7 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
             HWND_BROADCAST,
             WM_SETTINGCHANGE,
             0 as WPARAM,
-            "Environment\0".as_ptr() as LPARAM,
+            c"Environment".as_ptr() as LPARAM,
             SMTO_ABORTIFHUNG,
             5000,
             ptr::null_mut(),
@@ -774,7 +774,7 @@ pub struct RegistryGuard<'a> {
 }
 
 #[cfg(any(test, feature = "test"))]
-impl<'a> RegistryGuard<'a> {
+impl RegistryGuard<'_> {
     pub fn new(id: &'static RegistryValueId) -> Result<Self> {
         Ok(Self {
             _locked: REGISTRY_LOCK.lock(),
@@ -785,7 +785,7 @@ impl<'a> RegistryGuard<'a> {
 }
 
 #[cfg(any(test, feature = "test"))]
-impl<'a> Drop for RegistryGuard<'a> {
+impl Drop for RegistryGuard<'_> {
     fn drop(&mut self) {
         self.id.set(self.prev.as_ref()).unwrap();
     }

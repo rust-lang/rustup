@@ -18,7 +18,7 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool, process: &Process) -> Result<u
         // test runner should set this, nothing else
         if process
             .var_os("RUSTUP_INIT_SKIP_SUDO_CHECK")
-            .map_or(false, |s| s == "yes")
+            .is_some_and(|s| s == "yes")
         {
             return fallback();
         }

@@ -98,7 +98,7 @@ pub(crate) struct InstallOpts<'a> {
     pub targets: &'a [&'a str],
 }
 
-impl<'a> InstallOpts<'a> {
+impl InstallOpts<'_> {
     fn install(self, cfg: &mut Cfg<'_>) -> Result<Option<ToolchainDesc>> {
         let Self {
             default_host_triple,
@@ -508,9 +508,9 @@ pub(crate) async fn install(
         )
     })?;
 
-    if !process
+    if process
         .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
-        .map_or(false, |s| s == "yes")
+        .is_none_or(|s| s != "yes")
     {
         check_existence_of_rustc_or_cargo_in_path(no_prompt, process)?;
         check_existence_of_settings_file(process)?;
