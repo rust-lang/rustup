@@ -15,11 +15,12 @@ case "$(uname -s)" in
 esac
 
 case "$TARGET" in
-  # these platforms aren't supported by ring:
-  powerpc* ) ;;
+  # these platforms aren't supported by aws-lc-rs:
+  powerpc64* ) ;;
   mips* ) ;;
-  riscv* ) ;;
-  s390x* ) ;;
+  loongarch* ) ;;
+  *netbsd* ) ;;
+  *illumos* ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
 esac
