@@ -633,6 +633,7 @@ jobs:
             --env LIBZ_SYS_STATIC=1 \
             --env SKIP_TESTS="${SKIP_TESTS}" \
             --env TARGET="${TARGET}" \
+            --env INSTALL_BINDGEN=1 \
             --init \
             --rm \
             --tty \
@@ -797,6 +798,7 @@ jobs:
             --env LIBZ_SYS_STATIC=1 \
             --env SKIP_TESTS="${SKIP_TESTS}" \
             --env TARGET="${TARGET}" \
+            --env INSTALL_BINDGEN=1 \
             --init \
             --rm \
             --tty \
@@ -983,6 +985,7 @@ jobs:
             --env LIBZ_SYS_STATIC=1 \
             --env SKIP_TESTS="${SKIP_TESTS}" \
             --env TARGET="${TARGET}" \
+            --env INSTALL_BINDGEN=1 \
             --init \
             --rm \
             --tty \
