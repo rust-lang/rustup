@@ -137,6 +137,7 @@ jobs: # skip-master skip-pr skip-stable
             --env LIBZ_SYS_STATIC=1 \
             --env SKIP_TESTS="${SKIP_TESTS}" \
             --env TARGET="${TARGET}" \
+            --env INSTALL_BINDGEN=1 \
             --init \
             --rm \
             --tty \
