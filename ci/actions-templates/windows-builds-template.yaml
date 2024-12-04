@@ -26,7 +26,7 @@ jobs: # skip-master skip-pr skip-stable
           - i686-pc-windows-msvc # skip-pr skip-master
           - aarch64-pc-windows-msvc
           - x86_64-pc-windows-gnu
-          - i686-pc-windows-gnu # skip-pr skip-master
+          - i686-pc-windows-gnu # skip-master
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -34,10 +34,10 @@ jobs: # skip-master skip-pr skip-stable
             arch: x86_64
             mingwdir: mingw64
             gcc: x86_64-w64-mingw32-gcc
-          - target: i686-pc-windows-gnu # skip-pr skip-master
-            arch: i686 # skip-pr skip-master
-            mingwdir: mingw32 # skip-pr skip-master
-            gcc: i686-w64-mingw32-gcc # skip-pr skip-master
+          - target: i686-pc-windows-gnu # skip-master
+            arch: i686 # skip-master
+            mingwdir: mingw32 # skip-master
+            gcc: i686-w64-mingw32-gcc # skip-master
     steps:
       - uses: actions/checkout@v4
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
