@@ -156,7 +156,7 @@ fn telemetry_default_tracer() -> Tracer {
     use opentelemetry_otlp::WithExportConfig;
     use opentelemetry_sdk::{
         runtime::Tokio,
-        trace::{Config, Sampler, TracerProvider},
+        trace::{Sampler, TracerProvider},
         Resource,
     };
 
@@ -167,11 +167,8 @@ fn telemetry_default_tracer() -> Tracer {
         .unwrap();
 
     let provider = TracerProvider::builder()
-        .with_config(
-            Config::default()
-                .with_sampler(Sampler::AlwaysOn)
-                .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")])),
-        )
+        .with_sampler(Sampler::AlwaysOn)
+        .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")]))
         .with_batch_exporter(exporter, Tokio)
         .build();
 
