@@ -28,10 +28,7 @@ esac
 
 case "$TARGET" in
   # these platforms aren't supported by aws-lc-rs:
-  powerpc* ) ;;
   mips* ) ;;
-  riscv* ) ;;
-  s390x* ) ;;
   loongarch* ) ;;
   *netbsd* ) ;;
   *illumos* ) ;;
