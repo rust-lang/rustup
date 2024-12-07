@@ -15,15 +15,16 @@
 
 <body id="idx">
 
+<main>
+<header>
+  <div>
+    <h1>rustup</h1>
+    <h2>An installer for the systems programming language <a href="https://www.rust-lang.org">Rust</a></h2>
+  </div>
+</header>
 <a id="platform-button" class="display-none" href="#">
   click or press "n" to cycle platforms
 </a>
-
-<p id="pitch">
-  <em>rustup</em> is an installer for<br/>
-  the systems programming language
-  <a href="https://www.rust-lang.org">Rust</a>
-</p>
 
 <div id="platform-instructions-unix" class="instructions display-none">
   <p>Run the following in your terminal, then follow the onscreen instructions.</p>
@@ -128,7 +129,6 @@
   </div>
 
   <!-- duplicate the default cross-platform instructions -->
-  <div>
     <p>If you are running Unix,<br/>run the following in your terminal, then follow the onscreen instructions.</p>
     <div class="copy-container">
       <pre class="rustup-command">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh</pre>
@@ -141,7 +141,6 @@
         <div id="copy-status-message-unknown" class="copy-button-text">Copied!</div>
       </button>
     </div>
-  </div>
 
   <hr/>
 
@@ -176,7 +175,6 @@
 </div>
 
 <div id="platform-instructions-default" class="instructions">
-  <div>
     <p>To install Rust, if you are running Unix,<br/>run the following
     in your terminal, then follow the onscreen instructions.</p>
     <div class="copy-container">
@@ -190,7 +188,6 @@
         <div id="copy-status-message-default" class="copy-button-text">Copied!</div>
       </button>
     </div>
-  </div>
 
   <hr/>
 
@@ -223,7 +220,7 @@
   </div>
 </div>
 
-<p>
+<p id="help">
   Need help?<br>Ask on <a href="https://discord.gg/rust-lang">#beginners in the Rust Discord</a><br>
   or in the <a href="https://users.rust-lang.org">Rust Users Forum</a>.
 </p>
@@ -238,6 +235,7 @@
   &nbsp;&middot;&nbsp;
   <a href="https://rust-lang.github.io/rustup/">about rustup</a>
 </p>
+</main>
 
 <script src="rustup.js"></script>
 </body>

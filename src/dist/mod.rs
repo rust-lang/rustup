@@ -396,7 +396,7 @@ impl TargetTriple {
             let mut ret: libc::c_int = 0;
             let mut size = std::mem::size_of::<libc::c_int>() as libc::size_t;
             let err = libc::sysctlbyname(
-                b"sysctl.proc_translated\0".as_ptr().cast(),
+                c"sysctl.proc_translated".as_ptr().cast(),
                 (&mut ret) as *mut _ as *mut libc::c_void,
                 &mut size,
                 std::ptr::null_mut(),

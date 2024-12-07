@@ -177,6 +177,14 @@ members, so we're happy to have him on board to help address Windows-specific is
 * feat(cli/rustup-mode): support more books in `rustup doc` by @rami3l in https://github.com/rust-lang/rustup/pull/4071
 * docs: update channel toolchain syntax by @kyle-leonhard in https://github.com/rust-lang/rustup/pull/4074
 * fix(cli/rustup-mode): remove `.num_args()` when `.value_delimiter(',')` is present by @rami3l in https://github.com/rust-lang/rustup/pull/4076
+* Upgrade to rustls-platform-verifier 0.4 by @djc in https://github.com/rust-lang/rustup/pull/4087
+* Upgrade thiserror to 2 by @djc in https://github.com/rust-lang/rustup/pull/4088
+* fix: add missing close body tag by @Rustin170506 in https://github.com/rust-lang/rustup/pull/4090
+* Upgrade to opentelemetry 0.27 by @djc in https://github.com/rust-lang/rustup/pull/4089
+* feat: add nushell support by @LittleJianCH in https://github.com/rust-lang/rustup/pull/4078
+* Add aliases for remove/uninstall/unset commands by @joshtriplett in https://github.com/rust-lang/rustup/pull/4093
+* chore(deps): update remove-dir-all to 1.0 by @rbtcollins in https://github.com/rust-lang/rustup/pull/4095
+* Prepare 1.28.0 release by @djc in https://github.com/rust-lang/rustup/pull/4079
 
 [pr#3985]: https://github.com/rust-lang/rustup/pull/3985
 [pr#4028]: https://github.com/rust-lang/rustup/pull/4028

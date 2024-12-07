@@ -533,7 +533,7 @@ fn unpack_without_first_dir<R: Read>(
     Ok(())
 }
 
-impl<'a> Package for TarPackage<'a> {
+impl Package for TarPackage<'_> {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
@@ -571,7 +571,7 @@ impl<'a> TarGzPackage<'a> {
     }
 }
 
-impl<'a> Package for TarGzPackage<'a> {
+impl Package for TarGzPackage<'_> {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
@@ -609,7 +609,7 @@ impl<'a> TarXzPackage<'a> {
     }
 }
 
-impl<'a> Package for TarXzPackage<'a> {
+impl Package for TarXzPackage<'_> {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
@@ -647,7 +647,7 @@ impl<'a> TarZStdPackage<'a> {
     }
 }
 
-impl<'a> Package for TarZStdPackage<'a> {
+impl Package for TarZStdPackage<'_> {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
