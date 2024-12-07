@@ -32,13 +32,13 @@ jobs: # skip-master skip-pr skip-stable
           - x86_64-unknown-freebsd         # skip-master
           - x86_64-unknown-netbsd          # skip-master
           - x86_64-unknown-illumos         # skip-master
-          - powerpc-unknown-linux-gnu      # skip-pr skip-master
-          - powerpc64le-unknown-linux-gnu  # skip-pr skip-master
-          - s390x-unknown-linux-gnu        # skip-pr skip-master
+          - powerpc-unknown-linux-gnu      # skip-master
+          - powerpc64le-unknown-linux-gnu  # skip-master
+          - s390x-unknown-linux-gnu        # skip-master
           - arm-linux-androideabi          # skip-pr skip-master
           - armv7-linux-androideabi        # skip-pr skip-master
           - x86_64-linux-android           # skip-pr skip-master
-          - riscv64gc-unknown-linux-gnu    # skip-pr skip-master
+          - riscv64gc-unknown-linux-gnu    # skip-master
           - loongarch64-unknown-linux-gnu  # skip-master
           - loongarch64-unknown-linux-musl # skip-master
         include:
