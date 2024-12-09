@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env::consts::EXE_SUFFIX;
 use std::fmt;
 use std::io::Write;
@@ -5,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::str::FromStr;
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 use itertools::Itertools;
@@ -1425,11 +1426,7 @@ macro_rules! docs_data {
         }
 
         impl DocPage {
-            fn name(&self) -> Option<&'static str> {
-                Some(self.path()?.rsplit_once('/')?.0)
-            }
-
-            fn path(&self) -> Option<&'static str> {
+            fn path_str(&self) -> Option<&'static str> {
                 $( if self.$ident { return Some($path); } )+
                 None
             }
@@ -1466,6 +1463,39 @@ docs_data![
     (unstable_book, "The Unstable Book", "unstable-book/index.html"),
 ];
 
+impl DocPage {
+    fn path(&self) -> Option<&'static Path> {
+        self.path_str().map(Path::new)
+    }
+
+    fn name(&self) -> Option<&'static str> {
+        Some(self.path_str()?.rsplit_once('/')?.0)
+    }
+
+    fn resolve<'t>(&self, root: &Path, topic: &'t str) -> Option<(PathBuf, Option<&'t str>)> {
+        // Use `.parent()` to chop off the default top-level `index.html`.
+        let mut base = root.join(Path::new(self.path()?).parent()?);
+        base.extend(topic.split("::"));
+        let base_index_html = base.join("index.html");
+
+        if base_index_html.is_file() {
+            return Some((base_index_html, None));
+        }
+
+        let base_html = base.with_extension("html");
+        if base_html.is_file() {
+            return Some((base_html, None));
+        }
+
+        let parent_html = base.parent()?.with_extension("html");
+        if parent_html.is_file() {
+            return Some((parent_html, topic.rsplit_once("::").map(|(_, s)| s)));
+        }
+
+        None
+    }
+}
+
 async fn doc(
     cfg: &Cfg<'_>,
     path_only: bool,
@@ -1500,32 +1530,40 @@ async fn doc(
         }
     };
 
-    let topical_path: PathBuf;
-
-    let doc_url = if let Some(topic) = topic {
-        topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
-        topical_path.to_str().unwrap()
-    } else {
-        topic = doc_page.name();
-        doc_page.path().unwrap_or("index.html")
+    let (doc_path, fragment) = match (topic, doc_page.name()) {
+        (Some(topic), Some(name)) => {
+            let (doc_path, fragment) = doc_page
+                .resolve(&toolchain.doc_path("")?, topic)
+                .context(format!("no document for {name} on {topic}"))?;
+            (Cow::Owned(doc_path), fragment)
+        }
+        (Some(topic), None) => {
+            let doc_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
+            (Cow::Owned(doc_path), None)
+        }
+        (None, name) => {
+            topic = name;
+            let doc_path = doc_page.path().unwrap_or(Path::new("index.html"));
+            (Cow::Borrowed(doc_path), None)
+        }
     };
 
     if path_only {
-        let doc_path = toolchain.doc_path(doc_url)?;
+        let doc_path = toolchain.doc_path(&doc_path)?;
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
-        Ok(utils::ExitCode(0))
-    } else {
-        if let Some(name) = topic {
-            writeln!(
-                cfg.process.stderr().lock(),
-                "Opening docs named `{name}` in your browser"
-            )?;
-        } else {
-            writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
-        }
-        toolchain.open_docs(doc_url)?;
-        Ok(utils::ExitCode(0))
+        return Ok(utils::ExitCode(0));
     }
+
+    if let Some(name) = topic {
+        writeln!(
+            cfg.process.stderr().lock(),
+            "Opening docs named `{name}` in your browser"
+        )?;
+    } else {
+        writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
+    }
+    toolchain.open_docs(&doc_path, fragment)?;
+    Ok(utils::ExitCode(0))
 }
 
 #[cfg(not(windows))]

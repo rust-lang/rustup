@@ -2640,8 +2640,12 @@ async fn docs_topical_with_path() {
         .expect_ok(&["rustup", "toolchain", "install", "nightly"])
         .await;
 
-    for (topic, path) in mock::topical_doc_data::test_cases() {
-        let mut cmd = clitools::cmd(&cx.config, "rustup", ["doc", "--path", topic]);
+    for (args, path) in mock::topical_doc_data::test_cases() {
+        let mut cmd = clitools::cmd(
+            &cx.config,
+            "rustup",
+            ["doc", "--path"].iter().chain(args.iter()),
+        );
         clitools::env(&cx.config, &mut cmd);
 
         let out = cmd.output().unwrap();
@@ -2649,7 +2653,7 @@ async fn docs_topical_with_path() {
         let out_str = String::from_utf8(out.stdout).unwrap();
         assert!(
             out_str.contains(&path),
-            "comparing path\ntopic: '{topic}'\nexpected path: '{path}'\noutput: {out_str}\n\n\n",
+            "comparing path\nargs: '{args:?}'\nexpected path: '{path}'\noutput: {out_str}\n\n\n",
         );
     }
 }

@@ -1,6 +1,7 @@
 //!  Utility functions for Rustup
 
 use std::env;
+use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
 use std::ops::{BitAnd, BitAndAssign};
@@ -459,7 +460,7 @@ pub(crate) fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
     })
 }
 
-pub(crate) fn open_browser(path: &Path) -> Result<()> {
+pub(crate) fn open_browser(path: impl AsRef<OsStr>) -> Result<()> {
     opener::open_browser(path).context("couldn't open browser")
 }
 

@@ -10,9 +10,10 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use fs_at::OpenOptions;
 use tracing::info;
+use url::Url;
 use wait_timeout::ChildExt;
 
 use crate::{
@@ -408,19 +409,30 @@ impl<'a> Toolchain<'a> {
         buf
     }
 
-    pub fn doc_path(&self, relative: &str) -> anyhow::Result<PathBuf> {
-        let parts = vec!["share", "doc", "rust", "html"];
-        let mut doc_dir = self.path.clone();
-        for part in parts {
-            doc_dir.push(part);
+    pub fn doc_path(&self, relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+        let relative = relative.as_ref();
+        if relative.is_absolute() {
+            return Ok(relative.to_owned());
         }
+
+        let mut doc_dir = self.path.clone();
+        doc_dir.extend(["share", "doc", "rust", "html"]);
         doc_dir.push(relative);
 
         Ok(doc_dir)
     }
 
-    pub fn open_docs(&self, relative: &str) -> anyhow::Result<()> {
-        utils::open_browser(&self.doc_path(relative)?)
+    pub fn open_docs(
+        &self,
+        relative: impl AsRef<Path>,
+        fragment: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let relative = relative.as_ref();
+        let mut doc_url = Url::from_file_path(self.doc_path(relative)?)
+            .ok()
+            .with_context(|| anyhow!("invalid doc file absolute path `{}`", relative.display()))?;
+        doc_url.set_fragment(fragment);
+        utils::open_browser(doc_url.to_string())
     }
 
     /// Remove the toolchain from disk
