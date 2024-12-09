@@ -255,16 +255,19 @@ async fn download_file_(
         (Backend::Curl, Notification::UsingCurl)
     } else {
         let tls_backend = if use_rustls {
-            TlsBackend::Rustls
-        } else {
-            #[cfg(feature = "reqwest-native-tls")]
-            {
-                TlsBackend::NativeTls
-            }
-            #[cfg(not(feature = "reqwest-native-tls"))]
+            #[cfg(feature = "reqwest-rustls-tls")]
             {
                 TlsBackend::Rustls
             }
+            // If the `reqwest-rustls-tls` feature is disabled,
+            // `use_rustls` will remain to be `true` by default;
+            // we still have to fall back on `NativeTls` in this case.
+            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            {
+                TlsBackend::NativeTls
+            }
+        } else {
+            TlsBackend::NativeTls
         };
         (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
     };
