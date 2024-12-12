@@ -139,10 +139,11 @@ jobs: # skip-master skip-pr skip-stable
           path: |
             target/${{ matrix.target }}/release/rustup-init.exe
           retention-days: 7
-      - name: Acquire the AWS tooling
+      - name: Ensure that awscli is installed
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
-          choco upgrade awscli
+          Get-Command aws
+          aws --version
       - name: Prepare the dist
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
