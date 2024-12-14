@@ -94,18 +94,23 @@ And [look in Jaeger for a trace](http://localhost:16686/search?service=rustup).
 Tracing can also be used in tests to get a trace of the operations taken during the test.
 To use this feature, build the project with `--features=otel,test`.
 
-### Adding instrumentation
+## Adding instrumentation
 
-The `otel` feature uses conditional compilation to only add function instrument
-when enabled. Instrumenting a currently uninstrumented function is mostly simply
-done like so:
+Instrumenting a currently uninstrumented function is mostly simply done like so:
 
 ```rust
 #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
 ```
 
-`skip_all` is not required, but some core structs don't implement Debug yet, and
-others have a lot of output in Debug : tracing adds some overheads, so keeping
+Sometimes you might want to instrument a function only when the `otel` feature is enabled.
+In this case, you will need to use conditional compilation with `cfg_attr`:
+
+```rust
+#[cfg_attr(feature="otel", tracing::instrument(level = "trace", err(level = "trace"), skip_all))]
+```
+
+`skip_all` is not required, but some core structs don't implement `Debug` yet, and
+others have a lot of output in `Debug`: tracing adds some overheads, so keeping
 spans lightweight can help avoid frequency bias in the results - where
 parameters with large debug in frequently called functions show up as much
 slower than they are.
