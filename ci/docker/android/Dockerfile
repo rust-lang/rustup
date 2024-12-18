@@ -2,9 +2,7 @@ FROM rust-android
 
 # Building `aws-lc-rs` for Linux depends on `gcc-multilib`, `libclang` and `bindgen`.
 # See: https://aws.github.io/aws-lc-rs/requirements/linux
-RUN apt-get update && apt-get install -qy gcc-multilib libclang-dev \
-  && curl --proto '=https' --tlsv1.2 -LsSf https://github.com/rust-lang/rust-bindgen/releases/latest/download/bindgen-cli-installer.sh | sh \
-  && mv $HOME/.cargo/bin/bindgen /usr/bin
+RUN apt-get update && apt-get install -qy gcc-multilib libclang-dev
 
 ENV PATH=$PATH:/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin \
     ANDROID_NDK=/android/ndk/ \
