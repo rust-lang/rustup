@@ -12,6 +12,8 @@ use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 use sha2::Sha256;
+#[cfg(feature = "reqwest-backend")]
+use tracing::info;
 use url::Url;
 
 use crate::errors::*;
@@ -211,7 +213,9 @@ async fn download_file_(
     process: &Process,
 ) -> Result<()> {
     use download::download_to_path_with_backend;
-    use download::{Backend, Event, TlsBackend};
+    #[cfg(feature = "reqwest-backend")]
+    use download::TlsBackend;
+    use download::{Backend, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -246,30 +250,77 @@ async fn download_file_(
     // Download the file
 
     // Keep the curl env var around for a bit
-    let use_curl_backend = process
-        .var_os("RUSTUP_USE_CURL")
-        .is_some_and(|it| it != "0");
-    let use_rustls = process
-        .var_os("RUSTUP_USE_RUSTLS")
-        .is_none_or(|it| it != "0");
-    let (backend, notification) = if use_curl_backend {
-        (Backend::Curl, Notification::UsingCurl)
-    } else {
-        let tls_backend = if use_rustls {
-            TlsBackend::Rustls
-        } else {
-            #[cfg(feature = "reqwest-native-tls")]
-            {
-                TlsBackend::NativeTls
-            }
-            #[cfg(not(feature = "reqwest-native-tls"))]
-            {
+    let use_curl_backend = process.var_os("RUSTUP_USE_CURL").map(|it| it != "0");
+    #[cfg(not(feature = "curl-backend"))]
+    if use_curl_backend == Some(true) {
+        return Err(anyhow!(
+            "RUSTUP_USE_CURL is set, but this rustup distribution was not built with the curl-backend feature"
+        ));
+    }
+
+    let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
+    #[cfg(not(feature = "reqwest-rustls-tls"))]
+    if use_rustls == Some(true) {
+        return Err(anyhow!(
+            "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
+        ));
+    }
+    #[cfg(not(feature = "reqwest-native-tls"))]
+    if use_rustls == Some(false) {
+        return Err(anyhow!(
+            "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
+        ));
+    }
+
+    let backend = match use_curl_backend {
+        #[cfg(feature = "reqwest-backend")]
+        None | Some(false) => Backend::Reqwest(match use_rustls {
+            #[cfg(feature = "reqwest-rustls-tls")]
+            Some(true) | None => {
+                if use_curl_backend == Some(true) {
+                    info!(
+                        "both RUSTUP_USE_CURL and RUSTUP_USE_RUSTLS are set, using reqwest with rustls"
+                    );
+                }
                 TlsBackend::Rustls
             }
-        };
-        (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
+            #[cfg(feature = "reqwest-native-tls")]
+            Some(false) => {
+                if use_curl_backend == Some(true) {
+                    info!("RUSTUP_USE_CURL is set and RUSTUP_USE_RUSTLS is set to off, using reqwest with native-tls");
+                }
+                TlsBackend::NativeTls
+            }
+            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            None => TlsBackend::NativeTls,
+            #[cfg(not(feature = "reqwest-native-tls"))]
+            Some(false) => return Err(anyhow!(
+                "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
+            )),
+            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            Some(true) => return Err(anyhow!(
+                "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
+            )),
+        }),
+        #[cfg(feature = "curl-backend")]
+        Some(true) => Backend::Curl,
+        #[cfg(not(feature = "curl-backend"))]
+        Some(true) => return Err(anyhow!(
+            "RUSTUP_USE_CURL is set, but this rustup distribution was not built with the curl-backend feature"
+        )),
+        #[cfg(not(feature = "reqwest-backend"))]
+        Some(false) => return Err(anyhow!(
+            "RUSTUP_USE_CURL is set, but this rustup distribution was not built with the reqwest-backend feature"
+        )),
+        #[cfg(not(feature = "reqwest-backend"))]
+        None => Backend::Curl,
     };
-    notify_handler(notification);
+
+    notify_handler(match backend {
+        Backend::Curl => Notification::UsingCurl,
+        Backend::Reqwest(_) => Notification::UsingReqwest,
+    });
+
     let res =
         download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))
             .await;
