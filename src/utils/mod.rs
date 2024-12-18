@@ -252,8 +252,8 @@ async fn download_file_(
     let use_rustls = process
         .var_os("RUSTUP_USE_RUSTLS")
         .is_none_or(|it| it != "0");
-    let (backend, notification) = if use_curl_backend {
-        (Backend::Curl, Notification::UsingCurl)
+    let backend = if use_curl_backend {
+        Backend::Curl
     } else {
         let tls_backend = if use_rustls {
             TlsBackend::Rustls
@@ -267,9 +267,14 @@ async fn download_file_(
                 TlsBackend::Rustls
             }
         };
-        (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
+        Backend::Reqwest(tls_backend)
     };
-    notify_handler(notification);
+
+    notify_handler(match backend {
+        Backend::Curl => Notification::UsingCurl,
+        Backend::Reqwest(_) => Notification::UsingReqwest,
+    });
+
     let res =
         download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))
             .await;
