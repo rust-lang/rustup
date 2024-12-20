@@ -30,6 +30,129 @@ pub enum Backend {
     Reqwest(TlsBackend),
 }
 
+impl Backend {
+    pub async fn download_to_path(
+        self,
+        url: &Url,
+        path: &Path,
+        resume_from_partial: bool,
+        callback: Option<DownloadCallback<'_>>,
+    ) -> Result<()> {
+        let Err(err) = self
+            .download_impl(url, path, resume_from_partial, callback)
+            .await
+        else {
+            return Ok(());
+        };
+
+        // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
+        Err(
+            if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
+                file_err.context(err)
+            } else {
+                err
+            },
+        )
+    }
+
+    async fn download_impl(
+        self,
+        url: &Url,
+        path: &Path,
+        resume_from_partial: bool,
+        callback: Option<DownloadCallback<'_>>,
+    ) -> Result<()> {
+        use std::cell::RefCell;
+        use std::fs::OpenOptions;
+        use std::io::{Read, Seek, SeekFrom, Write};
+
+        let (file, resume_from) = if resume_from_partial {
+            // TODO: blocking call
+            let possible_partial = OpenOptions::new().read(true).open(path);
+
+            let downloaded_so_far = if let Ok(mut partial) = possible_partial {
+                if let Some(cb) = callback {
+                    cb(Event::ResumingPartialDownload)?;
+
+                    let mut buf = vec![0; 32768];
+                    let mut downloaded_so_far = 0;
+                    loop {
+                        let n = partial.read(&mut buf)?;
+                        downloaded_so_far += n as u64;
+                        if n == 0 {
+                            break;
+                        }
+                        cb(Event::DownloadDataReceived(&buf[..n]))?;
+                    }
+
+                    downloaded_so_far
+                } else {
+                    let file_info = partial.metadata()?;
+                    file_info.len()
+                }
+            } else {
+                0
+            };
+
+            // TODO: blocking call
+            let mut possible_partial = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(path)
+                .context("error opening file for download")?;
+
+            possible_partial.seek(SeekFrom::End(0))?;
+
+            (possible_partial, downloaded_so_far)
+        } else {
+            (
+                OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(path)
+                    .context("error creating file for download")?,
+                0,
+            )
+        };
+
+        let file = RefCell::new(file);
+
+        // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
+        self.download(url, resume_from, &|event| {
+            if let Event::DownloadDataReceived(data) = event {
+                file.borrow_mut()
+                    .write_all(data)
+                    .context("unable to write download to disk")?;
+            }
+            match callback {
+                Some(cb) => cb(event),
+                None => Ok(()),
+            }
+        })
+        .await?;
+
+        file.borrow_mut()
+            .sync_data()
+            .context("unable to sync download to disk")?;
+
+        Ok::<(), anyhow::Error>(())
+    }
+
+    async fn download(
+        self,
+        url: &Url,
+        resume_from: u64,
+        callback: DownloadCallback<'_>,
+    ) -> Result<()> {
+        match self {
+            Self::Curl => curl::download(url, resume_from, callback),
+            Self::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls).await,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum TlsBackend {
     Rustls,
@@ -46,126 +169,6 @@ pub enum Event<'a> {
 }
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
-
-async fn download_with_backend(
-    backend: Backend,
-    url: &Url,
-    resume_from: u64,
-    callback: DownloadCallback<'_>,
-) -> Result<()> {
-    match backend {
-        Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls).await,
-    }
-}
-
-pub async fn download_to_path_with_backend(
-    backend: Backend,
-    url: &Url,
-    path: &Path,
-    resume_from_partial: bool,
-    callback: Option<DownloadCallback<'_>>,
-) -> Result<()> {
-    let Err(err) =
-        download_to_path_with_backend_(backend, url, path, resume_from_partial, callback).await
-    else {
-        return Ok(());
-    };
-
-    // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
-    Err(
-        if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
-            file_err.context(err)
-        } else {
-            err
-        },
-    )
-}
-
-pub async fn download_to_path_with_backend_(
-    backend: Backend,
-    url: &Url,
-    path: &Path,
-    resume_from_partial: bool,
-    callback: Option<DownloadCallback<'_>>,
-) -> Result<()> {
-    use std::cell::RefCell;
-    use std::fs::OpenOptions;
-    use std::io::{Read, Seek, SeekFrom, Write};
-
-    let (file, resume_from) = if resume_from_partial {
-        // TODO: blocking call
-        let possible_partial = OpenOptions::new().read(true).open(path);
-
-        let downloaded_so_far = if let Ok(mut partial) = possible_partial {
-            if let Some(cb) = callback {
-                cb(Event::ResumingPartialDownload)?;
-
-                let mut buf = vec![0; 32768];
-                let mut downloaded_so_far = 0;
-                loop {
-                    let n = partial.read(&mut buf)?;
-                    downloaded_so_far += n as u64;
-                    if n == 0 {
-                        break;
-                    }
-                    cb(Event::DownloadDataReceived(&buf[..n]))?;
-                }
-
-                downloaded_so_far
-            } else {
-                let file_info = partial.metadata()?;
-                file_info.len()
-            }
-        } else {
-            0
-        };
-
-        // TODO: blocking call
-        let mut possible_partial = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(path)
-            .context("error opening file for download")?;
-
-        possible_partial.seek(SeekFrom::End(0))?;
-
-        (possible_partial, downloaded_so_far)
-    } else {
-        (
-            OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(path)
-                .context("error creating file for download")?,
-            0,
-        )
-    };
-
-    let file = RefCell::new(file);
-
-    // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
-    download_with_backend(backend, url, resume_from, &|event| {
-        if let Event::DownloadDataReceived(data) = event {
-            file.borrow_mut()
-                .write_all(data)
-                .context("unable to write download to disk")?;
-        }
-        match callback {
-            Some(cb) => cb(event),
-            None => Ok(()),
-        }
-    })
-    .await?;
-
-    file.borrow_mut()
-        .sync_data()
-        .context("unable to sync download to disk")?;
-
-    Ok::<(), anyhow::Error>(())
-}
 
 #[cfg(all(
     not(feature = "reqwest-rustls-tls"),
