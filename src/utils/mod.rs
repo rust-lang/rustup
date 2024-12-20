@@ -214,7 +214,7 @@ async fn download_file_(
 ) -> Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use download::TlsBackend;
-    use download::{download_to_path_with_backend, Backend, Event};
+    use download::{Backend, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -309,9 +309,9 @@ async fn download_file_(
         Backend::Reqwest(_) => Notification::UsingReqwest,
     });
 
-    let res =
-        download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))
-            .await;
+    let res = backend
+        .download_to_path(url, path, resume_from_partial, Some(callback))
+        .await;
 
     notify_handler(Notification::DownloadFinished);
 
