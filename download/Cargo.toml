@@ -5,12 +5,13 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["reqwest-backend", "reqwest-rustls-tls", "reqwest-native-tls"]
+default = ["reqwest-rustls-tls", "reqwest-native-tls"]
 curl-backend = ["curl"]
-reqwest-backend = ["reqwest", "env_proxy"]
-reqwest-native-tls = ["reqwest/native-tls"]
+reqwest-native-tls = ["reqwest/native-tls", "dep:reqwest", "dep:env_proxy"]
 reqwest-rustls-tls = [
   "reqwest/rustls-tls-manual-roots-no-provider",
+  "dep:env_proxy",
+  "dep:reqwest",
   "dep:rustls",
   "dep:rustls-platform-verifier",
 ]

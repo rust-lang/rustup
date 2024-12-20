@@ -167,7 +167,11 @@ pub async fn download_to_path_with_backend_(
     Ok::<(), anyhow::Error>(())
 }
 
-#[cfg(all(not(feature = "reqwest-backend"), not(feature = "curl-backend")))]
+#[cfg(all(
+    not(feature = "reqwest-rustls-tls"),
+    not(feature = "reqwest-native-tls"),
+    not(feature = "curl-backend")
+))]
 compile_error!("Must enable at least one backend");
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
@@ -284,7 +288,7 @@ pub mod curl {
     }
 }
 
-#[cfg(feature = "reqwest-backend")]
+#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 pub mod reqwest_be {
     #[cfg(all(
         not(feature = "reqwest-rustls-tls"),
@@ -480,7 +484,7 @@ pub enum DownloadError {
     Message(String),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[cfg(feature = "reqwest-backend")]
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     #[error(transparent)]
     Reqwest(#[from] ::reqwest::Error),
     #[cfg(feature = "curl-backend")]
@@ -504,7 +508,10 @@ pub mod curl {
     }
 }
 
-#[cfg(not(feature = "reqwest-backend"))]
+#[cfg(all(
+    not(feature = "reqwest-rustls-tls"),
+    not(feature = "reqwest-native-tls")
+))]
 pub mod reqwest_be {
     use anyhow::{anyhow, Result};
     use url::Url;

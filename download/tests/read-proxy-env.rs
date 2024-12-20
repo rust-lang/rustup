@@ -1,4 +1,4 @@
-#![cfg(feature = "reqwest-backend")]
+#![cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 
 use std::env::{remove_var, set_var};
 use std::error::Error;

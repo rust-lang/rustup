@@ -12,14 +12,8 @@ build = "build.rs"
 
 [features]
 curl-backend = ["download/curl-backend"]
-default = [
-  "curl-backend",
-  "reqwest-backend",
-  "reqwest-native-tls",
-  "reqwest-rustls-tls",
-]
+default = ["curl-backend", "reqwest-native-tls", "reqwest-rustls-tls"]
 
-reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
 
 reqwest-native-tls = ["download/reqwest-native-tls"]
@@ -183,4 +177,4 @@ opt-level = 0
 
 [package.metadata.cargo-all-features]
 # Building with no web backend will error.
-always_include_features = ["reqwest-backend", "reqwest-rustls-tls"]
+always_include_features = ["reqwest-rustls-tls"]
