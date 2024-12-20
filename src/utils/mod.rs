@@ -305,7 +305,9 @@ async fn download_file_(
     };
 
     notify_handler(match backend {
+        #[cfg(feature = "curl-backend")]
         Backend::Curl => Notification::UsingCurl,
+        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
         Backend::Reqwest(_) => Notification::UsingReqwest,
     });
 

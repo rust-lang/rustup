@@ -26,7 +26,9 @@ const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
 
 #[derive(Debug, Copy, Clone)]
 pub enum Backend {
+    #[cfg(feature = "curl-backend")]
     Curl,
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     Reqwest(TlsBackend),
 }
 
@@ -140,6 +142,14 @@ impl Backend {
         Ok::<(), anyhow::Error>(())
     }
 
+    #[cfg_attr(
+        all(
+            not(feature = "curl-backend"),
+            not(feature = "reqwest-rustls-tls"),
+            not(feature = "reqwest-native-tls")
+        ),
+        allow(unused_variables)
+    )]
     async fn download(
         self,
         url: &Url,
@@ -147,7 +157,9 @@ impl Backend {
         callback: DownloadCallback<'_>,
     ) -> Result<()> {
         match self {
+            #[cfg(feature = "curl-backend")]
             Self::Curl => curl::download(url, resume_from, callback),
+            #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
             Self::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls).await,
         }
     }
@@ -169,13 +181,6 @@ pub enum Event<'a> {
 }
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
-
-#[cfg(all(
-    not(feature = "reqwest-rustls-tls"),
-    not(feature = "reqwest-native-tls"),
-    not(feature = "curl-backend")
-))]
-compile_error!("Must enable at least one backend");
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
@@ -493,40 +498,4 @@ pub enum DownloadError {
     #[cfg(feature = "curl-backend")]
     #[error(transparent)]
     CurlError(#[from] ::curl::Error),
-}
-
-#[cfg(not(feature = "curl-backend"))]
-pub mod curl {
-    use anyhow::{anyhow, Result};
-    use url::Url;
-
-    use super::{DownloadError, Event};
-
-    pub fn download(
-        _url: &Url,
-        _resume_from: u64,
-        _callback: &dyn Fn(Event<'_>) -> Result<()>,
-    ) -> Result<()> {
-        Err(anyhow!(DownloadError::BackendUnavailable("curl")))
-    }
-}
-
-#[cfg(all(
-    not(feature = "reqwest-rustls-tls"),
-    not(feature = "reqwest-native-tls")
-))]
-pub mod reqwest_be {
-    use anyhow::{anyhow, Result};
-    use url::Url;
-
-    use super::{DownloadError, Event, TlsBackend};
-
-    pub async fn download(
-        _url: &Url,
-        _resume_from: u64,
-        _callback: &dyn Fn(Event<'_>) -> Result<()>,
-        _tls: TlsBackend,
-    ) -> Result<()> {
-        Err(anyhow!(DownloadError::BackendUnavailable("reqwest")))
-    }
 }
