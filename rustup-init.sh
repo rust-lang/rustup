@@ -720,9 +720,11 @@ check_help_for() {
         *darwin*)
         if check_cmd sw_vers; then
             local _os_version
+            local _os_major
             _os_version=$(sw_vers -productVersion)
-            case $_os_version in
-                10.*)
+            _os_major=$(echo "$_os_version" | cut -d. -f1)
+            case $_os_major in
+                10)
                     # If we're running on macOS, older than 10.13, then we always
                     # fail to find these options to force fallback
                     if [ "$(echo "$_os_version" | cut -d. -f2)" -lt 13 ]; then
@@ -731,7 +733,7 @@ check_help_for() {
                         return 1
                     fi
                     ;;
-                11.*)
+                11)
                     # We assume Big Sur will be OK for now
                     ;;
                 *)
