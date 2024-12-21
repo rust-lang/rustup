@@ -22,7 +22,7 @@ curl = { version = "0.4.44", optional = true }
 env_proxy = { version = "0.4.1", optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "socks", "stream"], optional = true }
 rustls = { version = "0.23", optional = true, default-features = false, features = ["logging", "aws_lc_rs", "tls12"] }
-rustls-platform-verifier = { version = "0.4", optional = true }
+rustls-platform-verifier = { version = "0.5", optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, default-features = false, features = ["sync"] }
 tokio-stream.workspace = true
