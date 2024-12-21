@@ -719,11 +719,13 @@ check_help_for() {
 
         *darwin*)
         if check_cmd sw_vers; then
-            case $(sw_vers -productVersion) in
+            local _os_version
+            _os_version=$(sw_vers -productVersion)
+            case $_os_version in
                 10.*)
                     # If we're running on macOS, older than 10.13, then we always
                     # fail to find these options to force fallback
-                    if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+                    if [ "$(echo "$_os_version" | cut -d. -f2)" -lt 13 ]; then
                         # Older than 10.13
                         warn "Detected macOS platform older than 10.13"
                         return 1
@@ -734,7 +736,7 @@ check_help_for() {
                     ;;
                 *)
                     # Unknown product version, warn and continue
-                    warn "Detected unknown macOS major version: $(sw_vers -productVersion)"
+                    warn "Detected unknown macOS major version: $_os_version"
                     warn "TLS capabilities detection may fail"
                     ;;
             esac
