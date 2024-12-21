@@ -733,14 +733,13 @@ check_help_for() {
                         return 1
                     fi
                     ;;
-                11)
-                    # We assume Big Sur will be OK for now
-                    ;;
                 *)
-                    # Unknown product version, warn and continue
-                    warn "Detected unknown macOS major version: $_os_version"
-                    warn "TLS capabilities detection may fail"
-                    ;;
+                    if ! { [ "$_os_major" -eq "$_os_major" ] 2>/dev/null && [ "$_os_major" -ge 11 ]; }; then
+                        # Unknown product version, warn and continue
+                        warn "Detected unknown macOS major version: $_os_version"
+                        warn "TLS capabilities detection may fail"
+                    fi
+                    ;; # We assume that macOS v11+ will always be okay.
             esac
         fi
         ;;
