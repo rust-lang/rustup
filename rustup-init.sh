@@ -23,8 +23,6 @@ is_zsh() {
     [ -n "${ZSH_VERSION-}" ]
 }
 
-set -u
-
 # If RUSTUP_UPDATE_ROOT is unset or empty, default it.
 RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 # Set quiet as a global for ease of use
@@ -854,4 +852,6 @@ get_strong_ciphersuites_for() {
     fi
 }
 
-main "$@" || exit 1
+if [ "$NO_OP" != "1" ]; then
+    main "$@" || exit 1
+fi
