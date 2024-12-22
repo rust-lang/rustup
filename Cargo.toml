@@ -63,7 +63,6 @@ remove_dir_all = { version = "1.0.0", features = ["parallel"] }
 retry = { version = "2", default-features = false, features = ["random"] }
 rs_tracing = { version = "1.1", features = ["rs_tracing"] }
 same-file = "1"
-scopeguard = "1"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
@@ -89,6 +88,7 @@ zstd = "0.13"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
+scopeguard = "1"
 windows-registry = "0.3.0"
 windows-result = "0.2.0"
 
@@ -122,7 +122,6 @@ trycmd = "0.15.0"
 
 [build-dependencies]
 platforms.workspace = true
-regex = "1"
 
 [lints]
 workspace = true
