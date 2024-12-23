@@ -51,8 +51,10 @@ After installing rustup with your favorite package manager, there are usually tw
   $ rustup default stable
   ```
 
-  > As of 2024/07/24, this is the case for
-  > [DNF](https://developer.fedoraproject.org/tech/languages/rust/further-reading.html).
+  > As of 2024/12/23, this is the case for
+  > [APT](https://packages.debian.org/search?searchon=names&keywords=rustup),
+  > [homebrew](https://formulae.brew.sh/formula/rustup)
+  > and [pacman](https://wiki.archlinux.org/title/Rust#Arch_Linux_package).
 
 - If your package manager has only made the `rustup-init` command available, simply run:
 
@@ -64,10 +66,8 @@ After installing rustup with your favorite package manager, there are usually tw
   managed by rustup, and install a default toolchain. When the installation is completed,
   please make sure that these proxies (usually under `$HOME/.cargo/bin`) are exposed via your `$PATH`.
 
-  > As of 2024/07/24, this is the case for
-  > [APT](https://packages.debian.org/search?searchon=names&keywords=rustup),
-  > [homebrew](https://formulae.brew.sh/formula/rustup)
-  > and [pacman](https://wiki.archlinux.org/title/Rust#Arch_Linux_package).
+  > As of 2024/12/23, this is the case for
+  > [DNF](https://developer.fedoraproject.org/tech/languages/rust/further-reading.html).
 
 Now you should be able to run `rustup`, `rustc`, `cargo`, etc. normally.
 
