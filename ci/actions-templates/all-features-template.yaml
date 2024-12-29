@@ -50,7 +50,8 @@ jobs: # skip-all
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
       - name: Install cargo-all-features
-        run: cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
+        shell: bash
+        run: which cargo-check-all-features || cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
       - name: Ensure we have our goal target installed
         run: |
           rustup target install ${{ matrix.target }}
