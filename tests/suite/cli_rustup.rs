@@ -15,8 +15,8 @@ use rustup::test::{
 use rustup::utils::raw;
 
 macro_rules! for_host_and_home {
-    ($config:expr, $s: expr) => {
-        &format!($s, this_host_triple(), $config.rustupdir)
+    ($config:expr, $s:tt $($arg:tt)*) => {
+        &format!($s, this_host_triple(), $config.rustupdir $($arg)*)
     };
 }
 
