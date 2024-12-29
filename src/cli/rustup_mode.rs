@@ -1045,8 +1045,11 @@ fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
                     &active_reason,
                 )?;
                 writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-                writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
                 writeln!(t.lock(), "active because: {}", active_reason)?;
+                if verbose {
+                    writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
+                    writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
+                }
 
                 // show installed targets for the active toolchain
                 writeln!(t.lock(), "installed targets:")?;
