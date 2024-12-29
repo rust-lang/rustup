@@ -1249,7 +1249,13 @@ async fn show_active_toolchain_with_verbose() {
                 r"nightly-{0}
 active because: it's the default toolchain
 compiler: 1.3.0 (hash-nightly-2)
-"
+path: {1}
+",
+                cx.config
+                    .rustupdir
+                    .join("toolchains")
+                    .join(for_host!("nightly-{0}"))
+                    .display()
             ),
             r"",
         )
