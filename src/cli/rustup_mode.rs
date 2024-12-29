@@ -1092,8 +1092,9 @@ fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode
             if verbose {
                 writeln!(
                     cfg.process.stdout().lock(),
-                    "compiler: {}",
-                    toolchain.rustc_version()
+                    "compiler: {}\npath: {}",
+                    toolchain.rustc_version(),
+                    toolchain.path().display(),
                 )?;
             }
         }
