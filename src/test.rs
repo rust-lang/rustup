@@ -178,8 +178,8 @@ pub fn this_host_triple() -> String {
 // Format a string with this host triple.
 #[macro_export]
 macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, $crate::test::this_host_triple())
+    ($s:tt $($arg:tt)*) => {
+        &format!($s, $crate::test::this_host_triple() $($arg)*)
     };
 }
 
