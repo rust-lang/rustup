@@ -661,7 +661,6 @@ nightly-{0} (active, default)
 active toolchain
 ----------------
 name: nightly-{0}
-compiler: 1.3.0 (hash-nightly-2)
 active because: it's the default toolchain
 installed targets:
   {0}
@@ -735,7 +734,6 @@ nightly-{0} (active, default)
 active toolchain
 ----------------
 name: nightly-{0}
-compiler: 1.3.0 (hash-nightly-2)
 active because: it's the default toolchain
 installed targets:
   {0}
@@ -774,7 +772,6 @@ nightly-{0} (active, default)
 active toolchain
 ----------------
 name: nightly-{0}
-compiler: 1.3.0 (xxxx-nightly-2)
 active because: it's the default toolchain
 installed targets:
   {1}
@@ -831,7 +828,6 @@ nightly-{0} (active, default)
 active toolchain
 ----------------
 name: nightly-{0}
-compiler: 1.3.0 (xxxx-nightly-2)
 active because: it's the default toolchain
 installed targets:
   {1}
@@ -1139,7 +1135,6 @@ nightly-{0} (active, default)
 active toolchain
 ----------------
 name: nightly-{0}
-compiler: 1.3.0 (hash-nightly-2)
 active because: overridden by environment variable RUSTUP_TOOLCHAIN
 installed targets:
   {0}
@@ -1227,11 +1222,17 @@ nightly-2015-01-01-{0}
 active toolchain
 ----------------
 name: nightly-{0}
-compiler: 1.3.0 (hash-nightly-2)
 active because: it's the default toolchain
+compiler: 1.3.0 (hash-nightly-2)
+path: {2}
 installed targets:
   {0}
-"
+",
+                config
+                    .rustupdir
+                    .join("toolchains")
+                    .join(for_host!("nightly-{0}"))
+                    .display()
             ),
             r"",
         )
