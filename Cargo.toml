@@ -47,7 +47,7 @@ flate2 = "1"
 fs_at.workspace = true
 git-testament = "0.2"
 home = "0.5.4"
-itertools = "0.13"
+itertools = "0.14"
 libc = "0.2"
 opener = "0.7.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
