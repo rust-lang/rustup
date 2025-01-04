@@ -1448,8 +1448,6 @@ docs_data![
     (core, "The Rust Core Library", "core/index.html"),
     (edition_guide, "The Rust Edition Guide", "edition-guide/index.html"),
     (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
-
-    #[arg(long = "error_codes")]
     (error_codes, "The Rust Error Codes Index", "error_codes/index.html"),
 
     (nomicon, "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
