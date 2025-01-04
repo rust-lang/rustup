@@ -578,7 +578,7 @@ async fn default_custom_not_installed_toolchain() {
 
 #[tokio::test]
 async fn default_none() {
-    let mut cx = CliTestContext::new(Scenario::None).await;
+    let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect_stderr_ok(
             &["rustup", "default", "none"],
@@ -587,10 +587,10 @@ async fn default_none() {
         .await;
 
     cx.config
-        .expect_ok_ex(
+        .expect_err_ex(
             &["rustup", "default"],
-            "no default toolchain is configured\n",
             "",
+            "error: no default toolchain is configured\n",
         )
         .await;
 
