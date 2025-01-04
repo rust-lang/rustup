@@ -753,15 +753,10 @@ async fn default_(
             }
         }
     } else {
-        match cfg.get_default()? {
-            Some(default_toolchain) => {
-                writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
-            }
-            None => writeln!(
-                cfg.process.stdout().lock(),
-                "no default toolchain is configured"
-            )?,
-        }
+        let default_toolchain = cfg
+            .get_default()?
+            .ok_or_else(|| anyhow!("no default toolchain is configured"))?;
+        writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
     }
 
     Ok(utils::ExitCode(0))
