@@ -753,15 +753,10 @@ async fn default_(
             }
         }
     } else {
-        match cfg.get_default()? {
-            Some(default_toolchain) => {
-                writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
-            }
-            None => writeln!(
-                cfg.process.stdout().lock(),
-                "no default toolchain is configured"
-            )?,
-        }
+        let default_toolchain = cfg
+            .get_default()?
+            .ok_or_else(|| anyhow!("no default toolchain is configured"))?;
+        writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1101,10 +1096,7 @@ fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode
                 )?;
             }
         }
-        None => writeln!(
-            cfg.process.stdout().lock(),
-            "There isn't an active toolchain"
-        )?,
+        None => return Err(anyhow!("there isn't an active toolchain")),
     }
     Ok(utils::ExitCode(0))
 }
