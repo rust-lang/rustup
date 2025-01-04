@@ -2802,7 +2802,11 @@ async fn check_unix_settings_fallback() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     // No default toolchain specified yet
     cx.config
-        .expect_stdout_ok(&["rustup", "default"], "no default toolchain is configured")
+        .expect_err_ex(
+            &["rustup", "default"],
+            "",
+            "error: no default toolchain is configured\n",
+        )
         .await;
 
     // Default toolchain specified in fallback settings file
