@@ -22,7 +22,7 @@ Options:
       --core                   The Rust Core Library
       --edition-guide          The Rust Edition Guide
       --embedded-book          The Embedded Rust Book
-      --error_codes            The Rust Error Codes Index
+      --error-codes            The Rust Error Codes Index
       --nomicon                The Dark Arts of Advanced and Unsafe Rust Programming
       --proc_macro             A support library for macro authors when defining new macros
       --reference              The Rust Reference
