@@ -1281,12 +1281,12 @@ async fn show_active_toolchain_with_override() {
 
 #[tokio::test]
 async fn show_active_toolchain_none() {
-    let mut cx = CliTestContext::new(Scenario::None).await;
+    let cx = CliTestContext::new(Scenario::None).await;
     cx.config
-        .expect_ok_ex(
+        .expect_err_ex(
             &["rustup", "show", "active-toolchain"],
-            "There isn't an active toolchain\n",
             "",
+            "error: there isn't an active toolchain\n",
         )
         .await;
 }
@@ -2358,9 +2358,10 @@ async fn override_order() {
     // No default
     cx.config.expect_ok(&["rustup", "default", "none"]).await;
     cx.config
-        .expect_stdout_ok(
+        .expect_err_ex(
             &["rustup", "show", "active-toolchain"],
-            "There isn't an active toolchain\n",
+            "",
+            "error: there isn't an active toolchain\n",
         )
         .await;
 
