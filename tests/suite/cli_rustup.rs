@@ -1286,7 +1286,7 @@ async fn show_active_toolchain_none() {
         .expect_err_ex(
             &["rustup", "show", "active-toolchain"],
             "",
-            "error: there isn't an active toolchain\n",
+            "error: no active toolchain\n",
         )
         .await;
 }
@@ -2361,7 +2361,7 @@ async fn override_order() {
         .expect_err_ex(
             &["rustup", "show", "active-toolchain"],
             "",
-            "error: there isn't an active toolchain\n",
+            "error: no active toolchain\n",
         )
         .await;
 

@@ -1096,7 +1096,7 @@ fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode
                 )?;
             }
         }
-        None => return Err(anyhow!("there isn't an active toolchain")),
+        None => return Err(anyhow!("no active toolchain")),
     }
     Ok(utils::ExitCode(0))
 }
