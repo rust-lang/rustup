@@ -89,8 +89,8 @@ zstd = "0.13"
 [target."cfg(windows)".dependencies]
 cc = "1"
 scopeguard = "1"
-windows-registry = "0.3.0"
-windows-result = "0.2.0"
+windows-registry = "0.4.0"
+windows-result = "0.3.0"
 
 [target."cfg(windows)".dependencies.windows-sys]
 features = [
