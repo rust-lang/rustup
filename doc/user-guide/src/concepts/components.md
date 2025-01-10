@@ -71,6 +71,9 @@ These components have been deprecated and are not published in new Rust releases
 * `rls` --- [RLS] is a language server that is deprecated and has been replaced
   by rust-analyzer.
 * `rust-analysis` --- Metadata about the standard library, used by [RLS].
+* The `wasm32-wasi` target --- It has been
+  [renamed](https://blog.rust-lang.org/2024/04/09/updates-to-rusts-wasi-targets.html)
+  to `wasm32-wasip1`.
 
 ## Component availability
 
