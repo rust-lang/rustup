@@ -246,7 +246,7 @@ impl<'a> Toolchain<'a> {
             .cfg
             .process
             .var_os("RUSTUP_WINDOWS_PATH_ADD_BIN")
-            .map_or(false, |s| s == "1")
+            .is_some_and(|s| s == "1")
         {
             path_entries.push(self.path.join("bin"));
         }
