@@ -533,6 +533,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
+          - aarch64-unknown-linux-gnu
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
@@ -540,6 +541,8 @@ jobs:
             # We add an ARM-based host to the following target.
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm64-4core-16gb
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
     steps:
@@ -696,7 +699,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
-          - aarch64-unknown-linux-gnu      # skip-pr
+          - aarch64-unknown-linux-gnu
           - powerpc64-unknown-linux-gnu    # skip-pr
           - x86_64-unknown-linux-musl      # skip-pr
         include:
@@ -706,8 +709,8 @@ jobs:
             # We add an ARM-based host to the following target.
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
-          - target: aarch64-unknown-linux-gnu      # skip-pr
-            os: ubuntu-24.04-arm64-4core-16gb      # skip-pr
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm64-4core-16gb
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
     steps:
@@ -864,7 +867,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
-          - aarch64-unknown-linux-gnu      # skip-pr
+          - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl     # skip-pr skip-master
           - powerpc64-unknown-linux-gnu    # skip-pr
           - x86_64-unknown-linux-musl      # skip-pr
@@ -892,8 +895,8 @@ jobs:
             # We add an ARM-based host to the following target.
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
-          - target: aarch64-unknown-linux-gnu      # skip-pr
-            os: ubuntu-24.04-arm64-4core-16gb      # skip-pr
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm64-4core-16gb
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
           - target: powerpc64le-unknown-linux-gnu # skip-pr skip-master
