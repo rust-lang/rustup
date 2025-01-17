@@ -543,6 +543,7 @@ jobs:
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
+            run_tests: YES
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
     steps:
@@ -711,6 +712,7 @@ jobs:
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
+            run_tests: YES
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
     steps:
@@ -897,6 +899,7 @@ jobs:
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
+            run_tests: YES
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
           - target: powerpc64le-unknown-linux-gnu # skip-pr skip-master
