@@ -24,22 +24,28 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: mdbook
-      - name: Build book
+      - name: Prepare directories
         run: |
-          # Build for stable
+          mkdir -p ${{ runner.temp }}/book
+          mkdir -p ${{ runner.temp }}/book/devel
+          mkdir -p ${{ runner.temp }}/book/dev-guide
+      - name: Build user-guide (stable)
+        run: |
           git checkout stable
           # Support both old and new directory structure during the transition
           cd doc/user-guide || cd doc
           mdbook build
           mv book ${{ runner.temp }}
-          # Build for master
-          cd $(git rev-parse --show-toplevel)
+      - name: Build user-guide (master)
+        run: |
           git checkout master
           cd doc/user-guide
           mdbook build
           mv book ${{ runner.temp }}/book/devel
-          # Build dev-guide for master
-          cd ../dev-guide
+      - name: Build dev-guide (master)
+        run: |
+          git checkout master
+          cd doc/dev-guide
           mdbook build
           mv book ${{ runner.temp }}/book/dev-guide
       - name: Deploy to GitHub
