@@ -1,6 +1,10 @@
 name: Deploy Docs
 
 on:
+  merge_group:
+  pull_request:
+    branches:
+      - "*"
   push:
     branches:
       - stable
@@ -30,6 +34,7 @@ jobs:
           mkdir -p ${{ runner.temp }}/book/devel
           mkdir -p ${{ runner.temp }}/book/dev-guide
       - name: Build user-guide (stable)
+        if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) }}
         run: |
           git checkout stable
           # Support both old and new directory structure during the transition
@@ -49,6 +54,7 @@ jobs:
           mdbook build
           mv book ${{ runner.temp }}/book/dev-guide
       - name: Deploy to GitHub
+        if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) }}
         run: |
           cd ${{ runner.temp }}/book
           git init
