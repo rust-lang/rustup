@@ -21,10 +21,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install mdbook
-        run: |
-          mkdir mdbook
-          curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.37/mdbook-v0.4.37-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
-          echo "`pwd`/mdbook" >> $GITHUB_PATH
+        uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook
       - name: Build book
         run: |
           # Build for stable
