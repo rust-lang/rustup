@@ -15,11 +15,6 @@ jobs: # skip-all
         uses: taiki-e/install-action@v2
         with:
           tool: mdbook
-      - name: Prepare directories
-        run: |
-          mkdir -p ${{ runner.temp }}/book
-          mkdir -p ${{ runner.temp }}/book/devel
-          mkdir -p ${{ runner.temp }}/book/dev-guide
       - name: Build user-guide (stable)
         if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) }}
         run: |
@@ -33,12 +28,14 @@ jobs: # skip-all
           git checkout master
           cd doc/user-guide
           mdbook build
+          mkdir -p ${{ runner.temp }}/book
           mv book ${{ runner.temp }}/book/devel
       - name: Build dev-guide (master)
         run: |
           git checkout master
           cd doc/dev-guide
           mdbook build
+          mkdir -p ${{ runner.temp }}/book
           mv book ${{ runner.temp }}/book/dev-guide
       - name: Deploy to GitHub
         if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) }}
