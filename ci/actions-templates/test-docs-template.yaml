@@ -13,8 +13,10 @@ jobs: # skip-all
           fetch-depth: 0
       - name: Install mdbook
         uses: taiki-e/install-action@v2
+        env:
+          MDBOOK_VERSION: "0.4.43"
         with:
-          tool: mdbook
+          tool: mdbook@${{ env.MDBOOK_VERSION }}
       - name: Build user-guide (stable)
         if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) }}
         run: |
