@@ -1527,7 +1527,7 @@ jobs:
       - name: Install mdbook
         uses: taiki-e/install-action@v2
         env:
-          # renovate: datasource=crates depName=mdbook
+          # renovate: datasource=crate depName=mdbook
           MDBOOK_VERSION: "0.4.43"
         with:
           tool: mdbook@${{ env.MDBOOK_VERSION }}
