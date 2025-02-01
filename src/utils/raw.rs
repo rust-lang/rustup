@@ -59,9 +59,9 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 pub(crate) fn random_string(length: usize) -> String {
     use rand::Rng;
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789_";
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     (0..length)
-        .map(|_| char::from(CHARSET[rng.gen_range(0..CHARSET.len())]))
+        .map(|_| char::from(CHARSET[rng.random_range(..CHARSET.len())]))
         .collect()
 }
 
