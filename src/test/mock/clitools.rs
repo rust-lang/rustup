@@ -1678,3 +1678,19 @@ where
     }
     inner(original.as_ref(), link.as_ref())
 }
+
+// We need an intermediary to run cargo itself.
+// The "mock" cargo can't do that because on Windows it will check
+// for a `cargo.exe` in the current directory before checking PATH.
+//
+// The solution here is to copy from the "mock" `cargo.exe` into
+// `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
+// needing to build another executable.
+pub async fn create_cargo_foo(cx: &CliTestContext) {
+    let output = cx.config.run("rustup", ["which", "cargo"], &[]).await;
+    let real_mock_cargo = output.stdout.trim();
+    let cargo_bin_path = cx.config.cargodir.join("bin");
+    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
+    fs::create_dir_all(&cargo_bin_path).unwrap();
+    fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
+}
