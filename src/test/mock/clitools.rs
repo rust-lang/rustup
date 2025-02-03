@@ -763,15 +763,12 @@ impl Config {
             self.run_subprocess(name, args.clone(), env)
         };
         let duration = Instant::now() - start;
-        let output = SanitizedOutput {
-            ok: matches!(out.status, Some(0)),
-            stdout: String::from_utf8(out.stdout).unwrap(),
-            stderr: String::from_utf8(out.stderr).unwrap(),
-        };
+        let status = out.status;
+        let output: SanitizedOutput = out.try_into().unwrap();
 
         println!("ran: {} {:?}", name, args);
         println!("inprocess: {inprocess}");
-        println!("status: {:?}", out.status);
+        println!("status: {:?}", status);
         println!("duration: {:.3}s", duration.as_secs_f32());
         println!("stdout:\n====\n{}\n====\n", output.stdout);
         println!("stderr:\n====\n{}\n====\n", output.stderr);
@@ -918,6 +915,18 @@ pub struct SanitizedOutput {
     pub ok: bool,
     pub stdout: String,
     pub stderr: String,
+}
+
+impl TryFrom<Output> for SanitizedOutput {
+    type Error = std::string::FromUtf8Error;
+    fn try_from(out: Output) -> Result<Self, Self::Error> {
+        let sanitized_output = Self {
+            ok: matches!(out.status, Some(0)),
+            stdout: String::from_utf8(out.stdout)?,
+            stderr: String::from_utf8(out.stderr)?,
+        };
+        Ok(sanitized_output)
+    }
 }
 
 pub fn cmd<I, A>(config: &Config, name: &str, args: I) -> Command
