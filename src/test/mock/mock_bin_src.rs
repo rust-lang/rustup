@@ -5,7 +5,16 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
-    let mut args = env::args_os().skip(1);
+    let mut args = env::args_os();
+    let arg0 = args.next().unwrap();
+    if let Some(cargo_subcommand) = PathBuf::from(arg0)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .and_then(|s| s.strip_prefix("cargo-"))
+    {
+        let arg1 = args.next().unwrap();
+        assert_eq!(arg1, cargo_subcommand);
+    }
     match args.next().as_ref().and_then(|s| s.to_str()) {
         Some("--version") => {
             let me = env::current_exe().unwrap();
@@ -63,7 +72,7 @@ fn main() {
         }
         Some("--recursive-cargo-subcommand") => {
             let status = Command::new("cargo-foo")
-                .arg("--recursive-cargo")
+                .args(["foo", "--recursive-cargo"])
                 .status()
                 .unwrap();
             assert!(status.success());
