@@ -821,7 +821,10 @@ impl Config {
         for env in env {
             cmd.env(env.0, env.1);
         }
+        self.run_subprocess_cmd(cmd)
+    }
 
+    pub fn run_subprocess_cmd(&self, mut cmd: Command) -> Output {
         let mut retries = 8;
         let out = loop {
             let lock = CMD_LOCK.read().unwrap();
