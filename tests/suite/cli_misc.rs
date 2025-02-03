@@ -7,11 +7,14 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    mock::clitools::{self, set_current_dist_date, CliTestContext, Config, Scenario},
+    mock::clitools::{
+        self, set_current_dist_date, CliTestContext, Config, SanitizedOutput, Scenario,
+    },
     this_host_triple,
 };
 use rustup::utils;
-use rustup::utils::raw::symlink_dir;
+use rustup::utils::raw::{self, symlink_dir};
+use tempfile::tempdir;
 
 #[tokio::test]
 async fn smoke_test() {
@@ -1237,5 +1240,70 @@ async fn toolchain_install_multi_components_comma() {
                 "",
             )
             .await;
+    }
+}
+
+#[tokio::test]
+async fn clear_cargo_environment_variable() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect_ok(&["rustup", "toolchain", "install", "nightly"])
+        .await;
+
+    // `cargo-foo` is just a copy of the mocked cargo defined in mock_bin_src.rs. It provides a way
+    // to recursively call cargo.
+    clitools::create_cargo_foo(&cx).await;
+
+    // Because this test itself runs under cargo, the `CARGO` environment variable will be set. We
+    // use it to get the path of the real cargo binary. However, the environment variable must also
+    // be cleared before running each subcommand.
+    let real_cargo = std::env::var("CARGO").unwrap();
+
+    // The mocked cargo does not set the `CARGO` environment variable, and simulating this behavior
+    // could affect the test's fidelity. So we run the real cargo binary whose path was obtained
+    // from the `CARGO` environment variable just above.
+    let run_real_cargo = |cx: &CliTestContext, args: &[&str], should_warn: bool| {
+        let mut cmd = cx.config.cmd(&real_cargo, args);
+        cmd.env_remove("CARGO");
+        let out: SanitizedOutput = cx.config.run_subprocess_cmd(cmd).try_into().unwrap();
+        assert!(out.ok);
+        if should_warn {
+            assert!(out.stderr.contains(
+                "warn: clearing 'CARGO' as it is not the path of the binary about to be executed"
+            ));
+        } else {
+            assert!(!out.stderr.contains("warn"));
+        }
+    };
+
+    // Verify that `cargo --version` does not produce a warning.
+    run_real_cargo(&cx, &["--version"], false);
+
+    // `cargo foo --recursive-cargo` runs `cargo +nightly --version`.
+    run_real_cargo(&cx, &["foo", "--recursive-cargo"], true);
+
+    // `cargo foo --recursive-cargo-without-toolchain` runs `cargo --version` (no `+nightly`).
+    {
+        let tempdir = tempdir().unwrap();
+        raw::write_file(&tempdir.path().join("rust-toolchain"), "nightly").unwrap();
+        let cx = cx.change_dir(tempdir.path());
+        run_real_cargo(&cx, &["foo", "--recursive-cargo-without-toolchain"], true);
+    }
+
+    {
+        let tempdir = tempdir().unwrap();
+        cx.config
+            .expect_ok(&[
+                "rustup",
+                "override",
+                "set",
+                "nightly",
+                "--path",
+                &tempdir.path().to_string_lossy(),
+            ])
+            .await;
+        let cx = cx.change_dir(tempdir.path());
+        run_real_cargo(&cx, &["foo", "--recursive-cargo-without-toolchain"], true);
     }
 }
