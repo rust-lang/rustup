@@ -84,6 +84,10 @@ fn main() {
                 .unwrap();
             assert!(status.success());
         }
+        Some("--recursive-cargo-without-toolchain") => {
+            let status = Command::new("cargo").arg("--version").status().unwrap();
+            assert!(status.success());
+        }
         Some("--echo-args") => {
             let mut out = io::stderr();
             for arg in args {
