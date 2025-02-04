@@ -537,7 +537,7 @@ impl Config {
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let exe_path = self.exedir.join(format!("{name}{EXE_SUFFIX}"));
+        let exe_path = self.exedir.join(name);
         let mut cmd = Command::new(exe_path);
         cmd.args(args);
         cmd.current_dir(&*self.workdir.borrow());
