@@ -163,12 +163,15 @@ impl<'a> Toolchain<'a> {
         if path.file_stem() == Some(OsStr::new("cargo")) {
             if let Some(value) = self.cfg.process.var_os("CARGO") {
                 if value != path {
-                    warn!(
-                        "clearing 'CARGO' as it is not the path of the binary about to be executed"
-                    );
+                    warn!("'CARGO' is not the path of the binary about to be executed");
                     warn!("     'CARGO' value: {}", value.to_string_lossy());
                     warn!("    to be executed: {}", path.to_string_lossy());
-                    cmd.env_remove("CARGO");
+                    warn!("in a future version of the cargo proxy, 'CARGO' may be cleared");
+                    // The `CARGO` environment can be cleared here if there is
+                    // consensus that that is the right approach. See the
+                    // following issue for discussion:
+                    // https://github.com/rust-lang/cargo/issues/15099
+                    // cmd.env_remove("CARGO");
                 }
             }
         }

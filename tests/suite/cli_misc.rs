@@ -1269,9 +1269,9 @@ async fn clear_cargo_environment_variable() {
         let out: SanitizedOutput = cx.config.run_subprocess_cmd(cmd).try_into().unwrap();
         assert!(out.ok);
         if should_warn {
-            assert!(out.stderr.contains(
-                "warn: clearing 'CARGO' as it is not the path of the binary about to be executed"
-            ));
+            assert!(out
+                .stderr
+                .contains("warn: 'CARGO' is not the path of the binary about to be executed"));
         } else {
             assert!(!out.stderr.contains("warn"));
         }
