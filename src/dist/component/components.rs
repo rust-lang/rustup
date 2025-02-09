@@ -2,6 +2,7 @@
 //! `Components` and `DirectoryPackage` are the two sides of the
 //! installation / uninstallation process.
 
+use std::borrow::Cow;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 
@@ -148,12 +149,28 @@ impl<'a> ComponentBuilder<'a> {
 pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
+    const PATH_SEP_MANIFEST: &str = "/";
+    const PATH_SEP_MAIN: &str = std::path::MAIN_SEPARATOR_STR;
+
     pub(crate) fn encode(&self) -> String {
-        format!("{}:{}", &self.0, &self.1.to_string_lossy())
+        // Lossy conversion is safe here because we assume that `path` comes from
+        // `ComponentPart::decode()`, i.e. from calling `Path::from()` on a `&str`.
+        let mut path = self.1.to_string_lossy();
+        if Self::PATH_SEP_MAIN != Self::PATH_SEP_MANIFEST {
+            path = Cow::Owned(path.replace(Self::PATH_SEP_MAIN, Self::PATH_SEP_MANIFEST));
+        };
+        format!("{}:{path}", self.0)
     }
+
     pub(crate) fn decode(line: &str) -> Option<Self> {
-        line.find(':')
-            .map(|pos| Self(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
+        line.find(':').map(|pos| {
+            let mut path_str = Cow::Borrowed(&line[(pos + 1)..]);
+            if Self::PATH_SEP_MANIFEST != Self::PATH_SEP_MAIN {
+                path_str =
+                    Cow::Owned(path_str.replace(Self::PATH_SEP_MANIFEST, Self::PATH_SEP_MAIN));
+            };
+            Self(line[0..pos].to_owned(), PathBuf::from(path_str.as_ref()))
+        })
     }
 }
 
@@ -320,5 +337,29 @@ impl Component {
         tx.remove_file(&self.name, self.rel_manifest_file())?;
 
         Ok(tx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_component_part() {
+        let ComponentPart(kind, path) = ComponentPart::decode("dir:share/doc/rust/html").unwrap();
+        assert_eq!(kind, "dir");
+        assert_eq!(
+            path,
+            Path::new(&"share/doc/rust/html".replace("/", ComponentPart::PATH_SEP_MAIN))
+        );
+    }
+
+    #[test]
+    fn encode_component_part() {
+        let part = ComponentPart(
+            "dir".to_owned(),
+            ["share", "doc", "rust", "html"].into_iter().collect(),
+        );
+        assert_eq!(part.encode(), "dir:share/doc/rust/html");
     }
 }
