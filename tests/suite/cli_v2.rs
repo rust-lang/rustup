@@ -3,6 +3,7 @@
 
 use std::fs;
 use std::io::Write;
+use std::path::PathBuf;
 
 use rustup::dist::TargetTriple;
 use rustup::for_host;
@@ -392,17 +393,15 @@ async fn bad_manifest() {
     // install some toolchain
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
 
-    #[cfg(not(target_os = "windows"))]
-    let path = format!(
-        "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
-        this_host_triple(),
-    );
-
-    #[cfg(target_os = "windows")]
-    let path = format!(
-        r"toolchains\nightly-{}\lib/rustlib\multirust-channel-manifest.toml",
-        this_host_triple(),
-    );
+    let path = [
+        "toolchains",
+        for_host!("nightly-{}"),
+        "lib",
+        "rustlib",
+        "multirust-channel-manifest.toml",
+    ]
+    .into_iter()
+    .collect::<PathBuf>();
 
     assert!(cx.config.rustupdir.has(&path));
     let path = cx.config.rustupdir.join(&path);

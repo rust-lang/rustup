@@ -2,7 +2,14 @@ use std::path::{Path, PathBuf};
 
 use crate::utils;
 
-const REL_MANIFEST_DIR: &str = "lib/rustlib";
+/// The relative path to the manifest directory in a Rust installation,
+/// with path components separated by [`std::path::MAIN_SEPARATOR`].
+const REL_MANIFEST_DIR: &str = match std::path::MAIN_SEPARATOR {
+    '/' => "lib/rustlib",
+    '\\' => r"lib\rustlib",
+    _ => panic!("unknown `std::path::MAIN_SEPARATOR`"),
+};
+
 static V1_COMMON_COMPONENT_LIST: &[&str] = &["cargo", "rustc", "rust-docs"];
 
 #[derive(Clone, Debug)]
