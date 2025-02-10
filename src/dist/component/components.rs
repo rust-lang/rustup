@@ -102,23 +102,31 @@ pub(crate) struct ComponentBuilder<'a> {
 
 impl<'a> ComponentBuilder<'a> {
     pub(crate) fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
-        self.parts
-            .push(ComponentPart("file".to_owned(), path.clone()));
+        self.parts.push(ComponentPart {
+            kind: "file".to_owned(),
+            path: path.clone(),
+        });
         self.tx.copy_file(&self.name, path, src)
     }
     pub(crate) fn copy_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
-        self.parts
-            .push(ComponentPart("dir".to_owned(), path.clone()));
+        self.parts.push(ComponentPart {
+            kind: "dir".to_owned(),
+            path: path.clone(),
+        });
         self.tx.copy_dir(&self.name, path, src)
     }
     pub(crate) fn move_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
-        self.parts
-            .push(ComponentPart("file".to_owned(), path.clone()));
+        self.parts.push(ComponentPart {
+            kind: "file".to_owned(),
+            path: path.clone(),
+        });
         self.tx.move_file(&self.name, path, src)
     }
     pub(crate) fn move_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
-        self.parts
-            .push(ComponentPart("dir".to_owned(), path.clone()));
+        self.parts.push(ComponentPart {
+            kind: "dir".to_owned(),
+            path: path.clone(),
+        });
         self.tx.move_dir(&self.name, path, src)
     }
     pub(crate) fn finish(mut self) -> Result<Transaction<'a>> {
@@ -146,7 +154,13 @@ impl<'a> ComponentBuilder<'a> {
 }
 
 #[derive(Debug)]
-pub struct ComponentPart(pub String, pub PathBuf);
+pub struct ComponentPart {
+    /// Kind of the [`ComponentPart`], such as `"file"` or `"dir"`.
+    pub kind: String,
+    /// Relative path of the [`ComponentPart`],
+    /// with components separated by the system's main path separator.
+    pub path: PathBuf,
+}
 
 impl ComponentPart {
     const PATH_SEP_MANIFEST: &str = "/";
@@ -155,11 +169,11 @@ impl ComponentPart {
     pub(crate) fn encode(&self) -> String {
         // Lossy conversion is safe here because we assume that `path` comes from
         // `ComponentPart::decode()`, i.e. from calling `Path::from()` on a `&str`.
-        let mut path = self.1.to_string_lossy();
+        let mut path = self.path.to_string_lossy();
         if Self::PATH_SEP_MAIN != Self::PATH_SEP_MANIFEST {
             path = Cow::Owned(path.replace(Self::PATH_SEP_MAIN, Self::PATH_SEP_MANIFEST));
         };
-        format!("{}:{path}", self.0)
+        format!("{}:{path}", self.kind)
     }
 
     pub(crate) fn decode(line: &str) -> Option<Self> {
@@ -169,7 +183,10 @@ impl ComponentPart {
                 path_str =
                     Cow::Owned(path_str.replace(Self::PATH_SEP_MANIFEST, Self::PATH_SEP_MAIN));
             };
-            Self(line[0..pos].to_owned(), PathBuf::from(path_str.as_ref()))
+            Self {
+                kind: line[0..pos].to_owned(),
+                path: PathBuf::from(path_str.as_ref()),
+            }
         })
     }
 }
@@ -322,12 +339,12 @@ impl Component {
             prefix: self.components.prefix.abs_path(""),
         };
         for part in self.parts()?.into_iter().rev() {
-            match &*part.0 {
-                "file" => tx.remove_file(&self.name, part.1.clone())?,
-                "dir" => tx.remove_dir(&self.name, part.1.clone())?,
+            match &*part.kind {
+                "file" => tx.remove_file(&self.name, part.path.clone())?,
+                "dir" => tx.remove_dir(&self.name, part.path.clone())?,
                 _ => return Err(RustupError::CorruptComponent(self.name.clone()).into()),
             }
-            pset.seen(part.1);
+            pset.seen(part.path);
         }
         for empty_dir in pset {
             tx.remove_dir(&self.name, empty_dir)?;
@@ -346,20 +363,20 @@ mod tests {
 
     #[test]
     fn decode_component_part() {
-        let ComponentPart(kind, path) = ComponentPart::decode("dir:share/doc/rust/html").unwrap();
-        assert_eq!(kind, "dir");
+        let part = ComponentPart::decode("dir:share/doc/rust/html").unwrap();
+        assert_eq!(part.kind, "dir");
         assert_eq!(
-            path,
+            part.path,
             Path::new(&"share/doc/rust/html".replace("/", ComponentPart::PATH_SEP_MAIN))
         );
     }
 
     #[test]
     fn encode_component_part() {
-        let part = ComponentPart(
-            "dir".to_owned(),
-            ["share", "doc", "rust", "html"].into_iter().collect(),
-        );
+        let part = ComponentPart {
+            kind: "dir".to_owned(),
+            path: ["share", "doc", "rust", "html"].into_iter().collect(),
+        };
         assert_eq!(part.encode(), "dir:share/doc/rust/html");
     }
 }
