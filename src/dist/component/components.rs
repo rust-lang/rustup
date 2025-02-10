@@ -177,16 +177,14 @@ impl ComponentPart {
     }
 
     pub(crate) fn decode(line: &str) -> Option<Self> {
-        line.find(':').map(|pos| {
-            let mut path_str = Cow::Borrowed(&line[(pos + 1)..]);
-            if Self::PATH_SEP_MANIFEST != Self::PATH_SEP_MAIN {
-                path_str =
-                    Cow::Owned(path_str.replace(Self::PATH_SEP_MANIFEST, Self::PATH_SEP_MAIN));
-            };
-            Self {
-                kind: line[0..pos].to_owned(),
-                path: PathBuf::from(path_str.as_ref()),
-            }
+        let pos = line.find(':')?;
+        let mut path_str = Cow::Borrowed(&line[(pos + 1)..]);
+        if Self::PATH_SEP_MANIFEST != Self::PATH_SEP_MAIN {
+            path_str = Cow::Owned(path_str.replace(Self::PATH_SEP_MANIFEST, Self::PATH_SEP_MAIN));
+        };
+        Some(Self {
+            kind: line[0..pos].to_owned(),
+            path: PathBuf::from(path_str.as_ref()),
         })
     }
 }
