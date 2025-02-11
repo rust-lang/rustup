@@ -106,15 +106,15 @@ impl Package for DirectoryPackage {
             let path = part.path;
             let src_path = root.join(&path);
 
-            match &*part.kind {
-                "file" => {
+            match part.kind {
+                ComponentPartKind::File => {
                     if self.copy {
                         builder.copy_file(path.clone(), &src_path)?
                     } else {
                         builder.move_file(path.clone(), &src_path)?
                     }
                 }
-                "dir" => {
+                ComponentPartKind::Dir => {
                     if self.copy {
                         builder.copy_dir(path.clone(), &src_path)?
                     } else {
