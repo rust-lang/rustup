@@ -198,13 +198,16 @@ impl ComponentPart {
     const PATH_SEP_MAIN: &str = std::path::MAIN_SEPARATOR_STR;
 
     pub(crate) fn encode(&self) -> String {
+        let mut buf = self.kind.to_string();
+        buf.push(':');
         // Lossy conversion is safe here because we assume that `path` comes from
         // `ComponentPart::decode()`, i.e. from calling `Path::from()` on a `&str`.
         let mut path = self.path.to_string_lossy();
         if Self::PATH_SEP_MAIN != Self::PATH_SEP_MANIFEST {
             path = Cow::Owned(path.replace(Self::PATH_SEP_MAIN, Self::PATH_SEP_MANIFEST));
         };
-        format!("{}:{path}", self.kind)
+        buf.push_str(&path);
+        buf
     }
 
     pub(crate) fn decode(line: &str) -> Option<Self> {
