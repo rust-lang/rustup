@@ -522,7 +522,7 @@ impl Config {
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
     {
-        let exe_path = self.exedir.join(format!("{name}{EXE_SUFFIX}"));
+        let exe_path = self.exedir.join(name);
         let mut cmd = Command::new(exe_path);
         cmd.args(args);
         cmd.current_dir(&*self.workdir.borrow());
@@ -748,15 +748,12 @@ impl Config {
             self.run_subprocess(name, args.clone(), env)
         };
         let duration = Instant::now() - start;
-        let output = SanitizedOutput {
-            ok: matches!(out.status, Some(0)),
-            stdout: String::from_utf8(out.stdout).unwrap(),
-            stderr: String::from_utf8(out.stderr).unwrap(),
-        };
+        let status = out.status;
+        let output: SanitizedOutput = out.try_into().unwrap();
 
         println!("ran: {} {:?}", name, args);
         println!("inprocess: {inprocess}");
-        println!("status: {:?}", out.status);
+        println!("status: {:?}", status);
         println!("duration: {:.3}s", duration.as_secs_f32());
         println!("stdout:\n====\n{}\n====\n", output.stdout);
         println!("stderr:\n====\n{}\n====\n", output.stderr);
@@ -824,7 +821,10 @@ impl Config {
         for env in env {
             cmd.env(env.0, env.1);
         }
+        self.run_subprocess_cmd(cmd)
+    }
 
+    pub fn run_subprocess_cmd(&self, mut cmd: Command) -> Output {
         let mut retries = 8;
         let out = loop {
             let lock = CMD_LOCK.read().unwrap();
@@ -903,6 +903,18 @@ pub struct SanitizedOutput {
     pub ok: bool,
     pub stdout: String,
     pub stderr: String,
+}
+
+impl TryFrom<Output> for SanitizedOutput {
+    type Error = std::string::FromUtf8Error;
+    fn try_from(out: Output) -> Result<Self, Self::Error> {
+        let sanitized_output = Self {
+            ok: matches!(out.status, Some(0)),
+            stdout: String::from_utf8(out.stdout)?,
+            stderr: String::from_utf8(out.stderr)?,
+        };
+        Ok(sanitized_output)
+    }
 }
 
 pub fn cmd<I, A>(config: &Config, name: &str, args: I) -> Command
@@ -1665,4 +1677,20 @@ where
         fs::hard_link(a, b).map(drop)
     }
     inner(original.as_ref(), link.as_ref())
+}
+
+// We need an intermediary to run cargo itself.
+// The "mock" cargo can't do that because on Windows it will check
+// for a `cargo.exe` in the current directory before checking PATH.
+//
+// The solution here is to copy from the "mock" `cargo.exe` into
+// `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
+// needing to build another executable.
+pub async fn create_cargo_foo(cx: &CliTestContext) {
+    let output = cx.config.run("rustup", ["which", "cargo"], &[]).await;
+    let real_mock_cargo = output.stdout.trim();
+    let cargo_bin_path = cx.config.cargodir.join("bin");
+    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
+    fs::create_dir_all(&cargo_bin_path).unwrap();
+    fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
 }
