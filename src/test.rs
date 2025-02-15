@@ -245,6 +245,8 @@ pub async fn after_test_async() {
     #[cfg(feature = "otel")]
     {
         // We're tracing, so block until all spans are exported.
-        opentelemetry::global::shutdown_tracer_provider();
+        opentelemetry::global::set_tracer_provider(
+            opentelemetry::trace::noop::NoopTracerProvider::new(),
+        );
     }
 }

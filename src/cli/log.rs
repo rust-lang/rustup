@@ -153,12 +153,11 @@ where
 fn telemetry_default_tracer() -> Tracer {
     use std::time::Duration;
 
-    use opentelemetry::{KeyValue, global, trace::TracerProvider as _};
+    use opentelemetry::{global, trace::TracerProvider as _};
     use opentelemetry_otlp::WithExportConfig;
     use opentelemetry_sdk::{
         Resource,
-        runtime::Tokio,
-        trace::{Sampler, TracerProvider},
+        trace::{Sampler, SdkTracerProvider},
     };
 
     let exporter = opentelemetry_otlp::SpanExporter::builder()
@@ -167,10 +166,10 @@ fn telemetry_default_tracer() -> Tracer {
         .build()
         .unwrap();
 
-    let provider = TracerProvider::builder()
+    let provider = SdkTracerProvider::builder()
         .with_sampler(Sampler::AlwaysOn)
-        .with_resource(Resource::new(vec![KeyValue::new("service.name", "rustup")]))
-        .with_batch_exporter(exporter, Tokio)
+        .with_resource(Resource::builder().with_service_name("rustup").build())
+        .with_batch_exporter(exporter)
         .build();
 
     global::set_tracer_provider(provider.clone());
