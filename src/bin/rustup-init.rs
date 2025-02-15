@@ -50,7 +50,9 @@ async fn main() -> Result<ExitCode> {
     let result = run_rustup(&process, console_filter).await;
     // We're tracing, so block until all spans are exported.
     #[cfg(feature = "otel")]
-    opentelemetry::global::shutdown_tracer_provider();
+    opentelemetry::global::set_tracer_provider(
+        opentelemetry::trace::noop::NoopTracerProvider::new(),
+    );
 
     match result {
         Err(e) => {

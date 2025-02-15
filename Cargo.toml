@@ -137,9 +137,9 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 anyhow = "1.0.69"
 fs_at = "0.2.1"
-opentelemetry = "0.27"
-opentelemetry-otlp = "0.27"
-opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry = "0.28"
+opentelemetry-otlp = { version = "0.28", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.28", features = ["rt-tokio"] }
 platforms = "3.4"
 proptest = "1.1.0"
 tempfile = "3.8"
@@ -149,7 +149,7 @@ tokio = { version = "1.26.0", default-features = false, features = ["macros", "r
 tokio-retry = { version = "0.3.0" }
 tokio-stream = { version = "0.1.14" }
 tracing = "0.1"
-tracing-opentelemetry = "0.28"
+tracing-opentelemetry = "0.29"
 tracing-subscriber = "0.3.16"
 url = "2.4"
 walkdir = "2"
