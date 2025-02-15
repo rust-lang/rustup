@@ -857,4 +857,13 @@ get_strong_ciphersuites_for() {
     fi
 }
 
-main "$@" || exit 1
+set +u
+case "$RUSTUP_INIT_SH_PRINT" in
+    arch | architecture)
+        get_architecture || exit 1
+        echo "$RETVAL"
+        ;;
+    *)
+        main "$@" || exit 1
+        ;;
+esac
