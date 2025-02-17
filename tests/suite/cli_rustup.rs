@@ -583,19 +583,7 @@ async fn recursive_cargo() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    // We need an intermediary to run cargo itself.
-    // The "mock" cargo can't do that because on Windows it will check
-    // for a `cargo.exe` in the current directory before checking PATH.
-    //
-    // The solution here is to copy from the "mock" `cargo.exe` into
-    // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
-    // needing to build another executable just for this test.
-    let output = cx.config.run("rustup", ["which", "cargo"], &[]).await;
-    let real_mock_cargo = output.stdout.trim();
-    let cargo_bin_path = cx.config.cargodir.join("bin");
-    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
-    fs::create_dir_all(&cargo_bin_path).unwrap();
-    fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
+    clitools::create_cargo_foo(&cx).await;
 
     cx.config
         .expect_stdout_ok(&["cargo", "--recursive-cargo-subcommand"], "hash-nightly-2")

@@ -12,7 +12,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context};
 use fs_at::OpenOptions;
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 use wait_timeout::ChildExt;
 
@@ -158,6 +158,23 @@ impl<'a> Toolchain<'a> {
     /// pub because of create_fallback_command
     pub fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
+
+        let path = Path::new(cmd.get_program());
+        if path.file_stem() == Some(OsStr::new("cargo")) {
+            if let Some(value) = self.cfg.process.var_os("CARGO") {
+                if value != path {
+                    warn!("'CARGO' is not the path of the binary about to be executed");
+                    warn!("     'CARGO' value: {}", value.to_string_lossy());
+                    warn!("    to be executed: {}", path.to_string_lossy());
+                    warn!("in a future version of the cargo proxy, 'CARGO' may be cleared");
+                    // The `CARGO` environment can be cleared here if there is
+                    // consensus that that is the right approach. See the
+                    // following issue for discussion:
+                    // https://github.com/rust-lang/cargo/issues/15099
+                    // cmd.env_remove("CARGO");
+                }
+            }
+        }
 
         // Older versions of Cargo used a slightly different definition of
         // cargo home. Rustup does not read HOME on Windows whereas the older
