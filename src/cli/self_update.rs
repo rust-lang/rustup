@@ -1048,13 +1048,8 @@ fn get_and_parse_new_rustup_version(path: &Path) -> Option<String> {
 }
 
 fn get_new_rustup_version(path: &Path) -> Option<String> {
-    match Command::new(path).arg("--version").output() {
-        Err(_) => None,
-        Ok(output) => match String::from_utf8(output.stdout) {
-            Ok(version) => Some(version),
-            Err(_) => None,
-        },
-    }
+    let output = Command::new(path).arg("--version").output().ok()?;
+    String::from_utf8(output.stdout).ok()
 }
 
 fn parse_new_rustup_version(version: String) -> String {

@@ -195,8 +195,8 @@ impl<'a> LineFormatter<'a> {
             }
             TagEnd::Strong => {}
             TagEnd::Strikethrough => {}
-            TagEnd::Link { .. } => {}
-            TagEnd::Image { .. } => {} // shouldn't happen, handled in start
+            TagEnd::Link => {}
+            TagEnd::Image => {} // shouldn't happen, handled in start
             TagEnd::FootnoteDefinition => {}
             TagEnd::MetadataBlock(_) => {}
             TagEnd::Superscript => {}
