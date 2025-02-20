@@ -9,20 +9,20 @@ use std::sync::{Arc, Mutex};
 #[cfg(any(test, feature = "test"))]
 use std::sync::{LockResult, MutexGuard};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use tracing::{info, warn};
 #[cfg(any(test, feature = "test"))]
 use windows_registry::Value;
-use windows_registry::{Key, CURRENT_USER, HSTRING};
+use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::HRESULT;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
 use super::super::errors::*;
 use super::common;
-use super::{install_bins, report_error, InstallOpts};
+use super::{InstallOpts, install_bins, report_error};
 use crate::cli::{download_tracker::DownloadTracker, markdown::md};
 use crate::dist::TargetTriple;
-use crate::process::{terminalsource::ColorableTerminal, Process};
+use crate::process::{Process, terminalsource::ColorableTerminal};
 use crate::utils::{self, Notification};
 
 pub(crate) fn ensure_prompt(process: &Process) -> Result<()> {
@@ -223,7 +223,9 @@ impl fmt::Display for VsInstallError {
             1602 => "operation was canceled",
             1618 => "another installation running",
             1641 => "operation completed successfully, and reboot was initiated",
-            3010 => "operation completed successfully, but install requires reboot before it can be used",
+            3010 => {
+                "operation completed successfully, but install requires reboot before it can be used"
+            }
             5003 => "bootstrapper failed to download installer",
             5004 => "operation was canceled",
             5005 => "bootstrapper command-line parse error",
@@ -236,7 +238,7 @@ impl fmt::Display for VsInstallError {
             8006 => "Visual Studio processes running",
             -1073720687 => "connectivity failure",
             -1073741510 => "Microsoft Visual Studio Installer was terminated",
-            _ => "error installing Visual Studio"
+            _ => "error installing Visual Studio",
         };
         write!(f, "{} (exit code {})", message, self.0)
     }
@@ -391,10 +393,10 @@ pub(crate) fn wait_for_parent() -> Result<()> {
     use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
     use windows_sys::Win32::Storage::FileSystem::SYNCHRONIZE;
     use windows_sys::Win32::System::Diagnostics::ToolHelp::{
-        CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
+        CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next, TH32CS_SNAPPROCESS,
     };
     use windows_sys::Win32::System::Threading::{
-        GetCurrentProcessId, OpenProcess, WaitForSingleObject, INFINITE,
+        GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject,
     };
 
     unsafe {
@@ -467,7 +469,7 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
     use std::ptr;
     use windows_sys::Win32::Foundation::*;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
+        HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
     };
 
     let new_path = match new_path {

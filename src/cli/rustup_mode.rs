@@ -6,32 +6,32 @@ use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::str::FromStr;
 
-use anyhow::{anyhow, Context, Error, Result};
-use clap::{builder::PossibleValue, Args, CommandFactory, Parser, Subcommand, ValueEnum};
+use anyhow::{Context, Error, Result, anyhow};
+use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
 use clap_complete::Shell;
 use itertools::Itertools;
 use tracing::{info, trace, warn};
-use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
+use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     cli::{
-        common::{self, update_console_filter, PackageUpdate},
+        common::{self, PackageUpdate, update_console_filter},
         errors::CLIError,
         help::*,
-        self_update::{self, check_rustup_update, SelfUpdateMode},
+        self_update::{self, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
     command,
     config::{ActiveReason, Cfg},
     dist::{
-        manifest::{Component, ComponentStatus},
         PartialToolchainDesc, Profile, TargetTriple,
+        manifest::{Component, ComponentStatus},
     },
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::{
-        terminalsource::{self, ColorableTerminal},
         Process,
+        terminalsource::{self, ColorableTerminal},
     },
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName,
@@ -41,8 +41,7 @@ use crate::{
     utils::{self, ExitCode},
 };
 
-const TOOLCHAIN_OVERRIDE_ERROR: &str =
-    "To override the toolchain using the 'rustup +toolchain' syntax, \
+const TOOLCHAIN_OVERRIDE_ERROR: &str = "To override the toolchain using the 'rustup +toolchain' syntax, \
                         make sure to prefix the toolchain override with a '+'";
 
 fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
@@ -90,12 +89,17 @@ struct Rustup {
 }
 
 fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolchainName> {
-    use clap::{error::ErrorKind, Error};
+    use clap::{Error, error::ErrorKind};
     if let Some(stripped) = s.strip_prefix('+') {
         ResolvableToolchainName::try_from(stripped)
             .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
     } else {
-        Err(Error::raw(ErrorKind::InvalidSubcommand, format!("\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}")))
+        Err(Error::raw(
+            ErrorKind::InvalidSubcommand,
+            format!(
+                "\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}"
+            ),
+        ))
     }
 }
 
@@ -1191,7 +1195,9 @@ async fn target_remove(
         let target = TargetTriple::new(target);
         let default_target = cfg.get_default_host_triple()?;
         if target == default_target {
-            warn!("removing the default host target; proc-macros and build scripts might no longer build");
+            warn!(
+                "removing the default host target; proc-macros and build scripts might no longer build"
+            );
         }
         // Whether we have at most 1 component target that is not `None` (wildcard).
         let has_at_most_one_target = distributable
@@ -1316,13 +1322,17 @@ fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::Exi
             .as_ref()
             .is_some_and(|n| n == &toolchain_name)
         {
-            warn!("removing the active toolchain; a toolchain override will be required for running Rust tools");
+            warn!(
+                "removing the active toolchain; a toolchain override will be required for running Rust tools"
+            );
         }
         if default_toolchain
             .as_ref()
             .is_some_and(|n| n == &toolchain_name)
         {
-            warn!("removing the default toolchain; proc-macros and build scripts might no longer build");
+            warn!(
+                "removing the default toolchain; proc-macros and build scripts might no longer build"
+            );
         }
 
         Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
@@ -1433,28 +1443,77 @@ macro_rules! docs_data {
 docs_data![
     // flags can be used to open specific documents, e.g. `rustup doc --nomicon`
     // tuple elements: document name used as flag, help message, document index path
-    (alloc, "The Rust core allocation and collections library", "alloc/index.html"),
-    (book, "The Rust Programming Language book", "book/index.html"),
+    (
+        alloc,
+        "The Rust core allocation and collections library",
+        "alloc/index.html"
+    ),
+    (
+        book,
+        "The Rust Programming Language book",
+        "book/index.html"
+    ),
     (cargo, "The Cargo Book", "cargo/index.html"),
     (clippy, "The Clippy Documentation", "clippy/index.html"),
     (core, "The Rust Core Library", "core/index.html"),
-    (edition_guide, "The Rust Edition Guide", "edition-guide/index.html"),
-    (embedded_book, "The Embedded Rust Book", "embedded-book/index.html"),
-    (error_codes, "The Rust Error Codes Index", "error_codes/index.html"),
-
-    (nomicon, "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
-
+    (
+        edition_guide,
+        "The Rust Edition Guide",
+        "edition-guide/index.html"
+    ),
+    (
+        embedded_book,
+        "The Embedded Rust Book",
+        "embedded-book/index.html"
+    ),
+    (
+        error_codes,
+        "The Rust Error Codes Index",
+        "error_codes/index.html"
+    ),
+    (
+        nomicon,
+        "The Dark Arts of Advanced and Unsafe Rust Programming",
+        "nomicon/index.html"
+    ),
     #[arg(long = "proc_macro")]
-    (proc_macro, "A support library for macro authors when defining new macros", "proc_macro/index.html"),
-
+    (
+        proc_macro,
+        "A support library for macro authors when defining new macros",
+        "proc_macro/index.html"
+    ),
     (reference, "The Rust Reference", "reference/index.html"),
-    (rust_by_example, "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
-    (rustc, "The compiler for the Rust programming language", "rustc/index.html"),
-    (rustdoc, "Documentation generator for Rust projects", "rustdoc/index.html"),
+    (
+        rust_by_example,
+        "A collection of runnable examples that illustrate various Rust concepts and standard libraries",
+        "rust-by-example/index.html"
+    ),
+    (
+        rustc,
+        "The compiler for the Rust programming language",
+        "rustc/index.html"
+    ),
+    (
+        rustdoc,
+        "Documentation generator for Rust projects",
+        "rustdoc/index.html"
+    ),
     (std, "Standard library API documentation", "std/index.html"),
-    (style_guide, "The Rust Style Guide", "style-guide/index.html"),
-    (test, "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
-    (unstable_book, "The Unstable Book", "unstable-book/index.html"),
+    (
+        style_guide,
+        "The Rust Style Guide",
+        "style-guide/index.html"
+    ),
+    (
+        test,
+        "Support code for rustc's built in unit-test and micro-benchmarking framework",
+        "test/index.html"
+    ),
+    (
+        unstable_book,
+        "The Unstable Book",
+        "unstable-book/index.html"
+    ),
 ];
 
 impl DocPage {
@@ -1594,7 +1653,10 @@ fn set_auto_self_update(
             .as_ref()
             .and_then(|a| a.to_str())
             .ok_or(CLIError::NoExeName)?;
-        warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
+        warn!(
+            "{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",
+            arg0
+        );
     }
     cfg.set_auto_self_update(auto_self_update_mode)?;
     Ok(utils::ExitCode(0))
@@ -1655,7 +1717,7 @@ fn output_completion_script(
                         "{} does not currently support completions for {}",
                         command,
                         shell
-                    ))
+                    ));
                 }
             };
 

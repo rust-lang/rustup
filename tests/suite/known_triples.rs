@@ -89,6 +89,8 @@ fn parse_triple(triple: &str) -> (&str, &str, &str) {
             &triple[(arch.len() + 1)..(triple.len() - env.len() - 1)],
             env,
         ),
-        _ => panic!("Internal error while parsing target triple `{triple}`, please file an issue at https://github.com/rust-lang/rustup/issues"),
+        _ => panic!(
+            "Internal error while parsing target triple `{triple}`, please file an issue at https://github.com/rust-lang/rustup/issues"
+        ),
     }
 }

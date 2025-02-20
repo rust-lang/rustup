@@ -34,23 +34,24 @@ use std::borrow::Cow;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::io::Write;
-use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
+use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 use std::{env, fmt};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use cfg_if::cfg_if;
-use clap::builder::PossibleValue;
 use clap::ValueEnum;
+use clap::builder::PossibleValue;
 use itertools::Itertools;
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, trace, warn};
 
 use crate::{
+    DUP_TOOLS, TOOLS,
     cli::{
-        common::{self, ignorable_error, report_error, Confirm, PackageUpdate},
+        common::{self, Confirm, PackageUpdate, ignorable_error, report_error},
         errors::*,
         markdown::md,
     },
@@ -58,13 +59,12 @@ use crate::{
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
-    process::{terminalsource, Process},
+    process::{Process, terminalsource},
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
     },
     utils::{self, Notification},
-    DUP_TOOLS, TOOLS,
 };
 
 #[cfg(unix)]
@@ -81,10 +81,10 @@ pub(crate) use unix::{run_update, self_replace};
 mod windows;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
+#[cfg(all(windows, feature = "test"))]
+pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
 use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
-#[cfg(all(windows, feature = "test"))]
-pub use windows::{get_path, RegistryGuard, RegistryValueId, USER_PATH};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -798,9 +798,12 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
             // previous file, and if it's not equivalent to anything then it's
             // pretty likely that it needs to be dealt with manually.
             if tool_handles.iter().all(|h| *h != handle) {
-                warn!("tool `{}` is already installed, remove it from `{}`, then run `rustup update` \
+                warn!(
+                    "tool `{}` is already installed, remove it from `{}`, then run `rustup update` \
                        to have rustup manage this tool.",
-                      tool, bin_path.display());
+                    tool,
+                    bin_path.display()
+                );
                 continue;
             }
         }
@@ -1227,7 +1230,7 @@ mod tests {
     use crate::cli::common;
     use crate::cli::self_update::InstallOpts;
     use crate::dist::{PartialToolchainDesc, Profile};
-    use crate::test::{test_dir, with_rustup_home, Env};
+    use crate::test::{Env, test_dir, with_rustup_home};
     use crate::{for_host, process::TestProcess};
 
     #[test]

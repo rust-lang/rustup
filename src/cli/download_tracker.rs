@@ -5,9 +5,9 @@ use std::time::{Duration, Instant};
 
 use crate::dist::Notification as In;
 use crate::notifications::Notification;
-use crate::process::{terminalsource, Process};
-use crate::utils::units::{Size, Unit, UnitMode};
+use crate::process::{Process, terminalsource};
 use crate::utils::Notification as Un;
+use crate::utils::units::{Size, Unit, UnitMode};
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;

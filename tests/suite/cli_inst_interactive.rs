@@ -6,12 +6,12 @@ use std::process::Stdio;
 
 use rustup::for_host;
 use rustup::test::mock::clitools::CliTestContext;
-use rustup::test::{
-    mock::clitools::{self, set_current_dist_date, Config, SanitizedOutput, Scenario},
-    this_host_triple,
-};
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, USER_PATH};
+use rustup::test::{
+    mock::clitools::{self, Config, SanitizedOutput, Scenario, set_current_dist_date},
+    this_host_triple,
+};
 use rustup::utils::raw;
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
@@ -121,9 +121,10 @@ async fn smoke_case_install_with_path_install() {
 
     let out = run_input(&cx.config, &["rustup-init"], "\n\n");
     assert!(out.ok);
-    assert!(!out
-        .stdout
-        .contains("This path needs to be in your PATH environment variable"));
+    assert!(
+        !out.stdout
+            .contains("This path needs to be in your PATH environment variable")
+    );
 }
 
 #[tokio::test]
@@ -437,9 +438,10 @@ async fn install_forces_and_skips_rls() {
         "\n\n",
     );
     assert!(out.ok);
-    assert!(out
-        .stderr
-        .contains("warn: Force-skipping unavailable component"));
+    assert!(
+        out.stderr
+            .contains("warn: Force-skipping unavailable component")
+    );
 }
 
 #[tokio::test]
@@ -467,9 +469,10 @@ async fn installing_when_already_installed_updates_toolchain() {
         .await;
     let out = run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n");
     println!("stdout:\n{}\n...\n", out.stdout);
-    assert!(out
-        .stdout
-        .contains(for_host!("stable-{} unchanged - 1.1.0 (hash-stable-1.1.0)")));
+    assert!(
+        out.stdout
+            .contains(for_host!("stable-{} unchanged - 1.1.0 (hash-stable-1.1.0)"))
+    );
 }
 
 #[tokio::test]
@@ -496,12 +499,14 @@ async fn install_stops_if_rustc_exists() {
         )
         .await;
     assert!(!out.ok);
-    assert!(out
-        .stderr
-        .contains("It looks like you have an existing installation of Rust at:"));
-    assert!(out
-        .stderr
-        .contains("If you are sure that you want both rustup and your already installed Rust"));
+    assert!(
+        out.stderr
+            .contains("It looks like you have an existing installation of Rust at:")
+    );
+    assert!(
+        out.stderr
+            .contains("If you are sure that you want both rustup and your already installed Rust")
+    );
 }
 
 #[tokio::test]
@@ -528,12 +533,14 @@ async fn install_stops_if_cargo_exists() {
         )
         .await;
     assert!(!out.ok);
-    assert!(out
-        .stderr
-        .contains("It looks like you have an existing installation of Rust at:"));
-    assert!(out
-        .stderr
-        .contains("If you are sure that you want both rustup and your already installed Rust"));
+    assert!(
+        out.stderr
+            .contains("It looks like you have an existing installation of Rust at:")
+    );
+    assert!(
+        out.stderr
+            .contains("If you are sure that you want both rustup and your already installed Rust")
+    );
 }
 
 #[tokio::test]
@@ -612,7 +619,8 @@ version = "12""#
         )
         .await;
     assert!(out.ok);
-    assert!(out
-        .stderr
-        .contains("It looks like you have an existing rustup settings file at:"));
+    assert!(
+        out.stderr
+            .contains("It looks like you have an existing rustup settings file at:")
+    );
 }

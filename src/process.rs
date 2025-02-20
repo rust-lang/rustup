@@ -18,7 +18,7 @@ use tracing::subscriber::DefaultGuard;
 #[cfg(feature = "test")]
 use tracing_subscriber::util::SubscriberInitExt;
 #[cfg(feature = "test")]
-use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
+use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 pub mod filesource;
 pub mod terminalsource;

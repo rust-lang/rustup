@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use rustup::dist::TargetTriple;
 use rustup::for_host;
-use rustup::test::mock::clitools::{self, set_current_dist_date, CliTestContext, Config, Scenario};
+use rustup::test::mock::clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date};
 use rustup::test::this_host_triple;
 
 #[tokio::test]
@@ -1434,8 +1434,8 @@ async fn update_unavailable_force() {
         .expect_err(
             &["rustup", "update", "nightly"],
             for_host!(
-            "component 'rls' for target '{0}' is unavailable for download for channel 'nightly'"
-        ),
+                "component 'rls' for target '{0}' is unavailable for download for channel 'nightly'"
+            ),
         )
         .await;
     cx.config

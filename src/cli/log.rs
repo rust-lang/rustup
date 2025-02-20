@@ -3,15 +3,16 @@ use std::{fmt, io::Write};
 #[cfg(feature = "otel")]
 use opentelemetry_sdk::trace::Tracer;
 use termcolor::{Color, ColorSpec, WriteColor};
-use tracing::{level_filters::LevelFilter, Event, Subscriber};
+use tracing::{Event, Subscriber, level_filters::LevelFilter};
 use tracing_subscriber::{
+    EnvFilter, Layer, Registry,
     fmt::{
-        format::{self, FormatEvent, FormatFields},
         FmtContext,
+        format::{self, FormatEvent, FormatFields},
     },
     layer::SubscriberExt,
     registry::LookupSpan,
-    reload, EnvFilter, Layer, Registry,
+    reload,
 };
 
 use crate::{process::Process, utils::notify::NotificationLevel};
@@ -152,12 +153,12 @@ where
 fn telemetry_default_tracer() -> Tracer {
     use std::time::Duration;
 
-    use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+    use opentelemetry::{KeyValue, global, trace::TracerProvider as _};
     use opentelemetry_otlp::WithExportConfig;
     use opentelemetry_sdk::{
+        Resource,
         runtime::Tokio,
         trace::{Sampler, TracerProvider},
-        Resource,
     };
 
     let exporter = opentelemetry_otlp::SpanExporter::builder()

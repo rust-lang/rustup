@@ -3,14 +3,14 @@ use std::fs;
 use std::io;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use std::thread;
 
 use http_body_util::Full;
+use hyper::Request;
 use hyper::body::Bytes;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
-use hyper::Request;
 use tempfile::TempDir;
 
 pub fn tmp_dir() -> TempDir {

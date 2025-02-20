@@ -12,7 +12,7 @@
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;

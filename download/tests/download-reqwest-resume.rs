@@ -1,7 +1,7 @@
 #![cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use url::Url;
 

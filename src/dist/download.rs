@@ -2,7 +2,7 @@ use std::fs;
 use std::ops;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use sha2::{Digest, Sha256};
 use url::Url;
 

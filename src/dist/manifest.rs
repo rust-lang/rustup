@@ -12,17 +12,17 @@
 //!
 //! Docs: <https://forge.rust-lang.org/infra/channel-layout.html>
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    dist::{config::Config, Profile, TargetTriple, ToolchainDesc},
+    dist::{Profile, TargetTriple, ToolchainDesc, config::Config},
     errors::*,
     toolchain::DistributableToolchain,
 };
@@ -620,9 +620,9 @@ impl fmt::Display for ManifestVersion {
 
 #[cfg(test)]
 mod tests {
-    use crate::dist::manifest::Manifest;
-    use crate::dist::TargetTriple;
     use crate::RustupError;
+    use crate::dist::TargetTriple;
+    use crate::dist::manifest::Manifest;
 
     // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
     static EXAMPLE: &str = include_str!("manifest/tests/channel-rust-nightly-example.toml");

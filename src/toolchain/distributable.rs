@@ -2,27 +2,26 @@
 use std::fs;
 use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, path::Path, process::Command};
 
-use anyhow::anyhow;
 #[cfg(windows)]
 use anyhow::Context;
+use anyhow::anyhow;
 
 use crate::{
-    component_for_bin,
+    RustupError, component_for_bin,
     config::Cfg,
     dist::{
+        DistOptions, PartialToolchainDesc, Profile, ToolchainDesc,
         config::Config,
         manifest::{Component, ComponentStatus, Manifest},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
-        DistOptions, PartialToolchainDesc, Profile, ToolchainDesc,
     },
     install::{InstallMethod, UpdateStatus},
-    RustupError,
 };
 
 use super::{
-    names::{LocalToolchainName, ToolchainName},
     Toolchain,
+    names::{LocalToolchainName, ToolchainName},
 };
 
 /// An official toolchain installed on the local disk
@@ -427,17 +426,21 @@ impl<'a> DistributableToolchain<'a> {
             let short_name = component_status.component.short_name(&manifest);
             if !component_status.available {
                 Err(anyhow!(
-                                "the '{short_name}' component which provides the command '{binary_lossy}' is not available for the '{desc}' toolchain"))
+                    "the '{short_name}' component which provides the command '{binary_lossy}' is not available for the '{desc}' toolchain"
+                ))
             } else if component_status.installed {
                 Err(anyhow!(
-                    "the '{binary_lossy}' binary, normally provided by the '{short_name}' component, is not applicable to the '{desc}' toolchain"))
+                    "the '{binary_lossy}' binary, normally provided by the '{short_name}' component, is not applicable to the '{desc}' toolchain"
+                ))
             } else {
                 // available, not installed, recommend installation
                 let selector = match self.toolchain.cfg.get_default()? {
                     Some(ToolchainName::Official(n)) if n == self.desc => String::new(),
                     _ => format!("--toolchain {} ", self.toolchain.name()),
                 };
-                Err(anyhow!("'{binary_lossy}' is not installed for the toolchain '{desc}'.\nTo install, run `rustup component add {selector}{component_name}`"))
+                Err(anyhow!(
+                    "'{binary_lossy}' is not installed for the toolchain '{desc}'.\nTo install, run `rustup component add {selector}{component_name}`"
+                ))
             }
         } else {
             // Unknown binary - no component to recommend

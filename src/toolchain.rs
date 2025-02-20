@@ -10,19 +10,19 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use fs_at::OpenOptions;
 use tracing::info;
 use url::Url;
 use wait_timeout::ChildExt;
 
 use crate::{
+    RustupError,
     config::{ActiveReason, Cfg, InstalledPath},
     dist::PartialToolchainDesc,
     env_var, install,
     notifications::Notification,
     utils::{self, raw::open_dir_following_links},
-    RustupError,
 };
 
 mod distributable;

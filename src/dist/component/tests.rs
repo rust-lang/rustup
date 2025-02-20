@@ -2,11 +2,11 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
+use crate::dist::DEFAULT_DIST_SERVER;
+use crate::dist::Notification;
 use crate::dist::component::Transaction;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::dist::Notification;
-use crate::dist::DEFAULT_DIST_SERVER;
 use crate::errors::RustupError;
 use crate::process::TestProcess;
 use crate::utils::{self, raw as utils_raw};

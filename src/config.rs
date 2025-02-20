@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{env, io};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
@@ -13,8 +13,8 @@ use tracing::trace;
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, download::DownloadCfg, temp, PartialToolchainDesc, Profile, TargetTriple,
-        ToolchainDesc,
+        self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, download::DownloadCfg,
+        temp,
     },
     errors::RustupError,
     fallback_settings::FallbackSettings,
@@ -31,7 +31,9 @@ use crate::{
 
 #[derive(Debug, ThisError)]
 enum OverrideFileConfigError {
-    #[error("empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file")]
+    #[error(
+        "empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file"
+    )]
     Empty,
     #[error("missing toolchain properties in toolchain override file")]
     Invalid,

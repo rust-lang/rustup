@@ -16,7 +16,7 @@ use std::{
     time::Instant,
 };
 
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap, enum_map};
 use tempfile::TempDir;
 use url::Url;
 
@@ -28,11 +28,12 @@ use crate::test::this_host_triple;
 use crate::utils;
 
 use super::{
+    MockComponentBuilder, MockFile, MockInstallerBuilder,
     dist::{
-        change_channel_date, MockChannel, MockComponent, MockDistServer, MockManifestVersion,
-        MockPackage, MockTargetedPackage,
+        MockChannel, MockComponent, MockDistServer, MockManifestVersion, MockPackage,
+        MockTargetedPackage, change_channel_date,
     },
-    topical_doc_data, MockComponentBuilder, MockFile, MockInstallerBuilder,
+    topical_doc_data,
 };
 
 /// The configuration used by the tests in this module
