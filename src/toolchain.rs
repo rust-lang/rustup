@@ -204,7 +204,7 @@ impl<'a> Toolchain<'a> {
             .cfg
             .process
             .var_os(sysenv::LOADER_PATH)
-            .filter(|x| x.len() > 0)
+            .filter(|x| !x.is_empty())
             .is_none()
         {
             // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
