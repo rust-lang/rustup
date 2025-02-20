@@ -1,7 +1,7 @@
 //! Test cases for new rustup UI
 
 use std::fs;
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
@@ -1068,9 +1068,10 @@ async fn show_toolchain_override_not_installed() {
         .await;
     let out = cx.config.run("rustup", ["show"], &[]).await;
     assert!(!out.ok);
-    assert!(out
-        .stderr
-        .contains("is not installed: the directory override for"));
+    assert!(
+        out.stderr
+            .contains("is not installed: the directory override for")
+    );
     assert!(!out.stderr.contains("info: installing component 'rustc'"));
 }
 
@@ -2462,9 +2463,11 @@ async fn env_override_beats_file_override() {
     cmd.env("RUSTUP_TOOLCHAIN", "beta");
 
     let out = cmd.output().unwrap();
-    assert!(String::from_utf8(out.stdout)
-        .unwrap()
-        .contains("hash-beta-1.2.0"));
+    assert!(
+        String::from_utf8(out.stdout)
+            .unwrap()
+            .contains("hash-beta-1.2.0")
+    );
 }
 
 #[tokio::test]

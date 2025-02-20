@@ -150,9 +150,9 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     use std::ptr;
     use windows_sys::Win32::Foundation::*;
     use windows_sys::Win32::Storage::FileSystem::*;
+    use windows_sys::Win32::System::IO::*;
     use windows_sys::Win32::System::Ioctl::FSCTL_SET_REPARSE_POINT;
     use windows_sys::Win32::System::SystemServices::*;
-    use windows_sys::Win32::System::IO::*;
 
     const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: usize = 16 * 1024;
 

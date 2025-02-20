@@ -10,22 +10,22 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::{cmp, env};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use git_testament::{git_testament, render_testament};
 use tracing::{debug, error, info, trace, warn};
-use tracing_subscriber::{reload::Handle, EnvFilter, Registry};
+use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use super::self_update;
 use crate::{
     cli::download_tracker::DownloadTracker,
     config::Cfg,
     dist::{
-        manifest::ComponentStatus, notifications as dist_notifications, TargetTriple, ToolchainDesc,
+        TargetTriple, ToolchainDesc, manifest::ComponentStatus, notifications as dist_notifications,
     },
     errors::RustupError,
     install::UpdateStatus,
     notifications::Notification,
-    process::{terminalsource, Process},
+    process::{Process, terminalsource},
     toolchain::{DistributableToolchain, LocalToolchainName, Toolchain, ToolchainName},
     utils::{self, notifications as util_notifications, notify::NotificationLevel},
 };
@@ -654,7 +654,9 @@ pub(crate) fn warn_if_host_is_emulated(process: &Process) {
             "Rustup is not running natively. It's running under emulation of {}.",
             TargetTriple::from_host_or_build(process)
         );
-        warn!("For best compatibility and performance you should reinstall rustup for your native CPU.");
+        warn!(
+            "For best compatibility and performance you should reinstall rustup for your native CPU."
+        );
     }
 }
 

@@ -476,8 +476,8 @@ mod tests {
 
     use crate::{
         dist::{
-            triple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
             PartialToolchainDesc,
+            triple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
         },
         toolchain::names::{CustomToolchainName, ResolvableToolchainName, ToolchainName},
     };

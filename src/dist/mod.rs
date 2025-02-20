@@ -4,9 +4,9 @@ use std::{
     collections::HashSet, env, fmt, io::Write, ops::Deref, path::Path, str::FromStr, sync::LazyLock,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use chrono::NaiveDate;
-use clap::{builder::PossibleValue, ValueEnum};
+use clap::{ValueEnum, builder::PossibleValue};
 use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use thiserror::Error as ThisError;
 use tracing::{info, warn};
 
 use crate::{
-    config::{dist_root_server, Cfg},
+    config::{Cfg, dist_root_server},
     errors::RustupError,
     process::Process,
     toolchain::ToolchainName,
@@ -57,7 +57,9 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
     let mut buf = vec![];
 
     match cs {
-        [] => panic!("`components_missing_msg` should not be called with an empty collection of unavailable components"),
+        [] => panic!(
+            "`components_missing_msg` should not be called with an empty collection of unavailable components"
+        ),
         [c] => {
             let _ = writeln!(
                 buf,
@@ -416,10 +418,10 @@ impl TargetTriple {
             /// it is only available on Windows 10 1511+, so we use `GetProcAddress`
             /// to maintain backward compatibility with older Windows versions.
             fn arch_primary() -> Option<&'static str> {
-                use windows_sys::core::s;
                 use windows_sys::Win32::Foundation::{BOOL, HANDLE};
                 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
                 use windows_sys::Win32::System::Threading::GetCurrentProcess;
+                use windows_sys::core::s;
 
                 const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
                 const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
@@ -1195,10 +1197,14 @@ pub(crate) async fn dl_v2_manifest(
 
                 let server = dist_root_server(download.process)?;
                 if server == DEFAULT_DIST_SERVER {
-                    info!("this is likely due to an ongoing update of the official release server, please try again later");
+                    info!(
+                        "this is likely due to an ongoing update of the official release server, please try again later"
+                    );
                     info!("see <https://github.com/rust-lang/rustup/issues/3390> for more details");
                 } else {
-                    info!("this might indicate an issue with the third-party release server '{server}'");
+                    info!(
+                        "this might indicate an issue with the third-party release server '{server}'"
+                    );
                     info!("see <https://github.com/rust-lang/rustup/issues/3885> for more details");
                 }
             }

@@ -8,9 +8,9 @@ use std::ops::{BitAnd, BitAndAssign};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
-use anyhow::{anyhow, bail, Context, Result};
-use retry::delay::{jitter, Fibonacci};
-use retry::{retry, OperationResult};
+use anyhow::{Context, Result, anyhow, bail};
+use retry::delay::{Fibonacci, jitter};
+use retry::{OperationResult, retry};
 use sha2::Sha256;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 use tracing::info;
@@ -279,7 +279,9 @@ async fn download_file_(
         #[cfg(feature = "reqwest-native-tls")]
         (_, Some(false)) => {
             if use_curl_backend == Some(true) {
-                info!("RUSTUP_USE_CURL is set and RUSTUP_USE_RUSTLS is set to off, using reqwest with native-tls");
+                info!(
+                    "RUSTUP_USE_CURL is set and RUSTUP_USE_RUSTLS is set to off, using reqwest with native-tls"
+                );
             }
             Backend::Reqwest(TlsBackend::NativeTls)
         }

@@ -6,8 +6,8 @@ mod tests;
 
 use std::path::Path;
 
-use anyhow::{anyhow, bail, Context, Result};
-use tokio_retry::{strategy::FixedInterval, RetryIf};
+use anyhow::{Context, Result, anyhow, bail};
+use tokio_retry::{RetryIf, strategy::FixedInterval};
 
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
@@ -18,7 +18,7 @@ use crate::dist::manifest::{Component, CompressionKind, Manifest, TargetedPackag
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
+use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;

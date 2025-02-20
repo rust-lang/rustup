@@ -9,7 +9,7 @@ use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
 use crate::dist::component::transaction::Transaction;
@@ -272,8 +272,8 @@ impl Component {
         // and the version file.
 
         // Track visited directories
-        use std::collections::hash_set::IntoIter;
         use std::collections::HashSet;
+        use std::collections::hash_set::IntoIter;
         use std::fs::read_dir;
 
         // dirs will contain the set of longest disjoint directory paths seen

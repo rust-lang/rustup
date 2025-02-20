@@ -26,7 +26,7 @@
 use std::borrow::Cow;
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 use super::utils;
 use crate::process::Process;

@@ -10,9 +10,9 @@
 ))]
 #![recursion_limit = "1024"]
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use errors::RustupError;
-use itertools::{chain, Itertools};
+use itertools::{Itertools, chain};
 
 #[macro_use]
 extern crate rs_tracing;
@@ -92,7 +92,7 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
-    use crate::{is_proxyable_tools, DUP_TOOLS, TOOLS};
+    use crate::{DUP_TOOLS, TOOLS, is_proxyable_tools};
 
     #[test]
     fn test_is_proxyable_tools() {

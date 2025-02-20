@@ -7,7 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    mock::clitools::{self, set_current_dist_date, CliTestContext, Config, Scenario},
+    mock::clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date},
     this_host_triple,
 };
 use rustup::utils;
@@ -1195,9 +1195,10 @@ async fn update_self_smart_guess() {
     let out = cx.config.run("rustup", &["update", "self"], &[]).await;
     let invalid_toolchain = out.stderr.contains("invalid toolchain name");
     if !out.ok && invalid_toolchain {
-        assert!(out
-            .stderr
-            .contains("if you meant to update rustup itself, use `rustup self update`"))
+        assert!(
+            out.stderr
+                .contains("if you meant to update rustup itself, use `rustup self update`")
+        )
     }
 }
 
@@ -1207,9 +1208,10 @@ async fn uninstall_self_smart_guess() {
     let out = cx.config.run("rustup", &["uninstall", "self"], &[]).await;
     let no_toolchain_installed = out.stdout.contains("no toolchain installed");
     if out.ok && no_toolchain_installed {
-        assert!(out
-            .stdout
-            .contains("if you meant to uninstall rustup itself, use `rustup self uninstall`"))
+        assert!(
+            out.stdout
+                .contains("if you meant to uninstall rustup itself, use `rustup self uninstall`")
+        )
     }
 }
 

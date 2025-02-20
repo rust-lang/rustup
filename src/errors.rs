@@ -12,8 +12,8 @@ use url::Url;
 
 use crate::{
     dist::{
-        manifest::{Component, Manifest},
         Channel, TargetTriple, ToolchainDesc,
+        manifest::{Component, Manifest},
     },
     toolchain::{PathBasedToolchainName, ToolchainName},
 };
@@ -165,7 +165,9 @@ fn suggest_message(suggestion: &Option<String>) -> String {
 fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
     let mut buf = vec![];
     match cs {
-        [] => panic!("`component_unavailable_msg` should not be called with an empty collection of unavailable components"),
+        [] => panic!(
+            "`component_unavailable_msg` should not be called with an empty collection of unavailable components"
+        ),
         [c] => {
             let _ = writeln!(
                 buf,

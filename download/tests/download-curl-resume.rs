@@ -1,7 +1,7 @@
 #![cfg(feature = "curl-backend")]
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use url::Url;
 

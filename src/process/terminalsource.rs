@@ -9,9 +9,9 @@ use std::{
 pub(crate) use termcolor::Color;
 use termcolor::{ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
+use super::Process;
 #[cfg(feature = "test")]
 use super::filesource::{TestWriter, TestWriterLock};
-use super::Process;
 
 /// Select what stream to make a terminal on
 pub(super) enum StreamSelector {

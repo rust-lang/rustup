@@ -8,11 +8,11 @@ use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
 use tracing::warn;
 
-use crate::diskio::{get_executor, CompletedIo, Executor, FileBuffer, Item, Kind, IO_CHUNK_SIZE};
+use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
 use crate::dist::temp;

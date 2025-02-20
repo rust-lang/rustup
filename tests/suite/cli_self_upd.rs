@@ -9,20 +9,20 @@ use std::process::Command;
 use remove_dir_all::remove_dir_all;
 
 use retry::{
-    delay::{jitter, Fibonacci},
+    delay::{Fibonacci, jitter},
     retry,
 };
+#[cfg(windows)]
+use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::test::{
     mock::{
-        clitools::{self, output_release_file, CliTestContext, Scenario, SelfUpdateTestContext},
+        clitools::{self, CliTestContext, Scenario, SelfUpdateTestContext, output_release_file},
         dist::calc_hash,
     },
     this_host_triple,
 };
-#[cfg(windows)]
-use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
-use rustup::{for_host, DUP_TOOLS, TOOLS};
+use rustup::{DUP_TOOLS, TOOLS, for_host};
 #[cfg(windows)]
 use windows_registry::Value;
 

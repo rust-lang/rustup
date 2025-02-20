@@ -4,7 +4,7 @@
 use std::fs;
 
 use rustup::for_host;
-use rustup::test::mock::clitools::{set_current_dist_date, CliTestContext, Scenario};
+use rustup::test::mock::clitools::{CliTestContext, Scenario, set_current_dist_date};
 
 #[tokio::test]
 async fn rustc_no_default_toolchain() {

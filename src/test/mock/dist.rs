@@ -11,15 +11,15 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use crate::dist::{
+    Profile, TargetTriple,
     manifest::{
         Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package,
         PackageTargets, Renamed, TargetedPackage,
     },
-    Profile, TargetTriple,
 };
 
-use super::clitools::hard_link;
 use super::MockInstallerBuilder;
+use super::clitools::hard_link;
 
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1

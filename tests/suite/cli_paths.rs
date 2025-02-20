@@ -381,9 +381,9 @@ export PATH="$HOME/apple/bin"
 mod windows {
     use super::INIT_NONE;
     use rustup::test::mock::clitools::{CliTestContext, Scenario};
-    use rustup::test::{get_path, RegistryGuard, USER_PATH};
+    use rustup::test::{RegistryGuard, USER_PATH, get_path};
 
-    use windows_registry::{Value, HSTRING};
+    use windows_registry::{HSTRING, Value};
 
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
@@ -416,7 +416,7 @@ mod windows {
     async fn install_uninstall_affect_path_with_non_unicode() {
         use std::os::windows::ffi::OsStrExt;
 
-        use windows_registry::{Type, CURRENT_USER};
+        use windows_registry::{CURRENT_USER, Type};
 
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = RegistryGuard::new(&USER_PATH).unwrap();

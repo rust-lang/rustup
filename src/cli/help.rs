@@ -278,8 +278,7 @@ pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
 
         $ rustup completions zsh cargo > ~/.zfunc/_cargo";
 
-pub(crate) static OFFICIAL_TOOLCHAIN_ARG_HELP: &str =
-    "Toolchain name, such as 'stable', 'nightly', \
+pub(crate) static OFFICIAL_TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
                                        or '1.8.0'. For more information see `rustup \
                                        help toolchain`";
 pub(crate) static RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \

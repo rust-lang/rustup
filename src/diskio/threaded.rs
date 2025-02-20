@@ -6,15 +6,15 @@
 /// will cause minutes of wall clock time.
 use std::cell::{Cell, RefCell};
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::{Receiver, Sender, channel};
 
-use enum_map::{enum_map, Enum, EnumMap};
+use enum_map::{Enum, EnumMap, enum_map};
 use sharded_slab::pool::{OwnedRef, OwnedRefMut};
 use tracing::debug;
 
-use super::{perform, CompletedIo, Executor, Item};
+use super::{CompletedIo, Executor, Item, perform};
 use crate::utils::notifications::Notification;
 use crate::utils::units::Unit;
 

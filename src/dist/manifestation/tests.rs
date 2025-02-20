@@ -11,20 +11,21 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use url::Url;
 
 use crate::{
     dist::{
+        DEFAULT_DIST_SERVER, Notification, Profile, TargetTriple, ToolchainDesc,
         download::DownloadCfg,
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
         prefix::InstallPrefix,
-        temp, Notification, Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER,
+        temp,
     },
     errors::RustupError,
     process::TestProcess,
-    test::mock::{dist::*, MockComponentBuilder, MockFile, MockInstallerBuilder},
+    test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder, dist::*},
     utils::{self, raw as utils_raw},
 };
 

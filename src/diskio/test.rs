@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use super::{get_executor, Executor, Item, Kind};
+use super::{Executor, Item, Kind, get_executor};
 use crate::process::TestProcess;
 use crate::test::test_dir;
 
