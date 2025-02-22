@@ -81,21 +81,20 @@ impl Executor for ImmediateUnpacker {
                     // If there is a pending error, return it, otherwise stash the
                     // Item for eventual return when the file is finished.
                     let mut guard = self.incremental_state.lock().unwrap();
-                    if let Some(ref mut state) = *guard {
-                        if state.err.is_some() {
-                            let err = state.err.take().unwrap();
-                            item.result = err;
-                            item.finish = item
-                                .start
-                                .map(|s| Instant::now().saturating_duration_since(s));
-                            *guard = None;
-                            Box::new(Some(CompletedIo::Item(item)).into_iter())
-                        } else {
-                            state.item = Some(item);
-                            Box::new(None.into_iter())
-                        }
+                    let Some(ref mut state) = *guard else {
+                        unreachable!()
+                    };
+                    if state.err.is_some() {
+                        let err = state.err.take().unwrap();
+                        item.result = err;
+                        item.finish = item
+                            .start
+                            .map(|s| Instant::now().saturating_duration_since(s));
+                        *guard = None;
+                        Box::new(Some(CompletedIo::Item(item)).into_iter())
                     } else {
-                        unreachable!();
+                        state.item = Some(item);
+                        Box::new(None.into_iter())
                     }
                 };
             }
@@ -181,9 +180,7 @@ impl IncrementalFileWriter {
         if (self.state.lock().unwrap()).is_none() {
             return false;
         }
-        let chunk = if let FileBuffer::Immediate(v) = chunk {
-            v
-        } else {
+        let FileBuffer::Immediate(chunk) = chunk else {
             unreachable!()
         };
         match self.write(chunk) {
@@ -203,25 +200,24 @@ impl IncrementalFileWriter {
 
     fn write(&mut self, chunk: Vec<u8>) -> std::result::Result<bool, io::Error> {
         let mut state = self.state.lock().unwrap();
-        if let Some(ref mut state) = *state {
-            if let Some(ref mut file) = self.file.as_mut() {
-                // Length 0 vector is used for clean EOF signalling.
-                if chunk.is_empty() {
-                    trace_scoped!("close", "name:": self.path_display);
-                    drop(std::mem::take(&mut self.file));
-                    state.finished = true;
-                } else {
-                    trace_scoped!("write_segment", "name": self.path_display, "len": chunk.len());
-                    file.write_all(&chunk)?;
-
-                    state.completed_chunks.push(chunk.len());
-                }
-                Ok(true)
+        let Some(ref mut state) = *state else {
+            unreachable!()
+        };
+        if let Some(ref mut file) = self.file.as_mut() {
+            // Length 0 vector is used for clean EOF signalling.
+            if chunk.is_empty() {
+                trace_scoped!("close", "name:": self.path_display);
+                drop(std::mem::take(&mut self.file));
+                state.finished = true;
             } else {
-                Ok(false)
+                trace_scoped!("write_segment", "name": self.path_display, "len": chunk.len());
+                file.write_all(&chunk)?;
+
+                state.completed_chunks.push(chunk.len());
             }
+            Ok(true)
         } else {
-            unreachable!();
+            Ok(false)
         }
     }
 }
