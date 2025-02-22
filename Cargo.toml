@@ -131,7 +131,7 @@ members = ["download"]
 
 [workspace.package]
 version = "1.28.0"
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
