@@ -87,11 +87,11 @@ impl<'a> Toolchain<'a> {
             ActiveReason::CommandLine => {
                 "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
             }
-            ActiveReason::OverrideDB(ref path) => format!(
+            ActiveReason::OverrideDB(path) => format!(
                 "the directory override for '{}' specifies an uninstalled toolchain",
                 utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
             ),
-            ActiveReason::ToolchainFile(ref path) => format!(
+            ActiveReason::ToolchainFile(path) => format!(
                 "the toolchain file at '{}' specifies an uninstalled toolchain",
                 utils::canonicalize_path(path, cfg.notify_handler.as_ref()).display(),
             ),
