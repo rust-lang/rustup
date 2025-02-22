@@ -69,8 +69,8 @@ impl Executor for ImmediateUnpacker {
     fn dispatch(&self, mut item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         item.result = match &mut item.kind {
             super::Kind::Directory => super::create_dir(&item.full_path),
-            super::Kind::File(ref contents) => {
-                if let super::FileBuffer::Immediate(ref contents) = &contents {
+            super::Kind::File(contents) => {
+                if let super::FileBuffer::Immediate(contents) = &contents {
                     super::write_file(&item.full_path, contents, item.mode)
                 } else {
                     unreachable!()
