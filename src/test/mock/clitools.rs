@@ -192,19 +192,33 @@ impl ConstState {
 
 /// State a test can interact and mutate
 pub async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
-    // Unset env variables that will break our testing
-    env::remove_var("RUSTUP_UPDATE_ROOT");
-    env::remove_var("RUSTUP_TOOLCHAIN");
-    env::remove_var("SHELL");
-    env::remove_var("ZDOTDIR");
-    // clap does its own terminal colour probing, and that isn't
-    // trait-controllable, but it does honour the terminal. To avoid testing
-    // claps code, lie about whatever terminal this process was started under.
-    env::set_var("TERM", "dumb");
+    // SAFETY: This is probably not the best way of doing such a thing, but it should be
+    // okay since we are setting the environment variables for the integration tests only.
+    // There are two types of integration test in rustup: in-process and subprocess.
+    // For the former, the environment variables are 100% injected via [`TestContext::vars`];
+    // for the latter, the environment variables in question are only relevant in the
+    // corresponding subprocesses. Thus, it should be safe to assume that the following won't
+    // cause inconsistencies as far as **this** particular process is concerned, as long as
+    // **each subprocess gets the same value for every environment variable listed below when
+    // it spins off**. To do so, we will have to ensure that:
+    // - The following `unsafe` block is idempotent, making its output absolutely stable.
+    // - The environment variables listed below are never modified to anything else
+    //   **in this process** when the tests are still running.
+    unsafe {
+        // Unset env variables that will break our testing
+        env::remove_var("RUSTUP_UPDATE_ROOT");
+        env::remove_var("RUSTUP_TOOLCHAIN");
+        env::remove_var("SHELL");
+        env::remove_var("ZDOTDIR");
+        // clap does its own terminal colour probing, and that isn't
+        // trait-controllable, but it does honour the terminal. To avoid testing
+        // claps code, lie about whatever terminal this process was started under.
+        env::set_var("TERM", "dumb");
 
-    match env::var("RUSTUP_BACKTRACE") {
-        Ok(val) => env::set_var("RUST_BACKTRACE", val),
-        _ => env::remove_var("RUST_BACKTRACE"),
+        match env::var("RUSTUP_BACKTRACE") {
+            Ok(val) => env::set_var("RUST_BACKTRACE", val),
+            _ => env::remove_var("RUST_BACKTRACE"),
+        }
     }
 
     let current_exe_path = env::current_exe().unwrap();
