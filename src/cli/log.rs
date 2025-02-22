@@ -20,7 +20,7 @@ use crate::{process::Process, utils::notify::NotificationLevel};
 pub fn tracing_subscriber(
     process: &Process,
 ) -> (
-    impl tracing::Subscriber,
+    impl tracing::Subscriber + use<>,
     reload::Handle<EnvFilter, Registry>,
 ) {
     #[cfg(feature = "otel")]
@@ -45,7 +45,7 @@ pub fn tracing_subscriber(
 /// When the `RUSTUP_LOG` environment variable is present, a standard [`tracing_subscriber`]
 /// formatter will be used according to the filtering directives set in its value.
 /// Otherwise, this logger will use [`EventFormatter`] to mimic "classic" Rustup `stderr` output.
-fn console_logger<S>(process: &Process) -> (impl Layer<S>, reload::Handle<EnvFilter, S>)
+fn console_logger<S>(process: &Process) -> (impl Layer<S> + use<S>, reload::Handle<EnvFilter, S>)
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
@@ -129,7 +129,7 @@ impl NotificationLevel {
 /// A [`tracing::Subscriber`] [`Layer`][`tracing_subscriber::Layer`] that corresponds to Rustup's
 /// optional `opentelemetry` (a.k.a. `otel`) feature.
 #[cfg(feature = "otel")]
-fn telemetry<S>(process: &Process) -> impl Layer<S>
+fn telemetry<S>(process: &Process) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
