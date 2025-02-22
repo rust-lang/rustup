@@ -335,10 +335,9 @@ impl FromStr for ParsedToolchainDesc {
             }
         });
 
-        if let Some(d) = d {
-            Ok(d)
-        } else {
-            Err(RustupError::InvalidToolchainName(desc.to_string()).into())
+        match d {
+            Some(d) => Ok(d),
+            None => Err(RustupError::InvalidToolchainName(desc.to_string()).into()),
         }
     }
 }

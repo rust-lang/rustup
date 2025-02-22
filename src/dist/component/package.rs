@@ -229,10 +229,9 @@ fn filter_result(op: &mut CompletedIo) -> io::Result<()> {
                     // mkdir of e.g. ~/.rustup already existing is just fine;
                     // for others it would be better to know whether it is
                     // expected to exist or not -so put a flag in the state.
-                    if let Kind::Directory = op.kind {
-                        Ok(())
-                    } else {
-                        Err(e)
+                    match op.kind {
+                        Kind::Directory => Ok(()),
+                        _ => Err(e),
                     }
                 }
                 _ => Err(e),
@@ -454,40 +453,40 @@ fn unpack_without_first_dir<R: Read>(
 
         let item = loop {
             // Create the full path to the entry if it does not exist already
-            if let Some(parent) = item.full_path.to_owned().parent() {
-                match directories.get_mut(parent) {
-                    None => {
-                        // Tar has item before containing directory
-                        // Complain about this so we can see if these exist.
-                        writeln!(
-                            process.stderr().lock(),
-                            "Unexpected: missing parent '{}' for '{}'",
-                            parent.display(),
-                            entry.path()?.display()
-                        )?;
-                        directories.insert(parent.to_owned(), DirStatus::Pending(vec![item]));
-                        item = Item::make_dir(parent.to_owned(), 0o755);
-                        // Check the parent's parent
-                        continue;
-                    }
-                    Some(DirStatus::Exists) => {
-                        break Some(item);
-                    }
-                    Some(DirStatus::Pending(pending)) => {
-                        // Parent dir is being made
-                        pending.push(item);
-                        if incremental_file_sender.is_none() {
-                            // take next item from tar
-                            continue 'entries;
-                        } else {
-                            // don't submit a new item for processing, but do be ready to feed data to the incremental file.
-                            break None;
-                        }
+            let full_path = item.full_path.to_owned();
+            let Some(parent) = full_path.parent() else {
+                // We should never see a path with no parent.
+                unreachable!()
+            };
+            match directories.get_mut(parent) {
+                None => {
+                    // Tar has item before containing directory
+                    // Complain about this so we can see if these exist.
+                    writeln!(
+                        process.stderr().lock(),
+                        "Unexpected: missing parent '{}' for '{}'",
+                        parent.display(),
+                        entry.path()?.display()
+                    )?;
+                    directories.insert(parent.to_owned(), DirStatus::Pending(vec![item]));
+                    item = Item::make_dir(parent.to_owned(), 0o755);
+                    // Check the parent's parent
+                    continue;
+                }
+                Some(DirStatus::Exists) => {
+                    break Some(item);
+                }
+                Some(DirStatus::Pending(pending)) => {
+                    // Parent dir is being made
+                    pending.push(item);
+                    if incremental_file_sender.is_none() {
+                        // take next item from tar
+                        continue 'entries;
+                    } else {
+                        // don't submit a new item for processing, but do be ready to feed data to the incremental file.
+                        break None;
                     }
                 }
-            } else {
-                // We should never see a path with no parent.
-                panic!();
             }
         };
 
