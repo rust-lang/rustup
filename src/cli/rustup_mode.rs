@@ -727,7 +727,7 @@ async fn default_(
 ) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    if let Some(toolchain) = toolchain {
+    match toolchain { Some(toolchain) => {
         match toolchain.to_owned() {
             MaybeResolvableToolchainName::None => {
                 cfg.set_default(None)?;
@@ -756,12 +756,12 @@ async fn default_(
                 info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
             }
         }
-    } else {
+    } _ => {
         let default_toolchain = cfg
             .get_default()?
             .ok_or_else(|| anyhow!("no default toolchain is configured"))?;
         writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
-    }
+    }}
 
     Ok(utils::ExitCode(0))
 }
@@ -961,13 +961,12 @@ fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     let installed_toolchains = cfg.list_toolchains()?;
     let active_toolchain_and_reason: Option<(ToolchainName, ActiveReason)> =
-        if let Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) =
-            cfg.find_active_toolchain()
-        {
+        match cfg.find_active_toolchain()
+        { Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) => {
             Some((toolchain_name, reason))
-        } else {
+        } _ => {
             None
-        };
+        }};
 
     let (active_toolchain_name, _active_reason) = active_toolchain_and_reason
         .as_ref()

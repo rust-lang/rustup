@@ -162,14 +162,14 @@ impl<'a> DownloadCfg<'a> {
 
         if let Some(hash_file) = update_hash {
             if utils::is_file(hash_file) {
-                if let Ok(contents) = utils::read_file("update hash", hash_file) {
+                match utils::read_file("update hash", hash_file) { Ok(contents) => {
                     if contents == partial_hash {
                         // Skip download, update hash matches
                         return Ok(None);
                     }
-                } else {
+                } _ => {
                     (self.notify_handler)(Notification::CantReadUpdateHash(hash_file));
-                }
+                }}
             } else {
                 (self.notify_handler)(Notification::NoUpdateHash(hash_file));
             }

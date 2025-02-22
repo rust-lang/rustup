@@ -518,42 +518,34 @@ impl<'a> Cfg<'a> {
         &self,
     ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
         Ok(
-            if let Some((override_config, reason)) = self.find_override_config()? {
+            match self.find_override_config()? { Some((override_config, reason)) => {
                 Some((override_config.into_local_toolchain_name(), reason))
-            } else {
+            } _ => {
                 self.get_default()?
                     .map(|x| (x.into(), ActiveReason::Default))
-            },
+            }},
         )
     }
 
     fn find_override_config(&self) -> Result<Option<(OverrideCfg, ActiveReason)>> {
         let override_config: Option<(OverrideCfg, ActiveReason)> =
             // First check +toolchain override from the command line
-            if let Some(ref name) = self.toolchain_override {
+            match self.toolchain_override { Some(ref name) => {
                 let override_config = name.resolve(&self.get_default_host_triple()?)?.into();
                 Some((override_config, ActiveReason::CommandLine))
-            }
-            // Then check the RUSTUP_TOOLCHAIN environment variable
-            else if let Some(ref name) = self.env_override {
+            } _ => { match self.env_override { Some(ref name) => {
                 // Because path based toolchain files exist, this has to support
                 // custom, distributable, and absolute path toolchains otherwise
                 // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
                 // error when a nested rustup invocation occurs
                 Some((name.clone().into(), ActiveReason::Environment))
-            }
-            // Then walk up the directory tree from 'path' looking for either the
-            // directory in the override database, or a `rust-toolchain{.toml}` file,
-            // in that order.
-            else if let Some((override_cfg, active_reason)) = self.settings_file.with(|s| {
+            } _ => { match self.settings_file.with(|s| {
                     self.find_override_from_dir_walk(&self.current_dir, s)
-                })? {
+                })? { Some((override_cfg, active_reason)) => {
                 Some((override_cfg, active_reason))
-            }
-            // Otherwise, there is no override.
-            else {
+            } _ => {
                 None
-            };
+            }}}}}};
 
         Ok(override_config)
     }
@@ -753,15 +745,15 @@ impl<'a> Cfg<'a> {
         force_non_host: bool,
         verbose: bool,
     ) -> Result<(LocalToolchainName, ActiveReason)> {
-        if let Some((override_config, reason)) = self.find_override_config()? {
+        match self.find_override_config()? { Some((override_config, reason)) => {
             let toolchain = override_config.clone().into_local_toolchain_name();
-            if let OverrideCfg::Official {
+            match override_config
+            { OverrideCfg::Official {
                 toolchain,
                 components,
                 targets,
                 profile,
-            } = override_config
-            {
+            } => {
                 self.ensure_installed(
                     &toolchain,
                     components,
@@ -771,22 +763,22 @@ impl<'a> Cfg<'a> {
                     verbose,
                 )
                 .await?;
-            } else {
+            } _ => {
                 Toolchain::with_reason(self, toolchain.clone(), &reason)?;
-            }
+            }}
             Ok((toolchain, reason))
-        } else if let Some(toolchain) = self.get_default()? {
+        } _ => { match self.get_default()? { Some(toolchain) => {
             let reason = ActiveReason::Default;
-            if let ToolchainName::Official(desc) = &toolchain {
+            match &toolchain { ToolchainName::Official(desc) => {
                 self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
                     .await?;
-            } else {
+            } _ => {
                 Toolchain::with_reason(self, toolchain.clone().into(), &reason)?;
-            }
+            }}
             Ok((toolchain.into(), reason))
-        } else {
+        } _ => {
             Err(no_toolchain_error(self.process))
-        }
+        }}}}
     }
 
     // Returns a Toolchain matching the given ToolchainDesc, installing it and
@@ -894,11 +886,11 @@ impl<'a> Cfg<'a> {
         self.list_toolchains()?
             .into_iter()
             .filter_map(|t| {
-                if let ToolchainName::Official(desc) = t {
+                match t { ToolchainName::Official(desc) => {
                     Some(desc)
-                } else {
+                } _ => {
                     None
-                }
+                }}
             })
             .filter(ToolchainDesc::is_tracking)
             .map(|n| {

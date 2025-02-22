@@ -38,7 +38,7 @@ impl ImmediateUnpacker {
     fn deque(&self) -> Box<dyn Iterator<Item = CompletedIo>> {
         let mut guard = self.incremental_state.lock().unwrap();
         // incremental file in progress
-        if let Some(ref mut state) = *guard {
+        match *guard { Some(ref mut state) => {
             // Case 1: pending errors
             if state.finished {
                 let mut item = state.item.take().unwrap();
@@ -59,9 +59,9 @@ impl ImmediateUnpacker {
                 completed_chunks.append(&mut state.completed_chunks);
                 Box::new(completed_chunks.into_iter().map(CompletedIo::Chunk))
             }
-        } else {
+        } _ => {
             Box::new(None.into_iter())
-        }
+        }}
     }
 }
 
@@ -187,13 +187,13 @@ impl IncrementalFileWriter {
             Ok(v) => v,
             Err(e) => {
                 let mut state = self.state.lock().unwrap();
-                if let Some(ref mut state) = *state {
+                match *state { Some(ref mut state) => {
                     state.err.replace(Err(e));
                     state.finished = true;
                     false
-                } else {
+                } _ => {
                     false
-                }
+                }}
             }
         }
     }
@@ -203,7 +203,7 @@ impl IncrementalFileWriter {
         let Some(ref mut state) = *state else {
             unreachable!()
         };
-        if let Some(ref mut file) = self.file.as_mut() {
+        match self.file.as_mut() { Some(ref mut file) => {
             // Length 0 vector is used for clean EOF signalling.
             if chunk.is_empty() {
                 trace_scoped!("close", "name:": self.path_display);
@@ -216,8 +216,8 @@ impl IncrementalFileWriter {
                 state.completed_chunks.push(chunk.len());
             }
             Ok(true)
-        } else {
+        } _ => {
             Ok(false)
-        }
+        }}
     }
 }

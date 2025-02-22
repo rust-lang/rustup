@@ -231,7 +231,7 @@ impl<'a> DistributableToolchain<'a> {
         const MAX_DISTANCE: usize = 3;
 
         let components = manifest.query_components(&self.desc, config);
-        if let Ok(components) = components {
+        match components { Ok(components) => {
             let short_name_distance = components
                 .iter()
                 .filter(|c| !only_installed || c.installed)
@@ -296,9 +296,9 @@ impl<'a> DistributableToolchain<'a> {
             } else {
                 Some(closest_match)
             }
-        } else {
+        } _ => {
             None
-        }
+        }}
     }
 
     #[tracing::instrument(level = "trace", skip_all)]

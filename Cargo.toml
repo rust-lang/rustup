@@ -155,7 +155,8 @@ url = "2.4"
 walkdir = "2"
 
 [workspace.lints.rust]
-rust_2018_idioms = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
+if_let_rescope = { level = "warn", priority = -2 }
 
 [workspace.lints.clippy]
 # `dbg!()` and `todo!()` clearly shouldn't make it to production:

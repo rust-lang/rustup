@@ -369,15 +369,15 @@ impl Manifestation {
         // component name plus the target triple.
         let name = component.name_in_manifest();
         let short_name = component.short_name_in_manifest();
-        if let Some(c) = self.installation.find(&name)? {
+        match self.installation.find(&name)? { Some(c) => {
             tx = c.uninstall(tx, process)?;
-        } else if let Some(c) = self.installation.find(short_name)? {
+        } _ => { match self.installation.find(short_name)? { Some(c) => {
             tx = c.uninstall(tx, process)?;
-        } else {
+        } _ => {
             notify_handler(Notification::MissingInstalledComponent(
                 &component.short_name(manifest),
             ));
-        }
+        }}}}
 
         Ok(tx)
     }

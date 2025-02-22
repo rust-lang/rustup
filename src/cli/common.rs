@@ -417,13 +417,12 @@ pub(crate) fn list_toolchains(
     } else {
         let default_toolchain_name = cfg.get_default()?;
         let active_toolchain_name: Option<ToolchainName> =
-            if let Ok(Some((LocalToolchainName::Named(toolchain), _reason))) =
-                cfg.find_active_toolchain()
-            {
+            match cfg.find_active_toolchain()
+            { Ok(Some((LocalToolchainName::Named(toolchain), _reason))) => {
                 Some(toolchain)
-            } else {
+            } _ => {
                 None
-            };
+            }};
 
         for toolchain in toolchains {
             let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain);

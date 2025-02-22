@@ -353,16 +353,16 @@ impl<'a> Toolchain<'a> {
     #[cfg_attr(feature="otel", tracing::instrument(err,fields(binary, recursion=self.cfg.process.var("RUST_RECURSION_COUNT").ok())))]
     fn create_command<T: AsRef<OsStr> + Debug>(&self, binary: T) -> Result<Command, anyhow::Error> {
         // Create the path to this binary within the current toolchain sysroot
-        let binary = if let Some(binary_str) = binary.as_ref().to_str() {
+        let binary = match binary.as_ref().to_str() { Some(binary_str) => {
             if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {
                 binary.as_ref().to_owned()
             } else {
                 OsString::from(format!("{binary_str}{EXE_SUFFIX}"))
             }
-        } else {
+        } _ => {
             // Very weird case. Non-unicode command.
             binary.as_ref().to_owned()
-        };
+        }};
 
         let bin_path = self.path.join("bin").join(&binary);
         let path = if utils::is_file(&bin_path) {

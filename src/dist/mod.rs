@@ -971,13 +971,13 @@ pub(crate) async fn update_from_dist(
 
         if try_next < last_manifest {
             // Wouldn't be an update if we go further back than the user's current nightly.
-            if let Some(e) = first_err {
+            match first_err { Some(e) => {
                 break Err(e);
-            } else {
+            } _ => {
                 // In this case, all newer nightlies are missing, which means there are no
                 // updates, so the user is already at the latest nightly.
                 break Ok(None);
-            }
+            }}
         }
 
         toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
