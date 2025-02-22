@@ -15,24 +15,30 @@ use url::Url;
 
 static SERIALISE_TESTS: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
-fn scrub_env() {
-    remove_var("http_proxy");
-    remove_var("https_proxy");
-    remove_var("HTTPS_PROXY");
-    remove_var("ftp_proxy");
-    remove_var("FTP_PROXY");
-    remove_var("all_proxy");
-    remove_var("ALL_PROXY");
-    remove_var("no_proxy");
-    remove_var("NO_PROXY");
+unsafe fn scrub_env() {
+    unsafe {
+        remove_var("http_proxy");
+        remove_var("https_proxy");
+        remove_var("HTTPS_PROXY");
+        remove_var("ftp_proxy");
+        remove_var("FTP_PROXY");
+        remove_var("all_proxy");
+        remove_var("ALL_PROXY");
+        remove_var("no_proxy");
+        remove_var("NO_PROXY");
+    }
 }
 
 // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
 #[tokio::test]
 async fn read_basic_proxy_params() {
     let _guard = SERIALISE_TESTS.lock().await;
-    scrub_env();
-    set_var("https_proxy", "http://proxy.example.com:8080");
+    // SAFETY: We are setting environment variables when `SERIALISE_TESTS` is locked,
+    // and those environment variables in question are not relevant elsewhere in the test suite.
+    unsafe {
+        scrub_env();
+        set_var("https_proxy", "http://proxy.example.com:8080");
+    }
     let u = Url::parse("https://www.example.org").ok().unwrap();
     assert_eq!(
         for_url(&u).host_port(),
@@ -46,8 +52,12 @@ async fn socks_proxy_request() {
     static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
     let _guard = SERIALISE_TESTS.lock().await;
 
-    scrub_env();
-    set_var("all_proxy", "socks5://127.0.0.1:1080");
+    // SAFETY: We are setting environment variables when `SERIALISE_TESTS` is locked,
+    // and those environment variables in question are not relevant elsewhere in the test suite.
+    unsafe {
+        scrub_env();
+        set_var("all_proxy", "socks5://127.0.0.1:1080");
+    }
 
     thread::spawn(move || {
         let listener = TcpListener::bind("127.0.0.1:1080").unwrap();
