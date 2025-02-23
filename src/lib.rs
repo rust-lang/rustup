@@ -53,13 +53,9 @@ pub fn is_proxyable_tools(tool: &str) -> Result<()> {
 fn component_for_bin(binary: &str) -> Option<&'static str> {
     use std::env::consts::EXE_SUFFIX;
 
-    let binary_prefix = match binary.find(EXE_SUFFIX) {
-        _ if EXE_SUFFIX.is_empty() => binary,
-        Some(i) => &binary[..i],
-        None => binary,
-    };
+    let binary_without_suffix = binary.strip_suffix(EXE_SUFFIX).unwrap_or(binary);
 
-    match binary_prefix {
+    match binary_without_suffix {
         "rustc" | "rustdoc" => Some("rustc"),
         "cargo" => Some("cargo"),
         "rust-lldb" | "rust-gdb" | "rust-gdbgui" => Some("rustc"), // These are not always available
