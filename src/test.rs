@@ -231,22 +231,3 @@ where
     let rustup_home = RustupHome::new_in(test_dir)?;
     f(&rustup_home)
 }
-
-pub async fn before_test_async() {
-    #[cfg(feature = "otel")]
-    {
-        opentelemetry::global::set_text_map_propagator(
-            opentelemetry_sdk::propagation::TraceContextPropagator::new(),
-        );
-    }
-}
-
-pub async fn after_test_async() {
-    #[cfg(feature = "otel")]
-    {
-        // We're tracing, so block until all spans are exported.
-        opentelemetry::global::set_tracer_provider(
-            opentelemetry::trace::noop::NoopTracerProvider::new(),
-        );
-    }
-}
