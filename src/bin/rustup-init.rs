@@ -41,18 +41,14 @@ async fn main() -> Result<ExitCode> {
     pre_rustup_main_init();
 
     let process = Process::os();
-    #[cfg(feature = "otel")]
-    opentelemetry::global::set_text_map_propagator(
-        opentelemetry_sdk::propagation::TraceContextPropagator::new(),
-    );
-    let (subscriber, console_filter) = rustup::cli::log::tracing_subscriber(&process);
-    tracing::subscriber::set_global_default(subscriber)?;
-    let result = run_rustup(&process, console_filter).await;
-    // We're tracing, so block until all spans are exported.
-    #[cfg(feature = "otel")]
-    opentelemetry::global::set_tracer_provider(
-        opentelemetry::trace::noop::NoopTracerProvider::new(),
-    );
+    let result = {
+        #[cfg(feature = "otel")]
+        let _telemetry_guard = rustup::cli::log::set_global_telemetry();
+
+        let (subscriber, console_filter) = rustup::cli::log::tracing_subscriber(&process);
+        tracing::subscriber::set_global_default(subscriber)?;
+        run_rustup(&process, console_filter).await
+    };
 
     match result {
         Err(e) => {
