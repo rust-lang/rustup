@@ -180,7 +180,7 @@ impl Default for OsProcess {
 pub struct TestProcess {
     pub process: Process,
     pub console_filter: Handle<EnvFilter, Registry>,
-    _guard: DefaultGuard, // guard is dropped at the end of the test
+    _tracing_guard: DefaultGuard, // guard is dropped at the end of the test
 }
 
 #[cfg(feature = "test")]
@@ -237,7 +237,7 @@ impl From<TestContext> for TestProcess {
         Self {
             process: inner,
             console_filter,
-            _guard: tracing_subscriber.set_default(),
+            _tracing_guard: tracing_subscriber.set_default(),
         }
     }
 }
