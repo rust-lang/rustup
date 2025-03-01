@@ -175,3 +175,27 @@ fn telemetry_default_tracer() -> Tracer {
     global::set_tracer_provider(provider.clone());
     provider.tracer("tracing-otel-subscriber")
 }
+
+#[cfg(feature = "otel")]
+#[must_use]
+pub struct GlobalTelemetryGuard {
+    _private: (),
+}
+
+#[cfg(feature = "otel")]
+pub fn set_global_telemetry() -> GlobalTelemetryGuard {
+    opentelemetry::global::set_text_map_propagator(
+        opentelemetry_sdk::propagation::TraceContextPropagator::new(),
+    );
+    GlobalTelemetryGuard { _private: () }
+}
+
+#[cfg(feature = "otel")]
+impl Drop for GlobalTelemetryGuard {
+    fn drop(&mut self) {
+        // We're tracing, so block until all spans are exported.
+        opentelemetry::global::set_tracer_provider(
+            opentelemetry::trace::noop::NoopTracerProvider::new(),
+        );
+    }
+}
