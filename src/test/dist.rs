@@ -21,6 +21,147 @@ use super::clitools::hard_link;
 use super::mock::MockInstallerBuilder;
 use super::{CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, create_hash, this_host_triple};
 
+pub(super) struct Release {
+    // Either "nightly", "stable", "beta", or an explicit version number
+    channel: String,
+    date: String,
+    version: String,
+    hash: String,
+    rls: RlsStatus,
+    available: bool,
+    multi_arch: bool,
+}
+
+impl Release {
+    pub(super) fn stable(version: &str, date: &str) -> Self {
+        Release::new("stable", version, date, version)
+    }
+
+    pub(super) fn beta(version: &str, date: &str) -> Self {
+        Release::new("beta", version, date, version)
+    }
+
+    pub(super) fn beta_with_tag(tag: Option<&str>, version: &str, date: &str) -> Self {
+        let channel = match tag {
+            Some(tag) => format!("{version}-beta.{tag}"),
+            None => format!("{version}-beta"),
+        };
+        Release::new(&channel, version, date, version)
+    }
+
+    pub(super) fn with_rls(mut self, status: RlsStatus) -> Self {
+        self.rls = status;
+        self
+    }
+
+    pub(super) fn unavailable(mut self) -> Self {
+        self.available = false;
+        self
+    }
+
+    pub(super) fn multi_arch(mut self) -> Self {
+        self.multi_arch = true;
+        self
+    }
+
+    pub(super) fn only_multi_arch(mut self) -> Self {
+        self.multi_arch = true;
+        self.available = false;
+        self
+    }
+
+    pub(super) fn new(channel: &str, version: &str, date: &str, suffix: &str) -> Self {
+        Release {
+            channel: channel.to_string(),
+            date: date.to_string(),
+            version: version.to_string(),
+            hash: format!("hash-{channel}-{suffix}"),
+            available: true,
+            multi_arch: false,
+            rls: RlsStatus::Available,
+        }
+    }
+
+    pub(super) fn mock(&self) -> MockChannel {
+        if self.available {
+            MockChannel::new(
+                &self.channel,
+                &self.date,
+                &self.version,
+                &self.hash,
+                self.rls,
+                self.multi_arch,
+                false,
+            )
+        } else if self.multi_arch {
+            // unavailable but multiarch means to build only with host==MULTI_ARCH1
+            // instead of true multiarch
+            MockChannel::new(
+                &self.channel,
+                &self.date,
+                &self.version,
+                &self.hash,
+                self.rls,
+                false,
+                true,
+            )
+        } else {
+            MockChannel::unavailable(&self.channel, &self.date, &self.version, &self.hash)
+        }
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub(super) fn link(&self, path: &Path) {
+        // Also create the manifests for releases by version
+        let _ = hard_link(
+            path.join(format!(
+                "dist/{}/channel-rust-{}.toml",
+                self.date, self.channel
+            )),
+            path.join(format!("dist/channel-rust-{}.toml", self.version)),
+        );
+        let _ = hard_link(
+            path.join(format!(
+                "dist/{}/channel-rust-{}.toml.asc",
+                self.date, self.channel
+            )),
+            path.join(format!("dist/channel-rust-{}.toml.asc", self.version)),
+        );
+        let _ = hard_link(
+            path.join(format!(
+                "dist/{}/channel-rust-{}.toml.sha256",
+                self.date, self.channel
+            )),
+            path.join(format!("dist/channel-rust-{}.toml.sha256", self.version)),
+        );
+
+        if self.channel == "stable" {
+            // Same for v1 manifests. These are just the installers.
+            let host_triple = this_host_triple();
+
+            hard_link(
+                path.join(format!(
+                    "dist/{}/rust-stable-{}.tar.gz",
+                    self.date, host_triple
+                )),
+                path.join(format!("dist/rust-{}-{}.tar.gz", self.version, host_triple)),
+            )
+            .unwrap();
+            hard_link(
+                path.join(format!(
+                    "dist/{}/rust-stable-{}.tar.gz.sha256",
+                    self.date, host_triple
+                )),
+                path.join(format!(
+                    "dist/rust-{}-{}.tar.gz.sha256",
+                    self.version, host_triple
+                )),
+            )
+            .unwrap();
+        }
+    }
+}
+
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1
 // to 2016-02-02
