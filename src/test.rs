@@ -26,7 +26,11 @@ use crate::process::TestProcess;
 #[cfg(windows)]
 pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 
-pub mod clitools;
+mod clitools;
+pub use clitools::{
+    CliTestContext, Config, SanitizedOutput, Scenario, SelfUpdateTestContext, output_release_file,
+    print_command, print_indented, set_current_dist_date,
+};
 pub(crate) mod dist;
 pub(crate) mod mock;
 pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};

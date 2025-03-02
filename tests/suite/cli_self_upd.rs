@@ -13,8 +13,7 @@ use retry::{
     retry,
 };
 use rustup::test::{
-    CROSS_ARCH1, calc_hash,
-    clitools::{CliTestContext, Scenario, SelfUpdateTestContext, output_release_file},
+    CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash, output_release_file,
     this_host_triple,
 };
 #[cfg(windows)]

@@ -3,8 +3,7 @@
 
 use rustup::for_host;
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1,
-    clitools::{CliTestContext, Scenario, set_current_dist_date},
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, set_current_dist_date,
     this_host_triple,
 };
 
