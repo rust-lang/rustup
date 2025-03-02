@@ -1,8 +1,8 @@
 # Changelog
 
-## [1.28.0] - ?
+## [1.28.0] - 2025-03-04
 
-The new release of rustup has been a long time in the making and comes with substantial changes.
+This new release of rustup has been a long time in the making and comes with substantial changes.
 
 The following improvements might require changes to how you use rustup:
 
@@ -21,8 +21,15 @@ The following improvements might require changes to how you use rustup:
 
 rustup now officially supports the following host platforms:
 
-  - `aarch64-pc-windows-msvc` [pr#3840]
-  - `loongarch64-unknown-linux-musl` [pr#3921]
+- `aarch64-pc-windows-msvc` [pr#3840]
+- `loongarch64-unknown-linux-musl` [pr#3921]
+
+This release also comes with various quality-of-life improvements, to name a few:
+
+- `rustup show`'s output format has been cleaned up, making it easier to find out about your toolchains' status. [pr#3225]
+- `rustup doc` now accepts a flag and a topic at the same time, enabling quick navigation to specific parts of more books. [pr#4070]
+- rustup's `remove` subcommands now support more aliases such as `rm` and `del`. [pr#4093]
+- Basic support for nushell has been added. [pr#4078]
 
 We have additionally made the following internal changes:
 
@@ -36,9 +43,23 @@ We have additionally made the following internal changes:
 - A new `RUSTUP_LOG` environment variable can be used to control tracing-based logging in
   rustup binaries. See the [dev guide](https://rust-lang.github.io/rustup/dev-guide/tracing.html) for more details. [pr#3875]
 
-Additionally, [Chris Denton](https://github.com/chrisdenton) joined the team. Chris has a lot of experience contributing to
+Furthermore, [Chris Denton](https://github.com/chrisdenton) joined the team. Chris has a lot of experience contributing to
 Windows-related parts of the Rust Project, expertise which was sorely lacking in existing team
 members, so we're happy to have him on board to help address Windows-specific issues.
+
+[1.28.0]: https://github.com/rust-lang/rustup/releases/tag/1.28.0
+[pr#3225]: https://github.com/rust-lang/rustup/pull/3225
+[pr#3798]: https://github.com/rust-lang/rustup/pull/3798
+[pr#3840]: https://github.com/rust-lang/rustup/pull/3840
+[pr#3875]: https://github.com/rust-lang/rustup/pull/3875
+[pr#3903]: https://github.com/rust-lang/rustup/pull/3903
+[pr#3921]: https://github.com/rust-lang/rustup/pull/3921
+[pr#3985]: https://github.com/rust-lang/rustup/pull/3985
+[pr#4023]: https://github.com/rust-lang/rustup/pull/4023
+[pr#4028]: https://github.com/rust-lang/rustup/pull/4028
+[pr#4070]: https://github.com/rust-lang/rustup/pull/4070
+[pr#4078]: https://github.com/rust-lang/rustup/pull/4078
+[pr#4093]: https://github.com/rust-lang/rustup/pull/4093
 
 ### Detailed changes
 
@@ -185,15 +206,59 @@ members, so we're happy to have him on board to help address Windows-specific is
 * Add aliases for remove/uninstall/unset commands by @joshtriplett in https://github.com/rust-lang/rustup/pull/4093
 * chore(deps): update remove-dir-all to 1.0 by @rbtcollins in https://github.com/rust-lang/rustup/pull/4095
 * Prepare 1.28.0 release by @djc in https://github.com/rust-lang/rustup/pull/4079
+* Prepare 1.28.0: step 2 by @djc in https://github.com/rust-lang/rustup/pull/4098
+* feat: align website style with www.rust-lang.org for consistency by @Rustin170506 in https://github.com/rust-lang/rustup/pull/4080
+* Update semver-compatible dependencies by @djc in https://github.com/rust-lang/rustup/pull/4107
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4108
+* feat(cli/rustup-mode): allow `rustup doc` with both a flag and a topic by @rami3l in https://github.com/rust-lang/rustup/pull/4070
+* ci(windows): don't install `awscli` via `choco` by @rami3l in https://github.com/rust-lang/rustup/pull/4111
+* docs(dev-guide/tracing): make "Adding instrumentation" a level-2 title by @rami3l in https://github.com/rust-lang/rustup/pull/4112
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4115
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4116
+* Implement more complete backend selection by @djc in https://github.com/rust-lang/rustup/pull/4118
+* ci(stable): fix build issues to prepare for v1.28.0 release by @rami3l in https://github.com/rust-lang/rustup/pull/4105
+* fix(rustup-init/sh): don't emit "unknown macOS major version" for macOS v11+ by @rami3l in https://github.com/rust-lang/rustup/pull/4122
+* fix(deps): update rust crate rustls-platform-verifier to 0.5 by @renovate in https://github.com/rust-lang/rustup/pull/4123
+* drop unused dep or make them optional by @klensy in https://github.com/rust-lang/rustup/pull/4124
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4125
+* docs(user-guide/installation): update "General tips" by @rami3l in https://github.com/rust-lang/rustup/pull/4126
+* fix(ci): fix installation of `cargo-all-features` by @rami3l in https://github.com/rust-lang/rustup/pull/4131
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4133
+* feat(cli): show the toolchain path with `rustup show [active-toolchain] --verbose` by @rami3l in https://github.com/rust-lang/rustup/pull/4130
+* fix(deps): update rust crate itertools to 0.14 by @renovate in https://github.com/rust-lang/rustup/pull/4139
+* fix(cli/rustup-mode)!: change `rustup doc --error_codes` to `--error-codes` by @rami3l in https://github.com/rust-lang/rustup/pull/4142
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4144
+* fix(cli/rustup-mode): err when trying to show the default/active toolchain but there is none by @rami3l in https://github.com/rust-lang/rustup/pull/4141
+* Update Windows dependencies by @kennykerr in https://github.com/rust-lang/rustup/pull/4146
+* docs(user-guide/components): add deprecation notice for `wasm32-wasi` by @rami3l in https://github.com/rust-lang/rustup/pull/4149
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4153
+* Use ARM based runners for ARM CI targets by @Kobzol in https://github.com/rust-lang/rustup/pull/4154
+* ci(deploy-docs): install `mdbook` with `install-action` by @rami3l in https://github.com/rust-lang/rustup/pull/4157
+* ci(linux): use public ARM64 Linux runners by @rami3l in https://github.com/rust-lang/rustup/pull/4156
+* ci(doc): fix stable build of `user-guide` by @rami3l in https://github.com/rust-lang/rustup/pull/4158
+* ci(schedule): promote to use the `stable` job list by @rami3l in https://github.com/rust-lang/rustup/pull/4160
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4161
+* ci(doc): pin `mdbook` and let `renovatebot` update it by @rami3l in https://github.com/rust-lang/rustup/pull/4162
+* fix(ci/doc): fix typo in renovate `datasource` by @rami3l in https://github.com/rust-lang/rustup/pull/4163
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4169
+* Upgrade to rand 0.9 by @djc in https://github.com/rust-lang/rustup/pull/4172
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4174
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4180
+* fix(component): normalize path separators by @rami3l in https://github.com/rust-lang/rustup/pull/4179
+* feat(rustup-init/sh): add env var to print arch detection result by @rami3l in https://github.com/rust-lang/rustup/pull/4183
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4187
+* fix(deps): update rust crate pulldown-cmark to 0.13 by @rami3l in https://github.com/rust-lang/rustup/pull/4188
+* style(edition): migrate the codebase to the 2024 Style Edition by @rami3l in https://github.com/rust-lang/rustup/pull/4190
+* build: migrate the codebase to the 2024 Language Edition by @rami3l in https://github.com/rust-lang/rustup/pull/4191
+* refactor: improve binary suffix stripping by @Timmmm in https://github.com/rust-lang/rustup/pull/4193
+* chore(deps): lock file maintenance by @renovate in https://github.com/rust-lang/rustup/pull/4194
+* fix(deps): update rust crate windows-registry to 0.5.0 by @renovate in https://github.com/rust-lang/rustup/pull/4197
+* chore(deps): update opentelemetry by @rami3l in https://github.com/rust-lang/rustup/pull/4199
+* Add `TryFrom<Output>` for `SanitizedOutput` by @smoelius in https://github.com/rust-lang/rustup/pull/4201
+* Do not append `EXE_SUFFIX` in `Config::cmd` by @smoelius in https://github.com/rust-lang/rustup/pull/4200
+* Have mocked cargo better adhere to cargo conventions by @smoelius in https://github.com/rust-lang/rustup/pull/4203
 
-[pr#3985]: https://github.com/rust-lang/rustup/pull/3985
-[pr#4028]: https://github.com/rust-lang/rustup/pull/4028
-[pr#3840]: https://github.com/rust-lang/rustup/pull/3840
-[pr#3921]: https://github.com/rust-lang/rustup/pull/3921
-[pr#3798]: https://github.com/rust-lang/rustup/pull/3798
-[pr#3903]: https://github.com/rust-lang/rustup/pull/3903
-[pr#4023]: https://github.com/rust-lang/rustup/pull/4023
-[pr#3875]: https://github.com/rust-lang/rustup/pull/3875
+**Full Changelog**: https://github.com/rust-lang/rustup/compare/1.27.1...1.28.0
 
 ## [1.27.1] - 2024-04-14
 
