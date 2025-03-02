@@ -12,7 +12,7 @@ mod unix {
     use std::path::PathBuf;
 
     use super::INIT_NONE;
-    use rustup::test::clitools::{self, CliTestContext, Scenario};
+    use rustup::test::clitools::{CliTestContext, Scenario};
     use rustup::utils::raw;
 
     // Let's write a fake .rc which looks vaguely like a real script.
@@ -44,7 +44,7 @@ export PATH="$HOME/apple/bin"
         // $HOME/.cargo by removing CARGO_HOME from the environment,
         // otherwise the literal path will be written to the file.
 
-        let mut cmd = clitools::cmd(&cx.config, "rustup-init", &INIT_NONE[1..]);
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         let files: Vec<PathBuf> = [".cargo/env", ".profile", ".zshenv"]
             .iter()
             .map(|file| cx.config.homedir.join(file))
@@ -127,7 +127,7 @@ export PATH="$HOME/apple/bin"
         let rc = zdotdir.path().join(".zshenv");
         raw::write_file(&rc, FAKE_RC).unwrap();
 
-        let mut cmd = clitools::cmd(&cx.config, "rustup-init", &INIT_NONE[1..]);
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         cmd.env("SHELL", "zsh");
         cmd.env("ZDOTDIR", zdotdir.path());
         assert!(cmd.output().unwrap().status.success());
@@ -167,7 +167,7 @@ export PATH="$HOME/apple/bin"
         );
         raw::write_file(&home_zshenv, &export_zdotdir).unwrap();
 
-        let mut cmd = clitools::cmd(&cx.config, "rustup-init", &INIT_NONE[1..]);
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         cmd.env("SHELL", "/bin/sh");
         assert!(cmd.output().unwrap().status.success());
 
@@ -278,7 +278,7 @@ export PATH="$HOME/apple/bin"
             raw::write_file(rc, &old_rc).unwrap();
         }
 
-        let mut cmd = clitools::cmd(&cx.config, "rustup-init", &INIT_NONE[1..]);
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         cmd.env("SHELL", "zsh");
         cmd.env("ZDOTDIR", zdotdir.path());
         cmd.env_remove("CARGO_HOME");
@@ -304,7 +304,7 @@ export PATH="$HOME/apple/bin"
             .prefix("zdotdir")
             .tempdir()
             .unwrap();
-        let mut cmd = clitools::cmd(&cx.config, "rustup-init", &INIT_NONE[1..]);
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         cmd.env("SHELL", "zsh");
         cmd.env("ZDOTDIR", zdotdir.path());
         cmd.env_remove("CARGO_HOME");
@@ -320,7 +320,7 @@ export PATH="$HOME/apple/bin"
             raw::write_file(rc, &old_rc).unwrap();
         }
 
-        let mut cmd = clitools::cmd(&cx.config, "rustup", ["self", "uninstall", "-y"]);
+        let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
         cmd.env("SHELL", "zsh");
         cmd.env("ZDOTDIR", zdotdir.path());
         cmd.env_remove("CARGO_HOME");
@@ -344,7 +344,7 @@ export PATH="$HOME/apple/bin"
 
         let profile = cx.config.homedir.join(".profile");
         raw::write_file(&profile, FAKE_RC).unwrap();
-        let mut cmd = clitools::cmd(&cx.config, "rustup-init", &INIT_NONE[1..]);
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
 
@@ -352,7 +352,7 @@ export PATH="$HOME/apple/bin"
         let expected = format!("{FAKE_RC}. \"$HOME/.cargo/env\"\n");
         assert_eq!(new_profile, expected);
 
-        let mut cmd = clitools::cmd(&cx.config, "rustup", ["self", "uninstall", "-y"]);
+        let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
 
