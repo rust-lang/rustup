@@ -29,11 +29,11 @@ use crate::test::this_host_triple;
 use crate::utils;
 
 use super::{
-    MockComponentBuilder, MockFile, MockInstallerBuilder,
     dist::{
         MockChannel, MockComponent, MockDistServer, MockManifestVersion, MockPackage,
         MockTargetedPackage, change_channel_date,
     },
+    mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
     topical_doc_data,
 };
 

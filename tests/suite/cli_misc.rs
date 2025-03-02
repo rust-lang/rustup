@@ -7,7 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    mock::clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date},
+    clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date},
     this_host_triple,
 };
 use rustup::utils;

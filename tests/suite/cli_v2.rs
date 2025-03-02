@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use rustup::dist::TargetTriple;
 use rustup::for_host;
-use rustup::test::mock::clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date};
+use rustup::test::clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date};
 use rustup::test::this_host_triple;
 
 #[tokio::test]
@@ -1288,7 +1288,7 @@ async fn warn_about_and_remove_stray_hash() {
 
 fn make_component_unavailable(config: &Config, name: &str, target: String) {
     use rustup::dist::manifest::Manifest;
-    use rustup::test::mock::dist::create_hash;
+    use rustup::test::dist::create_hash;
 
     let manifest_path = config
         .distdir
