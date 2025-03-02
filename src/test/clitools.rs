@@ -29,6 +29,7 @@ use crate::test::this_host_triple;
 use crate::utils;
 
 use super::{
+    CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1,
     dist::{
         MockChannel, MockComponent, MockDistServer, MockManifestVersion, MockPackage,
         MockTargetedPackage, change_channel_date,
@@ -447,15 +448,6 @@ pub enum Scenario {
     /// host and MULTI_ARCH1 but no RLS in last
     MissingComponentMulti,
 }
-
-pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
-pub static CROSS_ARCH2: &str = "arm-linux-androideabi";
-
-// Architecture for testing 'multi-host' installation.
-#[cfg(target_pointer_width = "64")]
-pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
-#[cfg(not(target_pointer_width = "64"))]
-pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 
 static CONST_TEST_STATE: LazyLock<ConstState> =
     LazyLock::new(|| ConstState::new(const_dist_dir().unwrap()));
@@ -1348,7 +1340,7 @@ fn build_mock_channel(
         all.cargo.push((cargo, triple.clone()));
 
         if rls != RlsStatus::Unavailable {
-            let rls =  MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
+            let rls = MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
             all.rls.push((rls, triple.clone()));
         } else {
             all.rls

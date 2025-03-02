@@ -7,6 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
+    MULTI_ARCH1,
     clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date},
     this_host_triple,
 };
@@ -205,10 +206,10 @@ async fn multi_host_smoke_test() {
     // We cannot run this test if the current host triple is equal to the
     // multi-arch triple, but this should never be the case.  Check that just
     // to be sure.
-    assert_ne!(this_host_triple(), clitools::MULTI_ARCH1);
+    assert_ne!(this_host_triple(), MULTI_ARCH1);
 
     let mut cx = CliTestContext::new(Scenario::MultiHost).await;
-    let toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
+    let toolchain = format!("nightly-{}", MULTI_ARCH1);
     cx.config
         .expect_ok(&["rustup", "default", &toolchain, "--force-non-host"])
         .await;

@@ -12,13 +12,13 @@ use retry::{
     delay::{Fibonacci, jitter},
     retry,
 };
-#[cfg(windows)]
-use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::test::{
-    calc_hash,
+    CROSS_ARCH1, calc_hash,
     clitools::{self, CliTestContext, Scenario, SelfUpdateTestContext, output_release_file},
     this_host_triple,
 };
+#[cfg(windows)]
+use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
 use rustup::{DUP_TOOLS, TOOLS, for_host};
 #[cfg(windows)]
@@ -915,14 +915,14 @@ async fn install_with_components_and_targets() {
             "-c",
             "rls",
             "-t",
-            clitools::CROSS_ARCH1,
+            CROSS_ARCH1,
             "--no-modify-path",
         ])
         .await;
     cx.config
         .expect_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", clitools::CROSS_ARCH1),
+            &format!("{} (installed)", CROSS_ARCH1),
         )
         .await;
     cx.config

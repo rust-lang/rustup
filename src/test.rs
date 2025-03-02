@@ -304,3 +304,12 @@ pub fn create_hash(src: &Path, dst: &Path) -> String {
     dist::write_file(dst, &file_contents);
     hex
 }
+
+pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
+pub static CROSS_ARCH2: &str = "arm-linux-androideabi";
+
+// Architecture for testing 'multi-host' installation.
+#[cfg(target_pointer_width = "64")]
+pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
+#[cfg(not(target_pointer_width = "64"))]
+pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
