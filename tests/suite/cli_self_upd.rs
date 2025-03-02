@@ -15,8 +15,8 @@ use retry::{
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::test::{
+    calc_hash,
     clitools::{self, CliTestContext, Scenario, SelfUpdateTestContext, output_release_file},
-    dist::calc_hash,
     this_host_triple,
 };
 use rustup::utils::{self, raw};

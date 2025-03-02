@@ -7,7 +7,6 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 
-use sha2::{Digest, Sha256};
 use url::Url;
 
 use crate::dist::{
@@ -18,8 +17,9 @@ use crate::dist::{
     },
 };
 
-use super::mock::MockInstallerBuilder;
 use super::clitools::hard_link;
+use super::create_hash;
+use super::mock::MockInstallerBuilder;
 
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1
@@ -482,23 +482,7 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
     tar.finish()
 }
 
-pub fn calc_hash(src: &Path) -> String {
-    let mut buf = Vec::new();
-    File::open(src).unwrap().read_to_end(&mut buf).unwrap();
-    let mut hasher = Sha256::new();
-    hasher.update(buf);
-    format!("{:x}", hasher.finalize())
-}
-
-pub fn create_hash(src: &Path, dst: &Path) -> String {
-    let hex = calc_hash(src);
-    let src_file = src.file_name().unwrap();
-    let file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
-    write_file(dst, &file_contents);
-    hex
-}
-
-fn write_file(dst: &Path, contents: &str) {
+pub(super) fn write_file(dst: &Path, contents: &str) {
     drop(fs::remove_file(dst));
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
