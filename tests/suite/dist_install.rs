@@ -11,7 +11,7 @@ use rustup::dist::temp;
 use rustup::process::TestProcess;
 use rustup::utils;
 
-use rustup::test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use rustup::test::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Just testing that the mocks work
 #[test]

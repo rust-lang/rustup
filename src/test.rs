@@ -28,7 +28,8 @@ pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get
 
 pub mod clitools;
 pub(crate) mod dist;
-pub mod mock;
+pub(crate) mod mock;
+pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Things that can have environment variables applied to them.
 pub trait Env {
