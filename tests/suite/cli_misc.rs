@@ -7,9 +7,8 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    MULTI_ARCH1,
-    clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date},
-    this_host_triple,
+    CliTestContext, Config, MULTI_ARCH1, Scenario, print_command, print_indented,
+    set_current_dist_date, this_host_triple,
 };
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
@@ -340,9 +339,9 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
             true
         };
         if !out.ok || !first_then_second(&out.stderr) {
-            clitools::print_command(args, &out);
+            print_command(args, &out);
             println!("expected.ok: true");
-            clitools::print_indented(
+            print_indented(
                 "expected.stderr.first_then",
                 &format!("{} comes before {:?}", first.display(), second),
             );

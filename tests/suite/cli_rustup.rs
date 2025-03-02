@@ -6,9 +6,8 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1,
-    clitools::{CliTestContext, Scenario},
-    this_host_triple, topical_doc_data,
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
+    topical_doc_data,
 };
 use rustup::utils::raw;
 

@@ -8,8 +8,10 @@ use std::path::PathBuf;
 use rustup::dist::TargetTriple;
 use rustup::dist::manifest::Manifest;
 use rustup::for_host;
-use rustup::test::clitools::{CliTestContext, Config, Scenario, set_current_dist_date};
-use rustup::test::{CROSS_ARCH1, CROSS_ARCH2, create_hash, this_host_triple};
+use rustup::test::{
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, set_current_dist_date,
+    this_host_triple,
+};
 
 #[tokio::test]
 async fn rustc_no_default_toolchain() {

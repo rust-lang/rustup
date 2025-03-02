@@ -12,7 +12,7 @@ mod unix {
     use std::path::PathBuf;
 
     use super::INIT_NONE;
-    use rustup::test::clitools::{CliTestContext, Scenario};
+    use rustup::test::{CliTestContext, Scenario};
     use rustup::utils::raw;
 
     // Let's write a fake .rc which looks vaguely like a real script.
@@ -380,7 +380,7 @@ export PATH="$HOME/apple/bin"
 #[cfg(windows)]
 mod windows {
     use super::INIT_NONE;
-    use rustup::test::mock::clitools::{CliTestContext, Scenario};
+    use rustup::test::{CliTestContext, Scenario};
     use rustup::test::{RegistryGuard, USER_PATH, get_path};
 
     use windows_registry::{HSTRING, Value};
