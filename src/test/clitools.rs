@@ -397,6 +397,14 @@ impl Config {
             stderr: out.stderr,
         }
     }
+
+    /// Change the current distribution manifest to a particular date
+    pub fn set_current_dist_date(&self, date: &str) {
+        let url = Url::from_file_path(self.distdir.as_ref().unwrap()).unwrap();
+        for channel in &["nightly", "beta", "stable"] {
+            change_channel_date(&url, channel, date);
+        }
+    }
 }
 
 // Describes all the features of the mock dist server.
@@ -973,14 +981,6 @@ version = "{version}"
     );
     let file = dist_dir.join("release-stable.toml");
     utils::write_file("release", &file, &contents).unwrap();
-}
-
-/// Change the current distribution manifest to a particular date
-pub fn set_current_dist_date(config: &Config, date: &str) {
-    let url = Url::from_file_path(config.distdir.as_ref().unwrap()).unwrap();
-    for channel in &["nightly", "beta", "stable"] {
-        change_channel_date(&url, channel, date);
-    }
 }
 
 pub fn print_command(args: &[&str], out: &SanitizedOutput) {

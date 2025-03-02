@@ -3,8 +3,7 @@
 
 use rustup::for_host;
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, set_current_dist_date,
-    this_host_triple,
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
 };
 
 #[tokio::test]
@@ -726,7 +725,7 @@ async fn install_by_version_number() {
 async fn install_unreleased_component() {
     let mut cx = CliTestContext::new(Scenario::MissingComponentMulti).await;
     // Initial channel content is host + rls + multiarch-std
-    set_current_dist_date(&cx.config, "2019-09-12");
+    cx.config.set_current_dist_date("2019-09-12");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls"])
@@ -736,7 +735,7 @@ async fn install_unreleased_component() {
         .await;
 
     // Next channel variant should have host + rls but not multiarch-std
-    set_current_dist_date(&cx.config, "2019-09-13");
+    cx.config.set_current_dist_date("2019-09-13");
     cx.config
         .expect_ok_ex(
             &["rustup", "update", "nightly"],
@@ -759,7 +758,7 @@ info: syncing channel updates for 'nightly-2019-09-12-{0}'
         .await;
 
     // Next channel variant should have host + multiarch-std but have rls missing
-    set_current_dist_date(&cx.config, "2019-09-14");
+    cx.config.set_current_dist_date("2019-09-14");
     cx.config
         .expect_ok_ex(
             &["rustup", "update", "nightly"],

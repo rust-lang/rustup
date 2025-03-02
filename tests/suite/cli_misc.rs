@@ -7,8 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    CliTestContext, Config, MULTI_ARCH1, Scenario, print_command, print_indented,
-    set_current_dist_date, this_host_triple,
+    CliTestContext, Config, MULTI_ARCH1, Scenario, print_command, print_indented, this_host_triple,
 };
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
@@ -549,7 +548,7 @@ async fn rls_exists_in_toolchain() {
 #[tokio::test]
 async fn run_rls_when_not_available_in_toolchain() {
     let mut cx = CliTestContext::new(Scenario::UnavailableRls).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config.expect_err(
         &["rls", "--version"],
@@ -560,7 +559,7 @@ async fn run_rls_when_not_available_in_toolchain() {
         ),
     ).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls"])
@@ -603,7 +602,7 @@ async fn run_rls_when_not_installed_for_nightly() {
 #[tokio::test]
 async fn run_rust_lldb_when_not_in_toolchain() {
     let mut cx = CliTestContext::new(Scenario::UnavailableRls).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config.expect_err(
         &["rust-lldb", "--version"],
@@ -618,13 +617,13 @@ async fn run_rust_lldb_when_not_in_toolchain() {
 #[tokio::test]
 async fn rename_rls_before() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls"])
         .await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
 
     assert!(cx.config.exedir.join(format!("rls{EXE_SUFFIX}")).exists());
@@ -634,10 +633,10 @@ async fn rename_rls_before() {
 #[tokio::test]
 async fn rename_rls_after() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls-preview"])
@@ -650,10 +649,10 @@ async fn rename_rls_after() {
 #[tokio::test]
 async fn rename_rls_add_old_name() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls"])
@@ -666,10 +665,10 @@ async fn rename_rls_add_old_name() {
 #[tokio::test]
 async fn rename_rls_list() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls"])
@@ -683,10 +682,10 @@ async fn rename_rls_list() {
 #[tokio::test]
 async fn rename_rls_preview_list() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
     cx.config
         .expect_ok(&["rustup", "component", "add", "rls-preview"])
@@ -700,10 +699,10 @@ async fn rename_rls_preview_list() {
 #[tokio::test]
 async fn rename_rls_remove() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
 
     cx.config
@@ -780,10 +779,10 @@ async fn tmp_downloads_symlink() {
     fs::create_dir(&test_downloads).unwrap();
     symlink_dir(&test_downloads, &cx.config.rustupdir.join("downloads")).unwrap();
 
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update"]).await;
 
     assert!(cx.config.rustupdir.join("tmp").exists());
@@ -833,7 +832,7 @@ info: toolchain 'test' uninstalled
 #[tokio::test]
 async fn update_unavailable_rustc() {
     let mut cx = CliTestContext::new(Scenario::Unavailable).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
     cx.config
@@ -841,7 +840,7 @@ async fn update_unavailable_rustc() {
         .await;
 
     // latest nightly is unavailable
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     // update should do nothing
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
     cx.config
@@ -853,7 +852,7 @@ async fn update_unavailable_rustc() {
 #[tokio::test]
 async fn install_unavailable_platform() {
     let cx = CliTestContext::new(Scenario::Unavailable).await;
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     // explicit attempt to install should fail
     cx.config
         .expect_err(
@@ -889,7 +888,7 @@ async fn install_beta_with_tag() {
 #[tokio::test]
 async fn update_nightly_even_with_incompat() {
     let mut cx = CliTestContext::new(Scenario::MissingComponent).await;
-    set_current_dist_date(&cx.config, "2019-09-12");
+    cx.config.set_current_dist_date("2019-09-12");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
     cx.config
@@ -901,7 +900,7 @@ async fn update_nightly_even_with_incompat() {
     cx.config.expect_component_executable("rls").await;
 
     // latest nightly is now one that does not have RLS
-    set_current_dist_date(&cx.config, "2019-09-14");
+    cx.config.set_current_dist_date("2019-09-14");
 
     cx.config.expect_component_executable("rls").await;
     // update should bring us to latest nightly that does
@@ -915,7 +914,7 @@ async fn update_nightly_even_with_incompat() {
 #[tokio::test]
 async fn nightly_backtrack_skips_missing() {
     let mut cx = CliTestContext::new(Scenario::MissingNightly).await;
-    set_current_dist_date(&cx.config, "2019-09-16");
+    cx.config.set_current_dist_date("2019-09-16");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
 
     cx.config
@@ -927,7 +926,7 @@ async fn nightly_backtrack_skips_missing() {
     cx.config.expect_component_executable("rls").await;
 
     // rls is missing on latest, nightly is missing on second-to-latest
-    set_current_dist_date(&cx.config, "2019-09-18");
+    cx.config.set_current_dist_date("2019-09-18");
 
     // update should not change nightly, and should not error
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;

@@ -9,8 +9,7 @@ use rustup::dist::TargetTriple;
 use rustup::dist::manifest::Manifest;
 use rustup::for_host;
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, set_current_dist_date,
-    this_host_triple,
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_triple,
 };
 
 #[tokio::test]
@@ -86,7 +85,7 @@ async fn install_toolchain_from_version() {
 async fn install_with_profile() {
     let mut cx = CliTestContext::new(Scenario::UnavailableRls).await;
     // Start with a config that uses the "complete" profile
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config
         .expect_ok(&["rustup", "set", "profile", "complete"])
         .await;
@@ -109,7 +108,7 @@ async fn install_with_profile() {
     cx.config.expect_component_not_executable("cargo").await;
 
     // After an update, we should _still_ only have the profile-dictated components
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
 
     cx.config.expect_component_executable("rustup").await;
@@ -132,12 +131,12 @@ async fn default_existing_toolchain() {
 #[tokio::test]
 async fn update_channel() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
         .await;
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
@@ -693,12 +692,12 @@ async fn no_update_on_channel_when_date_has_not_changed() {
 #[tokio::test]
 async fn update_on_channel_when_date_has_changed() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
         .await;
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
@@ -733,7 +732,7 @@ async fn remove_toolchain_then_add_again() {
 #[tokio::test]
 async fn upgrade_v1_to_v2() {
     let mut cx = CliTestContext::new(Scenario::Full).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     // Delete the v2 manifest so the first day we install from the v1s
     fs::remove_file(
         cx.config
@@ -747,7 +746,7 @@ async fn upgrade_v1_to_v2() {
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1")
         .await;
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
     cx.config
         .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
@@ -757,9 +756,9 @@ async fn upgrade_v1_to_v2() {
 #[tokio::test]
 async fn upgrade_v2_to_v1() {
     let mut cx = CliTestContext::new(Scenario::Full).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    set_current_dist_date(&cx.config, "2015-01-02");
+    cx.config.set_current_dist_date("2015-01-02");
     fs::remove_file(
         cx.config
             .distdir
@@ -1372,7 +1371,7 @@ Then you can use the toolchain with commands such as:
 #[tokio::test]
 async fn update_removed_component_toolchain() {
     let mut cx = CliTestContext::new(Scenario::RemovedRls).await;
-    set_current_dist_date(&cx.config, "2024-05-01");
+    cx.config.set_current_dist_date("2024-05-01");
     cx.config.expect_ok(&["rustup", "default", "stable"]).await;
 
     // Install `rls` on the first day.
@@ -1385,7 +1384,7 @@ async fn update_removed_component_toolchain() {
     cx.config.expect_component_executable("rls").await;
 
     // `rls` is missing on the second day.
-    set_current_dist_date(&cx.config, "2024-06-15");
+    cx.config.set_current_dist_date("2024-06-15");
 
     // An update at this time should inform the user of an unavailable component.
     cx.config
@@ -1662,7 +1661,7 @@ async fn test_warn_if_complete_profile_is_used() {
 #[tokio::test]
 async fn test_complete_profile_skips_missing_when_forced() {
     let mut cx = CliTestContext::new(Scenario::UnavailableRls).await;
-    set_current_dist_date(&cx.config, "2015-01-01");
+    cx.config.set_current_dist_date("2015-01-01");
 
     cx.config
         .expect_ok(&["rustup", "set", "profile", "complete"])
@@ -1733,7 +1732,7 @@ async fn install_allow_downgrade() {
     let trip = this_host_triple();
 
     // this dist has no rls and there is no newer one
-    set_current_dist_date(&cx.config, "2019-09-14");
+    cx.config.set_current_dist_date("2019-09-14");
     cx.config
         .expect_ok(&["rustup", "toolchain", "install", "nightly"])
         .await;
