@@ -12,6 +12,7 @@ use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     process::Command,
+    string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     time::Instant,
 };
@@ -764,7 +765,7 @@ impl Config {
         };
         let duration = Instant::now() - start;
         let status = out.status;
-        let output: SanitizedOutput = out.try_into().unwrap();
+        let output = SanitizedOutput::try_from(out).unwrap();
 
         println!("ran: {} {:?}", name, args);
         println!("inprocess: {inprocess}");
@@ -918,14 +919,14 @@ pub struct SanitizedOutput {
 }
 
 impl TryFrom<Output> for SanitizedOutput {
-    type Error = std::string::FromUtf8Error;
+    type Error = FromUtf8Error;
+
     fn try_from(out: Output) -> Result<Self, Self::Error> {
-        let sanitized_output = Self {
+        Ok(Self {
             ok: matches!(out.status, Some(0)),
             stdout: String::from_utf8(out.stdout)?,
             stderr: String::from_utf8(out.stderr)?,
-        };
-        Ok(sanitized_output)
+        })
     }
 }
 
