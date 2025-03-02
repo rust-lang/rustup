@@ -64,6 +64,345 @@ pub struct Config {
     pub test_root_dir: PathBuf,
 }
 
+impl Config {
+    pub fn current_dir(&self) -> PathBuf {
+        self.workdir.borrow().clone()
+    }
+
+    pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let exe_path = self.exedir.join(name);
+        let mut cmd = Command::new(exe_path);
+        cmd.args(args);
+        cmd.current_dir(&*self.workdir.borrow());
+        self.env(&mut cmd);
+        cmd
+    }
+
+    pub fn env<E: rustup_test::Env>(&self, cmd: &mut E) {
+        // Ensure PATH is prefixed with the rustup-exe directory
+        let prev_path = env::var_os("PATH");
+        let mut new_path = self.exedir.clone().into_os_string();
+        if let Some(ref p) = prev_path {
+            new_path.push(if cfg!(windows) { ";" } else { ":" });
+            new_path.push(p);
+        }
+        cmd.env("PATH", new_path);
+        self.rustupdir.apply(cmd);
+        let distdir = match (&self.distdir, &self.const_dist_dir) {
+            (None, None) => Path::new("no-such-distdir"),
+            // mutable takes precedence
+            (Some(distdir), _) => distdir,
+            (_, Some(distdir)) => distdir,
+        };
+        cmd.env(
+            "RUSTUP_DIST_SERVER",
+            format!("file://{}", distdir.to_string_lossy()),
+        );
+        cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
+        cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
+
+        // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
+        cmd.env("HOME", self.homedir.to_string_lossy().to_string());
+        cmd.env("USERPROFILE", self.homedir.to_string_lossy().to_string());
+
+        // Setting HOME will confuse the sudo check for rustup-init. Override it
+        cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
+
+        // Skip the MSVC warning check since it's environment dependent
+        cmd.env("RUSTUP_INIT_SKIP_MSVC_CHECK", "yes");
+
+        // The test environment may interfere with checking the PATH for the existence of rustc or
+        // cargo, so we disable that check globally
+        cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
+
+        // Setup pgp test key
+        cmd.env(
+            "RUSTUP_PGP_KEY",
+            std::env::current_dir()
+                .unwrap()
+                .join("tests/mock/signing-key.pub.asc"),
+        );
+
+        // The unix fallback settings file may be present in the test environment, so override
+        // the path to the settings file with a non-existing path to avoid interference
+        cmd.env(
+            "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS",
+            "/bogus-config-file.toml",
+        );
+
+        if let Some(root) = self.rustup_update_root.as_ref() {
+            cmd.env("RUSTUP_UPDATE_ROOT", root);
+        }
+    }
+
+    /// Expect an ok status
+    pub async fn expect_ok(&mut self, args: &[&str]) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok {
+            print_command(args, &out);
+            println!("expected.ok: true");
+            panic!();
+        }
+    }
+
+    /// Expect an err status and a string in stderr
+    pub async fn expect_err(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if out.ok || !out.stderr.contains(expected) {
+            print_command(args, &out);
+            println!("expected.ok: false");
+            print_indented("expected.stderr.contains", expected);
+            panic!();
+        }
+    }
+
+    /// Expect an ok status and a string in stdout
+    pub async fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok || !out.stdout.contains(expected) {
+            print_command(args, &out);
+            println!("expected.ok: true");
+            print_indented("expected.stdout.contains", expected);
+            panic!();
+        }
+    }
+
+    pub async fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok || out.stdout.contains(expected) {
+            print_command(args, &out);
+            println!("expected.ok: true");
+            print_indented("expected.stdout.does_not_contain", expected);
+            panic!();
+        }
+    }
+
+    pub async fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok || out.stderr.contains(expected) {
+            print_command(args, &out);
+            println!("expected.ok: false");
+            print_indented("expected.stderr.does_not_contain", expected);
+            panic!();
+        }
+    }
+
+    pub async fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if out.ok || out.stderr.contains(expected) {
+            print_command(args, &out);
+            println!("expected.ok: false");
+            print_indented("expected.stderr.does_not_contain", expected);
+            panic!();
+        }
+    }
+
+    /// Expect an ok status and a string in stderr
+    pub async fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok || !out.stderr.contains(expected) {
+            print_command(args, &out);
+            println!("expected.ok: true");
+            print_indented("expected.stderr.contains", expected);
+            panic!();
+        }
+    }
+
+    /// Expect an exact strings on stdout/stderr with an ok status code
+    pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok || out.stdout != stdout || out.stderr != stderr {
+            print_command(args, &out);
+            println!("expected.ok: true");
+            print_indented("expected.stdout", stdout);
+            print_indented("expected.stderr", stderr);
+            dbg!(out.stdout == stdout);
+            dbg!(out.stderr == stderr);
+            panic!();
+        }
+    }
+
+    /// Expect an exact strings on stdout/stderr with an error status code
+    pub async fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if out.ok || out.stdout != stdout || out.stderr != stderr {
+            print_command(args, &out);
+            println!("expected.ok: false");
+            print_indented("expected.stdout", stdout);
+            print_indented("expected.stderr", stderr);
+            if out.ok {
+                panic!("expected command to fail");
+            } else if out.stdout != stdout {
+                panic!("expected stdout to match");
+            } else if out.stderr != stderr {
+                panic!("expected stderr to match");
+            } else {
+                unreachable!()
+            }
+        }
+    }
+
+    pub async fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
+        let out = self.run(args[0], &args[1..], &[]).await;
+        if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
+            print_command(args, &out);
+            println!("expected.ok: true");
+            print_indented("expected.stdout.contains", stdout);
+            print_indented("expected.stderr.contains", stderr);
+            panic!();
+        }
+    }
+
+    pub async fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
+        let out1 = self.run(args1[0], &args1[1..], &[]).await;
+        let out2 = self.run(args2[0], &args2[1..], &[]).await;
+        if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
+            print_command(args1, &out1);
+            println!("expected.ok: true");
+            print_command(args2, &out2);
+            println!("expected.ok: true");
+            panic!();
+        }
+    }
+
+    pub async fn expect_component_executable(&self, cmd: &str) {
+        let out1 = self.run(cmd, ["--version"], &[]).await;
+        if !out1.ok {
+            print_command(&[cmd, "--version"], &out1);
+            println!("expected.ok: true");
+            panic!()
+        }
+    }
+
+    pub async fn expect_component_not_executable(&self, cmd: &str) {
+        let out1 = self.run(cmd, ["--version"], &[]).await;
+        if out1.ok {
+            print_command(&[cmd, "--version"], &out1);
+            println!("expected.ok: false");
+            panic!()
+        }
+    }
+
+    pub async fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
+    where
+        I: IntoIterator<Item = A> + Clone + Debug,
+        A: AsRef<OsStr>,
+    {
+        let inprocess = allow_inprocess(name, args.clone());
+        let start = Instant::now();
+        let out = if inprocess {
+            self.run_inprocess(name, args.clone(), env).await
+        } else {
+            self.run_subprocess(name, args.clone(), env)
+        };
+        let duration = Instant::now() - start;
+        let status = out.status;
+        let output = SanitizedOutput::try_from(out).unwrap();
+
+        println!("ran: {} {:?}", name, args);
+        println!("inprocess: {inprocess}");
+        println!("status: {:?}", status);
+        println!("duration: {:.3}s", duration.as_secs_f32());
+        println!("stdout:\n====\n{}\n====\n", output.stdout);
+        println!("stderr:\n====\n{}\n====\n", output.stderr);
+
+        output
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub(crate) async fn run_inprocess<I, A>(
+        &self,
+        name: &str,
+        args: I,
+        env: &[(&str, &str)],
+    ) -> Output
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        // should we use vars_os, or skip over non-stringable vars? This is test
+        // code after all...
+        let mut vars: HashMap<String, String> = HashMap::default();
+        self::env(self, &mut vars);
+        vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
+        let mut arg_strings: Vec<Box<str>> = Vec::new();
+        arg_strings.push(name.to_owned().into_boxed_str());
+        for arg in args {
+            arg_strings.push(
+                arg.as_ref()
+                    .to_os_string()
+                    .into_string()
+                    .unwrap()
+                    .into_boxed_str(),
+            );
+        }
+
+        let tp = process::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
+        let process_res = rustup_mode::main(
+            tp.process.current_dir().unwrap(),
+            &tp.process,
+            tp.console_filter.clone(),
+        )
+        .await;
+        // convert Err's into an ec
+        let ec = match process_res {
+            Ok(process_res) => process_res,
+            Err(e) => {
+                crate::cli::common::report_error(&e, &tp.process);
+                utils::ExitCode(1)
+            }
+        };
+        Output {
+            status: Some(ec.0),
+            stderr: tp.stderr(),
+            stdout: tp.stdout(),
+        }
+    }
+
+    #[track_caller]
+    pub fn run_subprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let mut cmd = self.cmd(name, args);
+        for env in env {
+            cmd.env(env.0, env.1);
+        }
+
+        let mut retries = 8;
+        let out = loop {
+            let lock = CMD_LOCK.read().unwrap();
+            let out = cmd.output();
+            drop(lock);
+            match out {
+                Ok(out) => break out,
+                Err(e) => {
+                    retries -= 1;
+                    if retries > 0
+                        && e.kind() == std::io::ErrorKind::Other
+                        && e.raw_os_error() == Some(26)
+                    {
+                        // This is an ETXTBSY situation
+                        std::thread::sleep(std::time::Duration::from_millis(250));
+                    } else {
+                        panic!("Unable to run test command: {e:?}");
+                    }
+                }
+            }
+        };
+        Output {
+            status: out.status.code(),
+            stdout: out.stdout,
+            stderr: out.stderr,
+        }
+    }
+}
+
 // Describes all the features of the mock dist server.
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Enum)]
@@ -526,345 +865,6 @@ version = "{version}"
     );
     let file = dist_dir.join("release-stable.toml");
     utils::write_file("release", &file, &contents).unwrap();
-}
-
-impl Config {
-    pub fn current_dir(&self) -> PathBuf {
-        self.workdir.borrow().clone()
-    }
-
-    pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
-    where
-        I: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let exe_path = self.exedir.join(name);
-        let mut cmd = Command::new(exe_path);
-        cmd.args(args);
-        cmd.current_dir(&*self.workdir.borrow());
-        self.env(&mut cmd);
-        cmd
-    }
-
-    pub fn env<E: rustup_test::Env>(&self, cmd: &mut E) {
-        // Ensure PATH is prefixed with the rustup-exe directory
-        let prev_path = env::var_os("PATH");
-        let mut new_path = self.exedir.clone().into_os_string();
-        if let Some(ref p) = prev_path {
-            new_path.push(if cfg!(windows) { ";" } else { ":" });
-            new_path.push(p);
-        }
-        cmd.env("PATH", new_path);
-        self.rustupdir.apply(cmd);
-        let distdir = match (&self.distdir, &self.const_dist_dir) {
-            (None, None) => Path::new("no-such-distdir"),
-            // mutable takes precedence
-            (Some(distdir), _) => distdir,
-            (_, Some(distdir)) => distdir,
-        };
-        cmd.env(
-            "RUSTUP_DIST_SERVER",
-            format!("file://{}", distdir.to_string_lossy()),
-        );
-        cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
-        cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
-
-        // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
-        cmd.env("HOME", self.homedir.to_string_lossy().to_string());
-        cmd.env("USERPROFILE", self.homedir.to_string_lossy().to_string());
-
-        // Setting HOME will confuse the sudo check for rustup-init. Override it
-        cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
-
-        // Skip the MSVC warning check since it's environment dependent
-        cmd.env("RUSTUP_INIT_SKIP_MSVC_CHECK", "yes");
-
-        // The test environment may interfere with checking the PATH for the existence of rustc or
-        // cargo, so we disable that check globally
-        cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
-
-        // Setup pgp test key
-        cmd.env(
-            "RUSTUP_PGP_KEY",
-            std::env::current_dir()
-                .unwrap()
-                .join("tests/mock/signing-key.pub.asc"),
-        );
-
-        // The unix fallback settings file may be present in the test environment, so override
-        // the path to the settings file with a non-existing path to avoid interference
-        cmd.env(
-            "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS",
-            "/bogus-config-file.toml",
-        );
-
-        if let Some(root) = self.rustup_update_root.as_ref() {
-            cmd.env("RUSTUP_UPDATE_ROOT", root);
-        }
-    }
-
-    /// Expect an ok status
-    pub async fn expect_ok(&mut self, args: &[&str]) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            panic!();
-        }
-    }
-
-    /// Expect an err status and a string in stderr
-    pub async fn expect_err(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if out.ok || !out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stderr.contains", expected);
-            panic!();
-        }
-    }
-
-    /// Expect an ok status and a string in stdout
-    pub async fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || !out.stdout.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout.contains", expected);
-            panic!();
-        }
-    }
-
-    pub async fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || out.stdout.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout.does_not_contain", expected);
-            panic!();
-        }
-    }
-
-    pub async fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stderr.does_not_contain", expected);
-            panic!();
-        }
-    }
-
-    pub async fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if out.ok || out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stderr.does_not_contain", expected);
-            panic!();
-        }
-    }
-
-    /// Expect an ok status and a string in stderr
-    pub async fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || !out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stderr.contains", expected);
-            panic!();
-        }
-    }
-
-    /// Expect an exact strings on stdout/stderr with an ok status code
-    pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || out.stdout != stdout || out.stderr != stderr {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout", stdout);
-            print_indented("expected.stderr", stderr);
-            dbg!(out.stdout == stdout);
-            dbg!(out.stderr == stderr);
-            panic!();
-        }
-    }
-
-    /// Expect an exact strings on stdout/stderr with an error status code
-    pub async fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if out.ok || out.stdout != stdout || out.stderr != stderr {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stdout", stdout);
-            print_indented("expected.stderr", stderr);
-            if out.ok {
-                panic!("expected command to fail");
-            } else if out.stdout != stdout {
-                panic!("expected stdout to match");
-            } else if out.stderr != stderr {
-                panic!("expected stderr to match");
-            } else {
-                unreachable!()
-            }
-        }
-    }
-
-    pub async fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout.contains", stdout);
-            print_indented("expected.stderr.contains", stderr);
-            panic!();
-        }
-    }
-
-    pub async fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
-        let out1 = self.run(args1[0], &args1[1..], &[]).await;
-        let out2 = self.run(args2[0], &args2[1..], &[]).await;
-        if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
-            print_command(args1, &out1);
-            println!("expected.ok: true");
-            print_command(args2, &out2);
-            println!("expected.ok: true");
-            panic!();
-        }
-    }
-
-    pub async fn expect_component_executable(&self, cmd: &str) {
-        let out1 = self.run(cmd, ["--version"], &[]).await;
-        if !out1.ok {
-            print_command(&[cmd, "--version"], &out1);
-            println!("expected.ok: true");
-            panic!()
-        }
-    }
-
-    pub async fn expect_component_not_executable(&self, cmd: &str) {
-        let out1 = self.run(cmd, ["--version"], &[]).await;
-        if out1.ok {
-            print_command(&[cmd, "--version"], &out1);
-            println!("expected.ok: false");
-            panic!()
-        }
-    }
-
-    pub async fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
-    where
-        I: IntoIterator<Item = A> + Clone + Debug,
-        A: AsRef<OsStr>,
-    {
-        let inprocess = allow_inprocess(name, args.clone());
-        let start = Instant::now();
-        let out = if inprocess {
-            self.run_inprocess(name, args.clone(), env).await
-        } else {
-            self.run_subprocess(name, args.clone(), env)
-        };
-        let duration = Instant::now() - start;
-        let status = out.status;
-        let output = SanitizedOutput::try_from(out).unwrap();
-
-        println!("ran: {} {:?}", name, args);
-        println!("inprocess: {inprocess}");
-        println!("status: {:?}", status);
-        println!("duration: {:.3}s", duration.as_secs_f32());
-        println!("stdout:\n====\n{}\n====\n", output.stdout);
-        println!("stderr:\n====\n{}\n====\n", output.stderr);
-
-        output
-    }
-
-    #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) async fn run_inprocess<I, A>(
-        &self,
-        name: &str,
-        args: I,
-        env: &[(&str, &str)],
-    ) -> Output
-    where
-        I: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        // should we use vars_os, or skip over non-stringable vars? This is test
-        // code after all...
-        let mut vars: HashMap<String, String> = HashMap::default();
-        self::env(self, &mut vars);
-        vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
-        let mut arg_strings: Vec<Box<str>> = Vec::new();
-        arg_strings.push(name.to_owned().into_boxed_str());
-        for arg in args {
-            arg_strings.push(
-                arg.as_ref()
-                    .to_os_string()
-                    .into_string()
-                    .unwrap()
-                    .into_boxed_str(),
-            );
-        }
-
-        let tp = process::TestProcess::new(&*self.workdir.borrow(), &arg_strings, vars, "");
-        let process_res = rustup_mode::main(
-            tp.process.current_dir().unwrap(),
-            &tp.process,
-            tp.console_filter.clone(),
-        )
-        .await;
-        // convert Err's into an ec
-        let ec = match process_res {
-            Ok(process_res) => process_res,
-            Err(e) => {
-                crate::cli::common::report_error(&e, &tp.process);
-                utils::ExitCode(1)
-            }
-        };
-        Output {
-            status: Some(ec.0),
-            stderr: tp.stderr(),
-            stdout: tp.stdout(),
-        }
-    }
-
-    #[track_caller]
-    pub fn run_subprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
-    where
-        I: IntoIterator<Item = A>,
-        A: AsRef<OsStr>,
-    {
-        let mut cmd = self.cmd(name, args);
-        for env in env {
-            cmd.env(env.0, env.1);
-        }
-
-        let mut retries = 8;
-        let out = loop {
-            let lock = CMD_LOCK.read().unwrap();
-            let out = cmd.output();
-            drop(lock);
-            match out {
-                Ok(out) => break out,
-                Err(e) => {
-                    retries -= 1;
-                    if retries > 0
-                        && e.kind() == std::io::ErrorKind::Other
-                        && e.raw_os_error() == Some(26)
-                    {
-                        // This is an ETXTBSY situation
-                        std::thread::sleep(std::time::Duration::from_millis(250));
-                    } else {
-                        panic!("Unable to run test command: {e:?}");
-                    }
-                }
-            }
-        };
-        Output {
-            status: out.status.code(),
-            stdout: out.stdout,
-            stderr: out.stderr,
-        }
-    }
 }
 
 /// Change the current distribution manifest to a particular date
