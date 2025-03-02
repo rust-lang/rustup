@@ -445,6 +445,127 @@ pub enum Scenario {
     MissingComponentMulti,
 }
 
+impl Scenario {
+    // Creates a mock dist server populated with some test data
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn write_to(&self, path: &Path) {
+        let chans = match self {
+            Self::None => return,
+            Self::Empty => vec![],
+            Self::MissingComponent => vec![
+                Release::new("nightly", "1.37.0", "2019-09-12", "1"),
+                Release::new("nightly", "1.37.0", "2019-09-13", "2"),
+                Release::new("nightly", "1.37.0", "2019-09-14", "3")
+                    .with_rls(RlsStatus::Unavailable),
+            ],
+            Self::MissingNightly => vec![
+                Release::new("nightly", "1.37.0", "2019-09-16", "1"),
+                Release::stable("1.37.0", "2019-09-17"),
+                Release::new("nightly", "1.37.0", "2019-09-18", "2")
+                    .with_rls(RlsStatus::Unavailable),
+            ],
+            Self::Unavailable => vec![
+                Release::new("nightly", "1.2.0", "2015-01-01", "1"),
+                Release::beta("1.1.0", "2015-01-01"),
+                Release::stable("1.0.0", "2015-01-01"),
+                Release::new("nightly", "1.3.0", "2015-01-02", "2").unavailable(),
+            ],
+            Self::ArchivesV2_2015_01_01 => vec![
+                Release::new("nightly", "1.2.0", "2015-01-01", "1").with_rls(RlsStatus::Available),
+                Release::beta("1.1.0", "2015-01-01"),
+                Release::stable("1.0.0", "2015-01-01"),
+            ],
+            Self::ArchivesV2TwoVersions => vec![
+                Release::stable("0.100.99", "2014-12-31"),
+                Release::stable("1.0.0", "2015-01-01"),
+            ],
+            Self::Full | Self::ArchivesV1 | Self::ArchivesV2 | Self::UnavailableRls => {
+                vec![
+                    Release::new("nightly", "1.2.0", "2015-01-01", "1").with_rls(match self {
+                        Self::UnavailableRls => RlsStatus::Unavailable,
+                        _ => RlsStatus::Available,
+                    }),
+                    Release::beta("1.1.0", "2015-01-01"),
+                    // Pre-release "stable" ?
+                    Release::stable("0.100.99", "2014-12-31"),
+                    Release::stable("1.0.0", "2015-01-01"),
+                    Release::new("nightly", "1.3.0", "2015-01-02", "2")
+                        .with_rls(RlsStatus::Renamed),
+                    Release::beta("1.2.0", "2015-01-02"),
+                    Release::stable("1.1.0", "2015-01-02"),
+                ]
+            }
+            Self::RemovedRls => vec![
+                Release::stable("1.78.0", "2024-05-01"),
+                Release::stable("1.79.0", "2024-06-15").with_rls(RlsStatus::Unavailable),
+            ],
+            Self::SimpleV1 | Self::SimpleV2 => vec![
+                Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
+                Release::beta("1.2.0", "2015-01-02"),
+                Release::stable("1.1.0", "2015-01-02"),
+            ],
+            Self::MultiHost => vec![
+                Release::new("nightly", "1.3.0", "2015-01-02", "2").multi_arch(),
+                Release::beta("1.2.0", "2015-01-02").multi_arch(),
+                Release::stable("1.1.0", "2015-01-02").multi_arch(),
+            ],
+            Self::BetaTag => vec![
+                Release::beta("1.78.0", "2024-03-19"),
+                Release::beta_with_tag(None, "1.78.0", "2024-03-19"),
+                Release::beta("1.79.0", "2024-05-03"),
+                Release::beta_with_tag(Some("1"), "1.79.0", "2024-04-29"),
+                Release::beta_with_tag(Some("2"), "1.79.0", "2024-05-03"),
+            ],
+            Self::HostGoesMissingBefore => {
+                vec![Release::new("nightly", "1.3.0", "2019-12-09", "1")]
+            }
+            Self::HostGoesMissingAfter => {
+                vec![Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch()]
+            }
+            Self::MissingComponentMulti => vec![
+                Release::new("nightly", "1.37.0", "2019-09-12", "1")
+                    .multi_arch()
+                    .with_rls(RlsStatus::Renamed),
+                Release::new("nightly", "1.37.0", "2019-09-13", "2").with_rls(RlsStatus::Renamed),
+                Release::new("nightly", "1.37.0", "2019-09-14", "3")
+                    .multi_arch()
+                    .with_rls(RlsStatus::Unavailable),
+            ],
+        };
+
+        let vs = match self {
+            Self::None => unreachable!("None exits above"),
+            Self::Empty => vec![],
+            Self::Full => vec![MockManifestVersion::V1, MockManifestVersion::V2],
+            Self::SimpleV1 | Self::ArchivesV1 => vec![MockManifestVersion::V1],
+            Self::SimpleV2
+            | Self::ArchivesV2
+            | Self::ArchivesV2_2015_01_01
+            | Self::ArchivesV2TwoVersions
+            | Self::BetaTag
+            | Self::MultiHost
+            | Self::Unavailable
+            | Self::UnavailableRls
+            | Self::RemovedRls
+            | Self::MissingNightly
+            | Self::HostGoesMissingBefore
+            | Self::HostGoesMissingAfter
+            | Self::MissingComponent
+            | Self::MissingComponentMulti => vec![MockManifestVersion::V2],
+        };
+
+        MockDistServer {
+            path: path.to_owned(),
+            channels: chans.iter().map(|c| c.mock()).collect(),
+        }
+        .write(&vs, true, true);
+
+        for chan in &chans {
+            chan.link(path)
+        }
+    }
+}
+
 static CONST_TEST_STATE: LazyLock<ConstState> =
     LazyLock::new(|| ConstState::new(const_dist_dir().unwrap()));
 
@@ -508,7 +629,7 @@ impl ConstState {
 
                 None => {
                     let dist_path = self.const_dist_dir.path().join(format!("{s:?}"));
-                    create_mock_dist_server(&dist_path, s);
+                    s.write_to(&dist_path);
                     *lock = Some(dist_path.clone());
                     Ok(dist_path)
                 }
@@ -713,7 +834,7 @@ impl CliTestContext {
 
         // Mutable dist server - working toward elimination
         let test_dist_dir = crate::test::test_dist_dir().unwrap();
-        create_mock_dist_server(test_dist_dir.path(), scenario);
+        scenario.write_to(test_dist_dir.path());
 
         // Things that are just about the test itself
         let (_test_dir, mut config) = setup_test_state(test_dist_dir).await;
@@ -964,125 +1085,6 @@ where
         }
     }
     !(run || self_cmd || version || (is_update && !no_self_update))
-}
-
-// Creates a mock dist server populated with some test data
-#[tracing::instrument(level = "trace", skip_all)]
-fn create_mock_dist_server(path: &Path, s: Scenario) {
-    let chans = match s {
-        Scenario::None => return,
-        Scenario::Empty => vec![],
-        Scenario::MissingComponent => vec![
-            Release::new("nightly", "1.37.0", "2019-09-12", "1"),
-            Release::new("nightly", "1.37.0", "2019-09-13", "2"),
-            Release::new("nightly", "1.37.0", "2019-09-14", "3").with_rls(RlsStatus::Unavailable),
-        ],
-        Scenario::MissingNightly => vec![
-            Release::new("nightly", "1.37.0", "2019-09-16", "1"),
-            Release::stable("1.37.0", "2019-09-17"),
-            Release::new("nightly", "1.37.0", "2019-09-18", "2").with_rls(RlsStatus::Unavailable),
-        ],
-        Scenario::Unavailable => vec![
-            Release::new("nightly", "1.2.0", "2015-01-01", "1"),
-            Release::beta("1.1.0", "2015-01-01"),
-            Release::stable("1.0.0", "2015-01-01"),
-            Release::new("nightly", "1.3.0", "2015-01-02", "2").unavailable(),
-        ],
-        Scenario::ArchivesV2_2015_01_01 => vec![
-            Release::new("nightly", "1.2.0", "2015-01-01", "1").with_rls(RlsStatus::Available),
-            Release::beta("1.1.0", "2015-01-01"),
-            Release::stable("1.0.0", "2015-01-01"),
-        ],
-        Scenario::ArchivesV2TwoVersions => vec![
-            Release::stable("0.100.99", "2014-12-31"),
-            Release::stable("1.0.0", "2015-01-01"),
-        ],
-        Scenario::Full | Scenario::ArchivesV1 | Scenario::ArchivesV2 | Scenario::UnavailableRls => {
-            vec![
-                Release::new("nightly", "1.2.0", "2015-01-01", "1").with_rls(
-                    if s == Scenario::UnavailableRls {
-                        RlsStatus::Unavailable
-                    } else {
-                        RlsStatus::Available
-                    },
-                ),
-                Release::beta("1.1.0", "2015-01-01"),
-                // Pre-release "stable" ?
-                Release::stable("0.100.99", "2014-12-31"),
-                Release::stable("1.0.0", "2015-01-01"),
-                Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
-                Release::beta("1.2.0", "2015-01-02"),
-                Release::stable("1.1.0", "2015-01-02"),
-            ]
-        }
-        Scenario::RemovedRls => vec![
-            Release::stable("1.78.0", "2024-05-01"),
-            Release::stable("1.79.0", "2024-06-15").with_rls(RlsStatus::Unavailable),
-        ],
-        Scenario::SimpleV1 | Scenario::SimpleV2 => vec![
-            Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
-            Release::beta("1.2.0", "2015-01-02"),
-            Release::stable("1.1.0", "2015-01-02"),
-        ],
-        Scenario::MultiHost => vec![
-            Release::new("nightly", "1.3.0", "2015-01-02", "2").multi_arch(),
-            Release::beta("1.2.0", "2015-01-02").multi_arch(),
-            Release::stable("1.1.0", "2015-01-02").multi_arch(),
-        ],
-        Scenario::BetaTag => vec![
-            Release::beta("1.78.0", "2024-03-19"),
-            Release::beta_with_tag(None, "1.78.0", "2024-03-19"),
-            Release::beta("1.79.0", "2024-05-03"),
-            Release::beta_with_tag(Some("1"), "1.79.0", "2024-04-29"),
-            Release::beta_with_tag(Some("2"), "1.79.0", "2024-05-03"),
-        ],
-        Scenario::HostGoesMissingBefore => {
-            vec![Release::new("nightly", "1.3.0", "2019-12-09", "1")]
-        }
-        Scenario::HostGoesMissingAfter => {
-            vec![Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch()]
-        }
-        Scenario::MissingComponentMulti => vec![
-            Release::new("nightly", "1.37.0", "2019-09-12", "1")
-                .multi_arch()
-                .with_rls(RlsStatus::Renamed),
-            Release::new("nightly", "1.37.0", "2019-09-13", "2").with_rls(RlsStatus::Renamed),
-            Release::new("nightly", "1.37.0", "2019-09-14", "3")
-                .multi_arch()
-                .with_rls(RlsStatus::Unavailable),
-        ],
-    };
-
-    let vs = match s {
-        Scenario::None => unreachable!("None exits above"),
-        Scenario::Empty => vec![],
-        Scenario::Full => vec![MockManifestVersion::V1, MockManifestVersion::V2],
-        Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![MockManifestVersion::V1],
-        Scenario::SimpleV2
-        | Scenario::ArchivesV2
-        | Scenario::ArchivesV2_2015_01_01
-        | Scenario::ArchivesV2TwoVersions
-        | Scenario::BetaTag
-        | Scenario::MultiHost
-        | Scenario::Unavailable
-        | Scenario::UnavailableRls
-        | Scenario::RemovedRls
-        | Scenario::MissingNightly
-        | Scenario::HostGoesMissingBefore
-        | Scenario::HostGoesMissingAfter
-        | Scenario::MissingComponent
-        | Scenario::MissingComponentMulti => vec![MockManifestVersion::V2],
-    };
-
-    MockDistServer {
-        path: path.to_owned(),
-        channels: chans.iter().map(|c| c.mock()).collect(),
-    }
-    .write(&vs, true, true);
-
-    for chan in &chans {
-        chan.link(path)
-    }
 }
 
 /// This is going to run the compiler to create an executable that
