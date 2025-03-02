@@ -474,7 +474,7 @@ struct ConstState {
 /// environments. In doing this we can ensure that new test environment creation
 /// does not result in ETXTBSY because the FDs in question happen to be in
 /// newly `fork()`d but not yet `exec()`d subprocesses of other tests.
-pub static CMD_LOCK: LazyLock<RwLock<usize>> = LazyLock::new(|| RwLock::new(0));
+static CMD_LOCK: LazyLock<RwLock<usize>> = LazyLock::new(|| RwLock::new(0));
 
 impl ConstState {
     fn new(const_dist_dir: tempfile::TempDir) -> Self {
@@ -531,7 +531,7 @@ impl ConstState {
 }
 
 /// State a test can interact and mutate
-pub async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
+async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
     // SAFETY: This is probably not the best way of doing such a thing, but it should be
     // okay since we are setting the environment variables for the integration tests only.
     // There are two types of integration test in rustup: in-process and subprocess.
@@ -1677,7 +1677,7 @@ fn create_custom_toolchains(customdir: &Path) {
     }
 }
 
-pub fn hard_link<A, B>(original: A, link: B) -> io::Result<()>
+pub(crate) fn hard_link<A, B>(original: A, link: B) -> io::Result<()>
 where
     A: AsRef<Path>,
     B: AsRef<Path>,
