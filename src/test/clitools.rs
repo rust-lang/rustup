@@ -33,8 +33,13 @@ use super::{
         MockChannel, MockComponent, MockDistServer, MockManifestVersion, MockPackage,
         MockTargetedPackage, change_channel_date,
     },
-    mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
-    topical_doc_data,
+    mock::{
+        MockFile, MockInstallerBuilder, build_combined_installer,
+        build_mock_cargo_installer, build_mock_cross_std_installer,
+        build_mock_rust_analysis_installer, build_mock_rust_doc_installer,
+        build_mock_rust_src_installer, build_mock_rustc_installer, build_mock_std_installer,
+        build_mock_rls_installer,
+    },
 };
 
 /// The configuration used by the tests in this module
@@ -1501,117 +1506,6 @@ fn build_mock_unavailable_channel(
     }
 }
 
-fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: format!("rust-std-{trip}"),
-            files: vec![MockFile::new(
-                format!("lib/rustlib/{trip}/libstd.rlib"),
-                b"",
-            )],
-        }],
-    }
-}
-
-fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: format!("rust-std-{target}"),
-            files: vec![
-                MockFile::new(format!("lib/rustlib/{target}/lib/libstd.rlib"), b""),
-                MockFile::new(format!("lib/rustlib/{target}/lib/{date}"), b""),
-            ],
-        }],
-    }
-}
-
-fn build_mock_rustc_installer(
-    target: &str,
-    version: &str,
-    version_hash_: &str,
-) -> MockInstallerBuilder {
-    // For cross-host rustc's modify the version_hash so they can be identified from
-    // test cases.
-    let this_host = this_host_triple();
-    let version_hash = if this_host != target {
-        format!("xxxx-{}", &version_hash_[5..])
-    } else {
-        version_hash_.to_string()
-    };
-
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "rustc".to_string(),
-            files: mock_bin("rustc", version, &version_hash),
-        }],
-    }
-}
-
-fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "cargo".to_string(),
-            files: mock_bin("cargo", version, version_hash),
-        }],
-    }
-}
-
-fn build_mock_rls_installer(
-    version: &str,
-    version_hash: &str,
-    pkg_name: &str,
-) -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: pkg_name.to_string(),
-            files: mock_bin("rls", version, version_hash),
-        }],
-    }
-}
-
-fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
-    let mut files: Vec<MockFile> = topical_doc_data::unique_paths()
-        .map(|x| MockFile::new(x, b""))
-        .collect();
-    files.insert(0, MockFile::new("share/doc/rust/html/index.html", b""));
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "rust-docs".to_string(),
-            files,
-        }],
-    }
-}
-
-fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: format!("rust-analysis-{trip}"),
-            files: vec![MockFile::new(
-                format!("lib/rustlib/{trip}/analysis/libfoo.json"),
-                b"",
-            )],
-        }],
-    }
-}
-
-fn build_mock_rust_src_installer() -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "rust-src".to_string(),
-            files: vec![MockFile::new("lib/rustlib/src/rust-src/foo.rs", b"")],
-        }],
-    }
-}
-
-fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstallerBuilder {
-    MockInstallerBuilder {
-        components: components
-            .iter()
-            .flat_map(|m| m.components.clone())
-            .collect(),
-    }
-}
-
 /// This is going to run the compiler to create an executable that
 /// prints some version information. These binaries are stuffed into
 /// the mock installers so we have executables for rustup to run.
@@ -1619,7 +1513,7 @@ fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstall
 /// To avoid compiling tons of files we globally cache one compiled executable
 /// and then we store some associated files next to it which indicate
 /// the version/version hash information.
-fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
+pub(super) fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
     static MOCK_BIN: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
         // Create a temp directory to hold the source and the output
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
