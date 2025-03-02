@@ -11,12 +11,14 @@ use std::env;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fs;
-use std::io;
+use std::fs::File;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[cfg(test)]
 use anyhow::Result;
+use sha2::{Digest, Sha256};
 
 use crate::dist::TargetTriple;
 use crate::process::TestProcess;
@@ -25,7 +27,7 @@ use crate::process::TestProcess;
 pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 
 pub mod clitools;
-pub mod dist;
+pub(crate) mod dist;
 pub mod mock;
 
 // Things that can have environment variables applied to them.
@@ -285,4 +287,20 @@ pub mod topical_doc_data {
             .filter(move |(_, p)| unique_paths.insert(p))
             .map(|(_, p)| repath(p))
     }
+}
+
+pub fn calc_hash(src: &Path) -> String {
+    let mut buf = Vec::new();
+    File::open(src).unwrap().read_to_end(&mut buf).unwrap();
+    let mut hasher = Sha256::new();
+    hasher.update(buf);
+    format!("{:x}", hasher.finalize())
+}
+
+pub fn create_hash(src: &Path, dst: &Path) -> String {
+    let hex = calc_hash(src);
+    let src_file = src.file_name().unwrap();
+    let file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
+    dist::write_file(dst, &file_contents);
+    hex
 }

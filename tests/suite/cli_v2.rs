@@ -6,9 +6,10 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use rustup::dist::TargetTriple;
+use rustup::dist::manifest::Manifest;
 use rustup::for_host;
 use rustup::test::clitools::{self, CliTestContext, Config, Scenario, set_current_dist_date};
-use rustup::test::this_host_triple;
+use rustup::test::{create_hash, this_host_triple};
 
 #[tokio::test]
 async fn rustc_no_default_toolchain() {
@@ -1287,9 +1288,6 @@ async fn warn_about_and_remove_stray_hash() {
 }
 
 fn make_component_unavailable(config: &Config, name: &str, target: String) {
-    use rustup::dist::manifest::Manifest;
-    use rustup::test::dist::create_hash;
-
     let manifest_path = config
         .distdir
         .as_ref()
