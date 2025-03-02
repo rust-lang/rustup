@@ -29,10 +29,7 @@ use crate::test::this_host_triple;
 use crate::utils;
 
 use super::{
-    dist::{
-        MockChannel, MockDistServer, MockManifestVersion, RlsStatus,
-        build_mock_channel, build_mock_unavailable_channel, change_channel_date,
-    },
+    dist::{MockChannel, MockDistServer, MockManifestVersion, RlsStatus, change_channel_date},
     mock::MockFile,
 };
 
@@ -1032,7 +1029,7 @@ impl Release {
 
     fn mock(&self) -> MockChannel {
         if self.available {
-            build_mock_channel(
+            MockChannel::new(
                 &self.channel,
                 &self.date,
                 &self.version,
@@ -1044,7 +1041,7 @@ impl Release {
         } else if self.multi_arch {
             // unavailable but multiarch means to build only with host==MULTI_ARCH1
             // instead of true multiarch
-            build_mock_channel(
+            MockChannel::new(
                 &self.channel,
                 &self.date,
                 &self.version,
@@ -1054,7 +1051,7 @@ impl Release {
                 true,
             )
         } else {
-            build_mock_unavailable_channel(&self.channel, &self.date, &self.version, &self.hash)
+            MockChannel::unavailable(&self.channel, &self.date, &self.version, &self.hash)
         }
     }
 
