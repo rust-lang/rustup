@@ -5,11 +5,10 @@ use std::io::Write;
 use std::process::Stdio;
 
 use rustup::for_host;
-use rustup::test::mock::clitools::CliTestContext;
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, USER_PATH};
 use rustup::test::{
-    mock::clitools::{self, Config, SanitizedOutput, Scenario, set_current_dist_date},
+    clitools::{self, CliTestContext, Config, SanitizedOutput, Scenario, set_current_dist_date},
     this_host_triple,
 };
 use rustup::utils::raw;

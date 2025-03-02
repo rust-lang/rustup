@@ -12,7 +12,7 @@ mod unix {
     use std::path::PathBuf;
 
     use super::INIT_NONE;
-    use rustup::test::mock::clitools::{self, CliTestContext, Scenario};
+    use rustup::test::clitools::{self, CliTestContext, Scenario};
     use rustup::utils::raw;
 
     // Let's write a fake .rc which looks vaguely like a real script.

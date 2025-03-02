@@ -25,7 +25,10 @@ use crate::{
     },
     errors::RustupError,
     process::TestProcess,
-    test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder, dist::*},
+    test::{
+        dist::*,
+        mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
+    },
     utils::{self, raw as utils_raw},
 };
 

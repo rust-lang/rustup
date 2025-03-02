@@ -18,7 +18,7 @@ use crate::dist::{
     },
 };
 
-use super::MockInstallerBuilder;
+use super::mock::MockInstallerBuilder;
 use super::clitools::hard_link;
 
 // This function changes the mock manifest for a given channel to that

@@ -6,8 +6,6 @@
 )]
 //! Test support module; public to permit use from integration tests.
 
-pub mod mock;
-
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
@@ -25,6 +23,11 @@ use crate::process::TestProcess;
 
 #[cfg(windows)]
 pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
+
+pub mod clitools;
+pub mod dist;
+pub mod mock;
+pub mod topical_doc_data;
 
 // Things that can have environment variables applied to them.
 pub trait Env {

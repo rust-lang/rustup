@@ -6,11 +6,8 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::{
-    mock::{
-        self,
-        clitools::{self, CliTestContext, Scenario},
-    },
-    this_host_triple,
+    clitools::{self, CliTestContext, Scenario},
+    this_host_triple, topical_doc_data,
 };
 use rustup::utils::raw;
 
@@ -2651,7 +2648,7 @@ async fn docs_topical_with_path() {
         .expect_ok(&["rustup", "toolchain", "install", "nightly"])
         .await;
 
-    for (args, path) in mock::topical_doc_data::test_cases() {
+    for (args, path) in topical_doc_data::test_cases() {
         let mut cmd = clitools::cmd(
             &cx.config,
             "rustup",
