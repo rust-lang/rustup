@@ -33,13 +33,7 @@ use super::{
         MockChannel, MockComponent, MockDistServer, MockManifestVersion, MockPackage,
         MockTargetedPackage, change_channel_date,
     },
-    mock::{
-        MockFile, MockInstallerBuilder, build_combined_installer,
-        build_mock_cargo_installer, build_mock_cross_std_installer,
-        build_mock_rust_analysis_installer, build_mock_rust_doc_installer,
-        build_mock_rust_src_installer, build_mock_rustc_installer, build_mock_std_installer,
-        build_mock_rls_installer,
-    },
+    mock::{MockFile, MockInstallerBuilder},
 };
 
 /// The configuration used by the tests in this module
@@ -1305,15 +1299,15 @@ fn build_mock_channel(
     } else {
         this_host_triple()
     };
-    let std = build_mock_std_installer(&host_triple);
-    let rustc = build_mock_rustc_installer(&host_triple, version, version_hash);
-    let cargo = build_mock_cargo_installer(version, version_hash);
-    let rust_docs = build_mock_rust_doc_installer();
-    let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
-    let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
-    let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
-    let rust_src = build_mock_rust_src_installer();
-    let rust_analysis = build_mock_rust_analysis_installer(&host_triple);
+    let std = MockInstallerBuilder::std(&host_triple);
+    let rustc = MockInstallerBuilder::rustc(&host_triple, version, version_hash);
+    let cargo = MockInstallerBuilder::cargo(version, version_hash);
+    let rust_docs = MockInstallerBuilder::rust_doc();
+    let rust = MockInstallerBuilder::combined(&[&std, &rustc, &cargo, &rust_docs]);
+    let cross_std1 = MockInstallerBuilder::cross_std(CROSS_ARCH1, date);
+    let cross_std2 = MockInstallerBuilder::cross_std(CROSS_ARCH2, date);
+    let rust_src = MockInstallerBuilder::rust_src();
+    let rust_analysis = MockInstallerBuilder::rust_analysis(&host_triple);
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
@@ -1327,7 +1321,7 @@ fn build_mock_channel(
     all.cargo.push((cargo, host_triple.clone()));
 
     if rls != RlsStatus::Unavailable {
-        let rls = build_mock_rls_installer(version, version_hash, rls.pkg_name());
+        let rls = MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
         all.rls.push((rls, host_triple.clone()));
     } else {
         all.rls.push((
@@ -1342,11 +1336,11 @@ fn build_mock_channel(
     all.combined.push((rust, host_triple));
 
     if multi_arch {
-        let std = build_mock_std_installer(MULTI_ARCH1);
-        let rustc = build_mock_rustc_installer(MULTI_ARCH1, version, version_hash);
-        let cargo = build_mock_cargo_installer(version, version_hash);
-        let rust_docs = build_mock_rust_doc_installer();
-        let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
+        let std = MockInstallerBuilder::std(MULTI_ARCH1);
+        let rustc = MockInstallerBuilder::rustc(MULTI_ARCH1, version, version_hash);
+        let cargo = MockInstallerBuilder::cargo(version, version_hash);
+        let rust_docs = MockInstallerBuilder::rust_doc();
+        let rust = MockInstallerBuilder::combined(&[&std, &rustc, &cargo, &rust_docs]);
 
         let triple = MULTI_ARCH1.to_string();
         all.std.push((std, triple.clone()));
@@ -1354,7 +1348,7 @@ fn build_mock_channel(
         all.cargo.push((cargo, triple.clone()));
 
         if rls != RlsStatus::Unavailable {
-            let rls = build_mock_rls_installer(version, version_hash, rls.pkg_name());
+            let rls =  MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
             all.rls.push((rls, triple.clone()));
         } else {
             all.rls
