@@ -68,13 +68,10 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     }
 }
 
-// The manifest version created by this mock
-pub const MOCK_MANIFEST_VERSION: &str = "2";
-
 // A mock Rust v2 distribution server. Create it and run `write`
 // to write its structure to a directory.
 #[derive(Debug)]
-pub struct MockDistServer {
+pub(crate) struct MockDistServer {
     // The local path to the dist server root
     pub path: PathBuf,
     pub channels: Vec<MockChannel>,
@@ -82,7 +79,7 @@ pub struct MockDistServer {
 
 // A Rust distribution channel
 #[derive(Debug)]
-pub struct MockChannel {
+pub(crate) struct MockChannel {
     // e.g. "nightly"
     pub name: String,
     // YYYY-MM-DD
@@ -93,7 +90,7 @@ pub struct MockChannel {
 
 // A single rust-installer package
 #[derive(Debug, Hash, Eq, PartialEq)]
-pub struct MockPackage {
+pub(crate) struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
     pub name: &'static str,
     pub version: String,
@@ -101,7 +98,7 @@ pub struct MockPackage {
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-pub struct MockTargetedPackage {
+pub(crate) struct MockTargetedPackage {
     // Target triple
     pub target: String,
     // Whether the file actually exists (could be due to build failure)
@@ -112,20 +109,20 @@ pub struct MockTargetedPackage {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct MockComponent {
+pub(crate) struct MockComponent {
     pub name: String,
     pub target: String,
     pub is_extension: bool,
 }
 
 #[derive(Clone)]
-pub struct MockHashes {
+struct MockHashes {
     pub gz: String,
     pub xz: Option<String>,
     pub zst: Option<String>,
 }
 
-pub enum MockManifestVersion {
+pub(crate) enum MockManifestVersion {
     V1,
     V2,
 }
@@ -501,7 +498,7 @@ pub fn create_hash(src: &Path, dst: &Path) -> String {
     hex
 }
 
-pub fn write_file(dst: &Path, contents: &str) {
+fn write_file(dst: &Path, contents: &str) {
     drop(fs::remove_file(dst));
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
