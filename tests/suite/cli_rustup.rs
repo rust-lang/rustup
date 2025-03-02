@@ -7,7 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 use rustup::for_host;
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1,
-    clitools::{self, CliTestContext, Scenario},
+    clitools::{CliTestContext, Scenario},
     this_host_triple, topical_doc_data,
 };
 use rustup::utils::raw;
@@ -1031,8 +1031,8 @@ async fn show_toolchain_toolchain_file_override_not_installed() {
 
     // I'm not sure this should really be erroring when the toolchain
     // is not installed; just capturing the behavior.
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["show"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["show"]);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     assert!(!out.status.success());
     let stderr = String::from_utf8(out.stderr).unwrap();
@@ -1351,8 +1351,8 @@ async fn update_doesnt_update_non_tracking_channels() {
     cx.config
         .expect_ok(&["rustup", "update", "nightly-2015-01-01"])
         .await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["update"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["update"]);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     let stderr = String::from_utf8(out.stderr).unwrap();
     assert!(!stderr.contains(for_host!(
@@ -2444,8 +2444,8 @@ async fn env_override_beats_file_override() {
     let toolchain_file = cwd.join("rust-toolchain");
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
-    let mut cmd = clitools::cmd(&cx.config, "rustc", ["--version"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustc", ["--version"]);
+    cx.config.env(&mut cmd);
     cmd.env("RUSTUP_TOOLCHAIN", "beta");
 
     let out = cmd.output().unwrap();
@@ -2614,8 +2614,8 @@ async fn docs_with_path() {
         .expect_ok(&["rustup", "toolchain", "install", "nightly"])
         .await;
 
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["doc", "--path"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["doc", "--path"]);
+    cx.config.env(&mut cmd);
 
     let out = cmd.output().unwrap();
     let path = format!("share{MAIN_SEPARATOR}doc{MAIN_SEPARATOR}rust{MAIN_SEPARATOR}html");
@@ -2638,12 +2638,10 @@ async fn docs_topical_with_path() {
         .await;
 
     for (args, path) in topical_doc_data::test_cases() {
-        let mut cmd = clitools::cmd(
-            &cx.config,
-            "rustup",
-            ["doc", "--path"].iter().chain(args.iter()),
-        );
-        clitools::env(&cx.config, &mut cmd);
+        let mut cmd = cx
+            .config
+            .cmd("rustup", ["doc", "--path"].iter().chain(args.iter()));
+        cx.config.env(&mut cmd);
 
         let out = cmd.output().unwrap();
         eprintln!("{:?}", String::from_utf8(out.stderr).unwrap());
@@ -2807,8 +2805,8 @@ async fn check_unix_settings_fallback() {
     )
     .unwrap();
 
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["default"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["default"]);
+    cx.config.env(&mut cmd);
 
     // Override the path to the fallback settings file to be the mock file
     cmd.env("RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS", mock_settings_file);
@@ -2860,12 +2858,11 @@ async fn dont_warn_on_partial_build() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let triple = this_host_triple();
     let arch = triple.split('-').next().unwrap();
-    let mut cmd = clitools::cmd(
-        &cx.config,
+    let mut cmd = cx.config.cmd(
         "rustup",
         ["toolchain", "install", &format!("nightly-{arch}")],
     );
-    clitools::env(&cx.config, &mut cmd);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     assert!(out.status.success());
     let stderr = String::from_utf8(out.stderr).unwrap();

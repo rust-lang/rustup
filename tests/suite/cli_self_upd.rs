@@ -14,7 +14,7 @@ use retry::{
 };
 use rustup::test::{
     CROSS_ARCH1, calc_hash,
-    clitools::{self, CliTestContext, Scenario, SelfUpdateTestContext, output_release_file},
+    clitools::{CliTestContext, Scenario, SelfUpdateTestContext, output_release_file},
     this_host_triple,
 };
 #[cfg(windows)]
@@ -251,7 +251,7 @@ async fn uninstall_self_delete_works() {
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let mut cmd = Command::new(rustup.clone());
     cmd.args(["self", "uninstall", "-y"]);
-    clitools::env(&cx.config, &mut cmd);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     println!("out: {}", String::from_utf8(out.stdout).unwrap());
     println!("err: {}", String::from_utf8(out.stderr).unwrap());
@@ -450,7 +450,7 @@ async fn update_updates_rustup_bin() {
     // so that the running binary must be replaced.
     let mut cmd = Command::new(&bin);
     cmd.args(["self", "update"]);
-    clitools::env(&cx.config, &mut cmd);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
 
     println!("out: {}", String::from_utf8(out.stdout).unwrap());

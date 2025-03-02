@@ -8,7 +8,7 @@ use rustup::for_host;
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, USER_PATH};
 use rustup::test::{
-    clitools::{self, CliTestContext, Config, SanitizedOutput, Scenario, set_current_dist_date},
+    clitools::{CliTestContext, Config, SanitizedOutput, Scenario, set_current_dist_date},
     this_host_triple,
 };
 use rustup::utils::raw;
@@ -23,8 +23,8 @@ fn run_input_with_env(
     input: &str,
     env: &[(&str, &str)],
 ) -> SanitizedOutput {
-    let mut cmd = clitools::cmd(config, args[0], &args[1..]);
-    clitools::env(config, &mut cmd);
+    let mut cmd = config.cmd(args[0], &args[1..]);
+    config.env(&mut cmd);
 
     for (key, value) in env.iter() {
         cmd.env(key, value);

@@ -131,8 +131,8 @@ async fn update_all_no_update_whitespace() {
 #[tokio::test]
 async fn update_works_without_term() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["update", "nightly"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["update", "nightly"]);
+    cx.config.env(&mut cmd);
     cmd.env_remove("TERM");
 
     let out = cmd.output().unwrap();
@@ -143,8 +143,8 @@ async fn update_works_without_term() {
 #[tokio::test]
 async fn show_works_with_dumb_term() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["show"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["show"]);
+    cx.config.env(&mut cmd);
     cmd.env("TERM", "dumb");
     assert!(cmd.spawn().unwrap().wait().unwrap().success());
 }
@@ -154,8 +154,8 @@ async fn show_works_with_dumb_term() {
 #[tokio::test]
 async fn subcommand_required_for_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["target"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["target"]);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     assert!(!out.status.success());
     assert_eq!(out.status.code().unwrap(), 1);
@@ -167,8 +167,8 @@ async fn subcommand_required_for_target() {
 #[tokio::test]
 async fn subcommand_required_for_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["toolchain"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["toolchain"]);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     assert!(!out.status.success());
     assert_eq!(out.status.code().unwrap(), 1);
@@ -180,8 +180,8 @@ async fn subcommand_required_for_toolchain() {
 #[tokio::test]
 async fn subcommand_required_for_override() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["override"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["override"]);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     assert!(!out.status.success());
     assert_eq!(out.status.code().unwrap(), 1);
@@ -193,8 +193,8 @@ async fn subcommand_required_for_override() {
 #[tokio::test]
 async fn subcommand_required_for_self() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let mut cmd = clitools::cmd(&cx.config, "rustup", ["self"]);
-    clitools::env(&cx.config, &mut cmd);
+    let mut cmd = cx.config.cmd("rustup", ["self"]);
+    cx.config.env(&mut cmd);
     let out = cmd.output().unwrap();
     assert!(!out.status.success());
     assert_eq!(out.status.code().unwrap(), 1);

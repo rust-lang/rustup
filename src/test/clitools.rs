@@ -323,7 +323,7 @@ impl Config {
         // should we use vars_os, or skip over non-stringable vars? This is test
         // code after all...
         let mut vars: HashMap<String, String> = HashMap::default();
-        self::env(self, &mut vars);
+        self.env(&mut vars);
         vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
         let mut arg_strings: Vec<Box<str>> = Vec::new();
         arg_strings.push(name.to_owned().into_boxed_str());
@@ -1036,18 +1036,6 @@ impl TryFrom<Output> for SanitizedOutput {
             stderr: String::from_utf8(out.stderr)?,
         })
     }
-}
-
-pub fn cmd<I, A>(config: &Config, name: &str, args: I) -> Command
-where
-    I: IntoIterator<Item = A>,
-    A: AsRef<OsStr>,
-{
-    config.cmd(name, args)
-}
-
-pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
-    config.env(cmd)
 }
 
 fn allow_inprocess<I, A>(name: &str, args: I) -> bool
