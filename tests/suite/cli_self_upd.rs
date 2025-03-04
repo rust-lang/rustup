@@ -103,6 +103,55 @@ info: default toolchain set to 'stable-{0}'
     }
 }
 
+/// Ensure that proxies are relative symlinks.
+#[tokio::test]
+async fn proxies_are_relative_symlinks() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+
+    cx.config
+        .expect_ok_contains(
+            &["rustup-init", "-y"],
+            for_host!(
+                r"
+  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
+
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+info: default toolchain set to 'stable-{0}'
+"
+            ),
+        )
+        .await;
+
+    let rustup = format!("rustup{EXE_SUFFIX}");
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        let path = &cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
+        // If it's a normal file then it means that hardlinks are being used
+        // for proxies instead of symlinks.
+        if std::fs::symlink_metadata(path).unwrap().is_file() {
+            continue;
+        }
+        let is_rustup_symlink = match std::fs::read_link(path) {
+            Ok(p) => p.as_os_str() == rustup.as_str(),
+            _ => false,
+        };
+        assert!(is_rustup_symlink, "{}", path.display());
+    }
+}
+
 #[tokio::test]
 async fn install_twice() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;

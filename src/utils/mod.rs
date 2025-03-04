@@ -365,8 +365,14 @@ where
 /// If `dest` already exists then it will be replaced.
 pub(crate) fn symlink_or_hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     let _ = fs::remove_file(dest);
+    // Use a relative symlink path if the src and dest are in the same directory.
+    let symlink_target = if src.parent() == dest.parent() {
+        src.file_name().map(Path::new).unwrap_or(src)
+    } else {
+        src
+    };
     // The error is only used by macos
-    let Err(_err) = symlink_file(src, dest) else {
+    let Err(_err) = symlink_file(symlink_target, dest) else {
         return Ok(());
     };
 
