@@ -130,7 +130,7 @@ workspace = true
 members = ["download"]
 
 [workspace.package]
-version = "1.28.0"
+version = "1.28.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.28.1] - 2025-03-05
+
+This is a patch release to restore the automatic install behavior by default.
+
+This release contains the following fixes:
+
+- Automatic install is enabled by default but can be opted out by setting `RUSTUP_AUTO_INSTALL`
+  environment variable to `0`. [pr#4214]
+- `rustup show active-toolchain` will only print a single line, as it did in 1.27. [pr#4221]
+- Fixed a bug in the reqwest backend that would erroneously timeout downloads after 30s. [pr#4218]
+
+[1.28.1]: https://github.com/rust-lang/rustup/releases/tag/1.28.1
+[pr#4214]: https://github.com/rust-lang/rustup/pull/4214
+[pr#4221]: https://github.com/rust-lang/rustup/pull/4221
+[pr#4218]: https://github.com/rust-lang/rustup/pull/4218
+
 ## [1.28.0] - 2025-03-04
 
 This new release of rustup has been a long time in the making and comes with substantial changes.
