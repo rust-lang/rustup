@@ -379,7 +379,7 @@ pub mod reqwest_be {
             .pool_max_idle_per_host(0)
             .gzip(false)
             .proxy(Proxy::custom(env_proxy))
-            .timeout(Duration::from_secs(30))
+            .read_timeout(Duration::from_secs(30))
     }
 
     #[cfg(feature = "reqwest-rustls-tls")]
