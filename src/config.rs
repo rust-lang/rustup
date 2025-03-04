@@ -500,7 +500,7 @@ impl<'a> Cfg<'a> {
             .transpose()?)
     }
 
-    pub(crate) fn toolchain_from_partial(
+    pub(crate) async fn toolchain_from_partial(
         &self,
         toolchain: Option<PartialToolchainDesc>,
     ) -> anyhow::Result<Toolchain<'_>> {
@@ -511,10 +511,10 @@ impl<'a> Cfg<'a> {
                 )))
             })
             .transpose()?;
-        self.local_toolchain(toolchain)
+        self.local_toolchain(toolchain).await
     }
 
-    pub(crate) fn find_active_toolchain(
+    pub(crate) async fn find_active_toolchain(
         &self,
     ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
         Ok(
@@ -703,43 +703,44 @@ impl<'a> Cfg<'a> {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub(crate) fn active_rustc_version(&mut self) -> Result<Option<String>> {
+    pub(crate) async fn active_rustc_version(&mut self) -> Result<Option<String>> {
         if let Some(t) = self.process.args().find(|x| x.starts_with('+')) {
             trace!("Fetching rustc version from toolchain `{}`", t);
             self.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
         }
 
-        let Some((name, _)) = self.find_active_toolchain()? else {
+        let Some((name, _)) = self.find_active_toolchain().await? else {
             return Ok(None);
         };
         Ok(Some(Toolchain::new(self, name)?.rustc_version()))
     }
 
-    pub(crate) fn resolve_toolchain(
+    pub(crate) async fn resolve_toolchain(
         &self,
         name: Option<ResolvableToolchainName>,
     ) -> Result<Toolchain<'_>> {
         let toolchain = name
             .map(|name| anyhow::Ok(name.resolve(&self.get_default_host_triple()?)?.into()))
             .transpose()?;
-        self.local_toolchain(toolchain)
+        self.local_toolchain(toolchain).await
     }
 
-    pub(crate) fn resolve_local_toolchain(
+    pub(crate) async fn resolve_local_toolchain(
         &self,
         name: Option<ResolvableLocalToolchainName>,
     ) -> Result<Toolchain<'_>> {
         let local = name
             .map(|name| name.resolve(&self.get_default_host_triple()?))
             .transpose()?;
-        self.local_toolchain(local)
+        self.local_toolchain(local).await
     }
 
-    fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
+    async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
         let toolchain = match name {
             Some(tc) => tc,
             None => {
-                self.find_active_toolchain()?
+                self.find_active_toolchain()
+                    .await?
                     .ok_or_else(|| no_toolchain_error(self.process))?
                     .0
             }
