@@ -1169,7 +1169,7 @@ async fn show_active_toolchain() {
     cx.config
         .expect_ok_ex(
             &["rustup", "show", "active-toolchain"],
-            for_host!("nightly-{0}\nactive because: it's the default toolchain\n"),
+            for_host!("nightly-{0} (default)\n"),
             r"",
         )
         .await;
@@ -1260,7 +1260,36 @@ async fn show_active_toolchain_with_override() {
     cx.config
         .expect_stdout_ok(
             &["rustup", "show", "active-toolchain"],
-            for_host!("stable-{0}\nactive because: directory override for"),
+            for_host!("stable-{0}"),
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn show_active_toolchain_with_override_verbose() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    cx.config
+        .expect_ok(&["rustup", "override", "set", "stable"])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "show", "active-toolchain", "--verbose"],
+            for_host!(
+                r"stable-{0}
+active because: directory override for '{1}'
+compiler: 1.1.0 (hash-stable-1.1.0)
+path: {2}
+",
+                cx.config.current_dir().display(),
+                cx.config
+                    .rustupdir
+                    .join("toolchains")
+                    .join(for_host!("stable-{0}"))
+                    .display(),
+            ),
+            r"",
         )
         .await;
 }

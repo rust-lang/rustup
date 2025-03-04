@@ -1085,18 +1085,24 @@ fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode
     match cfg.find_active_toolchain()? {
         Some((toolchain_name, reason)) => {
             let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
-            writeln!(
-                cfg.process.stdout().lock(),
-                "{}\nactive because: {}",
-                toolchain.name(),
-                reason
-            )?;
             if verbose {
                 writeln!(
                     cfg.process.stdout().lock(),
-                    "compiler: {}\npath: {}",
+                    "{}\nactive because: {}\ncompiler: {}\npath: {}",
+                    toolchain.name(),
+                    reason,
                     toolchain.rustc_version(),
-                    toolchain.path().display(),
+                    toolchain.path().display()
+                )?;
+            } else {
+                writeln!(
+                    cfg.process.stdout().lock(),
+                    "{} ({})",
+                    toolchain.name(),
+                    match reason {
+                        ActiveReason::Default => &"default" as &dyn fmt::Display,
+                        _ => &reason,
+                    }
                 )?;
             }
         }
