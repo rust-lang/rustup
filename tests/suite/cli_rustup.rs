@@ -1052,12 +1052,12 @@ async fn show_toolchain_override_not_installed() {
         .expect_ok(&["rustup", "toolchain", "remove", "nightly"])
         .await;
     let out = cx.config.run("rustup", ["show"], &[]).await;
-    assert!(!out.ok);
+    assert!(out.ok);
     assert!(
-        out.stderr
+        !out.stderr
             .contains("is not installed: the directory override for")
     );
-    assert!(!out.stderr.contains("info: installing component 'rustc'"));
+    assert!(out.stderr.contains("info: installing component 'rustc'"));
 }
 
 #[tokio::test]
@@ -1137,7 +1137,7 @@ async fn show_toolchain_env_not_installed() {
         .run("rustup", ["show"], &[("RUSTUP_TOOLCHAIN", "nightly")])
         .await;
 
-    assert!(!out.ok);
+    assert!(out.ok);
 
     let expected_out = for_host_and_home!(
         cx.config,
@@ -1149,17 +1149,13 @@ installed toolchains
 
 active toolchain
 ----------------
+name: nightly-{0}
+active because: overridden by environment variable RUSTUP_TOOLCHAIN
+installed targets:
+  {0}
 "
     );
     assert!(&out.stdout == expected_out);
-    assert!(
-        out.stderr
-            == format!(
-                "error: override toolchain 'nightly-{}' is not installed: \
-                the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain\n",
-                this_host_triple()
-            )
-    );
 }
 
 #[tokio::test]

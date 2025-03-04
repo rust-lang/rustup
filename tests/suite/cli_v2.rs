@@ -327,14 +327,10 @@ async fn remove_override_toolchain_err_handling() {
         .expect_ok(&["rustup", "toolchain", "remove", "beta"])
         .await;
     cx.config
-        .expect_err_ex(
+        .expect_ok_contains(
             &["rustc", "--version"],
-            "",
-            for_host!(
-                r"error: toolchain 'beta-{0}' is not installed
-help: run `rustup toolchain install beta-{0}` to install it
-"
-            ),
+            "1.2.0 (hash-beta-1.2.0)",
+            "info: downloading component 'rustc'",
         )
         .await;
 }
@@ -346,9 +342,10 @@ async fn file_override_toolchain_err_handling() {
     let toolchain_file = cwd.join("rust-toolchain");
     rustup::utils::raw::write_file(&toolchain_file, "beta").unwrap();
     cx.config
-        .expect_err(
+        .expect_ok_contains(
             &["rustc", "--version"],
-            for_host!("toolchain 'beta-{0}' is not installed"),
+            "1.2.0 (hash-beta-1.2.0)",
+            "info: downloading component 'rustc'",
         )
         .await;
 }
