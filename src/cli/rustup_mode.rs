@@ -753,7 +753,7 @@ async fn default_(
             }
         };
 
-        if let Some((toolchain, reason)) = cfg.find_active_toolchain().await? {
+        if let Some((toolchain, reason)) = cfg.find_active_toolchain(None).await? {
             if !matches!(reason, ActiveReason::Default) {
                 info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
             }
@@ -964,7 +964,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     let installed_toolchains = cfg.list_toolchains()?;
     let active_toolchain_and_reason: Option<(ToolchainName, ActiveReason)> =
         if let Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) =
-            cfg.find_active_toolchain().await
+            cfg.find_active_toolchain(None).await
         {
             Some((toolchain_name, reason))
         } else {
@@ -1084,7 +1084,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
 #[tracing::instrument(level = "trace", skip_all)]
 async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
-    match cfg.find_active_toolchain().await? {
+    match cfg.find_active_toolchain(None).await? {
         Some((toolchain_name, reason)) => {
             let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
             writeln!(
@@ -1316,7 +1316,7 @@ async fn toolchain_link(
 async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::ExitCode> {
     let default_toolchain = cfg.get_default().ok().flatten();
     let active_toolchain = cfg
-        .find_active_toolchain()
+        .find_active_toolchain(Some(false))
         .await
         .ok()
         .flatten()
