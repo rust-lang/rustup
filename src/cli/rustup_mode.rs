@@ -560,7 +560,7 @@ pub async fn main(
             write!(process.stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
             let mut cfg = common::set_globals(current_dir, true, process)?;
-            match cfg.active_rustc_version() {
+            match cfg.active_rustc_version().await {
                 Ok(Some(version)) => info!("The currently active `rustc` version is `{version}`"),
                 Ok(None) => info!("No `rustc` is currently active"),
                 Err(err) => trace!("Failed to display the current `rustc` version: {err}"),
@@ -601,10 +601,12 @@ pub async fn main(
     match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
         RustupSubcmd::Install { opts } => update(cfg, opts, true).await,
-        RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
+        RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
         RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
-            None => show(cfg, verbose),
-            Some(ShowSubcmd::ActiveToolchain { verbose }) => show_active_toolchain(cfg, verbose),
+            None => show(cfg, verbose).await,
+            Some(ShowSubcmd::ActiveToolchain { verbose }) => {
+                show_active_toolchain(cfg, verbose).await
+            }
             Some(ShowSubcmd::Home) => show_rustup_home(cfg),
             Some(ShowSubcmd::Profile) => {
                 writeln!(process.stdout().lock(), "{}", cfg.get_profile()?)?;
@@ -633,12 +635,12 @@ pub async fn main(
         RustupSubcmd::Toolchain { subcmd } => match subcmd {
             ToolchainSubcmd::Install { opts } => update(cfg, opts, true).await,
             ToolchainSubcmd::List { verbose, quiet } => {
-                handle_epipe(common::list_toolchains(cfg, verbose, quiet))
+                handle_epipe(common::list_toolchains(cfg, verbose, quiet).await)
             }
             ToolchainSubcmd::Link { toolchain, path } => {
                 toolchain_link(cfg, &toolchain, &path).await
             }
-            ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts),
+            ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
         },
         RustupSubcmd::Check => check_updates(cfg).await,
         RustupSubcmd::Default {
@@ -751,7 +753,7 @@ async fn default_(
             }
         };
 
-        if let Some((toolchain, reason)) = cfg.find_active_toolchain()? {
+        if let Some((toolchain, reason)) = cfg.find_active_toolchain().await? {
             if !matches!(reason, ActiveReason::Default) {
                 info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
             }
@@ -928,7 +930,7 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    let binary_path = cfg.resolve_toolchain(toolchain)?.binary_file(binary);
+    let binary_path = cfg.resolve_toolchain(toolchain).await?.binary_file(binary);
 
     utils::assert_is_file(&binary_path)?;
 
@@ -937,7 +939,7 @@ async fn which(
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
+async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     // Print host triple
@@ -962,7 +964,7 @@ fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     let installed_toolchains = cfg.list_toolchains()?;
     let active_toolchain_and_reason: Option<(ToolchainName, ActiveReason)> =
         if let Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) =
-            cfg.find_active_toolchain()
+            cfg.find_active_toolchain().await
         {
             Some((toolchain_name, reason))
         } else {
@@ -1081,8 +1083,8 @@ fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
-    match cfg.find_active_toolchain()? {
+async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
+    match cfg.find_active_toolchain().await? {
         Some((toolchain_name, reason)) => {
             let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
             writeln!(
@@ -1118,7 +1120,7 @@ async fn target_list(
     quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     common::list_items(
         distributable,
         |c| {
@@ -1145,7 +1147,7 @@ async fn target_add(
     // isn't a feature yet.
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let components = distributable.components()?;
 
     if targets.contains(&"all".to_string()) {
@@ -1189,7 +1191,7 @@ async fn target_remove(
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
 
     for target in targets {
         let target = TargetTriple::new(target);
@@ -1227,7 +1229,7 @@ async fn component_list(
     quiet: bool,
 ) -> Result<utils::ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     common::list_items(
         distributable,
         |c| Some(&c.name),
@@ -1243,7 +1245,7 @@ async fn component_add(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1269,7 +1271,7 @@ async fn component_remove(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<utils::ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg)?;
+    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
     for component in &components {
@@ -1311,9 +1313,14 @@ async fn toolchain_link(
     Ok(utils::ExitCode(0))
 }
 
-fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::ExitCode> {
+async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::ExitCode> {
     let default_toolchain = cfg.get_default().ok().flatten();
-    let active_toolchain = cfg.find_active_toolchain().ok().flatten().map(|(it, _)| it);
+    let active_toolchain = cfg
+        .find_active_toolchain()
+        .await
+        .ok()
+        .flatten()
+        .map(|(it, _)| it);
 
     for toolchain_name in &opts.toolchain {
         let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
@@ -1556,7 +1563,7 @@ async fn doc(
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> Result<utils::ExitCode> {
-    let toolchain = cfg.toolchain_from_partial(toolchain)?;
+    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
         if let [_] = distributable
@@ -1625,7 +1632,7 @@ async fn man(
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<utils::ExitCode> {
-    let toolchain = cfg.toolchain_from_partial(toolchain)?;
+    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
     let path = toolchain.man_path();
     utils::assert_is_directory(&path)?;
 

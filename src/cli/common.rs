@@ -406,7 +406,7 @@ pub(super) fn list_items(
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_toolchains(
+pub(crate) async fn list_toolchains(
     cfg: &Cfg<'_>,
     verbose: bool,
     quiet: bool,
@@ -418,7 +418,7 @@ pub(crate) fn list_toolchains(
         let default_toolchain_name = cfg.get_default()?;
         let active_toolchain_name: Option<ToolchainName> =
             if let Ok(Some((LocalToolchainName::Named(toolchain), _reason))) =
-                cfg.find_active_toolchain()
+                cfg.find_active_toolchain().await
             {
                 Some(toolchain)
             } else {
