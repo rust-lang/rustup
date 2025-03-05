@@ -784,16 +784,23 @@ impl<'a> Cfg<'a> {
     }
 
     async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
-        let toolchain = match name {
-            Some(tc) => tc,
+        match name {
+            Some(tc) => {
+                let install_if_missing = self
+                    .process
+                    .var("RUSTUP_AUTO_INSTALL")
+                    .map_or(true, |it| it != "0");
+                Toolchain::from_local(tc, install_if_missing, self).await
+            }
             None => {
-                self.find_active_toolchain(None)
+                let tc = self
+                    .find_active_toolchain(None)
                     .await?
                     .ok_or_else(|| no_toolchain_error(self.process))?
-                    .0
+                    .0;
+                Ok(Toolchain::new(self, tc)?)
             }
-        };
-        Ok(Toolchain::new(self, toolchain)?)
+        }
     }
 
     #[tracing::instrument(level = "trace", skip_all)]

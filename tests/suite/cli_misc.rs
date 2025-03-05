@@ -1073,24 +1073,17 @@ async fn which_asking_uninstalled_toolchain() {
     cx.config
         .expect_ok(&["rustup", "default", "custom-1"])
         .await;
-    #[cfg(windows)]
     cx.config
         .expect_stdout_ok(
             &["rustup", "which", "rustc"],
-            "\\toolchains\\custom-1\\bin\\rustc",
+            &["", "toolchains", "custom-1", "bin", "rustc"].join(std::path::MAIN_SEPARATOR_STR),
         )
         .await;
-    #[cfg(not(windows))]
     cx.config
         .expect_stdout_ok(
-            &["rustup", "which", "rustc"],
-            "/toolchains/custom-1/bin/rustc",
-        )
-        .await;
-    cx.config
-        .expect_err(
             &["rustup", "which", "--toolchain=nightly", "rustc"],
-            for_host!("toolchain 'nightly-{}' is not installed"),
+            &["", "toolchains", for_host!("nightly-{0}"), "bin", "rustc"]
+                .join(std::path::MAIN_SEPARATOR_STR),
         )
         .await;
 }

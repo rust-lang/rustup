@@ -354,9 +354,17 @@ async fn file_override_toolchain_err_handling() {
 async fn plus_override_toolchain_err_handling() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_err(
-            &["rustc", "+beta"],
+        .expect_err_env(
+            &["rustc", "+beta", "--version"],
+            &[("RUSTUP_AUTO_INSTALL", "0")],
             for_host!("toolchain 'beta-{0}' is not installed"),
+        )
+        .await;
+    cx.config
+        .expect_ok_contains(
+            &["rustc", "+beta", "--version"],
+            "1.2.0 (hash-beta-1.2.0)",
+            "",
         )
         .await;
 }
@@ -776,8 +784,9 @@ async fn upgrade_v2_to_v1() {
 async fn list_targets_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_err(
+        .expect_err_env(
             &["rustup", "target", "list", "--toolchain=nightly"],
+            &[("RUSTUP_AUTO_INSTALL", "0")],
             for_host!("toolchain 'nightly-{0}' is not installed"),
         )
         .await;
@@ -962,7 +971,7 @@ async fn remove_target_by_component_remove() {
 async fn add_target_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_err(
+        .expect_err_env(
             &[
                 "rustup",
                 "target",
@@ -970,10 +979,12 @@ async fn add_target_no_toolchain() {
                 CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
+            &[("RUSTUP_AUTO_INSTALL", "0")],
             for_host!("toolchain 'nightly-{0}' is not installed"),
         )
         .await;
 }
+
 #[tokio::test]
 async fn add_target_bogus() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
@@ -1120,7 +1131,7 @@ async fn remove_target_not_installed() {
 async fn remove_target_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_err(
+        .expect_err_env(
             &[
                 "rustup",
                 "target",
@@ -1128,6 +1139,7 @@ async fn remove_target_no_toolchain() {
                 CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
+            &[("RUSTUP_AUTO_INSTALL", "0")],
             for_host!("toolchain 'nightly-{0}' is not installed"),
         )
         .await;

@@ -687,9 +687,9 @@ info: installing component 'rust-std' for '{0}'
 async fn show_suggestion_for_missing_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_err_ex(
+        .expect_err_env(
             &["cargo", "+nightly", "fmt"],
-            r"",
+            &[("RUSTUP_AUTO_INSTALL", "0")],
             for_host!(
                 r"error: toolchain 'nightly-{0}' is not installed
 help: run `rustup toolchain install nightly-{0}` to install it
