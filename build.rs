@@ -13,8 +13,8 @@ fn from_build() -> Result<String, String> {
 }
 
 fn main() {
-    println!("cargo:rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TRIPLE");
-    println!("cargo:rerun-if-env-changed=TARGET");
+    println!("cargo::rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TRIPLE");
+    println!("cargo::rerun-if-env-changed=TARGET");
     match from_build() {
         Ok(triple) => eprintln!("Computed build based on target triple: {triple:#?}"),
         Err(s) => {
@@ -26,7 +26,7 @@ fn main() {
         }
     }
     let target = env::var("TARGET").unwrap();
-    println!("cargo:rustc-env=TARGET={target}");
+    println!("cargo::rustc-env=TARGET={target}");
 
     // Set linker options specific to Windows MSVC.
     let target_os = env::var("CARGO_CFG_TARGET_OS");
@@ -40,7 +40,7 @@ fn main() {
     // This applies to DLLs loaded at load time. However, this setting is ignored
     // before Windows 10 RS1 (aka 1601).
     // https://learn.microsoft.com/en-us/cpp/build/reference/dependentloadflag?view=msvc-170
-    println!("cargo:cargo:rustc-link-arg-bin=rustup-init=/DEPENDENTLOADFLAG:0x800");
+    println!("cargo::rustc-link-arg-bin=rustup-init=/DEPENDENTLOADFLAG:0x800");
 
     // # Delay load
     //
@@ -55,16 +55,16 @@ fn main() {
     // See also: src/bin/rustup-init.rs
     let delay_load_dlls = ["bcrypt", "api-ms-win-core-synch-l1-2-0"];
     for dll in delay_load_dlls {
-        println!("cargo:rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
+        println!("cargo::rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
     }
     // When using delayload, it's necessary to also link delayimp.lib
     // https://learn.microsoft.com/en-us/cpp/build/reference/dependentloadflag?view=msvc-170
-    println!("cargo:rustc-link-arg-bin=rustup-init=delayimp.lib");
+    println!("cargo::rustc-link-arg-bin=rustup-init=delayimp.lib");
 
     // # Turn linker warnings into errors
     //
     // Rust hides linker warnings meaning mistakes may go unnoticed.
     // Turning them into errors forces them to be displayed (and the build to fail).
     // If we do want to ignore specific warnings then `/IGNORE:` should be used.
-    println!("cargo:rustc-link-arg-bin=rustup-init=/WX");
+    println!("cargo::rustc-link-arg-bin=rustup-init=/WX");
 }
