@@ -147,7 +147,12 @@ impl Config {
 
     /// Expect an err status and a string in stderr
     pub async fn expect_err(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
+        self.expect_err_env(args, &[], expected).await
+    }
+
+    /// Expect an err status and a string in stderr, with extra environment variables
+    pub async fn expect_err_env(&self, args: &[&str], env: &[(&str, &str)], expected: &str) {
+        let out = self.run(args[0], &args[1..], env).await;
         if out.ok || !out.stderr.contains(expected) {
             print_command(args, &out);
             println!("expected.ok: false");
