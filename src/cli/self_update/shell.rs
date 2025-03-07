@@ -299,7 +299,8 @@ impl UnixShell for Nu {
     }
 
     fn source_string(&self, process: &Process) -> Result<String> {
-        Ok(format!(r#"source "{}/env.nu""#, cargo_home_str(process)?))
+        let cargo_home_nushell = (cargo_home_str(process)?).replace("$HOME", "($nu.home-path)");
+        Ok(format!(r#"source $"{}/env.nu""#, cargo_home_nushell))
     }
 }
 
