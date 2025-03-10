@@ -360,8 +360,8 @@ modifying the profile file{plural} located at:
 macro_rules! pre_install_msg_win {
     () => {
         pre_install_msg_template!(
-            "This path will then be added to your `PATH` environment variable by
-modifying the `HKEY_CURRENT_USER/Environment/PATH` registry key."
+            r#"This path will then be added to your `PATH` environment variable by
+modifying the `PATH` registry key at `HKEY_CURRENT_USER\Environment`."#
         )
     };
 }
