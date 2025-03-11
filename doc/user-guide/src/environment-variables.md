@@ -50,6 +50,10 @@
   feature sacrifices some transactions protections and may be removed at any
   point. Linux only.
 
+- `RUSTUP_AUTO_INSTALL` (default: 1) When set to `1`, installs the active
+  toolchain when it is absent. Set this value to `0` to disable automatic
+  installation.
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
