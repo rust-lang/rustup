@@ -2954,3 +2954,70 @@ async fn warn_on_duplicate_rust_toolchain_file() {
         )
         .await;
 }
+
+#[tokio::test]
+async fn custom_toolchain_with_components_toolchains_profile_does_not_err() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+
+    // install a toolchain so we can make a custom toolchain that links to it
+    cx.config
+        .expect_stderr_ok(
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--profile=minimal",
+                "--component=cargo",
+            ],
+            for_host!(
+                "\
+info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: downloading component 'cargo'
+info: downloading component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rustc'
+info: default toolchain set to 'nightly-{0}'"
+            ),
+        )
+        .await;
+
+    // link the toolchain
+    let toolchains = cx.config.rustupdir.join("toolchains");
+    raw::symlink_dir(
+        &toolchains.join(for_host!("nightly-{0}")),
+        &toolchains.join("my-custom"),
+    )
+    .expect("failed to symlink");
+
+    raw::write_file(
+        &toolchain_file,
+        r#"
+[toolchain]
+channel = "my-custom"
+components = ["rustc-dev"]
+targets = ["x86_64-unknown-linux-gnu"]
+profile = "minimal"
+"#,
+    )
+    .unwrap();
+
+    cx.config
+        .expect_stdout_ok(
+            &["rustup", "show", "active-toolchain"],
+            &format!("my-custom (overridden by '{0}')", toolchain_file.display(),),
+        )
+        .await;
+
+    cx.config
+        .expect_stdout_ok(&["rustc", "--version"], "1.3.0 (hash-nightly-2)")
+        .await;
+
+    cx.config
+        .expect_stdout_ok(&["cargo", "--version"], "1.3.0 (hash-nightly-2)")
+        .await;
+}

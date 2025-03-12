@@ -181,18 +181,7 @@ impl OverrideCfg {
                         .transpose()?,
                 }
             }
-            ToolchainName::Custom(name) => {
-                if file.toolchain.targets.is_some()
-                    || file.toolchain.components.is_some()
-                    || file.toolchain.profile.is_some()
-                {
-                    bail!(
-                        "toolchain options are ignored for a custom toolchain ({})",
-                        name
-                    )
-                }
-                Self::Custom(name)
-            }
+            ToolchainName::Custom(name) => Self::Custom(name),
         })
     }
 
