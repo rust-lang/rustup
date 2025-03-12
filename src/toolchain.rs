@@ -217,7 +217,7 @@ impl<'a> Toolchain<'a> {
             new_path.push(PathBuf::from("/usr/lib"));
         }
 
-        env_var::prepend_path(sysenv::LOADER_PATH, new_path, cmd, self.cfg.process);
+        env_var::insert_path(sysenv::LOADER_PATH, new_path, None, cmd, self.cfg.process);
 
         // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
@@ -228,30 +228,50 @@ impl<'a> Toolchain<'a> {
             path_entries.push(cargo_home.join("bin"));
         }
 
-        // Historically rustup included the bin directory in PATH to
-        // work around some bugs (see
-        // https://github.com/rust-lang/rustup/pull/3178 for more
-        // information). This shouldn't be needed anymore, and it causes
+        // On Windows, we append the "bin" directory to PATH by default.
+        // Windows loads DLLs from PATH and the "bin" directory contains DLLs
+        // that proc macros and other tools not in the sysroot use.
+        // It's appended rather than prepended so that the exe files in "bin"
+        // do not take precedence over anything else in PATH.
+        //
+        // Historically rustup prepended the bin directory in PATH but doing so causes
         // problems because calling tools recursively (like `cargo
         // +nightly metadata` from within a cargo subcommand). The
         // recursive call won't work because it is not executing the
         // proxy, so the `+` toolchain override doesn't work.
+        // See: https://github.com/rust-lang/rustup/pull/3178
         //
-        // The RUSTUP_WINDOWS_PATH_ADD_BIN env var was added to opt-in to
-        // testing the fix. The default is now off, but this is left here
-        // just in case there are problems. Consider removing in the
-        // future if it doesn't seem necessary.
-        #[cfg(target_os = "windows")]
-        if self
-            .cfg
-            .process
-            .var_os("RUSTUP_WINDOWS_PATH_ADD_BIN")
-            .is_some_and(|s| s == "1")
-        {
-            path_entries.push(self.path.join("bin"));
-        }
+        // This behaviour was then changed to not add the bin directory at all.
+        // But this caused another set of problems due to the sysroot DLLs
+        // not being found by the loader, e.g. for proc macros.
+        // See: https://github.com/rust-lang/rustup/issues/3825
+        //
+        // Which is how we arrived at the current default described above.
+        //
+        // The `RUSTUP_WINDOWS_PATH_ADD_BIN` environment variable allows
+        // users to opt-in to one of the old behaviours in case the new
+        // default causes any new issues.
+        //
+        // FIXME: The `RUSTUP_WINDOWS_PATH_ADD_BIN` environment variable can
+        // be removed once we're confident that the default behaviour works.
+        let append = if cfg!(target_os = "windows") {
+            let add_bin = self.cfg.process.var("RUSTUP_WINDOWS_PATH_ADD_BIN");
+            match add_bin.as_deref().unwrap_or("append") {
+                // Don't add to PATH at all
+                "0" => None,
+                // Prepend to PATH
+                "1" => {
+                    path_entries.push(self.path.join("bin"));
+                    None
+                }
+                // Append to PATH (the default)
+                _ => Some(self.path.join("bin")),
+            }
+        } else {
+            None
+        };
 
-        env_var::prepend_path("PATH", path_entries, cmd, self.cfg.process);
+        env_var::insert_path("PATH", path_entries, append, cmd, self.cfg.process);
     }
 
     /// Infallible function that describes the version of rustc in an installed distribution
