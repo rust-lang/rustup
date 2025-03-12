@@ -7,14 +7,15 @@ use crate::process::Process;
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
-pub(crate) fn prepend_path(
+pub(crate) fn insert_path(
     name: &str,
     prepend: Vec<PathBuf>,
+    append: Option<PathBuf>,
     cmd: &mut Command,
     process: &Process,
 ) {
     let old_value = process.var_os(name);
-    let parts = if let Some(ref v) = old_value {
+    let mut parts = if let Some(v) = &old_value {
         let mut tail = env::split_paths(v).collect::<VecDeque<_>>();
         for path in prepend.into_iter().rev() {
             if !tail.contains(&path) {
@@ -25,6 +26,12 @@ pub(crate) fn prepend_path(
     } else {
         prepend.into()
     };
+
+    if let Some(path) = append {
+        if !parts.contains(&path) {
+            parts.push_back(path);
+        }
+    }
 
     if let Ok(new_value) = env::join_paths(parts) {
         cmd.env(name, new_value);
@@ -77,7 +84,7 @@ mod tests {
         let path_z = PathBuf::from(z);
         path_entries.push(path_z);
 
-        prepend_path("PATH", path_entries, &mut cmd, &tp.process);
+        insert_path("PATH", path_entries, None, &mut cmd, &tp.process);
         let envs: Vec<_> = cmd.get_envs().collect();
 
         assert_eq!(
@@ -97,6 +104,84 @@ mod tests {
                     .as_os_str()
                 )
             ),]
+        );
+    }
+
+    #[test]
+    fn append_unique_path() {
+        let mut vars = HashMap::new();
+        vars.env(
+            "PATH",
+            env::join_paths(["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
+        );
+        let tp = TestProcess::with_vars(vars);
+        #[cfg(windows)]
+        let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+
+        #[track_caller]
+        fn check(tp: &TestProcess, path_entries: Vec<PathBuf>, append: &str, expected: &[&str]) {
+            let mut cmd = Command::new("test");
+
+            insert_path(
+                "PATH",
+                path_entries,
+                Some(append.into()),
+                &mut cmd,
+                &tp.process,
+            );
+            let envs: Vec<_> = cmd.get_envs().collect();
+
+            assert_eq!(
+                envs,
+                &[(
+                    OsStr::new("PATH"),
+                    Some(env::join_paths(expected.iter()).unwrap().as_os_str())
+                ),]
+            );
+        }
+
+        check(
+            &tp,
+            Vec::new(),
+            "/home/z/.cargo/bin",
+            &[
+                "/home/a/.cargo/bin",
+                "/home/b/.cargo/bin",
+                "/home/z/.cargo/bin",
+            ],
+        );
+        check(
+            &tp,
+            Vec::new(),
+            "/home/a/.cargo/bin",
+            &["/home/a/.cargo/bin", "/home/b/.cargo/bin"],
+        );
+        check(
+            &tp,
+            Vec::new(),
+            "/home/b/.cargo/bin",
+            &["/home/a/.cargo/bin", "/home/b/.cargo/bin"],
+        );
+        check(
+            &tp,
+            Vec::from(["/home/c/.cargo/bin".into()]),
+            "/home/c/.cargo/bin",
+            &[
+                "/home/c/.cargo/bin",
+                "/home/a/.cargo/bin",
+                "/home/b/.cargo/bin",
+            ],
+        );
+        check(
+            &tp,
+            Vec::from(["/home/c/.cargo/bin".into()]),
+            "/home/z/.cargo/bin",
+            &[
+                "/home/c/.cargo/bin",
+                "/home/a/.cargo/bin",
+                "/home/b/.cargo/bin",
+                "/home/z/.cargo/bin",
+            ],
         );
     }
 }
