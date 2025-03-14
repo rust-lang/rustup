@@ -137,7 +137,12 @@ impl Config {
 
     /// Expect an ok status
     pub async fn expect_ok(&mut self, args: &[&str]) {
-        let out = self.run(args[0], &args[1..], &[]).await;
+        self.expect_ok_env(args, &[]).await
+    }
+
+    /// Expect an ok status with extra environment variables
+    pub async fn expect_ok_env(&self, args: &[&str], env: &[(&str, &str)]) {
+        let out = self.run(args[0], &args[1..], env).await;
         if !out.ok {
             print_command(args, &out);
             println!("expected.ok: true");

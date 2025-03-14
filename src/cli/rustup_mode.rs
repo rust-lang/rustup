@@ -13,6 +13,7 @@ use itertools::Itertools;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
+use crate::dist::AutoInstallMode;
 use crate::{
     cli::{
         common::{self, PackageUpdate, update_console_filter},
@@ -539,6 +540,12 @@ enum SetSubcmd {
         #[arg(value_enum, default_value_t)]
         auto_self_update_mode: SelfUpdateMode,
     },
+
+    /// The auto toolchain install mode
+    AutoInstall {
+        #[arg(value_enum, default_value_t)]
+        auto_install_mode: AutoInstallMode,
+    },
 }
 
 #[tracing::instrument(level = "trace", fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>())))]
@@ -715,6 +722,9 @@ pub async fn main(
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
             } => set_auto_self_update(cfg, auto_self_update_mode),
+            SetSubcmd::AutoInstall { auto_install_mode } => cfg
+                .set_auto_install(auto_install_mode)
+                .map(|_| utils::ExitCode(0)),
         },
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)

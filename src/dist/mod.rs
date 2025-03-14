@@ -771,6 +771,59 @@ impl FromStr for Profile {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AutoInstallMode {
+    #[default]
+    Enable,
+    Disable,
+}
+
+impl AutoInstallMode {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Self::Enable => "enable",
+            Self::Disable => "disable",
+        }
+    }
+}
+
+impl ValueEnum for AutoInstallMode {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::Enable, Self::Disable]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(PossibleValue::new(self.as_str()))
+    }
+
+    fn from_str(input: &str, _: bool) -> Result<Self, String> {
+        <Self as FromStr>::from_str(input).map_err(|e| e.to_string())
+    }
+}
+
+impl FromStr for AutoInstallMode {
+    type Err = anyhow::Error;
+
+    fn from_str(mode: &str) -> Result<Self> {
+        match mode {
+            "enable" => Ok(Self::Enable),
+            "disable" => Ok(Self::Disable),
+            _ => Err(anyhow!(format!(
+                "unknown auto install mode: '{}'; valid modes are {}",
+                mode,
+                Self::value_variants().iter().join(", ")
+            ))),
+        }
+    }
+}
+
+impl std::fmt::Display for AutoInstallMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 impl fmt::Display for TargetTriple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
