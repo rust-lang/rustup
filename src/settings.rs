@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::cli::self_update::SelfUpdateMode;
-use crate::dist::Profile;
+use crate::dist::{AutoInstallMode, Profile};
 use crate::errors::*;
 use crate::notifications::*;
 use crate::utils;
@@ -93,6 +93,8 @@ pub struct Settings {
     pub pgp_keys: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_self_update: Option<SelfUpdateMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_install: Option<AutoInstallMode>,
 }
 
 impl Settings {

@@ -1,0 +1,15 @@
+bin.name = "rustup"
+args = ["set", "auto-install", "--help"]
+stdout = """
+...
+The auto toolchain install mode
+
+Usage: rustup[EXE] set auto-install [AUTO_INSTALL_MODE]
+
+Arguments:
+  [AUTO_INSTALL_MODE]  [default: enable] [possible values: enable, disable]
+
+Options:
+  -h, --help  Print help
+"""
+stderr = ""

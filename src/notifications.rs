@@ -14,6 +14,7 @@ pub(crate) enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
+    SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
     SetProfile(&'a str),
@@ -69,7 +70,8 @@ impl Notification<'_> {
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
             | UpdateHashMatches => NotificationLevel::Debug,
-            SetDefaultToolchain(_)
+            SetAutoInstall(_)
+            | SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
             | SetProfile(_)
             | SetSelfUpdate(_)
@@ -91,6 +93,7 @@ impl Display for Notification<'_> {
             Install(n) => n.fmt(f),
             Utils(n) => n.fmt(f),
             Temp(n) => n.fmt(f),
+            SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),
             SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
             SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),
             SetOverrideToolchain(path, name) => write!(

@@ -793,6 +793,34 @@ async fn list_targets_no_toolchain() {
 }
 
 #[tokio::test]
+async fn set_auto_install_disable() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok(&["rustup", "set", "auto-install", "disable"])
+        .await;
+    cx.config
+        .expect_err(
+            &["rustup", "target", "list", "--toolchain=nightly"],
+            for_host!("toolchain 'nightly-{0}' is not installed"),
+        )
+        .await;
+    cx.config
+        .expect_err_env(
+            &["rustup", "target", "list", "--toolchain=nightly"],
+            &[("RUSTUP_AUTO_INSTALL", "0")],
+            for_host!("toolchain 'nightly-{0}' is not installed"),
+        )
+        .await;
+    // The environment variable takes precedence over the setting.
+    cx.config
+        .expect_ok_env(
+            &["rustup", "target", "list", "--toolchain=nightly"],
+            &[("RUSTUP_AUTO_INSTALL", "1")],
+        )
+        .await;
+}
+
+#[tokio::test]
 async fn list_targets_v1_toolchain() {
     let mut cx = CliTestContext::new(Scenario::SimpleV1).await;
     cx.config.expect_ok(&["rustup", "update", "nightly"]).await;

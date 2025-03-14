@@ -10,6 +10,7 @@ use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
 use tracing::trace;
 
+use crate::dist::AutoInstallMode;
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
@@ -375,6 +376,24 @@ impl<'a> Cfg<'a> {
         self.toolchain_override = Some(toolchain_override.to_owned());
     }
 
+    pub(crate) fn set_auto_install(&mut self, mode: AutoInstallMode) -> Result<()> {
+        self.settings_file.with_mut(|s| {
+            s.auto_install = Some(mode);
+            Ok(())
+        })?;
+        (self.notify_handler)(Notification::SetAutoInstall(mode.as_str()));
+        Ok(())
+    }
+
+    pub(crate) fn should_auto_install(&self) -> Result<bool> {
+        if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
+            Ok(mode != "0")
+        } else {
+            self.settings_file
+                .with(|s| Ok(s.auto_install != Some(AutoInstallMode::Disable)))
+        }
+    }
+
     // Returns a profile, if one exists in the settings file.
     //
     // Returns `Err` if the settings file could not be read or the profile is
@@ -527,11 +546,11 @@ impl<'a> Cfg<'a> {
             }
         };
 
-        let should_install_active = force_install_active.unwrap_or_else(|| {
-            self.process
-                .var("RUSTUP_AUTO_INSTALL")
-                .map_or(true, |it| it != "0")
-        });
+        let should_install_active = if let Some(force) = force_install_active {
+            force
+        } else {
+            self.should_auto_install()?
+        };
 
         if !should_install_active {
             return Ok(Some(((&toolchain).into(), reason)));
@@ -775,10 +794,7 @@ impl<'a> Cfg<'a> {
     async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
         match name {
             Some(tc) => {
-                let install_if_missing = self
-                    .process
-                    .var("RUSTUP_AUTO_INSTALL")
-                    .map_or(true, |it| it != "0");
+                let install_if_missing = self.should_auto_install()?;
                 Toolchain::from_local(tc, install_if_missing, self).await
             }
             None => {
