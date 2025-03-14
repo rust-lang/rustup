@@ -112,9 +112,10 @@ You can find the list of removed components at
 <https://rust-lang.github.io/rustup/devel/concepts/components.html#previous-components>.
 
 If you are updating an existing toolchain, after determining the deprecated component(s)
-in question, please remove them with a command such as:
+and/or target(s) in question, please remove them with:
 
     rustup component remove --toolchain {toolchain} <COMPONENT>...
+    rustup target remove --toolchain {toolchain} <TARGET>...
 
 After that, you should be able to continue with the update as usual.",
         );
