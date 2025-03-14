@@ -178,6 +178,7 @@ hr {
     border-radius: 0 3px 3px 0;
     border-left-width: 0px;
     border-left-style: solid;
+    cursor: pointer;
 }
 
 #platform-instructions-unix div.copy-icon,
