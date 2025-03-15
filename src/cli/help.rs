@@ -158,7 +158,7 @@ pub(crate) static DOC_HELP: &str = r"Discussion:
     By default, it opens the documentation index. Use the various
     flags to open specific pieces of documentation.";
 
-pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
+pub(crate) static COMPLETIONS_HELP: &str = r#"Discussion:
     Enable tab completion for Bash, Fish, Zsh, or PowerShell
     The script is output on `stdout`, allowing one to re-direct the
     output to the file of their choosing. Where you place the file
@@ -171,13 +171,14 @@ pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
 
     Bash:
 
-    Completion files are commonly stored in `/etc/bash_completion.d/` for
-    system-wide commands, but can be stored in
-    `~/.local/share/bash-completion/completions` for user-specific commands.
+    System wide completion files are commonly stored in
+    `/usr/share/bash-completion/completions`, and user-specific ones
+    can be stored in `~/.local/share/bash-completion/completions`.
     Run the command:
 
         $ mkdir -p ~/.local/share/bash-completion/completions
-        $ rustup completions bash >> ~/.local/share/bash-completion/completions/rustup
+        $ printf 'eval -- "$("$1" completions bash)"\n' \
+              > ~/.local/share/bash-completion/completions/rustup
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
@@ -188,7 +189,8 @@ pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
     With the `bash-completion` brew formula installed, run the command:
 
         $ mkdir -p $(brew --prefix)/etc/bash_completion.d
-        $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
+        $ printf 'eval -- "$(rustup completions bash)"\n' \
+              > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
 
     Fish:
 
@@ -272,11 +274,12 @@ pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
 
     Bash:
 
-        $ rustup completions bash cargo >> ~/.local/share/bash-completion/completions/cargo
+        $ printf 'eval -- "$(rustup completions bash cargo)"\n' \
+              > ~/.local/share/bash-completion/completions/cargo
 
     Zsh:
 
-        $ rustup completions zsh cargo > ~/.zfunc/_cargo";
+        $ rustup completions zsh cargo > ~/.zfunc/_cargo"#;
 
 pub(crate) static OFFICIAL_TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
                                        or '1.8.0'. For more information see `rustup \
