@@ -763,7 +763,7 @@ async fn default_(
             }
         };
 
-        if let Some((toolchain, reason)) = cfg.maybe_ensure_active_toolchain(None).await? {
+        if let Some((toolchain, reason)) = cfg.active_toolchain()? {
             if !matches!(reason, ActiveReason::Default) {
                 info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
             }
