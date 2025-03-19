@@ -220,7 +220,19 @@ impl Config {
 
     /// Expect an exact strings on stdout/stderr with an ok status code
     pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
+        self.expect_ok_ex_env(args, &[], stdout, stderr).await;
+    }
+
+    /// Expect an exact strings on stdout/stderr with an ok status code,
+    /// with extra environment variables
+    pub async fn expect_ok_ex_env(
+        &mut self,
+        args: &[&str],
+        env: &[(&str, &str)],
+        stdout: &str,
+        stderr: &str,
+    ) {
+        let out = self.run(args[0], &args[1..], env).await;
         if !out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
             println!("expected.ok: true");
