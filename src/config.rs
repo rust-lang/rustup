@@ -1004,9 +1004,12 @@ pub(crate) fn dist_root_server(process: &Process) -> Result<String> {
             s
         }
         // For backwards compatibility
-        else if let Some(root) = non_empty_env_var("RUSTUP_DIST_ROOT", process)? {
+        else if let Some(mut root) = non_empty_env_var("RUSTUP_DIST_ROOT", process)? {
             trace!("`RUSTUP_DIST_ROOT` has been set to `{root}`");
-            root.trim_end_matches("/dist").to_owned()
+            if let Some(stripped) = root.strip_suffix("/dist") {
+                root.truncate(stripped.len());
+            }
+            root
         } else {
             dist::DEFAULT_DIST_SERVER.to_owned()
         },
