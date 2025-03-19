@@ -5,6 +5,7 @@ use rustup::for_host;
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
 };
+use rustup::utils::raw;
 
 #[tokio::test]
 async fn update_once() {
@@ -693,6 +694,35 @@ async fn show_suggestion_for_missing_toolchain() {
             for_host!(
                 r"error: toolchain 'nightly-{0}' is not installed
 help: run `rustup toolchain install nightly-{0}` to install it
+"
+            ),
+        )
+        .await;
+}
+
+// issue #4212
+#[tokio::test]
+async fn show_suggestion_for_missing_toolchain_with_components() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+    raw::write_file(
+        &toolchain_file,
+        r#"
+[toolchain]
+channel = "stable"
+components = [ "rust-src" ]
+"#,
+    )
+    .unwrap();
+    cx.config
+        .expect_err_env(
+            &["cargo", "fmt"],
+            &[("RUSTUP_AUTO_INSTALL", "0")],
+            for_host!(
+                r"error: toolchain 'stable-{0}' is not installed
+help: run `rustup toolchain install` to install it
 "
             ),
         )

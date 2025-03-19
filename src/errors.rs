@@ -98,12 +98,16 @@ pub enum RustupError {
     #[error(
         "toolchain '{name}' is not installed{}",
         if let ToolchainName::Official(t) = name {
-            format!("\nhelp: run `rustup toolchain install {t}` to install it")
+            let t = if *is_active { "" } else { &format!(" {t}") };
+            format!("\nhelp: run `rustup toolchain install{t}` to install it")
         } else {
             String::new()
         },
     )]
-    ToolchainNotInstalled { name: ToolchainName },
+    ToolchainNotInstalled {
+        name: ToolchainName,
+        is_active: bool,
+    },
     #[error("path '{0}' not found")]
     PathToolchainNotInstalled(PathBasedToolchainName),
     #[error(

@@ -53,6 +53,7 @@ impl<'a> Toolchain<'a> {
             Ok(tc) => Ok(tc),
             Err(RustupError::ToolchainNotInstalled {
                 name: ToolchainName::Official(desc),
+                ..
             }) if install_if_missing => {
                 Ok(
                     DistributableToolchain::install(cfg, &desc, &[], &[], cfg.get_profile()?, true)
@@ -107,7 +108,10 @@ impl<'a> Toolchain<'a> {
         let path = cfg.toolchain_path(&name);
         if !Toolchain::exists(cfg, &name)? {
             return Err(match name {
-                LocalToolchainName::Named(name) => RustupError::ToolchainNotInstalled { name },
+                LocalToolchainName::Named(name) => {
+                    let is_active = matches!(cfg.active_toolchain(), Ok(Some((t, _))) if t == name);
+                    RustupError::ToolchainNotInstalled { name, is_active }
+                }
                 LocalToolchainName::Path(name) => RustupError::PathToolchainNotInstalled(name),
             });
         }
