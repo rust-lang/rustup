@@ -675,17 +675,13 @@ impl<'a> Cfg<'a> {
 
                     // XXX: this awkwardness deals with settings file being locked already
                     let toolchain_name = toolchain_name.resolve(&default_host_triple)?;
-                    match Toolchain::new(self, (&toolchain_name).into()) {
-                        Err(RustupError::ToolchainNotInstalled { .. }) => {
-                            if matches!(toolchain_name, ToolchainName::Custom(_)) {
-                                bail!(
-                                    "custom toolchain specified in override file '{}' is not installed",
-                                    toolchain_file.display()
-                                )
-                            }
-                        }
-                        Ok(_) => {}
-                        Err(e) => Err(e)?,
+                    if !Toolchain::exists(self, &(&toolchain_name).into())?
+                        && matches!(toolchain_name, ToolchainName::Custom(_))
+                    {
+                        bail!(
+                            "custom toolchain specified in override file '{}' is not installed",
+                            toolchain_file.display()
+                        )
                     }
                 }
 
