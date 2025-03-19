@@ -526,61 +526,33 @@ impl<'a> Cfg<'a> {
         &self,
         force_install_active: Option<bool>,
     ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
-        let (components, targets, profile, toolchain, reason) = match self.find_override_config()? {
-            Some((
-                OverrideCfg::Official {
-                    components,
-                    targets,
-                    profile,
-                    toolchain,
-                },
-                reason,
-            )) => (components, targets, profile, toolchain, reason),
-            Some((override_config, reason)) => {
-                return Ok(Some((override_config.into_local_toolchain_name(), reason)));
-            }
-            None => {
-                return Ok(self
-                    .get_default()?
-                    .map(|x| (x.into(), ActiveReason::Default)));
-            }
-        };
-
         let should_install_active = if let Some(force) = force_install_active {
             force
         } else {
             self.should_auto_install()?
         };
-
         if !should_install_active {
-            return Ok(Some(((&toolchain).into(), reason)));
+            return self.active_toolchain();
         }
 
-        let components = components.iter().map(AsRef::as_ref).collect::<Vec<_>>();
-        let targets = targets.iter().map(AsRef::as_ref).collect::<Vec<_>>();
-        match DistributableToolchain::new(self, toolchain.clone()) {
-            Err(RustupError::ToolchainNotInstalled { .. }) => {
-                DistributableToolchain::install(
-                    self,
-                    &toolchain,
-                    &components,
-                    &targets,
-                    profile.unwrap_or_default(),
-                    false,
-                )
-                .await?;
-            }
-            Ok(mut distributable) => {
-                if !distributable.components_exist(&components, &targets)? {
-                    distributable
-                        .update(&components, &targets, profile.unwrap_or_default())
-                        .await?;
-                }
-            }
-            Err(e) => return Err(e.into()),
-        };
+        match self.find_or_install_active_toolchain(true, false).await {
+            Ok(r) => Ok(Some(r)),
+            Err(e) => match e.downcast_ref::<RustupError>() {
+                Some(RustupError::ToolchainNotSelected(_)) => Ok(None),
+                _ => Err(e),
+            },
+        }
+    }
 
-        Ok(Some(((&toolchain).into(), reason)))
+    pub(crate) fn active_toolchain(&self) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
+        Ok(
+            if let Some((override_config, reason)) = self.find_override_config()? {
+                Some((override_config.into_local_toolchain_name(), reason))
+            } else {
+                self.get_default()?
+                    .map(|x| (x.into(), ActiveReason::Default))
+            },
+        )
     }
 
     fn find_override_config(&self) -> Result<Option<(OverrideCfg, ActiveReason)>> {
