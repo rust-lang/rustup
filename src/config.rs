@@ -1056,7 +1056,7 @@ fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTriple {
         .unwrap_or_else(|| TargetTriple::from_host_or_build(process))
 }
 
-fn non_empty_env_var(name: &str, process: &Process) -> anyhow::Result<Option<String>> {
+pub(crate) fn non_empty_env_var(name: &str, process: &Process) -> anyhow::Result<Option<String>> {
     match process.var(name) {
         Ok(s) if !s.is_empty() => Ok(Some(s)),
         Ok(_) => Ok(None),

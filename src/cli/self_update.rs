@@ -55,7 +55,7 @@ use crate::{
         errors::*,
         markdown::md,
     },
-    config::Cfg,
+    config::{Cfg, non_empty_env_var},
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
@@ -1104,7 +1104,12 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
 
     // Get available version
     info!("checking for self-update");
-    let available_version = get_available_rustup_version(process).await?;
+    let available_version = if let Some(ver) = non_empty_env_var("RUSTUP_VERSION", process)? {
+        info!("`RUSTUP_VERSION` has been set to `{ver}`");
+        ver
+    } else {
+        get_available_rustup_version(process).await?
+    };
 
     // If up-to-date
     if available_version == current_version {
