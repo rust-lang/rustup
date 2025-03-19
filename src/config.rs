@@ -522,16 +522,16 @@ impl<'a> Cfg<'a> {
         self.local_toolchain(toolchain).await
     }
 
-    pub(crate) async fn find_active_toolchain(
+    pub(crate) async fn maybe_ensure_active_toolchain(
         &self,
-        force_install_active: Option<bool>,
+        force_ensure: Option<bool>,
     ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
-        let should_install_active = if let Some(force) = force_install_active {
+        let should_ensure = if let Some(force) = force_ensure {
             force
         } else {
             self.should_auto_install()?
         };
-        if !should_install_active {
+        if !should_ensure {
             return self.active_toolchain();
         }
 
@@ -733,7 +733,7 @@ impl<'a> Cfg<'a> {
             self.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
         }
 
-        let Some((name, _)) = self.find_active_toolchain(None).await? else {
+        let Some((name, _)) = self.maybe_ensure_active_toolchain(None).await? else {
             return Ok(None);
         };
         Ok(Some(Toolchain::new(self, name)?.rustc_version()))
@@ -767,7 +767,7 @@ impl<'a> Cfg<'a> {
             }
             None => {
                 let tc = self
-                    .find_active_toolchain(None)
+                    .maybe_ensure_active_toolchain(None)
                     .await?
                     .ok_or_else(|| no_toolchain_error(self.process))?
                     .0;
