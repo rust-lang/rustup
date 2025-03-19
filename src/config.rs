@@ -535,7 +535,7 @@ impl<'a> Cfg<'a> {
             return self.active_toolchain();
         }
 
-        match self.find_or_install_active_toolchain(true, false).await {
+        match self.ensure_active_toolchain(true, false).await {
             Ok(r) => Ok(Some(r)),
             Err(e) => match e.downcast_ref::<RustupError>() {
                 Some(RustupError::ToolchainNotSelected(_)) => Ok(None),
@@ -777,7 +777,7 @@ impl<'a> Cfg<'a> {
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) async fn find_or_install_active_toolchain(
+    pub(crate) async fn ensure_active_toolchain(
         &self,
         force_non_host: bool,
         verbose: bool,
