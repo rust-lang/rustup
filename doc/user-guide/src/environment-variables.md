@@ -25,6 +25,9 @@
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`). Sets
   the root URL for downloading self-update.
 
+- `RUSTUP_VERSION` (default: none). Overrides the rustup version (e.g. `1.27.1`)
+  to be downloaded when executing `rustup-init.sh` or `rustup self update`.
+
 - `RUSTUP_IO_THREADS` *unstable* (defaults to reported cpu count). Sets the
   number of threads to perform close IO in. Set to `1` to force
   single-threaded IO for troubleshooting, or an arbitrary number to override
