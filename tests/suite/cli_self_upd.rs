@@ -385,6 +385,30 @@ info: downloading self-update
         .await;
 }
 
+#[tokio::test]
+async fn update_precise() {
+    let version = env!("CARGO_PKG_VERSION");
+    let expected_output = format!(
+        "info: checking for self-update
+info: `RUSTUP_VERSION` has been set to `{TEST_VERSION}`
+info: downloading self-update
+"
+    );
+
+    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    cx.config
+        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
+        .await;
+    cx.config
+        .expect_ok_ex_env(
+            &["rustup", "self", "update"],
+            &[("RUSTUP_VERSION", TEST_VERSION)],
+            &format!("  rustup updated - {version} (from {version})\n\n",),
+            &expected_output,
+        )
+        .await;
+}
+
 #[cfg(windows)]
 #[tokio::test]
 async fn update_overwrites_programs_display_version() {
