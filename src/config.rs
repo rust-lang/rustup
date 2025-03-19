@@ -995,22 +995,22 @@ impl<'a> Cfg<'a> {
     }
 }
 
+/// The root path of the release server, without the `/dist` suffix.
+/// By default, it points to [`dist::DEFAULT_DIST_SERVER`].
 pub(crate) fn dist_root_server(process: &Process) -> Result<String> {
-    Ok(match non_empty_env_var("RUSTUP_DIST_SERVER", process)? {
-        Some(s) => {
+    Ok(
+        if let Some(s) = non_empty_env_var("RUSTUP_DIST_SERVER", process)? {
             trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
             s
         }
-        None => {
-            // For backward compatibility
-            non_empty_env_var("RUSTUP_DIST_ROOT", process)?
-                .inspect(|url| trace!("`RUSTUP_DIST_ROOT` has been set to `{url}`"))
-                .as_ref()
-                .map(|root| root.trim_end_matches("/dist"))
-                .unwrap_or(dist::DEFAULT_DIST_SERVER)
-                .to_owned()
-        }
-    })
+        // For backwards compatibility
+        else if let Some(root) = non_empty_env_var("RUSTUP_DIST_ROOT", process)? {
+            trace!("`RUSTUP_DIST_ROOT` has been set to `{root}`");
+            root.trim_end_matches("/dist").to_owned()
+        } else {
+            dist::DEFAULT_DIST_SERVER.to_owned()
+        },
+    )
 }
 
 impl Debug for Cfg<'_> {
