@@ -382,9 +382,9 @@ macro_rules! post_install_msg_unix_source_env {
 the corresponding `env` file under {cargo_home}.
 
 This is usually done by running one of the following (note the leading DOT):
-    . "{cargo_home}/env"            # For sh/bash/zsh/ash/dash/pdksh
-    source "{cargo_home}/env.fish"  # For fish
-    source "{cargo_home}/env.nu"    # For nushell
+    . "{cargo_home}/env"                       # For sh/bash/zsh/ash/dash/pdksh
+    source "{cargo_home}/env.fish"             # For fish
+    source $"($nu.home-path)/.cargo/env.nu"    # For nushell
 "#
     };
 }
