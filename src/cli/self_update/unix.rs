@@ -115,7 +115,7 @@ pub(crate) fn do_write_env_files(process: &Process) -> Result<()> {
         let script = sh.env_script();
         // Only write each possible script once.
         if !written.contains(&script) {
-            script.write(process)?;
+            sh.write_script(&script, process)?;
             written.push(script);
         }
     }

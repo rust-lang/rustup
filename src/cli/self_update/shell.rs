@@ -39,17 +39,6 @@ pub(crate) struct ShellScript {
     name: &'static str,
 }
 
-impl ShellScript {
-    pub(crate) fn write(&self, process: &Process) -> Result<()> {
-        let home = process.cargo_home()?;
-        let cargo_bin = format!("{}/bin", cargo_home_str(process)?);
-        let env_name = home.join(self.name);
-        let env_file = self.content.replace("{cargo_bin}", &cargo_bin);
-        utils::write_file(self.name, &env_name, &env_file)?;
-        Ok(())
-    }
-}
-
 // TODO: Update into a bytestring.
 pub(crate) fn cargo_home_str(process: &Process) -> Result<Cow<'static, str>> {
     let path = process.cargo_home()?;
@@ -109,6 +98,15 @@ pub(crate) trait UnixShell {
 
     fn source_string(&self, process: &Process) -> Result<String> {
         Ok(format!(r#". "{}/env""#, cargo_home_str(process)?))
+    }
+
+    fn write_script(&self, script: &ShellScript, process: &Process) -> Result<()> {
+        let home = process.cargo_home()?;
+        let cargo_bin = format!("{}/bin", cargo_home_str(process)?);
+        let env_name = home.join(script.name);
+        let env_file = script.content.replace("{cargo_bin}", &cargo_bin);
+        utils::write_file(script.name, &env_name, &env_file)?;
+        Ok(())
     }
 }
 
