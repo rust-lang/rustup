@@ -5,7 +5,7 @@ use anyhow::{Context, Result, bail};
 use tracing::{error, warn};
 
 use super::install_bins;
-use super::shell;
+use super::shell::{self, Posix, UnixShell};
 use crate::process::Process;
 use crate::utils::{self, Notification};
 
@@ -174,7 +174,7 @@ fn remove_legacy_paths(process: &Process) -> Result<()> {
     remove_legacy_source_command(
         format!(
             "export PATH=\"{}/bin:$PATH\"\n",
-            shell::cargo_home_str(process)?
+            Posix.cargo_home_str(process)?
         ),
         process,
     )?;
@@ -182,7 +182,7 @@ fn remove_legacy_paths(process: &Process) -> Result<()> {
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
     remove_legacy_source_command(
-        format!("source \"{}/env\"\n", shell::cargo_home_str(process)?),
+        format!("source \"{}/env\"\n", Posix.cargo_home_str(process)?),
         process,
     )?;
 
