@@ -40,11 +40,6 @@ pub(crate) struct ShellScript {
 }
 
 // TODO: Update into a bytestring.
-pub(crate) fn cargo_home_str(process: &Process) -> Result<Cow<'static, str>> {
-    cargo_home_str_with_home("$HOME", process)
-}
-
-// TODO: Update into a bytestring.
 fn cargo_home_str_with_home(home: &str, process: &Process) -> Result<Cow<'static, str>> {
     let path = process.cargo_home()?;
 
@@ -101,13 +96,17 @@ pub(crate) trait UnixShell {
         }
     }
 
+    fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
+        cargo_home_str_with_home("$HOME", process)
+    }
+
     fn source_string(&self, process: &Process) -> Result<String> {
-        Ok(format!(r#". "{}/env""#, cargo_home_str(process)?))
+        Ok(format!(r#". "{}/env""#, self.cargo_home_str(process)?))
     }
 
     fn write_script(&self, script: &ShellScript, process: &Process) -> Result<()> {
         let home = process.cargo_home()?;
-        let cargo_bin = format!("{}/bin", cargo_home_str(process)?);
+        let cargo_bin = format!("{}/bin", self.cargo_home_str(process)?);
         let env_name = home.join(script.name);
         let env_file = script.content.replace("{cargo_bin}", &cargo_bin);
         utils::write_file(script.name, &env_name, &env_file)?;
@@ -115,7 +114,8 @@ pub(crate) trait UnixShell {
     }
 }
 
-struct Posix;
+pub(super) struct Posix;
+
 impl UnixShell for Posix {
     fn does_exist(&self, _: &Process) -> bool {
         true
@@ -255,7 +255,10 @@ impl UnixShell for Fish {
     }
 
     fn source_string(&self, process: &Process) -> Result<String> {
-        Ok(format!(r#"source "{}/env.fish""#, cargo_home_str(process)?))
+        Ok(format!(
+            r#"source "{}/env.fish""#,
+            self.cargo_home_str(process)?
+        ))
     }
 }
 
@@ -302,7 +305,10 @@ impl UnixShell for Nu {
     }
 
     fn source_string(&self, process: &Process) -> Result<String> {
-        Ok(format!(r#"source "{}/env.nu""#, cargo_home_str(process)?))
+        Ok(format!(
+            r#"source "{}/env.nu""#,
+            self.cargo_home_str(process)?
+        ))
     }
 }
 
