@@ -97,7 +97,11 @@ pub(crate) trait UnixShell {
     }
 
     fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
-        cargo_home_str_with_home("$HOME", process)
+        #[cfg(windows)]
+        let home = "%USERPROFILE%";
+        #[cfg(not(windows))]
+        let home = "$HOME";
+        cargo_home_str_with_home(home, process)
     }
 
     fn source_string(&self, process: &Process) -> Result<String> {
