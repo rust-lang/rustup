@@ -31,13 +31,13 @@
 //! and racy on Windows.
 
 use std::borrow::Cow;
-use std::env::consts::EXE_SUFFIX;
+use std::env::{self, consts::EXE_SUFFIX};
+use std::fmt;
 use std::fs;
 use std::io::Write;
 use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
-use std::{env, fmt};
 
 use anyhow::{Context, Result, anyhow};
 use cfg_if::cfg_if;
