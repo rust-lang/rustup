@@ -41,6 +41,11 @@ pub(crate) struct ShellScript {
 
 // TODO: Update into a bytestring.
 pub(crate) fn cargo_home_str(process: &Process) -> Result<Cow<'static, str>> {
+    cargo_home_str_with_home("$HOME", process)
+}
+
+// TODO: Update into a bytestring.
+fn cargo_home_str_with_home(home: &str, process: &Process) -> Result<Cow<'static, str>> {
     let path = process.cargo_home()?;
 
     let default_cargo_home = process
@@ -48,7 +53,7 @@ pub(crate) fn cargo_home_str(process: &Process) -> Result<Cow<'static, str>> {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
-        "$HOME/.cargo".into()
+        Cow::Owned(format!("{home}/.cargo"))
     } else {
         match path.to_str() {
             Some(p) => p.to_owned().into(),
