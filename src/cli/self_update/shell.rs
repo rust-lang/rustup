@@ -262,7 +262,7 @@ impl UnixShell for Fish {
     }
 }
 
-struct Nu;
+pub(super) struct Nu;
 
 impl UnixShell for Nu {
     fn does_exist(&self, process: &Process) -> bool {
@@ -309,6 +309,10 @@ impl UnixShell for Nu {
             r#"source "{}/env.nu""#,
             self.cargo_home_str(process)?
         ))
+    }
+
+    fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
+        cargo_home_str_with_home("($nu.home-path)", process)
     }
 }
 
