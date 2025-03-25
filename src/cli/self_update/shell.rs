@@ -280,25 +280,22 @@ impl UnixShell for Nu {
 
         if let Ok(p) = process.var("XDG_CONFIG_HOME") {
             let path = PathBuf::from(p).join("nushell/");
-            paths.push(path.join("env.nu"));
             paths.push(path.join("config.nu"));
         }
 
         if let Some(p) = process.home_dir() {
             let path = p.join(".config/nushell/");
-            paths.push(path.join("env.nu"));
             paths.push(path.join("config.nu"));
         }
         paths
     }
 
     fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
-        let mut rcs = self.rcfiles(process);
-        if rcs.len() == 4 {
-            // The first two rcfile takes precedence (XDG_CONFIG_HOME).
-            rcs.truncate(2);
+        // The first rcfile in XDG_CONFIG_HOME takes precedence.
+        match self.rcfiles(process).into_iter().next() {
+            Some(path) => vec![path],
+            None => vec![],
         }
-        rcs
     }
 
     fn env_script(&self) -> ShellScript {
