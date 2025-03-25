@@ -279,13 +279,14 @@ impl UnixShell for Nu {
         let mut paths = vec![];
 
         if let Ok(p) = process.var("XDG_CONFIG_HOME") {
-            let path = PathBuf::from(p).join("nushell/");
-            paths.push(path.join("config.nu"));
+            let mut p = PathBuf::from(p);
+            p.extend(["nushell", "config.nu"]);
+            paths.push(p)
         }
 
-        if let Some(p) = process.home_dir() {
-            let path = p.join(".config/nushell/");
-            paths.push(path.join("config.nu"));
+        if let Some(mut p) = process.home_dir() {
+            p.extend([".config", "nushell", "config.nu"]);
+            paths.push(p)
         }
         paths
     }
