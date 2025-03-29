@@ -213,7 +213,11 @@ enum RustupSubcmd {
 
     /// Display which binary will be run for a given command
     Which {
-        command: String,
+        #[arg(short, long, help = "Only print the toolchain's bin directory")]
+        prefix: bool,
+
+        #[arg(required_unless_present = "prefix")]
+        command: Option<String>,
 
         #[arg(long, help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
         toolchain: Option<ResolvableToolchainName>,
@@ -442,6 +446,10 @@ enum ComponentSubcmd {
         /// Force the output to be a single column
         #[arg(long, short)]
         quiet: bool,
+
+        /// Show verbose output with component paths
+        #[arg(long, short)]
+        verbose: bool,
     },
 
     /// Add a component to a Rust toolchain
@@ -478,7 +486,6 @@ enum ComponentSubcmd {
 enum OverrideSubcmd {
     /// List directory toolchain overrides
     List,
-
     /// Set the override toolchain for a directory
     #[command(alias = "add")]
     Set {
@@ -670,7 +677,8 @@ pub async fn main(
                 toolchain,
                 installed,
                 quiet,
-            } => handle_epipe(component_list(cfg, toolchain, installed, quiet).await),
+                verbose,
+            } => handle_epipe(component_list(cfg, toolchain, installed, quiet, verbose).await),
             ComponentSubcmd::Add {
                 component,
                 toolchain,
@@ -698,7 +706,11 @@ pub async fn main(
         } => run(cfg, toolchain, command, install)
             .await
             .map(ExitCode::from),
-        RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain).await,
+        RustupSubcmd::Which {
+            prefix,
+            command,
+            toolchain,
+        } => which(cfg, prefix, command, toolchain).await,
         RustupSubcmd::Doc {
             path,
             toolchain,
@@ -935,14 +947,31 @@ async fn run(
 
 async fn which(
     cfg: &Cfg<'_>,
-    binary: &str,
+    prefix: bool,
+    command: Option<String>,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    let binary_path = cfg.resolve_toolchain(toolchain).await?.binary_file(binary);
+    let resolved_toolchain = cfg.resolve_toolchain(toolchain).await?;
 
+    if prefix {
+        // Get the bin directory
+        let bin_dir = resolved_toolchain
+            .binary_file("rustc")
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from(""));
+
+        let stdout = cfg.process.stdout();
+        writeln!(stdout.lock(), "{}", bin_dir.display())?;
+        return Ok(utils::ExitCode(0));
+    }
+
+    let command = command.expect("command should be present if prefix is not");
+    let binary_path = resolved_toolchain.binary_file(&command);
     utils::assert_is_file(&binary_path)?;
 
-    writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
+    let stdout = cfg.process.stdout();
+    writeln!(stdout.lock(), "{}", binary_path.display())?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1007,7 +1036,6 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         print_header::<Error>(&mut t, "installed toolchains")?;
 
         let default_toolchain_name = cfg.get_default()?;
-
         let last_index = installed_toolchains.len().wrapping_sub(1);
         for (n, toolchain_name) in installed_toolchains.into_iter().enumerate() {
             let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain_name);
@@ -1026,11 +1054,10 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
                 let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
                 writeln!(
                     cfg.process.stdout().lock(),
-                    "  {}",
-                    toolchain.rustc_version()
+                    "  {}\n  path: {}",
+                    toolchain.rustc_version(),
+                    toolchain.path().display()
                 )?;
-                // To make it easy to see which rustc belongs to which
-                // toolchain, we separate each pair with an extra newline.
                 if n != last_index {
                     writeln!(cfg.process.stdout().lock())?;
                 }
@@ -1095,18 +1122,11 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::Ex
     match cfg.maybe_ensure_active_toolchain(None).await? {
         Some((toolchain_name, reason)) => {
             let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
-            if verbose {
+
+            if !verbose {
+                let stdout = cfg.process.stdout();
                 writeln!(
-                    cfg.process.stdout().lock(),
-                    "{}\nactive because: {}\ncompiler: {}\npath: {}",
-                    toolchain.name(),
-                    reason,
-                    toolchain.rustc_version(),
-                    toolchain.path().display()
-                )?;
-            } else {
-                writeln!(
-                    cfg.process.stdout().lock(),
+                    stdout.lock(),
                     "{} ({})",
                     toolchain.name(),
                     match reason {
@@ -1114,11 +1134,72 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::Ex
                         _ => &reason,
                     }
                 )?;
+                return Ok(utils::ExitCode(0));
             }
+
+            // Handle verbose mode - collect all data first
+            let toolchain_path = toolchain.path().to_path_buf();
+            let toolchain_name_str = toolchain.name().to_string();
+            let rustc_version = toolchain.rustc_version().to_string();
+            let reason_str = reason.to_string();
+
+            let mut component_info = Vec::new();
+            if let Ok(distributable) = DistributableToolchain::try_from(&toolchain) {
+                if let Ok(components) = distributable.components() {
+                    for component in components {
+                        if component.installed {
+                            let short_name = component.component.short_name_in_manifest();
+                            let component_name = component.name.clone();
+
+                            // Build component path based on component type
+                            let component_path = if short_name == "rust-std" {
+                                if let Some(target) = &component.component.target {
+                                    toolchain_path.join("lib/rustlib").join(target.to_string())
+                                } else {
+                                    toolchain_path.join("lib/rustlib")
+                                }
+                            } else if short_name == "cargo" {
+                                toolchain_path.join("bin/cargo")
+                            } else if short_name == "rustc" {
+                                toolchain_path.join("bin/rustc")
+                            } else {
+                                toolchain_path
+                                    .join("lib/rustlib/components")
+                                    .join(&component_name)
+                            };
+
+                            component_info.push((component_name, component_path));
+                        }
+                    }
+                }
+            }
+
+            // Now output everything with stdout locked once
+            let stdout = cfg.process.stdout();
+            let mut lock = stdout.lock();
+
+            writeln!(
+                lock,
+                "{}\nactive because: {}\ncompiler: {}\npath: {}",
+                toolchain_name_str,
+                reason_str,
+                rustc_version,
+                toolchain_path.display()
+            )?;
+
+            if !component_info.is_empty() {
+                writeln!(lock, "\nInstalled components:")?;
+                for (name, path) in component_info {
+                    writeln!(lock, "{} - {}", name, path.display())?;
+                }
+            } else {
+                writeln!(lock, "\nCustom toolchain - component details not available")?;
+            }
+
+            Ok(utils::ExitCode(0))
         }
-        None => return Err(anyhow!("no active toolchain")),
+        None => Err(anyhow!("no active toolchain")),
     }
-    Ok(utils::ExitCode(0))
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
@@ -1238,19 +1319,96 @@ async fn target_remove(
 
 async fn component_list(
     cfg: &Cfg<'_>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain_desc: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
+    verbose: bool,
 ) -> Result<utils::ExitCode> {
-    // downcasting required because the toolchain files can name any toolchain
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
-    common::list_items(
-        distributable,
-        |c| Some(&c.name),
-        installed_only,
-        quiet,
-        cfg.process,
-    )
+    if !verbose {
+        let distributable = DistributableToolchain::from_partial(toolchain_desc, cfg).await?;
+        return common::list_items(
+            distributable,
+            |c| Some(&c.name),
+            installed_only,
+            quiet,
+            cfg.process,
+        );
+    }
+
+    // For verbose output, handle separately
+    let distributable = DistributableToolchain::from_partial(toolchain_desc.clone(), cfg).await?;
+    let components = distributable.components()?;
+
+    // Get toolchain path - Create owned copies of all needed data before locking stdout
+    let toolchain_path = {
+        let tc_path = match toolchain_desc {
+            Some(desc) => {
+                let resolved_desc = desc.resolve(&cfg.get_default_host_triple()?)?;
+                let tc = Toolchain::new(cfg, ToolchainName::Official(resolved_desc).into())?;
+                tc.path().to_path_buf()
+            }
+            None => {
+                let (toolchain_name, _) = cfg
+                    .maybe_ensure_active_toolchain(None)
+                    .await?
+                    .ok_or_else(|| anyhow!("no active toolchain"))?;
+                let tc = Toolchain::new(cfg, toolchain_name)?;
+                tc.path().to_path_buf()
+            }
+        };
+        tc_path
+    };
+
+    // Collect all component info before locking stdout
+    let mut component_info = Vec::new();
+    for component in components {
+        if !installed_only || component.installed {
+            let status = if component.installed {
+                " (installed)"
+            } else {
+                ""
+            };
+            let name = component.name.clone();
+
+            let path_info = if component.installed {
+                // Build the component path based on the component type
+                let short_name = component.component.short_name_in_manifest();
+                let component_path = if short_name == "rust-std" {
+                    if let Some(target) = &component.component.target {
+                        toolchain_path.join("lib/rustlib").join(target.to_string())
+                    } else {
+                        toolchain_path.join("lib/rustlib")
+                    }
+                } else if short_name == "cargo" {
+                    toolchain_path.join("bin/cargo")
+                } else if short_name == "rustc" {
+                    toolchain_path.join("bin/rustc")
+                } else {
+                    toolchain_path.join("lib/rustlib/components").join(&name)
+                };
+
+                Some(component_path)
+            } else {
+                None
+            };
+
+            component_info.push((name, status.to_string(), path_info));
+        }
+    }
+
+    // Now output everything with stdout locked
+    let stdout = cfg.process.stdout();
+    let mut lock = stdout.lock();
+
+    for (name, status, path_info) in component_info {
+        if let Some(path) = path_info {
+            writeln!(lock, "{}{} - {}", name, status, path.display())?;
+        } else {
+            writeln!(lock, "{}{}", name, status)?;
+        }
+    }
+
+    Ok(utils::ExitCode(0))
 }
 
 async fn component_add(

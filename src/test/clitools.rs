@@ -64,6 +64,21 @@ impl Config {
     pub fn current_dir(&self) -> PathBuf {
         self.workdir.borrow().clone()
     }
+    pub async fn expect_stdout_contains(&self, args: &[&str], expected: &str) {
+            let out = self.run(args[0], &args[1..], &[]).await;
+            if !out.ok {
+                print_command(args, &out);
+                println!("expected.ok: true");
+                print_indented("expected.stdout.contains", expected);
+                panic!();
+            }
+            if !out.stdout.contains(expected) {
+                print_command(args, &out);
+                println!("expected.ok: true");
+                print_indented("expected.stdout.contains", expected);
+                panic!();
+            }
+        }
 
     pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
     where
