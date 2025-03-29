@@ -1197,9 +1197,11 @@ installed toolchains
 --------------------
 nightly-{0} (active, default)
   1.3.0 (hash-nightly-2)
+  path: {2}
 
 nightly-2015-01-01-{0}
   1.2.0 (hash-nightly-1)
+  path: {3}
 
 active toolchain
 ----------------
@@ -1214,6 +1216,11 @@ installed targets:
                     .rustupdir
                     .join("toolchains")
                     .join(for_host!("nightly-{0}"))
+                    .display(),
+                config
+                    .rustupdir
+                    .join("toolchains")
+                    .join(for_host!("nightly-2015-01-01-{0}"))
                     .display()
             ),
             r"",
