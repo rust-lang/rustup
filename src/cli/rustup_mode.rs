@@ -1007,7 +1007,6 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         print_header::<Error>(&mut t, "installed toolchains")?;
 
         let default_toolchain_name = cfg.get_default()?;
-
         let last_index = installed_toolchains.len().wrapping_sub(1);
         for (n, toolchain_name) in installed_toolchains.into_iter().enumerate() {
             let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain_name);
@@ -1026,11 +1025,10 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
                 let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
                 writeln!(
                     cfg.process.stdout().lock(),
-                    "  {}",
-                    toolchain.rustc_version()
+                    "  {}\n  path: {}",
+                    toolchain.rustc_version(),
+                    toolchain.path().display()
                 )?;
-                // To make it easy to see which rustc belongs to which
-                // toolchain, we separate each pair with an extra newline.
                 if n != last_index {
                     writeln!(cfg.process.stdout().lock())?;
                 }
