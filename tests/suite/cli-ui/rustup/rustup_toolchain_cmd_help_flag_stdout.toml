@@ -2,7 +2,7 @@ bin.name = "rustup"
 args = ["toolchain", "--help"]
 stdout = """
 ...
-Modify or query the installed toolchains
+Install, uninstall, or list toolchains
 
 Usage: rustup[EXE] toolchain <COMMAND>
 

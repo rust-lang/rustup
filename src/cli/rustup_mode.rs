@@ -125,7 +125,7 @@ enum RustupSubcmd {
     #[command(hide = true)]
     DumpTestament,
 
-    /// Modify or query the installed toolchains
+    /// Install, uninstall, or list toolchains
     Toolchain {
         #[command(subcommand)]
         subcmd: ToolchainSubcmd,
