@@ -125,6 +125,23 @@ enum RustupSubcmd {
     #[command(hide = true)]
     DumpTestament,
 
+    /// Modify or query the installed toolchains
+    Toolchain {
+        #[command(subcommand)]
+        subcmd: ToolchainSubcmd,
+    },
+
+    /// Set the default toolchain
+    #[command(after_help = DEFAULT_HELP)]
+    Default {
+        #[arg(help = MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        toolchain: Option<MaybeResolvableToolchainName>,
+
+        /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
+        #[arg(long)]
+        force_non_host: bool,
+    },
+
     /// Show the active and installed toolchains or profiles
     #[command(after_help = SHOW_HELP)]
     Show {
@@ -161,23 +178,6 @@ enum RustupSubcmd {
 
     /// Check for updates to Rust toolchains and rustup
     Check,
-
-    /// Set the default toolchain
-    #[command(after_help = DEFAULT_HELP)]
-    Default {
-        #[arg(help = MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)]
-        toolchain: Option<MaybeResolvableToolchainName>,
-
-        /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
-        #[arg(long)]
-        force_non_host: bool,
-    },
-
-    /// Modify or query the installed toolchains
-    Toolchain {
-        #[command(subcommand)]
-        subcmd: ToolchainSubcmd,
-    },
 
     /// Modify a toolchain's supported targets
     Target {
