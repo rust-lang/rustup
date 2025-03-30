@@ -9,7 +9,7 @@ The Rust toolchain installer
 Usage: rustup[EXE] [OPTIONS] [+toolchain] [COMMAND]
 
 Commands:
-  toolchain    Modify or query the installed toolchains
+  toolchain    Install, uninstall, or list toolchains
   default      Set the default toolchain
   show         Show the active and installed toolchains or profiles
   update       Update Rust toolchains and rustup
