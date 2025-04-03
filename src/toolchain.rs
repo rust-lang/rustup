@@ -423,6 +423,19 @@ impl<'a> Toolchain<'a> {
         };
         let mut cmd = Command::new(path);
         self.set_env(&mut cmd);
+
+        // If we're running cargo and the `CARGO` environment variable is set
+        // to a rustup proxy then change `CARGO` to be the real cargo binary,
+        // but only if we know the absolute path to cargo.
+        // This works around an issue with old versions of cargo not updating
+        // the environment variable itself.
+        if Path::new(&binary).file_stem() == Some("cargo".as_ref()) && path.is_absolute() {
+            if let Some(cargo) = self.cfg.process.var_os("CARGO") {
+                if fs::read_link(&cargo).is_ok_and(|p| p.file_stem() == Some("rustup".as_ref())) {
+                    cmd.env("CARGO", path);
+                }
+            }
+        }
         Ok(cmd)
     }
 
