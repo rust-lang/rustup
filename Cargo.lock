@@ -575,26 +575,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "download"
-version = "1.28.1"
-dependencies = [
- "anyhow",
- "curl",
- "env_proxy",
- "http-body-util",
- "hyper",
- "hyper-util",
- "reqwest",
- "rustls",
- "rustls-platform-verifier",
- "tempfile",
- "thiserror 2.0.12",
- "tokio",
- "tokio-stream",
- "url",
-]
-
-[[package]]
 name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2257,13 +2237,17 @@ dependencies = [
  "chrono",
  "clap",
  "clap_complete",
- "download",
+ "curl",
  "effective-limits",
  "enum-map",
+ "env_proxy",
  "flate2",
  "fs_at",
  "git-testament",
  "home",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "itertools 0.14.0",
  "libc",
  "opener",
@@ -2277,8 +2261,11 @@ dependencies = [
  "rand 0.9.0",
  "regex",
  "remove_dir_all",
+ "reqwest",
  "retry",
  "rs_tracing",
+ "rustls",
+ "rustls-platform-verifier",
  "same-file",
  "scopeguard",
  "semver",

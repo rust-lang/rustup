@@ -3,10 +3,18 @@
 use std::fs::remove_file;
 use std::path::Path;
 
-use anyhow::Context;
-pub use anyhow::Result;
+#[cfg(any(
+    not(feature = "curl-backend"),
+    not(feature = "reqwest-rustls-tls"),
+    not(feature = "reqwest-native-tls")
+))]
+use anyhow::anyhow;
+use anyhow::{Context, Result};
 use thiserror::Error;
 use url::Url;
+
+#[cfg(test)]
+mod tests;
 
 /// User agent header value for HTTP request.
 /// See: https://github.com/rust-lang/rustup/issues/2860.
@@ -488,8 +496,6 @@ pub enum DownloadError {
     HttpStatus(u32),
     #[error("file not found")]
     FileNotFound,
-    #[error("download backend '{0}' unavailable")]
-    BackendUnavailable(&'static str),
     #[error("{0}")]
     Message(String),
     #[error(transparent)]
