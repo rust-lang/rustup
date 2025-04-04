@@ -164,7 +164,7 @@ pub(crate) async fn download_file_with_resume(
     notify_handler: &dyn Fn(Notification<'_>),
     process: &Process,
 ) -> Result<()> {
-    use download::DownloadError as DEK;
+    use crate::download::DownloadError as DEK;
     match download_file_(
         url,
         path,
@@ -213,8 +213,7 @@ async fn download_file_(
     process: &Process,
 ) -> Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use download::TlsBackend;
-    use download::{Backend, Event};
+    use crate::download::{TlsBackend, Backend, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -224,7 +223,7 @@ async fn download_file_(
 
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
-    let callback: &dyn Fn(Event<'_>) -> download::Result<()> = &|msg| {
+    let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
         if let Event::DownloadDataReceived(data) = msg {
             if let Some(h) = hasher.borrow_mut().as_mut() {
                 h.update(data);

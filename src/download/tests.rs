@@ -21,7 +21,7 @@ mod curl {
     use url::Url;
 
     use super::{serve_file, tmp_dir, write_file};
-    use download::*;
+    use crate::download::{Backend, Event};
 
     #[tokio::test]
     async fn partially_downloaded_file_gets_resumed_from_byte_offset() {
@@ -107,7 +107,7 @@ mod reqwest {
     use url::Url;
 
     use super::{serve_file, tmp_dir, write_file};
-    use download::{Backend, Event, TlsBackend};
+    use crate::download::{Backend, Event, TlsBackend};
 
     static SERIALISE_TESTS: LazyLock<tokio::sync::Mutex<()>> =
         LazyLock::new(|| tokio::sync::Mutex::new(()));
