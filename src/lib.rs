@@ -74,6 +74,7 @@ mod command;
 mod config;
 mod diskio;
 pub mod dist;
+mod download;
 pub mod env_var;
 pub mod errors;
 mod fallback_settings;
