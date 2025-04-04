@@ -14,6 +14,7 @@ use sha2::Sha256;
 use thiserror::Error;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 use tracing::info;
+use tracing::warn;
 use url::Url;
 
 use crate::{errors::RustupError, process::Process, utils::Notification};
@@ -124,8 +125,14 @@ async fn download_file_(
 
     // Keep the curl env var around for a bit
     let use_curl_backend = process.var_os("RUSTUP_USE_CURL").map(|it| it != "0");
-    let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
+    if use_curl_backend == Some(true) {
+        warn!(
+            "RUSTUP_USE_CURL is set; the curl backend is deprecated, please file an issue if the \
+            default download backend does not work for your use case"
+        );
+    }
 
+    let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
     let backend = match (use_curl_backend, use_rustls) {
         // If environment specifies a backend that's unavailable, error out
         #[cfg(not(feature = "reqwest-rustls-tls"))]
