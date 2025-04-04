@@ -8,6 +8,8 @@ use url::Url;
 
 use crate::dist::notifications::*;
 use crate::dist::temp;
+use crate::download::download_file;
+use crate::download::download_file_with_resume;
 use crate::errors::*;
 use crate::process::Process;
 use crate::utils;
@@ -73,7 +75,7 @@ impl<'a> DownloadCfg<'a> {
 
         let mut hasher = Sha256::new();
 
-        if let Err(e) = utils::download_file_with_resume(
+        if let Err(e) = download_file_with_resume(
             url,
             &partial_file_path,
             Some(&mut hasher),
@@ -134,7 +136,7 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        utils::download_file(
+        download_file(
             &hash_url,
             &hash_file,
             None,
@@ -179,7 +181,7 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        utils::download_file(
+        download_file(
             &url,
             &file,
             Some(&mut hasher),
