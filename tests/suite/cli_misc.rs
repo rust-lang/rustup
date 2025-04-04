@@ -1233,3 +1233,47 @@ async fn toolchain_install_multi_components_comma() {
             .await;
     }
 }
+
+#[tokio::test]
+async fn rustup_updates_cargo_env_if_proxy() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+
+    use std::env::consts::EXE_SUFFIX;
+    let proxy_path = cx
+        .config
+        .workdir
+        .borrow()
+        .join("bin")
+        .join(format!("cargo{EXE_SUFFIX}"));
+    let real_path = cx.config.run("rustup", &["which", "cargo"], &[]).await;
+    assert!(real_path.ok);
+    let real_path = real_path.stdout;
+
+    fs::create_dir_all(proxy_path.parent().unwrap()).unwrap();
+    #[cfg(windows)]
+    if std::os::windows::fs::symlink_file("rustup", &proxy_path).is_err() {
+        // skip this test on Windows if symlinking isn't enabled.
+        return;
+    }
+    #[cfg(unix)]
+    std::os::unix::fs::symlink("rustup", &proxy_path).unwrap();
+
+    // If CARGO isn't set then we should not set it.
+    cx.config
+        .expect_err(
+            &["cargo", "--echo-cargo-env"],
+            "CARGO environment variable not set",
+        )
+        .await;
+
+    // If CARGO is set to a proxy then change it to the real CARGO path
+    cx.config
+        .expect_ok_ex_env(
+            &["cargo", "--echo-cargo-env"],
+            &[("CARGO", proxy_path.to_str().unwrap())],
+            "",
+            &real_path,
+        )
+        .await;
+}

@@ -94,6 +94,14 @@ fn main() {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::var("PATH").unwrap()).unwrap();
         }
+        Some("--echo-cargo-env") => {
+            let mut out = io::stderr();
+            if let Ok(cargo) = std::env::var("CARGO") {
+                writeln!(out, "{cargo}").unwrap();
+            } else {
+                panic!("CARGO environment variable not set");
+            }
+        }
         arg => panic!("bad mock proxy commandline: {:?}", arg),
     }
 }
