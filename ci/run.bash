@@ -50,21 +50,6 @@ target_cargo() {
 
 target_cargo build
 
-download_pkg_test() {
-  features=('--no-default-features' '--features' 'curl-backend,reqwest-native-tls')
-  case "$TARGET" in
-    # these platforms aren't supported by ring:
-    powerpc* ) ;;
-    mips* ) ;;
-    riscv* ) ;;
-    s390x* ) ;;
-    # default case, build with rustls enabled
-    * ) features+=('--features' 'reqwest-rustls-tls') ;;
-  esac
-
-  cargo "$1" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${features[@]}" -p download
-}
-
 # Machines have 7GB of RAM, and our target/ contents is large enough that
 # thrashing will occur if we build-run-build-run rather than
 # build-build-build-run-run-run. Since this is used solely for non-release
@@ -73,12 +58,23 @@ download_pkg_test() {
 build_test() {
   cmd="$1"
   shift
-  download_pkg_test "${cmd}"
+
+  features=('--features' 'curl-backend,reqwest-native-tls')
+  case "$TARGET" in
+    # these platforms aren't supported by aws-lc-rs:
+    powerpc* ) ;;
+    mips* ) ;;
+    riscv* ) ;;
+    s390x* ) ;;
+    # default case, build with rustls enabled
+    * ) features+=('--features' 'reqwest-rustls-tls') ;;
+  esac
+
   if [ "build" = "${cmd}" ]; then
-    target_cargo "${cmd}" --workspace --all-targets --features test
+    target_cargo "${cmd}" --workspace --all-targets "${features[@]}" --features test
   else
-    target_cargo "${cmd}" --workspace --features test --tests
-    target_cargo "${cmd}" --doc --workspace --features test
+    target_cargo "${cmd}" --workspace "${features[@]}" --features test --tests
+    target_cargo "${cmd}" --doc --workspace "${features[@]}" --features test
   fi
 }
 
