@@ -1,8 +1,8 @@
 [package]
 name = "rustup"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "1.28.1"
+edition = "2024"
+license = "MIT OR Apache-2.0"
 description = "Manage multiple rust installations with ease"
 homepage = "https://github.com/rust-lang/rustup"
 keywords = ["rustup", "multirust", "install", "proxy"]
@@ -41,7 +41,7 @@ test = ["dep:walkdir"]
 
 # Sorted by alphabetic order
 [dependencies]
-anyhow.workspace = true
+anyhow = "1.0.69"
 cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help"] }
@@ -51,7 +51,7 @@ effective-limits = "0.5.5"
 enum-map = "2.5.0"
 env_proxy = { version = "0.4.1", optional = true }
 flate2 = "1"
-fs_at.workspace = true
+fs_at = "0.2.1"
 git-testament = "0.2"
 home = "0.5.4"
 itertools = "0.14"
@@ -60,9 +60,9 @@ opener = "0.7.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
 openssl = { version = "0.10", optional = true }
-opentelemetry = { workspace = true, optional = true }
-opentelemetry-otlp = { workspace = true, optional = true }
-opentelemetry_sdk = { workspace = true, optional = true }
+opentelemetry = { version = "0.29", optional = true }
+opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic"], optional = true }
+opentelemetry_sdk = { version = "0.29", features = ["rt-tokio"], optional = true }
 pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.9"
 regex = "1"
@@ -79,20 +79,20 @@ sha2 = "0.10"
 sharded-slab = "0.1.1"
 strsim = "0.11"
 tar = "0.4.26"
-tempfile.workspace = true
-termcolor.workspace = true
-thiserror.workspace = true
+tempfile = "3.8"
+termcolor = "1.2"
+thiserror = "2"
 threadpool = "1"
-tokio.workspace = true
-tokio-retry.workspace = true
-tokio-stream.workspace = true
+tokio = { version = "1.26.0", default-features = false, features = ["macros", "rt-multi-thread", "sync"] }
+tokio-retry = "0.3.0"
+tokio-stream = "0.1.14"
 toml = "0.8"
-tracing.workspace = true
-tracing-opentelemetry = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
-url.workspace = true
+tracing = "0.1"
+tracing-opentelemetry = { version = "0.30", optional = true }
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+url = "2.4"
 wait-timeout = "0.2"
-walkdir = { workspace = true, optional = true }
+walkdir = { version = "2", optional = true }
 xz2 = "0.1.3"
 zstd = "0.13"
 
@@ -128,46 +128,17 @@ enum-map = "2.5.0"
 http-body-util = "0.1.0"
 hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.1", features = ["tokio"] }
-platforms.workspace = true
-proptest.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+platforms = "3.4"
+proptest = "1.1.0"
 trycmd = "0.15.0"
 
 [build-dependencies]
-platforms.workspace = true
-
-[lints]
-workspace = true
-
-[workspace.package]
-version = "1.28.1"
-edition = "2024"
-license = "MIT OR Apache-2.0"
-
-[workspace.dependencies]
-anyhow = "1.0.69"
-fs_at = "0.2.1"
-opentelemetry = "0.29"
-opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic"] }
-opentelemetry_sdk = { version = "0.29", features = ["rt-tokio"] }
 platforms = "3.4"
-proptest = "1.1.0"
-tempfile = "3.8"
-termcolor = "1.2"
-thiserror = "2"
-tokio = { version = "1.26.0", default-features = false, features = ["macros", "rt-multi-thread"] }
-tokio-retry = { version = "0.3.0" }
-tokio-stream = { version = "0.1.14" }
-tracing = "0.1"
-tracing-opentelemetry = "0.30"
-tracing-subscriber = "0.3.16"
-url = "2.4"
-walkdir = "2"
 
-[workspace.lints.rust]
+[lints.rust]
 rust_2018_idioms = "deny"
 
-[workspace.lints.clippy]
+[lints.clippy]
 # `dbg!()` and `todo!()` clearly shouldn't make it to production:
 dbg_macro = "warn"
 todo = "warn"
