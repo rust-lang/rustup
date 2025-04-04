@@ -48,6 +48,7 @@ use same_file::Handle;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, trace, warn};
 
+use crate::download::download_file;
 use crate::{
     DUP_TOOLS, TOOLS,
     cli::{
@@ -1134,7 +1135,7 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
 
     // Download new version
     info!("downloading self-update");
-    utils::download_file(&download_url, &setup_path, None, &|_| (), process).await?;
+    download_file(&download_url, &setup_path, None, &|_| (), process).await?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
@@ -1153,7 +1154,7 @@ async fn get_available_rustup_version(process: &Process) -> Result<String> {
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(&release_file_url, &release_file, None, &|_| (), process).await?;
+    download_file(&release_file_url, &release_file, None, &|_| (), process).await?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml = toml::from_str::<RustupManifest>(&release_toml_str)
         .context("unable to parse rustup release file")?;
