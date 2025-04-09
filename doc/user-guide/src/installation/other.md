@@ -63,13 +63,16 @@ After installing rustup with your favorite package manager, there are usually tw
   ```
 
   This will allow you to perform the initial setup of `rustup`, populate all the proxies
-  managed by rustup, and install a default toolchain. When the installation is completed,
-  please make sure that these proxies (usually under `$HOME/.cargo/bin`) are exposed via your `$PATH`.
+  managed by rustup, and install a default toolchain.
 
   > As of 2024/12/23, this is the case for
   > [DNF](https://developer.fedoraproject.org/tech/languages/rust/further-reading.html).
 
-Now you should be able to run `rustup`, `rustc`, `cargo`, etc. normally.
+When the installation is completed, please make sure that the rustup proxies
+(usually under `$HOME/.cargo/bin`) are [correctly exposed] via your `$PATH`,
+and you should be able to run `rustup`, `rustc`, `cargo`, etc. normally.
+
+[correctly exposed]: ./already-installed-rust.html#ensure-the-correct-path-configuration
 
 ### APT
 
