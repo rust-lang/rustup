@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.28.2] - ?
+
+This new patch release has brought even more tiny fixes and improvements over the previous one.
+
+The headlines of this release are:
+
+- The cURL download backend is now officially deprecated and a warning will start to show up.
+  The rustup team encourages everyone to switch to the `reqwest` backend, and would love to hear from
+  you about your use case via GitHub Issues if it does work against your particular setup. [pr#4277]
+
+- Version pinning of `rustup` is now supported when installing it via `rustup-init.sh` with the `RUSTUP_VERSION`
+  environment variable set to e.g. `1.28.2`; the same configuration will be respected when performing
+  `rustup self update` from this version on, enabling arbitrary downgrades in the meantime. [pr#4259]
+
+- `rustup set auto-install disable` can now be used to disable automatic installation of the toolchain.
+  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable but with a lower priority. [pr#4254]
+
+- Fixed a bug in Nushell integration that might generate invalid commands in the shell configuration.
+  Reinstalling rustup might be required for the fix to work. [pr#4265]
+
+### Detailed changes
+
+- Fix build script `cargo` instructions by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4235
+- Allow copy&paste of documented registry keys into Regedit by @eugenesvk in https://github.com/rust-lang/rustup/pull/4244
+- document RUSTUP_AUTO_INSTALL by @ahl in https://github.com/rust-lang/rustup/pull/4247
+- Remove validation for custom toolchains when reading rust-toolchain.toml by @wesleywiser in https://github.com/rust-lang/rustup/pull/4250
+- Append Windows "bin" directory to `PATH` by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4249
+- fix(dist): refine suggestions about missing targets by @rami3l in https://github.com/rust-lang/rustup/pull/4253
+- Use `cursor: pointer` for copy button on website by @Noratrieb in https://github.com/rust-lang/rustup/pull/4255
+- Add `set auto-install disable` by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4254
+- fix(errors)!: improve error messages for `RustupError::ToolchainNotInstalled` by @rami3l in https://github.com/rust-lang/rustup/pull/4258
+- feat: allow version pinning & arbitrary downgrades via `RUSTUP_VERSION` by @rami3l in https://github.com/rust-lang/rustup/pull/4259
+- fix(cli/self-update): fix Nushell-related suggestions and scripts by @rami3l in https://github.com/rust-lang/rustup/pull/4265
+- Show toolchain paths in `rustup show -v` output by @CLoaKY233 in https://github.com/rust-lang/rustup/pull/4270
+- Tweak rustup help output by @djc in https://github.com/rust-lang/rustup/pull/4272
+- Update `CARGO` environment variable if it is set to a rustup proxy by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4275
+- Simplify download abstractions and start warning about curl usage by @djc in https://github.com/rust-lang/rustup/pull/4277
+- docs(user-guide): cover correct `$PATH` configuration for proxies by @rami3l in https://github.com/rust-lang/rustup/pull/4283
+
+[1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
+[pr#4254]: https://github.com/rust-lang/rustup/pull/4254
+[pr#4259]: https://github.com/rust-lang/rustup/pull/4259
+[pr#4265]: https://github.com/rust-lang/rustup/pull/4265
+[pr#4277]: https://github.com/rust-lang/rustup/pull/4277
+
 ## [1.28.1] - 2025-03-05
 
 This is a patch release to restore the automatic install behavior by default.
