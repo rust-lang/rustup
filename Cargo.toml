@@ -1,6 +1,6 @@
 [package]
 name = "rustup"
-version = "1.28.1"
+version = "1.28.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Manage multiple rust installations with ease"
