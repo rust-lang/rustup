@@ -2229,7 +2229,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.28.1"
+version = "1.28.2"
 dependencies = [
  "anyhow",
  "cc",
