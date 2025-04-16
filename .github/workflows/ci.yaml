@@ -137,6 +137,7 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
+          rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
@@ -301,6 +302,7 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
+          rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
@@ -471,6 +473,7 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
+          rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
