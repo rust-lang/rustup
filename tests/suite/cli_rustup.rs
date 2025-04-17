@@ -2517,13 +2517,13 @@ async fn file_override_not_installed_custom() {
     cx.config
         .expect_err(
             &["rustup", "show", "active-toolchain"],
-            "custom toolchain specified in override file",
+            "custom toolchain 'gumbo' specified in override file",
         )
         .await;
     cx.config
         .expect_err(
             &["rustc", "--version"],
-            "custom toolchain specified in override file",
+            "custom toolchain 'gumbo' specified in override file",
         )
         .await;
 }
@@ -2538,13 +2538,13 @@ async fn file_override_not_installed_custom_toml() {
     cx.config
         .expect_err(
             &["rustup", "show", "active-toolchain"],
-            "custom toolchain specified in override file",
+            "custom toolchain 'i-am-the-walrus' specified in override file",
         )
         .await;
     cx.config
         .expect_err(
             &["rustc", "--version"],
-            "custom toolchain specified in override file",
+            "custom toolchain 'i-am-the-walrus' specified in override file",
         )
         .await;
 }
