@@ -679,7 +679,8 @@ impl<'a> Cfg<'a> {
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
                         bail!(
-                            "custom toolchain specified in override file '{}' is not installed",
+                            "custom toolchain '{}' specified in override file '{}' is not installed",
+                            toolchain_name,
                             toolchain_file.display()
                         )
                     }
