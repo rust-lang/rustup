@@ -34,6 +34,7 @@ jobs: # skip-master skip-pr skip-stable
           - x86_64-unknown-illumos         # skip-pr skip-master
           - powerpc-unknown-linux-gnu      # skip-pr skip-master
           - powerpc64le-unknown-linux-gnu  # skip-pr skip-master
+          - powerpc64le-unknown-linux-musl # skip-pr skip-master
           - s390x-unknown-linux-gnu        # skip-pr skip-master
           - arm-linux-androideabi          # skip-pr skip-master
           - armv7-linux-androideabi        # skip-pr skip-master
