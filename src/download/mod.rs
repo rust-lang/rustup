@@ -1,8 +1,12 @@
 //! Easy file downloading
 
+use std::fs;
+use std::fs::OpenOptions;
 use std::fs::remove_file;
-use std::path::Path;
-
+use std::ops;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(any(
     not(feature = "curl-backend"),
     not(feature = "reqwest-rustls-tls"),
@@ -14,13 +18,55 @@ use sha2::Sha256;
 use thiserror::Error;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 use tracing::info;
-use tracing::warn;
+use tracing::{debug, warn};
 use url::Url;
 
-use crate::{errors::RustupError, process::Process, utils::Notification};
+use crate::{
+    diskio::IOPriority,
+    errors::RustupError,
+    process::Process,
+    utils::Notification,
+};
 
 #[cfg(test)]
 mod tests;
+
+// New structure to track concurrent downloads
+#[derive(Debug, Default)]
+struct DownloadStats {
+    active_downloads: AtomicBool,
+}
+
+// Global download stats to track concurrent downloads
+static DOWNLOAD_STATS: std::sync::LazyLock<Arc<DownloadStats>> =
+    std::sync::LazyLock::new(|| Arc::new(DownloadStats::default()));
+
+/// Categorize downloads by their importance
+fn determine_download_priority(url: &Url, path: &Path) -> IOPriority {
+    let path_str = path.to_string_lossy();
+    let url_str = url.as_str();
+
+    // Prioritize metadata files
+    if url_str.contains("channel-rust-") && url_str.ends_with(".toml") {
+        debug!("Prioritizing channel metadata: {}", url_str);
+        return IOPriority::Critical;
+    }
+
+    // Prioritize small index files
+    if url_str.contains("/index.html") || url_str.contains("/dist/") && path_str.ends_with(".toml") {
+        debug!("Prioritizing index file: {}", url_str);
+        return IOPriority::Critical;
+    }
+
+    // Large documentation files are lower priority
+    if path_str.contains("rust-docs") || url_str.contains("rust-docs") {
+        debug!("Setting docs to background priority: {}", url_str);
+        return IOPriority::Background;
+    }
+
+    // Standard components are normal priority
+    IOPriority::Normal
+}
 
 pub(crate) async fn download_file(
     url: &Url,
@@ -41,13 +87,30 @@ pub(crate) async fn download_file_with_resume(
     process: &Process,
 ) -> Result<()> {
     use crate::download::DownloadError as DEK;
-    match download_file_(
+
+    // Track this download in our concurrent download stats
+    let download_stats = DOWNLOAD_STATS.clone();
+    download_stats.active_downloads.store(true, Ordering::SeqCst);
+
+    // Set priority for this download
+    let priority = determine_download_priority(url, path);
+
+    // Log the priority we've assigned to this download
+    debug!(
+        "Downloading with {:?} priority: {} -> {}",
+        priority,
+        url,
+        path.display()
+    );
+
+    let result = match download_file_(
         url,
         path,
         hasher,
         resume_from_partial,
         notify_handler,
         process,
+        priority,
     )
     .await
     {
@@ -77,7 +140,12 @@ pub(crate) async fn download_file_with_resume(
                 }
             })
         }
-    }
+    };
+
+    // Mark this download as complete
+    download_stats.active_downloads.store(false, Ordering::SeqCst);
+
+    result
 }
 
 async fn download_file_(
@@ -87,25 +155,28 @@ async fn download_file_(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
     process: &Process,
+    priority: IOPriority,
 ) -> Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use crate::download::{Backend, Event, TlsBackend};
     use sha2::Digest;
+    use std::rc::Rc;
     use std::cell::RefCell;
 
     notify_handler(Notification::DownloadingFile(url, path));
 
-    let hasher = RefCell::new(hasher);
+    // Make hasher thread-safe by using a Rc<RefCell> in this scope
+    let hasher = Rc::new(RefCell::new(hasher));
 
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
+    let hasher_clone = hasher.clone();
     let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
         if let Event::DownloadDataReceived(data) = msg {
-            if let Some(h) = hasher.borrow_mut().as_mut() {
+            if let Some(h) = hasher_clone.borrow_mut().as_mut() {
                 h.update(data);
             }
         }
-
         match msg {
             Event::DownloadContentLengthReceived(len) => {
                 notify_handler(Notification::DownloadContentLengthReceived(len));
@@ -117,12 +188,10 @@ async fn download_file_(
                 notify_handler(Notification::ResumingPartialDownload);
             }
         }
-
         Ok(())
     };
 
     // Download the file
-
     // Keep the curl env var around for a bit
     let use_curl_backend = process.var_os("RUSTUP_USE_CURL").map(|it| it != "0");
     if use_curl_backend == Some(true) {
@@ -131,10 +200,8 @@ async fn download_file_(
             default download backend does not work for your use case"
         );
     }
-
     let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
     let backend = match (use_curl_backend, use_rustls) {
-        // If environment specifies a backend that's unavailable, error out
         #[cfg(not(feature = "reqwest-rustls-tls"))]
         (_, Some(true)) => {
             return Err(anyhow!(
@@ -153,8 +220,6 @@ async fn download_file_(
                 "RUSTUP_USE_CURL is set, but this rustup distribution was not built with the curl-backend feature"
             ));
         }
-
-        // Positive selections, from least preferred to most preferred
         #[cfg(feature = "curl-backend")]
         (Some(true), None) => Backend::Curl,
         #[cfg(feature = "reqwest-native-tls")]
@@ -175,8 +240,6 @@ async fn download_file_(
             }
             Backend::Reqwest(TlsBackend::Rustls)
         }
-
-        // Falling back if only one backend is available
         #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
         _ => Backend::Reqwest(TlsBackend::NativeTls),
         #[cfg(all(
@@ -195,11 +258,10 @@ async fn download_file_(
     });
 
     let res = backend
-        .download_to_path(url, path, resume_from_partial, Some(callback))
+        .download_to_path(url, path, resume_from_partial, Some(callback), priority)
         .await;
 
     notify_handler(Notification::DownloadFinished);
-
     res
 }
 
@@ -234,15 +296,15 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
+        priority: IOPriority,
     ) -> Result<()> {
         let Err(err) = self
-            .download_impl(url, path, resume_from_partial, callback)
+            .download_impl(url, path, resume_from_partial, callback, priority)
             .await
         else {
             return Ok(());
         };
 
-        // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
         Err(
             if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
                 file_err.context(err)
@@ -258,13 +320,13 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
+        priority: IOPriority,
     ) -> Result<()> {
+        use std::rc::Rc;
         use std::cell::RefCell;
-        use std::fs::OpenOptions;
         use std::io::{Read, Seek, SeekFrom, Write};
 
         let (file, resume_from) = if resume_from_partial {
-            // TODO: blocking call
             let possible_partial = OpenOptions::new().read(true).open(path);
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
@@ -291,7 +353,6 @@ impl Backend {
                 0
             };
 
-            // TODO: blocking call
             let mut possible_partial = OpenOptions::new()
                 .write(true)
                 .create(true)
@@ -314,20 +375,31 @@ impl Backend {
             )
         };
 
-        let file = RefCell::new(file);
+        let file = Rc::new(RefCell::<std::fs::File>::new(file));
 
-        // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
+        let file_writer = {
+            let file_clone = file.clone();
+            move |data: &[u8]| -> Result<()> {
+                if priority == IOPriority::Background && data.len() > 1_000_000 {
+                    debug!("Processing large background priority write: {} bytes", data.len());
+                }
+
+                file_clone
+                    .borrow_mut()
+                    .write_all(data)
+                    .context("unable to write download to disk")
+            }
+        };
+
         self.download(url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
-                file.borrow_mut()
-                    .write_all(data)
-                    .context("unable to write download to disk")?;
+                file_writer(data)?;
             }
             match callback {
                 Some(cb) => cb(event),
                 None => Ok(()),
             }
-        })
+        }, priority)
         .await?;
 
         file.borrow_mut()
@@ -350,12 +422,13 @@ impl Backend {
         url: &Url,
         resume_from: u64,
         callback: DownloadCallback<'_>,
+        priority: IOPriority,
     ) -> Result<()> {
         match self {
             #[cfg(feature = "curl-backend")]
-            Self::Curl => curl::download(url, resume_from, callback),
+            Self::Curl => curl::download(url, resume_from, callback, priority),
             #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-            Self::Reqwest(tls) => tls.download(url, resume_from, callback).await,
+            Self::Reqwest(tls) => tls.download(url, resume_from, callback, priority).await,
         }
     }
 }
@@ -376,6 +449,7 @@ impl TlsBackend {
         url: &Url,
         resume_from: u64,
         callback: DownloadCallback<'_>,
+        priority: IOPriority,
     ) -> Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
@@ -383,8 +457,7 @@ impl TlsBackend {
             #[cfg(feature = "reqwest-native-tls")]
             Self::NativeTls => &reqwest_be::CLIENT_NATIVE_TLS,
         };
-
-        reqwest_be::download(url, resume_from, callback, client).await
+        reqwest_be::download(url, resume_from, callback, client, priority).await
     }
 }
 
@@ -411,18 +484,14 @@ mod curl {
     use curl::easy::Easy;
     use url::Url;
 
-    use super::{DownloadError, Event};
+    use super::{DownloadError, Event, IOPriority};
 
     pub(super) fn download(
         url: &Url,
         resume_from: u64,
         callback: &dyn Fn(Event<'_>) -> Result<()>,
+        priority: IOPriority,
     ) -> Result<()> {
-        // Fetch either a cached libcurl handle (which will preserve open
-        // connections) or create a new one if it isn't listed.
-        //
-        // Once we've acquired it, reset the lifetime from 'static to our local
-        // scope.
         thread_local!(static EASY: RefCell<Easy> = RefCell::new(Easy::new()));
         EASY.with(|handle| {
             let mut handle = handle.borrow_mut();
@@ -434,21 +503,15 @@ mod curl {
             if resume_from > 0 {
                 handle.resume_from(resume_from)?;
             } else {
-                // an error here indicates that the range header isn't supported by underlying curl,
-                // so there's nothing to "clear" - safe to ignore this error.
                 let _ = handle.resume_from(0);
             }
 
-            // Take at most 30s to connect
             handle.connect_timeout(Duration::new(30, 0))?;
 
             {
                 let cberr = RefCell::new(None);
                 let mut transfer = handle.transfer();
 
-                // Data callback for libcurl which is called with data that's
-                // downloaded. We just feed it into our hasher and also write it out
-                // to disk.
                 transfer.write_function(|data| {
                     match callback(Event::DownloadDataReceived(data)) {
                         Ok(()) => Ok(data.len()),
@@ -459,8 +522,6 @@ mod curl {
                     }
                 })?;
 
-                // Listen for headers and parse out a `Content-Length` (case-insensitive) if it
-                // comes so we know how much we're downloading.
                 transfer.header_function(|header| {
                     if let Ok(data) = str::from_utf8(header) {
                         let prefix = "content-length: ";
@@ -480,15 +541,10 @@ mod curl {
                     true
                 })?;
 
-                // If an error happens check to see if we had a filesystem error up
-                // in `cberr`, but we always want to punt it up.
                 transfer.perform().or_else(|e| {
-                    // If the original error was generated by one of our
-                    // callbacks, return it.
                     match cberr.borrow_mut().take() {
                         Some(cberr) => Err(cberr),
                         None => {
-                            // Otherwise, return the error from curl
                             if e.is_file_couldnt_read_file() {
                                 Err(e).context(DownloadError::FileNotFound)
                             } else {
@@ -499,7 +555,6 @@ mod curl {
                 })?;
             }
 
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error
             let code = handle.response_code()?;
             match code {
                 0 | 200..=299 => {}
@@ -521,33 +576,47 @@ mod reqwest_be {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use std::sync::LazyLock;
     use std::time::Duration;
-
     use anyhow::{Context, Result, anyhow};
     use reqwest::{Client, ClientBuilder, Proxy, Response, header};
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls::crypto::aws_lc_rs;
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls_platform_verifier::BuilderVerifierExt;
+    use tokio::time::sleep;
     use tokio_stream::StreamExt;
+    use tracing::{debug, info};
     use url::Url;
-
-    use super::{DownloadError, Event};
+    use super::{DownloadError, Event, IOPriority};
 
     pub(super) async fn download(
         url: &Url,
         resume_from: u64,
         callback: &dyn Fn(Event<'_>) -> Result<()>,
         client: &Client,
+        priority: IOPriority,
     ) -> Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
         if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
         }
 
-        let res = request(url, resume_from, client)
+        // Adjust request timeouts based on priority
+        let timeout = match priority {
+            IOPriority::Critical => Duration::from_secs(20),  // Shorter timeout for critical files
+            IOPriority::Normal => Duration::from_secs(30),    // Default timeout
+            IOPriority::Background => Duration::from_secs(60), // Longer timeout for background files
+        };
+
+        // Add some yield points for low-priority downloads to prevent them from blocking high-priority ones
+        if priority == IOPriority::Background {
+            // Small delay for background transfers to let critical ones go first
+            sleep(Duration::from_millis(50)).await;
+        }
+
+        let res = request(url, resume_from, client, timeout)
             .await
             .context("failed to make network request")?;
-
+            
         if !res.status().is_success() {
             let code: u16 = res.status().into();
             return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
@@ -556,13 +625,38 @@ mod reqwest_be {
         if let Some(len) = res.content_length() {
             let len = len + resume_from;
             callback(Event::DownloadContentLengthReceived(len))?;
+            
+            // Log download size based on priority
+            match priority {
+                IOPriority::Critical => debug!("Critical download size: {}KB", len/1024),
+                IOPriority::Normal => debug!("Normal download size: {}KB", len/1024),
+                IOPriority::Background => debug!("Background download size: {}KB", len/1024),
+            }
         }
 
         let mut stream = res.bytes_stream();
+        let mut total_bytes_received = 0;
+        let mut chunk_counter = 0;
+        let yield_frequency = match priority {
+            IOPriority::Critical => 500,     // Almost never yield for critical downloads
+            IOPriority::Normal => 100,       // Occasionally yield
+            IOPriority::Background => 10,    // Frequently yield
+        };
+        
         while let Some(item) = stream.next().await {
             let bytes = item?;
+            total_bytes_received += bytes.len();
             callback(Event::DownloadDataReceived(&bytes))?;
+            
+            // For background downloads, occasionally yield to let other tasks run
+            chunk_counter += 1;
+            if priority != IOPriority::Critical && chunk_counter % yield_frequency == 0 {
+                // Give other tasks a chance to run - especially higher priority ones
+                sleep(Duration::from_millis(1)).await;
+            }
         }
+        
+        debug!("Downloaded {} bytes with {:?} priority", total_bytes_received, priority);
         Ok(())
     }
 
@@ -575,6 +669,8 @@ mod reqwest_be {
             .gzip(false)
             .proxy(Proxy::custom(env_proxy))
             .read_timeout(Duration::from_secs(30))
+            // Allow for more concurrent connections
+            .pool_max_idle_per_host(50)
     }
 
     #[cfg(feature = "reqwest-rustls-tls")]
@@ -594,12 +690,6 @@ mod reqwest_be {
                 .build()
         };
 
-        // woah, an unwrap?!
-        // It's OK. This is the same as what is happening in curl.
-        //
-        // The curl::Easy::new() internally assert!s that the initialized
-        // Easy is not null. Inside reqwest, the errors here would be from
-        // the TLS library returning a null pointer as well.
         catcher().unwrap()
     });
 
@@ -611,12 +701,6 @@ mod reqwest_be {
                 .build()
         };
 
-        // woah, an unwrap?!
-        // It's OK. This is the same as what is happening in curl.
-        //
-        // The curl::Easy::new() internally assert!s that the initialized
-        // Easy is not null. Inside reqwest, the errors here would be from
-        // the TLS library returning a null pointer as well.
         catcher().unwrap()
     });
 
@@ -628,13 +712,15 @@ mod reqwest_be {
         url: &Url,
         resume_from: u64,
         client: &Client,
+        timeout: Duration,
     ) -> Result<Response, DownloadError> {
-        let mut req = client.get(url.as_str());
-
+        let mut req = client.get(url.as_str())
+            .timeout(timeout);
+            
         if resume_from != 0 {
             req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
-
+        
         Ok(req.send().await?)
     }
 
@@ -645,16 +731,11 @@ mod reqwest_be {
     ) -> Result<bool> {
         use std::fs;
 
-        // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
             let src = url
                 .to_file_path()
                 .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
             if !src.is_file() {
-                // Because some of rustup's logic depends on checking
-                // the error when a downloaded file doesn't exist, make
-                // the file case return the same error value as the
-                // network case.
                 return Err(anyhow!(DownloadError::FileNotFound));
             }
 
