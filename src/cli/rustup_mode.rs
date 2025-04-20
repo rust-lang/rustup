@@ -10,8 +10,9 @@ use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
 use clap_complete::Shell;
 use itertools::Itertools;
-use tracing::{info, trace, warn};
+use tracing::{info, trace, warn, debug};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
+use sys_info;
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -77,6 +78,10 @@ struct Rustup {
     /// Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset
     #[arg(short, long, conflicts_with = "verbose")]
     quiet: bool,
+
+    /// Enable concurrent downloads and I/O operations
+    #[arg(long)]
+    concurrent: bool,
 
     /// Release channel (e.g. +stable) or custom toolchain to set override
     #[arg(
@@ -592,6 +597,34 @@ pub async fn main(
     };
 
     update_console_filter(process, &console_filter, matches.quiet, matches.verbose);
+
+    // Configure concurrency mode if specified
+    if matches.concurrent {
+        // Set up environment variables to enable concurrent operations
+        info!("Enabling concurrent downloads and I/O operations");
+        unsafe {
+            std::env::set_var("RUSTUP_IO_THREADS", "0"); // Use auto-detected optimal thread count
+        }
+        
+        // Based on system memory, set a reasonable RAM budget for I/O operations
+        if std::env::var("RUSTUP_RAM_BUDGET").is_err() {
+            if let Ok(mem_info) = sys_info::mem_info() {
+                let total_ram = mem_info.total as usize * 1024; // Convert to bytes
+                let ram_budget = total_ram / 10; // Use 10% of system memory
+                unsafe {
+                    std::env::set_var("RUSTUP_RAM_BUDGET", ram_budget.to_string());
+                }
+                debug!("Auto-configured RAM budget to {} MB", ram_budget / (1024 * 1024));
+            }
+        }
+    } else {
+        // Ensure we use the non-concurrent mode for compatibility
+        if std::env::var("RUSTUP_IO_THREADS").is_err() {
+            unsafe {
+                std::env::set_var("RUSTUP_IO_THREADS", "1"); // Use single-threaded I/O
+            }
+        }
+    }
 
     let cfg = &mut common::set_globals(current_dir, matches.quiet, process)?;
 
@@ -1700,6 +1733,7 @@ impl clap::ValueEnum for CompletionCommand {
     }
 }
 
+// Implementation outside of the ValueEnum trait
 impl fmt::Display for CompletionCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.to_possible_value() {
@@ -1727,7 +1761,6 @@ fn output_completion_script(
             if let Shell::Zsh = shell {
                 writeln!(process.stdout().lock(), "#compdef cargo")?;
             }
-
             let script = match shell {
                 Shell::Bash => "/etc/bash_completion.d/cargo",
                 Shell::Zsh => "/share/zsh/site-functions/_cargo",
@@ -1739,7 +1772,6 @@ fn output_completion_script(
                     ));
                 }
             };
-
             writeln!(
                 process.stdout().lock(),
                 "if command -v rustc >/dev/null 2>&1; then\n\
@@ -1748,6 +1780,5 @@ fn output_completion_script(
             )?;
         }
     }
-
     Ok(utils::ExitCode(0))
 }
