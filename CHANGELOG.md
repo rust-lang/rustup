@@ -6,9 +6,16 @@ This new patch release has brought even more tiny fixes and improvements over th
 
 The headlines of this release are:
 
-- The cURL download backend is now officially deprecated and a warning will start to show up.
-  The rustup team encourages everyone to switch to the `reqwest` backend, and would love to hear from
-  you about your use case via GitHub Issues if it does work against your particular setup. [pr#4277]
+- The cURL download backend is now officially deprecated and a warning will start to show up when it is used. [pr#4277]
+
+  - While rustup predates reqwest and rustls, the rustup team has long wanted to standardize on
+    an HTTP + TLS stack in Rust, which should increase security, potentially improve performance, and
+    simplify maintenance of the project.
+    With the default download backend already switched to reqwest since [2019](https://github.com/rust-lang/rustup/pull/1660),
+    the team thinks it is time to start removing the cURL backend and focus on maintaining the Rust-based stack.
+
+  - The rustup team encourages everyone to switch to the reqwest backend, and would love to hear from
+    you about your use case via GitHub Issues if it does work against your particular setup.
 
 - Version pinning of `rustup` is now supported when installing it via `rustup-init.sh` with the `RUSTUP_VERSION`
   environment variable set to e.g. `1.28.2`; the same configuration will be respected when performing
