@@ -31,7 +31,7 @@ The headlines of this release are:
 
 - Fix build script `cargo` instructions by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4235
 - Allow copy&paste of documented registry keys into Regedit by @eugenesvk in https://github.com/rust-lang/rustup/pull/4244
-- document RUSTUP_AUTO_INSTALL by @ahl in https://github.com/rust-lang/rustup/pull/4247
+- document RUSTUP\_AUTO\_INSTALL by @ahl in https://github.com/rust-lang/rustup/pull/4247
 - Remove validation for custom toolchains when reading rust-toolchain.toml by @wesleywiser in https://github.com/rust-lang/rustup/pull/4250
 - Append Windows "bin" directory to `PATH` by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4249
 - fix(dist): refine suggestions about missing targets by @rami3l in https://github.com/rust-lang/rustup/pull/4253
@@ -45,6 +45,10 @@ The headlines of this release are:
 - Update `CARGO` environment variable if it is set to a rustup proxy by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4275
 - Simplify download abstractions and start warning about curl usage by @djc in https://github.com/rust-lang/rustup/pull/4277
 - docs(user-guide): cover correct `$PATH` configuration for proxies by @rami3l in https://github.com/rust-lang/rustup/pull/4283
+- Add toolchain\_name to not installed bail msg by @jmqd in https://github.com/rust-lang/rustup/pull/4293
+- Add powerpc64le-unknown-linux-musl support by @Gelbpunkt in https://github.com/rust-lang/rustup/pull/4294
+- Use `RUSTUP_HARDLINK_PROXIES` environment variable to hard link proxies by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4295
+- Switch flate2 to use the zlib-rs backend by @joshtriplett in https://github.com/rust-lang/rustup/pull/4297
 
 [1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
 [pr#4254]: https://github.com/rust-lang/rustup/pull/4254
