@@ -549,7 +549,7 @@ enum SetSubcmd {
     },
 }
 
-#[tracing::instrument(level = "trace", fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>())))]
+#[tracing::instrument(level = "trace", fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>())), skip(process, console_filter))]
 pub async fn main(
     current_dir: PathBuf,
     process: &Process,

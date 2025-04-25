@@ -9,7 +9,7 @@ use crate::{
     toolchain::ResolvableLocalToolchainName,
 };
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(process))]
 pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result<ExitStatus> {
     self_update::cleanup_self_updater(process)?;
 
