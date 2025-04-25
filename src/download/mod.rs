@@ -529,6 +529,7 @@ mod reqwest_be {
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls_platform_verifier::BuilderVerifierExt;
     use tokio_stream::StreamExt;
+    use tracing::error;
     use url::Url;
 
     use super::{DownloadError, Event};
@@ -546,7 +547,8 @@ mod reqwest_be {
 
         let res = request(url, resume_from, client)
             .await
-            .context("failed to make network request")?;
+            .inspect_err(|error| error!(%error, "failed to download file"))
+            .context("error downloading file")?;
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
