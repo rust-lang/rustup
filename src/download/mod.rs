@@ -581,17 +581,17 @@ mod reqwest_be {
 
     #[cfg(feature = "reqwest-rustls-tls")]
     pub(super) static CLIENT_RUSTLS_TLS: LazyLock<Client> = LazyLock::new(|| {
+        let mut tls_config =
+            rustls::ClientConfig::builder_with_provider(Arc::new(aws_lc_rs::default_provider()))
+                .with_safe_default_protocol_versions()
+                .unwrap()
+                .with_platform_verifier()
+                .with_no_client_auth();
+        tls_config.alpn_protocols = vec![b"http/1.1".to_vec()];
+
         let catcher = || {
             client_generic()
-                .use_preconfigured_tls(
-                    rustls::ClientConfig::builder_with_provider(Arc::new(
-                        aws_lc_rs::default_provider(),
-                    ))
-                    .with_safe_default_protocol_versions()
-                    .unwrap()
-                    .with_platform_verifier()
-                    .with_no_client_auth(),
-                )
+                .use_preconfigured_tls(tls_config)
                 .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
                 .build()
         };
