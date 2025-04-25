@@ -73,7 +73,7 @@ struct RustupInit {
     dump_testament: bool,
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(process, console_filter))]
 pub async fn main(
     current_dir: PathBuf,
     process: &Process,
