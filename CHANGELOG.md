@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.28.2] - ?
+## [1.28.2] - 2025-04-25
 
 This new patch release has brought even more tiny fixes and improvements over the previous one.
 
@@ -49,6 +49,11 @@ The headlines of this release are:
 - Add powerpc64le-unknown-linux-musl support by @Gelbpunkt in https://github.com/rust-lang/rustup/pull/4294
 - Use `RUSTUP_HARDLINK_PROXIES` environment variable to hard link proxies by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4295
 - Switch flate2 to use the zlib-rs backend by @joshtriplett in https://github.com/rust-lang/rustup/pull/4297
+- feat(cli/rustup-mode): add aliases to `rustup component remove` by @rami3l in https://github.com/rust-lang/rustup/pull/4304
+- Skip span fields by @djc in https://github.com/rust-lang/rustup/pull/4306
+- Log original download errors immediately by @djc in https://github.com/rust-lang/rustup/pull/4307
+- download: show Debug representation for errors by @djc in https://github.com/rust-lang/rustup/pull/4309
+- Emit tracing events from log facade calls by @djc in https://github.com/rust-lang/rustup/pull/4310
 
 [1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
 [pr#4254]: https://github.com/rust-lang/rustup/pull/4254
