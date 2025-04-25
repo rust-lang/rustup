@@ -45,7 +45,7 @@ async fn main() -> Result<ExitCode> {
     let result = {
         #[cfg(feature = "otel")]
         let _telemetry_guard = log::set_global_telemetry();
-
+        tracing_log::LogTracer::init()?;
         let (subscriber, console_filter) = log::tracing_subscriber(&process);
         tracing::subscriber::set_global_default(subscriber)?;
         run_rustup(&process, console_filter).await
