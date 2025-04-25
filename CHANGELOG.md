@@ -6,23 +6,26 @@ This new patch release has brought even more tiny fixes and improvements over th
 
 The headlines of this release are:
 
-- The cURL download backend and the native-tls TLS backend are now officially deprecated and a warning will start to show up when they are used. [pr#4277]
+- The cURL download backend and the native-tls TLS backend are now officially deprecated and
+  a warning will start to show up when they are used. [pr#4277]
 
   - While rustup predates reqwest and rustls, the rustup team has long wanted to standardize on
     an HTTP + TLS stack in Rust, which should increase security, potentially improve performance, and
     simplify maintenance of the project.
-    With the default download backend already switched to reqwest since [2019](https://github.com/rust-lang/rustup/pull/1660)
-    the team thinks it is time to focus maintenance on the Rust-based stack.
+    With the default download backend already switched to reqwest since [2019][pr#1660], the team
+    thinks it is time to focus maintenance on the Rust-based stack.
 
   - The rustup team encourages everyone to switch to the reqwest backend, and would love to hear from
-    you about your use case via GitHub Issues if it does work against your particular setup.
+    you about your use case via [GitHub Issues][issue tracker] if it does not work well with your
+    particular setup.
 
-- Version pinning of `rustup` is now supported when installing it via `rustup-init.sh` with the `RUSTUP_VERSION`
-  environment variable set to e.g. `1.28.2`; the same configuration will be respected when performing
-  `rustup self update` from this version on, enabling arbitrary downgrades in the meantime. [pr#4259]
+- The version of `rustup` can be pinned when installing via `rustup-init.sh`, and
+  `rustup self update` can be used to upgrade/downgrade rustup v1.28.2+ to a given version.
+  To do so, set the `RUSTUP_VERSION` environment variable to the desired version (for example `1.28.2`).
 
 - `rustup set auto-install disable` can now be used to disable automatic installation of the toolchain.
-  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable but with a lower priority. [pr#4254]
+  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable introduced in v1.28.1 but with a
+  lower priority. [pr#4254]
 
 - Fixed a bug in Nushell integration that might generate invalid commands in the shell configuration.
   Reinstalling rustup might be required for the fix to work. [pr#4265]
@@ -63,6 +66,7 @@ The headlines of this release are:
 [pr#4259]: https://github.com/rust-lang/rustup/pull/4259
 [pr#4265]: https://github.com/rust-lang/rustup/pull/4265
 [pr#4277]: https://github.com/rust-lang/rustup/pull/4277
+[issue tracker]: https://github.com/rust-lang/rustup/issues/
 
 ## [1.28.1] - 2025-03-05
 
