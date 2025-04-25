@@ -3,13 +3,13 @@
 use std::fs::remove_file;
 use std::path::Path;
 
+use anyhow::Context;
 #[cfg(any(
     not(feature = "curl-backend"),
     not(feature = "reqwest-rustls-tls"),
     not(feature = "reqwest-native-tls")
 ))]
 use anyhow::anyhow;
-use anyhow::{Context, Result};
 use sha2::Sha256;
 use thiserror::Error;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
@@ -28,7 +28,7 @@ pub(crate) async fn download_file(
     hasher: Option<&mut Sha256>,
     notify_handler: &dyn Fn(Notification<'_>),
     process: &Process,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     download_file_with_resume(url, path, hasher, false, &notify_handler, process).await
 }
 
@@ -39,7 +39,7 @@ pub(crate) async fn download_file_with_resume(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
     process: &Process,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     use crate::download::DownloadError as DEK;
     match download_file_(
         url,
@@ -87,7 +87,7 @@ async fn download_file_(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
     process: &Process,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use crate::download::{Backend, Event, TlsBackend};
     use sha2::Digest;
@@ -234,7 +234,7 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         let Err(err) = self
             .download_impl(url, path, resume_from_partial, callback)
             .await
@@ -258,7 +258,7 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         use std::cell::RefCell;
         use std::fs::OpenOptions;
         use std::io::{Read, Seek, SeekFrom, Write};
@@ -350,7 +350,7 @@ impl Backend {
         url: &Url,
         resume_from: u64,
         callback: DownloadCallback<'_>,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         match self {
             #[cfg(feature = "curl-backend")]
             Self::Curl => curl::download(url, resume_from, callback),
@@ -376,7 +376,7 @@ impl TlsBackend {
         url: &Url,
         resume_from: u64,
         callback: DownloadCallback<'_>,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
             Self::Rustls => &reqwest_be::CLIENT_RUSTLS_TLS,
@@ -397,7 +397,7 @@ enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
-type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
+type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> anyhow::Result<()>;
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
@@ -522,7 +522,7 @@ mod reqwest_be {
     use std::sync::LazyLock;
     use std::time::Duration;
 
-    use anyhow::{Context, Result, anyhow};
+    use anyhow::{Context, anyhow};
     use reqwest::{Client, ClientBuilder, Proxy, Response, header};
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls::crypto::aws_lc_rs;
@@ -536,9 +536,9 @@ mod reqwest_be {
     pub(super) async fn download(
         url: &Url,
         resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> Result<()>,
+        callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
         client: &Client,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
         if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
@@ -641,8 +641,8 @@ mod reqwest_be {
     fn download_from_file_url(
         url: &Url,
         resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> Result<()>,
-    ) -> Result<bool> {
+        callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
+    ) -> anyhow::Result<bool> {
         use std::fs;
 
         // The file scheme is mostly for use by tests to mock the dist server
