@@ -457,6 +457,7 @@ enum ComponentSubcmd {
     },
 
     /// Remove a component from a Rust toolchain
+    #[command(aliases = ["uninstall", "rm", "delete", "del"])]
     Remove {
         #[arg(required = true, num_args = 1..)]
         component: Vec<String>,
