@@ -67,7 +67,7 @@ pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.9"
 regex = "1"
 remove_dir_all = { version = "1.0.0", features = ["parallel"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "socks", "stream"], optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "http2", "socks", "stream"], optional = true }
 retry = { version = "2", default-features = false, features = ["random"] }
 rs_tracing = { version = "1.1", features = ["rs_tracing"] }
 rustls = { version = "0.23", optional = true, default-features = false, features = ["logging", "aws_lc_rs", "tls12"] }
