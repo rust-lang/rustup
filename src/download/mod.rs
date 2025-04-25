@@ -547,7 +547,7 @@ mod reqwest_be {
 
         let res = request(url, resume_from, client)
             .await
-            .inspect_err(|error| error!(%error, "failed to download file"))
+            .inspect_err(|error| error!(?error, "failed to download file"))
             .context("error downloading file")?;
 
         if !res.status().is_success() {
