@@ -1,10 +1,8 @@
 //! Easy file downloading
 
-use std::fs;
 use std::fs::OpenOptions;
 use std::fs::remove_file;
-use std::ops;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::Context;

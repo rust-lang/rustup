@@ -521,11 +521,13 @@ impl Iterator for JoinIterator<'_, '_> {
     }
 }
 
+#[allow(dead_code)]
 struct SubmitIterator<'a, 'b> {
     executor: &'a Threaded<'b>,
     item: Cell<Option<Item>>,
 }
 
+#[allow(dead_code)]
 impl Iterator for SubmitIterator<'_, '_> {
     type Item = CompletedIo;
 

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::collections::HashMap;
 use anyhow::{Context, Result, anyhow};
-use futures::future::{join_all, FutureExt};
+use futures::future::FutureExt;
 use sha2::{Digest, Sha256};
 use tokio::sync::Semaphore;
 use tracing::{debug, info};
@@ -134,9 +134,6 @@ impl<'a> DownloadCfg<'a> {
         
         // Clone data needed for the download to make it thread-safe
         let url = url.clone();
-        let download_dir = self.download_dir.to_owned();
-        let partial_file_path_clone = partial_file_path.clone();
-        let target_file_clone = target_file.clone();
         let hash_str = hash.to_string();
         
         // Create a thread-safe notification handler wrapper
@@ -210,7 +207,8 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
-    // Download multiple files concurrently
+    // Mark this method as #[allow(dead_code)] to suppress the unused warning
+    #[allow(dead_code)]
     pub(crate) async fn download_many(&self, urls_and_hashes: Vec<(&Url, &str)>) -> Result<Vec<File>> {
         // Create a vector to store results
         let mut files = Vec::with_capacity(urls_and_hashes.len());

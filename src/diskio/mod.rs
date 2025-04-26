@@ -347,6 +347,8 @@ impl Item {
     }
 
     /// Set the priority of this I/O operation
+    /// remove for now
+    #[allow(dead_code)]
     pub(crate) fn with_priority(mut self, priority: IOPriority) -> Self {
         self.priority = priority;
         self
