@@ -8,6 +8,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result, anyhow, bail};
 use tokio_retry::{RetryIf, strategy::FixedInterval};
+use futures::stream::{self, StreamExt};
 
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
@@ -149,11 +150,8 @@ impl Manifestation {
 
         let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
 
-        // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
-        let mut things_downloaded: Vec<String> = Vec::new();
+        // Get list of component URLs and hashes
         let components = update.components_urls_and_hashes(new_manifest)?;
-
         const DEFAULT_MAX_RETRIES: usize = 3;
         let max_retries: usize = download_cfg
             .process
@@ -162,41 +160,71 @@ impl Manifestation {
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
-        for (component, format, url, hash) in components {
-            (download_cfg.notify_handler)(Notification::DownloadingComponent(
-                &component.short_name(new_manifest),
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+        // Download component packages concurrently and validate hashes
+        let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
+        let mut things_downloaded: Vec<String> = Vec::new();
+
+        // Prepare the download tasks
+        let download_tasks = components.into_iter().map(|(component, format, url, hash)| {
             let url = if altered {
                 url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
             } else {
                 url
             };
+            let url_url = utils::parse_url(&url).unwrap_or_else(|_| panic!("Invalid URL: {}", url));
+            let short_name = component.short_name(new_manifest);
+            let target_triple = self.target_triple.clone();
+            let target = component.target.clone();
+            let component_clone = component.clone();
+            let notify_handler = download_cfg.notify_handler;
 
-            let url_url = utils::parse_url(&url)?;
+            async move {
+                // Notify about downloading this component
+                (notify_handler)(Notification::DownloadingComponent(
+                    &short_name,
+                    &target_triple,
+                    target.as_ref(),
+                ));
 
-            let downloaded_file = RetryIf::spawn(
-                FixedInterval::from_millis(0).take(max_retries),
-                || download_cfg.download(&url_url, &hash),
-                |e: &anyhow::Error| {
-                    // retry only known retriable cases
-                    match e.downcast_ref::<RustupError>() {
-                        Some(RustupError::BrokenPartialFile)
-                        | Some(RustupError::DownloadingFile { .. }) => {
-                            (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                            true
+                // Download with retry
+                let downloaded_file = RetryIf::spawn(
+                    FixedInterval::from_millis(0).take(max_retries),
+                    || download_cfg.download(&url_url, &hash),
+                    |e: &anyhow::Error| {
+                        // retry only known retriable cases
+                        match e.downcast_ref::<RustupError>() {
+                            Some(RustupError::BrokenPartialFile)
+                            | Some(RustupError::DownloadingFile { .. }) => {
+                                (notify_handler)(Notification::RetryingDownload(&url));
+                                true
+                            }
+                            _ => false,
                         }
-                        _ => false,
-                    }
-                },
-            )
-            .await
-            .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
+                    },
+                )
+                .await
+                .with_context(|| RustupError::ComponentDownloadFailed(short_name.clone()));
 
-            things_downloaded.push(hash);
+                // Return the results
+                downloaded_file.map(|file| (component_clone, format, hash, file))
+            }
+        });
 
-            things_to_install.push((component, format, downloaded_file));
+        // Execute downloads with controlled concurrency
+        let download_results = stream::iter(download_tasks)
+            .buffer_unordered(16) // Allow up to 16 downloads to be processed concurrently
+            .collect::<Vec<_>>()
+            .await;
+
+        // Process the download results
+        for result in download_results {
+            match result {
+                Ok((component, format, hash, file)) => {
+                    things_downloaded.push(hash);
+                    things_to_install.push((component, format, file));
+                }
+                Err(e) => return Err(e),
+            }
         }
 
         // Begin transaction
@@ -223,7 +251,6 @@ impl Manifestation {
                 &self.target_triple,
                 component.target.as_ref(),
             ));
-
             tx = self.uninstall_component(
                 component,
                 new_manifest,
@@ -233,7 +260,7 @@ impl Manifestation {
             )?;
         }
 
-        // Install components
+        // Process installation sequentially to avoid conflicts
         for (component, format, installer_file) in things_to_install {
             // For historical reasons, the rust-installer component
             // names are not the same as the dist manifest component
@@ -242,13 +269,11 @@ impl Manifestation {
             let pkg_name = component.name_in_manifest();
             let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
-
             (download_cfg.notify_handler)(Notification::InstallingComponent(
                 &short_name,
                 &self.target_triple,
                 component.target.as_ref(),
             ));
-
             let notification_converter = |notification: crate::utils::Notification<'_>| {
                 (download_cfg.notify_handler)(notification.into());
             };
@@ -286,13 +311,11 @@ impl Manifestation {
                     &zst
                 }
             };
-
             // If the package doesn't contain the component that the
             // manifest says it does then somebody must be playing a joke on us.
             if !package.contains(&pkg_name, Some(short_pkg_name)) {
                 return Err(RustupError::CorruptComponent(short_name).into());
             }
-
             tx = package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)?;
         }
 
@@ -319,7 +342,6 @@ impl Manifestation {
 
         // End transaction
         tx.commit();
-
         download_cfg.clean(&things_downloaded)?;
 
         Ok(UpdateStatus::Changed)

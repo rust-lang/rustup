@@ -63,8 +63,10 @@ use std::sync::mpsc::Receiver;
 use std::thread::available_parallelism;
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
+use tracing::debug;
 
 use anyhow::{Context, Result};
+use sys_info;
 
 use crate::process::Process;
 use crate::utils::notifications::Notification;
@@ -76,6 +78,26 @@ pub(crate) enum FileBuffer {
     Immediate(Vec<u8>),
     // A reference to the object in the pool, and a handle to write to it
     Threaded(PoolReference),
+}
+
+impl PartialEq for FileBuffer {
+    fn eq(&self, other: &Self) -> bool {
+        self.deref() == other.deref()
+    }
+}
+
+impl Eq for FileBuffer {}
+
+impl PartialOrd for FileBuffer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for FileBuffer {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.deref().cmp(other.deref())
+    }
 }
 
 impl FileBuffer {
@@ -137,6 +159,37 @@ pub(crate) enum IncrementalFile {
     ThreadedReceiver(Receiver<FileBuffer>),
 }
 
+impl PartialEq for IncrementalFile {
+    fn eq(&self, other: &Self) -> bool {
+        // Just compare discriminants since Receiver cannot be compared
+        matches!(
+            (self, other),
+            (Self::ImmediateReceiver, Self::ImmediateReceiver) |
+            (Self::ThreadedReceiver(_), Self::ThreadedReceiver(_))
+        )
+    }
+}
+
+impl Eq for IncrementalFile {}
+
+impl PartialOrd for IncrementalFile {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for IncrementalFile {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // ImmediateReceiver is "less than" ThreadedReceiver
+        match (self, other) {
+            (Self::ImmediateReceiver, Self::ImmediateReceiver) => std::cmp::Ordering::Equal,
+            (Self::ImmediateReceiver, Self::ThreadedReceiver(_)) => std::cmp::Ordering::Less,
+            (Self::ThreadedReceiver(_), Self::ImmediateReceiver) => std::cmp::Ordering::Greater,
+            (Self::ThreadedReceiver(_), Self::ThreadedReceiver(_)) => std::cmp::Ordering::Equal,
+        }
+    }
+}
+
 // The basic idea is that in single threaded mode we get this pattern:
 // package budget io-layer
 // +<-claim->
@@ -176,11 +229,26 @@ pub(crate) enum IncrementalFile {
 // Error reporting is passed through the regular completion port, to avoid creating a new special case.
 
 /// What kind of IO operation to perform
-#[derive(Debug)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum Kind {
     Directory,
     File(FileBuffer),
     IncrementalFile(IncrementalFile),
+}
+
+/// Priority level for I/O operations
+/// Higher values indicate higher priority
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum IOPriority {
+    Critical,
+    Normal,
+    Background,
+}
+
+impl Default for IOPriority {
+    fn default() -> Self {
+        Self::Normal
+    }
 }
 
 /// The details of the IO operation
@@ -198,6 +266,32 @@ pub(crate) struct Item {
     pub(crate) result: io::Result<()>,
     /// The mode to apply
     mode: u32,
+    /// Priority of this operation
+    priority: IOPriority,
+}
+
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority == other.priority && self.full_path == other.full_path
+    }
+}
+
+impl Eq for Item {}
+
+impl PartialOrd for Item {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Item {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Sort by priority first (higher priority comes first)
+        match other.priority.cmp(&self.priority) {
+            std::cmp::Ordering::Equal => self.full_path.cmp(&other.full_path),
+            ordering => ordering,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -218,6 +312,7 @@ impl Item {
             finish: None,
             result: Ok(()),
             mode,
+            priority: IOPriority::default(),
         }
     }
 
@@ -229,6 +324,7 @@ impl Item {
             finish: None,
             result: Ok(()),
             mode,
+            priority: IOPriority::default(),
         }
     }
 
@@ -245,8 +341,22 @@ impl Item {
             finish: None,
             result: Ok(()),
             mode,
+            priority: IOPriority::default(),
         };
         Ok((result, Box::new(chunk_submit)))
+    }
+
+    /// Set the priority of this I/O operation
+    /// remove for now
+    #[allow(dead_code)]
+    pub(crate) fn with_priority(mut self, priority: IOPriority) -> Self {
+        self.priority = priority;
+        self
+    }
+
+    /// Get the priority of this I/O operation
+    pub(crate) fn priority(&self) -> IOPriority {
+        self.priority
     }
 }
 
@@ -448,15 +558,56 @@ pub(crate) fn get_executor<'a>(
     ram_budget: usize,
     process: &Process,
 ) -> Result<Box<dyn Executor + 'a>> {
+    // Calculate optimal thread count based on system characteristics
+    // Default is CPU count for CPU-bound systems, or 2x CPU count for I/O-bound operations
+    let default_thread_count = available_parallelism()
+        .map(|p| {
+            let cpu_count = p.get();
+            // Use more threads for I/O bound operations to hide latency
+            // but cap it to avoid too much overhead
+            std::cmp::min(cpu_count * 2, 16)
+        })
+        .unwrap_or(2);
+
     // If this gets lots of use, consider exposing via the config file.
     let thread_count = match process.var("RUSTUP_IO_THREADS") {
-        Err(_) => available_parallelism().map(|p| p.get()).unwrap_or(1),
+        Err(_) => default_thread_count,
         Ok(n) => n
             .parse::<usize>()
             .context("invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,
     };
+
+    // Calculate optimal memory budget based on system memory
+    // Default to 10% of system memory, or fallback to 256MB
+    let default_ram_budget = if ram_budget == 0 {
+        match sys_info::mem_info() {
+            Ok(mem) => {
+                let total_mem = mem.total as usize * 1024; // Convert to bytes
+                total_mem / 10 // Use 10% of system memory
+            }
+            Err(_) => 256 * 1024 * 1024, // Fallback to 256MB
+        }
+    } else {
+        ram_budget
+    };
+
+    // Allow overriding the memory budget via environment variable (maybe keep this but useful for testing on different systems right now)
+    let actual_ram_budget = match process.var("RUSTUP_RAM_BUDGET") {
+        Err(_) => default_ram_budget,
+        Ok(n) => n
+            .parse::<usize>()
+            .context("invalid value in RUSTUP_RAM_BUDGET. Must be in bytes")?,
+    };
+
+    // Log the chosen configuration for debugging
+    debug!(
+        "Using IO executor with thread_count={} and ram_budget={}MB",
+        thread_count,
+        actual_ram_budget / (1024 * 1024)
+    );
+
     Ok(match thread_count {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
-        n => Box::new(threaded::Threaded::new(notify_handler, n, ram_budget)),
+        n => Box::new(threaded::Threaded::new(notify_handler, n, actual_ram_budget)),
     })
 }

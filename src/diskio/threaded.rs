@@ -5,16 +5,18 @@
 /// very low latency per file, which even a few ms per syscall per file
 /// will cause minutes of wall clock time.
 use std::cell::{Cell, RefCell};
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
 use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
-
+use std::time::{Duration, Instant};
 use enum_map::{Enum, EnumMap, enum_map};
 use sharded_slab::pool::{OwnedRef, OwnedRefMut};
-use tracing::debug;
+use tracing::{debug, info};
 
-use super::{CompletedIo, Executor, Item, perform};
+use super::{CompletedIo, Executor, Item, perform, IOPriority};
 use crate::utils::notifications::Notification;
 use crate::utils::units::Unit;
 
@@ -105,6 +107,10 @@ pub(crate) struct Threaded<'a> {
     tx: Sender<Task>,
     vec_pools: EnumMap<Bucket, Pool>,
     ram_budget: usize,
+    last_adjustment: Instant,
+    operation_times: RefCell<Vec<Duration>>,
+    thread_count: usize,
+    pending_items: RefCell<BinaryHeap<(IOPriority, Instant, Item)>>,
 }
 
 impl<'a> Threaded<'a> {
@@ -114,10 +120,6 @@ impl<'a> Threaded<'a> {
         thread_count: usize,
         ram_budget: usize,
     ) -> Self {
-        // Defaults to hardware thread count threads; this is suitable for
-        // our needs as IO bound operations tend to show up as write latencies
-        // rather than close latencies, so we don't need to look at
-        // more threads to get more IO dispatched at this stage in the process.
         let pool = threadpool::Builder::new()
             .thread_name("CloseHandle".into())
             .num_threads(thread_count)
@@ -156,7 +158,6 @@ impl<'a> Threaded<'a> {
                 size: 16*1024*1024
             },
         };
-        // Ensure there is at least one each size buffer, so we can always make forward progress.
         for (_, pool) in &vec_pools {
             let key = pool
                 .pool
@@ -164,7 +165,6 @@ impl<'a> Threaded<'a> {
                 .unwrap();
             pool.pool.clear(key);
         }
-        // Since we've just *used* this memory, we had better have been allowed to!
         assert!(Threaded::ram_highwater(&vec_pools) < ram_budget);
         Self {
             n_files: Arc::new(AtomicUsize::new(0)),
@@ -174,6 +174,10 @@ impl<'a> Threaded<'a> {
             tx,
             vec_pools,
             ram_budget,
+            last_adjustment: Instant::now(),
+            operation_times: RefCell::new(Vec::with_capacity(100)),
+            thread_count,
+            pending_items: RefCell::new(BinaryHeap::new()),
         }
     }
 
@@ -203,6 +207,10 @@ impl<'a> Threaded<'a> {
         let tx = self.tx.clone();
         self.n_files.fetch_add(1, Ordering::Relaxed);
         let n_files = self.n_files.clone();
+        let start_time = Instant::now();
+        let operation_times = self.operation_times.clone();
+        let priority = item.priority();
+
         self.pool.execute(move || {
             let chunk_complete_callback = |size| {
                 tx.send(Task::Request(CompletedIo::Chunk(size)))
@@ -210,9 +218,111 @@ impl<'a> Threaded<'a> {
             };
             perform(&mut item, chunk_complete_callback);
             n_files.fetch_sub(1, Ordering::Relaxed);
+
+            let elapsed = start_time.elapsed();
+            if let Ok(mut times) = operation_times.try_borrow_mut() {
+                if times.len() < 100 {
+                    times.push(elapsed);
+                } else {
+                    times.remove(0);
+                    times.push(elapsed);
+                }
+            }
+
+            debug!("Completed {:?} priority operation in {:?}", priority, elapsed);
+
             tx.send(Task::Request(CompletedIo::Item(item)))
                 .expect("receiver should be listening");
         });
+    }
+
+    /// Queue an item for later processing
+    fn queue_item(&self, item: Item) {
+        let priority = item.priority();
+        let timestamp = Instant::now();
+        let mut queue = self.pending_items.borrow_mut();
+        queue.push((priority, timestamp, item));
+    }
+
+    /// Process queued items with respect to priority
+    fn process_queued_items(&self) -> bool {
+        if self.pool.queued_count() >= self.thread_count {
+            return false;
+        }
+
+        let mut queue = self.pending_items.borrow_mut();
+        if queue.is_empty() {
+            return false;
+        }
+
+        if let Some((priority, timestamp, item)) = queue.pop() {
+            let wait_time = timestamp.elapsed();
+            if wait_time > Duration::from_millis(100) {
+                debug!("Processing {:?} priority item after waiting {:?}", priority, wait_time);
+            }
+            self.submit(item);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn maybe_adjust_thread_count(&mut self) {
+        const ADJUSTMENT_INTERVAL: Duration = Duration::from_secs(5);
+
+        if self.last_adjustment.elapsed() < ADJUSTMENT_INTERVAL {
+            return;
+        }
+
+        let mut times = self.operation_times.borrow_mut();
+        if times.len() < 10 {
+            return;
+        }
+
+        times.sort();
+        let median = times[times.len() / 2];
+        let p95_idx = (times.len() as f32 * 0.95) as usize;
+        let p95 = times[p95_idx.min(times.len() - 1)];
+
+        let io_bound_factor = p95.as_millis() as f32 / median.as_millis().max(1) as f32;
+
+        let new_thread_count = if io_bound_factor > 3.0 {
+            let new_count = (self.thread_count + 2).min(32);
+            if new_count != self.thread_count {
+                debug!(
+                    "I/O bound detected (factor: {:.2}), increasing threads from {} to {}",
+                    io_bound_factor, self.thread_count, new_count
+                );
+            }
+            new_count
+        } else if io_bound_factor < 1.5 && self.thread_count > 2 {
+            let new_count = (self.thread_count - 1).max(2);
+            if new_count != self.thread_count {
+                debug!(
+                    "Low I/O variability (factor: {:.2}), decreasing threads from {} to {}",
+                    io_bound_factor, self.thread_count, new_count
+                );
+            }
+            new_count
+        } else {
+            self.thread_count
+        };
+
+        if new_thread_count != self.thread_count {
+            self.pool.join();
+
+            self.thread_count = new_thread_count;
+            self.pool = threadpool::Builder::new()
+                .thread_name("CloseHandle".into())
+                .num_threads(new_thread_count)
+                .thread_stack_size(1_048_576)
+                .build();
+
+            info!("Adjusted thread pool to {} threads", new_thread_count);
+        }
+
+        times.clear();
+        self.last_adjustment = Instant::now();
     }
 
     fn find_bucket(&self, capacity: usize) -> Bucket {
@@ -236,31 +346,57 @@ impl<'a> Threaded<'a> {
 
 impl Executor for Threaded<'_> {
     fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
-        // Yield any completed work before accepting new work - keep memory
-        // pressure under control
-        // - return an iterator that runs until we can submit and then submits
-        //   as its last action
-        Box::new(SubmitIterator {
-            executor: self,
-            item: Cell::new(Some(item)),
-        })
+        let priority = item.priority();
+        let threshold = match priority {
+            IOPriority::Critical => self.thread_count * 2,
+            IOPriority::Normal => self.thread_count,
+            IOPriority::Background => self.thread_count / 2,
+        };
+
+        if priority == IOPriority::Critical && self.pool.queued_count() < threshold {
+            debug!("Dispatching critical operation directly");
+            self.submit(item);
+            return Box::new(self.rx.try_iter().filter_map(|task| {
+                if let Task::Request(item) = task {
+                    self.reclaim(&item);
+                    Some(item)
+                } else {
+                    None
+                }
+            }));
+        }
+
+        if self.pool.queued_count() >= threshold {
+            debug!("Queueing {:?} priority operation (pool has {} items)", 
+                   priority, self.pool.queued_count());
+            self.queue_item(item);
+
+            self.process_queued_items();
+
+            Box::new(self.rx.try_iter().filter_map(|task| {
+                if let Task::Request(item) = task {
+                    self.reclaim(&item);
+                    Some(item)
+                } else {
+                    None
+                }
+            }))
+        } else {
+            self.submit(item);
+            Box::new(self.rx.try_iter().filter_map(|task| {
+                if let Task::Request(item) = task {
+                    self.reclaim(&item);
+                    Some(item)
+                } else {
+                    None
+                }
+            }))
+        }
     }
 
     fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
-        // Some explanation is in order. Even though the tar we are reading from (if
-        // any) will have had its FileWithProgress download tracking
-        // completed before we hit drop, that is not true if we are unwinding due to a
-        // failure, where the logical ownership of the progress bar is
-        // ambiguous, and as the tracker itself is abstracted out behind
-        // notifications etc we cannot just query for that. So: we assume no
-        // more reads of the underlying tar will take place: either the
-        // error unwinding will stop reads, or we completed; either way, we
-        // notify finished to the tracker to force a reset to zero; we set
-        // the units to files, show our progress, and set our units back
-        // afterwards. The largest archives today - rust docs - have ~20k
-        // items, and the download tracker's progress is confounded with
-        // actual handling of data today, we synthesis a data buffer and
-        // pretend to have bytes to deliver.
+        self.maybe_adjust_thread_count();
+
         let mut prev_files = self.n_files.load(Ordering::Relaxed);
         if let Some(handler) = self.notify_handler {
             handler(Notification::DownloadFinished);
@@ -273,8 +409,6 @@ impl Executor for Threaded<'_> {
             debug!("{prev_files} deferred IO operations");
         }
         let buf: Vec<u8> = vec![0; prev_files];
-        // Cheap wrap-around correctness check - we have 20k files, more than
-        // 32K means we subtracted from 0 somewhere.
         assert!(32767 > prev_files);
         let mut current_files = prev_files;
         while current_files != 0 {
@@ -292,17 +426,6 @@ impl Executor for Threaded<'_> {
             handler(Notification::DownloadFinished);
             handler(Notification::DownloadPopUnit);
         }
-        // close the feedback channel so that blocking reads on it can
-        // complete. send is atomic, and we know the threads completed from the
-        // pool join, so this is race-free. It is possible that try_iter is safe
-        // but the documentation is not clear: it says it will not wait, but not
-        // whether a put done by another thread on a NUMA machine before (say)
-        // the mutex in the thread pool is entirely synchronised; since this is
-        // largely hidden from the clients, digging into check whether we can
-        // make this tidier (e.g. remove the Marker variant) is left for another
-        // day. I *have* checked that insertion is barried and ordered such that
-        // sending the marker cannot come in before markers sent from other
-        // threads we just joined.
         self.tx
             .send(Task::Sentinel)
             .expect("must still be listening");
@@ -313,6 +436,8 @@ impl Executor for Threaded<'_> {
     }
 
     fn completed(&self) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
+        while self.process_queued_items() {}
+
         Box::new(JoinIterator {
             executor: self,
             consume_sentinel: true,
@@ -333,8 +458,6 @@ impl Executor for Threaded<'_> {
     }
 
     fn buffer_available(&self, len: usize) -> bool {
-        // if either: there is room in the budget to assign a new slab entry of
-        // this size, or there is an unused slab entry of this size.
         let bucket = self.find_bucket(len);
         let pool = &self.vec_pools[bucket];
         if pool.in_use < pool.high_watermark {
@@ -353,7 +476,6 @@ impl Executor for Threaded<'_> {
 
 impl Drop for Threaded<'_> {
     fn drop(&mut self) {
-        // We are not permitted to fail - consume but do not handle the items.
         self.join().for_each(drop);
     }
 }
@@ -399,21 +521,17 @@ impl Iterator for JoinIterator<'_, '_> {
     }
 }
 
+#[allow(dead_code)]
 struct SubmitIterator<'a, 'b> {
     executor: &'a Threaded<'b>,
     item: Cell<Option<Item>>,
 }
 
+#[allow(dead_code)]
 impl Iterator for SubmitIterator<'_, '_> {
     type Item = CompletedIo;
 
     fn next(&mut self) -> Option<CompletedIo> {
-        // The number here is arbitrary; just a number to stop exhausting fd's on linux
-        // and still allow rapid decompression to generate work to dispatch
-        // This function could perhaps be tuned: e.g. it may wait in rx.iter()
-        // unnecessarily blocking if many items complete at once but threads do
-        // not pick up work quickly for some reason, until another thread
-        // actually completes; however, results are presently ok.
         let threshold = 5;
         if self.executor.pool.queued_count() < threshold {
             if let Some(item) = self.item.take() {

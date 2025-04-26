@@ -21,7 +21,7 @@ mod curl {
     use url::Url;
 
     use super::{serve_file, tmp_dir, write_file};
-    use crate::download::{Backend, Event};
+    use crate::download::{Backend, Event, IOPriority};
 
     #[tokio::test]
     async fn partially_downloaded_file_gets_resumed_from_byte_offset() {
@@ -34,7 +34,7 @@ mod curl {
 
         let from_url = Url::from_file_path(&from_path).unwrap();
         Backend::Curl
-            .download_to_path(&from_url, &target_path, true, None)
+            .download_to_path(&from_url, &target_path, true, None, IOPriority::Normal)
             .await
             .expect("Test download failed");
 
@@ -80,6 +80,7 @@ mod curl {
 
                     Ok(())
                 }),
+                IOPriority::Normal,
             )
             .await
             .expect("Test download failed");
@@ -107,7 +108,7 @@ mod reqwest {
     use url::Url;
 
     use super::{serve_file, tmp_dir, write_file};
-    use crate::download::{Backend, Event, TlsBackend};
+    use crate::download::{Backend, Event, TlsBackend, IOPriority};
 
     static SERIALISE_TESTS: LazyLock<tokio::sync::Mutex<()>> =
         LazyLock::new(|| tokio::sync::Mutex::new(()));
@@ -201,7 +202,7 @@ mod reqwest {
 
         let from_url = Url::from_file_path(&from_path).unwrap();
         Backend::Reqwest(TlsBackend::NativeTls)
-            .download_to_path(&from_url, &target_path, true, None)
+            .download_to_path(&from_url, &target_path, true, None, IOPriority::Normal)
             .await
             .expect("Test download failed");
 
@@ -247,6 +248,7 @@ mod reqwest {
 
                     Ok(())
                 }),
+                IOPriority::Normal,
             )
             .await
             .expect("Test download failed");
