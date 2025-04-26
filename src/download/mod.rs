@@ -3,16 +3,11 @@
 use std::fs;
 use std::fs::OpenOptions;
 use std::fs::remove_file;
-<<<<<<< HEAD
-use std::path::Path;
-
-use anyhow::Context;
-=======
 use std::ops;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
->>>>>>> c9157d5c (Complete concurrent download implementation)
+use anyhow::Context;
 #[cfg(any(
     not(feature = "curl-backend"),
     not(feature = "reqwest-rustls-tls"),
@@ -161,7 +156,7 @@ async fn download_file_(
     notify_handler: &dyn Fn(Notification<'_>),
     process: &Process,
     priority: IOPriority,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use crate::download::{Backend, Event, TlsBackend};
     use sha2::Digest;
@@ -302,7 +297,7 @@ impl Backend {
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
         priority: IOPriority,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         let Err(err) = self
             .download_impl(url, path, resume_from_partial, callback, priority)
             .await
@@ -325,13 +320,9 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
-<<<<<<< HEAD
-    ) -> anyhow::Result<()> {
-=======
         priority: IOPriority,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         use std::rc::Rc;
->>>>>>> c9157d5c (Complete concurrent download implementation)
         use std::cell::RefCell;
         use std::io::{Read, Seek, SeekFrom, Write};
 
@@ -388,7 +379,7 @@ impl Backend {
 
         let file_writer = {
             let file_clone = file.clone();
-            move |data: &[u8]| -> Result<()> {
+            move |data: &[u8]| -> anyhow::Result<()> {
                 if priority == IOPriority::Background && data.len() > 1_000_000 {
                     debug!("Processing large background priority write: {} bytes", data.len());
                 }
@@ -432,11 +423,16 @@ impl Backend {
         resume_from: u64,
         callback: DownloadCallback<'_>,
 <<<<<<< HEAD
+<<<<<<< HEAD
     ) -> anyhow::Result<()> {
 =======
         priority: IOPriority,
     ) -> Result<()> {
 >>>>>>> c9157d5c (Complete concurrent download implementation)
+=======
+        priority: IOPriority,
+    ) -> anyhow::Result<()> {
+>>>>>>> e4d6c319 (changed return types to match)
         match self {
             #[cfg(feature = "curl-backend")]
             Self::Curl => curl::download(url, resume_from, callback, priority),
@@ -463,7 +459,11 @@ impl TlsBackend {
         resume_from: u64,
         callback: DownloadCallback<'_>,
         priority: IOPriority,
+<<<<<<< HEAD
     ) -> Result<()> {
+=======
+    ) -> anyhow::Result<()> {
+>>>>>>> e4d6c319 (changed return types to match)
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
             Self::Rustls => &reqwest_be::CLIENT_RUSTLS_TLS,
@@ -589,7 +589,7 @@ mod reqwest_be {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use std::sync::LazyLock;
     use std::time::Duration;
-    use anyhow::{Context, Result, anyhow};
+    use anyhow::{Context, anyhow};
     use reqwest::{Client, ClientBuilder, Proxy, Response, header};
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls::crypto::aws_lc_rs;
@@ -597,7 +597,7 @@ mod reqwest_be {
     use rustls_platform_verifier::BuilderVerifierExt;
     use tokio::time::sleep;
     use tokio_stream::StreamExt;
-    use tracing::{debug, info};
+    use tracing::{debug, error};
     use url::Url;
     use super::{DownloadError, Event, IOPriority};
 
@@ -607,7 +607,7 @@ mod reqwest_be {
         callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
         client: &Client,
         priority: IOPriority,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
         if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
@@ -628,8 +628,8 @@ mod reqwest_be {
 
         let res = request(url, resume_from, client, timeout)
             .await
-            .context("failed to make network request")?;
-            
+            .inspect_err(|error| error!(?error, "failed to download file"))
+            .context("error downloading file")?;
         if !res.status().is_success() {
             let code: u16 = res.status().into();
             return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
@@ -638,7 +638,7 @@ mod reqwest_be {
         if let Some(len) = res.content_length() {
             let len = len + resume_from;
             callback(Event::DownloadContentLengthReceived(len))?;
-            
+
             // Log download size based on priority
             match priority {
                 IOPriority::Critical => debug!("Critical download size: {}KB", len/1024),
@@ -655,12 +655,12 @@ mod reqwest_be {
             IOPriority::Normal => 100,       // Occasionally yield
             IOPriority::Background => 10,    // Frequently yield
         };
-        
+
         while let Some(item) = stream.next().await {
             let bytes = item?;
             total_bytes_received += bytes.len();
             callback(Event::DownloadDataReceived(&bytes))?;
-            
+
             // For background downloads, occasionally yield to let other tasks run
             chunk_counter += 1;
             if priority != IOPriority::Critical && chunk_counter % yield_frequency == 0 {
@@ -668,7 +668,7 @@ mod reqwest_be {
                 sleep(Duration::from_millis(1)).await;
             }
         }
-        
+
         debug!("Downloaded {} bytes with {:?} priority", total_bytes_received, priority);
         Ok(())
     }
@@ -729,11 +729,11 @@ mod reqwest_be {
     ) -> Result<Response, DownloadError> {
         let mut req = client.get(url.as_str())
             .timeout(timeout);
-            
+
         if resume_from != 0 {
             req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
-        
+
         Ok(req.send().await?)
     }
 
