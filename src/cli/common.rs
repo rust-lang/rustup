@@ -177,7 +177,7 @@ impl Notifier {
     }
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(process))]
 pub(crate) fn set_globals(current_dir: PathBuf, quiet: bool, process: &Process) -> Result<Cfg<'_>> {
     let notifier = Notifier::new(quiet, process);
     Cfg::from_env(current_dir, Arc::new(move |n| notifier.handle(n)), process)

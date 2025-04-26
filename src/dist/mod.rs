@@ -267,6 +267,10 @@ const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
 const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
 const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
@@ -518,6 +522,7 @@ impl TargetTriple {
                     TRIPLE_AARCH64_UNKNOWN_LINUX
                 }),
                 (b"Linux", b"loongarch64") => Some(TRIPLE_LOONGARCH64_UNKNOWN_LINUX),
+                (b"Linux", b"ppc64le") => Some(TRIPLE_POWERPC64LE_UNKNOWN_LINUX),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),

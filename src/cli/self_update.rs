@@ -748,6 +748,10 @@ fn install_bins(process: &Process) -> Result<()> {
 }
 
 pub(crate) fn install_proxies(process: &Process) -> Result<()> {
+    install_proxies_with_opts(process, process.var_os("RUSTUP_HARDLINK_PROXIES").is_some())
+}
+
+fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> Result<()> {
     let bin_path = process.cargo_home()?.join("bin");
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
@@ -788,6 +792,17 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
         link_afterwards.push(tool_path);
     }
 
+    // Normally we attempt to symlink files first but this can be overridden
+    // by using an environment variable.
+    let link_proxy = if force_hard_links {
+        |src: &Path, dest: &Path| {
+            let _ = fs::remove_file(dest);
+            utils::hardlink_file(src, dest)
+        }
+    } else {
+        utils::symlink_or_hardlink_file
+    };
+
     for tool in DUP_TOOLS {
         let tool_path = bin_path.join(format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
@@ -818,12 +833,21 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
                 continue;
             }
         }
-        utils::symlink_or_hardlink_file(&rustup_path, &tool_path)?;
+        link_proxy(&rustup_path, &tool_path)?;
     }
 
     drop(tool_handles);
     for path in link_afterwards {
-        utils::symlink_or_hardlink_file(&rustup_path, &path)?;
+        link_proxy(&rustup_path, &path)?;
+    }
+
+    if !force_hard_links {
+        // Verify that the proxies are reachable.
+        // This may fail for symlinks in some circumstances.
+        let path = bin_path.join(format!("{tool}{EXE_SUFFIX}", tool = TOOLS[0]));
+        if fs::File::open(path).is_err() {
+            return install_proxies_with_opts(process, true);
+        }
     }
 
     Ok(())

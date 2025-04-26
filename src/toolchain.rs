@@ -374,7 +374,7 @@ impl<'a> Toolchain<'a> {
         Ok(None)
     }
 
-    #[cfg_attr(feature="otel", tracing::instrument(err,fields(binary, recursion=self.cfg.process.var("RUST_RECURSION_COUNT").ok())))]
+    #[cfg_attr(feature="otel", tracing::instrument(err, fields(binary, recursion = self.cfg.process.var("RUST_RECURSION_COUNT").ok())))]
     fn create_command<T: AsRef<OsStr> + Debug>(&self, binary: T) -> Result<Command, anyhow::Error> {
         // Create the path to this binary within the current toolchain sysroot
         let binary = if let Some(binary_str) = binary.as_ref().to_str() {

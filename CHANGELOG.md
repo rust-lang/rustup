@@ -1,14 +1,21 @@
 # Changelog
 
-## [1.28.2] - ?
+## [1.28.2] - 2025-04-25
 
 This new patch release has brought even more tiny fixes and improvements over the previous one.
 
 The headlines of this release are:
 
-- The cURL download backend is now officially deprecated and a warning will start to show up.
-  The rustup team encourages everyone to switch to the `reqwest` backend, and would love to hear from
-  you about your use case via GitHub Issues if it does work against your particular setup. [pr#4277]
+- The cURL download backend is now officially deprecated and a warning will start to show up when it is used. [pr#4277]
+
+  - While rustup predates reqwest and rustls, the rustup team has long wanted to standardize on
+    an HTTP + TLS stack in Rust, which should increase security, potentially improve performance, and
+    simplify maintenance of the project.
+    With the default download backend already switched to reqwest since [2019](https://github.com/rust-lang/rustup/pull/1660),
+    the team thinks it is time to start removing the cURL backend and focus on maintaining the Rust-based stack.
+
+  - The rustup team encourages everyone to switch to the reqwest backend, and would love to hear from
+    you about your use case via GitHub Issues if it does work against your particular setup.
 
 - Version pinning of `rustup` is now supported when installing it via `rustup-init.sh` with the `RUSTUP_VERSION`
   environment variable set to e.g. `1.28.2`; the same configuration will be respected when performing
@@ -24,7 +31,7 @@ The headlines of this release are:
 
 - Fix build script `cargo` instructions by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4235
 - Allow copy&paste of documented registry keys into Regedit by @eugenesvk in https://github.com/rust-lang/rustup/pull/4244
-- document RUSTUP_AUTO_INSTALL by @ahl in https://github.com/rust-lang/rustup/pull/4247
+- document RUSTUP\_AUTO\_INSTALL by @ahl in https://github.com/rust-lang/rustup/pull/4247
 - Remove validation for custom toolchains when reading rust-toolchain.toml by @wesleywiser in https://github.com/rust-lang/rustup/pull/4250
 - Append Windows "bin" directory to `PATH` by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4249
 - fix(dist): refine suggestions about missing targets by @rami3l in https://github.com/rust-lang/rustup/pull/4253
@@ -38,6 +45,15 @@ The headlines of this release are:
 - Update `CARGO` environment variable if it is set to a rustup proxy by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4275
 - Simplify download abstractions and start warning about curl usage by @djc in https://github.com/rust-lang/rustup/pull/4277
 - docs(user-guide): cover correct `$PATH` configuration for proxies by @rami3l in https://github.com/rust-lang/rustup/pull/4283
+- Add toolchain\_name to not installed bail msg by @jmqd in https://github.com/rust-lang/rustup/pull/4293
+- Add powerpc64le-unknown-linux-musl support by @Gelbpunkt in https://github.com/rust-lang/rustup/pull/4294
+- Use `RUSTUP_HARDLINK_PROXIES` environment variable to hard link proxies by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4295
+- Switch flate2 to use the zlib-rs backend by @joshtriplett in https://github.com/rust-lang/rustup/pull/4297
+- feat(cli/rustup-mode): add aliases to `rustup component remove` by @rami3l in https://github.com/rust-lang/rustup/pull/4304
+- Skip span fields by @djc in https://github.com/rust-lang/rustup/pull/4306
+- Log original download errors immediately by @djc in https://github.com/rust-lang/rustup/pull/4307
+- download: show Debug representation for errors by @djc in https://github.com/rust-lang/rustup/pull/4309
+- Emit tracing events from log facade calls by @djc in https://github.com/rust-lang/rustup/pull/4310
 
 [1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
 [pr#4254]: https://github.com/rust-lang/rustup/pull/4254

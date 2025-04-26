@@ -57,7 +57,12 @@
   toolchain when it is absent. Set this value to `0` to disable automatic
   installation.
 
+- `RUSTUP_HARDLINK_PROXIES` *unstable*. When set, rustup will not attempt to
+  symlink proxies and instead always use hardlinks. If you find this fixes
+  a problem, then please report the issue on the [rustup issue tracker].
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
 [tracing viewer]: https://github.com/catapult-project/catapult/blob/master/tracing/README.md
+[rustup issue tracker]: https://github.com/rust-lang/rustup/issues
