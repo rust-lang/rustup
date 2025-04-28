@@ -15,9 +15,9 @@ The headlines of this release are:
     With the default download backend already switched to reqwest since [2019][pr#1660], the team
     thinks it is time to focus maintenance on the Rust-based stack.
 
-  - The rustup team encourages everyone to switch to the reqwest backend, and would love to hear from
-    you about your use case via [GitHub Issues][issue tracker] if it does not work well with your
-    particular setup.
+  - The rustup team encourages everyone to switch to the reqwest backend with rustls, and would love
+    to hear from you about your use case via [GitHub Issues][issue tracker] if it does not work well
+    with your particular setup.
 
 - The version of `rustup` can be pinned when installing via `rustup-init.sh`, and
   `rustup self update` can be used to upgrade/downgrade rustup v1.28.2+ to a given version.
