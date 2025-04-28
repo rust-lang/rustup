@@ -54,6 +54,9 @@ The headlines of this release are:
 - Log original download errors immediately by @djc in https://github.com/rust-lang/rustup/pull/4307
 - download: show Debug representation for errors by @djc in https://github.com/rust-lang/rustup/pull/4309
 - Emit tracing events from log facade calls by @djc in https://github.com/rust-lang/rustup/pull/4310
+- Take rustls-platform-verifier 0.5.2 by @ctz in https://github.com/rust-lang/rustup/pull/4314
+- Set ALPN protocols for rustls backend by @djc in https://github.com/rust-lang/rustup/pull/4312
+- Deprecate native-tls as well by @djc in https://github.com/rust-lang/rustup/pull/4317
 
 [1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
 [pr#4254]: https://github.com/rust-lang/rustup/pull/4254
