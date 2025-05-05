@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.28.2] - 2025-04-25
+## [1.28.2] - 2025-05-05
 
 This new patch release has brought even more tiny fixes and improvements over the previous one.
 
@@ -10,21 +10,22 @@ The headlines of this release are:
   a warning will start to show up when they are used. [pr#4277]
 
   - While rustup predates reqwest and rustls, the rustup team has long wanted to standardize on
-    an HTTP + TLS stack in Rust, which should increase security, potentially improve performance, and
-    simplify maintenance of the project.
+    an HTTP + TLS stack with more components in Rust, which should increase security, potentially
+    improve performance, and simplify maintenance of the project.
     With the default download backend already switched to reqwest since [2019][pr#1660], the team
-    thinks it is time to focus maintenance on the Rust-based stack.
+    thinks it is time to focus maintenance on the default stack powered by these two libraries.
 
-  - The rustup team encourages everyone to switch to the reqwest backend with rustls, and would love
-    to hear from you about your use case via [GitHub Issues][issue tracker] if it does not work well
-    with your particular setup.
+  - For people who have set `RUSTUP_USE_CURL=1` or `RUSTUP_USE_RUSTLS=0` in their environment to
+    work around issues with rustup, please try to unset these after upgrading to 1.28.2 and file
+    [an issue][issue tracker] if you still encounter problems.
 
 - The version of `rustup` can be pinned when installing via `rustup-init.sh`, and
-  `rustup self update` can be used to upgrade/downgrade rustup v1.28.2+ to a given version.
+  `rustup self update` can be used to upgrade/downgrade rustup 1.28.2+ to a given version.
   To do so, set the `RUSTUP_VERSION` environment variable to the desired version (for example `1.28.2`).
+  [pr#4259]
 
 - `rustup set auto-install disable` can now be used to disable automatic installation of the toolchain.
-  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable introduced in v1.28.1 but with a
+  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable introduced in 1.28.1 but with a
   lower priority. [pr#4254]
 
 - Fixed a bug in Nushell integration that might generate invalid commands in the shell configuration.
