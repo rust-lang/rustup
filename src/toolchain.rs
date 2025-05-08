@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
 use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
@@ -12,6 +14,7 @@ use std::{
 
 use anyhow::{Context, anyhow, bail};
 use fs_at::OpenOptions;
+use same_file::is_same_file;
 use tracing::info;
 use url::Url;
 use wait_timeout::ChildExt;
@@ -331,6 +334,8 @@ impl<'a> Toolchain<'a> {
         // perhaps a trait that create command layers on?
         if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
             return Ok(cmd);
+        } else if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
+            return Ok(cmd);
         }
 
         self.create_command(binary)
@@ -368,6 +373,52 @@ impl<'a> Toolchain<'a> {
             }
         }
 
+        Ok(None)
+    }
+
+    /// Tries to find `rust-analyzer` on the PATH when the active toolchain does
+    /// not have `rust-analyzer` installed.
+    ///
+    /// This happens from time to time often because the user wants to use a
+    /// more recent build of RA than the one shipped with rustup, or because
+    /// rustup isn't shipping RA on their host platform at all.
+    ///
+    /// See the following issues for more context:
+    /// - <https://github.com/rust-lang/rustup/issues/3299>
+    /// - <https://github.com/rust-lang/rustup/issues/3846>
+    fn maybe_do_rust_analyzer_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
+        if binary != "rust-analyzer" && binary != "rust-analyzer.exe"
+            || self.binary_file("rust-analyzer").exists()
+        {
+            return Ok(None);
+        }
+
+        let proc = self.cfg.process;
+        let Some(path) = proc.var_os("PATH") else {
+            return Ok(None);
+        };
+
+        let me = env::current_exe()?;
+
+        // Try to find the first `rust-analyzer` under the `$PATH` that is both
+        // an existing file and not the same file as `me`, i.e. not a rustup proxy.
+        for mut p in env::split_paths(&path) {
+            p.push(binary);
+            let is_external_ra = p.is_file()
+                // We report `true` on `is_same_file()` error to prevent an invalid `p`
+                // from becoming the candidate.
+                && !is_same_file(&me, &p).unwrap_or(true);
+            // On Unix, we additionally check if the file is executable.
+            #[cfg(unix)]
+            let is_external_ra = is_external_ra
+                && p.metadata()
+                    .is_ok_and(|meta| meta.permissions().mode() & 0o111 != 0);
+            if is_external_ra {
+                let mut ra = Command::new(p);
+                self.set_env(&mut ra);
+                return Ok(Some(ra));
+            }
+        }
         Ok(None)
     }
 

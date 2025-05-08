@@ -1277,3 +1277,73 @@ async fn rustup_updates_cargo_env_if_proxy() {
         )
         .await;
 }
+
+#[tokio::test]
+async fn rust_analyzer_proxy_falls_back_external() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "install",
+            "stable",
+            "--profile=minimal",
+            "--component=rls",
+        ])
+        .await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+
+    // We pretend to have a `rust-analyzer` installation by reusing the `rls`
+    // proxy and mock binary.
+    let rls = format!("rls{EXE_SUFFIX}");
+    let ra = format!("rust-analyzer{EXE_SUFFIX}");
+    let exedir = &cx.config.exedir;
+    let bindir = &cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(for_host!("stable-{0}"))
+        .join("bin");
+    for dir in [exedir, bindir] {
+        fs::rename(dir.join(&rls), dir.join(&ra)).unwrap();
+    }
+
+    // Base case: rustup-hosted RA installed, external RA unavailable,
+    // use the former.
+    let real_path = cx
+        .config
+        .run("rust-analyzer", &["--echo-current-exe"], &[])
+        .await;
+    assert!(real_path.ok);
+    let real_path_str = real_path.stderr.lines().next().unwrap();
+    let real_path = Path::new(real_path_str);
+
+    assert!(real_path.is_file());
+
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let extern_dir = tempdir.path();
+    let extern_path = &extern_dir.join("rust-analyzer");
+    fs::copy(real_path, extern_path).unwrap();
+
+    // First case: rustup-hosted and external RA both installed,
+    // prioritize the former.
+    cx.config
+        .expect_ok_ex_env(
+            &["rust-analyzer", "--echo-current-exe"],
+            &[("PATH", &extern_dir.to_string_lossy())],
+            "",
+            &format!("{real_path_str}\n"),
+        )
+        .await;
+
+    // Second case: rustup-hosted RA unavailable, fallback on the external RA.
+    fs::remove_file(bindir.join(&ra)).unwrap();
+    cx.config
+        .expect_ok_ex_env(
+            &["rust-analyzer", "--echo-current-exe"],
+            &[("PATH", &extern_dir.to_string_lossy())],
+            "",
+            &format!("{}\n", extern_path.display()),
+        )
+        .await;
+}
