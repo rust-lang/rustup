@@ -329,13 +329,8 @@ impl<'a> Toolchain<'a> {
     pub(crate) fn command(&self, binary: &str) -> anyhow::Result<Command> {
         // Should push the cargo fallback into a custom toolchain type? And then
         // perhaps a trait that create command layers on?
-        if !matches!(
-            self.name(),
-            LocalToolchainName::Named(ToolchainName::Official(_))
-        ) {
-            if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
-                return Ok(cmd);
-            }
+        if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
+            return Ok(cmd);
         }
 
         self.create_command(binary)
@@ -344,7 +339,9 @@ impl<'a> Toolchain<'a> {
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
     fn maybe_do_cargo_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
-        if binary != "cargo" && binary != "cargo.exe" {
+        if let LocalToolchainName::Named(ToolchainName::Official(_)) = self.name() {
+            return Ok(None);
+        } else if binary != "cargo" && binary != "cargo.exe" {
             return Ok(None);
         }
 
