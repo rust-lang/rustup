@@ -333,8 +333,12 @@ impl<'a> Toolchain<'a> {
         // Should push the cargo fallback into a custom toolchain type? And then
         // perhaps a trait that create command layers on?
         if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
+            info!("`cargo` is unavailable for the active toolchain");
+            info!("falling back to {:?}", cmd.get_program());
             return Ok(cmd);
         } else if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
+            info!("`rust-analyzer` is unavailable for the active toolchain");
+            info!("falling back to {:?}", cmd.get_program());
             return Ok(cmd);
         }
 
