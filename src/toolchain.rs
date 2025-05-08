@@ -343,7 +343,7 @@ impl<'a> Toolchain<'a> {
 
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
-    pub(crate) fn maybe_do_cargo_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
+    fn maybe_do_cargo_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
         if binary != "cargo" && binary != "cargo.exe" {
             return Ok(None);
         }
