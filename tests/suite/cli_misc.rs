@@ -1343,7 +1343,10 @@ async fn rust_analyzer_proxy_falls_back_external() {
             &["rust-analyzer", "--echo-current-exe"],
             &[("PATH", &extern_dir.to_string_lossy())],
             "",
-            &format!("{}\n", extern_path.display()),
+            &format!(
+                "info: `rust-analyzer` is unavailable for the active toolchain\ninfo: falling back to {:?}\n{}\n",
+                extern_path.as_os_str(), extern_path.display()
+            ),
         )
         .await;
 }
