@@ -25,6 +25,7 @@ use crate::cli::rustup_mode;
 use crate::process;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
+use crate::test::tempdir_in_with_prefix;
 use crate::test::this_host_triple;
 use crate::utils;
 
@@ -707,19 +708,11 @@ async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDi
     }
     let test_dir = rustup_test::test_dir().unwrap();
 
-    fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> PathBuf {
-        tempfile::Builder::new()
-            .prefix(prefix)
-            .tempdir_in(path.as_ref())
-            .unwrap()
-            .into_path()
-    }
-
-    let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe");
-    let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom");
-    let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo");
-    let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home");
-    let workdir = tempdir_in_with_prefix(&test_dir, "rustup-workdir");
+    let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe").unwrap();
+    let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom").unwrap();
+    let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo").unwrap();
+    let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home").unwrap();
+    let workdir = tempdir_in_with_prefix(&test_dir, "rustup-workdir").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
