@@ -332,14 +332,18 @@ impl<'a> Toolchain<'a> {
     pub(crate) fn command(&self, binary: &str) -> anyhow::Result<Command> {
         // Should push the cargo fallback into a custom toolchain type? And then
         // perhaps a trait that create command layers on?
-        if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
-            info!("`cargo` is unavailable for the active toolchain");
-            info!("falling back to {:?}", cmd.get_program());
-            return Ok(cmd);
-        } else if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
-            info!("`rust-analyzer` is unavailable for the active toolchain");
-            info!("falling back to {:?}", cmd.get_program());
-            return Ok(cmd);
+        if let "cargo" | "cargo.exe" = binary {
+            if let Some(cmd) = self.maybe_do_cargo_fallback()? {
+                info!("`cargo` is unavailable for the active toolchain");
+                info!("falling back to {:?}", cmd.get_program());
+                return Ok(cmd);
+            }
+        } else if let "rust-analyzer" | "rust-analyzer.exe" = binary {
+            if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
+                info!("`rust-analyzer` is unavailable for the active toolchain");
+                info!("falling back to {:?}", cmd.get_program());
+                return Ok(cmd);
+            }
         }
 
         self.create_command(binary)
@@ -347,20 +351,17 @@ impl<'a> Toolchain<'a> {
 
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
-    fn maybe_do_cargo_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
+    fn maybe_do_cargo_fallback(&self) -> anyhow::Result<Option<Command>> {
         if let LocalToolchainName::Named(ToolchainName::Official(_)) = self.name() {
             return Ok(None);
-        } else if binary != "cargo" && binary != "cargo.exe" {
-            return Ok(None);
         }
-
-        let cargo_path = self.binary_file("cargo");
 
         // breadcrumb in case of regression: we used to get the cargo path and
         // cargo.exe path separately, not using the binary_file helper. This may
         // matter if calling a binary with some personality that allows .exe and
         // not .exe to coexist (e.g. wine) - but that's not something we aim to
         // support : the host should always be correct.
+        let cargo_path = self.binary_file("cargo");
         if cargo_path.exists() {
             return Ok(None);
         }
@@ -391,9 +392,7 @@ impl<'a> Toolchain<'a> {
     /// - <https://github.com/rust-lang/rustup/issues/3299>
     /// - <https://github.com/rust-lang/rustup/issues/3846>
     fn maybe_do_rust_analyzer_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
-        if binary != "rust-analyzer" && binary != "rust-analyzer.exe"
-            || self.binary_file("rust-analyzer").exists()
-        {
+        if self.binary_file("rust-analyzer").exists() {
             return Ok(None);
         }
 
