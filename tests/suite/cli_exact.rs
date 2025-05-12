@@ -83,6 +83,7 @@ info: installing component 'rustc'
 #[tokio::test]
 async fn update_once_and_self_update() {
     let test_version = "2.0.0";
+    let current = env!("CARGO_PKG_VERSION");
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let _dist_guard = cx.with_update_server(test_version);
     cx.config
@@ -111,8 +112,8 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: checking for self-update
-info: downloading self-update
+info: checking for self-update (current version: {current})
+info: downloading self-update (new version: 2.0.0)
 "
             ),
         )
