@@ -18,6 +18,7 @@ use std::{
 };
 
 use enum_map::{Enum, EnumMap, enum_map};
+use similar_asserts::SimpleDiff;
 use tempfile::TempDir;
 use url::Url;
 
@@ -236,12 +237,14 @@ impl Config {
         let out = self.run(args[0], &args[1..], env).await;
         if !out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout", stdout);
-            print_indented("expected.stderr", stderr);
-            dbg!(out.stdout == stdout);
-            dbg!(out.stderr == stderr);
-            panic!();
+            print_diff(stdout, &out.stdout);
+            print_diff(stderr, &out.stderr);
+            panic!(
+                "expected OK, differences found: ok = {}, stdout = {}, stderr = {}",
+                out.ok,
+                out.stdout == stdout,
+                out.stderr == stderr
+            );
         }
     }
 
@@ -250,18 +253,14 @@ impl Config {
         let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stdout", stdout);
-            print_indented("expected.stderr", stderr);
-            if out.ok {
-                panic!("expected command to fail");
-            } else if out.stdout != stdout {
-                panic!("expected stdout to match");
-            } else if out.stderr != stderr {
-                panic!("expected stderr to match");
-            } else {
-                unreachable!()
-            }
+            print_diff(stdout, &out.stdout);
+            print_diff(stderr, &out.stderr);
+            panic!(
+                "expected error, differences found: ok = {}, stdout = {}, stderr = {}",
+                out.ok,
+                out.stdout == stdout,
+                out.stderr == stderr
+            );
         }
     }
 
@@ -428,6 +427,17 @@ impl Config {
             change_channel_date(&url, channel, date);
         }
     }
+}
+
+fn print_diff(expected: &str, actual: &str) {
+    if expected == actual {
+        return;
+    }
+
+    println!(
+        "{}",
+        SimpleDiff::from_str(expected, actual, "expected", "actual")
+    );
 }
 
 // Describes all the features of the mock dist server.
