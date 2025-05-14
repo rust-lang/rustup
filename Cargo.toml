@@ -37,7 +37,7 @@ otel = [
 ]
 
 # Exports code dependent on private interfaces for the integration test suite
-test = ["dep:walkdir"]
+test = ["dep:similar-asserts", "dep:walkdir"]
 
 # Sorted by alphabetic order
 [dependencies]
@@ -77,6 +77,8 @@ semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
 sharded-slab = "0.1.1"
+# test only (depends on `test` feature)
+similar-asserts = { version = "1.7", optional = true }
 strsim = "0.11"
 tar = "0.4.26"
 tempfile = "3.8"
