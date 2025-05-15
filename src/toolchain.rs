@@ -22,7 +22,11 @@ use wait_timeout::ChildExt;
 use crate::{
     RustupError,
     config::{ActiveReason, Cfg, InstalledPath},
-    dist::PartialToolchainDesc,
+    dist::{
+        PartialToolchainDesc, TargetTriple,
+        component::{Component, Components},
+        prefix::InstallPrefix,
+    },
     env_var, install,
     notifications::Notification,
     utils::{self, raw::open_dir_following_links},
@@ -574,5 +578,32 @@ impl<'a> Toolchain<'a> {
             (cfg.notify_handler)(Notification::UninstalledToolchain(&name));
         }
         Ok(())
+    }
+
+    /// Get the list of installed components for any toolchain
+    ///
+    /// NB: An assumption is made that custom toolchains always have a `rustlib/components` file
+    pub fn installed_components(&self) -> anyhow::Result<Vec<Component>> {
+        let prefix = InstallPrefix::from(self.path.clone());
+        let components = Components::open(prefix)?;
+        components.list()
+    }
+
+    /// Get the list of installed targets for any toolchain
+    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+        let targets = self
+            .installed_components()?
+            .into_iter()
+            .filter_map(|c| {
+                if c.name().starts_with("rust-std-") {
+                    Some(TargetTriple::new(
+                        c.name().trim_start_matches("rust-std-").to_string(),
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Ok(targets)
     }
 }
