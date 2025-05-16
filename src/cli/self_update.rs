@@ -853,6 +853,29 @@ fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> Resul
     Ok(())
 }
 
+fn check_proxy_sanity(process: &Process, components: &[&str], desc: &ToolchainDesc) -> Result<()> {
+    let bin_path = process.cargo_home()?.join("bin");
+
+    // Sometimes linking a proxy produces an unpredictable result, where the proxy
+    // is in place, but manages to not call rustup correctly. One way to make sure we
+    // don't run headfirst into the wall is to at least try and run our freshly
+    // installed proxies, to see if they return some manner of reasonable output.
+    // We limit ourselves to the most common two installed components (cargo and rustc),
+    // because their binary names also happen to match up, which is not necessarily
+    // a given.
+    for component in components.iter().filter(|c| ["cargo", "rustc"].contains(c)) {
+        let cmd = Command::new(bin_path.join(format!("{component}{EXE_SUFFIX}")))
+            .args([&format!("+{desc}"), "--version"])
+            .status();
+
+        if !cmd.is_ok_and(|status| status.success()) {
+            return Err(RustupError::BrokenProxy.into());
+        }
+    }
+
+    Ok(())
+}
+
 async fn maybe_install_rust(
     current_dir: PathBuf,
     quiet: bool,
@@ -906,6 +929,8 @@ async fn maybe_install_rust(
             .await?
             .0
         };
+
+        check_proxy_sanity(process, components, desc)?;
 
         cfg.set_default(Some(&desc.into()))?;
         writeln!(process.stdout().lock())?;
