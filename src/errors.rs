@@ -141,6 +141,12 @@ pub enum RustupError {
         target: TargetTriple,
         suggestion: Option<String>,
     },
+    #[error(
+        "rustup executable proxies don't seem to work\n\
+        help: this might be a bug in rustup, please open a new issue here:\n\
+        help: https://github.com/rust-lang/rustup/issues/new"
+    )]
+    BrokenProxy,
     #[error("unknown metadata version: '{0}'")]
     UnknownMetadataVersion(String),
     #[error("manifest version '{0}' is not supported")]
