@@ -153,7 +153,7 @@ pub enum RustupError {
 
 fn suggest_message(suggestion: &Option<String>) -> String {
     if let Some(suggestion) = suggestion {
-        format!("; did you mean '{}'?", suggestion)
+        format!("; did you mean '{suggestion}'?")
     } else {
         String::new()
     }

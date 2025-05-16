@@ -994,7 +994,7 @@ async fn install_with_components_and_targets() {
     cx.config
         .expect_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", CROSS_ARCH1),
+            &format!("{CROSS_ARCH1} (installed)"),
         )
         .await;
     cx.config

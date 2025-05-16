@@ -322,9 +322,9 @@ impl Config {
         let status = out.status;
         let output = SanitizedOutput::try_from(out).unwrap();
 
-        println!("ran: {} {:?}", name, args);
+        println!("ran: {name} {args:?}");
         println!("inprocess: {inprocess}");
-        println!("status: {:?}", status);
+        println!("status: {status:?}");
         println!("duration: {:.3}s", duration.as_secs_f32());
         println!("stdout:\n====\n{}\n====\n", output.stdout);
         println!("stderr:\n====\n{}\n====\n", output.stderr);
