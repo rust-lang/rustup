@@ -207,7 +207,7 @@ async fn multi_host_smoke_test() {
     assert_ne!(this_host_triple(), MULTI_ARCH1);
 
     let mut cx = CliTestContext::new(Scenario::MultiHost).await;
-    let toolchain = format!("nightly-{}", MULTI_ARCH1);
+    let toolchain = format!("nightly-{MULTI_ARCH1}");
     cx.config
         .expect_ok(&["rustup", "default", &toolchain, "--force-non-host"])
         .await;

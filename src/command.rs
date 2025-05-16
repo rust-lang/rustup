@@ -44,10 +44,7 @@ pub(crate) fn run_command_for_dir<S: AsRef<OsStr> + Debug>(
         }
         unsafe {
             if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Unable to set console handler",
-                ));
+                return Err(io::Error::other("Unable to set console handler"));
             }
         }
 

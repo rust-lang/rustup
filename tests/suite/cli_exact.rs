@@ -609,7 +609,7 @@ async fn list_targets() {
     let trip = this_host_triple();
     let mut sorted = [
         format!("{} (installed)", &*trip),
-        format!("{} (installed)", CROSS_ARCH1),
+        format!("{CROSS_ARCH1} (installed)"),
         CROSS_ARCH2.to_string(),
     ];
     sorted.sort();
@@ -674,10 +674,9 @@ async fn cross_install_indicates_target() {
             &["rustup", "target", "add", CROSS_ARCH1],
             r"",
             &format!(
-                r"info: downloading component 'rust-std' for '{0}'
-info: installing component 'rust-std' for '{0}'
-",
-                CROSS_ARCH1
+                r"info: downloading component 'rust-std' for '{CROSS_ARCH1}'
+info: installing component 'rust-std' for '{CROSS_ARCH1}'
+"
             ),
         )
         .await;

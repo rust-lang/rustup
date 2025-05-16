@@ -308,7 +308,7 @@ async fn run_server(addr_tx: Sender<SocketAddr>, addr: SocketAddr, contents: Vec
         let svc = svc.clone();
         tokio::spawn(async move {
             if let Err(err) = http1::Builder::new().serve_connection(io, svc).await {
-                eprintln!("failed to serve connection: {:?}", err);
+                eprintln!("failed to serve connection: {err:?}");
             }
         });
     }
