@@ -1002,7 +1002,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
             ToolchainName::Custom(name) => {
                 Toolchain::new(cfg, LocalToolchainName::Named(name.into()))
                     .ok()?
-                    .list_targets()
+                    .installed_targets()
                     .ok()
             }
         })

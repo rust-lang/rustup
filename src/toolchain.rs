@@ -23,7 +23,8 @@ use crate::{
     RustupError,
     config::{ActiveReason, Cfg, InstalledPath},
     dist::{
-        PartialToolchainDesc, TargetTriple, component::components::Components,
+        PartialToolchainDesc, TargetTriple,
+        component::components::{Component, Components},
         prefix::InstallPrefix,
     },
     env_var, install,
@@ -579,15 +580,21 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
-    /// Get the list of installed targets for any toolchain
+    /// Get the list of installed components for any toolchain
     ///
     /// NB: An assumption is made that custom toolchains always have a `rustlib/components` file
-    pub fn list_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+    pub fn installed_components(&self) -> anyhow::Result<Vec<Component>> {
         let prefix = InstallPrefix::from(self.path.clone());
         let components = Components::open(prefix)?;
-        let installed_components = components.list()?;
+        components.list()
+    }
 
-        let targets = installed_components
+    /// Get the list of installed targets for any toolchain
+    ///
+    ///
+    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+        let targets = self
+            .installed_components()?
             .into_iter()
             .filter_map(|c| {
                 if c.name().starts_with("rust-std-") {
