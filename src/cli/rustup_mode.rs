@@ -987,17 +987,24 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     let active_toolchain_targets: Vec<TargetTriple> = active_toolchain_name
         .and_then(|atn| match atn {
-            ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone()).ok(),
-            // So far, it is not possible to list targets for a custom toolchain.
-            ToolchainName::Custom(_) => None,
-        })
-        .and_then(|distributable| distributable.components().ok())
-        .map(|cs_vec| {
-            cs_vec
-                .into_iter()
-                .filter(|c| c.installed && c.component.short_name_in_manifest() == "rust-std")
-                .map(|c| c.component.target.expect("rust-std should have a target"))
-                .collect()
+            ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone())
+                .ok()
+                .and_then(|distributable| distributable.components().ok())
+                .map(|cs_vec| {
+                    cs_vec
+                        .into_iter()
+                        .filter(|c| {
+                            c.installed && c.component.short_name_in_manifest() == "rust-std"
+                        })
+                        .map(|c| c.component.target.expect("rust-std should have a target"))
+                        .collect()
+                }),
+            ToolchainName::Custom(name) => {
+                Toolchain::new(cfg, LocalToolchainName::Named(name.into()))
+                    .ok()?
+                    .installed_targets()
+                    .ok()
+            }
         })
         .unwrap_or_default();
 
