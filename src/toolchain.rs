@@ -24,7 +24,7 @@ use crate::{
     config::{ActiveReason, Cfg, InstalledPath},
     dist::{
         PartialToolchainDesc, TargetTriple,
-        component::components::{Component, Components},
+        component::{Component, Components},
         prefix::InstallPrefix,
     },
     env_var, install,

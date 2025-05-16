@@ -10,7 +10,7 @@ mod transaction;
 // The representation of a package, its components, and installation
 mod package;
 // The representation of *installed* components, and uninstallation
-pub mod components;
+mod components;
 
 #[cfg(test)]
 mod tests;
