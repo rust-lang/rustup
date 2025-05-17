@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Test cases for new rustup UI
 
 use std::fs;

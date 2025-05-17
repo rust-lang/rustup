@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests of the interactive console installer
 
 use std::env::consts::EXE_SUFFIX;
