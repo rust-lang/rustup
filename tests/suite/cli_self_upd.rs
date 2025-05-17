@@ -21,6 +21,7 @@ use rustup::test::{
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
 use rustup::{DUP_TOOLS, TOOLS, for_host};
+use snapbox::str;
 #[cfg(windows)]
 use windows_registry::Value;
 
@@ -388,26 +389,32 @@ info: downloading self-update
 
 #[tokio::test]
 async fn update_precise() {
-    let version = env!("CARGO_PKG_VERSION");
-    let expected_output = format!(
-        "info: checking for self-update
-info: `RUSTUP_VERSION` has been set to `{TEST_VERSION}`
-info: downloading self-update
-"
-    );
-
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok_ex_env(
-            &["rustup", "self", "update"],
-            &[("RUSTUP_VERSION", TEST_VERSION)],
-            &format!("  rustup updated - {version} (from {version})\n\n",),
-            &expected_output,
+        .expect_with_env(
+            ["rustup", "self", "update"],
+            [("RUSTUP_VERSION", TEST_VERSION)],
         )
-        .await;
+        .await
+        .extend_redactions([
+            ("[TEST_VERSION]", TEST_VERSION),
+            ("[VERSION]", env!("CARGO_PKG_VERSION")),
+        ])
+        .with_stdout(str![[r#"
+  rustup updated - [VERSION] (from [VERSION])
+
+
+"#]])
+        .with_stderr(str![[r#"
+info: checking for self-update
+info: `RUSTUP_VERSION` has been set to `[TEST_VERSION]`
+info: downloading self-update
+
+"#]]);
 }
 
 #[cfg(windows)]
