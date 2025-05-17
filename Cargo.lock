@@ -2262,6 +2262,7 @@ dependencies = [
  "serde",
  "sha2",
  "sharded-slab",
+ "snapbox",
  "strsim",
  "tar",
  "tempfile",
