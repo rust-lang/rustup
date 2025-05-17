@@ -367,10 +367,11 @@ struct GcErr(Vec<String>);
 #[tokio::test]
 async fn update_exact() {
     let version = env!("CARGO_PKG_VERSION");
-    let expected_output = "info: checking for self-update
-info: downloading self-update
+    let expected_output = format!(
+        "info: checking for self-update (current version: {version})
+info: downloading self-update (new version: {TEST_VERSION})
 "
-    .to_string();
+    );
 
     let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
@@ -391,7 +392,7 @@ async fn update_precise() {
     let expected_output = format!(
         "info: checking for self-update
 info: `RUSTUP_VERSION` has been set to `{TEST_VERSION}`
-info: downloading self-update
+info: downloading self-update (new version: {TEST_VERSION})
 "
     );
 
@@ -563,7 +564,7 @@ async fn update_no_change() {
 
 "
             ),
-            r"info: checking for self-update
+            r"info: checking for self-update (current version: {version})
 ",
         )
         .await;
@@ -647,8 +648,8 @@ async fn rustup_self_update_exact() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: checking for self-update
-info: downloading self-update
+info: checking for self-update (current version: {TEST_VERSION})
+info: downloading self-update (new version: {TEST_VERSION})
 info: cleaning up downloads & tmp directories
 "
             ),

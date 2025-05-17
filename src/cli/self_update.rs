@@ -1138,7 +1138,7 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available version
-    info!("checking for self-update");
+    info!("checking for self-update (current version: {current_version})");
     let available_version = if let Some(ver) = non_empty_env_var("RUSTUP_VERSION", process)? {
         info!("`RUSTUP_VERSION` has been set to `{ver}`");
         ver
@@ -1158,7 +1158,7 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
     let download_url = utils::parse_url(&url)?;
 
     // Download new version
-    info!("downloading self-update");
+    info!("downloading self-update (new version: {available_version})");
     download_file(&download_url, &setup_path, None, &|_| (), process).await?;
 
     // Mark as executable
