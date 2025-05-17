@@ -7,16 +7,20 @@ use std::fs;
 
 use rustup::for_host;
 use rustup::test::{CliTestContext, Scenario};
+use snapbox::str;
 
 #[tokio::test]
 async fn rustc_no_default_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV1).await;
     cx.config
-        .expect_err(
-            &["rustc"],
-            "rustup could not choose a version of rustc to run",
-        )
-        .await;
+        .expect(["rustc"])
+        .await
+        .is_err()
+        .with_stderr(str![[r#"
+error: rustup could not choose a version of rustc to run, because one wasn't specified explicitly, and no default is configured.
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
+
+"#]]);
 }
 
 #[tokio::test]
