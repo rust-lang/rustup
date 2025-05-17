@@ -1,5 +1,7 @@
 //! Tests of the interactive console installer
 
+#![allow(deprecated)]
+
 use std::env::consts::EXE_SUFFIX;
 use std::io::Write;
 use std::process::Stdio;
