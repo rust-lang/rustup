@@ -1,5 +1,7 @@
 //! Testing self install, uninstall and update
 
+#![allow(deprecated)]
+
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;

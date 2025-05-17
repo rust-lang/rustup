@@ -1,5 +1,7 @@
 //! Test cases for new rustup UI
 
+#![allow(deprecated)]
+
 use std::fs;
 use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{env::consts::EXE_SUFFIX, path::Path};

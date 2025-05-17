@@ -231,11 +231,14 @@ impl Config {
     }
 
     /// Expect an ok status
+    #[deprecated(note = "use `.expect().await.is_ok()` instead")]
+    #[allow(deprecated)]
     pub async fn expect_ok(&mut self, args: &[&str]) {
         self.expect_ok_env(args, &[]).await
     }
 
     /// Expect an ok status with extra environment variables
+    #[deprecated(note = "use `.expect_with_env().await.is_ok()` instead")]
     pub async fn expect_ok_env(&self, args: &[&str], env: &[(&str, &str)]) {
         let out = self.run(args[0], &args[1..], env).await;
         if !out.ok {
@@ -246,11 +249,14 @@ impl Config {
     }
 
     /// Expect an err status and a string in stderr
+    #[deprecated(note = "use `.expect().await.is_err()` instead")]
+    #[allow(deprecated)]
     pub async fn expect_err(&self, args: &[&str], expected: &str) {
         self.expect_err_env(args, &[], expected).await
     }
 
     /// Expect an err status and a string in stderr, with extra environment variables
+    #[deprecated(note = "use `.expect_with_env().await.is_err()` instead")]
     pub async fn expect_err_env(&self, args: &[&str], env: &[(&str, &str)], expected: &str) {
         let out = self.run(args[0], &args[1..], env).await;
         if out.ok || !out.stderr.contains(expected) {
@@ -262,6 +268,7 @@ impl Config {
     }
 
     /// Expect an ok status and a string in stdout
+    #[deprecated(note = "use `.expect().await.is_ok().with_stdout()` instead")]
     pub async fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stdout.contains(expected) {
@@ -272,6 +279,7 @@ impl Config {
         }
     }
 
+    #[deprecated(note = "use `.expect().await.is_ok().without_stdout()` instead")]
     pub async fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stdout.contains(expected) {
@@ -282,6 +290,7 @@ impl Config {
         }
     }
 
+    #[deprecated(note = "use `.expect().await.is_ok().without_stderr()` instead")]
     pub async fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stderr.contains(expected) {
@@ -292,6 +301,7 @@ impl Config {
         }
     }
 
+    #[deprecated(note = "use `.expect().await.is_err().without_stderr()` instead")]
     pub async fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stderr.contains(expected) {
@@ -303,6 +313,7 @@ impl Config {
     }
 
     /// Expect an ok status and a string in stderr
+    #[deprecated(note = "use `.expect().await.is_ok().with_stderr()` instead")]
     pub async fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stderr.contains(expected) {
@@ -314,12 +325,17 @@ impl Config {
     }
 
     /// Expect an exact strings on stdout/stderr with an ok status code
+    #[deprecated(note = "use `.expect().await.is_ok().with_stdout().with_stderr()` instead")]
+    #[allow(deprecated)]
     pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
         self.expect_ok_ex_env(args, &[], stdout, stderr).await;
     }
 
     /// Expect an exact strings on stdout/stderr with an ok status code,
     /// with extra environment variables
+    #[deprecated(
+        note = "use `.expect_with_env().await.is_ok().with_stdout().with_stderr()` instead"
+    )]
     pub async fn expect_ok_ex_env(
         &mut self,
         args: &[&str],
@@ -342,6 +358,7 @@ impl Config {
     }
 
     /// Expect an exact strings on stdout/stderr with an error status code
+    #[deprecated(note = "use `.expect().await.is_err().with_stdout().with_stderr()` instead")]
     pub async fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stdout != stdout || out.stderr != stderr {

@@ -1,6 +1,8 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
+#![allow(deprecated)]
+
 use std::fs;
 use std::str;
 use std::{env::consts::EXE_SUFFIX, path::Path};

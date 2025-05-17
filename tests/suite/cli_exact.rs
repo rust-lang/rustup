@@ -1,6 +1,8 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
+#![allow(deprecated)]
+
 use rustup::for_host;
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,

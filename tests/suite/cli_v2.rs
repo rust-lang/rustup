@@ -1,6 +1,8 @@
 //! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
+#![allow(deprecated)]
+
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;

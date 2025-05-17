@@ -2,6 +2,8 @@
 //! It depends on self-update working, so if absolutely everything here breaks,
 //! check those tests as well.
 
+#![allow(deprecated)]
+
 // Prefer omitting actually unpacking content while just testing paths.
 const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"];
 
