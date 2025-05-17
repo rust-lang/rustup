@@ -19,6 +19,7 @@ use std::{
 
 use enum_map::{Enum, EnumMap, enum_map};
 use similar_asserts::SimpleDiff;
+use snapbox::{IntoData, RedactedValue, Redactions, assert_data_eq};
 use tempfile::TempDir;
 use url::Url;
 
@@ -60,6 +61,78 @@ pub struct Config {
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
     pub test_root_dir: PathBuf,
+}
+
+#[derive(Clone)]
+pub struct Assert {
+    output: SanitizedOutput,
+    redactions: Redactions,
+}
+
+impl Assert {
+    /// Creates a new [`Assert`] object with the given command [`SanitizedOutput`].
+    pub fn new(output: SanitizedOutput) -> Self {
+        let mut redactions = Redactions::new();
+        redactions
+            .extend([("[HOST_TRIPLE]", this_host_triple())])
+            .expect("invalid redactions detected");
+        Self { output, redactions }
+    }
+
+    /// Extend the redaction rules used in the currrent assertion with new values.
+    pub fn extend_redactions(
+        &mut self,
+        vars: impl IntoIterator<Item = (&'static str, impl Into<RedactedValue>)>,
+    ) -> &mut Self {
+        self.redactions
+            .extend(vars)
+            .expect("invalid redactions detected");
+        self
+    }
+
+    /// Asserts that the command exited with an ok status.
+    pub fn is_ok(&self) -> &Self {
+        assert!(self.output.ok);
+        self
+    }
+
+    /// Asserts that the command exited with an error.
+    pub fn is_err(&self) -> &Self {
+        assert!(!self.output.ok);
+        self
+    }
+
+    /// Asserts that the command exited with the given `expected` stdout pattern.
+    pub fn with_stdout(&self, expected: impl IntoData) -> &Self {
+        let stdout = self.redactions.redact(&self.output.stdout);
+        assert_data_eq!(&stdout, expected);
+        self
+    }
+
+    /// Asserts that the command exited without the given `unexpected` stdout pattern.
+    pub fn without_stdout(&self, unexpected: &str) -> &Self {
+        if self.output.stdout.contains(unexpected) {
+            print_indented("expected.stdout.does_not_contain", unexpected);
+            panic!();
+        }
+        self
+    }
+
+    /// Asserts that the command exited with the given `expected` stderr pattern.
+    pub fn with_stderr(&self, expected: impl IntoData) -> &Self {
+        let stderr = self.redactions.redact(&self.output.stderr);
+        assert_data_eq!(&stderr, expected);
+        self
+    }
+
+    /// Asserts that the command exited without the given `unexpected` stderr pattern.
+    pub fn without_stderr(&self, unexpected: &str) -> &Self {
+        if self.output.stderr.contains(unexpected) {
+            print_indented("expected.stderr.does_not_contain", unexpected);
+            panic!();
+        }
+        self
+    }
 }
 
 impl Config {
@@ -135,6 +208,26 @@ impl Config {
         if let Some(root) = self.rustup_update_root.as_ref() {
             cmd.env("RUSTUP_UPDATE_ROOT", root);
         }
+    }
+
+    /// Returns an [`Assert`] object to check the output of running the command
+    /// specified by `args` under the default environment.
+    #[must_use]
+    pub async fn expect(&self, args: impl AsRef<[&str]>) -> Assert {
+        self.expect_with_env(args, &[]).await
+    }
+
+    /// Returns an [`Assert`] object to check the output of running the command
+    /// specified by `args` and under the environment specified by `env`.
+    #[must_use]
+    pub async fn expect_with_env(
+        &self,
+        args: impl AsRef<[&str]>,
+        env: impl AsRef<[(&str, &str)]>,
+    ) -> Assert {
+        let args = args.as_ref();
+        let output = self.run(args[0], &args[1..], env.as_ref()).await;
+        Assert::new(output)
     }
 
     /// Expect an ok status
@@ -1045,7 +1138,7 @@ pub struct Output {
     pub stderr: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SanitizedOutput {
     pub ok: bool,
     pub stdout: String,
