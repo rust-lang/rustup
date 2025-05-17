@@ -2281,6 +2281,7 @@ dependencies = [
  "sha2",
  "sharded-slab",
  "similar-asserts",
+ "snapbox",
  "strsim",
  "tar",
  "tempfile",
