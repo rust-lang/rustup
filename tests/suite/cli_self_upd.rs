@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Testing self install, uninstall and update
 
 use std::env;

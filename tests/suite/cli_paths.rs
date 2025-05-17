@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! This file contains tests relevant to Rustup's handling of updating PATHs.
 //! It depends on self-update working, so if absolutely everything here breaks,
 //! check those tests as well.

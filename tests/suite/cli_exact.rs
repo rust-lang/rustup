@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 

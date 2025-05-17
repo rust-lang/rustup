@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 

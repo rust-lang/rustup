@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Test cases of the rustup command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
