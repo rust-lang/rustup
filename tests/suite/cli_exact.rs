@@ -8,6 +8,7 @@ use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
 };
 use rustup::utils::raw;
+use snapbox::str;
 
 #[tokio::test]
 async fn update_once() {
@@ -311,23 +312,21 @@ info: default toolchain set to 'nightly-{0}'
 
 #[tokio::test]
 async fn override_again() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let cwd = cx.config.current_dir();
+    let cx = &CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "override", "add", "nightly"])
-        .await;
+        .expect(["rustup", "override", "add", "nightly"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok_ex(
-            &["rustup", "override", "add", "nightly"],
-            "",
-            &format!(
-                r"info: override toolchain for '{}' set to 'nightly-{1}'
-",
-                cwd.display(),
-                &this_host_triple()
-            ),
-        )
-        .await;
+        .expect(["rustup", "override", "add", "nightly"])
+        .await
+        .extend_redactions([("[CWD]", cx.config.current_dir().display().to_string())])
+        .is_ok()
+        .with_stdout("")
+        .with_stderr(str![[r#"
+info: override toolchain for '[CWD]' set to 'nightly-[HOST_TRIPLE]'
+
+"#]]);
 }
 
 #[tokio::test]

@@ -13,6 +13,7 @@ use rustup::test::{
 };
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
+use snapbox::str;
 
 #[tokio::test]
 async fn smoke_test() {
@@ -115,16 +116,15 @@ async fn custom_invalid_names_with_archive_dates() {
 async fn update_all_no_update_whitespace() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "update", "nightly"],
-            for_host!(
-                r"
-  nightly-{} installed - 1.3.0 (hash-nightly-2)
+        .expect(["rustup", "update", "nightly"])
+        .await
+        .is_ok()
+        .with_stdout(str![[r#"
 
-"
-            ),
-        )
-        .await;
+  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+
+
+"#]]);
 }
 
 // Issue #145
