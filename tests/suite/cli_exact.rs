@@ -166,16 +166,15 @@ async fn check_updates_none() {
         .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
         .await;
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "check"],
-            for_host!(
-                r"stable-{0} - Up to date : 1.1.0 (hash-stable-1.1.0)
-beta-{0} - Up to date : 1.2.0 (hash-beta-1.2.0)
-nightly-{0} - Up to date : 1.3.0 (hash-nightly-2)
-"
-            ),
-        )
-        .await;
+        .expect(["rustup", "check"])
+        .await
+        .is_err()
+        .with_stdout(snapbox::str![[r#"
+stable-[HOST_TRIPLE] - Up to date : 1.1.0 (hash-stable-1.1.0)
+beta-[HOST_TRIPLE] - Up to date : 1.2.0 (hash-beta-1.2.0)
+nightly-[HOST_TRIPLE] - Up to date : 1.3.0 (hash-nightly-2)
+
+"#]]);
 }
 
 #[tokio::test]
@@ -236,14 +235,14 @@ async fn check_updates_self_no_change() {
         .await;
 
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "check"],
-            &format!(
-                r"rustup - Up to date : {current_version}
-"
-            ),
-        )
-        .await;
+        .expect(["rustup", "check"])
+        .await
+        .extend_redactions([("[VERSION]", current_version)])
+        .is_err()
+        .with_stdout(snapbox::str![[r#"
+rustup - Up to date : [VERSION]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -256,16 +255,15 @@ async fn check_updates_with_update() {
             .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
             .await;
         cx.config
-            .expect_stdout_ok(
-                &["rustup", "check"],
-                for_host!(
-                    r"stable-{0} - Up to date : 1.0.0 (hash-stable-1.0.0)
-beta-{0} - Up to date : 1.1.0 (hash-beta-1.1.0)
-nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
-"
-                ),
-            )
-            .await;
+            .expect(["rustup", "check"])
+            .await
+            .is_err()
+            .with_stdout(snapbox::str![[r#"
+stable-[HOST_TRIPLE] - Up to date : 1.0.0 (hash-stable-1.0.0)
+beta-[HOST_TRIPLE] - Up to date : 1.1.0 (hash-beta-1.1.0)
+nightly-[HOST_TRIPLE] - Up to date : 1.2.0 (hash-nightly-1)
+
+"#]]);
     }
 
     let mut cx = cx.with_dist_dir(Scenario::SimpleV2);

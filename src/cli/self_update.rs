@@ -1250,7 +1250,15 @@ impl fmt::Display for SchemaVersion {
     }
 }
 
-pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RustupUpdateAvailable {
+    True,
+    False,
+}
+
+pub(crate) async fn check_rustup_update(process: &Process) -> Result<RustupUpdateAvailable> {
+    let mut update_available = RustupUpdateAvailable::False;
+
     let mut t = process.stdout().terminal(process);
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
@@ -1262,6 +1270,8 @@ pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
     write!(t.lock(), "rustup - ")?;
 
     if current_version != available_version {
+        update_available = RustupUpdateAvailable::True;
+
         let _ = t.fg(terminalsource::Color::Yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
@@ -1273,7 +1283,7 @@ pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
         writeln!(t.lock(), " : {current_version}")?;
     }
 
-    Ok(())
+    Ok(update_available)
 }
 
 #[tracing::instrument(level = "trace")]
