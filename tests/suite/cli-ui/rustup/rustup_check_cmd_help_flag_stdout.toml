@@ -4,9 +4,10 @@ stdout = """
 ...
 Check for updates to Rust toolchains and rustup
 
-Usage: rustup[EXE] check
+Usage: rustup[EXE] check [OPTIONS]
 
 Options:
-  -h, --help  Print help
+      --no-self-update  Don't check for self update when running the `rustup check` command
+  -h, --help            Print help
 """
 stderr = ""

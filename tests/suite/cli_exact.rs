@@ -208,6 +208,11 @@ async fn check_updates_self() {
     let _dist_guard = cx.with_update_server(test_version);
     let current_version = env!("CARGO_PKG_VERSION");
 
+    // We are checking an update to rustup itself in this test.
+    cx.config
+        .run("rustup", ["set", "auto-self-update", "enable"], &[])
+        .await;
+
     cx.config
         .expect_stdout_ok(
             &["rustup", "check"],
@@ -224,6 +229,12 @@ async fn check_updates_self_no_change() {
     let current_version = env!("CARGO_PKG_VERSION");
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let _dist_guard = cx.with_update_server(current_version);
+
+    // We are checking an update to rustup itself in this test.
+    cx.config
+        .run("rustup", ["set", "auto-self-update", "enable"], &[])
+        .await;
+
     cx.config
         .expect_stdout_ok(
             &["rustup", "check"],
