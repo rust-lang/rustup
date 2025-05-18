@@ -3028,3 +3028,49 @@ profile = "minimal"
         .expect_stdout_ok(&["cargo", "--version"], "1.3.0 (hash-nightly-2)")
         .await;
 }
+
+// Issue #4251
+#[tokio::test]
+async fn show_custom_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    let stable_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("stable-{}", this_host_triple()));
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "link",
+            "stuff",
+            &stable_path.to_string_lossy(),
+        ])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "+stuff", "show"],
+            &format!(
+                r"Default host: {0}
+rustup home:  {1}
+
+installed toolchains
+--------------------
+stable-{0} (default)
+stuff (active)
+
+active toolchain
+----------------
+name: stuff
+active because: overridden by +toolchain on the command line
+installed targets:
+  {0}
+",
+                this_host_triple(),
+                cx.config.rustupdir,
+            ),
+            r"",
+        )
+        .await;
+}
