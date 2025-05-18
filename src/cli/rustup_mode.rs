@@ -19,7 +19,7 @@ use crate::{
         common::{self, PackageUpdate, update_console_filter},
         errors::CLIError,
         help::*,
-        self_update::{self, SelfUpdateMode, check_rustup_update},
+        self_update::{self, RustupUpdateAvailable, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
     command,
@@ -790,6 +790,8 @@ async fn default_(
 }
 
 async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
+    let mut update_available = false;
+
     let mut t = cfg.process.stdout().terminal(cfg.process);
     let channels = cfg.list_channels()?;
 
@@ -811,12 +813,14 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
                 writeln!(t.lock(), " : {cv}")?;
             }
             (Some(cv), Some(dv)) => {
+                update_available = true;
                 let _ = t.fg(terminalsource::Color::Yellow);
                 write!(t.lock(), "Update available")?;
                 let _ = t.reset();
                 writeln!(t.lock(), " : {cv} -> {dv}")?;
             }
             (None, Some(dv)) => {
+                update_available = true;
                 let _ = t.fg(terminalsource::Color::Yellow);
                 write!(t.lock(), "Update available")?;
                 let _ = t.reset();
@@ -834,11 +838,17 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
 
-    if self_update {
-        check_rustup_update(cfg.process).await?;
+    if self_update
+        && matches!(
+            check_rustup_update(cfg.process).await?,
+            RustupUpdateAvailable::True
+        )
+    {
+        update_available = true;
     }
 
-    Ok(utils::ExitCode(0))
+    let exit_status = if update_available { 0 } else { 1 };
+    Ok(utils::ExitCode(exit_status))
 }
 
 async fn update(
