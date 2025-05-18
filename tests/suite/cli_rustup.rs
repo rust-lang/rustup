@@ -3074,3 +3074,50 @@ installed targets:
         )
         .await;
 }
+
+#[tokio::test]
+async fn show_custom_toolchain_without_components_file() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    let stable_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("stable-{}", this_host_triple()));
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "link",
+            "stuff",
+            &stable_path.to_string_lossy(),
+        ])
+        .await;
+
+    let components_file = stable_path.join("lib").join("rustlib").join("components");
+    fs::remove_file(&components_file).unwrap();
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "+stuff", "show"],
+            &format!(
+                r"Default host: {0}
+rustup home:  {1}
+
+installed toolchains
+--------------------
+stable-{0} (default)
+stuff (active)
+
+active toolchain
+----------------
+name: stuff
+active because: overridden by +toolchain on the command line
+installed targets:
+",
+                this_host_triple(),
+                cx.config.rustupdir,
+            ),
+            r"",
+        )
+        .await;
+}
