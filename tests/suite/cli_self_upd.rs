@@ -22,7 +22,6 @@ use rustup::test::{
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
 use rustup::{DUP_TOOLS, TOOLS, for_host};
-use snapbox::str;
 #[cfg(windows)]
 use windows_registry::Value;
 
@@ -406,12 +405,12 @@ async fn update_precise() {
             ("[TEST_VERSION]", TEST_VERSION),
             ("[VERSION]", env!("CARGO_PKG_VERSION")),
         ])
-        .with_stdout(str![[r#"
+        .with_stdout(snapbox::str![[r#"
   rustup updated - [VERSION] (from [VERSION])
 
 
 "#]])
-        .with_stderr(str![[r#"
+        .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [VERSION])
 info: `RUSTUP_VERSION` has been set to `[TEST_VERSION]`
 info: downloading self-update (new version: [TEST_VERSION])
