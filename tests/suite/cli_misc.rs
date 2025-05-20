@@ -13,7 +13,6 @@ use rustup::test::{
 };
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
-use snapbox::str;
 
 #[tokio::test]
 async fn smoke_test() {
@@ -119,7 +118,7 @@ async fn update_all_no_update_whitespace() {
         .expect(["rustup", "update", "nightly"])
         .await
         .is_ok()
-        .with_stdout(str![[r#"
+        .with_stdout(snapbox::str![[r#"
 
   nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
 

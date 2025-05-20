@@ -8,7 +8,6 @@ use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
 };
 use rustup::utils::raw;
-use snapbox::str;
 
 #[tokio::test]
 async fn update_once() {
@@ -323,7 +322,7 @@ async fn override_again() {
         .extend_redactions([("[CWD]", cx.config.current_dir().display().to_string())])
         .is_ok()
         .with_stdout("")
-        .with_stderr(str![[r#"
+        .with_stderr(snapbox::str![[r#"
 info: override toolchain for '[CWD]' set to 'nightly-[HOST_TRIPLE]'
 
 "#]]);
