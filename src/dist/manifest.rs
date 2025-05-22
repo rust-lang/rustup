@@ -272,19 +272,32 @@ mod component_target {
     }
 }
 
-impl Manifest {
-    pub fn parse(data: &str) -> Result<Self> {
-        let mut manifest = toml::from_str::<Self>(data).context("error parsing manifest")?;
-        for (from, to) in manifest.renames.iter() {
-            manifest.reverse_renames.insert(to.to.clone(), from.clone());
-        }
-
-        manifest.validate()?;
-        Ok(manifest)
+fn init_and_validate(mut manifest: Manifest) -> Result<Manifest> {
+    for (from, to) in manifest.renames.iter() {
+        manifest.reverse_renames.insert(to.to.clone(), from.clone());
     }
 
-    pub fn stringify(self) -> anyhow::Result<String> {
+    manifest.validate()?;
+    Ok(manifest)
+}
+
+impl Manifest {
+    pub fn parse_toml(data: &str) -> Result<Self> {
+        let manifest = toml::from_str::<Self>(data).context("error parsing manifest")?;
+        init_and_validate(manifest)
+    }
+
+    pub fn parse_json(data: &str) -> Result<Self> {
+        let manifest = serde_json::from_str::<Self>(data).context("error parsing manifest")?;
+        init_and_validate(manifest)
+    }
+
+    pub fn stringify_to_toml(self) -> anyhow::Result<String> {
         Ok(toml::to_string(&self)?)
+    }
+
+    pub fn stringify_to_json(self) -> anyhow::Result<String> {
+        Ok(serde_json::to_string(&self)?)
     }
 
     pub fn get_package(&self, name: &str) -> Result<&Package> {
@@ -626,15 +639,17 @@ mod tests {
 
     // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
     static EXAMPLE: &str = include_str!("manifest/tests/channel-rust-nightly-example.toml");
+    static EXAMPLE_JSON: &str = include_str!("manifest/tests/channel-rust-nightly-example.json");
     // From brson's live build-rust-manifest.py script
     static EXAMPLE2: &str = include_str!("manifest/tests/channel-rust-nightly-example2.toml");
+    static EXAMPLE2_JSON: &str = include_str!("manifest/tests/channel-rust-nightly-example.json");
 
     #[test]
     fn parse_smoke_test() {
         let x86_64_unknown_linux_gnu = TargetTriple::new("x86_64-unknown-linux-gnu");
         let x86_64_unknown_linux_musl = TargetTriple::new("x86_64-unknown-linux-musl");
 
-        let pkg = Manifest::parse(EXAMPLE).unwrap();
+        let pkg = Manifest::parse_toml(EXAMPLE).unwrap();
 
         pkg.get_package("rust").unwrap();
         pkg.get_package("rustc").unwrap();
@@ -669,7 +684,7 @@ mod tests {
 
     #[test]
     fn renames() {
-        let manifest = Manifest::parse(EXAMPLE2).unwrap();
+        let manifest = Manifest::parse_toml(EXAMPLE2).unwrap();
         assert_eq!(1, manifest.renames.len());
         assert_eq!(manifest.renames["cargo-old"].to, "cargo");
         assert_eq!(1, manifest.reverse_renames.len());
@@ -677,15 +692,28 @@ mod tests {
     }
 
     #[test]
-    fn parse_round_trip() {
-        let original = Manifest::parse(EXAMPLE).unwrap();
-        let serialized = original.clone().stringify().unwrap();
-        let new = Manifest::parse(&serialized).unwrap();
+    fn parse_round_trip_toml() {
+        let original = Manifest::parse_toml(EXAMPLE).unwrap();
+        let serialized = original.clone().stringify_to_toml().unwrap();
+        let new = Manifest::parse_toml(&serialized).unwrap();
         assert_eq!(original, new);
 
-        let original = Manifest::parse(EXAMPLE2).unwrap();
-        let serialized = original.clone().stringify().unwrap();
-        let new = Manifest::parse(&serialized).unwrap();
+        let original = Manifest::parse_toml(EXAMPLE2).unwrap();
+        let serialized = original.clone().stringify_to_toml().unwrap();
+        let new = Manifest::parse_toml(&serialized).unwrap();
+        assert_eq!(original, new);
+    }
+
+    #[test]
+    fn parse_round_trip_json() {
+        let original = Manifest::parse_json(EXAMPLE_JSON).unwrap();
+        let serialized = original.clone().stringify_to_json().unwrap();
+        let new = Manifest::parse_json(&serialized).unwrap();
+        assert_eq!(original, new);
+
+        let original = Manifest::parse_json(EXAMPLE2_JSON).unwrap();
+        let serialized = original.clone().stringify_to_json().unwrap();
+        let new = Manifest::parse_json(&serialized).unwrap();
         assert_eq!(original, new);
     }
 
@@ -714,7 +742,7 @@ date = "2015-10-10"
     hash = "..."
 "#;
 
-        let err = Manifest::parse(manifest).unwrap_err();
+        let err = Manifest::parse_toml(manifest).unwrap_err();
 
         match err.downcast::<RustupError>().unwrap() {
             RustupError::MissingPackageForComponent(_) => {}
@@ -727,6 +755,6 @@ date = "2015-10-10"
     fn manifest_can_contain_unknown_targets() {
         let manifest = EXAMPLE.replace("x86_64-unknown-linux-gnu", "mycpu-myvendor-myos");
 
-        assert!(Manifest::parse(&manifest).is_ok());
+        assert!(Manifest::parse_toml(&manifest).is_ok());
     }
 }

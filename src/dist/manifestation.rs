@@ -23,7 +23,12 @@ use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
 
-pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
+// This manifest used to be stored in the TOML format, but since it was quite large,
+// it was causing performance issues when parsing the TOML.
+pub(crate) const DIST_MANIFEST_LEGACY: &str = "multirust-channel-manifest.toml";
+// The format has thus been changed to JSON for better performance.
+pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.json";
+
 pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 
 #[derive(Debug)]
@@ -113,8 +118,6 @@ impl Manifestation {
         // Some vars we're going to need a few times
         let tmp_cx = download_cfg.tmp_cx;
         let prefix = self.installation.prefix();
-        let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
-        let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
@@ -297,9 +300,22 @@ impl Manifestation {
         }
 
         // Install new distribution manifest
-        let new_manifest_str = new_manifest.clone().stringify()?;
+        let new_manifest_str = new_manifest.clone().stringify_to_json()?;
+
+        let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
+        let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
+
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
+
+        // In case there was an old legacy manifest on disk, delete it, to avoid having lingering
+        // legacy and out-of-date data on the disk. We do not care if this operation fails.
+        let _ = utils::remove_file(
+            "legacy manifest",
+            &prefix
+                .path()
+                .join(prefix.rel_manifest_file(DIST_MANIFEST_LEGACY)),
+        );
 
         // Write configuration.
         //
@@ -404,15 +420,28 @@ impl Manifestation {
     #[tracing::instrument(level = "trace")]
     pub fn load_manifest(&self) -> Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
+
+        let old_legacy_manifest_path = prefix.manifest_file(DIST_MANIFEST_LEGACY);
         let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
+
+        // If we have the JSON manifest on disk, read it.
+        // If not, try to read a previously installed legacy TOML manifest.
         if utils::path_exists(&old_manifest_path) {
             let manifest_str = utils::read_file("installed manifest", &old_manifest_path)?;
-            Ok(Some(Manifest::parse(&manifest_str).with_context(|| {
-                RustupError::ParsingFile {
+            Ok(Some(Manifest::parse_json(&manifest_str).with_context(
+                || RustupError::ParsingFile {
                     name: "manifest",
                     path: old_manifest_path,
-                }
-            })?))
+                },
+            )?))
+        } else if utils::path_exists(&old_legacy_manifest_path) {
+            let manifest_str = utils::read_file("installed manifest", &old_legacy_manifest_path)?;
+            Ok(Some(Manifest::parse_toml(&manifest_str).with_context(
+                || RustupError::ParsingFile {
+                    name: "manifest",
+                    path: old_legacy_manifest_path,
+                },
+            )?))
         } else {
             Ok(None)
         }
