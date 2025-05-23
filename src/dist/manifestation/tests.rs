@@ -498,7 +498,7 @@ impl TestContext {
         let manifest_file = self.tmp_cx.new_file()?;
         download_file(&manifest_url, &manifest_file, None, &|_| {}, dl_cfg.process).await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
-        let manifest = Manifest::parse(&manifest_str)?;
+        let manifest = Manifest::parse_toml(&manifest_str)?;
 
         // Read the manifest to update the components
         let trip = self.toolchain.target.clone();

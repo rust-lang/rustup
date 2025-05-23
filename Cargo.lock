@@ -2278,6 +2278,7 @@ dependencies = [
  "scopeguard",
  "semver",
  "serde",
+ "serde_json",
  "sha2",
  "sharded-slab",
  "similar-asserts",

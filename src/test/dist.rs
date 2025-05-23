@@ -827,7 +827,7 @@ impl MockDistServer {
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let manifest_path = self.path.join(format!("{manifest_name}.toml"));
-        let manifest_content = manifest.stringify().unwrap();
+        let manifest_content = manifest.stringify_to_toml().unwrap();
         write_file(&manifest_path, &manifest_content);
 
         let hash_path = self.path.join(format!("{manifest_name}.toml.sha256"));

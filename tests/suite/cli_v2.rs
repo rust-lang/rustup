@@ -407,7 +407,7 @@ async fn bad_manifest() {
         for_host!("nightly-{}"),
         "lib",
         "rustlib",
-        "multirust-channel-manifest.toml",
+        "multirust-channel-manifest.json",
     ]
     .into_iter()
     .collect::<PathBuf>();
@@ -417,7 +417,7 @@ async fn bad_manifest() {
 
     // corrupt the manifest file by inserting a NUL byte at some position
     let old = fs::read_to_string(&path).unwrap();
-    let pattern = "[[pkg.rust.targ";
+    let pattern = r#""target":"#;
     let (prefix, suffix) = old.split_once(pattern).unwrap();
     let new = format!("{prefix}{pattern}\u{0}{suffix}");
     fs::write(&path, new).unwrap();
@@ -1320,14 +1320,14 @@ fn make_component_unavailable(config: &Config, name: &str, target: String) {
         .unwrap()
         .join("dist/channel-rust-nightly.toml");
     let manifest_str = fs::read_to_string(&manifest_path).unwrap();
-    let mut manifest = Manifest::parse(&manifest_str).unwrap();
+    let mut manifest = Manifest::parse_toml(&manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
         let target = TargetTriple::new(target);
         let target_pkg = std_pkg.targets.get_mut(&target).unwrap();
         target_pkg.bins = Vec::new();
     }
-    let manifest_str = manifest.stringify().unwrap();
+    let manifest_str = manifest.stringify_to_toml().unwrap();
     rustup::utils::raw::write_file(&manifest_path, &manifest_str).unwrap();
 
     // Have to update the hash too
