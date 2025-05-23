@@ -853,6 +853,29 @@ fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> Resul
     Ok(())
 }
 
+fn check_proxy_sanity(process: &Process, components: &[&str], desc: &ToolchainDesc) -> Result<()> {
+    let bin_path = process.cargo_home()?.join("bin");
+
+    // Sometimes linking a proxy produces an unpredictable result, where the proxy
+    // is in place, but manages to not call rustup correctly. One way to make sure we
+    // don't run headfirst into the wall is to at least try and run our freshly
+    // installed proxies, to see if they return some manner of reasonable output.
+    // We limit ourselves to the most common two installed components (cargo and rustc),
+    // because their binary names also happen to match up, which is not necessarily
+    // a given.
+    for component in components.iter().filter(|c| ["cargo", "rustc"].contains(c)) {
+        let cmd = Command::new(bin_path.join(format!("{component}{EXE_SUFFIX}")))
+            .args([&format!("+{desc}"), "--version"])
+            .status();
+
+        if !cmd.is_ok_and(|status| status.success()) {
+            return Err(RustupError::BrokenProxy.into());
+        }
+    }
+
+    Ok(())
+}
+
 async fn maybe_install_rust(
     current_dir: PathBuf,
     quiet: bool,
@@ -906,6 +929,8 @@ async fn maybe_install_rust(
             .await?
             .0
         };
+
+        check_proxy_sanity(process, components, desc)?;
 
         cfg.set_default(Some(&desc.into()))?;
         writeln!(process.stdout().lock())?;
@@ -1138,7 +1163,7 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available version
-    info!("checking for self-update");
+    info!("checking for self-update (current version: {current_version})");
     let available_version = if let Some(ver) = non_empty_env_var("RUSTUP_VERSION", process)? {
         info!("`RUSTUP_VERSION` has been set to `{ver}`");
         ver
@@ -1158,7 +1183,7 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
     let download_url = utils::parse_url(&url)?;
 
     // Download new version
-    info!("downloading self-update");
+    info!("downloading self-update (new version: {available_version})");
     download_file(&download_url, &setup_path, None, &|_| (), process).await?;
 
     // Mark as executable
@@ -1225,7 +1250,15 @@ impl fmt::Display for SchemaVersion {
     }
 }
 
-pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RustupUpdateAvailable {
+    True,
+    False,
+}
+
+pub(crate) async fn check_rustup_update(process: &Process) -> Result<RustupUpdateAvailable> {
+    let mut update_available = RustupUpdateAvailable::False;
+
     let mut t = process.stdout().terminal(process);
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
@@ -1237,6 +1270,8 @@ pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
     write!(t.lock(), "rustup - ")?;
 
     if current_version != available_version {
+        update_available = RustupUpdateAvailable::True;
+
         let _ = t.fg(terminalsource::Color::Yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
@@ -1248,7 +1283,7 @@ pub(crate) async fn check_rustup_update(process: &Process) -> Result<()> {
         writeln!(t.lock(), " : {current_version}")?;
     }
 
-    Ok(())
+    Ok(update_available)
 }
 
 #[tracing::instrument(level = "trace")]

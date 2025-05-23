@@ -1,6 +1,8 @@
 //! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
+#![allow(deprecated)]
+
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -932,10 +934,7 @@ async fn add_all_targets_fail() {
     cx.config
         .expect_err(
             &["rustup", "target", "add", CROSS_ARCH1, "all", CROSS_ARCH2],
-            &format!(
-                "`rustup target add {} all {}` includes `all`",
-                CROSS_ARCH1, CROSS_ARCH2
-            ),
+            &format!("`rustup target add {CROSS_ARCH1} all {CROSS_ARCH2}` includes `all`"),
         )
         .await;
 }
@@ -947,7 +946,7 @@ async fn add_target_by_component_add() {
     cx.config
         .expect_not_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", CROSS_ARCH1),
+            &format!("{CROSS_ARCH1} (installed)"),
         )
         .await;
     cx.config
@@ -955,13 +954,13 @@ async fn add_target_by_component_add() {
             "rustup",
             "component",
             "add",
-            &format!("rust-std-{}", CROSS_ARCH1),
+            &format!("rust-std-{CROSS_ARCH1}"),
         ])
         .await;
     cx.config
         .expect_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", CROSS_ARCH1),
+            &format!("{CROSS_ARCH1} (installed)"),
         )
         .await;
 }
@@ -976,7 +975,7 @@ async fn remove_target_by_component_remove() {
     cx.config
         .expect_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", CROSS_ARCH1),
+            &format!("{CROSS_ARCH1} (installed)"),
         )
         .await;
     cx.config
@@ -984,13 +983,13 @@ async fn remove_target_by_component_remove() {
             "rustup",
             "component",
             "remove",
-            &format!("rust-std-{}", CROSS_ARCH1),
+            &format!("rust-std-{CROSS_ARCH1}"),
         ])
         .await;
     cx.config
         .expect_not_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", CROSS_ARCH1),
+            &format!("{CROSS_ARCH1} (installed)"),
         )
         .await;
 }
@@ -1085,10 +1084,7 @@ async fn add_target_again() {
     cx.config
         .expect_stderr_ok(
             &["rustup", "target", "add", CROSS_ARCH1],
-            &format!(
-                "component 'rust-std' for target '{}' is up to date",
-                CROSS_ARCH1
-            ),
+            &format!("component 'rust-std' for target '{CROSS_ARCH1}' is up to date"),
         )
         .await;
     let path = format!(
@@ -1540,8 +1536,8 @@ async fn add_target_suggest_best_match() {
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
         .expect_err(
-            &["rustup", "target", "add", &format!("{}a", CROSS_ARCH1)[..]],
-            &format!("did you mean '{}'", CROSS_ARCH1),
+            &["rustup", "target", "add", &format!("{CROSS_ARCH1}a")[..]],
+            &format!("did you mean '{CROSS_ARCH1}'"),
         )
         .await;
     cx.config
@@ -1555,13 +1551,8 @@ async fn remove_target_suggest_best_match() {
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
     cx.config
         .expect_not_stderr_err(
-            &[
-                "rustup",
-                "target",
-                "remove",
-                &format!("{}a", CROSS_ARCH1)[..],
-            ],
-            &format!("did you mean '{}'", CROSS_ARCH1),
+            &["rustup", "target", "remove", &format!("{CROSS_ARCH1}a")[..]],
+            &format!("did you mean '{CROSS_ARCH1}'"),
         )
         .await;
     cx.config
@@ -1569,13 +1560,8 @@ async fn remove_target_suggest_best_match() {
         .await;
     cx.config
         .expect_err(
-            &[
-                "rustup",
-                "target",
-                "remove",
-                &format!("{}a", CROSS_ARCH1)[..],
-            ],
-            &format!("did you mean '{}'", CROSS_ARCH1),
+            &["rustup", "target", "remove", &format!("{CROSS_ARCH1}a")[..]],
+            &format!("did you mean '{CROSS_ARCH1}'"),
         )
         .await;
 }
@@ -1629,19 +1615,19 @@ async fn install_with_targets() {
         cx.config
             .expect_stdout_ok(
                 &["rustup", "target", "list"],
-                &format!("{} (installed)", CROSS_ARCH1),
+                &format!("{CROSS_ARCH1} (installed)"),
             )
             .await;
         cx.config
             .expect_stdout_ok(
                 &["rustup", "target", "list"],
-                &format!("{} (installed)", CROSS_ARCH2),
+                &format!("{CROSS_ARCH2} (installed)"),
             )
             .await;
     }
 
     go(&["-t", CROSS_ARCH1, "-t", CROSS_ARCH2]).await;
-    go(&["-t", &format!("{},{}", CROSS_ARCH1, CROSS_ARCH2)]).await;
+    go(&["-t", &format!("{CROSS_ARCH1},{CROSS_ARCH2}")]).await;
 }
 
 #[tokio::test]
@@ -1669,7 +1655,7 @@ async fn install_with_component_and_target() {
     cx.config
         .expect_stdout_ok(
             &["rustup", "target", "list"],
-            &format!("{} (installed)", CROSS_ARCH1),
+            &format!("{CROSS_ARCH1} (installed)"),
         )
         .await;
 }

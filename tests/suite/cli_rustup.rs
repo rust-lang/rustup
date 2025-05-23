@@ -1,5 +1,7 @@
 //! Test cases for new rustup UI
 
+#![allow(deprecated)]
+
 use std::fs;
 use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{env::consts::EXE_SUFFIX, path::Path};
@@ -578,7 +580,7 @@ async fn recursive_cargo() {
     let output = cx.config.run("rustup", ["which", "cargo"], &[]).await;
     let real_mock_cargo = output.stdout.trim();
     let cargo_bin_path = cx.config.cargodir.join("bin");
-    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
+    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{EXE_SUFFIX}"));
     fs::create_dir_all(&cargo_bin_path).unwrap();
     fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
 
@@ -736,7 +738,7 @@ async fn show_multiple_targets() {
         .expect_ok(&[
             "rustup",
             "default",
-            &format!("nightly-{}", MULTI_ARCH1),
+            &format!("nightly-{MULTI_ARCH1}"),
             "--force-non-host",
         ])
         .await;
@@ -783,7 +785,7 @@ async fn show_multiple_toolchains_and_targets() {
         .expect_ok(&[
             "rustup",
             "default",
-            &format!("nightly-{}", MULTI_ARCH1),
+            &format!("nightly-{MULTI_ARCH1}"),
             "--force-non-host",
         ])
         .await;
@@ -795,7 +797,7 @@ async fn show_multiple_toolchains_and_targets() {
             "rustup",
             "update",
             "--force-non-host",
-            &format!("stable-{}", MULTI_ARCH1),
+            &format!("stable-{MULTI_ARCH1}"),
         ])
         .await;
     cx.config
@@ -1542,7 +1544,7 @@ async fn add_component_by_target_triple() {
             "rustup",
             "component",
             "add",
-            &format!("rust-std-{}", CROSS_ARCH1),
+            &format!("rust-std-{CROSS_ARCH1}"),
         ])
         .await;
     let path = format!(
@@ -1595,7 +1597,7 @@ async fn fail_invalid_component_name() {
                 "rustup",
                 "component",
                 "add",
-                &format!("dummy-{}", CROSS_ARCH1),
+                &format!("dummy-{CROSS_ARCH1}"),
             ],
             &format!(
             "error: toolchain 'stable-{}' does not contain component 'dummy-{}' for target '{}'",
@@ -1642,7 +1644,7 @@ async fn remove_component() {
 
 #[tokio::test]
 async fn remove_component_by_target_triple() {
-    let component_with_triple = format!("rust-std-{}", CROSS_ARCH1);
+    let component_with_triple = format!("rust-std-{CROSS_ARCH1}");
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.expect_ok(&["rustup", "default", "stable"]).await;
     cx.config
@@ -1665,11 +1667,11 @@ async fn add_remove_multiple_components() {
     let files = [
         "lib/rustlib/src/rust-src/foo.rs".to_owned(),
         format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple()),
-        format!("lib/rustlib/{}/lib/libstd.rlib", CROSS_ARCH1),
-        format!("lib/rustlib/{}/lib/libstd.rlib", CROSS_ARCH2),
+        format!("lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib"),
+        format!("lib/rustlib/{CROSS_ARCH2}/lib/libstd.rlib"),
     ];
-    let component_with_triple1 = format!("rust-std-{}", CROSS_ARCH1);
-    let component_with_triple2 = format!("rust-std-{}", CROSS_ARCH2);
+    let component_with_triple1 = format!("rust-std-{CROSS_ARCH1}");
+    let component_with_triple2 = format!("rust-std-{CROSS_ARCH2}");
 
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
@@ -2358,11 +2360,11 @@ async fn override_order() {
     let mut cx = CliTestContext::new(Scenario::ArchivesV2).await;
     let host = this_host_triple();
     // give each override type a different toolchain
-    let default_tc = &format!("beta-2015-01-01-{}", host);
-    let env_tc = &format!("stable-2015-01-01-{}", host);
-    let dir_tc = &format!("beta-2015-01-02-{}", host);
-    let file_tc = &format!("stable-2015-01-02-{}", host);
-    let command_tc = &format!("nightly-2015-01-01-{}", host);
+    let default_tc = &format!("beta-2015-01-01-{host}");
+    let env_tc = &format!("stable-2015-01-01-{host}");
+    let dir_tc = &format!("beta-2015-01-02-{host}");
+    let file_tc = &format!("stable-2015-01-02-{host}");
+    let command_tc = &format!("nightly-2015-01-01-{host}");
     cx.config
         .expect_ok(&["rustup", "install", default_tc])
         .await;
@@ -2395,7 +2397,7 @@ async fn override_order() {
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(
         &toolchain_file,
-        &format!("[toolchain]\nchannel='{}'", file_tc),
+        &format!("[toolchain]\nchannel='{file_tc}'"),
     )
     .unwrap();
     cx.config
@@ -2427,7 +2429,7 @@ async fn override_order() {
         .config
         .run(
             "rustup",
-            [&format!("+{}", command_tc), "show", "active-toolchain"],
+            [&format!("+{command_tc}"), "show", "active-toolchain"],
             &[("RUSTUP_TOOLCHAIN", env_tc)],
         )
         .await;
@@ -3026,5 +3028,98 @@ profile = "minimal"
 
     cx.config
         .expect_stdout_ok(&["cargo", "--version"], "1.3.0 (hash-nightly-2)")
+        .await;
+}
+
+// Issue #4251
+#[tokio::test]
+async fn show_custom_toolchain() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    let stable_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("stable-{}", this_host_triple()));
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "link",
+            "stuff",
+            &stable_path.to_string_lossy(),
+        ])
+        .await;
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "+stuff", "show"],
+            &format!(
+                r"Default host: {0}
+rustup home:  {1}
+
+installed toolchains
+--------------------
+stable-{0} (default)
+stuff (active)
+
+active toolchain
+----------------
+name: stuff
+active because: overridden by +toolchain on the command line
+installed targets:
+  {0}
+",
+                this_host_triple(),
+                cx.config.rustupdir,
+            ),
+            r"",
+        )
+        .await;
+}
+
+#[tokio::test]
+async fn show_custom_toolchain_without_components_file() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.expect_ok(&["rustup", "default", "stable"]).await;
+    let stable_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("stable-{}", this_host_triple()));
+    cx.config
+        .expect_ok(&[
+            "rustup",
+            "toolchain",
+            "link",
+            "stuff",
+            &stable_path.to_string_lossy(),
+        ])
+        .await;
+
+    let components_file = stable_path.join("lib").join("rustlib").join("components");
+    fs::remove_file(&components_file).unwrap();
+    cx.config
+        .expect_ok_ex(
+            &["rustup", "+stuff", "show"],
+            &format!(
+                r"Default host: {0}
+rustup home:  {1}
+
+installed toolchains
+--------------------
+stable-{0} (default)
+stuff (active)
+
+active toolchain
+----------------
+name: stuff
+active because: overridden by +toolchain on the command line
+installed targets:
+",
+                this_host_triple(),
+                cx.config.rustupdir,
+            ),
+            r"",
+        )
         .await;
 }

@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
 use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
@@ -12,6 +14,7 @@ use std::{
 
 use anyhow::{Context, anyhow, bail};
 use fs_at::OpenOptions;
+use same_file::is_same_file;
 use tracing::info;
 use url::Url;
 use wait_timeout::ChildExt;
@@ -19,7 +22,11 @@ use wait_timeout::ChildExt;
 use crate::{
     RustupError,
     config::{ActiveReason, Cfg, InstalledPath},
-    dist::PartialToolchainDesc,
+    dist::{
+        PartialToolchainDesc, TargetTriple,
+        component::{Component, Components},
+        prefix::InstallPrefix,
+    },
     env_var, install,
     notifications::Notification,
     utils::{self, raw::open_dir_following_links},
@@ -329,11 +336,16 @@ impl<'a> Toolchain<'a> {
     pub(crate) fn command(&self, binary: &str) -> anyhow::Result<Command> {
         // Should push the cargo fallback into a custom toolchain type? And then
         // perhaps a trait that create command layers on?
-        if !matches!(
-            self.name(),
-            LocalToolchainName::Named(ToolchainName::Official(_))
-        ) {
-            if let Some(cmd) = self.maybe_do_cargo_fallback(binary)? {
+        if let "cargo" | "cargo.exe" = binary {
+            if let Some(cmd) = self.maybe_do_cargo_fallback()? {
+                info!("`cargo` is unavailable for the active toolchain");
+                info!("falling back to {:?}", cmd.get_program());
+                return Ok(cmd);
+            }
+        } else if let "rust-analyzer" | "rust-analyzer.exe" = binary {
+            if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
+                info!("`rust-analyzer` is unavailable for the active toolchain");
+                info!("falling back to {:?}", cmd.get_program());
                 return Ok(cmd);
             }
         }
@@ -343,18 +355,17 @@ impl<'a> Toolchain<'a> {
 
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
-    pub(crate) fn maybe_do_cargo_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
-        if binary != "cargo" && binary != "cargo.exe" {
+    fn maybe_do_cargo_fallback(&self) -> anyhow::Result<Option<Command>> {
+        if let LocalToolchainName::Named(ToolchainName::Official(_)) = self.name() {
             return Ok(None);
         }
-
-        let cargo_path = self.binary_file("cargo");
 
         // breadcrumb in case of regression: we used to get the cargo path and
         // cargo.exe path separately, not using the binary_file helper. This may
         // matter if calling a binary with some personality that allows .exe and
         // not .exe to coexist (e.g. wine) - but that's not something we aim to
         // support : the host should always be correct.
+        let cargo_path = self.binary_file("cargo");
         if cargo_path.exists() {
             return Ok(None);
         }
@@ -371,6 +382,50 @@ impl<'a> Toolchain<'a> {
             }
         }
 
+        Ok(None)
+    }
+
+    /// Tries to find `rust-analyzer` on the PATH when the active toolchain does
+    /// not have `rust-analyzer` installed.
+    ///
+    /// This happens from time to time often because the user wants to use a
+    /// more recent build of RA than the one shipped with rustup, or because
+    /// rustup isn't shipping RA on their host platform at all.
+    ///
+    /// See the following issues for more context:
+    /// - <https://github.com/rust-lang/rustup/issues/3299>
+    /// - <https://github.com/rust-lang/rustup/issues/3846>
+    fn maybe_do_rust_analyzer_fallback(&self, binary: &str) -> anyhow::Result<Option<Command>> {
+        if self.binary_file("rust-analyzer").exists() {
+            return Ok(None);
+        }
+
+        let proc = self.cfg.process;
+        let Some(path) = proc.var_os("PATH") else {
+            return Ok(None);
+        };
+
+        let me = env::current_exe()?;
+
+        // Try to find the first `rust-analyzer` under the `$PATH` that is both
+        // an existing file and not the same file as `me`, i.e. not a rustup proxy.
+        for mut p in env::split_paths(&path) {
+            p.push(binary);
+            let is_external_ra = p.is_file()
+                // We report `true` on `is_same_file()` error to prevent an invalid `p`
+                // from becoming the candidate.
+                && !is_same_file(&me, &p).unwrap_or(true);
+            // On Unix, we additionally check if the file is executable.
+            #[cfg(unix)]
+            let is_external_ra = is_external_ra
+                && p.metadata()
+                    .is_ok_and(|meta| meta.permissions().mode() & 0o111 != 0);
+            if is_external_ra {
+                let mut ra = Command::new(p);
+                self.set_env(&mut ra);
+                return Ok(Some(ra));
+            }
+        }
         Ok(None)
     }
 
@@ -523,5 +578,32 @@ impl<'a> Toolchain<'a> {
             (cfg.notify_handler)(Notification::UninstalledToolchain(&name));
         }
         Ok(())
+    }
+
+    /// Get the list of installed components for any toolchain
+    ///
+    /// NB: An assumption is made that custom toolchains always have a `rustlib/components` file
+    pub fn installed_components(&self) -> anyhow::Result<Vec<Component>> {
+        let prefix = InstallPrefix::from(self.path.clone());
+        let components = Components::open(prefix)?;
+        components.list()
+    }
+
+    /// Get the list of installed targets for any toolchain
+    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+        let targets = self
+            .installed_components()?
+            .into_iter()
+            .filter_map(|c| {
+                if c.name().starts_with("rust-std-") {
+                    Some(TargetTriple::new(
+                        c.name().trim_start_matches("rust-std-").to_string(),
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Ok(targets)
     }
 }

@@ -1,28 +1,32 @@
 # Changelog
 
-## [1.28.2] - 2025-04-25
+## [1.28.2] - 2025-05-05
 
 This new patch release has brought even more tiny fixes and improvements over the previous one.
 
 The headlines of this release are:
 
-- The cURL download backend is now officially deprecated and a warning will start to show up when it is used. [pr#4277]
+- The cURL download backend and the native-tls TLS backend are now officially deprecated and
+  a warning will start to show up when they are used. [pr#4277]
 
   - While rustup predates reqwest and rustls, the rustup team has long wanted to standardize on
-    an HTTP + TLS stack in Rust, which should increase security, potentially improve performance, and
-    simplify maintenance of the project.
-    With the default download backend already switched to reqwest since [2019](https://github.com/rust-lang/rustup/pull/1660),
-    the team thinks it is time to start removing the cURL backend and focus on maintaining the Rust-based stack.
+    an HTTP + TLS stack with more components in Rust, which should increase security, potentially
+    improve performance, and simplify maintenance of the project.
+    With the default download backend already switched to reqwest since [2019][pr#1660], the team
+    thinks it is time to focus maintenance on the default stack powered by these two libraries.
 
-  - The rustup team encourages everyone to switch to the reqwest backend, and would love to hear from
-    you about your use case via GitHub Issues if it does work against your particular setup.
+  - For people who have set `RUSTUP_USE_CURL=1` or `RUSTUP_USE_RUSTLS=0` in their environment to
+    work around issues with rustup, please try to unset these after upgrading to 1.28.2 and file
+    [an issue][issue tracker] if you still encounter problems.
 
-- Version pinning of `rustup` is now supported when installing it via `rustup-init.sh` with the `RUSTUP_VERSION`
-  environment variable set to e.g. `1.28.2`; the same configuration will be respected when performing
-  `rustup self update` from this version on, enabling arbitrary downgrades in the meantime. [pr#4259]
+- The version of `rustup` can be pinned when installing via `rustup-init.sh`, and
+  `rustup self update` can be used to upgrade/downgrade rustup 1.28.2+ to a given version.
+  To do so, set the `RUSTUP_VERSION` environment variable to the desired version (for example `1.28.2`).
+  [pr#4259]
 
 - `rustup set auto-install disable` can now be used to disable automatic installation of the toolchain.
-  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable but with a lower priority. [pr#4254]
+  This is similar to the `RUSTUP_AUTO_INSTALL` environment variable introduced in 1.28.1 but with a
+  lower priority. [pr#4254]
 
 - Fixed a bug in Nushell integration that might generate invalid commands in the shell configuration.
   Reinstalling rustup might be required for the fix to work. [pr#4265]
@@ -54,12 +58,16 @@ The headlines of this release are:
 - Log original download errors immediately by @djc in https://github.com/rust-lang/rustup/pull/4307
 - download: show Debug representation for errors by @djc in https://github.com/rust-lang/rustup/pull/4309
 - Emit tracing events from log facade calls by @djc in https://github.com/rust-lang/rustup/pull/4310
+- Take rustls-platform-verifier 0.5.2 by @ctz in https://github.com/rust-lang/rustup/pull/4314
+- Set ALPN protocols for rustls backend by @djc in https://github.com/rust-lang/rustup/pull/4312
+- Deprecate native-tls as well by @djc in https://github.com/rust-lang/rustup/pull/4317
 
 [1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
 [pr#4254]: https://github.com/rust-lang/rustup/pull/4254
 [pr#4259]: https://github.com/rust-lang/rustup/pull/4259
 [pr#4265]: https://github.com/rust-lang/rustup/pull/4265
 [pr#4277]: https://github.com/rust-lang/rustup/pull/4277
+[issue tracker]: https://github.com/rust-lang/rustup/issues/
 
 ## [1.28.1] - 2025-03-05
 

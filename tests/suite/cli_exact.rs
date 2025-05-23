@@ -1,6 +1,8 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
+#![allow(deprecated)]
+
 use rustup::for_host;
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
@@ -83,6 +85,7 @@ info: installing component 'rustc'
 #[tokio::test]
 async fn update_once_and_self_update() {
     let test_version = "2.0.0";
+    let current = env!("CARGO_PKG_VERSION");
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let _dist_guard = cx.with_update_server(test_version);
     cx.config
@@ -111,8 +114,8 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: checking for self-update
-info: downloading self-update
+info: checking for self-update (current version: {current})
+info: downloading self-update (new version: 2.0.0)
 "
             ),
         )
@@ -163,16 +166,15 @@ async fn check_updates_none() {
         .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
         .await;
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "check"],
-            for_host!(
-                r"stable-{0} - Up to date : 1.1.0 (hash-stable-1.1.0)
-beta-{0} - Up to date : 1.2.0 (hash-beta-1.2.0)
-nightly-{0} - Up to date : 1.3.0 (hash-nightly-2)
-"
-            ),
-        )
-        .await;
+        .expect(["rustup", "check"])
+        .await
+        .is_err()
+        .with_stdout(snapbox::str![[r#"
+stable-[HOST_TRIPLE] - Up to date : 1.1.0 (hash-stable-1.1.0)
+beta-[HOST_TRIPLE] - Up to date : 1.2.0 (hash-beta-1.2.0)
+nightly-[HOST_TRIPLE] - Up to date : 1.3.0 (hash-nightly-2)
+
+"#]]);
 }
 
 #[tokio::test]
@@ -205,6 +207,11 @@ async fn check_updates_self() {
     let _dist_guard = cx.with_update_server(test_version);
     let current_version = env!("CARGO_PKG_VERSION");
 
+    // We are checking an update to rustup itself in this test.
+    cx.config
+        .run("rustup", ["set", "auto-self-update", "enable"], &[])
+        .await;
+
     cx.config
         .expect_stdout_ok(
             &["rustup", "check"],
@@ -221,15 +228,21 @@ async fn check_updates_self_no_change() {
     let current_version = env!("CARGO_PKG_VERSION");
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let _dist_guard = cx.with_update_server(current_version);
+
+    // We are checking an update to rustup itself in this test.
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "check"],
-            &format!(
-                r"rustup - Up to date : {current_version}
-"
-            ),
-        )
+        .run("rustup", ["set", "auto-self-update", "enable"], &[])
         .await;
+
+    cx.config
+        .expect(["rustup", "check"])
+        .await
+        .extend_redactions([("[VERSION]", current_version)])
+        .is_err()
+        .with_stdout(snapbox::str![[r#"
+rustup - Up to date : [VERSION]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -242,16 +255,15 @@ async fn check_updates_with_update() {
             .expect_ok(&["rustup", "toolchain", "add", "stable", "beta", "nightly"])
             .await;
         cx.config
-            .expect_stdout_ok(
-                &["rustup", "check"],
-                for_host!(
-                    r"stable-{0} - Up to date : 1.0.0 (hash-stable-1.0.0)
-beta-{0} - Up to date : 1.1.0 (hash-beta-1.1.0)
-nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
-"
-                ),
-            )
-            .await;
+            .expect(["rustup", "check"])
+            .await
+            .is_err()
+            .with_stdout(snapbox::str![[r#"
+stable-[HOST_TRIPLE] - Up to date : 1.0.0 (hash-stable-1.0.0)
+beta-[HOST_TRIPLE] - Up to date : 1.1.0 (hash-beta-1.1.0)
+nightly-[HOST_TRIPLE] - Up to date : 1.2.0 (hash-nightly-1)
+
+"#]]);
     }
 
     let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
@@ -308,23 +320,21 @@ info: default toolchain set to 'nightly-{0}'
 
 #[tokio::test]
 async fn override_again() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let cwd = cx.config.current_dir();
+    let cx = &CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "override", "add", "nightly"])
-        .await;
+        .expect(["rustup", "override", "add", "nightly"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok_ex(
-            &["rustup", "override", "add", "nightly"],
-            "",
-            &format!(
-                r"info: override toolchain for '{}' set to 'nightly-{1}'
-",
-                cwd.display(),
-                &this_host_triple()
-            ),
-        )
-        .await;
+        .expect(["rustup", "override", "add", "nightly"])
+        .await
+        .extend_redactions([("[CWD]", cx.config.current_dir().display().to_string())])
+        .is_ok()
+        .with_stdout("")
+        .with_stderr(snapbox::str![[r#"
+info: override toolchain for '[CWD]' set to 'nightly-[HOST_TRIPLE]'
+
+"#]]);
 }
 
 #[tokio::test]
@@ -609,7 +619,7 @@ async fn list_targets() {
     let trip = this_host_triple();
     let mut sorted = [
         format!("{} (installed)", &*trip),
-        format!("{} (installed)", CROSS_ARCH1),
+        format!("{CROSS_ARCH1} (installed)"),
         CROSS_ARCH2.to_string(),
     ];
     sorted.sort();
@@ -674,10 +684,9 @@ async fn cross_install_indicates_target() {
             &["rustup", "target", "add", CROSS_ARCH1],
             r"",
             &format!(
-                r"info: downloading component 'rust-std' for '{0}'
-info: installing component 'rust-std' for '{0}'
-",
-                CROSS_ARCH1
+                r"info: downloading component 'rust-std' for '{CROSS_ARCH1}'
+info: installing component 'rust-std' for '{CROSS_ARCH1}'
+"
             ),
         )
         .await;

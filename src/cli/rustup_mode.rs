@@ -20,7 +20,7 @@ use crate::{
         common::{self, PackageUpdate, update_console_filter},
         errors::CLIError,
         help::*,
-        self_update::{self, SelfUpdateMode, check_rustup_update},
+        self_update::{self, RustupUpdateAvailable, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
     command,
@@ -182,7 +182,10 @@ enum RustupSubcmd {
     },
 
     /// Check for updates to Rust toolchains and rustup
-    Check,
+    Check {
+        #[command(flatten)]
+        opts: CheckOpts,
+    },
 
     /// Modify a toolchain's supported targets
     Target {
@@ -341,6 +344,13 @@ enum ToolchainSubcmd {
         /// Path to the directory
         path: PathBuf,
     },
+}
+
+#[derive(Debug, Default, Args)]
+struct CheckOpts {
+    /// Don't check for self update when running the `rustup check` command
+    #[arg(long)]
+    no_self_update: bool,
 }
 
 #[derive(Debug, Default, Args)]
@@ -683,7 +693,7 @@ pub async fn main(
             }
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
         },
-        RustupSubcmd::Check => check_updates(cfg).await,
+        RustupSubcmd::Check { opts } => check_updates(cfg, opts).await,
         RustupSubcmd::Default {
             toolchain,
             force_non_host,
@@ -812,7 +822,9 @@ async fn default_(
     Ok(utils::ExitCode(0))
 }
 
-async fn check_updates(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
+    let mut update_available = false;
+
     let mut t = cfg.process.stdout().terminal(cfg.process);
     let channels = cfg.list_channels()?;
 
@@ -834,12 +846,14 @@ async fn check_updates(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
                 writeln!(t.lock(), " : {cv}")?;
             }
             (Some(cv), Some(dv)) => {
+                update_available = true;
                 let _ = t.fg(terminalsource::Color::Yellow);
                 write!(t.lock(), "Update available")?;
                 let _ = t.reset();
                 writeln!(t.lock(), " : {cv} -> {dv}")?;
             }
             (None, Some(dv)) => {
+                update_available = true;
                 let _ = t.fg(terminalsource::Color::Yellow);
                 write!(t.lock(), "Update available")?;
                 let _ = t.reset();
@@ -848,9 +862,26 @@ async fn check_updates(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
         }
     }
 
-    check_rustup_update(cfg.process).await?;
+    let self_update_mode = cfg.get_self_update_mode()?;
+    // Priority: no-self-update feature > self_update_mode > no-self-update args.
+    // Check for update only if rustup does **not** have the no-self-update feature,
+    // and auto-self-update is configured to **enable**
+    // and has **no** no-self-update parameter.
+    let self_update = !self_update::NEVER_SELF_UPDATE
+        && self_update_mode == SelfUpdateMode::Enable
+        && !opts.no_self_update;
 
-    Ok(utils::ExitCode(0))
+    if self_update
+        && matches!(
+            check_rustup_update(cfg.process).await?,
+            RustupUpdateAvailable::True
+        )
+    {
+        update_available = true;
+    }
+
+    let exit_status = if update_available { 0 } else { 1 };
+    Ok(utils::ExitCode(exit_status))
 }
 
 async fn update(
@@ -1020,17 +1051,24 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     let active_toolchain_targets: Vec<TargetTriple> = active_toolchain_name
         .and_then(|atn| match atn {
-            ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone()).ok(),
-            // So far, it is not possible to list targets for a custom toolchain.
-            ToolchainName::Custom(_) => None,
-        })
-        .and_then(|distributable| distributable.components().ok())
-        .map(|cs_vec| {
-            cs_vec
-                .into_iter()
-                .filter(|c| c.installed && c.component.short_name_in_manifest() == "rust-std")
-                .map(|c| c.component.target.expect("rust-std should have a target"))
-                .collect()
+            ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone())
+                .ok()
+                .and_then(|distributable| distributable.components().ok())
+                .map(|cs_vec| {
+                    cs_vec
+                        .into_iter()
+                        .filter(|c| {
+                            c.installed && c.component.short_name_in_manifest() == "rust-std"
+                        })
+                        .map(|c| c.component.target.expect("rust-std should have a target"))
+                        .collect()
+                }),
+            ToolchainName::Custom(name) => {
+                Toolchain::new(cfg, LocalToolchainName::Named(name.into()))
+                    .ok()?
+                    .installed_targets()
+                    .ok()
+            }
         })
         .unwrap_or_default();
 
@@ -1086,7 +1124,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
                     &active_reason,
                 )?;
                 writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-                writeln!(t.lock(), "active because: {}", active_reason)?;
+                writeln!(t.lock(), "active because: {active_reason}")?;
                 if verbose {
                     writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
                     writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
@@ -1096,7 +1134,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
                 writeln!(t.lock(), "installed targets:")?;
 
                 for target in active_toolchain_targets {
-                    writeln!(t.lock(), "  {}", target)?;
+                    writeln!(t.lock(), "  {target}")?;
                 }
             }
             None => {

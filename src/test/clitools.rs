@@ -18,6 +18,8 @@ use std::{
 };
 
 use enum_map::{Enum, EnumMap, enum_map};
+use similar_asserts::SimpleDiff;
+use snapbox::{IntoData, RedactedValue, Redactions, assert_data_eq};
 use tempfile::TempDir;
 use url::Url;
 
@@ -25,6 +27,7 @@ use crate::cli::rustup_mode;
 use crate::process;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
+use crate::test::tempdir_in_with_prefix;
 use crate::test::this_host_triple;
 use crate::utils;
 
@@ -58,6 +61,78 @@ pub struct Config {
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
     pub test_root_dir: PathBuf,
+}
+
+#[derive(Clone)]
+pub struct Assert {
+    output: SanitizedOutput,
+    redactions: Redactions,
+}
+
+impl Assert {
+    /// Creates a new [`Assert`] object with the given command [`SanitizedOutput`].
+    pub fn new(output: SanitizedOutput) -> Self {
+        let mut redactions = Redactions::new();
+        redactions
+            .extend([("[HOST_TRIPLE]", this_host_triple())])
+            .expect("invalid redactions detected");
+        Self { output, redactions }
+    }
+
+    /// Extend the redaction rules used in the currrent assertion with new values.
+    pub fn extend_redactions(
+        &mut self,
+        vars: impl IntoIterator<Item = (&'static str, impl Into<RedactedValue>)>,
+    ) -> &mut Self {
+        self.redactions
+            .extend(vars)
+            .expect("invalid redactions detected");
+        self
+    }
+
+    /// Asserts that the command exited with an ok status.
+    pub fn is_ok(&self) -> &Self {
+        assert!(self.output.ok);
+        self
+    }
+
+    /// Asserts that the command exited with an error.
+    pub fn is_err(&self) -> &Self {
+        assert!(!self.output.ok);
+        self
+    }
+
+    /// Asserts that the command exited with the given `expected` stdout pattern.
+    pub fn with_stdout(&self, expected: impl IntoData) -> &Self {
+        let stdout = self.redactions.redact(&self.output.stdout);
+        assert_data_eq!(&stdout, expected);
+        self
+    }
+
+    /// Asserts that the command exited without the given `unexpected` stdout pattern.
+    pub fn without_stdout(&self, unexpected: &str) -> &Self {
+        if self.output.stdout.contains(unexpected) {
+            print_indented("expected.stdout.does_not_contain", unexpected);
+            panic!();
+        }
+        self
+    }
+
+    /// Asserts that the command exited with the given `expected` stderr pattern.
+    pub fn with_stderr(&self, expected: impl IntoData) -> &Self {
+        let stderr = self.redactions.redact(&self.output.stderr);
+        assert_data_eq!(&stderr, expected);
+        self
+    }
+
+    /// Asserts that the command exited without the given `unexpected` stderr pattern.
+    pub fn without_stderr(&self, unexpected: &str) -> &Self {
+        if self.output.stderr.contains(unexpected) {
+            print_indented("expected.stderr.does_not_contain", unexpected);
+            panic!();
+        }
+        self
+    }
 }
 
 impl Config {
@@ -135,12 +210,35 @@ impl Config {
         }
     }
 
+    /// Returns an [`Assert`] object to check the output of running the command
+    /// specified by `args` under the default environment.
+    #[must_use]
+    pub async fn expect(&self, args: impl AsRef<[&str]>) -> Assert {
+        self.expect_with_env(args, &[]).await
+    }
+
+    /// Returns an [`Assert`] object to check the output of running the command
+    /// specified by `args` and under the environment specified by `env`.
+    #[must_use]
+    pub async fn expect_with_env(
+        &self,
+        args: impl AsRef<[&str]>,
+        env: impl AsRef<[(&str, &str)]>,
+    ) -> Assert {
+        let args = args.as_ref();
+        let output = self.run(args[0], &args[1..], env.as_ref()).await;
+        Assert::new(output)
+    }
+
     /// Expect an ok status
+    #[deprecated(note = "use `.expect().await.is_ok()` instead")]
+    #[allow(deprecated)]
     pub async fn expect_ok(&mut self, args: &[&str]) {
         self.expect_ok_env(args, &[]).await
     }
 
     /// Expect an ok status with extra environment variables
+    #[deprecated(note = "use `.expect_with_env().await.is_ok()` instead")]
     pub async fn expect_ok_env(&self, args: &[&str], env: &[(&str, &str)]) {
         let out = self.run(args[0], &args[1..], env).await;
         if !out.ok {
@@ -151,11 +249,14 @@ impl Config {
     }
 
     /// Expect an err status and a string in stderr
+    #[deprecated(note = "use `.expect().await.is_err()` instead")]
+    #[allow(deprecated)]
     pub async fn expect_err(&self, args: &[&str], expected: &str) {
         self.expect_err_env(args, &[], expected).await
     }
 
     /// Expect an err status and a string in stderr, with extra environment variables
+    #[deprecated(note = "use `.expect_with_env().await.is_err()` instead")]
     pub async fn expect_err_env(&self, args: &[&str], env: &[(&str, &str)], expected: &str) {
         let out = self.run(args[0], &args[1..], env).await;
         if out.ok || !out.stderr.contains(expected) {
@@ -167,6 +268,7 @@ impl Config {
     }
 
     /// Expect an ok status and a string in stdout
+    #[deprecated(note = "use `.expect().await.is_ok().with_stdout()` instead")]
     pub async fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stdout.contains(expected) {
@@ -177,6 +279,7 @@ impl Config {
         }
     }
 
+    #[deprecated(note = "use `.expect().await.is_ok().without_stdout()` instead")]
     pub async fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stdout.contains(expected) {
@@ -187,6 +290,7 @@ impl Config {
         }
     }
 
+    #[deprecated(note = "use `.expect().await.is_ok().without_stderr()` instead")]
     pub async fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || out.stderr.contains(expected) {
@@ -197,6 +301,7 @@ impl Config {
         }
     }
 
+    #[deprecated(note = "use `.expect().await.is_err().without_stderr()` instead")]
     pub async fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stderr.contains(expected) {
@@ -208,6 +313,7 @@ impl Config {
     }
 
     /// Expect an ok status and a string in stderr
+    #[deprecated(note = "use `.expect().await.is_ok().with_stderr()` instead")]
     pub async fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stderr.contains(expected) {
@@ -219,12 +325,17 @@ impl Config {
     }
 
     /// Expect an exact strings on stdout/stderr with an ok status code
+    #[deprecated(note = "use `.expect().await.is_ok().with_stdout().with_stderr()` instead")]
+    #[allow(deprecated)]
     pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
         self.expect_ok_ex_env(args, &[], stdout, stderr).await;
     }
 
     /// Expect an exact strings on stdout/stderr with an ok status code,
     /// with extra environment variables
+    #[deprecated(
+        note = "use `.expect_with_env().await.is_ok().with_stdout().with_stderr()` instead"
+    )]
     pub async fn expect_ok_ex_env(
         &mut self,
         args: &[&str],
@@ -235,32 +346,31 @@ impl Config {
         let out = self.run(args[0], &args[1..], env).await;
         if !out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout", stdout);
-            print_indented("expected.stderr", stderr);
-            dbg!(out.stdout == stdout);
-            dbg!(out.stderr == stderr);
-            panic!();
+            print_diff(stdout, &out.stdout);
+            print_diff(stderr, &out.stderr);
+            panic!(
+                "expected OK, differences found: ok = {}, stdout = {}, stderr = {}",
+                out.ok,
+                out.stdout == stdout,
+                out.stderr == stderr
+            );
         }
     }
 
     /// Expect an exact strings on stdout/stderr with an error status code
+    #[deprecated(note = "use `.expect().await.is_err().with_stdout().with_stderr()` instead")]
     pub async fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stdout", stdout);
-            print_indented("expected.stderr", stderr);
-            if out.ok {
-                panic!("expected command to fail");
-            } else if out.stdout != stdout {
-                panic!("expected stdout to match");
-            } else if out.stderr != stderr {
-                panic!("expected stderr to match");
-            } else {
-                unreachable!()
-            }
+            print_diff(stdout, &out.stdout);
+            print_diff(stderr, &out.stderr);
+            panic!(
+                "expected error, differences found: ok = {}, stdout = {}, stderr = {}",
+                out.ok,
+                out.stdout == stdout,
+                out.stderr == stderr
+            );
         }
     }
 
@@ -321,9 +431,9 @@ impl Config {
         let status = out.status;
         let output = SanitizedOutput::try_from(out).unwrap();
 
-        println!("ran: {} {:?}", name, args);
+        println!("ran: {name} {args:?}");
         println!("inprocess: {inprocess}");
-        println!("status: {:?}", status);
+        println!("status: {status:?}");
         println!("duration: {:.3}s", duration.as_secs_f32());
         println!("stdout:\n====\n{}\n====\n", output.stdout);
         println!("stderr:\n====\n{}\n====\n", output.stderr);
@@ -427,6 +537,17 @@ impl Config {
             change_channel_date(&url, channel, date);
         }
     }
+}
+
+fn print_diff(expected: &str, actual: &str) {
+    if expected == actual {
+        return;
+    }
+
+    println!(
+        "{}",
+        SimpleDiff::from_str(expected, actual, "expected", "actual")
+    );
 }
 
 // Describes all the features of the mock dist server.
@@ -707,19 +828,11 @@ async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDi
     }
     let test_dir = rustup_test::test_dir().unwrap();
 
-    fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> PathBuf {
-        tempfile::Builder::new()
-            .prefix(prefix)
-            .tempdir_in(path.as_ref())
-            .unwrap()
-            .into_path()
-    }
-
-    let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe");
-    let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom");
-    let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo");
-    let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home");
-    let workdir = tempdir_in_with_prefix(&test_dir, "rustup-workdir");
+    let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe").unwrap();
+    let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom").unwrap();
+    let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo").unwrap();
+    let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home").unwrap();
+    let workdir = tempdir_in_with_prefix(&test_dir, "rustup-workdir").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
@@ -1042,7 +1155,7 @@ pub struct Output {
     pub stderr: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SanitizedOutput {
     pub ok: bool,
     pub stdout: String,

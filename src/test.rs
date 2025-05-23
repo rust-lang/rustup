@@ -119,7 +119,7 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
     Ok(tempfile::Builder::new()
         .prefix(prefix)
         .tempdir_in(path.as_ref())?
-        .into_path())
+        .keep())
 }
 
 /// What is this host's triple - seems very redundant with from_host_or_build()
