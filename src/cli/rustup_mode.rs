@@ -889,7 +889,8 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
             }
         }
     }
-    let self_update_mode = cfg.get_self_update_mode()?;
+
+    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Check for update only if rustup does **not** have the no-self-update feature,
     // and auto-self-update is configured to **enable**
@@ -914,7 +915,7 @@ async fn update(
     let mut exit_code = utils::ExitCode(0);
 
     common::warn_if_host_is_emulated(cfg.process);
-    let self_update_mode = cfg.get_self_update_mode()?;
+    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Update only if rustup does **not** have the no-self-update feature,
     // and auto-self-update is configured to **enable**
