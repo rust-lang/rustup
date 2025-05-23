@@ -261,6 +261,21 @@ pub enum SelfUpdateMode {
 }
 
 impl SelfUpdateMode {
+    pub(crate) fn from_cfg(cfg: &Cfg<'_>) -> anyhow::Result<Self> {
+        if cfg.process.var("CI").is_ok() && cfg.process.var("RUSTUP_CI").is_err() {
+            // If we're in CI (but not rustup's own CI, which wants to test this stuff!),
+            // disable automatic self updates.
+            return Ok(SelfUpdateMode::Disable);
+        }
+
+        cfg.settings_file.with(|s| {
+            Ok(match s.auto_self_update {
+                Some(mode) => mode,
+                None => SelfUpdateMode::Enable,
+            })
+        })
+    }
+
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
             Self::Enable => "enable",
