@@ -64,7 +64,7 @@ jobs:
           git describe
       - name: Prep cargo dirs
         run: |
-          New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
+          New-Item "${env:USERPROFILE}\.cargoegistry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
       - name: Install NASM
@@ -85,7 +85,7 @@ jobs:
           ${{ matrix.gcc }} --version
       - name: Set PATH
         run: |
-          echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          echo "${env:USERPROFILE}\.cargo in" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Skip tests
         if: matrix.run_tests == '' || matrix.mode == 'release'
@@ -117,11 +117,11 @@ jobs:
           # Disable the download progress bar which can cause perf issues
           $ProgressPreference = "SilentlyContinue"
           Invoke-WebRequest "https://win.rustup.rs/${env:RUSTUP_ARCH}" -OutFile rustup-init.exe
-          .\rustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal
+          .ustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal --default-toolchain=1.81.0
           del rustup-init.exe
         shell: powershell
-      - name: Ensure stable toolchain is up to date
-        run: rustup update stable
+      - name: Ensure 1.81.0 toolchain is up to date
+        run: rustup toolchain install 1.81.0 --profile=minimal
         shell: bash
       - name: Install the target
         run: |
@@ -144,8 +144,8 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          rustup component add clippy
-          cargo clippy --all-targets --all-features -- -D warnings
+          rustup component add clippy --toolchain 1.81.0
+          cargo +1.81.0 clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v4
@@ -236,7 +236,7 @@ jobs:
           git describe
       - name: Prep cargo dirs
         run: |
-          New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
+          New-Item "${env:USERPROFILE}\.cargoegistry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
       - name: Install NASM
@@ -257,7 +257,7 @@ jobs:
           ${{ matrix.gcc }} --version
       - name: Set PATH
         run: |
-          echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          echo "${env:USERPROFILE}\.cargo in" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Skip tests
         if: matrix.run_tests == '' || matrix.mode == 'release'
@@ -289,11 +289,11 @@ jobs:
           # Disable the download progress bar which can cause perf issues
           $ProgressPreference = "SilentlyContinue"
           Invoke-WebRequest "https://win.rustup.rs/${env:RUSTUP_ARCH}" -OutFile rustup-init.exe
-          .\rustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal
+          .ustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal --default-toolchain=1.81.0
           del rustup-init.exe
         shell: powershell
-      - name: Ensure stable toolchain is up to date
-        run: rustup update stable
+      - name: Ensure 1.81.0 toolchain is up to date
+        run: rustup toolchain install 1.81.0 --profile=minimal
         shell: bash
       - name: Install the target
         run: |
@@ -316,8 +316,8 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          rustup component add clippy
-          cargo clippy --all-targets --all-features -- -D warnings
+          rustup component add clippy --toolchain 1.81.0
+          cargo +1.81.0 clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v4
@@ -414,7 +414,7 @@ jobs:
           git describe
       - name: Prep cargo dirs
         run: |
-          New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
+          New-Item "${env:USERPROFILE}\.cargoegistry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
         shell: powershell
       - name: Install NASM
@@ -435,7 +435,7 @@ jobs:
           ${{ matrix.gcc }} --version
       - name: Set PATH
         run: |
-          echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          echo "${env:USERPROFILE}\.cargo in" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Skip tests
         if: matrix.run_tests == '' || matrix.mode == 'release'
@@ -467,11 +467,11 @@ jobs:
           # Disable the download progress bar which can cause perf issues
           $ProgressPreference = "SilentlyContinue"
           Invoke-WebRequest "https://win.rustup.rs/${env:RUSTUP_ARCH}" -OutFile rustup-init.exe
-          .\rustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal
+          .ustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal --default-toolchain=1.81.0
           del rustup-init.exe
         shell: powershell
-      - name: Ensure stable toolchain is up to date
-        run: rustup update stable
+      - name: Ensure 1.81.0 toolchain is up to date
+        run: rustup toolchain install 1.81.0 --profile=minimal
         shell: bash
       - name: Install the target
         run: |
@@ -494,8 +494,8 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          rustup component add clippy
-          cargo clippy --all-targets --all-features -- -D warnings
+          rustup component add clippy --toolchain 1.81.0
+          cargo +1.81.0 clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v4
@@ -615,15 +615,15 @@ jobs:
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
-      - name: Ensure Stable is up to date
+      - name: Ensure 1.81.0 is up to date
         run: |
           if rustc +stable -vV >/dev/null 2>/dev/null; then
             rustup toolchain uninstall stable
           fi
-          rustup toolchain install --profile=minimal stable
+          rustup toolchain install 1.81.0 --profile=minimal stable
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install "$TARGET"
+          rustup target install "$TARGET" --toolchain 1.81.0
       - name: Determine which docker we need to run in
         run: |
           case "$TARGET" in
@@ -644,26 +644,7 @@ jobs:
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
-          docker run \
-            --entrypoint sh \
-            --env BUILD_PROFILE="${BUILD_PROFILE}" \
-            --env CARGO_HOME=/cargo \
-            --env CARGO_TARGET_DIR=/checkout/target \
-            --env LIBZ_SYS_STATIC=1 \
-            --env SKIP_TESTS="${SKIP_TESTS}" \
-            --env TARGET="${TARGET}" \
-            --env INSTALL_BINDGEN=1 \
-            --init \
-            --rm \
-            --tty \
-            --user "$(id -u)":"$(id -g)" \
-            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
-            --volume "${HOME}/.cargo:/cargo" \
-            --volume "${PWD}":/checkout:ro \
-            --volume "${PWD}"/target:/checkout/target \
-            --workdir /checkout \
-            "${DOCKER}" \
-            -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
+          docker run             --entrypoint sh             --env BUILD_PROFILE="${BUILD_PROFILE}"             --env CARGO_HOME=/cargo             --env CARGO_TARGET_DIR=/checkout/target             --env LIBZ_SYS_STATIC=1             --env SKIP_TESTS="${SKIP_TESTS}"             --env TARGET="${TARGET}"             --env INSTALL_BINDGEN=1             --init             --rm             --tty             --user "$(id -u)":"$(id -g)"             --volume "$(rustc --print sysroot)":/rustc-sysroot:ro             --volume "${HOME}/.cargo:/cargo"             --volume "${PWD}":/checkout:ro             --volume "${PWD}"/target:/checkout/target             --workdir /checkout             "${DOCKER}"             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
         uses: actions/upload-artifact@v4
         if: matrix.mode == 'release'
@@ -784,15 +765,15 @@ jobs:
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
-      - name: Ensure Stable is up to date
+      - name: Ensure 1.81.0 is up to date
         run: |
           if rustc +stable -vV >/dev/null 2>/dev/null; then
             rustup toolchain uninstall stable
           fi
-          rustup toolchain install --profile=minimal stable
+          rustup toolchain install 1.81.0 --profile=minimal stable
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install "$TARGET"
+          rustup target install "$TARGET" --toolchain 1.81.0
       - name: Determine which docker we need to run in
         run: |
           case "$TARGET" in
@@ -813,26 +794,7 @@ jobs:
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
-          docker run \
-            --entrypoint sh \
-            --env BUILD_PROFILE="${BUILD_PROFILE}" \
-            --env CARGO_HOME=/cargo \
-            --env CARGO_TARGET_DIR=/checkout/target \
-            --env LIBZ_SYS_STATIC=1 \
-            --env SKIP_TESTS="${SKIP_TESTS}" \
-            --env TARGET="${TARGET}" \
-            --env INSTALL_BINDGEN=1 \
-            --init \
-            --rm \
-            --tty \
-            --user "$(id -u)":"$(id -g)" \
-            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
-            --volume "${HOME}/.cargo:/cargo" \
-            --volume "${PWD}":/checkout:ro \
-            --volume "${PWD}"/target:/checkout/target \
-            --workdir /checkout \
-            "${DOCKER}" \
-            -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
+          docker run             --entrypoint sh             --env BUILD_PROFILE="${BUILD_PROFILE}"             --env CARGO_HOME=/cargo             --env CARGO_TARGET_DIR=/checkout/target             --env LIBZ_SYS_STATIC=1             --env SKIP_TESTS="${SKIP_TESTS}"             --env TARGET="${TARGET}"             --env INSTALL_BINDGEN=1             --init             --rm             --tty             --user "$(id -u)":"$(id -g)"             --volume "$(rustc --print sysroot)":/rustc-sysroot:ro             --volume "${HOME}/.cargo:/cargo"             --volume "${PWD}":/checkout:ro             --volume "${PWD}"/target:/checkout/target             --workdir /checkout             "${DOCKER}"             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
         uses: actions/upload-artifact@v4
         if: matrix.mode == 'release'
@@ -842,6 +804,7 @@ jobs:
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
       - name: Ensure that awscli is installed
+        B
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
         run: |
           which aws
@@ -976,15 +939,15 @@ jobs:
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
-      - name: Ensure Stable is up to date
+      - name: Ensure 1.81.0 is up to date
         run: |
           if rustc +stable -vV >/dev/null 2>/dev/null; then
             rustup toolchain uninstall stable
           fi
-          rustup toolchain install --profile=minimal stable
+          rustup toolchain install 1.81.0 --profile=minimal stable
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install "$TARGET"
+          rustup target install "$TARGET" --toolchain 1.81.0
       - name: Determine which docker we need to run in
         run: |
           case "$TARGET" in
@@ -1005,26 +968,7 @@ jobs:
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
-          docker run \
-            --entrypoint sh \
-            --env BUILD_PROFILE="${BUILD_PROFILE}" \
-            --env CARGO_HOME=/cargo \
-            --env CARGO_TARGET_DIR=/checkout/target \
-            --env LIBZ_SYS_STATIC=1 \
-            --env SKIP_TESTS="${SKIP_TESTS}" \
-            --env TARGET="${TARGET}" \
-            --env INSTALL_BINDGEN=1 \
-            --init \
-            --rm \
-            --tty \
-            --user "$(id -u)":"$(id -g)" \
-            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
-            --volume "${HOME}/.cargo:/cargo" \
-            --volume "${PWD}":/checkout:ro \
-            --volume "${PWD}"/target:/checkout/target \
-            --workdir /checkout \
-            "${DOCKER}" \
-            -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
+          docker run             --entrypoint sh             --env BUILD_PROFILE="${BUILD_PROFILE}"             --env CARGO_HOME=/cargo             --env CARGO_TARGET_DIR=/checkout/target             --env LIBZ_SYS_STATIC=1             --env SKIP_TESTS="${SKIP_TESTS}"             --env TARGET="${TARGET}"             --env INSTALL_BINDGEN=1             --init             --rm             --tty             --user "$(id -u)":"$(id -g)"             --volume "$(rustc --print sysroot)":/rustc-sysroot:ro             --volume "${HOME}/.cargo:/cargo"             --volume "${PWD}":/checkout:ro             --volume "${PWD}"/target:/checkout/target             --workdir /checkout             "${DOCKER}"             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
         uses: actions/upload-artifact@v4
         if: matrix.mode == 'release'
@@ -1129,15 +1073,15 @@ jobs:
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
-      - name: Ensure Stable is up to date
+      - name: Ensure 1.81.0 is up to date
         run: |
           if rustc +stable -vV >/dev/null 2>/dev/null; then
             rustup toolchain uninstall stable
           fi
-          rustup toolchain install --profile=minimal stable
+          rustup toolchain install 1.81.0 --profile=minimal stable
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install "$TARGET"
+          rustup target install "$TARGET" --toolchain 1.81.0
       - name: Run a full build and test
         env:
           BUILD_PROFILE: ${{ matrix.mode }}
@@ -1261,15 +1205,15 @@ jobs:
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
-      - name: Ensure Stable is up to date
+      - name: Ensure 1.81.0 is up to date
         run: |
           if rustc +stable -vV >/dev/null 2>/dev/null; then
             rustup toolchain uninstall stable
           fi
-          rustup toolchain install --profile=minimal stable
+          rustup toolchain install 1.81.0 --profile=minimal stable
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install "$TARGET"
+          rustup target install "$TARGET" --toolchain 1.81.0
       - name: Run a full build and test
         env:
           BUILD_PROFILE: ${{ matrix.mode }}
@@ -1351,9 +1295,9 @@ jobs:
         usesh: true
         copyback: false
         prepare: |
-          pkg install -y git gmake bash sudo \
-            `# The following packages are required by 'aws-lc-rs':` \
-            cmake-core llvm-devel-lite rust-bindgen-cli
+          pkg install -y git gmake bash sudo             `# The following packages are required by 'aws-lc-rs':`             cmake-core llvm-devel-lite rust-bindgen-cli rustup
+          rustup-init -y --default-toolchain 1.81.0 --profile minimal
+          echo "/usr/local/bin" >> $GITHUB_PATH
         run: |
           echo "========="
           echo "create non-root user and log into it"
@@ -1383,9 +1327,9 @@ jobs:
         usesh: true
         copyback: false
         prepare: |
-          pkg install -y git gmake bash sudo \
-            `# The following packages are required by 'aws-lc-rs':` \
-            cmake-core llvm-devel-lite rust-bindgen-cli
+          pkg install -y git gmake bash sudo             `# The following packages are required by 'aws-lc-rs':`             cmake-core llvm-devel-lite rust-bindgen-cli rustup
+          rustup-init -y --default-toolchain 1.81.0 --profile minimal
+          echo "/usr/local/bin" >> $GITHUB_PATH
         run: |
           echo "========="
           echo "create non-root user and log into it"
@@ -1444,17 +1388,14 @@ jobs:
           restore-keys: ${{ github.base_ref }}-${{ runner.os }}-cargo-clippy-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
-          sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -c=rustfmt -c=clippy -y
+          sh ./rustup-init.sh --default-toolchain=1.81.0 --profile=minimal -c=rustfmt -c=clippy -y
+      - name: Update Cargo.lock # This is the temporary step
+        run: |
+          cargo +1.81.0 update
+          echo "Cargo.lock updated by CI check job"
       - name: Run the centos check within the docker image
         run: |
-          docker run \
-            --volume "$PWD":/checkout:ro \
-            --workdir /checkout \
-            --tty \
-            --init \
-            --rm \
-            centos:7 \
-            sh ./ci/raw_init.sh
+          docker run             --volume "$PWD":/checkout:ro             --workdir /checkout             --tty             --init             --rm             centos:7             sh ./ci/raw_init.sh
       - name: Run shell checks
         run: |
           shellcheck -x -s dash -- rustup-init.sh
@@ -1470,12 +1411,12 @@ jobs:
           git diff --exit-code
       - name: Run Rust formatting checks
         run: |
-          cargo fmt --all --check
+          cargo +1.81.0 fmt --all --check
       - name: Run cargo check and clippy
         run: |
-          cargo check --all --all-targets --features test
+          cargo +1.81.0 check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --all-targets --all-features -- -D warnings
+          cargo +1.81.0 clippy --all-targets --all-features -- -D warnings
 
   # This is ci/actions-templates/all-features-template.yaml
   # Do not edit this file in .github/workflows
@@ -1499,8 +1440,8 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
-      - name: Install rustup stable
-        run: rustup toolchain install stable --profile minimal
+      - name: Install rustup 1.81.0
+        run: rustup toolchain install 1.81.0 --profile minimal
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
@@ -1528,15 +1469,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Install cargo-all-features
         shell: bash
-        run: which cargo-check-all-features || cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
+        run: which cargo-check-all-features || cargo +1.81.0 install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
       - name: Ensure we have our goal target installed
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target add ${{ matrix.target }} --toolchain 1.81.0
       - name: Build every combination
         env:
           RUSTFLAGS: -D warnings
         run: |
-          cargo check-all-features --root-only
+          cargo +1.81.0 check-all-features --root-only
 
   # This is ci/actions-templates/test-docs-templates.yaml
   # Do not edit this file in .github/workflows
@@ -1597,6 +1538,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      D
       - name: Result
         run: |
           jq -C <<< "${needs}"
