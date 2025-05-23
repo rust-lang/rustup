@@ -25,7 +25,7 @@ use crate::{
         common::{self, PackageUpdate, update_console_filter},
         errors::CLIError,
         help::*,
-        self_update::{self, RustupUpdateAvailable, SelfUpdateMode, check_rustup_update},
+        self_update::{self, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
     command,
@@ -898,12 +898,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
 
-    if self_update
-        && matches!(
-            check_rustup_update(cfg.process).await?,
-            RustupUpdateAvailable::True
-        )
-    {
+    if self_update && check_rustup_update(cfg.process).await? {
         update_available = true;
     }
 
