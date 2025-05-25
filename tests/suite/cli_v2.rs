@@ -836,21 +836,42 @@ async fn list_targets_v1_toolchain() {
 
 #[tokio::test]
 async fn list_targets_custom_toolchain() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let path = cx.config.customdir.join("custom-1");
-    let path = path.to_string_lossy();
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "link", "default-from-path", &path])
-        .await;
+        .expect(&["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    let stable_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("stable-{}", this_host_triple()));
     cx.config
-        .expect_ok(&["rustup", "default", "default-from-path"])
-        .await;
+        .expect([
+            "rustup",
+            "toolchain",
+            "link",
+            "stuff",
+            &stable_path.to_string_lossy(),
+        ])
+        .await
+        .is_ok();
     cx.config
-        .expect_err(
-            &["rustup", "target", "list"],
-            "toolchain 'default-from-path' does not support components",
-        )
-        .await;
+        .expect(["rustup", "+stuff", "target", "list", "--installed"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+[HOST_TRIPLE]
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect(["rustup", "+stuff", "target", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+[HOST_TRIPLE] (installed)
+
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
