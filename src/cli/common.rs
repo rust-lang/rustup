@@ -19,14 +19,12 @@ use super::self_update;
 use crate::{
     cli::download_tracker::DownloadTracker,
     config::Cfg,
-    dist::{
-        TargetTriple, ToolchainDesc, manifest::ComponentStatus, notifications as dist_notifications,
-    },
+    dist::{TargetTriple, ToolchainDesc, notifications as dist_notifications},
     errors::RustupError,
     install::UpdateStatus,
     notifications::Notification,
     process::{Process, terminalsource},
-    toolchain::{DistributableToolchain, LocalToolchainName, Toolchain, ToolchainName},
+    toolchain::{LocalToolchainName, Toolchain, ToolchainName},
     utils::{self, notifications as util_notifications, notify::NotificationLevel},
 };
 
@@ -380,29 +378,26 @@ where
     Ok(utils::ExitCode(0))
 }
 
+/// Iterates over pairs representing the name of a target or component and a
+/// boolean value indicating whether it is installed or not.
+/// The boolean value is needed to determine whether to print "(installed)"
+/// next to the target/component name."
 pub(super) fn list_items(
-    distributable: DistributableToolchain<'_>,
-    f: impl Fn(&ComponentStatus) -> Option<&str>,
+    items: impl Iterator<Item = (String, bool)>,
     installed_only: bool,
     quiet: bool,
     process: &Process,
 ) -> Result<utils::ExitCode> {
     let mut t = process.stdout().terminal(process);
-    for component in distributable.components()? {
-        let Some(name) = f(&component) else { continue };
-        match (component.available, component.installed, installed_only) {
-            (false, _, _) | (_, false, true) => continue,
-            (true, true, false) if !quiet => {
-                t.attr(terminalsource::Attr::Bold)?;
-                writeln!(t.lock(), "{name} (installed)")?;
-                t.reset()?;
-            }
-            (true, _, false) | (_, true, true) => {
-                writeln!(t.lock(), "{name}")?;
-            }
+    for (name, installed) in items {
+        if installed && !installed_only && !quiet {
+            t.attr(terminalsource::Attr::Bold)?;
+            writeln!(t.lock(), "{name} (installed)")?;
+            t.reset()?;
+        } else if installed || !installed_only {
+            writeln!(t.lock(), "{name}")?;
         }
     }
-
     Ok(utils::ExitCode(0))
 }
 
