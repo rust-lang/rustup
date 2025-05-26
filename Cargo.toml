@@ -56,7 +56,7 @@ git-testament = "0.2"
 home = "0.5.4"
 itertools = "0.14"
 libc = "0.2"
-opener = "0.7.0"
+opener = "0.8.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
 openssl = { version = "0.10", optional = true }
