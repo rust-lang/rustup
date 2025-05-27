@@ -60,9 +60,9 @@ opener = "0.8.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
 openssl = { version = "0.10", optional = true }
-opentelemetry = { version = "0.29", optional = true }
-opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic"], optional = true }
-opentelemetry_sdk = { version = "0.29", features = ["rt-tokio"], optional = true }
+opentelemetry = { version = "0.30", optional = true }
+opentelemetry-otlp = { version = "0.30", features = ["grpc-tonic"], optional = true }
+opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"], optional = true }
 pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.9"
 regex = "1"
