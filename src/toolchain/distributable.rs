@@ -134,6 +134,12 @@ impl<'a> DistributableToolchain<'a> {
         components: &[&str],
         targets: &[&str],
     ) -> anyhow::Result<bool> {
+        // Performance optimization: avoid loading the manifest (which can be expensive)
+        // if there are no components/targets to check.
+        if components.is_empty() && targets.is_empty() {
+            return Ok(true);
+        }
+
         let manifestation = self.get_manifestation()?;
         let manifest = manifestation.load_manifest()?;
         let manifest = match manifest {
