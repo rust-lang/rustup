@@ -383,7 +383,7 @@ where
 /// The boolean value is needed to determine whether to print "(installed)"
 /// next to the target/component name."
 pub(super) fn list_items(
-    items: impl Iterator<Item = (String, bool)>,
+    items: impl Iterator<Item = (impl Display, bool)>,
     installed_only: bool,
     quiet: bool,
     process: &Process,
