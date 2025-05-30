@@ -1177,10 +1177,7 @@ async fn target_list(
         common::list_items(
             distributable.components()?.into_iter().filter_map(|c| {
                 if c.component.short_name_in_manifest() == "rust-std" && c.available {
-                    c.component
-                        .target
-                        .as_deref()
-                        .map(|target| (target.to_string(), c.installed))
+                    c.component.target.map(|target| (target, c.installed))
                 } else {
                     None
                 }
@@ -1192,10 +1189,7 @@ async fn target_list(
     } else {
         let toolchain = cfg.toolchain_from_partial(toolchain).await?;
         common::list_items(
-            toolchain
-                .installed_targets()?
-                .iter()
-                .map(|s| (s.to_string(), true)),
+            toolchain.installed_targets()?.iter().map(|s| (s, true)),
             installed_only,
             quiet,
             cfg.process,
@@ -1314,7 +1308,7 @@ async fn component_list(
             toolchain
                 .installed_components()?
                 .iter()
-                .map(|s| (s.name().to_string(), true)),
+                .map(|s| (s.name(), true)),
             installed_only,
             quiet,
             cfg.process,
