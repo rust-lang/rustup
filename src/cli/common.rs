@@ -378,10 +378,10 @@ where
     Ok(utils::ExitCode(0))
 }
 
-/// Iterates over pairs representing the name of a target or component and a
-/// boolean value indicating whether it is installed or not.
-/// The boolean value is needed to determine whether to print "(installed)"
-/// next to the target/component name."
+/// Print a list of items (targets or components) to stdout.
+///
+/// `items` represents the list of items, with the name and a boolean
+/// to represent whether the item is currently installed.
 pub(super) fn list_items(
     items: impl Iterator<Item = (impl Display, bool)>,
     installed_only: bool,
