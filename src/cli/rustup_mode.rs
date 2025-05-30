@@ -1291,13 +1291,10 @@ async fn component_list(
     // downcasting required because the toolchain files can name any toolchain
     if let Ok(distributable) = DistributableToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
-            distributable.components()?.into_iter().filter_map(|c| {
-                if c.available {
-                    Some((c.name, c.installed))
-                } else {
-                    None
-                }
-            }),
+            distributable
+                .components()?
+                .into_iter()
+                .filter_map(|c| c.available.then_some((c.name, c.installed))),
             installed_only,
             quiet,
             cfg.process,
