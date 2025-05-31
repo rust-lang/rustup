@@ -1,7 +1,5 @@
 //! Testing self install, uninstall and update
 
-#![allow(deprecated)]
-
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -21,7 +19,7 @@ use rustup::test::{
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
-use rustup::{DUP_TOOLS, TOOLS, for_host};
+use rustup::{DUP_TOOLS, TOOLS};
 #[cfg(windows)]
 use windows_registry::Value;
 
@@ -29,25 +27,27 @@ const TEST_VERSION: &str = "1.1.1";
 
 /// Empty dist server, rustup installed with no toolchain
 async fn setup_empty_installed() -> CliTestContext {
-    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    let cx = CliTestContext::new(Scenario::Empty).await;
     cx.config
-        .expect_ok(&[
+        .expect([
             "rustup-init",
             "-y",
             "--no-modify-path",
             "--default-toolchain",
             "none",
         ])
-        .await;
+        .await
+        .is_ok();
     cx
 }
 
 /// SimpleV3 dist server, rustup installed with default toolchain
 async fn setup_installed() -> CliTestContext {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     cx
 }
 
@@ -61,16 +61,16 @@ async fn install_bins_to_cargo_home() {
     let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
     cx.config
-        .expect_ok_contains(
-            &["rustup-init", "-y"],
-            for_host!(
-                r"
-  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
-
-"
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
+        .expect(["rustup-init", "-y"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+  stable-[HOST_TRIPLE] installed - 1.1.0 (hash-stable-1.1.0)
+...
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+info: syncing channel updates for 'stable-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -80,11 +80,10 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: default toolchain set to 'stable-{0}'
-"
-            ),
-        )
-        .await;
+info: default toolchain set to 'stable-[HOST_TRIPLE]'
+
+"#]])
+        .is_ok();
     #[cfg(windows)]
     fn check(path: &Path) {
         assert!(path.exists());
@@ -113,16 +112,16 @@ async fn proxies_are_relative_symlinks() {
     let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
     cx.config
-        .expect_ok_contains(
-            &["rustup-init", "-y"],
-            for_host!(
-                r"
-  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
-
-"
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
+        .expect(["rustup-init", "-y"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+  stable-[HOST_TRIPLE] installed - 1.1.0 (hash-stable-1.1.0)
+...
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+info: syncing channel updates for 'stable-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -132,11 +131,10 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: default toolchain set to 'stable-{0}'
-"
-            ),
-        )
-        .await;
+info: default toolchain set to 'stable-[HOST_TRIPLE]'
+...
+"#]])
+        .is_ok();
 
     let rustup = format!("rustup{EXE_SUFFIX}");
     for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
@@ -156,12 +154,12 @@ info: default toolchain set to 'stable-{0}'
 
 #[tokio::test]
 async fn install_twice() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
     let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
-    cx.config.expect_ok(&["rustup-init", "-y"]).await;
-    cx.config.expect_ok(&["rustup-init", "-y"]).await;
+    cx.config.expect(["rustup-init", "-y"]).await.is_ok();
+    cx.config.expect(["rustup-init", "-y"]).await.is_ok();
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     assert!(rustup.exists());
 }
@@ -171,18 +169,19 @@ async fn install_twice() {
 /// earlier in the code, so a black-box test is needed.
 #[tokio::test]
 async fn install_creates_cargo_home() {
-    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    let cx = CliTestContext::new(Scenario::Empty).await;
     remove_dir_all(&cx.config.cargodir).unwrap();
     cx.config.rustupdir.remove().unwrap();
     cx.config
-        .expect_ok(&[
+        .expect([
             "rustup-init",
             "-y",
             "--no-modify-path",
             "--default-toolchain",
             "none",
         ])
-        .await;
+        .await
+        .is_ok();
     assert!(cx.config.cargodir.exists());
 }
 
@@ -190,12 +189,13 @@ async fn install_creates_cargo_home() {
 /// with rustup.exe and end up deleting that exe itself.
 #[tokio::test]
 async fn uninstall_deletes_bins() {
-    let mut cx = setup_empty_installed().await;
+    let cx = setup_empty_installed().await;
     // no-modify-path isn't needed here, as the test-dir-path isn't present
     // in the registry, so the no-change code path will be triggered.
     cx.config
-        .expect_ok(&["rustup", "self", "uninstall", "-y"])
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let rustc = cx.config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
     let rustdoc = cx.config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
@@ -220,7 +220,7 @@ async fn uninstall_deletes_bins() {
 
 #[tokio::test]
 async fn uninstall_works_if_some_bins_dont_exist() {
-    let mut cx = setup_empty_installed().await;
+    let cx = setup_empty_installed().await;
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let rustc = cx.config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
     let rustdoc = cx.config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
@@ -239,8 +239,9 @@ async fn uninstall_works_if_some_bins_dont_exist() {
     fs::remove_file(&cargo).unwrap();
 
     cx.config
-        .expect_ok(&["rustup", "self", "uninstall", "-y"])
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
 
     assert!(!rustup.exists());
     assert!(!rustc.exists());
@@ -253,28 +254,31 @@ async fn uninstall_works_if_some_bins_dont_exist() {
 
 #[tokio::test]
 async fn uninstall_deletes_rustup_home() {
-    let mut cx = setup_empty_installed().await;
+    let cx = setup_empty_installed().await;
     cx.config
-        .expect_ok(&["rustup", "self", "uninstall", "-y"])
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
     assert!(!cx.config.rustupdir.has("."));
 }
 
 #[tokio::test]
 async fn uninstall_works_if_rustup_home_doesnt_exist() {
-    let mut cx = setup_empty_installed().await;
+    let cx = setup_empty_installed().await;
     cx.config.rustupdir.remove().unwrap();
     cx.config
-        .expect_ok(&["rustup", "self", "uninstall", "-y"])
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
 }
 
 #[tokio::test]
 async fn uninstall_deletes_cargo_home() {
-    let mut cx = setup_empty_installed().await;
+    let cx = setup_empty_installed().await;
     cx.config
-        .expect_ok(&["rustup", "self", "uninstall", "-y"])
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
     assert!(!cx.config.cargodir.exists());
 }
 
@@ -284,11 +288,13 @@ async fn uninstall_fails_if_not_installed() {
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     fs::remove_file(rustup).unwrap();
     cx.config
-        .expect_err(
-            &["rustup", "self", "uninstall", "-y"],
-            "rustup is not installed",
-        )
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: rustup is not installed at '[..]'
+
+"#]])
+        .is_err();
 }
 
 // The other tests here just run rustup from a temp directory. This
@@ -334,10 +340,11 @@ async fn uninstall_self_delete_works() {
 // file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[tokio::test]
 async fn uninstall_doesnt_leave_gc_file() {
-    let mut cx = setup_empty_installed().await;
+    let cx = setup_empty_installed().await;
     cx.config
-        .expect_ok(&["rustup", "self", "uninstall", "-y"])
-        .await;
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
     let parent = cx.config.cargodir.parent().unwrap();
 
     // The gc removal happens after rustup terminates. Typically under
@@ -368,24 +375,26 @@ struct GcErr(Vec<String>);
 
 #[tokio::test]
 async fn update_exact() {
-    let version = env!("CARGO_PKG_VERSION");
-    let expected_output = format!(
-        "info: checking for self-update (current version: {version})
-info: downloading self-update (new version: {TEST_VERSION})
-"
-    );
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    cx.config
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "self", "update"])
+        .await
+        .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
+        .with_stdout(snapbox::str![[r#"
+  rustup updated - [CURRENT_VERSION] (from [CURRENT_VERSION])
 
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
-    cx.config
-        .expect_ok_ex(
-            &["rustup", "self", "update"],
-            &format!("  rustup updated - {version} (from {version})\n\n",),
-            &expected_output,
-        )
-        .await;
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: checking for self-update (current version: [CURRENT_VERSION])
+info: downloading self-update (new version: [TEST_VERSION])
+
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
@@ -401,17 +410,14 @@ async fn update_precise() {
             [("RUSTUP_VERSION", TEST_VERSION)],
         )
         .await
-        .extend_redactions([
-            ("[TEST_VERSION]", TEST_VERSION),
-            ("[VERSION]", env!("CARGO_PKG_VERSION")),
-        ])
+        .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
         .with_stdout(snapbox::str![[r#"
-  rustup updated - [VERSION] (from [VERSION])
+  rustup updated - [CURRENT_VERSION] (from [CURRENT_VERSION])
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: checking for self-update (current version: [VERSION])
+info: checking for self-update (current version: [CURRENT_VERSION])
 info: `RUSTUP_VERSION` has been set to `[TEST_VERSION]`
 info: downloading self-update (new version: [TEST_VERSION])
 
@@ -424,16 +430,17 @@ async fn update_overwrites_programs_display_version() {
     const PLACEHOLDER_VERSION: &str = "9.999.99";
     let version = env!("CARGO_PKG_VERSION");
 
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     let _guard = RegistryGuard::new(&USER_RUSTUP_VERSION).unwrap();
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     USER_RUSTUP_VERSION
         .set(Some(&Value::from(PLACEHOLDER_VERSION)))
         .unwrap();
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert_eq!(
         USER_RUSTUP_VERSION.get().unwrap().unwrap(),
         Value::from(version)
@@ -450,21 +457,20 @@ const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
 async fn update_but_not_installed() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_err_ex(
-            &["rustup", "self", "update"],
-            r"",
-            &format!(
-                r"error: rustup is not installed at '{}'
-",
-                cx.config.cargodir.display()
-            ),
-        )
-        .await;
+        .expect(["rustup", "self", "update"])
+        .await
+        .extend_redactions([("[CARGO_DIR]", cx.config.cargodir.display().to_string())])
+        .is_err()
+        .with_stdout(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+error: rustup is not installed at '[CARGO_DIR]'
+
+"#]]);
 }
 
 #[tokio::test]
 async fn update_but_delete_existing_updater_first() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     // The updater is stored in a known location
     let setup = cx
         .config
@@ -472,13 +478,17 @@ async fn update_but_delete_existing_updater_first() {
         .join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(&["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     // If it happens to already exist for some reason it
     // should just be deleted.
     raw::write_file(&setup, "").unwrap();
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+    cx.config
+        .expect(&["rustup", "self", "update"])
+        .await
+        .is_ok();
 
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     assert!(rustup.exists());
@@ -486,10 +496,11 @@ async fn update_but_delete_existing_updater_first() {
 
 #[tokio::test]
 async fn update_download_404() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     let trip = this_host_triple();
     let dist_dir = cx.path().join(format!("archive/{TEST_VERSION}/{trip}"));
@@ -498,20 +509,32 @@ async fn update_download_404() {
     fs::remove_file(dist_exe).unwrap();
 
     cx.config
-        .expect_err(&["rustup", "self", "update"], "could not download file")
-        .await;
+        .expect(["rustup", "self", "update"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error: could not download file from '[..]' to '[..]': file not found
+...
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
 async fn update_bogus_version() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
-    cx.config.expect_err(
-        &["rustup", "update", "1.0.0-alpha"],
-        "invalid value '1.0.0-alpha' for '[TOOLCHAIN]...': invalid toolchain name: '1.0.0-alpha'",
-    ).await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "update", "1.0.0-alpha"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error: invalid value '1.0.0-alpha' for '[TOOLCHAIN]...': invalid toolchain name: '1.0.0-alpha'
+...
+"#]])
+        .is_err();
 }
 
 // Check that rustup.exe has changed after the update. This
@@ -519,10 +542,11 @@ async fn update_bogus_version() {
 // before the new updater can delete it.
 #[tokio::test]
 async fn update_updates_rustup_bin() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(&["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     let bin = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let before_hash = calc_hash(&bin);
@@ -546,54 +570,65 @@ async fn update_updates_rustup_bin() {
 
 #[tokio::test]
 async fn update_bad_schema() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     output_release_file(cx.path(), "17", "1.1.1");
     cx.config
-        .expect_err(&["rustup", "self", "update"], "unknown variant")
-        .await;
+        .expect(["rustup", "self", "update"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error: unable to parse rustup release file[..]
+...
+unknown variant [..]
+...
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
 async fn update_no_change() {
     let version = env!("CARGO_PKG_VERSION");
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     output_release_file(cx.path(), "1", version);
     cx.config
-        .expect_ok_ex(
-            &["rustup", "self", "update"],
-            &format!(
-                r"  rustup unchanged - {version}
+        .expect(["rustup", "self", "update"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+  rustup unchanged - [CURRENT_VERSION]
 
-"
-            ),
-            &format!(
-                r"info: checking for self-update (current version: {version})
-"
-            ),
-        )
-        .await;
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: checking for self-update (current version: [CURRENT_VERSION])
+
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn rustup_self_updates_trivial() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup", "set", "auto-self-update", "enable"])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     let bin = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let before_hash = calc_hash(&bin);
 
-    cx.config.expect_ok(&["rustup", "update"]).await;
+    cx.config.expect(["rustup", "update"]).await.is_ok();
 
     let after_hash = calc_hash(&bin);
 
@@ -602,18 +637,23 @@ async fn rustup_self_updates_trivial() {
 
 #[tokio::test]
 async fn rustup_self_updates_with_specified_toolchain() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup", "set", "auto-self-update", "enable"])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     let bin = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let before_hash = calc_hash(&bin);
 
-    cx.config.expect_ok(&["rustup", "update", "stable"]).await;
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
 
     let after_hash = calc_hash(&bin);
 
@@ -622,15 +662,19 @@ async fn rustup_self_updates_with_specified_toolchain() {
 
 #[tokio::test]
 async fn rustup_no_self_update_with_specified_toolchain() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     let bin = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let before_hash = calc_hash(&bin);
 
-    cx.config.expect_ok(&["rustup", "update", "stable"]).await;
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
 
     let after_hash = calc_hash(&bin);
 
@@ -639,33 +683,34 @@ async fn rustup_no_self_update_with_specified_toolchain() {
 
 #[tokio::test]
 async fn rustup_self_update_exact() {
-    let version = env!("CARGO_PKG_VERSION");
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup", "set", "auto-self-update", "enable"])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
 
     cx.config
-        .expect_ok_ex(
-            &["rustup", "update"],
-            for_host!(
-                r"
-  stable-{0} unchanged - 1.1.0 (hash-stable-1.1.0)
+        .expect(["rustup", "update"])
+        .await
+        .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
+        .with_stdout(snapbox::str![[r#"
 
-"
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
-info: checking for self-update (current version: {version})
-info: downloading self-update (new version: {TEST_VERSION})
+  stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: syncing channel updates for 'stable-[HOST_TRIPLE]'
+info: checking for self-update (current version: [CURRENT_VERSION])
+info: downloading self-update (new version: [TEST_VERSION])
 info: cleaning up downloads & tmp directories
-"
-            ),
-        )
-        .await;
+
+"#]])
+        .is_ok();
 }
 
 // Because self-delete on windows is hard, rustup-init doesn't
@@ -673,12 +718,16 @@ info: cleaning up downloads & tmp directories
 // invocations of rustup.
 #[tokio::test]
 async fn updater_leaves_itself_for_later_deletion() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
-    cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "update", "nightly"])
+        .await
+        .is_ok();
+    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
 
     let setup = cx
         .config
@@ -689,14 +738,21 @@ async fn updater_leaves_itself_for_later_deletion() {
 
 #[tokio::test]
 async fn updater_is_deleted_after_running_rustup() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
-    cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "update", "nightly"])
+        .await
+        .is_ok();
+    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
 
-    cx.config.expect_ok(&["rustup", "update", "nightly"]).await;
+    cx.config
+        .expect(["rustup", "update", "nightly"])
+        .await
+        .is_ok();
 
     let setup = cx
         .config
@@ -707,14 +763,18 @@ async fn updater_is_deleted_after_running_rustup() {
 
 #[tokio::test]
 async fn updater_is_deleted_after_running_rustc() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
 
-    cx.config.expect_ok(&["rustc", "--version"]).await;
+    cx.config.expect(["rustc", "--version"]).await.is_ok();
 
     let setup = cx
         .config
@@ -725,166 +785,220 @@ async fn updater_is_deleted_after_running_rustc() {
 
 #[tokio::test]
 async fn rustup_still_works_after_update() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
-        .await;
-    cx.config.expect_ok(&["rustup", "default", "beta"]).await;
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0")
-        .await;
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.2.0 (hash-beta-1.2.0)
+
+"#]])
+        .is_ok();
 }
 
 // The installer used to be called rustup-setup. For compatibility it
 // still needs to work in that mode.
 #[tokio::test]
 async fn as_rustup_setup() {
-    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    let cx = CliTestContext::new(Scenario::Empty).await;
     let init = cx.config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
     let setup = cx.config.exedir.join(format!("rustup-setup{EXE_SUFFIX}"));
     fs::copy(init, setup).unwrap();
     cx.config
-        .expect_ok(&[
+        .expect([
             "rustup-setup",
             "-y",
             "--no-modify-path",
             "--default-toolchain",
             "none",
         ])
-        .await;
+        .await
+        .is_ok();
 }
 
 #[tokio::test]
 async fn reinstall_exact() {
     let cx = setup_empty_installed().await;
     cx.config
-        .expect_stderr_ok(
-            &[
-                "rustup-init",
-                "-y",
-                "--no-update-default-toolchain",
-                "--no-modify-path",
-            ],
-            r"info: updating existing rustup installation - leaving toolchains alone",
-        )
-        .await;
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-update-default-toolchain",
+            "--no-modify-path",
+        ])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+info: updating existing rustup installation - leaving toolchains alone
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn reinstall_specifying_toolchain() {
     let cx = setup_installed().await;
     cx.config
-        .expect_stdout_ok(
-            &[
-                "rustup-init",
-                "-y",
-                "--default-toolchain=stable",
-                "--no-modify-path",
-            ],
-            for_host!(r"stable-{0} unchanged - 1.1.0"),
-        )
-        .await;
+        .expect([
+            "rustup-init",
+            "-y",
+            "--default-toolchain=stable",
+            "--no-modify-path",
+        ])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+  stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn reinstall_specifying_component() {
-    let mut cx = setup_installed().await;
+    let cx = setup_installed().await;
     cx.config
-        .expect_ok(&["rustup", "component", "add", "rls"])
-        .await;
+        .expect(["rustup", "component", "add", "rls"])
+        .await
+        .is_ok();
     cx.config
-        .expect_stdout_ok(
-            &[
-                "rustup-init",
-                "-y",
-                "--default-toolchain=stable",
-                "--no-modify-path",
-            ],
-            for_host!(r"stable-{0} unchanged - 1.1.0"),
-        )
-        .await;
+        .expect([
+            "rustup-init",
+            "-y",
+            "--default-toolchain=stable",
+            "--no-modify-path",
+        ])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+  stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn reinstall_specifying_different_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_stderr_ok(
-            &[
-                "rustup-init",
-                "-y",
-                "--default-toolchain=nightly",
-                "--no-modify-path",
-            ],
-            for_host!(r"info: default toolchain set to 'nightly-{0}'"),
-        )
-        .await;
+        .expect([
+            "rustup-init",
+            "-y",
+            "--default-toolchain=nightly",
+            "--no-modify-path",
+        ])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn install_sets_up_stable_unless_a_different_default_is_requested() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&[
+        .expect([
             "rustup-init",
             "-y",
             "--default-toolchain",
             "nightly",
             "--no-modify-path",
         ])
-        .await;
+        .await
+        .is_ok();
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
-        .await;
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn install_sets_up_stable_unless_there_is_already_a_default() {
-    let mut cx = setup_installed().await;
-    cx.config.expect_ok(&["rustup", "default", "nightly"]).await;
+    let cx = setup_installed().await;
     cx.config
-        .expect_ok(&["rustup", "toolchain", "remove", "stable"])
-        .await;
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup", "toolchain", "remove", "stable"])
+        .await
+        .is_ok();
     cx.config
-        .expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2")
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     cx.config
-        .expect_err(
-            &["rustup", "run", "stable", "rustc", "--version"],
-            for_host!("toolchain 'stable-{0}' is not installed"),
-        )
-        .await;
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect(["rustup", "run", "stable", "rustc", "--version"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'stable-[HOST_TRIPLE]' is not installed
+help: run `rustup toolchain install stable-[HOST_TRIPLE]` to install it
+
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
 async fn readline_no_stdin() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_err(
-            &["rustup-init", "--no-modify-path"],
-            "unable to read from stdin for confirmation",
-        )
-        .await;
+        .expect(["rustup-init", "--no-modify-path"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error: unable to read from stdin for confirmation[..]
+...
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
 async fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let old = cx.config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
     let new = cx.config.exedir.join(format!("rustup-init(2){EXE_SUFFIX}"));
     fs::rename(old, new).unwrap();
     cx.config
-        .expect_ok(&["rustup-init(2)", "-y", "--no-modify-path"])
-        .await;
+        .expect(&["rustup-init(2)", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     assert!(rustup.exists());
 }
@@ -894,46 +1008,49 @@ async fn rls_proxy_set_up_after_install() {
     let mut cx = CliTestContext::new(Scenario::None).await;
 
     {
-        let mut cx = cx.with_dist_dir(Scenario::SimpleV2);
+        let cx = cx.with_dist_dir(Scenario::SimpleV2);
         cx.config
-            .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-            .await;
+            .expect(["rustup-init", "-y", "--no-modify-path"])
+            .await
+            .is_ok();
     }
 
     cx.config
-        .expect_err(
-            &["rls", "--version"],
-            &format!(
-                "'rls{}' is not installed for the toolchain 'stable-{}'",
-                EXE_SUFFIX,
-                this_host_triple(),
-            ),
-        )
-        .await;
+        .expect(["rls", "--version"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TRIPLE]'.
+To install, run `rustup component add rls`
+
+"#]])
+        .is_err();
     cx.config
-        .expect_ok(&["rustup", "component", "add", "rls"])
-        .await;
-    cx.config.expect_ok(&["rls", "--version"]).await;
+        .expect(["rustup", "component", "add", "rls"])
+        .await
+        .is_ok();
+    cx.config.expect(["rls", "--version"]).await.is_ok();
 }
 
 #[tokio::test]
 async fn rls_proxy_set_up_after_update() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     let rls_path = cx.config.cargodir.join(format!("bin/rls{EXE_SUFFIX}"));
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     fs::remove_file(&rls_path).unwrap();
-    cx.config.expect_ok(&["rustup", "self", "update"]).await;
+    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert!(rls_path.exists());
 }
 
 #[tokio::test]
 async fn update_does_not_overwrite_rustfmt() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     let version = env!("CARGO_PKG_VERSION");
     output_release_file(cx.path(), "1", version);
 
@@ -949,11 +1066,14 @@ async fn update_does_not_overwrite_rustfmt() {
     // Ok, now a self-update should complain about `rustfmt` not looking
     // like rustup and the user should take some action.
     cx.config
-        .expect_stderr_ok(
-            &["rustup", "self", "update"],
-            "`rustfmt` is already installed",
-        )
-        .await;
+        .expect(["rustup", "self", "update"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+info: checking for self-update (current version: [CURRENT_VERSION])
+warn: tool `rustfmt` is already installed, remove it from `[..]`, then run `rustup update` to have rustup manage this tool.
+
+"#]])
+        .is_ok();
     assert!(rustfmt_path.exists());
     assert_eq!(utils::file_size(&rustfmt_path).unwrap(), 0);
 
@@ -965,18 +1085,20 @@ async fn update_does_not_overwrite_rustfmt() {
     fs::remove_file(&rustfmt_path).unwrap();
     let installed_rustup = cx.config.cargodir.join("bin/rustup");
     cx.config
-        .expect_ok(&[installed_rustup.to_str().unwrap(), "self", "update"])
-        .await;
+        .expect([installed_rustup.to_str().unwrap(), "self", "update"])
+        .await
+        .is_ok();
     assert!(rustfmt_path.exists());
     assert!(utils::file_size(&rustfmt_path).unwrap() > 0);
 }
 
 #[tokio::test]
 async fn update_installs_clippy_cargo_and() {
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
-        .expect_ok(&["rustup-init", "-y", "--no-modify-path"])
-        .await;
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
     let version = env!("CARGO_PKG_VERSION");
     output_release_file(cx.path(), "1", version);
 
@@ -989,9 +1111,9 @@ async fn update_installs_clippy_cargo_and() {
 
 #[tokio::test]
 async fn install_with_components_and_targets() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&[
+        .expect([
             "rustup-init",
             "--default-toolchain",
             "nightly",
@@ -1002,33 +1124,41 @@ async fn install_with_components_and_targets() {
             CROSS_ARCH1,
             "--no-modify-path",
         ])
-        .await;
+        .await
+        .is_ok();
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "target", "list"],
-            &format!("{CROSS_ARCH1} (installed)"),
-        )
-        .await;
+        .expect(["rustup", "target", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+[CROSS_ARCH_I] (installed)
+...
+"#]])
+        .is_ok();
     cx.config
-        .expect_stdout_ok(
-            &["rustup", "component", "list"],
-            &format!("rls-{} (installed)", this_host_triple()),
-        )
-        .await;
+        .expect(["rustup", "component", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+rls-[HOST_TRIPLE] (installed)
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
 async fn install_minimal_profile() {
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_ok(&[
+        .expect([
             "rustup-init",
             "-y",
             "--profile",
             "minimal",
             "--no-modify-path",
         ])
-        .await;
+        .await
+        .is_ok();
 
     cx.config.expect_component_executable("rustup").await;
     cx.config.expect_component_executable("rustc").await;
