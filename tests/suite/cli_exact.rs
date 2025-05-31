@@ -237,10 +237,9 @@ async fn check_updates_self_no_change() {
     cx.config
         .expect(["rustup", "check"])
         .await
-        .extend_redactions([("[VERSION]", current_version)])
         .is_err()
         .with_stdout(snapbox::str![[r#"
-rustup - Up to date : [VERSION]
+rustup - Up to date : [CURRENT_VERSION]
 
 "#]]);
 }
