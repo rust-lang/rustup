@@ -1,6 +1,7 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
 use std::{
+    borrow::Cow,
     cell::RefCell,
     collections::HashMap,
     env::{self, consts::EXE_SUFFIX},
@@ -32,6 +33,7 @@ use crate::test::this_host_triple;
 use crate::utils;
 
 use super::{
+    CROSS_ARCH1, CROSS_ARCH2,
     dist::{MockDistServer, MockManifestVersion, Release, RlsStatus, change_channel_date},
     mock::MockFile,
 };
@@ -74,7 +76,15 @@ impl Assert {
     pub fn new(output: SanitizedOutput) -> Self {
         let mut redactions = Redactions::new();
         redactions
-            .extend([("[HOST_TRIPLE]", this_host_triple())])
+            .extend([
+                (
+                    "[CURRENT_VERSION]",
+                    Cow::Borrowed(env!("CARGO_PKG_VERSION")),
+                ),
+                ("[HOST_TRIPLE]", Cow::Owned(this_host_triple())),
+                ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
+                ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
+            ])
             .expect("invalid redactions detected");
         Self { output, redactions }
     }
