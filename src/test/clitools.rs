@@ -33,7 +33,7 @@ use crate::test::this_host_triple;
 use crate::utils;
 
 use super::{
-    CROSS_ARCH1, CROSS_ARCH2,
+    CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1,
     dist::{MockDistServer, MockManifestVersion, Release, RlsStatus, change_channel_date},
     mock::MockFile,
 };
@@ -84,6 +84,7 @@ impl Assert {
                 ("[HOST_TRIPLE]", Cow::Owned(this_host_triple())),
                 ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
                 ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
+                ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
             ])
             .expect("invalid redactions detected");
         Self { output, redactions }
