@@ -28,8 +28,8 @@ pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get
 
 mod clitools;
 pub use clitools::{
-    CliTestContext, Config, SanitizedOutput, Scenario, SelfUpdateTestContext, output_release_file,
-    print_command, print_indented,
+    Assert, CliTestContext, Config, SanitizedOutput, Scenario, SelfUpdateTestContext,
+    output_release_file, print_command, print_indented,
 };
 pub(crate) mod dist;
 pub(crate) mod mock;
