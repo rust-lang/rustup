@@ -280,12 +280,11 @@ fn show_channel_updates(
 
 pub(crate) async fn update_all_channels(
     cfg: &Cfg<'_>,
-    do_self_update: bool,
     force_update: bool,
 ) -> Result<utils::ExitCode> {
     let toolchains = cfg.update_all_channels(force_update).await?;
     let has_update_error = toolchains.iter().any(|(_, r)| r.is_err());
-    let mut exit_code = utils::ExitCode(if has_update_error { 1 } else { 0 });
+    let exit_code = utils::ExitCode(if has_update_error { 1 } else { 0 });
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
@@ -299,10 +298,6 @@ pub(crate) async fn update_all_channels(
             .map(|(p, s)| (PackageUpdate::Toolchain(p), s))
             .collect();
         show_channel_updates(cfg, t)?;
-    }
-
-    if do_self_update {
-        exit_code &= self_update(cfg.process).await?;
     }
 
     Ok(exit_code)
