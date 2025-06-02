@@ -339,13 +339,19 @@ impl<'a> Toolchain<'a> {
         if let "cargo" | "cargo.exe" = binary {
             if let Some(cmd) = self.maybe_do_cargo_fallback()? {
                 info!("`cargo` is unavailable for the active toolchain");
-                info!("falling back to {:?}", cmd.get_program());
+                info!(
+                    r#"falling back to "{}""#,
+                    Path::new(cmd.get_program()).display()
+                );
                 return Ok(cmd);
             }
         } else if let "rust-analyzer" | "rust-analyzer.exe" = binary {
             if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
                 info!("`rust-analyzer` is unavailable for the active toolchain");
-                info!("falling back to {:?}", cmd.get_program());
+                info!(
+                    r#"falling back to "{}""#,
+                    Path::new(cmd.get_program()).display()
+                );
                 return Ok(cmd);
             }
         }
