@@ -594,13 +594,9 @@ impl<'a> Toolchain<'a> {
             .installed_components()?
             .into_iter()
             .filter_map(|c| {
-                if c.name().starts_with("rust-std-") {
-                    Some(TargetTriple::new(
-                        c.name().trim_start_matches("rust-std-").to_string(),
-                    ))
-                } else {
-                    None
-                }
+                c.name()
+                    .strip_prefix("rust-std-")
+                    .map(|triple| TargetTriple::new(triple.to_string()))
             })
             .collect())
     }
