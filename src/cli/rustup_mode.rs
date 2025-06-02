@@ -995,7 +995,11 @@ async fn update(
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {reason}");
     } else {
-        exit_code &= common::update_all_channels(cfg, self_update, opts.force).await?;
+        exit_code &= common::update_all_channels(cfg, opts.force).await?;
+        if self_update {
+            exit_code &= common::self_update(cfg.process).await?;
+        }
+
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
