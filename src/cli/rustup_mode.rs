@@ -984,7 +984,7 @@ async fn update(
             }
         }
         if self_update {
-            exit_code &= common::self_update(|| Ok(()), cfg.process).await?;
+            exit_code &= common::self_update(cfg.process).await?;
         }
     } else if ensure_active_toolchain {
         let (toolchain, reason) = cfg.ensure_active_toolchain(force_non_host, true).await?;
