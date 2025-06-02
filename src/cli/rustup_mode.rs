@@ -1016,28 +1016,20 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         .map(|atar| (&atar.0, &atar.1))
         .unzip();
 
-    let active_toolchain_targets: Vec<TargetTriple> = active_toolchain_name
-        .and_then(|atn| match atn {
-            ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone())
-                .ok()
-                .and_then(|distributable| distributable.components().ok())
-                .map(|cs_vec| {
-                    cs_vec
-                        .into_iter()
-                        .filter(|c| {
-                            c.installed && c.component.short_name_in_manifest() == "rust-std"
-                        })
-                        .map(|c| c.component.target.expect("rust-std should have a target"))
-                        .collect()
-                }),
-            ToolchainName::Custom(name) => {
-                Toolchain::new(cfg, LocalToolchainName::Named(name.into()))
-                    .ok()?
-                    .installed_targets()
-                    .ok()
-            }
-        })
-        .unwrap_or_default();
+    let active_toolchain_targets = match active_toolchain_name {
+        Some(ToolchainName::Official(desc)) => DistributableToolchain::new(cfg, desc.clone())?
+            .components()?
+            .into_iter()
+            .filter_map(|c| {
+                (c.installed && c.component.short_name_in_manifest() == "rust-std")
+                    .then(|| c.component.target.expect("rust-std should have a target"))
+            })
+            .collect(),
+        Some(ToolchainName::Custom(name)) => {
+            Toolchain::new(cfg, LocalToolchainName::Named(name.into()))?.installed_targets()?
+        }
+        None => Vec::new(),
+    };
 
     // show installed toolchains
     {
