@@ -928,7 +928,7 @@ async fn update(
     if self_update && !ensure_active_toolchain {
         exit_code &= common::self_update(cfg.process).await?;
     } else {
-        check_rustup_update(self_update_mode, false, cfg).await?;
+        check_rustup_update(self_update_mode, opts.no_self_update, cfg).await?;
     }
 
     Ok(exit_code)
