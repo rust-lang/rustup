@@ -816,6 +816,7 @@ async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDi
     unsafe {
         // Unset env variables that will break our testing
         env::remove_var("CARGO");
+        env::remove_var("RUSTUP_AUTO_INSTALL");
         env::remove_var("RUSTUP_UPDATE_ROOT");
         env::remove_var("RUSTUP_TOOLCHAIN");
         env::remove_var("SHELL");
