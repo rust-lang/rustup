@@ -67,4 +67,9 @@ fn main() {
     // Turning them into errors forces them to be displayed (and the build to fail).
     // If we do want to ignore specific warnings then `/IGNORE:` should be used.
     println!("cargo::rustc-link-arg-bin=rustup-init=/WX");
+
+    // Increase the stack size to 2 mb.
+    // Works around issue with the clap parser using a lot of stack space in debug mode.
+    // See https://github.com/clap-rs/clap/issues/5134
+    println!("cargo::rustc-link-arg-bin=rustup-init=/STACK:0x200000");
 }
