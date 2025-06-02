@@ -914,25 +914,23 @@ async fn update(
                 cfg.set_default(Some(&desc.into()))?;
             }
         }
-        if self_update {
-            exit_code &= common::self_update(cfg.process).await?;
-        }
     } else if ensure_active_toolchain {
         let (toolchain, reason) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {reason}");
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
-        if self_update {
-            exit_code &= common::self_update(cfg.process).await?;
-        }
-
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
     }
 
-    check_rustup_update(self_update_mode, false, cfg).await?;
+    if self_update && !ensure_active_toolchain {
+        exit_code &= common::self_update(cfg.process).await?;
+    } else {
+        check_rustup_update(self_update_mode, false, cfg).await?;
+    }
+
     Ok(exit_code)
 }
 
