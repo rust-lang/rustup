@@ -291,24 +291,20 @@ pub(crate) async fn update_all_channels(
         info!("no updatable toolchains installed");
     }
 
-    let show_channel_updates = || {
-        if !toolchains.is_empty() {
-            writeln!(cfg.process.stdout().lock())?;
+    if !toolchains.is_empty() {
+        writeln!(cfg.process.stdout().lock())?;
 
-            let t = toolchains
-                .into_iter()
-                .map(|(p, s)| (PackageUpdate::Toolchain(p), s))
-                .collect();
-            show_channel_updates(cfg, t)?;
-        }
-        Ok(())
-    };
+        let t = toolchains
+            .into_iter()
+            .map(|(p, s)| (PackageUpdate::Toolchain(p), s))
+            .collect();
+        show_channel_updates(cfg, t)?;
+    }
 
     if do_self_update {
-        exit_code &= self_update(show_channel_updates, cfg.process).await?;
-    } else {
-        show_channel_updates()?;
+        exit_code &= self_update(cfg.process).await?;
     }
+
     Ok(exit_code)
 }
 
@@ -350,10 +346,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 }
 
 /// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update<F>(before_restart: F, process: &Process) -> Result<utils::ExitCode>
-where
-    F: FnOnce() -> Result<()>,
-{
+pub(crate) async fn self_update(process: &Process) -> Result<utils::ExitCode> {
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             error!("Unable to self-update.  STOP");
@@ -365,8 +358,6 @@ where
     }
 
     let setup_path = self_update::prepare_update(process).await?;
-
-    before_restart()?;
 
     if let Some(setup_path) = &setup_path {
         return self_update::run_update(setup_path);
