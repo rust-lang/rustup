@@ -101,6 +101,15 @@ impl Assert {
         self
     }
 
+    pub fn remove_redactions(&mut self, vars: impl IntoIterator<Item = &'static str>) -> &mut Self {
+        for var in vars {
+            self.redactions
+                .remove(var)
+                .expect("invalid redactions detected");
+        }
+        self
+    }
+
     /// Asserts that the command exited with an ok status.
     pub fn is_ok(&self) -> &Self {
         assert!(self.output.ok);
