@@ -224,20 +224,32 @@ impl Config {
     /// Returns an [`Assert`] object to check the output of running the command
     /// specified by `args` under the default environment.
     #[must_use]
-    pub async fn expect(&self, args: impl AsRef<[&str]>) -> Assert {
+    pub async fn expect<S: AsRef<OsStr> + Clone + Debug>(&self, args: impl AsRef<[S]>) -> Assert {
         self.expect_with_env(args, &[]).await
     }
 
     /// Returns an [`Assert`] object to check the output of running the command
     /// specified by `args` and under the environment specified by `env`.
     #[must_use]
-    pub async fn expect_with_env(
+    pub async fn expect_with_env<S: AsRef<OsStr> + Clone + Debug>(
         &self,
-        args: impl AsRef<[&str]>,
+        args: impl AsRef<[S]>,
         env: impl AsRef<[(&str, &str)]>,
     ) -> Assert {
-        let args = args.as_ref();
-        let output = self.run(args[0], &args[1..], env.as_ref()).await;
+        let (program, args) = args
+            .as_ref()
+            .split_first()
+            .expect("args should not be empty");
+        let output = self
+            .run(
+                program
+                    .as_ref()
+                    .to_str()
+                    .expect("invalid UTF-8 in program name"),
+                args,
+                env.as_ref(),
+            )
+            .await;
         Assert::new(output)
     }
 
