@@ -22,8 +22,8 @@ LOCAL_DOCKER_TAG="rust-$TARGET"
 # <https://github.com/rust-lang/rust/blob/master/src/ci/docker/host-x86_64/dist-arm-linux>.
 case "$TARGET" in
   aarch64-unknown-linux-gnu)       image=dist-aarch64-linux ;;
-  aarch64-unknown-linux-musl)      image=dist-arm-linux ;;
-  arm-unknown-linux-gnueabi)       image=dist-arm-linux ;;
+  aarch64-unknown-linux-musl)      image=dist-arm-linux-musl ;;
+  arm-unknown-linux-gnueabi)       image=dist-arm-linux-gnueabi ;;
   arm-unknown-linux-gnueabihf)     image=dist-armhf-linux ;;
   armv7-unknown-linux-gnueabihf)   image=dist-armv7-linux ;;
   i686-unknown-linux-gnu)          image=dist-i686-linux ;;
@@ -34,8 +34,8 @@ case "$TARGET" in
   mipsel-unknown-linux-gnu)        image=dist-mipsel-linux ;;
   powerpc-unknown-linux-gnu)       image=dist-powerpc-linux ;;
   powerpc64-unknown-linux-gnu)     image=dist-powerpc64-linux ;;
-  powerpc64le-unknown-linux-gnu)   image=dist-powerpc64le-linux ;;
-  powerpc64le-unknown-linux-musl)  image=dist-powerpc64le-linux ;;
+  powerpc64le-unknown-linux-gnu)   image=dist-powerpc64le-linux-gnu ;;
+  powerpc64le-unknown-linux-musl)  image=dist-powerpc64le-linux-musl ;;
   s390x-unknown-linux-gnu)         image=dist-s390x-linux ;;
   x86_64-unknown-freebsd)          image=dist-x86_64-freebsd ;;
   x86_64-unknown-illumos)          image=dist-x86_64-illumos ;;
