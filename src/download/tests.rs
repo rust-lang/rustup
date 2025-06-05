@@ -1,8 +1,10 @@
 use std::convert::Infallible;
+use std::env::remove_var;
 use std::fs;
 use std::io;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
 
@@ -20,7 +22,7 @@ mod curl {
 
     use url::Url;
 
-    use super::{serve_file, tmp_dir, write_file};
+    use super::{scrub_env, serve_file, tmp_dir, write_file};
     use crate::download::{Backend, Event};
 
     #[tokio::test]
@@ -43,6 +45,7 @@ mod curl {
 
     #[tokio::test]
     async fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
+        let _guard = scrub_env().await;
         let tmpdir = tmp_dir();
         let target_path = tmpdir.path().join("downloaded");
         write_file(&target_path, "123");
@@ -94,11 +97,11 @@ mod curl {
 
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest {
-    use std::env::{remove_var, set_var};
+    use std::env::set_var;
     use std::error::Error;
     use std::net::TcpListener;
+    use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::{LazyLock, Mutex};
     use std::thread;
     use std::time::Duration;
 
@@ -106,34 +109,16 @@ mod reqwest {
     use reqwest::{Client, Proxy};
     use url::Url;
 
-    use super::{serve_file, tmp_dir, write_file};
+    use super::{scrub_env, serve_file, tmp_dir, write_file};
     use crate::download::{Backend, Event, TlsBackend};
-
-    static SERIALISE_TESTS: LazyLock<tokio::sync::Mutex<()>> =
-        LazyLock::new(|| tokio::sync::Mutex::new(()));
-
-    unsafe fn scrub_env() {
-        unsafe {
-            remove_var("http_proxy");
-            remove_var("https_proxy");
-            remove_var("HTTPS_PROXY");
-            remove_var("ftp_proxy");
-            remove_var("FTP_PROXY");
-            remove_var("all_proxy");
-            remove_var("ALL_PROXY");
-            remove_var("no_proxy");
-            remove_var("NO_PROXY");
-        }
-    }
 
     // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
     #[tokio::test]
     async fn read_basic_proxy_params() {
-        let _guard = SERIALISE_TESTS.lock().await;
+        let _guard = scrub_env().await;
         // SAFETY: We are setting environment variables when `SERIALISE_TESTS` is locked,
         // and those environment variables in question are not relevant elsewhere in the test suite.
         unsafe {
-            scrub_env();
             set_var("https_proxy", "http://proxy.example.com:8080");
         }
         let u = Url::parse("https://www.example.org").ok().unwrap();
@@ -147,12 +132,11 @@ mod reqwest {
     #[tokio::test]
     async fn socks_proxy_request() {
         static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
-        let _guard = SERIALISE_TESTS.lock().await;
+        let _guard = scrub_env().await;
 
         // SAFETY: We are setting environment variables when `SERIALISE_TESTS` is locked,
         // and those environment variables in question are not relevant elsewhere in the test suite.
         unsafe {
-            scrub_env();
             set_var("all_proxy", "socks5://127.0.0.1:1080");
         }
 
@@ -210,6 +194,7 @@ mod reqwest {
 
     #[tokio::test]
     async fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
+        let _guard = scrub_env().await;
         let tmpdir = tmp_dir();
         let target_path = tmpdir.path().join("downloaded");
         write_file(&target_path, "123");
@@ -362,4 +347,32 @@ fn serve_contents(
             .insert(hyper::header::CONTENT_RANGE, range.parse().unwrap());
     }
     res
+}
+
+/// Clear proxy-related environment variables
+///
+/// Every test using a proxy-sensitive URL should call this and hold the returned guard,
+/// regardless of whether the test is going to set its own proxy environment variables.
+async fn scrub_env() -> tokio::sync::MutexGuard<'static, ()> {
+    static SERIALISE_TESTS: LazyLock<tokio::sync::Mutex<()>> =
+        LazyLock::new(|| tokio::sync::Mutex::new(()));
+
+    let guard = SERIALISE_TESTS.lock().await;
+
+    // SAFETY: We are clearing environment variables when `SERIALISE_TESTS` is locked, and those
+    // environment variables in question are only relevant in tests that continue to hold this
+    // mutex guard.
+    unsafe {
+        remove_var("http_proxy");
+        remove_var("https_proxy");
+        remove_var("HTTPS_PROXY");
+        remove_var("ftp_proxy");
+        remove_var("FTP_PROXY");
+        remove_var("all_proxy");
+        remove_var("ALL_PROXY");
+        remove_var("no_proxy");
+        remove_var("NO_PROXY");
+    }
+
+    guard
 }
