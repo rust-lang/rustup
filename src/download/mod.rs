@@ -386,7 +386,7 @@ impl TlsBackend {
     ) -> anyhow::Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
-            Self::Rustls => &reqwest_be::CLIENT_RUSTLS_TLS,
+            Self::Rustls => reqwest_be::rustls_client()?,
             #[cfg(feature = "reqwest-native-tls")]
             Self::NativeTls => &reqwest_be::CLIENT_NATIVE_TLS,
         };
@@ -523,10 +523,10 @@ mod curl {
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest_be {
     use std::io;
-    #[cfg(feature = "reqwest-rustls-tls")]
-    use std::sync::Arc;
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+    #[cfg(feature = "reqwest-native-tls")]
     use std::sync::LazyLock;
+    #[cfg(feature = "reqwest-rustls-tls")]
+    use std::sync::{Arc, OnceLock};
     use std::time::Duration;
 
     use anyhow::{Context, anyhow};
@@ -587,30 +587,36 @@ mod reqwest_be {
     }
 
     #[cfg(feature = "reqwest-rustls-tls")]
-    pub(super) static CLIENT_RUSTLS_TLS: LazyLock<Client> = LazyLock::new(|| {
+    pub(super) fn rustls_client() -> Result<&'static Client, DownloadError> {
+        if let Some(client) = CLIENT_RUSTLS_TLS.get() {
+            return Ok(client);
+        }
+
         let mut tls_config =
             rustls::ClientConfig::builder_with_provider(Arc::new(aws_lc_rs::default_provider()))
                 .with_safe_default_protocol_versions()
                 .unwrap()
                 .with_platform_verifier()
+                .map_err(|err| {
+                    DownloadError::Message(format!("failed to initialize platform verifier: {err}"))
+                })?
                 .with_no_client_auth();
         tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
-        let catcher = || {
-            client_generic()
-                .use_preconfigured_tls(tls_config)
-                .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
-                .build()
-        };
+        let client = client_generic()
+            .use_preconfigured_tls(tls_config)
+            .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
+            .build()
+            .map_err(DownloadError::Reqwest)?;
 
-        // woah, an unwrap?!
-        // It's OK. This is the same as what is happening in curl.
-        //
-        // The curl::Easy::new() internally assert!s that the initialized
-        // Easy is not null. Inside reqwest, the errors here would be from
-        // the TLS library returning a null pointer as well.
-        catcher().unwrap()
-    });
+        let _ = CLIENT_RUSTLS_TLS.set(client);
+        // "The cell is guaranteed to contain a value when `set` returns, though not necessarily
+        // the one provided."
+        Ok(CLIENT_RUSTLS_TLS.get().unwrap())
+    }
+
+    #[cfg(feature = "reqwest-rustls-tls")]
+    static CLIENT_RUSTLS_TLS: OnceLock<Client> = OnceLock::new();
 
     #[cfg(feature = "reqwest-native-tls")]
     pub(super) static CLIENT_NATIVE_TLS: LazyLock<Client> = LazyLock::new(|| {

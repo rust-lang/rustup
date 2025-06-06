@@ -71,7 +71,7 @@ reqwest = { version = "0.12", default-features = false, features = ["blocking", 
 retry = { version = "2", default-features = false, features = ["random"] }
 rs_tracing = { version = "1.1", features = ["rs_tracing"] }
 rustls = { version = "0.23", optional = true, default-features = false, features = ["logging", "aws_lc_rs", "tls12"] }
-rustls-platform-verifier = { version = "0.5", optional = true }
+rustls-platform-verifier = { version = "0.6", optional = true }
 same-file = "1"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
