@@ -1394,8 +1394,25 @@ async fn override_by_toolchain_on_the_command_line() {
 "#]])
         .is_ok();
     cx.config
+        .expect(["rustup", "+nightly", "which", "rustc"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+[..]/toolchains/nightly-[HOST_TRIPLE]/bin/rustc[EXE]
+
+"#]])
+        .is_ok();
+
+    cx.config
         .expect(["rustup", "default", "nightly"])
         .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "+stable", "which", "rustc"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+[..]/toolchains/stable-[HOST_TRIPLE]/bin/rustc[EXE]
+
+"#]])
         .is_ok();
     cx.config
         .expect(["rustup", "+nightly", "which", "rustc"])
