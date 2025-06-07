@@ -177,7 +177,7 @@ pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
     Run the command:
 
         $ mkdir -p ~/.local/share/bash-completion/completions
-        $ rustup completions bash >> ~/.local/share/bash-completion/completions/rustup
+        $ rustup completions bash > ~/.local/share/bash-completion/completions/rustup
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
