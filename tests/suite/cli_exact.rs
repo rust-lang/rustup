@@ -210,8 +210,9 @@ async fn check_updates_self() {
 
     // We are checking an update to rustup itself in this test.
     cx.config
-        .run("rustup", ["set", "auto-self-update", "enable"], &[])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
 
     cx.config
         .expect(["rustup", "check"])
@@ -232,8 +233,9 @@ async fn check_updates_self_no_change() {
 
     // We are checking an update to rustup itself in this test.
     cx.config
-        .run("rustup", ["set", "auto-self-update", "enable"], &[])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
 
     cx.config
         .expect(["rustup", "check"])
@@ -330,7 +332,7 @@ async fn override_again() {
     cx.config
         .expect(["rustup", "override", "add", "nightly"])
         .await
-        .extend_redactions([("[CWD]", cx.config.current_dir().display().to_string())])
+        .extend_redactions([("[CWD]", cx.config.current_dir())])
         .is_ok()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
@@ -351,7 +353,7 @@ async fn remove_override() {
         cx.config
             .expect(["rustup", "override", keyword])
             .await
-            .extend_redactions([("[CWD]", cwd.display().to_string())])
+            .extend_redactions([("[CWD]", cwd)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -369,7 +371,7 @@ async fn remove_override_none() {
         cx.config
             .expect(["rustup", "override", keyword])
             .await
-            .extend_redactions([("[CWD]", cwd.display().to_string())])
+            .extend_redactions([("[CWD]", cwd)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -406,7 +408,7 @@ async fn remove_override_with_path() {
                 dir.path().to_str().unwrap(),
             ])
             .await
-            .extend_redactions([("[PATH]", dir.path().display().to_string())])
+            .extend_redactions([("[PATH]", dir.path().to_owned())])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -442,7 +444,7 @@ async fn remove_override_with_path_deleted() {
                 path.to_str().unwrap(),
             ])
             .await
-            .extend_redactions([("[PATH]", path.display().to_string())])
+            .extend_redactions([("[PATH]", path)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -476,7 +478,7 @@ async fn remove_override_nonexistent() {
         cx.config
             .expect(["rustup", "override", keyword, "--nonexistent"])
             .await
-            .extend_redactions([("[PATH]", path.display().to_string())])
+            .extend_redactions([("[PATH]", path)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"

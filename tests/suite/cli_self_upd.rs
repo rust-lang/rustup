@@ -459,7 +459,7 @@ async fn update_but_not_installed() {
     cx.config
         .expect(["rustup", "self", "update"])
         .await
-        .extend_redactions([("[CARGO_DIR]", cx.config.cargodir.display().to_string())])
+        .extend_redactions([("[CARGO_DIR]", cx.config.cargodir)])
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
