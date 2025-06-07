@@ -500,7 +500,7 @@ impl Config {
         }
     }
 
-    pub async fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
+    async fn run<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
     where
         I: IntoIterator<Item = A> + Clone + Debug,
         A: AsRef<OsStr>,
