@@ -34,6 +34,20 @@ Usually, a `process: &Process` variable will be available to you in the current 
 For example, it could be in the form of a parameter of the current function,
 or a field of a `Cfg` instance, etc.
 
+## Writing tests
+
+Rustup provides a number of test helpers in the `rustup::test` module
+which is conditionally enabled with the `test` feature.
+
+The existing tests under `tests/suite` provide good examples of how to use these
+helpers, but you might also find it useful to look at the documentation for
+particular APIs in the `rustup::test` module.
+
+For example, for more information regarding end-to-end tests with the `.expect()`
+APIs, you can refer to the documentation of the [`Assert`] type.
+
+[`Assert`]: https://github.com/search?q=repo%3Arust-lang%2Frustup+symbol%3A%2F%28%3F-i%29Assert%2F&type=code
+
 ## Clippy lints
 
 We do not enforce lint status in the checks done by GitHub Actions, because
