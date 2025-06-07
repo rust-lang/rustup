@@ -210,8 +210,9 @@ async fn check_updates_self() {
 
     // We are checking an update to rustup itself in this test.
     cx.config
-        .run("rustup", ["set", "auto-self-update", "enable"], &[])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
 
     cx.config
         .expect(["rustup", "check"])
@@ -232,8 +233,9 @@ async fn check_updates_self_no_change() {
 
     // We are checking an update to rustup itself in this test.
     cx.config
-        .run("rustup", ["set", "auto-self-update", "enable"], &[])
-        .await;
+        .expect(["rustup", "set", "auto-self-update", "enable"])
+        .await
+        .is_ok();
 
     cx.config
         .expect(["rustup", "check"])

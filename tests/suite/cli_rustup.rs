@@ -669,8 +669,8 @@ async fn recursive_cargo() {
     // The solution here is to copy from the "mock" `cargo.exe` into
     // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
     // needing to build another executable just for this test.
-    let output = cx.config.run("rustup", ["which", "cargo"], &[]).await;
-    let real_mock_cargo = output.stdout.trim();
+    let which_cargo = cx.config.expect(["rustup", "which", "cargo"]).await;
+    let real_mock_cargo = which_cargo.output.stdout.trim();
     let cargo_bin_path = cx.config.cargodir.join("bin");
     let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{EXE_SUFFIX}"));
     fs::create_dir_all(&cargo_bin_path).unwrap();

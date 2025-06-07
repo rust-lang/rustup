@@ -67,7 +67,7 @@ pub struct Config {
 
 #[derive(Clone)]
 pub struct Assert {
-    output: SanitizedOutput,
+    pub output: SanitizedOutput,
     redactions: Redactions,
 }
 
