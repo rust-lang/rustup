@@ -50,21 +50,13 @@ APIs, you can refer to the documentation of the [`Assert`] type.
 
 ## Clippy lints
 
-We do not enforce lint status in the checks done by GitHub Actions, because
-clippy is a moving target that can make it hard to merge for little benefit.
+At the time of writing, rustup's CI pipeline runs clippy on both Windows and
+Linux, but contributors to particularly OS-specific code should also make
+sure that their clippy checking is done on that particular platform, as
+OS-conditional code is a common source of unused imports and other small lints,
+which can build up over time.
 
-We do ask that contributors keep the clippy status clean themselves.
-
-Minimally, run `cargo clippy --all --all-targets --features test -- -D warnings` before
-submitting code.
-
-If possible, adding `--all-features` to the command is useful, but will require
-additional dependencies like `libcurl-dev`.
-
-Regular contributors or contributors to particularly OS-specific code should
-also make sure that their clippy checking is done on at least Linux and Windows,
-as OS-conditional code is a common source of unused imports and other small
-lints, which can build up over time.
+## Writing platform-specific code
 
 For developers using BSD/Linux/Mac OS, there are Windows VM's suitable for such
 development tasks for use with virtualbox and other hypervisors are downloadable
@@ -73,8 +65,3 @@ from
 Similarly, there are many Linux and Unix operating systems images available for
 developers whose usual operating system is Windows. Currently Rustup has no Mac
 OS specific code, so there should be no need to worry about Mac VM images.
-
-Clippy is also run in GitHub Actions, in the `General Checks / Checks` build
-task, but not currently run per-platform, which means there is no way to find
-out the status of clippy per platform without running it on that platform as a
-developer.
