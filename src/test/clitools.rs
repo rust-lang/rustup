@@ -90,7 +90,7 @@ impl Assert {
         Self { output, redactions }
     }
 
-    /// Extend the redaction rules used in the currrent assertion with new values.
+    /// Extends the redaction rules used in the current assertion with new values.
     pub fn extend_redactions(
         &mut self,
         vars: impl IntoIterator<Item = (&'static str, impl Into<RedactedValue>)>,
@@ -101,6 +101,7 @@ impl Assert {
         self
     }
 
+    /// Removes the existing redaction rules used in the current assertion.
     pub fn remove_redactions(&mut self, vars: impl IntoIterator<Item = &'static str>) -> &mut Self {
         for var in vars {
             self.redactions
@@ -108,6 +109,11 @@ impl Assert {
                 .expect("invalid redactions detected");
         }
         self
+    }
+
+    /// Performs the redaction based on the existing rules.
+    pub fn redact(&self, input: &str) -> String {
+        self.redactions.redact(input)
     }
 
     /// Asserts that the command exited with an ok status.
@@ -124,7 +130,7 @@ impl Assert {
 
     /// Asserts that the command exited with the given `expected` stdout pattern.
     pub fn with_stdout(&self, expected: impl IntoData) -> &Self {
-        let stdout = self.redactions.redact(&self.output.stdout);
+        let stdout = self.redact(&self.output.stdout);
         assert_data_eq!(&stdout, expected);
         self
     }
@@ -140,7 +146,7 @@ impl Assert {
 
     /// Asserts that the command exited with the given `expected` stderr pattern.
     pub fn with_stderr(&self, expected: impl IntoData) -> &Self {
-        let stderr = self.redactions.redact(&self.output.stderr);
+        let stderr = self.redact(&self.output.stderr);
         assert_data_eq!(&stderr, expected);
         self
     }
