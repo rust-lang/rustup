@@ -5,9 +5,9 @@ use std::fs;
 use std::str;
 use std::{env::consts::EXE_SUFFIX, path::Path};
 
-use rustup::test::{
-    CliTestContext, Config, MULTI_ARCH1, Scenario, print_command, print_indented, this_host_triple,
-};
+use itertools::Itertools;
+use rustup::test::Assert;
+use rustup::test::{CliTestContext, MULTI_ARCH1, Scenario, this_host_triple};
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
 
@@ -50,22 +50,24 @@ info: The currently active `rustc` version is `1.3.0 (hash-nightly-2)`
 #[tokio::test]
 async fn no_colors_in_piped_error_output() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let args: Vec<&str> = vec![];
-    let out = cx.config.run("rustc", args, &[]).await;
-    assert!(!out.ok);
-    assert!(!out.stderr.contains('\x1b'));
+    cx.config
+        .expect(["rustc"])
+        .await
+        .is_err()
+        .without_stderr("\u{1b}");
 }
 
 #[tokio::test]
 async fn rustc_with_bad_rustup_toolchain_env_var() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let args: Vec<&str> = vec![];
-    let out = cx
-        .config
-        .run("rustc", args, &[("RUSTUP_TOOLCHAIN", "bogus")])
-        .await;
-    assert!(!out.ok);
-    assert!(out.stderr.contains("toolchain 'bogus' is not installed"));
+    cx.config
+        .expect_with_env(["rustc"], [("RUSTUP_TOOLCHAIN", "bogus")])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: override toolchain 'bogus' is not installed[..]
+
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
@@ -389,90 +391,83 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
         .await
         .is_ok();
 
-    async fn expect_stderr_ok_env_first_then(
-        config: &Config,
-        args: &[&str],
-        env: &[(&str, &str)],
-        first: &Path,
-        second: Option<&Path>,
-    ) {
-        let out = config.run(args[0], &args[1..], env).await;
-        let first_then_second = |list: &str| -> bool {
-            let mut saw_first = false;
-            let mut saw_second = false;
-            for path in std::env::split_paths(list) {
-                if path == first {
-                    if saw_second {
-                        return false;
-                    }
-                    saw_first = true;
-                }
-                if Some(&*path) == second {
-                    if !saw_first {
-                        return false;
-                    }
-                    saw_second = true;
-                }
-            }
-            true
-        };
-        if !out.ok || !first_then_second(&out.stderr) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented(
-                "expected.stderr.first_then",
-                &format!("{} comes before {:?}", first.display(), second),
-            );
-            panic!();
-        }
-    }
+    let assert_ok_with_paths = |assert: &Assert, data| {
+        assert.is_ok();
+        let stderr = std::env::split_paths(&assert.output.stderr)
+            .format_with("\n", |p, f| f(&p.display()))
+            .to_string();
+        let stderr = assert.redact(&stderr);
+        snapbox::assert_data_eq!(stderr, data);
+    };
 
     // For all of these, CARGO_HOME/bin will be auto-prepended.
     let cargo_home_bin = cx.config.cargodir.join("bin");
-    expect_stderr_ok_env_first_then(
-        &cx.config,
-        &["cargo", "--echo-path"],
-        &[],
-        &cargo_home_bin,
-        None,
-    )
-    .await;
-    expect_stderr_ok_env_first_then(
-        &cx.config,
-        &["cargo", "--echo-path"],
-        &[("PATH", "")],
-        &cargo_home_bin,
-        None,
-    )
-    .await;
+    assert_ok_with_paths(
+        cx.config
+            .expect(["cargo", "--echo-path"])
+            .await
+            .extend_redactions([("[CARGO_HOME_BIN]", &cargo_home_bin)]),
+        snapbox::str![[r#"
+[CARGO_HOME_BIN]
+...
+"#]],
+    );
+
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(["cargo", "--echo-path"], [("PATH", "")])
+            .await
+            .extend_redactions([("[CARGO_HOME_BIN]", &cargo_home_bin)]),
+        snapbox::str![[r#"
+[CARGO_HOME_BIN]
+...
+"#]],
+    );
 
     // Check that CARGO_HOME/bin is prepended to path.
-    let config = &cx.config;
-    expect_stderr_ok_env_first_then(
-        config,
-        &["cargo", "--echo-path"],
-        &[("PATH", &format!("{}", config.exedir.display()))],
-        &cargo_home_bin,
-        Some(&config.exedir),
-    )
-    .await;
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(
+                ["cargo", "--echo-path"],
+                [("PATH", &*cx.config.exedir.display().to_string())],
+            )
+            .await
+            .extend_redactions([
+                ("[CARGO_HOME_BIN]", &cargo_home_bin),
+                ("[EXEDIR]", &cx.config.exedir),
+            ]),
+        snapbox::str![[r#"
+[CARGO_HOME_BIN]
+[EXEDIR]
+...
+"#]],
+    );
 
     // But if CARGO_HOME/bin is already on PATH, it will not be prepended again,
     // so exedir will take precedence.
-    expect_stderr_ok_env_first_then(
-        config,
-        &["cargo", "--echo-path"],
-        &[(
-            "PATH",
-            std::env::join_paths([&config.exedir, &cargo_home_bin])
-                .unwrap()
-                .to_str()
-                .unwrap(),
-        )],
-        &config.exedir,
-        Some(&cargo_home_bin),
-    )
-    .await;
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(
+                ["cargo", "--echo-path"],
+                [(
+                    "PATH",
+                    std::env::join_paths([&cx.config.exedir, &cargo_home_bin])
+                        .unwrap()
+                        .to_str()
+                        .unwrap(),
+                )],
+            )
+            .await
+            .extend_redactions([
+                ("[CARGO_HOME_BIN]", &cargo_home_bin),
+                ("[EXEDIR]", &cx.config.exedir),
+            ]),
+        snapbox::str![[r#"
+[EXEDIR]
+[CARGO_HOME_BIN]
+...
+"#]],
+    );
 }
 
 #[tokio::test]
@@ -832,9 +827,15 @@ async fn rename_rls_list() {
         .await
         .is_ok();
 
-    let out = cx.config.run("rustup", ["component", "list"], &[]).await;
-    assert!(out.ok);
-    assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
+    cx.config
+        .expect(["rustup", "component", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+rls-[HOST_TRIPLE] (installed)
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
@@ -853,9 +854,15 @@ async fn rename_rls_preview_list() {
         .await
         .is_ok();
 
-    let out = cx.config.run("rustup", ["component", "list"], &[]).await;
-    assert!(out.ok);
-    assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
+    cx.config
+        .expect(["rustup", "component", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+rls-[HOST_TRIPLE] (installed)
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
@@ -1479,27 +1486,29 @@ custom-1 [..]/custom-1
 #[tokio::test]
 async fn update_self_smart_guess() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let out = cx.config.run("rustup", &["update", "self"], &[]).await;
-    let invalid_toolchain = out.stderr.contains("invalid toolchain name");
-    if !out.ok && invalid_toolchain {
-        assert!(
-            out.stderr
-                .contains("if you meant to update rustup itself, use `rustup self update`")
-        )
-    }
+    cx.config
+        .expect(["rustup", "update", "self"])
+        .await
+        .is_err()
+        .with_stderr(snapbox::str![[r#"
+...
+info: if you meant to update rustup itself, use `rustup self update`
+...
+"#]]);
 }
 
 #[tokio::test]
 async fn uninstall_self_smart_guess() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let out = cx.config.run("rustup", &["uninstall", "self"], &[]).await;
-    let no_toolchain_installed = out.stdout.contains("no toolchain installed");
-    if out.ok && no_toolchain_installed {
-        assert!(
-            out.stdout
-                .contains("if you meant to uninstall rustup itself, use `rustup self uninstall`")
-        )
-    }
+    cx.config
+        .expect(["rustup", "uninstall", "self"])
+        .await
+        .is_ok()
+        .with_stderr(snapbox::str![[r#"
+...
+info: if you meant to uninstall rustup itself, use `rustup self uninstall`
+...
+"#]]);
 }
 
 // https://github.com/rust-lang/rustup/issues/4073
@@ -1547,9 +1556,9 @@ async fn rustup_updates_cargo_env_if_proxy() {
         .borrow()
         .join("bin")
         .join(format!("cargo{EXE_SUFFIX}"));
-    let real_path = cx.config.run("rustup", &["which", "cargo"], &[]).await;
-    assert!(real_path.ok);
-    let real_path = real_path.stdout;
+    let real_path = cx.config.expect(["rustup", "which", "cargo"]).await;
+    real_path.is_ok();
+    let real_path = &real_path.output.stdout;
 
     fs::create_dir_all(proxy_path.parent().unwrap()).unwrap();
     #[cfg(windows)]
@@ -1623,10 +1632,10 @@ async fn rust_analyzer_proxy_falls_back_external() {
     // use the former.
     let real_path = cx
         .config
-        .run("rust-analyzer", &["--echo-current-exe"], &[])
+        .expect(["rust-analyzer", "--echo-current-exe"])
         .await;
-    assert!(real_path.ok);
-    let real_path = Path::new(real_path.stderr.trim());
+    real_path.is_ok();
+    let real_path = Path::new(real_path.output.stderr.trim());
 
     assert!(real_path.is_file());
 

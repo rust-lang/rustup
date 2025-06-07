@@ -114,7 +114,7 @@ pub struct Config {
 /// [`Assert::extend_redactions`] method to introduce new filters.
 #[derive(Clone)]
 pub struct Assert {
-    output: SanitizedOutput,
+    pub output: SanitizedOutput,
     redactions: Redactions,
 }
 
