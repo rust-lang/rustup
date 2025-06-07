@@ -19,7 +19,6 @@ use std::{
 };
 
 use enum_map::{Enum, EnumMap, enum_map};
-use similar_asserts::SimpleDiff;
 use snapbox::{IntoData, RedactedValue, Redactions, assert_data_eq};
 use tempfile::TempDir;
 use url::Url;
@@ -315,150 +314,6 @@ impl Config {
         Assert::new(output)
     }
 
-    /// Expect an ok status
-    #[deprecated(note = "use `.expect().await.is_ok()` instead")]
-    #[allow(deprecated)]
-    pub async fn expect_ok(&mut self, args: &[&str]) {
-        self.expect_ok_env(args, &[]).await
-    }
-
-    /// Expect an ok status with extra environment variables
-    #[deprecated(note = "use `.expect_with_env().await.is_ok()` instead")]
-    pub async fn expect_ok_env(&self, args: &[&str], env: &[(&str, &str)]) {
-        let out = self.run(args[0], &args[1..], env).await;
-        if !out.ok {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            panic!();
-        }
-    }
-
-    /// Expect an err status and a string in stderr
-    #[deprecated(note = "use `.expect().await.is_err()` instead")]
-    #[allow(deprecated)]
-    pub async fn expect_err(&self, args: &[&str], expected: &str) {
-        self.expect_err_env(args, &[], expected).await
-    }
-
-    /// Expect an err status and a string in stderr, with extra environment variables
-    #[deprecated(note = "use `.expect_with_env().await.is_err()` instead")]
-    pub async fn expect_err_env(&self, args: &[&str], env: &[(&str, &str)], expected: &str) {
-        let out = self.run(args[0], &args[1..], env).await;
-        if out.ok || !out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stderr.contains", expected);
-            panic!();
-        }
-    }
-
-    /// Expect an ok status and a string in stdout
-    #[deprecated(note = "use `.expect().await.is_ok().with_stdout()` instead")]
-    pub async fn expect_stdout_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || !out.stdout.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout.contains", expected);
-            panic!();
-        }
-    }
-
-    #[deprecated(note = "use `.expect().await.is_ok().without_stdout()` instead")]
-    pub async fn expect_not_stdout_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || out.stdout.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout.does_not_contain", expected);
-            panic!();
-        }
-    }
-
-    #[deprecated(note = "use `.expect().await.is_ok().without_stderr()` instead")]
-    pub async fn expect_not_stderr_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stderr.does_not_contain", expected);
-            panic!();
-        }
-    }
-
-    #[deprecated(note = "use `.expect().await.is_err().without_stderr()` instead")]
-    pub async fn expect_not_stderr_err(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if out.ok || out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: false");
-            print_indented("expected.stderr.does_not_contain", expected);
-            panic!();
-        }
-    }
-
-    /// Expect an ok status and a string in stderr
-    #[deprecated(note = "use `.expect().await.is_ok().with_stderr()` instead")]
-    pub async fn expect_stderr_ok(&self, args: &[&str], expected: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || !out.stderr.contains(expected) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stderr.contains", expected);
-            panic!();
-        }
-    }
-
-    /// Expect an exact strings on stdout/stderr with an ok status code
-    #[deprecated(note = "use `.expect().await.is_ok().with_stdout().with_stderr()` instead")]
-    #[allow(deprecated)]
-    pub async fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
-        self.expect_ok_ex_env(args, &[], stdout, stderr).await;
-    }
-
-    /// Expect an exact strings on stdout/stderr with an ok status code,
-    /// with extra environment variables
-    #[deprecated(
-        note = "use `.expect_with_env().await.is_ok().with_stdout().with_stderr()` instead"
-    )]
-    pub async fn expect_ok_ex_env(
-        &mut self,
-        args: &[&str],
-        env: &[(&str, &str)],
-        stdout: &str,
-        stderr: &str,
-    ) {
-        let out = self.run(args[0], &args[1..], env).await;
-        if !out.ok || out.stdout != stdout || out.stderr != stderr {
-            print_command(args, &out);
-            print_diff(stdout, &out.stdout);
-            print_diff(stderr, &out.stderr);
-            panic!(
-                "expected OK, differences found: ok = {}, stdout = {}, stderr = {}",
-                out.ok,
-                out.stdout == stdout,
-                out.stderr == stderr
-            );
-        }
-    }
-
-    /// Expect an exact strings on stdout/stderr with an error status code
-    #[deprecated(note = "use `.expect().await.is_err().with_stdout().with_stderr()` instead")]
-    pub async fn expect_err_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if out.ok || out.stdout != stdout || out.stderr != stderr {
-            print_command(args, &out);
-            print_diff(stdout, &out.stdout);
-            print_diff(stderr, &out.stderr);
-            panic!(
-                "expected error, differences found: ok = {}, stdout = {}, stderr = {}",
-                out.ok,
-                out.stdout == stdout,
-                out.stderr == stderr
-            );
-        }
-    }
-
     pub async fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
         if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
@@ -622,17 +477,6 @@ impl Config {
             change_channel_date(&url, channel, date);
         }
     }
-}
-
-fn print_diff(expected: &str, actual: &str) {
-    if expected == actual {
-        return;
-    }
-
-    println!(
-        "{}",
-        SimpleDiff::from_str(expected, actual, "expected", "actual")
-    );
 }
 
 // Describes all the features of the mock dist server.
