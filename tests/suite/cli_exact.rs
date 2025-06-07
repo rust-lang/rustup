@@ -330,7 +330,7 @@ async fn override_again() {
     cx.config
         .expect(["rustup", "override", "add", "nightly"])
         .await
-        .extend_redactions([("[CWD]", cx.config.current_dir().display().to_string())])
+        .extend_redactions([("[CWD]", cx.config.current_dir())])
         .is_ok()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
@@ -351,7 +351,7 @@ async fn remove_override() {
         cx.config
             .expect(["rustup", "override", keyword])
             .await
-            .extend_redactions([("[CWD]", cwd.display().to_string())])
+            .extend_redactions([("[CWD]", cwd)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -369,7 +369,7 @@ async fn remove_override_none() {
         cx.config
             .expect(["rustup", "override", keyword])
             .await
-            .extend_redactions([("[CWD]", cwd.display().to_string())])
+            .extend_redactions([("[CWD]", cwd)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -406,7 +406,7 @@ async fn remove_override_with_path() {
                 dir.path().to_str().unwrap(),
             ])
             .await
-            .extend_redactions([("[PATH]", dir.path().display().to_string())])
+            .extend_redactions([("[PATH]", dir.path().to_owned())])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -442,7 +442,7 @@ async fn remove_override_with_path_deleted() {
                 path.to_str().unwrap(),
             ])
             .await
-            .extend_redactions([("[PATH]", path.display().to_string())])
+            .extend_redactions([("[PATH]", path)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -476,7 +476,7 @@ async fn remove_override_nonexistent() {
         cx.config
             .expect(["rustup", "override", keyword, "--nonexistent"])
             .await
-            .extend_redactions([("[PATH]", path.display().to_string())])
+            .extend_redactions([("[PATH]", path)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
