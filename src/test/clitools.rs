@@ -65,6 +65,53 @@ pub struct Config {
     pub test_root_dir: PathBuf,
 }
 
+/// Helper type to simplify assertions of a command's output.
+///
+/// Typically, an [`Assert`] instance is created by calling the
+/// [`Config::expect()`] method (or its variations) which will run the given
+/// command in the test environment and wrap its output in the instance.
+/// Then, that output can be compared against the expected one.
+///
+/// # Snapshot-Based Testing
+///
+/// Currently, rustup utilizes [`snapbox`] (a snapshot-based testing library)
+/// for most comparisons, where the corresponding [`Assert`] method would
+/// accept an `expected` argument conforming [`IntoData`], which is also
+/// called a "snapshot".
+///
+/// Most of our tests use [inline][`snapbox::data::Inline`] snapshots created
+/// with [`snapbox::str`], but it is also possible to use snapshots from
+/// another file with [`snapbox::file`].
+///
+/// # Creating or Updating a Snapshot
+///
+/// There is no need to write out a snapshot by hand. Instead, create an empty
+/// snapshot (e.g. `snapbox::str![[""]]`), and run the test in question with the
+/// environment variable `SNAPSHOTS=overwrite` set. Normally, the snapshot will
+/// then be populated automatically with the right value (modulo redaction,
+/// which will be discussed in a later section).
+///
+/// The same environment variable is also used to update a snapshot with no extra
+/// steps required.
+///
+/// # Redacting Snapshots
+///
+/// To defend against leaking of environment-specific information that might
+/// break the tests on a different machine, a set of redaction rules (also known
+/// as "filters") is used to sanitize the output before sending to comparison.
+///
+/// Rustup extends the list of `snapbox`'s default filters (see
+/// [`assert_data_eq`]'s documentation for more info) with a list of
+/// rustup-specific values, including:
+/// - `[CURRENT_VERSION]`: The current rustup version.
+/// - `[HOST_TRIPLE]`: The return value of [`this_host_triple()`].
+/// - `[CROSS_ARCH_I]`: The value of [`CROSS_ARCH1`].
+/// - `[CROSS_ARCH_II]`: The value of [`CROSS_ARCH2`].
+/// - `[MULTI_ARCH_I]`: The value of [`MULTI_ARCH1`].
+///
+/// When updating snapshots, the filters are automatically applied.
+/// To redact some remaining part of the snapshot, you can use the
+/// [`Assert::extend_redactions`] method to introduce new filters.
 #[derive(Clone)]
 pub struct Assert {
     output: SanitizedOutput,
@@ -72,7 +119,7 @@ pub struct Assert {
 }
 
 impl Assert {
-    /// Creates a new [`Assert`] object with the given command [`SanitizedOutput`].
+    /// Creates a new [`Assert`] object with the given [`SanitizedOutput`].
     pub fn new(output: SanitizedOutput) -> Self {
         let mut redactions = Redactions::new();
         redactions
