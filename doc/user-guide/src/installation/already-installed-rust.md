@@ -65,7 +65,7 @@ eval $(/opt/homebrew/bin/brew shellenv)
 . $HOME/.cargo/env
 ```
 
-In this example, both of these lines all _prepend_ to `$PATH`, so the last one
+In this example, both of these lines _prepend_ to `$PATH`, so the last one
 takes over, letting the rustup proxies shadow the homebrew-installed `rust`.
 On the other hand, putting these lines the other way around will cause the
 aforementioned error.
