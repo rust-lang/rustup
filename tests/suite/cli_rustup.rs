@@ -1187,8 +1187,8 @@ async fn show_toolchain_toolchain_file_override_not_installed() {
         .expect_with_env(["rustup", "show"], [("RUSTUP_AUTO_INSTALL", "0")])
         .await
         .extend_redactions([
-            ("[RUSTUP_DIR]", &cx.config.rustupdir.to_string()),
-            ("[TOOLCHAIN_FILE]", &toolchain_file.display().to_string()),
+            ("[RUSTUP_DIR]", &cx.config.rustupdir.rustupdir),
+            ("[TOOLCHAIN_FILE]", &toolchain_file),
         ])
         .with_stdout(snapbox::str![[r#"
 Default host: [HOST_TRIPLE]
@@ -1676,7 +1676,7 @@ channel = "nightly"
     cx.config
         .expect(["rustup", "toolchain", "install"])
         .await
-        .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file.display().to_string())])
+        .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file)])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
@@ -1691,7 +1691,7 @@ info: it's active because: overridden by '[TOOLCHAIN_FILE]'
     cx.config
         .expect(["rustup", "toolchain", "install"])
         .await
-        .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file.display().to_string())])
+        .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file)])
         .with_stderr(snapbox::str![[r#"
 info: using existing install for 'nightly-[HOST_TRIPLE]'
 info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
@@ -3636,7 +3636,7 @@ async fn only_toml_in_rust_toolchain_toml() {
     cx.config
         .expect(["rustc", "--version"])
         .await
-        .extend_redactions([("[CWD]", &cwd.display().to_string())])
+        .extend_redactions([("[CWD]", &cwd)])
         .with_stderr(snapbox::str![[r#"
 ...
 error: could not parse override file: '[CWD]/rust-toolchain.toml'[..]
@@ -3658,7 +3658,7 @@ async fn warn_on_duplicate_rust_toolchain_file() {
     cx.config
         .expect(&["rustup", "toolchain", "install"])
         .await
-        .extend_redactions([("[CWD]", &cwd.canonicalize().unwrap().display().to_string())])
+        .extend_redactions([("[CWD]", &cwd.canonicalize().unwrap())])
         .with_stderr(snapbox::str![[r#"
 ...
 warn: both `[CWD]/rust-toolchain` and `[CWD]/rust-toolchain.toml` exist. Using `[CWD]/rust-toolchain`
@@ -3720,7 +3720,7 @@ profile = "minimal"
     cx.config
         .expect(&["rustup", "show", "active-toolchain"])
         .await
-        .extend_redactions([("[CWD]", &cwd.display().to_string())])
+        .extend_redactions([("[CWD]", &cwd)])
         .with_stdout(snapbox::str![[r#"
 my-custom (overridden by '[CWD]/rust-toolchain.toml')
 

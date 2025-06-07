@@ -1643,7 +1643,7 @@ async fn rust_analyzer_proxy_falls_back_external() {
             [("PATH", &*extern_dir.display().to_string())],
         )
         .await
-        .extend_redactions([("[REAL_PATH]", real_path.display().to_string())])
+        .extend_redactions([("[REAL_PATH]", real_path.to_owned())])
         .with_stderr(snapbox::str![[r#"
 [REAL_PATH]
 
@@ -1658,7 +1658,7 @@ async fn rust_analyzer_proxy_falls_back_external() {
             [("PATH", &*extern_dir.display().to_string())],
         )
         .await
-        .extend_redactions([("[EXTERN_PATH]", &extern_path.display().to_string())])
+        .extend_redactions([("[EXTERN_PATH]", extern_path)])
         .with_stderr(snapbox::str![[r#"
 info: `rust-analyzer` is unavailable for the active toolchain
 info: falling back to "[EXTERN_PATH]"
