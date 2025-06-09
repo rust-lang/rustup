@@ -414,6 +414,14 @@ get_architecture() {
             _ostype=unknown-illumos
             ;;
 
+        SunOS)
+            if [ "$_cputype" = sparcv9 ]; then
+               _ostype=sun-solaris
+            else
+               _ostype=pc-solaris
+            fi
+            ;;
+
         MINGW* | MSYS* | CYGWIN* | Windows_NT)
             _ostype=pc-windows-gnu
             ;;
@@ -490,6 +498,9 @@ get_architecture() {
 
         s390x)
             _cputype=s390x
+            ;;
+        sparcv9)
+            _cputype=sparcv9
             ;;
         riscv64)
             _cputype=riscv64gc

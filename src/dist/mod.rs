@@ -497,7 +497,7 @@ impl TargetTriple {
             let mut sys_info;
             let (sysname, machine) = unsafe {
                 sys_info = mem::zeroed();
-                if libc::uname(&mut sys_info) != 0 {
+                if libc::uname(&mut sys_info) == -1 {
                     return None;
                 }
 
@@ -532,7 +532,11 @@ impl TargetTriple {
                 (b"NetBSD", b"x86_64") => Some("x86_64-unknown-netbsd"),
                 (b"NetBSD", b"i686") => Some("i686-unknown-netbsd"),
                 (b"DragonFly", b"x86_64") => Some("x86_64-unknown-dragonfly"),
+                #[cfg(target_os = "illumos")]
                 (b"SunOS", b"i86pc") => Some("x86_64-unknown-illumos"),
+                #[cfg(target_os = "solaris")]
+                (b"SunOS", b"i86pc") => Some("x86_64-pc-solaris"),
+                (b"SunOS", b"sun4v") => Some("sparcv9-sun-solaris"),
                 _ => None,
             };
 

@@ -37,6 +37,8 @@ case "$TARGET" in
   powerpc64le-unknown-linux-gnu)   image=dist-powerpc64le-linux-gnu ;;
   powerpc64le-unknown-linux-musl)  image=dist-powerpc64le-linux-musl ;;
   s390x-unknown-linux-gnu)         image=dist-s390x-linux ;;
+  sparcv9-sun-solaris)             image=dist-sparcv9-solaris ;;
+  x86_64-pc-solaris)               image=dist-x86_64-solaris ;;
   x86_64-unknown-freebsd)          image=dist-x86_64-freebsd ;;
   x86_64-unknown-illumos)          image=dist-x86_64-illumos ;;
   x86_64-unknown-linux-gnu)        image=dist-x86_64-linux ;;

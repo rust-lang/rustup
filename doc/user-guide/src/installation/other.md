@@ -159,10 +159,14 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/powerpc64le-unknown-linux-musl/rustup-init.sha256)
 - [s390x-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/s390x-unknown-linux-gnu/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/s390x-unknown-linux-gnu/rustup-init.sha256)
+- [sparcv9-sun-solaris](https://static.rust-lang.org/rustup/dist/sparcv9-sun-solaris/rustup-init)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/sparcv9-sun-solaris/rustup-init.sha256)
 - [x86_64-apple-darwin](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init.sha256)
 - [x86_64-linux-android](https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init.sha256)
+- [x86_64-pc-solaris](https://static.rust-lang.org/rustup/dist/x86_64-pc-solaris/rustup-init)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-pc-solaris/rustup-init.sha256)
 - [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe)[^msys2]
   - [sha256 file](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe.sha256)
 - [x86_64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)[^msvc]

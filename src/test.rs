@@ -157,6 +157,8 @@ pub fn this_host_triple() -> String {
         "powerpc64le"
     } else if cfg!(target_arch = "s390x") {
         "s390x"
+    } else if cfg!(target_arch = "sparc64") {
+        "sparcv9"
     } else {
         unimplemented!()
     };
@@ -168,6 +170,12 @@ pub fn this_host_triple() -> String {
         "unknown-illumos"
     } else if cfg!(target_os = "freebsd") {
         "unknown-freebsd"
+    } else if cfg!(target_os = "solaris") {
+        if cfg!(target_arch = "sparc64") {
+            "sun-solaris"
+        } else {
+            "pc-solaris"
+        }
     } else {
         unimplemented!()
     };
