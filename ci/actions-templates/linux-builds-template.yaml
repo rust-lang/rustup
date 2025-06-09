@@ -29,6 +29,7 @@ jobs: # skip-master skip-pr skip-stable
           - i686-unknown-linux-gnu         # skip-pr skip-master
           - arm-unknown-linux-gnueabi      # skip-pr skip-master
           - arm-unknown-linux-gnueabihf    # skip-pr skip-master
+          - x86_64-pc-solaris              # skip-pr skip-master
           - x86_64-unknown-freebsd         # skip-pr skip-master
           - x86_64-unknown-netbsd          # skip-pr skip-master
           - x86_64-unknown-illumos         # skip-pr skip-master
@@ -36,6 +37,7 @@ jobs: # skip-master skip-pr skip-stable
           - powerpc64le-unknown-linux-gnu  # skip-pr skip-master
           - powerpc64le-unknown-linux-musl # skip-pr skip-master
           - s390x-unknown-linux-gnu        # skip-pr skip-master
+          - sparcv9-sun-solaris            # skip-pr skip-master
           - arm-linux-androideabi          # skip-pr skip-master
           - armv7-linux-androideabi        # skip-pr skip-master
           - x86_64-linux-android           # skip-pr skip-master

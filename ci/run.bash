@@ -33,6 +33,7 @@ case "$TARGET" in
   loongarch* ) ;;
   *netbsd* ) ;;
   *illumos* ) ;;
+  *solaris* ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
 esac
