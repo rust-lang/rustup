@@ -415,7 +415,7 @@ get_architecture() {
             ;;
 
         SunOS)
-            if [ "$_cputype" = sparcv9 ]; then
+            if [ "$_cputype" = sun4v ]; then
                _ostype=sun-solaris
             else
                _ostype=pc-solaris
@@ -499,7 +499,7 @@ get_architecture() {
         s390x)
             _cputype=s390x
             ;;
-        sparcv9)
+        sun4v)
             _cputype=sparcv9
             ;;
         riscv64)
