@@ -1,10 +1,6 @@
 # Rustup: the Rust toolchain installer
 
-| Master CI    | Build Status                                             |
-|--------------|----------------------------------------------------------|
-| Windows      | ![Windows builds][actions-windows-master]                |
-| macOS        | ![maOS builds][actions-macos-master]                     |
-| Linux Etc    | ![Linux (etc) builds][actions-linux-master]              |
+![Build Status][actions-default-branch]
 
 *Rustup* installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta,
@@ -39,6 +35,4 @@ Licensed under either of
 at your option.
 
 <!-- Badges -->
-[actions-windows-master]: https://github.com/rust-lang/rustup/workflows/Windows%20(master)/badge.svg
-[actions-macos-master]: https://github.com/rust-lang/rustup/workflows/macOS/badge.svg?branch=master
-[actions-linux-master]: https://github.com/rust-lang/rustup/workflows/Linux%20(master)/badge.svg
+[actions-default-branch]: https://github.com/rust-lang/rustup/actions/workflows/ci.yaml/badge.svg
