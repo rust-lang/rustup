@@ -422,10 +422,10 @@ impl TargetTriple {
             /// it is only available on Windows 10 1511+, so we use `GetProcAddress`
             /// to maintain backward compatibility with older Windows versions.
             fn arch_primary() -> Option<&'static str> {
-                use windows_sys::Win32::Foundation::{BOOL, HANDLE};
+                use windows_sys::Win32::Foundation::HANDLE;
                 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
                 use windows_sys::Win32::System::Threading::GetCurrentProcess;
-                use windows_sys::core::s;
+                use windows_sys::core::{BOOL, s};
 
                 const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
                 const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
