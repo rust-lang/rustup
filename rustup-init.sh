@@ -642,7 +642,22 @@ downloader() {
     local _status
     local _retry
     if check_cmd curl; then
-        _dld=curl
+        # Check if we have a broken snap curl
+        # https://github.com/boukendesho/curl-snap/issues/1
+        _curl_path=$(command -v curl)
+        if echo "$_curl_path" | grep "/snap/" > /dev/null 2>&1; then
+            if check_cmd wget; then
+                _dld=wget
+            else
+                err "curl installed with snap cannot be used to install Rust"
+                err "due to missing permissions. Please uninstall it and"
+                err "reinstall curl with a different package manager (e.g., apt)."
+                err "See https://github.com/boukendesho/curl-snap/issues/1"
+                exit 1
+            fi
+        else
+            _dld=curl
+        fi
     elif check_cmd wget; then
         _dld=wget
     else
