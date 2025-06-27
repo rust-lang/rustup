@@ -3,7 +3,8 @@
 We use `cargo clippy` to ensure high-quality code and to enforce a set of best practices for Rust programming.
 However, not all lints provided by `cargo clippy` are relevant or applicable to our project.
 We may choose to ignore some lints if they are unstable, experimental, or specific to our project.
-If you are unsure about a lint, please ask us in the [rustup Discord channel](https://discord.com/channels/442252698964721669/463480252723888159).
+If you are unsure about a lint, please ask us in the
+[rustup Zulip channel](https://rust-lang.zulipchat.com/#narrow/channel/490103-t-rustup).
 
 ## Manual linting
 
