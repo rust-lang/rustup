@@ -8,12 +8,9 @@ rustc -vV
 cargo -vV
 
 if [ -n "$INSTALL_BINDGEN" ]; then
-  if ! curl --proto '=https' --tlsv1.2 -LsSf https://github.com/rust-lang/rust-bindgen/releases/latest/download/bindgen-cli-installer.sh | sh -s -- --no-modify-path \
-    | grep "everything's installed!";
-    # Ignoring exit code since the script might fail to write the receipt after a successful installation.
-  then
-    cargo install --force --locked bindgen-cli
-  fi
+  # Install `cargo-binstall` first for faster installation.
+  curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+  cargo binstall -y --force --locked bindgen-cli
   mkdir "$CARGO_HOME"/bin/bindgen-cli
   mv "$CARGO_HOME"/bin/bindgen "$CARGO_HOME"/bin/bindgen-cli/
   export PATH="$CARGO_HOME/bin/bindgen-cli:$PATH"
