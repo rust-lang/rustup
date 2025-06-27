@@ -175,9 +175,7 @@ hr {
     height: 58px;
     margin: 0;
     padding: 0 5px 0 5px;
-    border-radius: 0 3px 3px 0;
-    border-left-width: 0px;
-    border-left-style: solid;
+    border-width: 0px;
     cursor: pointer;
 }
 
@@ -191,7 +189,7 @@ hr {
     width: fit-content;
     height: fit-content;
     top: 27px;
-    left: 50%;
+    left: 23px;
     transform: translate(-50%, -50%);
 }
 
@@ -208,7 +206,7 @@ hr {
     width: 41px;
     height: 15px;
     position: relative;
-    top: 5px;
+    top: 6px;
 }
 
 #platform-instructions-win32 a.windows-download,
