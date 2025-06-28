@@ -345,15 +345,15 @@ impl<'a> Toolchain<'a> {
                 );
                 return Ok(cmd);
             }
-        } else if let "rust-analyzer" | "rust-analyzer.exe" = binary {
-            if let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)? {
-                info!("`rust-analyzer` is unavailable for the active toolchain");
-                info!(
-                    r#"falling back to "{}""#,
-                    Path::new(cmd.get_program()).display()
-                );
-                return Ok(cmd);
-            }
+        } else if let "rust-analyzer" | "rust-analyzer.exe" = binary
+            && let Some(cmd) = self.maybe_do_rust_analyzer_fallback(binary)?
+        {
+            info!("`rust-analyzer` is unavailable for the active toolchain");
+            info!(
+                r#"falling back to "{}""#,
+                Path::new(cmd.get_program()).display()
+            );
+            return Ok(cmd);
         }
 
         self.create_command(binary)
@@ -490,12 +490,12 @@ impl<'a> Toolchain<'a> {
         // but only if we know the absolute path to cargo.
         // This works around an issue with old versions of cargo not updating
         // the environment variable itself.
-        if Path::new(&binary).file_stem() == Some("cargo".as_ref()) && path.is_absolute() {
-            if let Some(cargo) = self.cfg.process.var_os("CARGO") {
-                if fs::read_link(&cargo).is_ok_and(|p| p.file_stem() == Some("rustup".as_ref())) {
-                    cmd.env("CARGO", path);
-                }
-            }
+        if Path::new(&binary).file_stem() == Some("cargo".as_ref())
+            && path.is_absolute()
+            && let Some(cargo) = self.cfg.process.var_os("CARGO")
+            && fs::read_link(&cargo).is_ok_and(|p| p.file_stem() == Some("rustup".as_ref()))
+        {
+            cmd.env("CARGO", path);
         }
         Ok(cmd)
     }

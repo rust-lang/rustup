@@ -27,10 +27,10 @@ pub(crate) fn insert_path(
         prepend.into()
     };
 
-    if let Some(path) = append {
-        if !parts.contains(&path) {
-            parts.push_back(path);
-        }
+    if let Some(path) = append
+        && !parts.contains(&path)
+    {
+        parts.push_back(path);
     }
 
     if let Ok(new_value) = env::join_paths(parts) {

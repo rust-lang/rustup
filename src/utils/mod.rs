@@ -310,12 +310,11 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
 
 pub(crate) fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
     let result = remove_file(name, path);
-    if let Err(err) = &result {
-        if let Some(retry::Error { error: e, .. }) = err.downcast_ref::<retry::Error<io::Error>>() {
-            if e.kind() == io::ErrorKind::NotFound {
-                return Ok(());
-            }
-        }
+    if let Err(err) = &result
+        && let Some(retry::Error { error: e, .. }) = err.downcast_ref::<retry::Error<io::Error>>()
+        && e.kind() == io::ErrorKind::NotFound
+    {
+        return Ok(());
     }
     result.with_context(|| RustupError::RemovingFile {
         name,

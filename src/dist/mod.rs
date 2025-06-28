@@ -229,13 +229,13 @@ impl FromStr for PartialVersion {
         // `semver::Comparator::from_str` supports an optional operator
         // (e.g. `=`, `>`, `>=`, `<`, `<=`, `~`, `^`, `*`) before the
         // partial version, so we should exclude that case first.
-        if let Some(ch) = ver.chars().nth(0) {
-            if !ch.is_ascii_digit() {
-                return Err(anyhow!(
-                    "expected ASCII digit at the beginning of `{ver}`, found `{ch}`"
-                )
-                .context("error parsing `PartialVersion`"));
-            }
+        if let Some(ch) = ver.chars().nth(0)
+            && !ch.is_ascii_digit()
+        {
+            return Err(
+                anyhow!("expected ASCII digit at the beginning of `{ver}`, found `{ch}`")
+                    .context("error parsing `PartialVersion`"),
+            );
         }
         let (ver, pre) = ver.split_once('-').unwrap_or((ver, ""));
         let comparator =
@@ -1017,12 +1017,12 @@ pub(crate) async fn update_from_dist(
             }
         };
 
-        if let Some(backtrack_limit) = backtrack_limit {
-            if backtrack_limit < 1 {
-                // This unwrap is safe because we can only hit this if we've
-                // had a chance to set first_err
-                break Err(first_err.unwrap());
-            }
+        if let Some(backtrack_limit) = backtrack_limit
+            && backtrack_limit < 1
+        {
+            // This unwrap is safe because we can only hit this if we've
+            // had a chance to set first_err
+            break Err(first_err.unwrap());
         }
 
         // The user asked to update their nightly, but the latest nightly does not have all
@@ -1118,10 +1118,9 @@ async fn try_update_from_dist_(
                     .components
                     .iter()
                     .find(|c| c.short_name_in_manifest() == component.short_name_in_manifest())
+                    && c.target.is_none()
                 {
-                    if c.target.is_none() {
-                        component = component.wildcard();
-                    }
+                    component = component.wildcard();
                 }
                 all_components.insert(component);
             }
@@ -1215,12 +1214,12 @@ async fn try_update_from_dist_(
         .await;
 
     // inspect, determine what context to add, then process afterwards.
-    if let Err(e) = &result {
-        if let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>() {
-            return result.with_context(|| {
-                format!("could not download nonexistent rust version `{toolchain_str}`")
-            });
-        }
+    if let Err(e) = &result
+        && let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>()
+    {
+        return result.with_context(|| {
+            format!("could not download nonexistent rust version `{toolchain_str}`")
+        });
     }
 
     result
