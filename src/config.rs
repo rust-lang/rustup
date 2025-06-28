@@ -659,17 +659,15 @@ impl<'a> Cfg<'a> {
                     let default_host_triple = get_default_host_triple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
-                    if let ResolvableToolchainName::Official(ref name) = toolchain_name {
-                        if name.has_triple() {
-                            // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
-                            // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
-                            // the base name in the error to help users)
-                            let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
-                            if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
-                                return Err(anyhow!(format!(
-                                    "target triple in channel name '{name}'"
-                                )));
-                            }
+                    if let ResolvableToolchainName::Official(ref name) = toolchain_name
+                        && name.has_triple()
+                    {
+                        // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
+                        // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
+                        // the base name in the error to help users)
+                        let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
+                        if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
+                            return Err(anyhow!(format!("target triple in channel name '{name}'")));
                         }
                     }
 

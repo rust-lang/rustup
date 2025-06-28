@@ -254,26 +254,26 @@ fn trigger_children(
     op: CompletedIo,
 ) -> Result<usize> {
     let mut result = 0;
-    if let CompletedIo::Item(item) = op {
-        if let Kind::Directory = item.kind {
-            let mut pending = Vec::new();
-            directories
-                .entry(item.full_path)
-                .and_modify(|status| match status {
-                    DirStatus::Exists => unreachable!(),
-                    DirStatus::Pending(pending_inner) => {
-                        pending.append(pending_inner);
-                        *status = DirStatus::Exists;
-                    }
-                })
-                .or_insert_with(|| unreachable!());
-            result += pending.len();
-            for pending_item in pending.into_iter() {
-                for mut item in io_executor.execute(pending_item).collect::<Vec<_>>() {
-                    // TODO capture metrics
-                    filter_result(&mut item)?;
-                    result += trigger_children(io_executor, directories, item)?;
+    if let CompletedIo::Item(item) = op
+        && let Kind::Directory = item.kind
+    {
+        let mut pending = Vec::new();
+        directories
+            .entry(item.full_path)
+            .and_modify(|status| match status {
+                DirStatus::Exists => unreachable!(),
+                DirStatus::Pending(pending_inner) => {
+                    pending.append(pending_inner);
+                    *status = DirStatus::Exists;
                 }
+            })
+            .or_insert_with(|| unreachable!());
+        result += pending.len();
+        for pending_item in pending.into_iter() {
+            for mut item in io_executor.execute(pending_item).collect::<Vec<_>>() {
+                // TODO capture metrics
+                filter_result(&mut item)?;
+                result += trigger_children(io_executor, directories, item)?;
             }
         }
     };
@@ -363,24 +363,24 @@ fn unpack_without_first_dir<R: Read>(
                 trigger_children(&*io_executor, directories, op)?;
             }
             // Maybe stream a file incrementally
-            if let Some(sender) = sender_entry.as_mut() {
-                if io_executor.buffer_available(IO_CHUNK_SIZE) {
-                    let mut buffer = io_executor.get_buffer(IO_CHUNK_SIZE);
-                    let len = sender
-                        .entry
-                        .by_ref()
-                        .take(IO_CHUNK_SIZE as u64)
-                        .read_to_end(&mut buffer)?;
-                    buffer = buffer.finished();
-                    if len == 0 {
-                        result = true;
-                    }
-                    if !(sender.sender)(buffer) {
-                        bail!(format!(
-                            "IO receiver for '{}' disconnected",
-                            full_path.as_ref().display()
-                        ))
-                    }
+            if let Some(sender) = sender_entry.as_mut()
+                && io_executor.buffer_available(IO_CHUNK_SIZE)
+            {
+                let mut buffer = io_executor.get_buffer(IO_CHUNK_SIZE);
+                let len = sender
+                    .entry
+                    .by_ref()
+                    .take(IO_CHUNK_SIZE as u64)
+                    .read_to_end(&mut buffer)?;
+                buffer = buffer.finished();
+                if len == 0 {
+                    result = true;
+                }
+                if !(sender.sender)(buffer) {
+                    bail!(format!(
+                        "IO receiver for '{}' disconnected",
+                        full_path.as_ref().display()
+                    ))
                 }
             }
             Ok(result)

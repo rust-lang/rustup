@@ -30,13 +30,13 @@ impl Components {
         let c = Self { prefix };
 
         // Validate that the metadata uses a format we know
-        if let Some(v) = c.read_version()? {
-            if v != INSTALLER_VERSION {
-                bail!(
-                    "unsupported metadata version in existing installation: {}",
-                    v
-                );
-            }
+        if let Some(v) = c.read_version()?
+            && v != INSTALLER_VERSION
+        {
+            bail!(
+                "unsupported metadata version in existing installation: {}",
+                v
+            );
         }
 
         Ok(c)
