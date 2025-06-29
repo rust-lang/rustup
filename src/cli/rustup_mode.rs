@@ -1,10 +1,12 @@
-use std::borrow::Cow;
-use std::env::consts::EXE_SUFFIX;
-use std::fmt;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use std::process::ExitStatus;
-use std::str::FromStr;
+use std::{
+    borrow::Cow,
+    env::consts::EXE_SUFFIX,
+    fmt,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::ExitStatus,
+    str::FromStr,
+};
 
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
