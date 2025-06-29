@@ -229,7 +229,7 @@ impl Config {
         // Ensure PATH is prefixed with the rustup-exe directory
         let prev_path = env::var_os("PATH");
         let mut new_path = self.exedir.clone().into_os_string();
-        if let Some(ref p) = prev_path {
+        if let Some(p) = &prev_path {
             new_path.push(if cfg!(windows) { ";" } else { ":" });
             new_path.push(p);
         }
@@ -697,16 +697,15 @@ impl ConstState {
         {
             // fast path: the dist already exists
             let lock = self.scenarios[s].read().unwrap();
-            if let Some(ref path) = *lock {
+            if let Some(path) = &*lock {
                 return Ok(path.clone());
             }
         }
         {
             let mut lock = self.scenarios[s].write().unwrap();
             // another writer may have initialized it
-            match *lock {
-                Some(ref path) => Ok(path.clone()),
-
+            match &*lock {
+                Some(path) => Ok(path.clone()),
                 None => {
                     let dist_path = self.const_dist_dir.path().join(format!("{s:?}"));
                     s.write_to(&dist_path);

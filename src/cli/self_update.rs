@@ -905,7 +905,7 @@ async fn maybe_install_rust(
 
     let (components, targets) = (opts.components, opts.targets);
     let toolchain = opts.install(&mut cfg)?;
-    if let Some(ref desc) = toolchain {
+    if let Some(desc) = &toolchain {
         let status = if Toolchain::exists(&cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
             // If we have a partial install we might not be able to read content here. We could:

@@ -368,7 +368,7 @@ where
 
     before_restart()?;
 
-    if let Some(ref setup_path) = setup_path {
+    if let Some(setup_path) = &setup_path {
         return self_update::run_update(setup_path);
     } else {
         // Try again in case we emitted "tool `{}` is already installed" last time.

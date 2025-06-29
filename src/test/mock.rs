@@ -238,14 +238,14 @@ impl MockFile {
 
     pub fn build(&self, path: &Path) {
         let path = path.join(&self.path);
-        match self.contents {
-            Contents::Dir(ref files) => {
+        match &self.contents {
+            Contents::Dir(files) => {
                 for (name, contents) in files {
                     let fname = path.join(name);
                     contents.build(&fname);
                 }
             }
-            Contents::File(ref contents) => contents.build(&path),
+            Contents::File(contents) => contents.build(&path),
         }
     }
 }

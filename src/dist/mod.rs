@@ -694,16 +694,16 @@ impl ToolchainDesc {
     }
     /// Either "$channel" or "channel-$date"
     pub fn manifest_name(&self) -> String {
-        match self.date {
+        match &self.date {
             None => self.channel.to_string(),
-            Some(ref date) => format!("{}-{}", self.channel, date),
+            Some(date) => format!("{}-{}", self.channel, date),
         }
     }
 
     pub(crate) fn package_dir(&self, dist_root: &str) -> String {
-        match self.date {
+        match &self.date {
             None => dist_root.to_string(),
-            Some(ref date) => format!("{dist_root}/{date}"),
+            Some(date) => format!("{dist_root}/{date}"),
         }
     }
 
@@ -843,16 +843,16 @@ impl fmt::Display for PartialToolchainDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", &self.channel)?;
 
-        if let Some(ref date) = self.date {
+        if let Some(date) = &self.date {
             write!(f, "-{date}")?;
         }
-        if let Some(ref arch) = self.target.arch {
+        if let Some(arch) = &self.target.arch {
             write!(f, "-{arch}")?;
         }
-        if let Some(ref os) = self.target.os {
+        if let Some(os) = &self.target.os {
             write!(f, "-{os}")?;
         }
-        if let Some(ref env) = self.target.env {
+        if let Some(env) = &self.target.env {
             write!(f, "-{env}")?;
         }
 
@@ -864,7 +864,7 @@ impl fmt::Display for ToolchainDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", &self.channel)?;
 
-        if let Some(ref date) = self.date {
+        if let Some(date) = &self.date {
             write!(f, "-{date}")?;
         }
         write!(f, "-{}", self.target)?;

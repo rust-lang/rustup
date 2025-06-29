@@ -357,11 +357,11 @@ impl Manifest {
     fn validate(&self) -> Result<()> {
         // Every component mentioned must have an actual package to download
         for pkg in self.packages.values() {
-            match pkg.targets {
-                PackageTargets::Wildcard(ref tpkg) => {
+            match &pkg.targets {
+                PackageTargets::Wildcard(tpkg) => {
                     self.validate_targeted_package(tpkg)?;
                 }
-                PackageTargets::Targeted(ref tpkgs) => {
+                PackageTargets::Targeted(tpkgs) => {
                     for tpkg in tpkgs.values() {
                         self.validate_targeted_package(tpkg)?;
                     }
@@ -447,9 +447,9 @@ impl Manifest {
 
 impl Package {
     pub fn get_target(&self, target: Option<&TargetTriple>) -> Result<&TargetedPackage> {
-        match self.targets {
-            PackageTargets::Wildcard(ref tpkg) => Ok(tpkg),
-            PackageTargets::Targeted(ref tpkgs) => {
+        match &self.targets {
+            PackageTargets::Wildcard(tpkg) => Ok(tpkg),
+            PackageTargets::Targeted(tpkgs) => {
                 if let Some(t) = target {
                     tpkgs
                         .get(t)
@@ -523,7 +523,7 @@ impl Component {
 
     pub(crate) fn name(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
-        if let Some(ref t) = self.target {
+        if let Some(t) = &self.target {
             format!("{pkg}-{t}")
         } else {
             pkg
@@ -538,7 +538,7 @@ impl Component {
     }
     pub(crate) fn description(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
-        if let Some(ref t) = self.target {
+        if let Some(t) = &self.target {
             format!("'{pkg}' for target '{t}'")
         } else {
             format!("'{pkg}'")
@@ -549,7 +549,7 @@ impl Component {
     }
     pub(crate) fn name_in_manifest(&self) -> String {
         let pkg = self.short_name_in_manifest();
-        if let Some(ref t) = self.target {
+        if let Some(t) = &self.target {
             format!("{pkg}-{t}")
         } else {
             pkg.to_string()
