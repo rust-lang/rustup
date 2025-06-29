@@ -10,7 +10,10 @@ cargo -vV
 if [ -n "$INSTALL_BINDGEN" ]; then
   # Install `cargo-binstall` first for faster installation.
   curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-  cargo binstall -y --force --locked bindgen-cli
+  # An explicit `--target` is required to ensure that `bindgen-cli` is built for the
+  # same target as the rest of the toolchain.
+  # See: <https://github.com/rust-lang/rustup/issues/4396>
+  cargo binstall -y --force --locked bindgen-cli "--target=$(rustc --print host-tuple)"
   mkdir "$CARGO_HOME"/bin/bindgen-cli
   mv "$CARGO_HOME"/bin/bindgen "$CARGO_HOME"/bin/bindgen-cli/
   export PATH="$CARGO_HOME/bin/bindgen-cli:$PATH"
