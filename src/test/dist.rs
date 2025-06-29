@@ -637,7 +637,7 @@ impl MockDistServer {
         );
         let tarballs = TARBALLS.lock().unwrap();
         let hash = if tarballs.contains_key(&key) {
-            let (ref contents, ref hash) = tarballs[&key];
+            let (contents, hash) = &tarballs[&key];
             File::create(&installer_tarball)
                 .unwrap()
                 .write_all(contents)

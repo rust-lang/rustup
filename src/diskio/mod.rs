@@ -270,14 +270,14 @@ impl IncrementalFileState {
         mode: u32,
     ) -> Result<(Box<dyn FnMut(FileBuffer) -> bool>, IncrementalFile)> {
         use std::sync::mpsc::channel;
-        match *self {
+        match self {
             IncrementalFileState::Threaded => {
                 let (tx, rx) = channel::<FileBuffer>();
                 let content_callback = IncrementalFile::ThreadedReceiver(rx);
                 let chunk_submit = move |chunk: FileBuffer| tx.send(chunk).is_ok();
                 Ok((Box::new(chunk_submit), content_callback))
             }
-            IncrementalFileState::Immediate(ref state) => {
+            IncrementalFileState::Immediate(state) => {
                 let content_callback = IncrementalFile::ImmediateReceiver;
                 let mut writer = immediate::IncrementalFileWriter::new(path, mode, state.clone())?;
                 let chunk_submit = move |chunk: FileBuffer| writer.chunk_submit(chunk);

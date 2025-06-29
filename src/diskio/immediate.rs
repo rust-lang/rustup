@@ -38,7 +38,7 @@ impl ImmediateUnpacker {
     fn deque(&self) -> Box<dyn Iterator<Item = CompletedIo>> {
         let mut guard = self.incremental_state.lock().unwrap();
         // incremental file in progress
-        if let Some(ref mut state) = *guard {
+        if let Some(state) = &mut *guard {
             // Case 1: pending errors
             if state.finished {
                 let mut item = state.item.take().unwrap();
@@ -81,7 +81,7 @@ impl Executor for ImmediateUnpacker {
                     // If there is a pending error, return it, otherwise stash the
                     // Item for eventual return when the file is finished.
                     let mut guard = self.incremental_state.lock().unwrap();
-                    let Some(ref mut state) = *guard else {
+                    let Some(state) = &mut *guard else {
                         unreachable!()
                     };
                     if state.err.is_some() {
@@ -187,7 +187,7 @@ impl IncrementalFileWriter {
             Ok(v) => v,
             Err(e) => {
                 let mut state = self.state.lock().unwrap();
-                if let Some(ref mut state) = *state {
+                if let Some(state) = &mut *state {
                     state.err.replace(Err(e));
                     state.finished = true;
                     false
@@ -200,10 +200,10 @@ impl IncrementalFileWriter {
 
     fn write(&mut self, chunk: Vec<u8>) -> std::result::Result<bool, io::Error> {
         let mut state = self.state.lock().unwrap();
-        let Some(ref mut state) = *state else {
+        let Some(state) = &mut *state else {
             unreachable!()
         };
-        let Some(ref mut file) = self.file.as_mut() else {
+        let Some(file) = &mut self.file else {
             return Ok(false);
         };
         // Length 0 vector is used for clean EOF signalling.
