@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::env::consts::EXE_SUFFIX;
 use std::fmt;
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::str::FromStr;
@@ -49,8 +49,8 @@ fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     match res {
         Err(e) => {
             let root = e.root_cause();
-            if let Some(io_err) = root.downcast_ref::<std::io::Error>()
-                && io_err.kind() == std::io::ErrorKind::BrokenPipe
+            if let Some(io_err) = root.downcast_ref::<io::Error>()
+                && io_err.kind() == io::ErrorKind::BrokenPipe
             {
                 return Ok(utils::ExitCode(0));
             }
@@ -1102,9 +1102,9 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         }
     }
 
-    fn print_header<E>(t: &mut ColorableTerminal, s: &str) -> std::result::Result<(), E>
+    fn print_header<E>(t: &mut ColorableTerminal, s: &str) -> Result<(), E>
     where
-        E: From<std::io::Error>,
+        E: From<io::Error>,
     {
         t.attr(terminalsource::Attr::Bold)?;
         {
