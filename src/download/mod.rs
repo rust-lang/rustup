@@ -469,19 +469,23 @@ mod curl {
                 // Listen for headers and parse out a `Content-Length` (case-insensitive) if it
                 // comes so we know how much we're downloading.
                 transfer.header_function(|header| {
+                    let Ok(data) = str::from_utf8(header) else {
+                        return true;
+                    };
                     let prefix = "content-length: ";
-                    if let Ok(data) = str::from_utf8(header)
-                        && data.to_ascii_lowercase().starts_with(prefix)
-                        && let Ok(s) = data[prefix.len()..].trim().parse::<u64>()
-                    {
-                        let msg = Event::DownloadContentLengthReceived(s + resume_from);
-                        match callback(msg) {
-                            Ok(()) => (),
-                            Err(e) => {
-                                *cberr.borrow_mut() = Some(e);
-                                return false;
-                            }
-                        }
+                    let Some((dp, ds)) = data.split_at_checked(prefix.len()) else {
+                        return true;
+                    };
+                    if !dp.eq_ignore_ascii_case(prefix) {
+                        return true;
+                    }
+                    let Ok(s) = ds.trim().parse::<u64>() else {
+                        return true;
+                    };
+                    let msg = Event::DownloadContentLengthReceived(s + resume_from);
+                    if let Err(e) = callback(msg) {
+                        *cberr.borrow_mut() = Some(e);
+                        return false;
                     }
                     true
                 })?;
