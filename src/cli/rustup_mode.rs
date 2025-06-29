@@ -9,6 +9,8 @@ use std::str::FromStr;
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
 use clap_complete::Shell;
+use futures_util::stream::StreamExt;
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use itertools::Itertools;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -791,44 +793,67 @@ async fn default_(
 
 async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
     let mut update_available = false;
-
-    let mut t = cfg.process.stdout().terminal(cfg.process);
     let channels = cfg.list_channels()?;
+    let num_channels = channels.len();
+    if num_channels > 0 {
+        let mp = MultiProgress::with_draw_target(ProgressDrawTarget::stdout());
 
-    for channel in channels {
-        let (name, distributable) = channel;
-        let current_version = distributable.show_version()?;
-        let dist_version = distributable.show_dist_version().await?;
-        let _ = t.attr(terminalsource::Attr::Bold);
-        write!(t.lock(), "{name} - ")?;
-        match (current_version, dist_version) {
-            (None, None) => {
-                let _ = t.fg(terminalsource::Color::Red);
-                writeln!(t.lock(), "Cannot identify installed or update versions")?;
-            }
-            (Some(cv), None) => {
-                let _ = t.fg(terminalsource::Color::Green);
-                write!(t.lock(), "Up to date")?;
-                let _ = t.reset();
-                writeln!(t.lock(), " : {cv}")?;
-            }
-            (Some(cv), Some(dv)) => {
-                update_available = true;
-                let _ = t.fg(terminalsource::Color::Yellow);
-                write!(t.lock(), "Update available")?;
-                let _ = t.reset();
-                writeln!(t.lock(), " : {cv} -> {dv}")?;
-            }
-            (None, Some(dv)) => {
-                update_available = true;
-                let _ = t.fg(terminalsource::Color::Yellow);
-                write!(t.lock(), "Update available")?;
-                let _ = t.reset();
-                writeln!(t.lock(), " : (Unknown version) -> {dv}")?;
-            }
-        }
+        let progress_bars: Vec<_> = channels
+            .iter()
+            .map(|(name, _)| {
+                let pb = mp.add(ProgressBar::new(1));
+                pb.set_style(
+                    ProgressStyle::with_template("{msg} {spinner:.green}")
+                        .unwrap()
+                        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ "),
+                );
+                pb.set_message(format!("{} - Checking...", name));
+                pb.enable_steady_tick(std::time::Duration::from_millis(100));
+                pb
+            })
+            .collect();
+
+        let channels = tokio_stream::iter(channels.into_iter().zip(progress_bars))
+            .map(|((name, distributable), pb)| async move {
+                let current_version = distributable.show_version()?;
+                let dist_version = distributable.show_dist_version().await?;
+                let mut update_a = false;
+
+                let (message, style) = match (current_version, dist_version) {
+                    (None, None) => {
+                        let msg =
+                            format!("{} - Cannot identify installed or update versions", name);
+                        let style = ProgressStyle::with_template("{msg}").unwrap();
+                        (msg, style)
+                    }
+                    (Some(cv), None) => {
+                        let msg = format!("{} - Up to date : {}", name, cv);
+                        let style = ProgressStyle::with_template("{msg}").unwrap();
+                        (msg, style)
+                    }
+                    (Some(cv), Some(dv)) => {
+                        update_a = true;
+                        let msg = format!("{} - Update available : {} -> {}", name, cv, dv);
+                        let style = ProgressStyle::with_template("{msg}").unwrap();
+                        (msg, style)
+                    }
+                    (None, Some(dv)) => {
+                        update_a = true;
+                        let msg =
+                            format!("{} - Update available : (Unknown version) -> {}", name, dv);
+                        let style = ProgressStyle::with_template("{msg}").unwrap();
+                        (msg, style)
+                    }
+                };
+                pb.set_style(style);
+                pb.finish_with_message(message);
+                Ok::<bool, Error>(update_a)
+            })
+            .buffered(num_channels)
+            .collect::<Vec<_>>()
+            .await;
+        update_available = channels.into_iter().any(|r| r.unwrap_or(false));
     }
-
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Check for update only if rustup does **not** have the no-self-update feature,
