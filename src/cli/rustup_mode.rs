@@ -11,6 +11,9 @@ use std::{
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
 use clap_complete::Shell;
+use console::style;
+use futures_util::stream::StreamExt;
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use itertools::Itertools;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -792,45 +795,108 @@ async fn default_(
 }
 
 async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
+    let t = cfg.process.stdout().terminal(cfg.process);
+    let is_a_tty = t.is_a_tty();
+    let use_colors = match cfg.process.var("RUSTUP_TERM_COLOR").as_deref() {
+        Ok("always") => true,
+        Ok("never") => false,
+        _ => is_a_tty,
+    };
     let mut update_available = false;
-
-    let mut t = cfg.process.stdout().terminal(cfg.process);
     let channels = cfg.list_channels()?;
+    let num_channels = channels.len();
+    if num_channels > 0 {
+        let mp = if is_a_tty {
+            MultiProgress::with_draw_target(ProgressDrawTarget::term_like(Box::new(t)))
+        } else {
+            MultiProgress::with_draw_target(ProgressDrawTarget::hidden())
+        };
+        let progress_bars: Vec<_> = channels
+            .iter()
+            .map(|(name, _)| {
+                let pb = mp.add(ProgressBar::new(1));
+                pb.set_style(
+                    ProgressStyle::with_template("{msg:.bold} - Checking... {spinner:.green}")
+                        .unwrap()
+                        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ "),
+                );
+                pb.set_message(format!("{name}"));
+                pb.enable_steady_tick(std::time::Duration::from_millis(100));
+                pb
+            })
+            .collect();
 
-    for channel in channels {
-        let (name, distributable) = channel;
-        let current_version = distributable.show_version()?;
-        let dist_version = distributable.show_dist_version().await?;
-        let _ = t.attr(terminalsource::Attr::Bold);
-        write!(t.lock(), "{name} - ")?;
-        match (current_version, dist_version) {
-            (None, None) => {
-                let _ = t.fg(terminalsource::Color::Red);
-                writeln!(t.lock(), "Cannot identify installed or update versions")?;
-            }
-            (Some(cv), None) => {
-                let _ = t.fg(terminalsource::Color::Green);
-                write!(t.lock(), "Up to date")?;
-                let _ = t.reset();
-                writeln!(t.lock(), " : {cv}")?;
-            }
-            (Some(cv), Some(dv)) => {
+        let channels = tokio_stream::iter(channels.into_iter().zip(progress_bars)).map(
+            |((name, distributable), pb)| async move {
+                let current_version = distributable.show_version()?;
+                let dist_version = distributable.show_dist_version().await?;
+                let mut update_a = false;
+
+                let mut styled_name = style(format!("{name} - "));
+                if use_colors {
+                    styled_name = styled_name.bold();
+                }
+                let message = match (current_version, dist_version) {
+                    (None, None) => {
+                        let mut m = style("Cannot identify installed or update versions");
+                        if use_colors {
+                            m = m.red().bold();
+                        }
+                        format!("{styled_name}{m}")
+                    }
+                    (Some(cv), None) => {
+                        let mut m = style("Up to date");
+                        if use_colors {
+                            m = m.green().bold();
+                        }
+                        format!("{styled_name}{m} : {cv}")
+                    }
+                    (Some(cv), Some(dv)) => {
+                        let mut m = style("Update available");
+                        if use_colors {
+                            m = m.yellow().bold();
+                        }
+                        update_a = true;
+                        format!("{styled_name}{m} : {cv} -> {dv}")
+                    }
+                    (None, Some(dv)) => {
+                        let mut m = style("Update available");
+                        if use_colors {
+                            m = m.yellow().bold();
+                        }
+                        update_a = true;
+                        format!("{styled_name}{m} : (Unknown version) -> {dv}")
+                    }
+                };
+                pb.set_style(ProgressStyle::with_template(message.as_str()).unwrap());
+                pb.finish();
+                Ok::<(bool, String), Error>((update_a, message))
+            },
+        );
+
+        // If we are running in a TTY, we can use `buffer_unordered` since
+        // displaying the output in the correct order is already handled by
+        // `indicatif`.
+        let channels = if is_a_tty {
+            channels
+                .buffer_unordered(num_channels)
+                .collect::<Vec<_>>()
+                .await
+        } else {
+            channels.buffered(num_channels).collect::<Vec<_>>().await
+        };
+
+        let t = cfg.process.stdout().terminal(cfg.process);
+        for result in channels.into_iter() {
+            let (update_a, message) = result?;
+            if update_a {
                 update_available = true;
-                let _ = t.fg(terminalsource::Color::Yellow);
-                write!(t.lock(), "Update available")?;
-                let _ = t.reset();
-                writeln!(t.lock(), " : {cv} -> {dv}")?;
             }
-            (None, Some(dv)) => {
-                update_available = true;
-                let _ = t.fg(terminalsource::Color::Yellow);
-                write!(t.lock(), "Update available")?;
-                let _ = t.reset();
-                writeln!(t.lock(), " : (Unknown version) -> {dv}")?;
+            if !is_a_tty {
+                writeln!(t.lock(), "{message}")?;
             }
         }
     }
-
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Check for update only if rustup does **not** have the no-self-update feature,
