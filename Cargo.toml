@@ -46,6 +46,7 @@ cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help"] }
 clap_complete = "4"
+console = "0.16"
 curl = { version = "0.4.44", optional = true }
 effective-limits = "0.5.5"
 enum-map = "2.5.0"
@@ -54,6 +55,7 @@ flate2 = { version = "1.1.1", default-features = false, features = ["zlib-rs"] }
 fs_at = "0.2.1"
 git-testament = "0.2"
 home = "0.5.4"
+indicatif = "0.18"
 itertools = "0.14"
 libc = "0.2"
 opener = "0.8.0"

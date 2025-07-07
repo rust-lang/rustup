@@ -1,3 +1,5 @@
+use console::Term;
+use indicatif::TermLike;
 use std::{
     io::{self, Write},
     mem::MaybeUninit,
@@ -6,8 +8,8 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-pub(crate) use termcolor::Color;
-use termcolor::{ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
+pub(crate) use termcolor::{Color, ColorChoice};
+use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -53,6 +55,8 @@ pub struct ColorableTerminal {
     // source is important because otherwise parallel constructed terminals
     // would not be locked out.
     inner: Arc<Mutex<TerminalInner>>,
+    is_a_tty: bool,
+    color_choice: ColorChoice,
 }
 
 /// Internal state for ColorableTerminal
@@ -84,10 +88,11 @@ impl ColorableTerminal {
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
     pub(super) fn new(stream: StreamSelector, process: &Process) -> Self {
+        let is_a_tty = stream.is_a_tty(process);
         let choice = match process.var("RUSTUP_TERM_COLOR") {
             Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
             Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
-            _ if stream.is_a_tty(process) => ColorChoice::Auto,
+            _ if is_a_tty => ColorChoice::Auto,
             _ => ColorChoice::Never,
         };
         let inner = match stream {
@@ -104,6 +109,8 @@ impl ColorableTerminal {
         };
         ColorableTerminal {
             inner: Arc::new(Mutex::new(inner)),
+            is_a_tty,
+            color_choice: choice,
         }
     }
 
@@ -179,6 +186,14 @@ impl ColorableTerminal {
         };
         Ok(())
     }
+
+    pub fn is_a_tty(&self) -> bool {
+        self.is_a_tty
+    }
+
+    pub fn color_choice(&self) -> ColorChoice {
+        self.color_choice
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -220,6 +235,81 @@ impl io::Write for ColorableTerminalLocked {
             #[cfg(feature = "test")]
             TerminalInnerLocked::TestWriter(w) => w.flush(),
         }
+    }
+}
+
+impl TermLike for ColorableTerminal {
+    fn width(&self) -> u16 {
+        Term::stdout().size().1
+    }
+
+    fn move_cursor_up(&self, n: usize) -> io::Result<()> {
+        // As the ProgressBar may try to move the cursor up by 0 lines,
+        // we need to handle that case to avoid writing an escape sequence
+        // that would mess up the terminal.
+        if n == 0 {
+            return Ok(());
+        }
+        let mut t = self.lock();
+        write!(t, "\x1b[{n}A")?;
+        t.flush()
+    }
+
+    fn move_cursor_down(&self, n: usize) -> io::Result<()> {
+        if n == 0 {
+            return Ok(());
+        }
+        let mut t = self.lock();
+        write!(t, "\x1b[{n}B")?;
+        t.flush()
+    }
+
+    fn move_cursor_right(&self, n: usize) -> io::Result<()> {
+        if n == 0 {
+            return Ok(());
+        }
+        let mut t = self.lock();
+        write!(t, "\x1b[{n}C")?;
+        t.flush()
+    }
+
+    fn move_cursor_left(&self, n: usize) -> io::Result<()> {
+        if n == 0 {
+            return Ok(());
+        }
+        let mut t = self.lock();
+        write!(t, "\x1b[{n}D")?;
+        t.flush()
+    }
+
+    fn write_line(&self, line: &str) -> io::Result<()> {
+        let mut t = self.lock();
+        t.write_all(line.as_bytes())?;
+        t.write_all(b"\n")?;
+        t.flush()
+    }
+
+    fn write_str(&self, s: &str) -> io::Result<()> {
+        let mut t = self.lock();
+        t.write_all(s.as_bytes())?;
+        t.flush()
+    }
+
+    fn clear_line(&self) -> io::Result<()> {
+        let mut t = self.lock();
+        t.write_all(b"\r\x1b[2K")?;
+        t.flush()
+    }
+
+    fn flush(&self) -> io::Result<()> {
+        let mut t = self.lock();
+        t.flush()
+    }
+}
+
+impl std::fmt::Debug for ColorableTerminal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ColorableTerminal {{ inner: ... }}")
     }
 }
 
