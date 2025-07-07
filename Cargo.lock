@@ -2240,6 +2240,7 @@ dependencies = [
  "env_proxy",
  "flate2",
  "fs_at",
+ "futures-util",
  "git-testament",
  "home",
  "http-body-util",
