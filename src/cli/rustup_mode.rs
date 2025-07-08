@@ -805,11 +805,15 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
     if num_channels > 0 {
-        let multi_progress_bars = if is_a_tty {
-            MultiProgress::with_draw_target(ProgressDrawTarget::term_like(Box::new(t)))
-        } else {
-            MultiProgress::with_draw_target(ProgressDrawTarget::hidden())
-        };
+        let multi_progress_bars =
+            MultiProgress::with_draw_target(match cfg.process.var("RUSTUP_TERM_PROGRESS_WHEN") {
+                Ok(s) if s.eq_ignore_ascii_case("always") => {
+                    ProgressDrawTarget::term_like(Box::new(t))
+                }
+                Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
+                _ if is_a_tty => ProgressDrawTarget::term_like(Box::new(t)),
+                _ => ProgressDrawTarget::hidden(),
+            });
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
             let pb = multi_progress_bars.add(ProgressBar::new(1));
             pb.set_style(
@@ -869,7 +873,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         // If we are running in a TTY, we can use `buffer_unordered` since
         // displaying the output in the correct order is already handled by
         // `indicatif`.
-        let channels = if is_a_tty {
+        let channels = if !multi_progress_bars.is_hidden() {
             channels
                 .buffer_unordered(num_channels)
                 .collect::<Vec<_>>()
@@ -884,7 +888,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
             if update_a {
                 update_available = true;
             }
-            if !is_a_tty {
+            if multi_progress_bars.is_hidden() {
                 writeln!(t.lock(), "{message}")?;
             }
         }
