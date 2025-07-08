@@ -899,7 +899,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     // Check for update only if rustup does **not** have the no-self-update feature,
     // and auto-self-update is configured to **enable**
     // and has **no** no-self-update parameter.
-    let self_update = !self_update::NEVER_SELF_UPDATE
+    let self_update = !cfg!(feature = "no-self-update")
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
 
@@ -924,7 +924,7 @@ async fn update(
     // Update only if rustup does **not** have the no-self-update feature,
     // and auto-self-update is configured to **enable**
     // and has **no** no-self-update parameter.
-    let self_update = !self_update::NEVER_SELF_UPDATE
+    let self_update = !cfg!(feature = "no-self-update")
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
     let force_non_host = opts.force_non_host;
@@ -1001,11 +1001,11 @@ async fn update(
         cfg.tmp_cx.clean();
     }
 
-    if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
+    if !cfg!(feature = "no-self-update") && self_update_mode == SelfUpdateMode::CheckOnly {
         check_rustup_update(cfg.process).await?;
     }
 
-    if self_update::NEVER_SELF_UPDATE {
+    if cfg!(feature = "no-self-update") {
         info!("self-update is disabled for this build of rustup");
         info!("any updates to rustup will need to be fetched with your system package manager")
     }
@@ -1778,7 +1778,7 @@ fn set_auto_self_update(
     cfg: &mut Cfg<'_>,
     auto_self_update_mode: SelfUpdateMode,
 ) -> Result<utils::ExitCode> {
-    if self_update::NEVER_SELF_UPDATE {
+    if cfg!(feature = "no-self-update") {
         let mut args = cfg.process.args_os();
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0

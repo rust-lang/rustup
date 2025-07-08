@@ -246,11 +246,6 @@ impl InstallOpts<'_> {
     }
 }
 
-#[cfg(feature = "no-self-update")]
-pub(crate) const NEVER_SELF_UPDATE: bool = true;
-#[cfg(not(feature = "no-self-update"))]
-pub(crate) const NEVER_SELF_UPDATE: bool = false;
-
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SelfUpdateMode {
@@ -955,7 +950,7 @@ async fn maybe_install_rust(
 }
 
 pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::ExitCode> {
-    if NEVER_SELF_UPDATE {
+    if cfg!(feature = "no-self-update") {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
         return Ok(utils::ExitCode(1));
@@ -1073,7 +1068,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     use common::SelfUpdatePermission::*;
-    let update_permitted = if NEVER_SELF_UPDATE {
+    let update_permitted = if cfg!(feature = "no-self-update") {
         HardFail
     } else {
         common::self_update_permitted(true)?
