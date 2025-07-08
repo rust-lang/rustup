@@ -61,6 +61,9 @@
   symlink proxies and instead always use hardlinks. If you find this fixes
   a problem, then please report the issue on the [rustup issue tracker].
 
+- `RUSTUP_TERM_PROGRESS_WHEN` (defaults: `auto`). Controls whether progress bars are shown or not.
+  Set to `always` to always enable progress bars, and to `never` to disable them.
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
