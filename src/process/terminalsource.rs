@@ -3,6 +3,7 @@ use indicatif::TermLike;
 use std::{
     io::{self, Write},
     mem::MaybeUninit,
+    num::NonZero,
     ops::DerefMut,
     ptr::addr_of_mut,
     sync::{Arc, Mutex, MutexGuard},
@@ -57,6 +58,7 @@ pub struct ColorableTerminal {
     inner: Arc<Mutex<TerminalInner>>,
     is_a_tty: bool,
     color_choice: ColorChoice,
+    width: Option<NonZero<u16>>,
 }
 
 /// Internal state for ColorableTerminal
@@ -107,10 +109,15 @@ impl ColorableTerminal {
             #[cfg(all(test, feature = "test"))]
             StreamSelector::TestTtyWriter(w) => TerminalInner::TestWriter(w, choice),
         };
+        let width = process
+            .var("RUSTUP_TERM_WIDTH")
+            .ok()
+            .and_then(|s| s.parse::<NonZero<u16>>().ok());
         ColorableTerminal {
             inner: Arc::new(Mutex::new(inner)),
             is_a_tty,
             color_choice: choice,
+            width,
         }
     }
 
@@ -240,7 +247,10 @@ impl io::Write for ColorableTerminalLocked {
 
 impl TermLike for ColorableTerminal {
     fn width(&self) -> u16 {
-        Term::stdout().size().1
+        match self.width {
+            Some(n) => n.get(),
+            None => Term::stdout().size().1,
+        }
     }
 
     fn move_cursor_up(&self, n: usize) -> io::Result<()> {
