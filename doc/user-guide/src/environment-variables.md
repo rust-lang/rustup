@@ -64,6 +64,8 @@
 - `RUSTUP_TERM_PROGRESS_WHEN` (defaults: `auto`). Controls whether progress bars are shown or not.
   Set to `always` to always enable progress bars, and to `never` to disable them.
 
+- `RUSTUP_TERM_WIDTH` (default: none). Allows to override the terminal width for progress bars.
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
