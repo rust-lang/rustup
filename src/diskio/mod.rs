@@ -448,9 +448,15 @@ pub(crate) fn get_executor<'a>(
     ram_budget: usize,
     process: &Process,
 ) -> Result<Box<dyn Executor + 'a>> {
+    // Don't spawn more than this many I/O threads unless the user tells us to.
+    const DEFAULT_THREAD_LIMIT: usize = 8;
+
     // If this gets lots of use, consider exposing via the config file.
     let thread_count = match process.var("RUSTUP_IO_THREADS") {
-        Err(_) => available_parallelism().map(|p| p.get()).unwrap_or(1),
+        Err(_) => available_parallelism()
+            .map(|p| p.get())
+            .unwrap_or(1)
+            .min(DEFAULT_THREAD_LIMIT),
         Ok(n) => n
             .parse::<usize>()
             .context("invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,
