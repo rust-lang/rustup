@@ -70,6 +70,8 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
 
 #[macro_use]
 pub mod cli;
+#[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
+mod anchors;
 mod command;
 mod config;
 mod diskio;
