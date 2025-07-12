@@ -546,12 +546,14 @@ mod reqwest_be {
     use std::sync::{Arc, OnceLock};
     use std::time::Duration;
 
+    #[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
+    use crate::anchors::RUSTUP_TRUST_ANCHORS;
     use anyhow::{Context, anyhow};
     use reqwest::{Client, ClientBuilder, Proxy, Response, header};
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls::crypto::aws_lc_rs;
     #[cfg(feature = "reqwest-rustls-tls")]
-    use rustls_platform_verifier::BuilderVerifierExt;
+    use rustls_platform_verifier::Verifier;
     use tokio_stream::StreamExt;
     use url::Url;
 
@@ -607,15 +609,22 @@ mod reqwest_be {
             return Ok(client);
         }
 
-        let mut tls_config =
-            rustls::ClientConfig::builder_with_provider(Arc::new(aws_lc_rs::default_provider()))
-                .with_safe_default_protocol_versions()
-                .unwrap()
-                .with_platform_verifier()
-                .map_err(|err| {
-                    DownloadError::Message(format!("failed to initialize platform verifier: {err}"))
-                })?
-                .with_no_client_auth();
+        let provider = Arc::new(aws_lc_rs::default_provider());
+        #[cfg(not(target_os = "android"))]
+        let result =
+            Verifier::new_with_extra_roots(RUSTUP_TRUST_ANCHORS.iter().cloned(), provider.clone());
+        #[cfg(target_os = "android")]
+        let result = Verifier::new(provider.clone());
+        let verifier = result.map_err(|err| {
+            DownloadError::Message(format!("failed to initialize platform verifier: {err}"))
+        })?;
+
+        let mut tls_config = rustls::ClientConfig::builder_with_provider(provider)
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .dangerous() // We're using a rustls verifier, so it's okay
+            .with_custom_certificate_verifier(Arc::new(verifier))
+            .with_no_client_auth();
         tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
         let client = client_generic()
