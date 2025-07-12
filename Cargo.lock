@@ -2184,6 +2184,7 @@ dependencies = [
  "rs_tracing",
  "rustls",
  "rustls-platform-verifier",
+ "rustls-webpki",
  "same-file",
  "scopeguard",
  "semver",
@@ -2207,6 +2208,7 @@ dependencies = [
  "url",
  "wait-timeout",
  "walkdir",
+ "webpki-roots",
  "windows-registry",
  "windows-result",
  "windows-sys 0.61.2",
@@ -3179,6 +3181,15 @@ name = "webpki-root-certs"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05d651ec480de84b762e7be71e6efa7461699c19d9e2c272c8d93455f567786e"
+dependencies = [
+ "rustls-pki-types",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8782dd5a41a24eed3a4f40b606249b3e236ca61adf1f25ea4d45c73de122b502"
 dependencies = [
  "rustls-pki-types",
 ]
