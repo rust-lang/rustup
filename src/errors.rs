@@ -7,6 +7,7 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 
+use platforms::Platform;
 use thiserror::Error as ThisError;
 use url::Url;
 
@@ -124,6 +125,15 @@ pub enum RustupError {
         desc: ToolchainDesc,
         component: String,
         suggestion: Option<String>,
+    },
+    #[error(
+        "toolchain '{desc}' has no prebuilt artifacts available for target '{platform}'\n\
+        note: this may happen to a low-tier target as per https://doc.rust-lang.org/nightly/rustc/platform-support.html\n\
+        note: you can find instructions on that page to build the target support from source"
+    )]
+    UnavailableTarget {
+        desc: ToolchainDesc,
+        platform: &'static Platform,
     },
     #[error("toolchain '{}' does not support target '{}'{}\n\
     note: you can see a list of supported targets with `rustc --print=target-list`\n\

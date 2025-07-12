@@ -1510,6 +1510,26 @@ note: if you are adding support for a new target to rustc itself, see https://ru
 }
 
 #[tokio::test]
+async fn add_target_unavailable() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "target", "add", "mipsel-sony-psp"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error: toolchain 'nightly-[HOST_TRIPLE]' has no prebuilt artifacts available for target 'mipsel-sony-psp'
+note: this may happen to a low-tier target as per https://doc.rust-lang.org/nightly/rustc/platform-support.html
+note: you can find instructions on that page to build the target support from source
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
 async fn add_target_v1_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV1).await;
     cx.config
