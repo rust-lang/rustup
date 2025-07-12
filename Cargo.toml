@@ -66,6 +66,7 @@ openssl = { version = "0.10", optional = true }
 opentelemetry = { version = "0.30", optional = true }
 opentelemetry-otlp = { version = "0.30", features = ["grpc-tonic"], optional = true }
 opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"], optional = true }
+platforms = "3.4"
 pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.9"
 regex = "1"
@@ -135,7 +136,6 @@ enum-map = "2.5.0"
 http-body-util = "0.1.0"
 hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.1", features = ["tokio"] }
-platforms = "3.4"
 proptest = "1.1.0"
 trycmd = "0.15.0"
 

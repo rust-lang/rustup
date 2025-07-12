@@ -5,6 +5,7 @@ use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, path::Path, 
 #[cfg(windows)]
 use anyhow::Context;
 use anyhow::anyhow;
+use platforms::Platform;
 
 use crate::{
     RustupError, component_for_bin,
@@ -76,21 +77,26 @@ impl<'a> DistributableToolchain<'a> {
                 let config = manifestation.read_config()?.unwrap_or_default();
                 let suggestion =
                     self.get_component_suggestion(&component, &config, &manifest, false);
+                let desc = self.desc.clone();
                 // Check if the target is supported.
                 if !targ_pkg
                     .components
                     .iter()
                     .any(|c| c.target() == component.target())
                 {
+                    let target = component.target.expect("component target should be known");
+                    if let Some(platform) = Platform::find(&target) {
+                        return Err(RustupError::UnavailableTarget { desc, platform }.into());
+                    };
                     return Err(RustupError::UnknownTarget {
-                        desc: self.desc.clone(),
-                        target: component.target.expect("component target should be known"),
+                        desc,
+                        target,
                         suggestion,
                     }
                     .into());
                 }
                 return Err(RustupError::UnknownComponent {
-                    desc: self.desc.clone(),
+                    desc,
                     component: component.description(&manifest),
                     suggestion,
                 }
