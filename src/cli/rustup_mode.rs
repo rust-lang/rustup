@@ -996,7 +996,7 @@ async fn update(
             }
         }
         if self_update {
-            exit_code &= common::self_update(cfg.process).await?;
+            exit_code &= self_update::self_update(cfg.process).await?;
         }
     } else if ensure_active_toolchain {
         let (toolchain, reason) = cfg.ensure_active_toolchain(force_non_host, true).await?;
@@ -1005,7 +1005,7 @@ async fn update(
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
         if self_update {
-            exit_code &= common::self_update(cfg.process).await?;
+            exit_code &= self_update::self_update(cfg.process).await?;
         }
 
         info!("cleaning up downloads & tmp directories");
