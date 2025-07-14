@@ -1087,7 +1087,23 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 }
 
 /// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update(process: &Process) -> Result<utils::ExitCode> {
+pub(crate) async fn self_update(disabled: bool, cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+    // Priority: no-self-update feature > self_update_mode > no-self-update args.
+    // Update only if rustup does **not** have the no-self-update feature,
+    // and auto-self-update is configured to **enable**
+    // and has **no** no-self-update parameter.
+    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
+    if cfg!(feature = "no-self-update") && !disabled {
+        info!("self-update is disabled for this build of rustup");
+        info!("any updates to rustup will need to be fetched with your system package manager")
+    } else if self_update_mode == SelfUpdateMode::CheckOnly {
+        check_rustup_update(cfg.process).await?;
+        return Ok(utils::ExitCode(0));
+    } else if disabled {
+        info!("self-update is disabled by command line argument");
+        return Ok(utils::ExitCode(0));
+    }
+
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             error!("Unable to self-update.  STOP");
@@ -1098,13 +1114,13 @@ pub(crate) async fn self_update(process: &Process) -> Result<utils::ExitCode> {
         SelfUpdatePermission::Permit => {}
     }
 
-    let setup_path = prepare_update(process).await?;
+    let setup_path = prepare_update(&cfg.process).await?;
 
     if let Some(setup_path) = &setup_path {
         return run_update(setup_path);
     } else {
         // Try again in case we emitted "tool `{}` is already installed" last time.
-        install_proxies(process)?;
+        install_proxies(&cfg.process)?;
     }
 
     Ok(utils::ExitCode(0))

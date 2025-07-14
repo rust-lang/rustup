@@ -990,21 +990,8 @@ async fn update(
         cfg.tmp_cx.clean();
     }
 
-    // Priority: no-self-update feature > self_update_mode > no-self-update args.
-    // Update only if rustup does **not** have the no-self-update feature,
-    // and auto-self-update is configured to **enable**
-    // and has **no** no-self-update parameter.
-    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
-    if cfg!(feature = "no-self-update") {
-        info!("self-update is disabled for this build of rustup");
-        info!("any updates to rustup will need to be fetched with your system package manager")
-    } else if self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update(cfg.process).await?;
-    } else if self_update_mode == SelfUpdateMode::Enable
-        && !ensure_active_toolchain
-        && !opts.no_self_update
-    {
-        exit_code &= self_update::self_update(cfg.process).await?;
+    if !ensure_active_toolchain {
+        exit_code &= self_update::self_update(opts.no_self_update, cfg).await?;
     }
 
     Ok(exit_code)
