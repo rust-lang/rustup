@@ -1097,7 +1097,7 @@ pub(crate) async fn self_update(disabled: bool, cfg: &Cfg<'_>) -> Result<utils::
         info!("self-update is disabled for this build of rustup");
         info!("any updates to rustup will need to be fetched with your system package manager")
     } else if self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update(cfg.process).await?;
+        check_rustup_update(disabled, cfg).await?;
         return Ok(utils::ExitCode(0));
     } else if disabled {
         info!("self-update is disabled by command line argument");
@@ -1338,13 +1338,22 @@ impl fmt::Display for SchemaVersion {
 }
 
 /// Returns whether an update was available
-pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<bool> {
-    let mut t = process.stdout().terminal(process);
+pub(crate) async fn check_rustup_update(disabled: bool, cfg: &Cfg<'_>) -> anyhow::Result<bool> {
+    // Priority: no-self-update feature > self_update_mode > no-self-update args.
+    // Check for update only if rustup does **not** have the no-self-update feature,
+    // and auto-self-update is configured to **enable**
+    // and has **no** no-self-update parameter.
+    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
+    if cfg!(feature = "no-self-update") || self_update_mode == SelfUpdateMode::Disable || disabled {
+        return Ok(false);
+    }
+
+    let mut t = cfg.process.stdout().terminal(&cfg.process);
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = get_available_rustup_version(process).await?;
+    let available_version = get_available_rustup_version(&cfg.process).await?;
 
     let _ = t.attr(terminalsource::Attr::Bold);
     write!(t.lock(), "rustup - ")?;

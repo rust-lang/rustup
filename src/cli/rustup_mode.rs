@@ -894,16 +894,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         }
     }
 
-    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
-    // Priority: no-self-update feature > self_update_mode > no-self-update args.
-    // Check for update only if rustup does **not** have the no-self-update feature,
-    // and auto-self-update is configured to **enable**
-    // and has **no** no-self-update parameter.
-    let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
-        && !opts.no_self_update;
-
-    if self_update && check_rustup_update(cfg.process).await? {
+    if check_rustup_update(opts.no_self_update, cfg).await? {
         update_available = true;
     }
 
