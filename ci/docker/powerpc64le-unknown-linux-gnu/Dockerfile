@@ -4,5 +4,5 @@ FROM rust-powerpc64le-unknown-linux-gnu
 # See: https://aws.github.io/aws-lc-rs/requirements/linux
 RUN apt-get update && apt-get install -qy gcc-multilib libclang-dev
 
-ENV CC_powerpc64le_unknown_linux_gnu=powerpc64le-linux-gnu-gcc \
-    CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=powerpc64le-linux-gnu-gcc
+ENV CC_powerpc64le_unknown_linux_gnu=powerpc64le-unknown-linux-gnu-gcc \
+    CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=powerpc64le-unknown-linux-gnu-gcc
