@@ -69,6 +69,7 @@ opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"], optional = true
 platforms = "3.4"
 pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.9"
+rayon = "1.10.0"
 regex = "1"
 remove_dir_all = { version = "1.0.0", features = ["parallel"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "http2", "socks", "stream"], optional = true }

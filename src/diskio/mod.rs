@@ -60,13 +60,13 @@ use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Receiver;
-use std::thread::available_parallelism;
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::{Context, Result};
 
 use crate::process::Process;
+use crate::utils;
 use crate::utils::notifications::Notification;
 use threaded::PoolReference;
 
@@ -448,15 +448,9 @@ pub(crate) fn get_executor<'a>(
     ram_budget: usize,
     process: &Process,
 ) -> Result<Box<dyn Executor + 'a>> {
-    // Don't spawn more than this many I/O threads unless the user tells us to.
-    const DEFAULT_THREAD_LIMIT: usize = 8;
-
     // If this gets lots of use, consider exposing via the config file.
     let thread_count = match process.var("RUSTUP_IO_THREADS") {
-        Err(_) => available_parallelism()
-            .map(|p| p.get())
-            .unwrap_or(1)
-            .min(DEFAULT_THREAD_LIMIT),
+        Err(_) => utils::io_thread_count(),
         Ok(n) => n
             .parse::<usize>()
             .context("invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,

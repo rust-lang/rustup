@@ -2258,6 +2258,7 @@ dependencies = [
  "proptest",
  "pulldown-cmark",
  "rand 0.9.1",
+ "rayon",
  "regex",
  "remove_dir_all",
  "reqwest",
