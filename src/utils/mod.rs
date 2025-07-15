@@ -471,13 +471,14 @@ where
             },
         },
     )
-    .with_context(|| {
-        format!(
-            "could not rename {} file from '{}' to '{}'",
+    .map_err(|e| {
+        RustupError::RenamingFile {
             name,
-            src.display(),
-            dest.display()
-        )
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+            source: e.error,
+        }
+        .into()
     })
 }
 

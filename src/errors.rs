@@ -2,7 +2,6 @@
 
 use std::ffi::OsString;
 use std::fmt::Debug;
-#[cfg(not(windows))]
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
@@ -77,6 +76,13 @@ pub enum RustupError {
     RemovingDirectory { name: &'static str, path: PathBuf },
     #[error("could not remove '{name}' file: '{}'", .path.display())]
     RemovingFile { name: &'static str, path: PathBuf },
+    #[error("could not rename '{name}' file from '{src}' to '{dest}': {source}")]
+    RenamingFile {
+        name: &'static str,
+        src: PathBuf,
+        dest: PathBuf,
+        source: io::Error,
+    },
     #[error("{}", component_unavailable_msg(.components, .manifest, .toolchain))]
     RequestedComponentsUnavailable {
         components: Vec<Component>,
