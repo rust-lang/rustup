@@ -28,13 +28,13 @@ pub mod raw;
 pub(crate) mod units;
 
 pub fn io_thread_count() -> usize {
-    // Don't spawn more than this many I/O threads unless the user tells us to.
-    // Feel free to increase this value if it improves performance.
-    const DEFAULT_IO_THREAD_LIMIT: usize = 8;
-
-    thread::available_parallelism()
-        .map_or(1, |p| p.get())
-        .min(DEFAULT_IO_THREAD_LIMIT)
+    match thread::available_parallelism() {
+        // Don't spawn more than 8 I/O threads unless the user tells us to.
+        // Feel free to increase this value if it improves performance.
+        Ok(threads) => Ord::min(threads.get(), 8),
+        // Unknown for target platform or no permission to query.
+        Err(_) => 1,
+    }
 }
 
 #[must_use]
