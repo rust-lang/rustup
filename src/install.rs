@@ -42,7 +42,7 @@ impl InstallMethod<'_> {
         // Initialize rayon for use by the remove_dir_all crate limiting the number of threads.
         // This will error if rayon is already initialized but it's fine to ignore that.
         let _ = rayon::ThreadPoolBuilder::new()
-            .num_threads(utils::io_thread_count(self.cfg().process)?)
+            .num_threads(self.cfg().process.io_thread_count()?)
             .build_global();
         let nh = &self.cfg().notify_handler;
         match self {
