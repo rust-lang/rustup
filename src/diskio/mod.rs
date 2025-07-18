@@ -63,7 +63,7 @@ use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 use crate::process::Process;
 use crate::utils;
@@ -447,15 +447,9 @@ pub(crate) fn get_executor<'a>(
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ram_budget: usize,
     process: &Process,
-) -> Result<Box<dyn Executor + 'a>> {
+) -> anyhow::Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
-    let thread_count = match process.var("RUSTUP_IO_THREADS") {
-        Err(_) => utils::io_thread_count(),
-        Ok(n) => n
-            .parse::<usize>()
-            .context("invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,
-    };
-    Ok(match thread_count {
+    Ok(match utils::io_thread_count(process)? {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
         n => Box::new(threaded::Threaded::new(notify_handler, n, ram_budget)),
     })
