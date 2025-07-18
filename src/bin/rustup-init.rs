@@ -40,12 +40,13 @@ fn main() -> Result<ExitCode> {
     #[cfg(windows)]
     pre_rustup_main_init();
 
+    let process = Process::os();
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
+        .worker_threads(process.io_thread_count()?)
         .build()
         .unwrap();
 
-    let process = Process::os();
     let result = runtime.block_on(async {
         #[cfg(feature = "otel")]
         let _telemetry_guard = log::set_global_telemetry();
