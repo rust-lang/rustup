@@ -36,20 +36,24 @@ use rustup::is_proxyable_tools;
 use rustup::process::Process;
 use rustup::utils;
 
-#[tokio::main]
-async fn main() -> Result<ExitCode> {
+fn main() -> Result<ExitCode> {
     #[cfg(windows)]
     pre_rustup_main_init();
 
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
     let process = Process::os();
-    let result = {
+    let result = runtime.block_on(async {
         #[cfg(feature = "otel")]
         let _telemetry_guard = log::set_global_telemetry();
         tracing_log::LogTracer::init()?;
         let (subscriber, console_filter) = log::tracing_subscriber(&process);
         tracing::subscriber::set_global_default(subscriber)?;
         run_rustup(&process, console_filter).await
-    };
+    });
 
     match result {
         Err(e) => {
