@@ -7,8 +7,6 @@ use std::io::{self, BufReader, Write};
 use std::ops::{BitAnd, BitAndAssign};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
-use std::str::FromStr;
-use std::thread;
 
 use anyhow::{Context, Result, anyhow, bail};
 use retry::delay::{Fibonacci, jitter};
@@ -27,26 +25,6 @@ pub(crate) mod notifications;
 pub(crate) mod notify;
 pub mod raw;
 pub(crate) mod units;
-
-pub fn io_thread_count(process: &Process) -> anyhow::Result<usize> {
-    if let Ok(n) = process.var("RUSTUP_IO_THREADS") {
-        let threads = usize::from_str(&n).context(
-            "invalid value in RUSTUP_IO_THREADS -- must be a natural number greater than zero",
-        )?;
-        match threads {
-            0 => bail!("RUSTUP_IO_THREADS must be a natural number greater than zero"),
-            _ => return Ok(threads),
-        }
-    };
-
-    Ok(match thread::available_parallelism() {
-        // Don't spawn more than 8 I/O threads unless the user tells us to.
-        // Feel free to increase this value if it improves performance.
-        Ok(threads) => Ord::min(threads.get(), 8),
-        // Unknown for target platform or no permission to query.
-        Err(_) => 1,
-    })
-}
 
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]

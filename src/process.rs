@@ -1,9 +1,9 @@
-use std::env;
 use std::ffi::OsString;
 use std::fmt::Debug;
 use std::io;
 use std::io::IsTerminal;
 use std::path::PathBuf;
+use std::str::FromStr;
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
@@ -11,8 +11,9 @@ use std::{
     path::Path,
     sync::{Arc, Mutex},
 };
+use std::{env, thread};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 #[cfg(feature = "test")]
 use tracing::subscriber::DefaultGuard;
 #[cfg(feature = "test")]
@@ -62,6 +63,26 @@ impl Process {
 
     pub(crate) fn rustup_home(&self) -> Result<PathBuf> {
         home::env::rustup_home_with_env(self).context("failed to determine rustup home dir")
+    }
+
+    pub fn io_thread_count(&self) -> anyhow::Result<usize> {
+        if let Ok(n) = self.var("RUSTUP_IO_THREADS") {
+            let threads = usize::from_str(&n).context(
+                "invalid value in RUSTUP_IO_THREADS -- must be a natural number greater than zero",
+            )?;
+            match threads {
+                0 => bail!("RUSTUP_IO_THREADS must be a natural number greater than zero"),
+                _ => return Ok(threads),
+            }
+        };
+
+        Ok(match thread::available_parallelism() {
+            // Don't spawn more than 8 I/O threads unless the user tells us to.
+            // Feel free to increase this value if it improves performance.
+            Ok(threads) => Ord::min(threads.get(), 8),
+            // Unknown for target platform or no permission to query.
+            Err(_) => 1,
+        })
     }
 
     pub fn var(&self, key: &str) -> Result<String, env::VarError> {

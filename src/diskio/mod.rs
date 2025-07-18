@@ -66,7 +66,6 @@ use std::{fmt::Debug, fs::OpenOptions};
 use anyhow::Result;
 
 use crate::process::Process;
-use crate::utils;
 use crate::utils::notifications::Notification;
 use threaded::PoolReference;
 
@@ -449,7 +448,7 @@ pub(crate) fn get_executor<'a>(
     process: &Process,
 ) -> anyhow::Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
-    Ok(match utils::io_thread_count(process)? {
+    Ok(match process.io_thread_count()? {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
         n => Box::new(threaded::Threaded::new(notify_handler, n, ram_budget)),
     })
