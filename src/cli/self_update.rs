@@ -472,10 +472,16 @@ This will uninstall all Rust toolchains and data, and remove
 static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 fn update_root(process: &Process) -> String {
-    process
-        .var("RUSTUP_UPDATE_ROOT")
-        .inspect(|url| trace!("`RUSTUP_UPDATE_ROOT` has been set to `{url}`"))
-        .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
+    match non_empty_env_var("RUSTUP_UPDATE_ROOT", process)
+        .ok()
+        .flatten()
+    {
+        Some(url) => {
+            trace!("`RUSTUP_UPDATE_ROOT` has been set to `{url}`");
+            url
+        }
+        None => String::from(DEFAULT_UPDATE_ROOT),
+    }
 }
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
