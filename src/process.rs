@@ -88,21 +88,31 @@ impl Process {
     }
 
     pub fn var(&self, key: &str) -> Result<String, env::VarError> {
-        match self {
-            Process::OsProcess(_) => env::var(key),
+        let value = match self {
+            Process::OsProcess(_) => env::var(key)?,
             #[cfg(feature = "test")]
             Process::TestProcess(p) => match p.vars.get(key) {
-                Some(val) => Ok(val.to_owned()),
-                None => Err(env::VarError::NotPresent),
+                Some(val) => val.to_owned(),
+                None => return Err(env::VarError::NotPresent),
             },
+        };
+
+        match value.is_empty() {
+            false => Ok(value),
+            true => Err(env::VarError::NotPresent),
         }
     }
 
     pub(crate) fn var_os(&self, key: &str) -> Option<OsString> {
-        match self {
-            Process::OsProcess(_) => env::var_os(key),
+        let value = match self {
+            Process::OsProcess(_) => env::var_os(key)?,
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => p.vars.get(key).map(OsString::from),
+            Process::TestProcess(p) => p.vars.get(key).map(OsString::from)?,
+        };
+
+        match value.is_empty() {
+            false => Some(value),
+            true => None,
         }
     }
 
