@@ -19,7 +19,6 @@ use itertools::Itertools;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
-use crate::dist::AutoInstallMode;
 use crate::{
     cli::{
         common::{self, PackageUpdate, update_console_filter},
@@ -47,6 +46,7 @@ use crate::{
     },
     utils::{self, ExitCode},
 };
+use crate::{component_for_bin, dist::AutoInstallMode};
 
 const TOOLCHAIN_OVERRIDE_ERROR: &str = "To override the toolchain using the 'rustup +toolchain' syntax, \
                         make sure to prefix the toolchain override with a '+'";
@@ -1034,12 +1034,30 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    let binary_path = cfg.resolve_toolchain(toolchain).await?.binary_file(binary);
+    let toolchain = cfg.resolve_toolchain(toolchain).await?;
+    let binary_path = toolchain.binary_file(binary);
+    if utils::is_file(&binary_path) {
+        writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
+        return Ok(utils::ExitCode(0));
+    }
 
-    utils::assert_is_file(&binary_path)?;
+    let toolchain_name = toolchain.name();
+    let Some(component_name) = component_for_bin(binary) else {
+        return Err(anyhow!(
+            "Unknown binary '{binary}' in toolchain '{toolchain_name}'.",
+        ));
+    };
 
-    writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
-    Ok(utils::ExitCode(0))
+    let active = matches!(cfg.active_toolchain(), Ok(Some((t, _))) if &t == toolchain_name);
+    let selector = if active {
+        String::new()
+    } else {
+        format!("--toolchain {} ", toolchain.name())
+    };
+
+    return Err(anyhow!(
+        "'{binary}' is not installed for the toolchain '{toolchain_name}'.\nTo install, run `rustup component add {selector}{component_name}`"
+    ));
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
