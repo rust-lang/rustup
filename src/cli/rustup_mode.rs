@@ -19,7 +19,6 @@ use itertools::Itertools;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
-use crate::dist::AutoInstallMode;
 use crate::{
     cli::{
         common::{self, PackageUpdate, update_console_filter},
@@ -28,10 +27,10 @@ use crate::{
         self_update::{self, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
-    command,
+    command, component_for_bin,
     config::{ActiveReason, Cfg},
     dist::{
-        PartialToolchainDesc, Profile, TargetTriple,
+        AutoInstallMode, PartialToolchainDesc, Profile, TargetTriple,
         manifest::{Component, ComponentStatus},
     },
     errors::RustupError,
@@ -1026,12 +1025,28 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<utils::ExitCode> {
-    let binary_path = cfg.resolve_toolchain(toolchain).await?.binary_file(binary);
+    let toolchain = cfg.resolve_toolchain(toolchain).await?;
+    let binary_path = toolchain.binary_file(binary);
+    if utils::is_file(&binary_path) {
+        writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
+        return Ok(utils::ExitCode(0));
+    }
 
-    utils::assert_is_file(&binary_path)?;
+    let toolchain_name = toolchain.name();
+    let Some(component_name) = component_for_bin(binary) else {
+        return Err(anyhow!(
+            "unknown binary '{binary}' in toolchain '{toolchain_name}'",
+        ));
+    };
 
-    writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
-    Ok(utils::ExitCode(0))
+    let selector = match cfg.active_toolchain() {
+        Ok(Some((t, _))) if &t == toolchain_name => String::new(),
+        _ => format!("--toolchain {} ", toolchain.name()),
+    };
+
+    Err(anyhow!(
+        "'{binary}' is not installed for the toolchain '{toolchain_name}'.\nTo install, run `rustup component add {selector}{component_name}`"
+    ))
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
