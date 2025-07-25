@@ -277,6 +277,11 @@ impl Config {
             "/bogus-config-file.toml",
         );
 
+        // Pass `RUSTUP_CI` over to the test process in case it is required downstream
+        if let Some(ci) = env::var_os("RUSTUP_CI") {
+            cmd.env("RUSTUP_CI", ci);
+        }
+
         if let Some(root) = self.rustup_update_root.as_ref() {
             cmd.env("RUSTUP_UPDATE_ROOT", root);
         }
