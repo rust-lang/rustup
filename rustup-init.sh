@@ -348,7 +348,7 @@ get_architecture() {
             # See: <https://support.apple.com/en-us/HT208436>
 
             # Avoid `sysctl: unknown oid` stderr output and/or non-zero exit code.
-            if sysctl hw.optional.x86_64 2> /dev/null || true | grep -q ': 1'; then
+            if (sysctl hw.optional.x86_64 2> /dev/null || true) | grep -q ': 1'; then
                 _cputype=x86_64
             fi
         elif [ "$_cputype" = x86_64 ]; then
@@ -357,7 +357,7 @@ get_architecture() {
             # Rosetta 2 is built exclusively for x86-64 and cannot run i386 binaries.
 
             # Avoid `sysctl: unknown oid` stderr output and/or non-zero exit code.
-            if sysctl hw.optional.arm64 2> /dev/null || true | grep -q ': 1'; then
+            if (sysctl hw.optional.arm64 2> /dev/null || true) | grep -q ': 1'; then
                 _cputype=arm64
             fi
         fi
