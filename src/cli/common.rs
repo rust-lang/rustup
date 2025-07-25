@@ -630,6 +630,11 @@ pub(crate) fn check_non_host_toolchain(
 
 /// Warns if rustup is running under emulation, such as macOS Rosetta
 pub(crate) fn warn_if_host_is_emulated(process: &Process) {
+    // In rustup's own CI, we wouldn't want host emulation warnings to mess up the
+    // end-to-end test results.
+    if process.var("RUSTUP_CI").is_ok() {
+        return;
+    }
     if TargetTriple::is_host_emulated() {
         warn!(
             "Rustup is not running natively. It's running under emulation of {}.",
