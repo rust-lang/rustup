@@ -14,7 +14,7 @@ use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::Possibl
 use clap_complete::Shell;
 use console::style;
 use futures_util::stream::StreamExt;
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -797,7 +797,6 @@ async fn default_(
 
 async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
     let t = cfg.process.stdout().terminal(cfg.process);
-    let is_a_tty = t.is_a_tty();
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
     let channels = cfg.list_channels()?;
@@ -806,14 +805,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
     if num_channels > 0 {
         let multi_progress_bars =
-            MultiProgress::with_draw_target(match cfg.process.var("RUSTUP_TERM_PROGRESS_WHEN") {
-                Ok(s) if s.eq_ignore_ascii_case("always") => {
-                    ProgressDrawTarget::term_like(Box::new(t))
-                }
-                Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
-                _ if is_a_tty => ProgressDrawTarget::term_like(Box::new(t)),
-                _ => ProgressDrawTarget::hidden(),
-            });
+            MultiProgress::with_draw_target(cfg.process.progress_draw_target());
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
             let pb = multi_progress_bars.add(ProgressBar::new(1));
             pb.set_style(
