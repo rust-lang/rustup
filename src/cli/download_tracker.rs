@@ -20,17 +20,10 @@ pub(crate) struct DownloadTracker {
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub(crate) fn new_with_display_progress(display_progress: bool, process: &Process) -> Self {
-        let t = process.stdout().terminal(process);
-        let is_a_tty = t.is_a_tty();
-        let multi_progress_bars =
-            MultiProgress::with_draw_target(match process.var("RUSTUP_TERM_PROGRESS_WHEN") {
-                Ok(s) if s.eq_ignore_ascii_case("always") => {
-                    ProgressDrawTarget::term_like(Box::new(t))
-                }
-                Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
-                _ if is_a_tty && display_progress => ProgressDrawTarget::term_like(Box::new(t)),
-                _ => ProgressDrawTarget::hidden(),
-            });
+        let multi_progress_bars = MultiProgress::with_draw_target(process.progress_draw_target());
+        if !display_progress {
+            multi_progress_bars.set_draw_target(ProgressDrawTarget::hidden());
+        }
         Self {
             multi_progress_bars,
             progress_bar: ProgressBar::hidden(),
