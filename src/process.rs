@@ -14,6 +14,7 @@ use std::{
 use std::{env, thread};
 
 use anyhow::{Context, Result, bail};
+use indicatif::ProgressDrawTarget;
 #[cfg(feature = "test")]
 use tracing::subscriber::DefaultGuard;
 #[cfg(feature = "test")]
@@ -149,6 +150,21 @@ impl Process {
             Process::OsProcess(_) => env::current_dir(),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => Ok(p.cwd.clone()),
+        }
+    }
+
+    pub fn progress_draw_target(&self) -> ProgressDrawTarget {
+        match self {
+            Process::OsProcess(_) => (),
+            #[cfg(feature = "test")]
+            Process::TestProcess(_) => return ProgressDrawTarget::hidden(),
+        }
+        let t = self.stdout().terminal(self);
+        match self.var("RUSTUP_TERM_PROGRESS_WHEN") {
+            Ok(s) if s.eq_ignore_ascii_case("always") => ProgressDrawTarget::term_like(Box::new(t)),
+            Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
+            _ if t.is_a_tty() => ProgressDrawTarget::term_like(Box::new(t)),
+            _ => ProgressDrawTarget::hidden(),
         }
     }
 }
