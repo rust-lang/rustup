@@ -8,7 +8,6 @@ pub enum Unit {
 
 pub(crate) enum UnitMode {
     Norm,
-    Rate,
 }
 
 /// Human readable size (some units)
@@ -29,16 +28,13 @@ impl Size {
 impl Display for Size {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Size::B(size, unitmode) => {
+            Size::B(size, _) => {
                 const KI: f64 = 1024.0;
                 const MI: f64 = KI * KI;
                 const GI: f64 = KI * KI * KI;
                 let size = *size as f64;
 
-                let suffix: String = match unitmode {
-                    UnitMode::Norm => "".into(),
-                    UnitMode::Rate => "/s".into(),
-                };
+                let suffix: String = "".into();
 
                 if size >= GI {
                     write!(f, "{:5.1} GiB{}", size / GI, suffix)
@@ -50,16 +46,13 @@ impl Display for Size {
                     write!(f, "{size:3.0} B{suffix}")
                 }
             }
-            Size::IO(size, unitmode) => {
+            Size::IO(size, _) => {
                 const K: f64 = 1000.0;
                 const M: f64 = K * K;
                 const G: f64 = K * K * K;
                 let size = *size as f64;
 
-                let suffix: String = match unitmode {
-                    UnitMode::Norm => "IO-ops".into(),
-                    UnitMode::Rate => "IOPS".into(),
-                };
+                let suffix: String = "IO-ops".into();
 
                 if size >= G {
                     write!(f, "{:5.1} giga-{}", size / G, suffix)
@@ -99,24 +92,6 @@ mod tests {
             "  1.0 GiB"
         );
 
-        // Test Bytes at given rate
-        assert_eq!(
-            format!("{}", Size::new(1, Unit::B, UnitMode::Rate)),
-            "  1 B/s"
-        );
-        assert_eq!(
-            format!("{}", Size::new(1024, Unit::B, UnitMode::Rate)),
-            "  1.0 KiB/s"
-        );
-        assert_eq!(
-            format!("{}", Size::new(1024usize.pow(2), Unit::B, UnitMode::Rate)),
-            "  1.0 MiB/s"
-        );
-        assert_eq!(
-            format!("{}", Size::new(1024usize.pow(3), Unit::B, UnitMode::Rate)),
-            "  1.0 GiB/s"
-        );
-
         //Test I/O Operations
         assert_eq!(
             format!("{}", Size::new(1, Unit::IO, UnitMode::Norm)),
@@ -133,24 +108,6 @@ mod tests {
         assert_eq!(
             format!("{}", Size::new(1000usize.pow(3), Unit::IO, UnitMode::Norm)),
             "  1.0 giga-IO-ops"
-        );
-
-        //Test I/O Operations at given rate
-        assert_eq!(
-            format!("{}", Size::new(1, Unit::IO, UnitMode::Rate)),
-            "  1 IOPS"
-        );
-        assert_eq!(
-            format!("{}", Size::new(1000, Unit::IO, UnitMode::Rate)),
-            "  1.0 kilo-IOPS"
-        );
-        assert_eq!(
-            format!("{}", Size::new(1000usize.pow(2), Unit::IO, UnitMode::Rate)),
-            "  1.0 mega-IOPS"
-        );
-        assert_eq!(
-            format!("{}", Size::new(1000usize.pow(3), Unit::IO, UnitMode::Rate)),
-            "  1.0 giga-IOPS"
         );
     }
 }
