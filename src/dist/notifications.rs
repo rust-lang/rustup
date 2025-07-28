@@ -23,7 +23,8 @@ pub enum Notification<'a> {
     ExtensionNotInstalled(&'a str),
     NonFatalError(&'a anyhow::Error),
     MissingInstalledComponent(&'a str),
-    DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
+    /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
+    DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingOldComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
@@ -61,7 +62,7 @@ impl Notification<'_> {
             | FileAlreadyDownloaded
             | DownloadingLegacyManifest => NotificationLevel::Debug,
             Extracting(_, _)
-            | DownloadingComponent(_, _, _)
+            | DownloadingComponent(_, _, _, _)
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
@@ -107,7 +108,7 @@ impl Display for Notification<'_> {
             MissingInstalledComponent(c) => {
                 write!(f, "during uninstall component {c} was not found")
             }
-            DownloadingComponent(c, h, t) => {
+            DownloadingComponent(c, h, t, _) => {
                 if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "downloading component '{c}'")
                 } else {
