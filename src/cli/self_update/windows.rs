@@ -274,7 +274,10 @@ pub(crate) async fn try_install_msvc(
     let download_tracker = Arc::new(Mutex::new(DownloadTracker::new_with_display_progress(
         true, process,
     )));
-    download_tracker.lock().unwrap().download_finished();
+    download_tracker
+        .lock()
+        .unwrap()
+        .download_finished(visual_studio_url.as_str());
 
     info!("downloading Visual Studio installer");
     download_file(
