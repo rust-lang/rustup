@@ -705,7 +705,7 @@ async fn run_rls_when_not_installed() {
         .await
         .with_stderr(snapbox::str![[r#"
 error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TRIPLE]'.
-To install, run `rustup component add rls`
+help: run `rustup component add rls` to install it
 
 "#]])
         .is_err();
@@ -727,7 +727,7 @@ async fn run_rls_when_not_installed_for_nightly() {
         .await
         .with_stderr(snapbox::str![[r#"
 error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TRIPLE]'.
-To install, run `rustup component add --toolchain nightly-[HOST_TRIPLE] rls`
+help: run `rustup component add --toolchain nightly-[HOST_TRIPLE] rls` to install it
 
 "#]])
         .is_err();
@@ -1382,6 +1382,70 @@ async fn which_asking_uninstalled_toolchain() {
 
 "#]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn which_asking_uninstalled_components() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let path_1 = cx.config.customdir.join("custom-1");
+    let path_1 = path_1.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom-1", &path_1])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom-1"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "which", "rustfmt"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: 'rustfmt' is not installed for the toolchain 'custom-1'.
+[..]`rustup component add rustfmt`[..]
+
+"#]])
+        .is_err();
+
+    let path_2 = cx.config.customdir.join("custom-2");
+    let path_2 = path_2.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom-2", &path_2])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "which", "--toolchain=custom-2", "rustfmt"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+[..]'rustfmt' is not installed for the toolchain 'custom-2'.
+[..]`rustup component add --toolchain custom-2 rustfmt`[..]
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn which_unknown_binary() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let path_1 = cx.config.customdir.join("custom-1");
+    let path_1 = path_1.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom-1", &path_1])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom-1"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "which", "ls"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+[..]unknown binary 'ls' in toolchain 'custom-1'
+
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
