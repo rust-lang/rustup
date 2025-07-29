@@ -705,7 +705,7 @@ async fn run_rls_when_not_installed() {
         .await
         .with_stderr(snapbox::str![[r#"
 error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TRIPLE]'.
-To install, run `rustup component add rls`
+help: run `rustup component add rls` to install it
 
 "#]])
         .is_err();
@@ -727,7 +727,7 @@ async fn run_rls_when_not_installed_for_nightly() {
         .await
         .with_stderr(snapbox::str![[r#"
 error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TRIPLE]'.
-To install, run `rustup component add --toolchain nightly-[HOST_TRIPLE] rls`
+help: run `rustup component add --toolchain nightly-[HOST_TRIPLE] rls` to install it
 
 "#]])
         .is_err();
@@ -1403,7 +1403,7 @@ async fn which_asking_uninstalled_components() {
         .await
         .with_stderr(snapbox::str![[r#"
 error: 'rustfmt' is not installed for the toolchain 'custom-1'.
-[..]`rustup component add rustfmt`
+[..]`rustup component add rustfmt`[..]
 
 "#]])
         .is_err();
@@ -1419,7 +1419,7 @@ error: 'rustfmt' is not installed for the toolchain 'custom-1'.
         .await
         .with_stderr(snapbox::str![[r#"
 [..]'rustfmt' is not installed for the toolchain 'custom-2'.
-[..]`rustup component add --toolchain custom-2 rustfmt`
+[..]`rustup component add --toolchain custom-2 rustfmt`[..]
 
 "#]])
         .is_err();
