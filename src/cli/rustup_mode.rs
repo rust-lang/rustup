@@ -1045,7 +1045,7 @@ async fn which(
     };
 
     Err(anyhow!(
-        "'{binary}' is not installed for the toolchain '{toolchain_name}'.\nTo install, run `rustup component add {selector}{component_name}`"
+        "'{binary}' is not installed for the toolchain '{toolchain_name}'.\nhelp: run `rustup component add {selector}{component_name}` to install it"
     ))
 }
 
@@ -1714,11 +1714,8 @@ async fn doc(
             .as_slice()
     {
         info!(
-            "`rust-docs` not installed in toolchain `{}`",
-            distributable.desc()
-        );
-        info!(
-            "To install, try `rustup component add --toolchain {} rust-docs`",
+            "`rust-docs` not installed in toolchain `{}`\nhelp: run `rustup component add --toolchain {} rust-docs` to install it",
+            distributable.desc(),
             distributable.desc()
         );
         return Err(anyhow!(

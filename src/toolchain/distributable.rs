@@ -453,7 +453,7 @@ impl<'a> DistributableToolchain<'a> {
                     _ => format!("--toolchain {} ", self.toolchain.name()),
                 };
                 Err(anyhow!(
-                    "'{binary_lossy}' is not installed for the toolchain '{desc}'.\nTo install, run `rustup component add {selector}{component_name}`"
+                    "'{binary_lossy}' is not installed for the toolchain '{desc}'.\nhelp: run `rustup component add {selector}{component_name}` to install it"
                 ))
             }
         } else {
