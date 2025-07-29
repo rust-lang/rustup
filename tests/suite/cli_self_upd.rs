@@ -1008,7 +1008,7 @@ async fn rls_proxy_set_up_after_install() {
         .await
         .with_stderr(snapbox::str![[r#"
 error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TRIPLE]'.
-To install, run `rustup component add rls`
+help: run `rustup component add rls` to install it
 
 "#]])
         .is_err();

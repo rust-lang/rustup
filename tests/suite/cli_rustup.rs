@@ -3373,7 +3373,7 @@ async fn docs_missing() {
         .await
         .with_stderr(snapbox::str![[r#"
 info: `rust-docs` not installed in toolchain `nightly-[HOST_TRIPLE]`
-info: To install, try `rustup component add --toolchain nightly-[HOST_TRIPLE] rust-docs`
+help: run `rustup component add --toolchain nightly-[HOST_TRIPLE] rust-docs` to install it
 error: unable to view documentation which is not installed
 
 "#]])
