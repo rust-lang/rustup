@@ -608,12 +608,18 @@ async fn rustup_run_install() {
             "--version",
         ])
         .await
-        .with_stderr(snapbox::str![[r#"
-...
-info: installing component 'rustc'
-...
-"#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 }
 
 #[tokio::test]

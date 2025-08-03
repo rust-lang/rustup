@@ -35,22 +35,23 @@ async fn rustup_stable() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'stable-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: cleaning up downloads & tmp directories
 
 "#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -130,50 +131,53 @@ async fn rustup_all_channels() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'stable-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: syncing channel updates for 'beta-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: cleaning up downloads & tmp directories
 
 "#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "+stable", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
+    cx.config
+        .expect(["rustup", "+beta", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -204,37 +208,50 @@ async fn rustup_some_channels_up_to_date() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'stable-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: syncing channel updates for 'beta-[HOST_TRIPLE]'
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: removing previous version of component 'cargo'
-info: removing previous version of component 'rust-docs'
-info: removing previous version of component 'rust-std'
-info: removing previous version of component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: cleaning up downloads & tmp directories
 
 "#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "+stable", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
+    cx.config
+        .expect(["rustup", "+beta", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -267,18 +284,23 @@ async fn default() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
 
 "#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -1234,12 +1256,18 @@ installed targets:
   [HOST_TRIPLE]
 
 "#]])
-        .with_stderr(snapbox::str![[r#"
-...
-info: installing component 'rustc'
-...
-"#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 }
 
 #[tokio::test]
@@ -1680,13 +1708,21 @@ channel = "nightly"
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'rustc'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
 info: it's active because: overridden by '[TOOLCHAIN_FILE]'
 
 "#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+rustc-[HOST_TRIPLE]
+
+"#]]);
 
     cx.config
         .expect(["rustup", "toolchain", "install"])
@@ -2657,11 +2693,6 @@ components = [ "rust-src" ]
     cx.config
         .expect(["rustup", "toolchain", "install"])
         .await
-        .with_stderr(snapbox::str![[r#"
-...
-info: installing component 'rust-src'
-...
-"#]])
         .is_ok();
     cx.config
         .expect(["rustup", "component", "list"])
@@ -2703,11 +2734,6 @@ targets = [ "{CROSS_ARCH2}" ]
     cx.config
         .expect(["rustup", "toolchain", "install"])
         .await
-        .with_stderr(snapbox::str![[r#"
-...
-info: installing component 'rust-std' for '[CROSS_ARCH_II]'
-...
-"#]])
         .is_ok();
     cx.config
         .expect(["rustup", "component", "list"])
@@ -2760,9 +2786,14 @@ async fn file_override_toml_format_specify_profile() {
     cx.config
         .expect(&["rustup", "default", "stable"])
         .await
-        .with_stderr(snapbox::str![[r#"
+        .is_ok();
+    cx.config
+        .expect(&["rustup", "component", "list"])
+        .await
+        // The `rust-docs-[HOST_TRIPLE]` component is installed.
+        .with_stdout(snapbox::str![[r#"
 ...
-info: downloading component 'rust-docs'
+rust-docs-[HOST_TRIPLE] (installed)
 ...
 "#]])
         .is_ok();
@@ -3688,14 +3719,21 @@ async fn custom_toolchain_with_components_toolchains_profile_does_not_err() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
 
 "#]])
         .is_ok();
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
+
+"#]]);
 
     // link the toolchain
     let toolchains = cx.config.rustupdir.join("toolchains");

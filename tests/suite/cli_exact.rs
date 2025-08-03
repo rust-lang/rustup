@@ -22,15 +22,20 @@ async fn update_once() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+
+"#]]);
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
 
 "#]]);
 }
@@ -64,14 +69,18 @@ rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
+"#]]);
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
 
 "#]]);
 }
@@ -103,16 +112,21 @@ async fn update_once_and_self_update() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
+
+"#]]);
+    cx.config
+        .expect(["rustup", "+nightly", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
 
 "#]]);
 }
@@ -309,15 +323,20 @@ async fn default() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
+info: downloading component[..]
+...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+
+"#]]);
+    cx.config
+        .expect(["rustup", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+cargo-[HOST_TRIPLE]
+rust-docs-[HOST_TRIPLE]
+rust-std-[HOST_TRIPLE]
+rustc-[HOST_TRIPLE]
 
 "#]]);
 }
@@ -738,11 +757,15 @@ async fn cross_install_indicates_target() {
         .expect(["rustup", "target", "add", CROSS_ARCH1])
         .await
         .is_ok()
-        .with_stdout(snapbox::str![[""]])
-        .with_stderr(snapbox::str![[r#"
-info: downloading component 'rust-std' for '[CROSS_ARCH_I]'
-info: installing component 'rust-std' for '[CROSS_ARCH_I]'
-
+        .with_stdout(snapbox::str![[""]]);
+    cx.config
+        .expect(["rustup", "component", "list", "--installed"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+...
+rust-std-[CROSS_ARCH_I]
+...
 "#]]);
 }
 
