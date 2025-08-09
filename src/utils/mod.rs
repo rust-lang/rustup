@@ -506,7 +506,7 @@ impl<'a> FileReaderWithProgress<'a> {
 
         // Inform the tracker of the file size
         let flen = fh.metadata()?.len();
-        (notify_handler)(Notification::DownloadContentLengthReceived(flen));
+        (notify_handler)(Notification::DownloadContentLengthReceived(flen, ""));
 
         let fh = BufReader::with_capacity(8 * 1024 * 1024, fh);
 
@@ -525,10 +525,10 @@ impl io::Read for FileReaderWithProgress<'_> {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
                 if nbytes != 0 {
-                    (self.notify_handler)(Notification::DownloadDataReceived(&buf[0..nbytes]));
+                    (self.notify_handler)(Notification::DownloadDataReceived(&buf[0..nbytes], ""));
                 }
                 if (nbytes == 0) || (self.flen == self.nbytes) {
-                    (self.notify_handler)(Notification::DownloadFinished);
+                    (self.notify_handler)(Notification::DownloadFinished(""));
                 }
                 Ok(nbytes)
             }

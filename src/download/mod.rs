@@ -108,10 +108,13 @@ async fn download_file_(
 
         match msg {
             Event::DownloadContentLengthReceived(len) => {
-                notify_handler(Notification::DownloadContentLengthReceived(len));
+                notify_handler(Notification::DownloadContentLengthReceived(
+                    len,
+                    url.as_str(),
+                ));
             }
             Event::DownloadDataReceived(data) => {
-                notify_handler(Notification::DownloadDataReceived(data));
+                notify_handler(Notification::DownloadDataReceived(data, url.as_str()));
             }
             Event::ResumingPartialDownload => {
                 notify_handler(Notification::ResumingPartialDownload);
@@ -205,7 +208,7 @@ async fn download_file_(
         .download_to_path(url, path, resume_from_partial, Some(callback))
         .await;
 
-    notify_handler(Notification::DownloadFinished);
+    notify_handler(Notification::DownloadFinished(url.as_str()));
 
     res
 }

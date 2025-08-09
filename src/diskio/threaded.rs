@@ -263,10 +263,11 @@ impl Executor for Threaded<'_> {
         // pretend to have bytes to deliver.
         let mut prev_files = self.n_files.load(Ordering::Relaxed);
         if let Some(handler) = self.notify_handler {
-            handler(Notification::DownloadFinished);
+            handler(Notification::DownloadFinished(""));
             handler(Notification::DownloadPushUnit(Unit::IO));
             handler(Notification::DownloadContentLengthReceived(
                 prev_files as u64,
+                "",
             ));
         }
         if prev_files > 50 {
@@ -284,12 +285,12 @@ impl Executor for Threaded<'_> {
             current_files = self.n_files.load(Ordering::Relaxed);
             let step_count = prev_files - current_files;
             if let Some(handler) = self.notify_handler {
-                handler(Notification::DownloadDataReceived(&buf[0..step_count]));
+                handler(Notification::DownloadDataReceived(&buf[0..step_count], ""));
             }
         }
         self.pool.join();
         if let Some(handler) = self.notify_handler {
-            handler(Notification::DownloadFinished);
+            handler(Notification::DownloadFinished(""));
             handler(Notification::DownloadPopUnit);
         }
         // close the feedback channel so that blocking reads on it can

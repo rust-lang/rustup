@@ -14,11 +14,11 @@ pub enum Notification<'a> {
     RemovingDirectory(&'a str, &'a Path),
     DownloadingFile(&'a Url, &'a Path),
     /// Received the Content-Length of the to-be downloaded data.
-    DownloadContentLengthReceived(u64),
+    DownloadContentLengthReceived(u64, &'a str),
     /// Received some data.
-    DownloadDataReceived(&'a [u8]),
+    DownloadDataReceived(&'a [u8], &'a str),
     /// Download has finished.
-    DownloadFinished,
+    DownloadFinished(&'a str),
     /// The things we're tracking that are not counted in bytes.
     /// Must be paired with a pop-units; our other calls are not
     /// setup to guarantee this any better.
@@ -52,11 +52,11 @@ impl Notification<'_> {
             | LinkingDirectory(_, _)
             | CopyingDirectory(_, _)
             | DownloadingFile(_, _)
-            | DownloadContentLengthReceived(_)
-            | DownloadDataReceived(_)
+            | DownloadContentLengthReceived(_, _)
+            | DownloadDataReceived(_, _)
             | DownloadPushUnit(_)
             | DownloadPopUnit
-            | DownloadFinished
+            | DownloadFinished(_)
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Debug,
@@ -92,11 +92,11 @@ impl Display for Notification<'_> {
                 units::Size::new(*size, units::Unit::B)
             ),
             DownloadingFile(url, _) => write!(f, "downloading file from: '{url}'"),
-            DownloadContentLengthReceived(len) => write!(f, "download size is: '{len}'"),
-            DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
+            DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
+            DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadPushUnit(_) => Ok(()),
             DownloadPopUnit => Ok(()),
-            DownloadFinished => write!(f, "download finished"),
+            DownloadFinished(_) => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
             UsingCurl => write!(f, "downloading with curl"),

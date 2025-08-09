@@ -6,8 +6,10 @@ mod tests;
 
 use std::path::Path;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Error, Result, anyhow, bail};
+use futures_util::stream::StreamExt;
 use tokio_retry::{RetryIf, strategy::FixedInterval};
+use tracing::info;
 
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
@@ -153,6 +155,7 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
+        let components_len = components.len();
 
         const DEFAULT_MAX_RETRIES: usize = 3;
         let max_retries: usize = download_cfg
@@ -162,41 +165,69 @@ impl Manifestation {
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
-        for (component, format, url, hash) in components {
+        info!("downloading component(s)");
+        for (component, _, _, _) in components.clone() {
             (download_cfg.notify_handler)(Notification::DownloadingComponent(
                 &component.short_name(new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
             ));
-            let url = if altered {
-                url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
-            } else {
-                url
-            };
+        }
 
-            let url_url = utils::parse_url(&url)?;
+        let component_stream =
+            tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
+                async move {
+                    let url = if altered {
+                        url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
+                    } else {
+                        url
+                    };
 
-            let downloaded_file = RetryIf::spawn(
-                FixedInterval::from_millis(0).take(max_retries),
-                || download_cfg.download(&url_url, &hash),
-                |e: &anyhow::Error| {
-                    // retry only known retriable cases
-                    match e.downcast_ref::<RustupError>() {
-                        Some(RustupError::BrokenPartialFile)
-                        | Some(RustupError::DownloadingFile { .. }) => {
-                            (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                            true
-                        }
-                        _ => false,
+                    let url_url = utils::parse_url(&url)?;
+
+                    let downloaded_file = RetryIf::spawn(
+                        FixedInterval::from_millis(0).take(max_retries),
+                        || download_cfg.download(&url_url, &hash),
+                        |e: &anyhow::Error| {
+                            // retry only known retriable cases
+                            match e.downcast_ref::<RustupError>() {
+                                Some(RustupError::BrokenPartialFile)
+                                | Some(RustupError::DownloadingFile { .. }) => {
+                                    (download_cfg.notify_handler)(Notification::RetryingDownload(
+                                        &url,
+                                    ));
+                                    true
+                                }
+                                _ => false,
+                            }
+                        },
+                    )
+                    .await
+                    .with_context(|| {
+                        RustupError::ComponentDownloadFailed(component.name(new_manifest))
+                    })?;
+                    Ok::<(Component, CompressionKind, File, String), Error>((
+                        component,
+                        format,
+                        downloaded_file,
+                        hash,
+                    ))
+                }
+            });
+        if components_len > 0 {
+            let results = component_stream
+                .buffered(components_len)
+                .collect::<Vec<_>>()
+                .await;
+            for result in results {
+                match result {
+                    Ok((component, format, downloaded_file, hash)) => {
+                        things_downloaded.push(hash);
+                        things_to_install.push((component, format, downloaded_file));
                     }
-                },
-            )
-            .await
-            .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
-
-            things_downloaded.push(hash);
-
-            things_to_install.push((component, format, downloaded_file));
+                    Err(e) => return Err(e),
+                }
+            }
         }
 
         // Begin transaction
