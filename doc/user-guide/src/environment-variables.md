@@ -66,6 +66,9 @@
 
 - `RUSTUP_TERM_WIDTH` (default: none). Allows to override the terminal width for progress bars.
 
+- `RUSTUP_DOWNLOAD_TIMEOUT` *unstable* (default: 180). Allows to override the default
+  timeout (in seconds) for downloading components.
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md

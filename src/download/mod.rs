@@ -1,7 +1,10 @@
 //! Easy file downloading
 
 use std::fs::remove_file;
+use std::num::NonZeroU64;
 use std::path::Path;
+use std::str::FromStr;
+use std::time::Duration;
 
 use anyhow::Context;
 #[cfg(any(
@@ -194,6 +197,13 @@ async fn download_file_(
         _ => Backend::Curl,
     };
 
+    let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
+        Ok(s) => NonZeroU64::from_str(&s).context(
+            "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
+        )?.get(),
+        Err(_) => 180,
+    });
+
     notify_handler(match backend {
         #[cfg(feature = "curl-backend")]
         Backend::Curl => Notification::UsingCurl,
@@ -202,7 +212,7 @@ async fn download_file_(
     });
 
     let res = backend
-        .download_to_path(url, path, resume_from_partial, Some(callback))
+        .download_to_path(url, path, resume_from_partial, Some(callback), timeout)
         .await;
 
     notify_handler(Notification::DownloadFinished);
@@ -241,9 +251,10 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
+        timeout: Duration,
     ) -> anyhow::Result<()> {
         let Err(err) = self
-            .download_impl(url, path, resume_from_partial, callback)
+            .download_impl(url, path, resume_from_partial, callback, timeout)
             .await
         else {
             return Ok(());
@@ -265,6 +276,7 @@ impl Backend {
         path: &Path,
         resume_from_partial: bool,
         callback: Option<DownloadCallback<'_>>,
+        timeout: Duration,
     ) -> anyhow::Result<()> {
         use std::cell::RefCell;
         use std::fs::OpenOptions;
@@ -324,7 +336,7 @@ impl Backend {
         let file = RefCell::new(file);
 
         // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
-        self.download(url, resume_from, &|event| {
+        self.download(url, resume_from, timeout, &|event| {
             if let Event::DownloadDataReceived(data) = event {
                 file.borrow_mut()
                     .write_all(data)
@@ -356,13 +368,14 @@ impl Backend {
         self,
         url: &Url,
         resume_from: u64,
+        timeout: Duration,
         callback: DownloadCallback<'_>,
     ) -> anyhow::Result<()> {
         match self {
             #[cfg(feature = "curl-backend")]
-            Self::Curl => curl::download(url, resume_from, callback),
+            Self::Curl => curl::download(url, resume_from, callback, timeout),
             #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-            Self::Reqwest(tls) => tls.download(url, resume_from, callback).await,
+            Self::Reqwest(tls) => tls.download(url, resume_from, callback, timeout).await,
         }
     }
 }
@@ -383,12 +396,13 @@ impl TlsBackend {
         url: &Url,
         resume_from: u64,
         callback: DownloadCallback<'_>,
+        timeout: Duration,
     ) -> anyhow::Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
-            Self::Rustls => reqwest_be::rustls_client()?,
+            Self::Rustls => reqwest_be::rustls_client(timeout)?,
             #[cfg(feature = "reqwest-native-tls")]
-            Self::NativeTls => reqwest_be::native_tls_client()?,
+            Self::NativeTls => reqwest_be::native_tls_client(timeout)?,
         };
 
         reqwest_be::download(url, resume_from, callback, client).await
@@ -424,6 +438,7 @@ mod curl {
         url: &Url,
         resume_from: u64,
         callback: &dyn Fn(Event<'_>) -> Result<()>,
+        timeout: Duration,
     ) -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
@@ -446,8 +461,8 @@ mod curl {
                 let _ = handle.resume_from(0);
             }
 
-            // Take at most 30s to connect
-            handle.connect_timeout(Duration::new(30, 0))?;
+            // Take at most 3m to connect if the `RUSTUP_DOWNLOAD_TIMEOUT` env var is not set.
+            handle.connect_timeout(timeout)?;
 
             {
                 let cberr = RefCell::new(None);
@@ -584,11 +599,11 @@ mod reqwest_be {
             .pool_max_idle_per_host(0)
             .gzip(false)
             .proxy(Proxy::custom(env_proxy))
-            .read_timeout(Duration::from_secs(30))
     }
 
     #[cfg(feature = "reqwest-rustls-tls")]
-    pub(super) fn rustls_client() -> Result<&'static Client, DownloadError> {
+    pub(super) fn rustls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
+        // If the client is already initialized, the passed timeout is ignored.
         if let Some(client) = CLIENT_RUSTLS_TLS.get() {
             return Ok(client);
         }
@@ -605,6 +620,7 @@ mod reqwest_be {
         tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
         let client = client_generic()
+            .read_timeout(timeout)
             .use_preconfigured_tls(tls_config)
             .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
             .build()
@@ -620,12 +636,14 @@ mod reqwest_be {
     static CLIENT_RUSTLS_TLS: OnceLock<Client> = OnceLock::new();
 
     #[cfg(feature = "reqwest-native-tls")]
-    pub(super) fn native_tls_client() -> Result<&'static Client, DownloadError> {
+    pub(super) fn native_tls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
+        // If the client is already initialized, the passed timeout is ignored.
         if let Some(client) = CLIENT_NATIVE_TLS.get() {
             return Ok(client);
         }
 
         let client = client_generic()
+            .read_timeout(timeout)
             .user_agent(super::REQWEST_DEFAULT_TLS_USER_AGENT)
             .build()
             .map_err(DownloadError::Reqwest)?;
