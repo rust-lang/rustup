@@ -19,6 +19,7 @@ use tempfile::TempDir;
 mod curl {
     use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::Duration;
 
     use url::Url;
 
@@ -36,7 +37,13 @@ mod curl {
 
         let from_url = Url::from_file_path(&from_path).unwrap();
         Backend::Curl
-            .download_to_path(&from_url, &target_path, true, None)
+            .download_to_path(
+                &from_url,
+                &target_path,
+                true,
+                None,
+                Duration::from_secs(180),
+            )
             .await
             .expect("Test download failed");
 
@@ -83,6 +90,7 @@ mod curl {
 
                     Ok(())
                 }),
+                Duration::from_secs(180),
             )
             .await
             .expect("Test download failed");
@@ -185,7 +193,13 @@ mod reqwest {
 
         let from_url = Url::from_file_path(&from_path).unwrap();
         Backend::Reqwest(TlsBackend::NativeTls)
-            .download_to_path(&from_url, &target_path, true, None)
+            .download_to_path(
+                &from_url,
+                &target_path,
+                true,
+                None,
+                Duration::from_secs(180),
+            )
             .await
             .expect("Test download failed");
 
@@ -232,6 +246,7 @@ mod reqwest {
 
                     Ok(())
                 }),
+                Duration::from_secs(180),
             )
             .await
             .expect("Test download failed");
