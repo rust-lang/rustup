@@ -388,7 +388,7 @@ impl TlsBackend {
             #[cfg(feature = "reqwest-rustls-tls")]
             Self::Rustls => reqwest_be::rustls_client()?,
             #[cfg(feature = "reqwest-native-tls")]
-            Self::NativeTls => &reqwest_be::CLIENT_NATIVE_TLS,
+            Self::NativeTls => reqwest_be::native_tls_client()?,
         };
 
         reqwest_be::download(url, resume_from, callback, client).await
@@ -526,9 +526,7 @@ mod curl {
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest_be {
     use std::io;
-    #[cfg(feature = "reqwest-native-tls")]
-    use std::sync::LazyLock;
-    #[cfg(feature = "reqwest-rustls-tls")]
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     use std::sync::{Arc, OnceLock};
     use std::time::Duration;
 
@@ -622,21 +620,23 @@ mod reqwest_be {
     static CLIENT_RUSTLS_TLS: OnceLock<Client> = OnceLock::new();
 
     #[cfg(feature = "reqwest-native-tls")]
-    pub(super) static CLIENT_NATIVE_TLS: LazyLock<Client> = LazyLock::new(|| {
-        let catcher = || {
-            client_generic()
-                .user_agent(super::REQWEST_DEFAULT_TLS_USER_AGENT)
-                .build()
-        };
+    pub(super) fn native_tls_client() -> Result<&'static Client, DownloadError> {
+        if let Some(client) = CLIENT_NATIVE_TLS.get() {
+            return Ok(client);
+        }
 
-        // woah, an unwrap?!
-        // It's OK. This is the same as what is happening in curl.
-        //
-        // The curl::Easy::new() internally assert!s that the initialized
-        // Easy is not null. Inside reqwest, the errors here would be from
-        // the TLS library returning a null pointer as well.
-        catcher().unwrap()
-    });
+        let client = client_generic()
+            .user_agent(super::REQWEST_DEFAULT_TLS_USER_AGENT)
+            .build()
+            .map_err(DownloadError::Reqwest)?;
+
+        let _ = CLIENT_NATIVE_TLS.set(client);
+
+        Ok(CLIENT_NATIVE_TLS.get().unwrap())
+    }
+
+    #[cfg(feature = "reqwest-native-tls")]
+    static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
 
     fn env_proxy(url: &Url) -> Option<Url> {
         env_proxy::for_url(url).to_url()
