@@ -44,7 +44,7 @@ jobs: # skip-master skip-pr skip-stable
             mingwdir: mingw32 # skip-pr skip-master
             gcc: i686-w64-mingw32-gcc # skip-pr skip-master
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0

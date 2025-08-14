@@ -20,7 +20,7 @@ jobs: # skip-x86_64 skip-aarch64
           - x86_64-apple-darwin # skip-aarch64
           - aarch64-apple-darwin # skip-x86_64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
