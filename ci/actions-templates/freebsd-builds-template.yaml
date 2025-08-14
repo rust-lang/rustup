@@ -8,7 +8,7 @@ jobs: # skip-master skip-stable
     if: ${{ (github.event_name == 'push' && github.ref_name == 'master') || github.event_name == 'schedule' }} # skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-master
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         fetch-depth: 0

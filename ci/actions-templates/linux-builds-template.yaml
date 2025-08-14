@@ -64,7 +64,7 @@ jobs: # skip-master skip-pr skip-stable
             #snap_arch: s390x # skip-pr skip-master
     steps:
       - name: Clone repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
