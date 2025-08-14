@@ -649,7 +649,8 @@ mod reqwest_be {
             .map_err(DownloadError::Reqwest)?;
 
         let _ = CLIENT_NATIVE_TLS.set(client);
-
+        // "The cell is guaranteed to contain a value when `set` returns, though not necessarily
+        // the one provided."
         Ok(CLIENT_NATIVE_TLS.get().unwrap())
     }
 
