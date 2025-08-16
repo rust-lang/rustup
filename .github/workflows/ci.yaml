@@ -1464,7 +1464,8 @@ jobs:
       - name: Install taplo
         uses: taiki-e/install-action@v2
         with:
-          tool: taplo-cli
+          tool: taplo
+          fallback: none
       - name: Run TOML formatting checks
         run: |
           taplo fmt
