@@ -4,7 +4,7 @@ use std::path::Path;
 use url::Url;
 
 use crate::utils::notify::NotificationLevel;
-use crate::utils::units::{self, Unit};
+use crate::utils::units;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -20,12 +20,6 @@ pub enum Notification<'a> {
     DownloadDataReceived(&'a [u8], Option<&'a str>),
     /// Download has finished.
     DownloadFinished(Option<&'a str>),
-    /// The things we're tracking that are not counted in bytes.
-    /// Must be paired with a pop-units; our other calls are not
-    /// setup to guarantee this any better.
-    DownloadPushUnit(Unit),
-    /// finish using an unusual unit.
-    DownloadPopUnit,
     NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
     /// This would make more sense as a crate::notifications::Notification
@@ -55,8 +49,6 @@ impl Notification<'_> {
             | DownloadingFile(_, _)
             | DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
-            | DownloadPushUnit(_)
-            | DownloadPopUnit
             | DownloadFinished(_)
             | ResumingPartialDownload
             | UsingCurl
@@ -90,13 +82,11 @@ impl Display for Notification<'_> {
             SetDefaultBufferSize(size) => write!(
                 f,
                 "using up to {} of RAM to unpack components",
-                units::Size::new(*size, units::Unit::B)
+                units::Size::new(*size)
             ),
             DownloadingFile(url, _) => write!(f, "downloading file from: '{url}'"),
             DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
-            DownloadPushUnit(_) => Ok(()),
-            DownloadPopUnit => Ok(()),
             DownloadFinished(_) => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
