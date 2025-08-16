@@ -59,9 +59,6 @@ impl DownloadTracker {
                 self.create_progress_bar(component.to_owned(), url.to_owned());
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadPushUnit(_))) => true,
-            Notification::Install(In::Utils(Un::DownloadPopUnit)) => true,
-
             _ => false,
         }
     }
