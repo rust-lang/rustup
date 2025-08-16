@@ -6,9 +6,8 @@ mod tests;
 
 use std::path::Path;
 
-use anyhow::{Context, Error, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::StreamExt;
-use tokio_retry::{RetryIf, strategy::FixedInterval};
 use tracing::info;
 
 use crate::dist::component::{
@@ -177,38 +176,17 @@ impl Manifestation {
 
         let component_stream =
             tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
-                async move {
-                    let url = if altered {
-                        url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
-                    } else {
-                        url
-                    };
-
-                    let url_url = utils::parse_url(&url)?;
-
-                    let downloaded_file = RetryIf::spawn(
-                        FixedInterval::from_millis(0).take(max_retries),
-                        || download_cfg.download(&url_url, &hash),
-                        |e: &anyhow::Error| {
-                            // retry only known retriable cases
-                            match e.downcast_ref::<RustupError>() {
-                                Some(RustupError::BrokenPartialFile)
-                                | Some(RustupError::DownloadingFile { .. }) => {
-                                    (download_cfg.notify_handler)(Notification::RetryingDownload(
-                                        &url,
-                                    ));
-                                    true
-                                }
-                                _ => false,
-                            }
-                        },
-                    )
-                    .await
-                    .with_context(|| {
-                        RustupError::ComponentDownloadFailed(component.name(new_manifest))
-                    })?;
-                    Ok::<_, Error>((component, format, downloaded_file, hash))
-                }
+                self.download_component(
+                    component,
+                    format,
+                    url,
+                    hash,
+                    altered,
+                    tmp_cx,
+                    download_cfg,
+                    max_retries,
+                    new_manifest,
+                )
             });
         if components_len > 0 {
             let results = component_stream
@@ -554,6 +532,50 @@ impl Manifestation {
         }
 
         Ok(tx)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn download_component(
+        &self,
+        component: Component,
+        format: CompressionKind,
+        url: String,
+        hash: String,
+        altered: bool,
+        tmp_cx: &temp::Context,
+        download_cfg: &DownloadCfg<'_>,
+        max_retries: usize,
+        new_manifest: &Manifest,
+    ) -> Result<(Component, CompressionKind, File, String)> {
+        use tokio_retry::{RetryIf, strategy::FixedInterval};
+
+        let url = if altered {
+            url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
+        } else {
+            url
+        };
+
+        let url_url = utils::parse_url(&url)?;
+
+        let downloaded_file = RetryIf::spawn(
+            FixedInterval::from_millis(0).take(max_retries),
+            || download_cfg.download(&url_url, &hash),
+            |e: &anyhow::Error| {
+                // retry only known retriable cases
+                match e.downcast_ref::<RustupError>() {
+                    Some(RustupError::BrokenPartialFile)
+                    | Some(RustupError::DownloadingFile { .. }) => {
+                        (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
+                        true
+                    }
+                    _ => false,
+                }
+            },
+        )
+        .await
+        .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
+
+        Ok((component, format, downloaded_file, hash))
     }
 }
 
