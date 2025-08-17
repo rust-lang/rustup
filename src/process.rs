@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::fmt::Debug;
 use std::io;
 use std::io::IsTerminal;
+use std::num::NonZeroU64;
 use std::path::PathBuf;
 use std::str::FromStr;
 #[cfg(feature = "test")]
@@ -165,6 +166,15 @@ impl Process {
             Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
             _ if t.is_a_tty() => ProgressDrawTarget::term_like(Box::new(t)),
             _ => ProgressDrawTarget::hidden(),
+        }
+    }
+
+    pub fn concurrent_downloads(&self) -> Option<usize> {
+        match self.var("RUSTUP_CONCURRENT_DOWNLOADS") {
+            Ok(s) => Some(NonZeroU64::from_str(&s).context(
+                "invalid value in RUSTUP_CONCURRENT_DOWNLOADS -- must be a natural number greater than zero"
+            ).ok()?.get() as usize),
+            Err(_) => None,
         }
     }
 }

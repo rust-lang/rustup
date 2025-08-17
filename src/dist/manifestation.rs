@@ -154,7 +154,10 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
-        let components_len = components.len();
+        let num_channels = download_cfg
+            .process
+            .concurrent_downloads()
+            .unwrap_or(components.len());
 
         const DEFAULT_MAX_RETRIES: usize = 3;
         let max_retries: usize = download_cfg
@@ -188,9 +191,9 @@ impl Manifestation {
                     new_manifest,
                 )
             });
-        if components_len > 0 {
+        if num_channels > 0 {
             let results = component_stream
-                .buffered(components_len)
+                .buffered(num_channels)
                 .collect::<Vec<_>>()
                 .await;
             for result in results {

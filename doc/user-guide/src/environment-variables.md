@@ -69,6 +69,9 @@
 - `RUSTUP_DOWNLOAD_TIMEOUT` *unstable* (default: 180). Allows to override the default
   timeout (in seconds) for downloading components.
 
+- `RUSTUP_CONCURRENT_DOWNLOADS` *unstable* (default: the number of components to download). Controls the number of
+  downloads made concurrently.
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
