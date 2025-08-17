@@ -799,7 +799,8 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
     let channels = cfg.list_channels()?;
-    let num_channels = channels.len();
+    let num_channels = cfg.process.concurrent_downloads().unwrap_or(channels.len());
+
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
     if num_channels > 0 {
