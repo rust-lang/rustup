@@ -248,65 +248,15 @@ impl Manifestation {
 
         // Install components
         for (component, format, installer_file) in things_to_install {
-            // For historical reasons, the rust-installer component
-            // names are not the same as the dist manifest component
-            // names. Some are just the component name some are the
-            // component name plus the target triple.
-            let pkg_name = component.name_in_manifest();
-            let short_pkg_name = component.short_name_in_manifest();
-            let short_name = component.short_name(new_manifest);
-
-            (download_cfg.notify_handler)(Notification::InstallingComponent(
-                &short_name,
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
-
-            let notification_converter = |notification: crate::utils::Notification<'_>| {
-                (download_cfg.notify_handler)(notification.into());
-            };
-            let gz;
-            let xz;
-            let zst;
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-            let package: &dyn Package = match format {
-                CompressionKind::GZip => {
-                    gz = TarGzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &gz
-                }
-                CompressionKind::XZ => {
-                    xz = TarXzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &xz
-                }
-                CompressionKind::ZStd => {
-                    zst = TarZStdPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &zst
-                }
-            };
-
-            // If the package doesn't contain the component that the
-            // manifest says it does then somebody must be playing a joke on us.
-            if !package.contains(&pkg_name, Some(short_pkg_name)) {
-                return Err(RustupError::CorruptComponent(short_name).into());
-            }
-
-            tx = package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)?;
+              tx = self.install_component(
+                component,
+                format,
+                installer_file,
+                tmp_cx,
+                download_cfg,
+                new_manifest,
+                tx,
+            )?;
         }
 
         // Install new distribution manifest
@@ -588,6 +538,77 @@ impl Manifestation {
         .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
         Ok((component, format, downloaded_file, hash))
+    }
+
+    fn install_component<'a>(
+        &self,
+        component: Component,
+        format: CompressionKind,
+        installer_file: File,
+        tmp_cx: &temp::Context,
+        download_cfg: &DownloadCfg<'_>,
+        new_manifest: &Manifest,
+        tx: Transaction<'a>,
+    ) -> Result<Transaction<'a>> {
+        // For historical reasons, the rust-installer component
+        // names are not the same as the dist manifest component
+        // names. Some are just the component name some are the
+        // component name plus the target triple.
+        let pkg_name = component.name_in_manifest();
+        let short_pkg_name = component.short_name_in_manifest();
+        let short_name = component.short_name(new_manifest);
+
+        (download_cfg.notify_handler)(Notification::InstallingComponent(
+            &short_name,
+            &self.target_triple,
+            component.target.as_ref(),
+        ));
+
+        let notification_converter = |notification: crate::utils::Notification<'_>| {
+            (download_cfg.notify_handler)(notification.into());
+        };
+        let gz;
+        let xz;
+        let zst;
+        let reader =
+            utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+        let package: &dyn Package = match format {
+            CompressionKind::GZip => {
+                gz = TarGzPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    download_cfg.process,
+                )?;
+                &gz
+            }
+            CompressionKind::XZ => {
+                xz = TarXzPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    download_cfg.process,
+                )?;
+                &xz
+            }
+            CompressionKind::ZStd => {
+                zst = TarZStdPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    download_cfg.process,
+                )?;
+                &zst
+            }
+        };
+
+        // If the package doesn't contain the component that the
+        // manifest says it does then somebody must be playing a joke on us.
+        if !package.contains(&pkg_name, Some(short_pkg_name)) {
+            return Err(RustupError::CorruptComponent(short_name).into());
+        }
+
+        package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)
     }
 }
 
