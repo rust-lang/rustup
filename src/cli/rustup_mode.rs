@@ -6,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
     process::ExitStatus,
     str::FromStr,
+    sync::Arc,
     time::Duration,
 };
 
@@ -16,6 +17,7 @@ use console::style;
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
+use tokio::sync::Semaphore;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
@@ -799,13 +801,15 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
     let channels = cfg.list_channels()?;
-    let num_channels = cfg.process.concurrent_downloads().unwrap_or(channels.len());
+    let channels_len = channels.len();
+    let num_channels = cfg.process.concurrent_downloads().unwrap_or(channels_len);
 
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
     if num_channels > 0 {
         let multi_progress_bars =
             MultiProgress::with_draw_target(cfg.process.progress_draw_target());
+        let semaphore = Arc::new(Semaphore::new(num_channels));
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
             let pb = multi_progress_bars.add(ProgressBar::new(1));
             pb.set_style(
@@ -815,7 +819,10 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
             );
             pb.set_message(format!("{name}"));
             pb.enable_steady_tick(Duration::from_millis(100));
+
+            let sem = semaphore.clone();
             async move {
+                let _permit = sem.acquire().await.unwrap();
                 let current_version = distributable.show_version()?;
                 let dist_version = distributable.show_dist_version().await?;
                 let mut update_a = false;
@@ -867,7 +874,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         // `indicatif`.
         let channels = if !multi_progress_bars.is_hidden() {
             channels
-                .buffer_unordered(num_channels)
+                .buffer_unordered(channels_len)
                 .collect::<Vec<_>>()
                 .await
         } else {

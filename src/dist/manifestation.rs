@@ -8,6 +8,8 @@ use std::path::Path;
 
 use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::StreamExt;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tracing::info;
 
 use crate::dist::component::{
@@ -154,10 +156,11 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
+        let components_len = components.len();
         let num_channels = download_cfg
             .process
             .concurrent_downloads()
-            .unwrap_or(components.len());
+            .unwrap_or(components_len);
 
         const DEFAULT_MAX_RETRIES: usize = 3;
         let max_retries: usize = download_cfg
@@ -177,23 +180,29 @@ impl Manifestation {
             ));
         }
 
+        let semaphore = Arc::new(Semaphore::new(num_channels));
         let component_stream =
             tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
-                self.download_component(
-                    component,
-                    format,
-                    url,
-                    hash,
-                    altered,
-                    tmp_cx,
-                    download_cfg,
-                    max_retries,
-                    new_manifest,
-                )
+                let sem = semaphore.clone();
+                async move {
+                    let _permit = sem.acquire().await.unwrap();
+                    self.download_component(
+                        component,
+                        format,
+                        url,
+                        hash,
+                        altered,
+                        tmp_cx,
+                        download_cfg,
+                        max_retries,
+                        new_manifest,
+                    )
+                    .await
+                }
             });
         if num_channels > 0 {
             let results = component_stream
-                .buffered(num_channels)
+                .buffered(components_len)
                 .collect::<Vec<_>>()
                 .await;
             for result in results {
