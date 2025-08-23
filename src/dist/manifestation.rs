@@ -6,10 +6,10 @@ mod tests;
 
 use std::path::Path;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Error, Result, anyhow, bail};
 use futures_util::stream::StreamExt;
 use std::sync::Arc;
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, mpsc};
 use tracing::{info, warn};
 use url::Url;
 
@@ -156,8 +156,7 @@ impl Manifestation {
         let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install = Vec::new();
-        let mut things_downloaded = Vec::new();
+        let mut things_downloaded: Vec<String> = Vec::new();
         let components = update
             .components_urls_and_hashes(new_manifest)
             .map(|res| {
@@ -168,7 +167,6 @@ impl Manifestation {
                 })
             })
             .collect::<Result<Vec<_>>>()?;
-
         let components_len = components.len();
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
         let concurrent_downloads = download_cfg
@@ -184,45 +182,14 @@ impl Manifestation {
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
-        info!("downloading component(s)");
-        let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-        let component_stream = tokio_stream::iter(components.into_iter()).map(|bin| {
-            let sem = semaphore.clone();
-            async move {
-                let _permit = sem.acquire().await.unwrap();
-                let url = if altered {
-                    utils::parse_url(
-                        &bin.binary
-                            .url
-                            .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str()),
-                    )?
-                } else {
-                    utils::parse_url(&bin.binary.url)?
-                };
-
-                bin.download(&url, download_cfg, max_retries, new_manifest)
-                    .await
-                    .map(|downloaded| (bin, downloaded))
-            }
-        });
-        if components_len > 0 {
-            let results = component_stream
-                .buffered(components_len)
-                .collect::<Vec<_>>()
-                .await;
-            for result in results {
-                let (bin, downloaded_file) = result?;
-                things_downloaded.push(bin.binary.hash.clone());
-                things_to_install.push((bin, downloaded_file));
-            }
-        }
-
-        // Begin transaction
+        // Begin transaction before the downloads, as installations are interleaved with those
         let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.process);
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
         tx = self.maybe_handle_v2_upgrade(&config, tx, download_cfg.process)?;
+
+        info!("downloading component(s)");
 
         // Uninstall components
         for component in &update.components_to_uninstall {
@@ -255,9 +222,103 @@ impl Manifestation {
             tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
         }
 
-        // Install components
-        for (component_bin, installer_file) in things_to_install {
-            tx = component_bin.install(installer_file, tx, new_manifest, self, download_cfg)?;
+        if components_len > 0 {
+            // Create a channel to communicate whenever a download is done and the component can be installed
+            // The `mpsc` channel was used as we need to send many messages from one producer (download's thread) to one consumer (install's thread)
+            // This is recommended in the official docs: https://docs.rs/tokio/latest/tokio/sync/index.html#mpsc-channel
+            let total_components = components.len();
+            let (download_tx, mut download_rx) =
+                mpsc::channel::<Result<(ComponentBinary<'_>, File)>>(total_components);
+
+            #[allow(clippy::too_many_arguments)]
+            fn component_stream<'a>(
+                components: Vec<ComponentBinary<'a>>,
+                semaphore: Arc<Semaphore>,
+                download_tx: mpsc::Sender<Result<(ComponentBinary<'a>, File)>>,
+                altered: bool,
+                dist_server: &str,
+                download_cfg: &DownloadCfg<'a>,
+                max_retries: usize,
+                new_manifest: &Manifest,
+            ) -> impl futures_util::Stream<Item = impl Future<Output = Result<String>>>
+            {
+                tokio_stream::iter(components).map(move |bin| {
+                    let sem = semaphore.clone();
+                    let download_tx = download_tx.clone();
+                    async move {
+                        let _permit = sem.acquire().await.unwrap();
+                        let url = if altered {
+                            utils::parse_url(
+                                &bin.binary.url.replace(DEFAULT_DIST_SERVER, dist_server),
+                            )?
+                        } else {
+                            utils::parse_url(&bin.binary.url)?
+                        };
+
+                        let installer_file = bin
+                            .download(&url, download_cfg, max_retries, new_manifest)
+                            .await?;
+                        let hash = bin.binary.hash.clone();
+                        let _ = download_tx.send(Ok((bin, installer_file))).await;
+                        Ok(hash)
+                    }
+                })
+            }
+
+            async fn download_handle(
+                mut stream: impl futures_util::Stream<Item = Result<String>> + Unpin,
+                download_tx: mpsc::Sender<Result<(ComponentBinary<'_>, File)>>,
+            ) -> Vec<String> {
+                let mut hashes = Vec::new();
+                while let Some(result) = stream.next().await {
+                    match result {
+                        Ok(hash) => {
+                            hashes.push(hash);
+                        }
+                        Err(e) => {
+                            let _ = download_tx.send(Err(e)).await;
+                        }
+                    }
+                }
+                hashes
+            }
+
+            let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
+            let component_stream = component_stream(
+                components,
+                semaphore,
+                download_tx.clone(),
+                altered,
+                tmp_cx.dist_server.as_str(),
+                &download_cfg,
+                max_retries,
+                &new_manifest,
+            );
+
+            let stream = component_stream.buffered(components_len);
+            let download_handle = download_handle(stream, download_tx.clone());
+            let install_handle = async {
+                let mut current_tx = tx;
+                let mut counter = 0;
+                while counter < total_components
+                    && let Some(message) = download_rx.recv().await
+                {
+                    let (component_bin, installer_file) = message?;
+                    current_tx = component_bin.install(
+                        installer_file,
+                        current_tx,
+                        new_manifest,
+                        self,
+                        download_cfg,
+                    )?;
+                    counter += 1;
+                }
+                Ok::<_, Error>(current_tx)
+            };
+
+            let (download_results, install_result) = tokio::join!(download_handle, install_handle);
+            things_downloaded = download_results;
+            tx = install_result?;
         }
 
         // Install new distribution manifest
@@ -709,7 +770,7 @@ impl<'a> ComponentBinary<'a> {
         let downloaded_file = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
             || download_cfg.download(url, &self.binary.hash, &self.status),
-            |e: &anyhow::Error| {
+            |e: &Error| {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
