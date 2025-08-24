@@ -52,7 +52,7 @@ pub(crate) struct Toolchain<'a> {
 impl<'a> Toolchain<'a> {
     pub(crate) async fn from_local(
         name: LocalToolchainName,
-        install_if_missing: bool,
+        install_if_missing: impl Fn() -> anyhow::Result<bool>,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Toolchain<'a>> {
         match Self::new(cfg, name) {
@@ -60,7 +60,7 @@ impl<'a> Toolchain<'a> {
             Err(RustupError::ToolchainNotInstalled {
                 name: ToolchainName::Official(desc),
                 ..
-            }) if install_if_missing => {
+            }) if install_if_missing()? => {
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
                 Ok(DistributableToolchain::install(options).await?.1.toolchain)
             }
