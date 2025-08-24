@@ -746,10 +746,7 @@ impl<'a> Cfg<'a> {
 
     async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
         match name {
-            Some(tc) => {
-                let install_if_missing = self.should_auto_install()?;
-                Toolchain::from_local(tc, install_if_missing, self).await
-            }
+            Some(tc) => Toolchain::from_local(tc, || self.should_auto_install(), self).await,
             None => {
                 let tc = self
                     .maybe_ensure_active_toolchain(None)
