@@ -15,7 +15,7 @@ use std::{
 use anyhow::{Context, anyhow, bail};
 use fs_at::OpenOptions;
 use same_file::is_same_file;
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 use wait_timeout::ChildExt;
 
@@ -61,6 +61,18 @@ impl<'a> Toolchain<'a> {
                 name: ToolchainName::Official(desc),
                 ..
             }) if install_if_missing()? => {
+                // Emit a warning about auto-installation if we aren't deep inside a recursive call.
+                let recursions = cfg.process.var("RUST_RECURSION_COUNT");
+                if !recursions.is_ok_and(|it| it != "0") {
+                    warn!("auto-install is enabled, active toolchain will be installed if absent");
+                    warn!(
+                        "this might cause rustup commands to take longer time to finish than expected"
+                    );
+                    info!(
+                        "you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`"
+                    );
+                }
+
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
                 Ok(DistributableToolchain::install(options).await?.1.toolchain)
             }
