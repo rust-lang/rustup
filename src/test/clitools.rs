@@ -277,6 +277,9 @@ impl Config {
             "/bogus-config-file.toml",
         );
 
+        // Clear current recursion count to avoid messing up related logic
+        cmd.env("RUST_RECURSION_COUNT", "");
+
         // Pass `RUSTUP_CI` over to the test process in case it is required downstream
         if let Some(ci) = env::var_os("RUSTUP_CI") {
             cmd.env("RUSTUP_CI", ci);

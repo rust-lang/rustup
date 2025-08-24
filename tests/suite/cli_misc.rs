@@ -1746,3 +1746,30 @@ info: falling back to "[EXTERN_PATH]"
 "#]])
         .is_ok();
 }
+
+#[tokio::test]
+async fn warn_auto_install() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustc", "--version"],
+            [
+                ("RUSTUP_TOOLCHAIN", "stable"),
+                ("RUSTUP_AUTO_INSTALL", "1"),
+                ("RUST_RECURSION_COUNT", ""),
+            ],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.1.0 (hash-stable-1.1.0)
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+warn: auto-install is enabled, active toolchain will be installed if absent
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+...
+"#]])
+        .is_ok();
+}
