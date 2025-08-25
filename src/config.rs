@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::trace;
+use tracing::{info, trace, warn};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -386,12 +386,26 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn should_auto_install(&self) -> Result<bool> {
-        if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
+        let res = if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
             Ok(mode != "0")
         } else {
             self.settings_file
                 .with(|s| Ok(s.auto_install != Some(AutoInstallMode::Disable)))
+        }?;
+        if res
+            // We also need to suppress this warning if we're deep inside a recursive call.
+            && matches!(
+                self.process.var("RUST_RECURSION_COUNT").as_deref(),
+                Err(_) | Ok("0"),
+            )
+        {
+            warn!("auto-install is enabled, active toolchain will be installed if absent");
+            warn!("this behavior is deprecated and will be removed in a future version");
+            info!(
+                "you may opt out now with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`"
+            );
         }
+        Ok(res)
     }
 
     // Returns a profile, if one exists in the settings file.
@@ -745,10 +759,7 @@ impl<'a> Cfg<'a> {
 
     async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
         match name {
-            Some(tc) => {
-                let install_if_missing = self.should_auto_install()?;
-                Toolchain::from_local(tc, install_if_missing, self).await
-            }
+            Some(tc) => Toolchain::from_local(tc, || self.should_auto_install(), self).await,
             None => {
                 let tc = self
                     .maybe_ensure_active_toolchain(None)
