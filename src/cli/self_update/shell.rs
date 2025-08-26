@@ -67,6 +67,7 @@ fn enumerate_shells() -> Vec<Shell> {
         Box::new(Zsh),
         Box::new(Fish),
         Box::new(Nu),
+        Box::new(Tcsh),
     ]
 }
 
@@ -315,6 +316,55 @@ impl UnixShell for Nu {
 
     fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
         cargo_home_str_with_home("($nu.home-path)", process)
+    }
+}
+
+struct Tcsh;
+
+impl UnixShell for Tcsh {
+    fn does_exist(&self, process: &Process) -> bool {
+        matches!(process.var("SHELL"), Ok(sh) if sh.contains("tcsh"))
+            || utils::find_cmd(&["tcsh"], process).is_some()
+    }
+
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+        let mut paths = vec![];
+
+        if let Some(home) = process.home_dir() {
+            paths.push(home.join(".tcshrc"));
+            paths.push(home.join(".cshrc"));
+        }
+
+        paths
+    }
+
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+        for f in self.rcfiles(process) {
+            if f.is_file() {
+                return vec![f];
+            }
+        }
+
+        // If neither exists, default to ~/.tcshrc
+        if let Some(home) = process.home_dir() {
+            return vec![home.join(".tcshrc")];
+        }
+
+        vec![]
+    }
+
+    fn env_script(&self) -> ShellScript {
+        ShellScript {
+            name: "env.tcsh",
+            content: include_str!("env.tcsh"),
+        }
+    }
+
+    fn source_string(&self, process: &Process) -> Result<String> {
+        Ok(format!(
+            r#"source "{}/env.tcsh""#,
+            self.cargo_home_str(process)?
+        ))
     }
 }
 
