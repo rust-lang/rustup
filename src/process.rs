@@ -87,6 +87,14 @@ impl Process {
         })
     }
 
+    pub fn var_opt(&self, key: &str) -> Result<Option<String>, env::VarError> {
+        match self.var(key) {
+            Ok(val) => Ok(Some(val)),
+            Err(env::VarError::NotPresent) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
     pub fn var(&self, key: &str) -> Result<String, env::VarError> {
         let value = match self {
             Process::OsProcess(_) => env::var(key)?,
