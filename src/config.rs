@@ -1,8 +1,8 @@
 use std::fmt::{self, Debug, Display};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{env, io};
 
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
@@ -282,11 +282,12 @@ impl<'a> Cfg<'a> {
         let default_host_triple =
             settings_file.with(|s| Ok(get_default_host_triple(s, process)))?;
         // Environment override
-        let env_override = non_empty_env_var("RUSTUP_TOOLCHAIN", process)?
-            .map(ResolvableLocalToolchainName::try_from)
-            .transpose()?
-            .map(|t| t.resolve(&default_host_triple))
-            .transpose()?;
+        let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
+            Some(tc) => {
+                Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host_triple)?)
+            }
+            None => None,
+        };
 
         let dist_root_server = dist_root_server(process)?;
 
@@ -982,22 +983,21 @@ impl<'a> Cfg<'a> {
 /// The root path of the release server, without the `/dist` suffix.
 /// By default, it points to [`dist::DEFAULT_DIST_SERVER`].
 pub(crate) fn dist_root_server(process: &Process) -> Result<String> {
-    Ok(
-        if let Some(s) = non_empty_env_var("RUSTUP_DIST_SERVER", process)? {
-            trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
-            s
-        }
-        // For backwards compatibility
-        else if let Some(mut root) = non_empty_env_var("RUSTUP_DIST_ROOT", process)? {
-            trace!("`RUSTUP_DIST_ROOT` has been set to `{root}`");
-            if let Some(stripped) = root.strip_suffix("/dist") {
-                root.truncate(stripped.len());
-            }
-            root
-        } else {
-            dist::DEFAULT_DIST_SERVER.to_owned()
-        },
-    )
+    if let Some(s) = process.var_opt("RUSTUP_DIST_SERVER")? {
+        trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
+        return Ok(s);
+    }
+
+    // For backwards compatibility
+    let Some(mut root) = process.var_opt("RUSTUP_DIST_ROOT")? else {
+        return Ok(dist::DEFAULT_DIST_SERVER.to_owned());
+    };
+
+    trace!("`RUSTUP_DIST_ROOT` has been set to `{root}`");
+    if let Some(stripped) = root.strip_suffix("/dist") {
+        root.truncate(stripped.len());
+    }
+    Ok(root)
 }
 
 impl Debug for Cfg<'_> {
@@ -1041,15 +1041,6 @@ fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTriple {
         .as_ref()
         .map(TargetTriple::new)
         .unwrap_or_else(|| TargetTriple::from_host_or_build(process))
-}
-
-pub(crate) fn non_empty_env_var(name: &str, process: &Process) -> anyhow::Result<Option<String>> {
-    match process.var(name) {
-        Ok(s) if !s.is_empty() => Ok(Some(s)),
-        Ok(_) => Ok(None),
-        Err(env::VarError::NotPresent) => Ok(None),
-        Err(err) => Err(err.into()),
-    }
 }
 
 fn no_toolchain_error(process: &Process) -> anyhow::Error {
