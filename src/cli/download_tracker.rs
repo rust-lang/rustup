@@ -81,6 +81,7 @@ impl DownloadTracker {
     /// Sets the length for a new ProgressBar and gives it a style.
     pub(crate) fn content_length_received(&mut self, content_len: u64, url: &str) {
         if let Some(pb) = self.file_progress_bars.get(url) {
+            pb.reset();
             pb.set_length(content_len);
         }
     }
