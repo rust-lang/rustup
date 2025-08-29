@@ -219,9 +219,10 @@ async fn download_file_(
         .await;
 
     // The notification should only be sent if the download was successful (i.e. didn't timeout)
-    if res.is_ok() {
-        notify_handler(Notification::DownloadFinished(Some(url.as_str())));
-    }
+    notify_handler(match &res {
+        Ok(_) => Notification::DownloadFinished(Some(url.as_str())),
+        Err(_) => Notification::DownloadFailed(url.as_str()),
+    });
 
     res
 }
@@ -558,7 +559,6 @@ mod reqwest_be {
     #[cfg(feature = "reqwest-rustls-tls")]
     use rustls_platform_verifier::BuilderVerifierExt;
     use tokio_stream::StreamExt;
-    use tracing::error;
     use url::Url;
 
     use super::{DownloadError, Event};
@@ -576,7 +576,6 @@ mod reqwest_be {
 
         let res = request(url, resume_from, client)
             .await
-            .inspect_err(|error| error!(?error, "failed to download file"))
             .context("error downloading file")?;
 
         if !res.status().is_success() {

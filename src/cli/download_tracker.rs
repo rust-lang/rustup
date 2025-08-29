@@ -55,11 +55,18 @@ impl DownloadTracker {
                 }
                 true
             }
+            Notification::Install(In::Utils(Un::DownloadFailed(url))) => {
+                self.download_failed(url);
+                false
+            }
             Notification::Install(In::DownloadingComponent(component, _, _, url)) => {
                 self.create_progress_bar(component.to_owned(), url.to_owned());
                 true
             }
-            Notification::Install(In::RetryingDownload(_url)) => true,
+            Notification::Install(In::RetryingDownload(url)) => {
+                self.retrying_download(url);
+                true
+            }
             _ => false,
         }
     }
@@ -104,5 +111,31 @@ impl DownloadTracker {
                 .unwrap(),
         );
         pb.finish();
+    }
+
+    /// Notifies self that the download has failed.
+    pub(crate) fn download_failed(&mut self, url: &str) {
+        let Some(pb) = self.file_progress_bars.get(url) else {
+            return;
+        };
+        pb.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  download failed after {elapsed}")
+                .unwrap(),
+        );
+        pb.finish();
+    }
+
+    /// Notifies self that the download is being retried.
+    pub(crate) fn retrying_download(&mut self, url: &str) {
+        let Some(pb) = self.file_progress_bars.get(url) else {
+            return;
+        };
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+            )
+            .unwrap()
+            .progress_chars("## "),
+        );
     }
 }
