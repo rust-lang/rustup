@@ -3,8 +3,6 @@
 use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
-#[cfg(not(windows))]
-use std::io::ErrorKind;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex};
@@ -15,7 +13,6 @@ use git_testament::{git_testament, render_testament};
 use tracing::{debug, error, info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
-use super::self_update;
 use crate::{
     cli::download_tracker::DownloadTracker,
     config::Cfg,
@@ -301,67 +298,6 @@ pub(crate) async fn update_all_channels(
     }
 
     Ok(exit_code)
-}
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum SelfUpdatePermission {
-    HardFail,
-    #[cfg(not(windows))]
-    Skip,
-    Permit,
-}
-
-#[cfg(windows)]
-pub(crate) fn self_update_permitted(_explicit: bool) -> Result<SelfUpdatePermission> {
-    Ok(SelfUpdatePermission::Permit)
-}
-
-#[cfg(not(windows))]
-pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
-    // Detect if rustup is not meant to self-update
-    let current_exe = env::current_exe()?;
-    let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
-    if let Err(e) = tempfile::Builder::new()
-        .prefix("updtest")
-        .tempdir_in(current_exe_dir)
-    {
-        match e.kind() {
-            ErrorKind::PermissionDenied => {
-                trace!("Skipping self-update because we cannot write to the rustup dir");
-                if explicit {
-                    return Ok(SelfUpdatePermission::HardFail);
-                } else {
-                    return Ok(SelfUpdatePermission::Skip);
-                }
-            }
-            _ => return Err(e.into()),
-        }
-    }
-    Ok(SelfUpdatePermission::Permit)
-}
-
-/// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update(process: &Process) -> Result<utils::ExitCode> {
-    match self_update_permitted(false)? {
-        SelfUpdatePermission::HardFail => {
-            error!("Unable to self-update.  STOP");
-            return Ok(utils::ExitCode(1));
-        }
-        #[cfg(not(windows))]
-        SelfUpdatePermission::Skip => return Ok(utils::ExitCode(0)),
-        SelfUpdatePermission::Permit => {}
-    }
-
-    let setup_path = self_update::prepare_update(process).await?;
-
-    if let Some(setup_path) = &setup_path {
-        return self_update::run_update(setup_path);
-    } else {
-        // Try again in case we emitted "tool `{}` is already installed" last time.
-        self_update::install_proxies(process)?;
-    }
-
-    Ok(utils::ExitCode(0))
 }
 
 /// Print a list of items (targets or components) to stdout.

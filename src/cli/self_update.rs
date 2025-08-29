@@ -34,7 +34,7 @@ use std::borrow::Cow;
 use std::env::{self, consts::EXE_SUFFIX};
 use std::fmt;
 use std::fs;
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
@@ -1050,6 +1050,83 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
     Ok(utils::ExitCode(0))
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum SelfUpdatePermission {
+    HardFail,
+    #[cfg(not(windows))]
+    Skip,
+    Permit,
+}
+
+#[cfg(windows)]
+pub(crate) fn self_update_permitted(_explicit: bool) -> Result<SelfUpdatePermission> {
+    Ok(SelfUpdatePermission::Permit)
+}
+
+#[cfg(not(windows))]
+pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
+    // Detect if rustup is not meant to self-update
+    let current_exe = env::current_exe()?;
+    let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
+    if let Err(e) = tempfile::Builder::new()
+        .prefix("updtest")
+        .tempdir_in(current_exe_dir)
+    {
+        match e.kind() {
+            io::ErrorKind::PermissionDenied => {
+                trace!("Skipping self-update because we cannot write to the rustup dir");
+                if explicit {
+                    return Ok(SelfUpdatePermission::HardFail);
+                } else {
+                    return Ok(SelfUpdatePermission::Skip);
+                }
+            }
+            _ => return Err(e.into()),
+        }
+    }
+    Ok(SelfUpdatePermission::Permit)
+}
+
+/// Performs all of a self-update: check policy, download, apply and exit.
+pub(crate) async fn self_update(disabled: bool, cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+    // Priority: no-self-update feature > self_update_mode > no-self-update args.
+    // Update only if rustup does **not** have the no-self-update feature,
+    // and auto-self-update is configured to **enable**
+    // and has **no** no-self-update parameter.
+    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
+    if cfg!(feature = "no-self-update") && !disabled {
+        info!("self-update is disabled for this build of rustup");
+        info!("any updates to rustup will need to be fetched with your system package manager")
+    } else if self_update_mode == SelfUpdateMode::CheckOnly {
+        check_rustup_update(disabled, cfg).await?;
+        return Ok(utils::ExitCode(0));
+    } else if disabled {
+        info!("self-update is disabled by command line argument");
+        return Ok(utils::ExitCode(0));
+    }
+
+    match self_update_permitted(false)? {
+        SelfUpdatePermission::HardFail => {
+            error!("Unable to self-update.  STOP");
+            return Ok(utils::ExitCode(1));
+        }
+        #[cfg(not(windows))]
+        SelfUpdatePermission::Skip => return Ok(utils::ExitCode(0)),
+        SelfUpdatePermission::Permit => {}
+    }
+
+    let setup_path = prepare_update(&cfg.process).await?;
+
+    if let Some(setup_path) = &setup_path {
+        return run_update(setup_path);
+    } else {
+        // Try again in case we emitted "tool `{}` is already installed" last time.
+        install_proxies(&cfg.process)?;
+    }
+
+    Ok(utils::ExitCode(0))
+}
+
 /// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
 /// and runs it.
 ///
@@ -1068,11 +1145,11 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
 pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    use common::SelfUpdatePermission::*;
+    use SelfUpdatePermission::*;
     let update_permitted = if cfg!(feature = "no-self-update") {
         HardFail
     } else {
-        common::self_update_permitted(true)?
+        self_update_permitted(true)?
     };
     match update_permitted {
         HardFail => {
@@ -1263,13 +1340,22 @@ impl fmt::Display for SchemaVersion {
 }
 
 /// Returns whether an update was available
-pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<bool> {
-    let mut t = process.stdout().terminal(process);
+pub(crate) async fn check_rustup_update(disabled: bool, cfg: &Cfg<'_>) -> anyhow::Result<bool> {
+    // Priority: no-self-update feature > self_update_mode > no-self-update args.
+    // Check for update only if rustup does **not** have the no-self-update feature,
+    // and auto-self-update is configured to **enable**
+    // and has **no** no-self-update parameter.
+    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
+    if cfg!(feature = "no-self-update") || self_update_mode == SelfUpdateMode::Disable || disabled {
+        return Ok(false);
+    }
+
+    let mut t = cfg.process.stdout().terminal(&cfg.process);
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = get_available_rustup_version(process).await?;
+    let available_version = get_available_rustup_version(&cfg.process).await?;
 
     let _ = t.attr(terminalsource::Attr::Bold);
     write!(t.lock(), "rustup - ")?;
