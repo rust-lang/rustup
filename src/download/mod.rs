@@ -218,7 +218,10 @@ async fn download_file_(
         .download_to_path(url, path, resume_from_partial, Some(callback), timeout)
         .await;
 
-    notify_handler(Notification::DownloadFinished(Some(url.as_str())));
+    // The notification should only be sent if the download was successful (i.e. didn't timeout)
+    if res.is_ok() {
+        notify_handler(Notification::DownloadFinished(Some(url.as_str())));
+    }
 
     res
 }
