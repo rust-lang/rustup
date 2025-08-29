@@ -20,6 +20,8 @@ pub enum Notification<'a> {
     DownloadDataReceived(&'a [u8], Option<&'a str>),
     /// Download has finished.
     DownloadFinished(Option<&'a str>),
+    /// Download has failed.
+    DownloadFailed(&'a str),
     NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
     /// This would make more sense as a crate::notifications::Notification
@@ -50,6 +52,7 @@ impl Notification<'_> {
             | DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
+            | DownloadFailed(_)
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Debug,
@@ -88,6 +91,7 @@ impl Display for Notification<'_> {
             DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
+            DownloadFailed(_) => write!(f, "download failed"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
             UsingCurl => write!(f, "downloading with curl"),
