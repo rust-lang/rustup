@@ -64,7 +64,7 @@ async fn rustc_with_bad_rustup_toolchain_env_var() {
         .expect_with_env(["rustc"], [("RUSTUP_TOOLCHAIN", "bogus")])
         .await
         .with_stderr(snapbox::str![[r#"
-error: override toolchain 'bogus' is not installed[..]
+error:[..] toolchain 'bogus' is not installed[..]
 
 "#]])
         .is_err();
@@ -1381,7 +1381,10 @@ async fn which_asking_uninstalled_toolchain() {
 "#]])
         .is_ok();
     cx.config
-        .expect(["rustup", "which", "--toolchain=nightly", "rustc"])
+        .expect_with_env(
+            ["rustup", "which", "--toolchain=nightly", "rustc"],
+            [("RUSTUP_AUTO_INSTALL", "1")],
+        )
         .await
         .with_stdout(snapbox::str![[r#"
 [..]/toolchains/nightly-[HOST_TRIPLE]/bin/rustc[EXE]
@@ -1512,7 +1515,7 @@ active because: overridden by +toolchain on the command line
         .expect(["rustup", "+foo", "which", "rustc"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: override toolchain 'foo' is not installed: the +toolchain on the command line specifies an uninstalled toolchain
+error:[..] toolchain 'foo' is not installed[..]
 
 "#]])
         .is_err();
@@ -1753,11 +1756,7 @@ async fn warn_auto_install() {
     cx.config
         .expect_with_env(
             ["rustc", "--version"],
-            [
-                ("RUSTUP_TOOLCHAIN", "stable"),
-                ("RUSTUP_AUTO_INSTALL", "1"),
-                ("RUST_RECURSION_COUNT", ""),
-            ],
+            [("RUSTUP_TOOLCHAIN", "stable"), ("RUSTUP_AUTO_INSTALL", "1")],
         )
         .await
         .with_stdout(snapbox::str![[r#"

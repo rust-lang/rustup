@@ -478,13 +478,14 @@ async fn remove_override_toolchain_err_handling() {
         .await
         .is_ok();
     cx.config
-        .expect(["rustc", "--version"])
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_AUTO_INSTALL", "1")])
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)
 
 "#]])
         .with_stderr(snapbox::str![[r#"
+...
 info: syncing channel updates for 'beta-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
@@ -511,13 +512,14 @@ async fn file_override_toolchain_err_handling() {
     let toolchain_file = cwd.join("rust-toolchain");
     rustup::utils::raw::write_file(&toolchain_file, "beta").unwrap();
     cx.config
-        .expect(["rustc", "--version"])
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_AUTO_INSTALL", "1")])
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)
 
 "#]])
         .with_stderr(snapbox::str![[r#"
+...
 info: syncing channel updates for 'beta-[HOST_TRIPLE]'
 info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
@@ -553,7 +555,10 @@ error: toolchain 'beta-[HOST_TRIPLE]' is not installed
 "#]])
         .is_err();
     cx.config
-        .expect(["rustc", "+beta", "--version"])
+        .expect_with_env(
+            ["rustc", "+beta", "--version"],
+            [("RUSTUP_AUTO_INSTALL", "1")],
+        )
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)

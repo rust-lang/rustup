@@ -271,13 +271,14 @@ async fn remove_override_toolchain_err_handling() {
         .await
         .is_ok();
     cx.config
-        .expect(["rustc", "--version"])
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_AUTO_INSTALL", "1")])
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)
 
 "#]])
         .with_stderr(snapbox::str![[r#"
+...
 info: syncing channel updates for 'beta-[HOST_TRIPLE]'
 ...
 "#]])
