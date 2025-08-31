@@ -291,7 +291,7 @@ impl Config {
     /// specified by `args` under the default environment.
     #[must_use]
     pub async fn expect<S: AsRef<OsStr> + Clone + Debug>(&self, args: impl AsRef<[S]>) -> Assert {
-        self.expect_with_env(args, &[]).await
+        self.expect_with_env(args, []).await
     }
 
     /// Returns an [`Assert`] object to check the output of running the command
