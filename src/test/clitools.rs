@@ -277,6 +277,12 @@ impl Config {
             "/bogus-config-file.toml",
         );
 
+        // Clear current recursion count to avoid messing up related logic
+        cmd.env("RUST_RECURSION_COUNT", "");
+
+        // Disable auto installation of active toolchain unless explicitly requested
+        cmd.env("RUSTUP_AUTO_INSTALL", "0");
+
         // Pass `RUSTUP_CI` over to the test process in case it is required downstream
         if let Some(ci) = env::var_os("RUSTUP_CI") {
             cmd.env("RUSTUP_CI", ci);
