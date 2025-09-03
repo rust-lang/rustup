@@ -271,7 +271,7 @@ impl Manifestation {
                             match message {
                                 Ok((component, format, installer_file)) => {
                                     match self.install_component(
-                                        component,
+                                        component.clone(),
                                         format,
                                         installer_file,
                                         tmp_cx,
@@ -280,6 +280,13 @@ impl Manifestation {
                                         current_tx,
                                     ) {
                                         Ok(new_tx) => {
+                                            (download_cfg.notify_handler)(
+                                                Notification::ComponentInstalled(
+                                                    &component.short_name(new_manifest),
+                                                    &self.target_triple,
+                                                    Some(&self.target_triple),
+                                                ),
+                                            );
                                             current_tx = new_tx;
                                         }
                                         Err(e) => {
