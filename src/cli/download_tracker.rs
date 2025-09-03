@@ -77,6 +77,10 @@ impl DownloadTracker {
                 self.installing_component(component);
                 true
             }
+            Notification::Install(In::ComponentInstalled(component, _, _)) => {
+                self.component_installed(component);
+                true
+            }
             _ => false,
         }
     }
@@ -132,7 +136,6 @@ impl DownloadTracker {
             ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
                 .unwrap(),
         );
-        pb.finish();
     }
 
     /// Notifies self that the download has failed.
@@ -156,7 +159,7 @@ impl DownloadTracker {
         pb.set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
     }
 
-    /// Notifies that the downloaded component is being installed.
+    /// Notifies self that the component is being installed.
     pub(crate) fn installing_component(&mut self, component: &str) {
         let key = self
             .file_progress_bars
@@ -168,7 +171,28 @@ impl DownloadTracker {
         {
             pb.set_style(
                 ProgressStyle::with_template(
-                    "{msg:>12.bold}  downloaded {total_bytes} in {elapsed} installing now...",
+                    "{msg:>12.bold}  downloaded {total_bytes} in {elapsed} installing now {spinner:.green}",
+                )
+                .unwrap()
+                .tick_chars(r"|/-\ "),
+            );
+            pb.enable_steady_tick(Duration::from_millis(100));
+        }
+    }
+
+    /// Notifies self that the component has been installed.
+    pub(crate) fn component_installed(&mut self, component: &str) {
+        let key = self
+            .file_progress_bars
+            .keys()
+            .find(|comp| comp.contains(component))
+            .cloned();
+        if let Some(key) = key
+            && let Some((pb, _)) = self.file_progress_bars.get(&key)
+        {
+            pb.set_style(
+                ProgressStyle::with_template(
+                    "{msg:>12.bold}  downloaded {total_bytes} and installed",
                 )
                 .unwrap(),
             );

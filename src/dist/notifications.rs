@@ -26,6 +26,7 @@ pub enum Notification<'a> {
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
+    ComponentInstalled(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingOldComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
@@ -64,6 +65,7 @@ impl Notification<'_> {
             Extracting(_, _)
             | DownloadingComponent(_, _, _, _)
             | InstallingComponent(_, _, _)
+            | ComponentInstalled(_, _, _)
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
             | ComponentAlreadyInstalled(_)
@@ -120,6 +122,15 @@ impl Display for Notification<'_> {
                     write!(f, "installing component '{c}'")
                 } else {
                     write!(f, "installing component '{}' for '{}'", c, t.unwrap())
+                }
+            }
+            ComponentInstalled(c, h, t) => {
+                if let Some(t) = t
+                    && t != h
+                {
+                    write!(f, "installing component '{c}' for '{t}'")
+                } else {
+                    write!(f, "installing component '{c}'")
                 }
             }
             RemovingComponent(c, h, t) => {
