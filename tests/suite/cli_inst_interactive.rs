@@ -626,3 +626,29 @@ warn: It looks like you have an existing rustup settings file at:
 ...
 "#]]);
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn install_warns_if_default_linker_missing() {
+    // Fake PATH pointing to an empty directory so `cc` cannot be found
+    let temp_dir = tempfile::Builder::new()
+        .prefix("emptybin")
+        .tempdir()
+        .unwrap();
+    let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustup-init", "-y", "--no-modify-path"],
+            [("PATH", temp_dir_path)], // override PATH to hide system `cc`
+        )
+        .await
+        .is_ok()
+        .with_stderr(snapbox::str![[r#"
+...
+warn: no default linker (`cc`) was found in your PATH
+warn: many Rust crates require a system C toolchain to build
+...
+"#]]);
+}
