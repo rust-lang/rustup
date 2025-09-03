@@ -610,6 +610,9 @@ pub(crate) async fn install(
     };
     md(&mut term, msg);
 
+    #[cfg(unix)]
+    warn_if_default_linker_missing(process);
+
     #[cfg(windows)]
     if !no_prompt {
         // On windows, where installation happens in a console
@@ -740,6 +743,24 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
+}
+
+#[cfg(unix)]
+fn warn_if_default_linker_missing(process: &Process) {
+    // Search for `cc` in PATH
+    if let Some(path) = process.var_os("PATH") {
+        let cc_binary = format!("cc{}", env::consts::EXE_SUFFIX);
+
+        for mut p in env::split_paths(&path) {
+            p.push(&cc_binary);
+            if p.is_file() {
+                return;
+            }
+        }
+    }
+
+    warn!("no default linker (`cc`) was found in your PATH");
+    warn!("many Rust crates require a system C toolchain to build");
 }
 
 fn install_bins(process: &Process) -> Result<()> {
