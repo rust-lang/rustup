@@ -49,7 +49,7 @@ case "$TARGET" in
   *) exit ;;
 esac
 
-master=$(git ls-remote "$RUST_REPO" refs/heads/master | cut -f1)
+master=$(git ls-remote "$RUST_REPO" HEAD | cut -f1)
 image_url="$ARTIFACTS_BASE_URL/$master/image-$image.txt"
 info="/tmp/image-$image.txt"
 
