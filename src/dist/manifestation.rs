@@ -7,9 +7,9 @@ mod tests;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow, bail};
-use futures_util::stream::StreamExt;
+use futures_util::{future::join, stream::StreamExt};
 use std::sync::Arc;
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, mpsc};
 use tracing::info;
 
 use crate::dist::component::{
@@ -153,7 +153,6 @@ impl Manifestation {
         let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
         let components_len = components.len();
@@ -170,49 +169,7 @@ impl Manifestation {
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
-        info!("downloading component(s)");
-        for (component, _, url, _) in components.clone() {
-            (download_cfg.notify_handler)(Notification::DownloadingComponent(
-                &component.short_name(new_manifest),
-                &self.target_triple,
-                component.target.as_ref(),
-                &url,
-            ));
-        }
-
-        let semaphore = Arc::new(Semaphore::new(num_channels));
-        let component_stream =
-            tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
-                let sem = semaphore.clone();
-                async move {
-                    let _permit = sem.acquire().await.unwrap();
-                    self.download_component(
-                        component,
-                        format,
-                        url,
-                        hash,
-                        altered,
-                        tmp_cx,
-                        download_cfg,
-                        max_retries,
-                        new_manifest,
-                    )
-                    .await
-                }
-            });
-        if num_channels > 0 {
-            let results = component_stream
-                .buffered(components_len)
-                .collect::<Vec<_>>()
-                .await;
-            for result in results {
-                let (component, format, downloaded_file, hash) = result?;
-                things_downloaded.push(hash);
-                things_to_install.push((component, format, downloaded_file));
-            }
-        }
-
-        // Begin transaction
+        // Begin transaction before the downloads, as installations are interleaved with those
         let mut tx = Transaction::new(
             prefix.clone(),
             tmp_cx,
@@ -246,67 +203,111 @@ impl Manifestation {
             )?;
         }
 
-        // Install components
-        for (component, format, installer_file) in things_to_install {
-            // For historical reasons, the rust-installer component
-            // names are not the same as the dist manifest component
-            // names. Some are just the component name some are the
-            // component name plus the target triple.
-            let pkg_name = component.name_in_manifest();
-            let short_pkg_name = component.short_name_in_manifest();
-            let short_name = component.short_name(new_manifest);
-
-            (download_cfg.notify_handler)(Notification::InstallingComponent(
-                &short_name,
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
-
-            let notification_converter = |notification: crate::utils::Notification<'_>| {
-                (download_cfg.notify_handler)(notification.into());
-            };
-            let gz;
-            let xz;
-            let zst;
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-            let package: &dyn Package = match format {
-                CompressionKind::GZip => {
-                    gz = TarGzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &gz
-                }
-                CompressionKind::XZ => {
-                    xz = TarXzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &xz
-                }
-                CompressionKind::ZStd => {
-                    zst = TarZStdPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &zst
-                }
-            };
-
-            // If the package doesn't contain the component that the
-            // manifest says it does then somebody must be playing a joke on us.
-            if !package.contains(&pkg_name, Some(short_pkg_name)) {
-                return Err(RustupError::CorruptComponent(short_name).into());
+        if num_channels > 0 {
+            info!("downloading component(s)");
+            for (component, _, url, _) in components.clone() {
+                (download_cfg.notify_handler)(Notification::DownloadingComponent(
+                    &component.short_name(new_manifest),
+                    &self.target_triple,
+                    component.target.as_ref(),
+                    &url,
+                ));
             }
 
-            tx = package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)?;
+            // Create a channel to communicate whenever a download is done and the component can be installed
+            // The `mpsc` channel was used as we need to send many messages from one producer (download's thread) to one consumer (install's thread)
+            // This is recommended in the official docs: https://docs.rs/tokio/latest/tokio/sync/index.html#mpsc-channel
+            let total_components = components.len();
+            let (download_tx, mut download_rx) =
+                mpsc::channel::<Result<(Component, CompressionKind, File)>>(total_components);
+
+            let semaphore = Arc::new(Semaphore::new(num_channels));
+            let component_stream =
+                tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
+                    let sem = semaphore.clone();
+                    let download_tx_cloned = download_tx.clone();
+                    async move {
+                        let _permit = sem.acquire().await.unwrap();
+                        self.download_component(
+                            component,
+                            format,
+                            url,
+                            hash,
+                            altered,
+                            tmp_cx,
+                            download_cfg,
+                            max_retries,
+                            new_manifest,
+                            download_tx_cloned,
+                        )
+                        .await
+                    }
+                });
+
+            let mut stream = component_stream.buffered(num_channels);
+            let (download_results, install_result) = join(
+                async {
+                    let mut hashes = Vec::new();
+                    while let Some(result) = stream.next().await {
+                        match result {
+                            Ok(hash) => {
+                                hashes.push(hash);
+                            }
+                            Err(e) => {
+                                let _ = download_tx.send(Err(e)).await;
+                            }
+                        }
+                    }
+                    hashes
+                },
+                async {
+                    let mut current_tx = tx;
+                    let mut counter = 0;
+                    loop {
+                        if counter >= total_components {
+                            break;
+                        }
+                        if let Some(message) = download_rx.recv().await {
+                            match message {
+                                Ok((component, format, installer_file)) => {
+                                    match self.install_component(
+                                        component.clone(),
+                                        format,
+                                        installer_file,
+                                        tmp_cx,
+                                        download_cfg,
+                                        new_manifest,
+                                        current_tx,
+                                    ) {
+                                        Ok(new_tx) => {
+                                            (download_cfg.notify_handler)(
+                                                Notification::ComponentInstalled(
+                                                    &component.short_name(new_manifest),
+                                                    &self.target_triple,
+                                                    Some(&self.target_triple),
+                                                ),
+                                            );
+                                            current_tx = new_tx;
+                                        }
+                                        Err(e) => {
+                                            return Err(e);
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    return Err(e);
+                                }
+                            }
+                            counter += 1;
+                        }
+                    }
+                    Ok(current_tx)
+                },
+            )
+            .await;
+
+            things_downloaded = download_results;
+            tx = install_result?;
         }
 
         // Install new distribution manifest
@@ -558,7 +559,8 @@ impl Manifestation {
         download_cfg: &DownloadCfg<'_>,
         max_retries: usize,
         new_manifest: &Manifest,
-    ) -> Result<(Component, CompressionKind, File, String)> {
+        notification_tx: mpsc::Sender<Result<(Component, CompressionKind, File)>>,
+    ) -> Result<String> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = if altered {
@@ -587,7 +589,82 @@ impl Manifestation {
         .await
         .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
-        Ok((component, format, downloaded_file, hash))
+        let _ = notification_tx
+            .send(Ok((component.clone(), format, downloaded_file)))
+            .await;
+        Ok(hash)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn install_component<'a>(
+        &self,
+        component: Component,
+        format: CompressionKind,
+        installer_file: File,
+        tmp_cx: &temp::Context,
+        download_cfg: &DownloadCfg<'_>,
+        new_manifest: &Manifest,
+        tx: Transaction<'a>,
+    ) -> Result<Transaction<'a>> {
+        // For historical reasons, the rust-installer component
+        // names are not the same as the dist manifest component
+        // names. Some are just the component name some are the
+        // component name plus the target triple.
+        let pkg_name = component.name_in_manifest();
+        let short_pkg_name = component.short_name_in_manifest();
+        let short_name = component.short_name(new_manifest);
+
+        (download_cfg.notify_handler)(Notification::InstallingComponent(
+            &short_name,
+            &self.target_triple,
+            component.target.as_ref(),
+        ));
+
+        let notification_converter = |notification: crate::utils::Notification<'_>| {
+            (download_cfg.notify_handler)(notification.into());
+        };
+        let gz;
+        let xz;
+        let zst;
+        let reader =
+            utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+        let package: &dyn Package = match format {
+            CompressionKind::GZip => {
+                gz = TarGzPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    download_cfg.process,
+                )?;
+                &gz
+            }
+            CompressionKind::XZ => {
+                xz = TarXzPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    download_cfg.process,
+                )?;
+                &xz
+            }
+            CompressionKind::ZStd => {
+                zst = TarZStdPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    download_cfg.process,
+                )?;
+                &zst
+            }
+        };
+
+        // If the package doesn't contain the component that the
+        // manifest says it does then somebody must be playing a joke on us.
+        if !package.contains(&pkg_name, Some(short_pkg_name)) {
+            return Err(RustupError::CorruptComponent(short_name).into());
+        }
+
+        package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)
     }
 }
 
