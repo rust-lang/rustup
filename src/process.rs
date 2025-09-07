@@ -188,12 +188,8 @@ impl Process {
     }
 
     pub fn concurrent_downloads(&self) -> Option<usize> {
-        match self.var("RUSTUP_CONCURRENT_DOWNLOADS") {
-            Ok(s) => Some(NonZeroU64::from_str(&s).context(
-                "invalid value in RUSTUP_CONCURRENT_DOWNLOADS -- must be a natural number greater than zero"
-            ).ok()?.get() as usize),
-            Err(_) => None,
-        }
+        let s = self.var("RUSTUP_CONCURRENT_DOWNLOADS").ok()?;
+        Some(NonZeroU64::from_str(&s).ok()?.get() as usize)
     }
 }
 
