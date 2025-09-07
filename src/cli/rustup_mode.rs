@@ -815,7 +815,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
             pb.set_style(
                 ProgressStyle::with_template("{msg:.bold} - Checking... {spinner:.green}")
                     .unwrap()
-                    .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ "),
+                    .tick_chars(r"|/-\ "),
             );
             pb.set_message(format!("{name}"));
             pb.enable_steady_tick(Duration::from_millis(100));
