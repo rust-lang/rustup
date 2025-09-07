@@ -1,7 +1,7 @@
 //! Easy file downloading
 
 use std::fs::remove_file;
-use std::num::NonZeroU64;
+use std::num::NonZero;
 use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
@@ -201,9 +201,11 @@ async fn download_file_(
     };
 
     let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
-        Ok(s) => NonZeroU64::from_str(&s).context(
-            "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
-        )?.get(),
+        Ok(s) => NonZero::from_str(&s)
+            .context(
+                "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
+            )?
+            .get(),
         Err(_) => 180,
     });
 
