@@ -157,10 +157,12 @@ impl Manifestation {
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
         let components_len = components.len();
+
+        const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
         let concurrent_downloads = download_cfg
             .process
             .concurrent_downloads()
-            .unwrap_or(components_len);
+            .unwrap_or(DEFAULT_CONCURRENT_DOWNLOADS);
 
         const DEFAULT_MAX_RETRIES: usize = 3;
         let max_retries: usize = download_cfg
