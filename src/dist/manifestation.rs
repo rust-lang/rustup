@@ -157,7 +157,7 @@ impl Manifestation {
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
         let components_len = components.len();
-        let num_channels = download_cfg
+        let concurrent_downloads = download_cfg
             .process
             .concurrent_downloads()
             .unwrap_or(components_len);
@@ -180,7 +180,7 @@ impl Manifestation {
             ));
         }
 
-        let semaphore = Arc::new(Semaphore::new(num_channels));
+        let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
         let component_stream =
             tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
                 let sem = semaphore.clone();
