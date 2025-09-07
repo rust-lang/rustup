@@ -802,7 +802,13 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     let mut update_available = false;
     let channels = cfg.list_channels()?;
     let channels_len = channels.len();
-    let concurrent_downloads = cfg.process.concurrent_downloads().unwrap_or(channels_len);
+
+    // Check updates for all channels unless `RUSTUP_CONCURRENT_DOWNLOADS` is set to 1,
+    // since the overhead of spawning many concurrent tasks here is acceptable.
+    let concurrent_downloads = match cfg.process.concurrent_downloads() {
+        Some(1) => 1,
+        Some(_) | None => channels_len,
+    };
 
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
