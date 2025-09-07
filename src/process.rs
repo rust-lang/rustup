@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::fmt::Debug;
 use std::io;
 use std::io::IsTerminal;
-use std::num::NonZeroU64;
+use std::num::NonZero;
 use std::path::PathBuf;
 use std::str::FromStr;
 #[cfg(feature = "test")]
@@ -189,7 +189,7 @@ impl Process {
 
     pub fn concurrent_downloads(&self) -> Option<usize> {
         let s = self.var("RUSTUP_CONCURRENT_DOWNLOADS").ok()?;
-        Some(NonZeroU64::from_str(&s).ok()?.get() as usize)
+        Some(NonZero::from_str(&s).ok()?.get())
     }
 }
 
