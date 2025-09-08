@@ -133,8 +133,12 @@ impl DownloadTracker {
             return;
         };
         pb.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
-                .unwrap(),
+            ProgressStyle::with_template(if pb.position() != 0 {
+                "{msg:>12.bold}  downloaded {total_bytes} in {elapsed}"
+            } else {
+                "{msg:>12.bold}  component already downloaded"
+            })
+            .unwrap(),
         );
     }
 
@@ -170,8 +174,11 @@ impl DownloadTracker {
             && let Some((pb, _)) = self.file_progress_bars.get(&key)
         {
             pb.set_style(
-                ProgressStyle::with_template(
-                    "{msg:>12.bold}  downloaded {total_bytes} in {elapsed} installing now {spinner:.green}",
+                ProgressStyle::with_template( if pb.position() != 0 {
+                    "{msg:>12.bold}  downloaded {total_bytes} in {elapsed} and installing {spinner:.green}"
+                } else {
+                    "{msg:>12.bold}  component already downloaded and installing {spinner:.green}"
+                }
                 )
                 .unwrap()
                 .tick_chars(r"|/-\ "),
@@ -191,9 +198,11 @@ impl DownloadTracker {
             && let Some((pb, _)) = self.file_progress_bars.get(&key)
         {
             pb.set_style(
-                ProgressStyle::with_template(
-                    "{msg:>12.bold}  downloaded {total_bytes} and installed",
-                )
+                ProgressStyle::with_template(if pb.position() != 0 {
+                    "{msg:>12.bold}  downloaded {total_bytes} and installed"
+                } else {
+                    "{msg:>12.bold}  component already downloaded and installed"
+                })
                 .unwrap(),
             );
             pb.finish();
