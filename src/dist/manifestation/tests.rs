@@ -417,16 +417,33 @@ struct TestContext {
 
 impl TestContext {
     fn new(edit: Option<&dyn Fn(&str, &mut MockChannel)>, comps: Compressions) -> Self {
+        Self::with_env(edit, comps, HashMap::new())
+    }
+
+    fn with_env(
+        edit: Option<&dyn Fn(&str, &mut MockChannel)>,
+        comps: Compressions,
+        env: HashMap<String, String>,
+    ) -> Self {
         let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         let mock_dist_server = create_mock_dist_server(dist_tempdir.path(), edit);
         let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
-        let mut cx = Self::from_dist_server(mock_dist_server, url, comps);
+        let mut cx = Self::from_dist_server_with_env(mock_dist_server, url, comps, env);
         cx._tempdirs.push(dist_tempdir);
         cx
     }
 
     fn from_dist_server(server: MockDistServer, url: Url, comps: Compressions) -> Self {
+        Self::from_dist_server_with_env(server, url, comps, HashMap::new())
+    }
+
+    fn from_dist_server_with_env(
+        server: MockDistServer,
+        url: Url,
+        comps: Compressions,
+        env: HashMap<String, String>,
+    ) -> Self {
         server.write(
             &[MockManifestVersion::V2],
             comps.enable_xz(),
@@ -444,12 +461,7 @@ impl TestContext {
 
         let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
         let prefix = InstallPrefix::from(prefix_tempdir.path());
-        let tp = TestProcess::new(
-            env::current_dir().unwrap(),
-            &["rustup"],
-            HashMap::default(),
-            "",
-        );
+        let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], env, "");
 
         Self {
             url,
