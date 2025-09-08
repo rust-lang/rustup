@@ -1314,6 +1314,33 @@ async fn remove_extensions_does_not_remove_other_components() {
 }
 
 #[tokio::test]
+async fn remove_extensions_does_not_hang_with_concurrent_downloads_override() {
+    let cx = TestContext::with_env(
+        None,
+        GZOnly,
+        [("RUSTUP_CONCURRENT_DOWNLOADS".to_owned(), "2".to_owned())].into(),
+    );
+
+    let adds = vec![Component::new(
+        "rust-std".to_string(),
+        Some(TargetTriple::new("i686-apple-darwin")),
+        false,
+    )];
+
+    cx.update_from_dist(&adds, &[], false).await.unwrap();
+
+    let removes = vec![Component::new(
+        "rust-std".to_string(),
+        Some(TargetTriple::new("i686-apple-darwin")),
+        false,
+    )];
+
+    cx.update_from_dist(&[], &removes, false).await.unwrap();
+
+    assert!(utils::path_exists(cx.prefix.path().join("bin/rustc")));
+}
+
+#[tokio::test]
 async fn add_and_remove_for_upgrade() {
     let cx = TestContext::new(None, GZOnly);
     change_channel_date(&cx.url, "nightly", "2016-02-01");

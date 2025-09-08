@@ -806,7 +806,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
 
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
-    if num_channels > 0 {
+    if channels_len > 0 {
         let multi_progress_bars =
             MultiProgress::with_draw_target(cfg.process.progress_draw_target());
         let semaphore = Arc::new(Semaphore::new(num_channels));
