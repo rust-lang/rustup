@@ -200,7 +200,7 @@ impl Manifestation {
                     .await
                 }
             });
-        if num_channels > 0 {
+        if components_len > 0 {
             let results = component_stream
                 .buffered(components_len)
                 .collect::<Vec<_>>()

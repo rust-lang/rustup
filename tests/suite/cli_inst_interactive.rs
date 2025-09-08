@@ -263,6 +263,43 @@ no active toolchain
 }
 
 #[tokio::test]
+async fn with_no_toolchain_doesnt_hang() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    run_input(
+        &cx.config,
+        &[
+            "rustup-init",
+            "--no-modify-path",
+            "--default-toolchain=none",
+        ],
+        "\n\n",
+    )
+    .is_ok();
+
+    cx.config.expect(["rustup", "check"]).await.is_err();
+}
+
+#[tokio::test]
+async fn with_no_toolchain_doesnt_hang_with_concurrent_downloads_override() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    run_input(
+        &cx.config,
+        &[
+            "rustup-init",
+            "--no-modify-path",
+            "--default-toolchain=none",
+        ],
+        "\n\n",
+    )
+    .is_ok();
+
+    cx.config
+        .expect_with_env(["rustup", "check"], [("RUSTUP_CONCURRENT_DOWNLOADS", "2")])
+        .await
+        .is_err();
+}
+
+#[tokio::test]
 async fn with_non_default_toolchain_still_prompts() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     run_input(
