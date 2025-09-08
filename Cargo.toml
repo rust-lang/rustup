@@ -130,7 +130,7 @@ features = [
   "Win32_UI",
   "Win32_UI_WindowsAndMessaging",
 ]
-version = "0.60"
+version = "0.61"
 
 [dev-dependencies]
 enum-map = "2.5.0"
