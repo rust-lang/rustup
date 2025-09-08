@@ -45,6 +45,12 @@
             "matchPackageNames": [
                 "/opentelemetry/"
             ]
+        },
+        {
+            "groupName": "windows-rs",
+            "matchPackageNames": [
+                "/^windows-/"
+            ]
         }
     ]
 }
