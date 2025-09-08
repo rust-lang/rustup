@@ -108,8 +108,8 @@ walkdir = { version = "2", optional = true }
 [target."cfg(windows)".dependencies]
 cc = "1"
 scopeguard = "1"
-windows-registry = "0.5.0"
-windows-result = "0.3.0"
+windows-registry = "0.6"
+windows-result = "0.4"
 
 [target."cfg(windows)".dependencies.windows-sys]
 features = [
@@ -130,7 +130,7 @@ features = [
   "Win32_UI",
   "Win32_UI_WindowsAndMessaging",
 ]
-version = "0.60"
+version = "0.61"
 
 [dev-dependencies]
 enum-map = "2.5.0"
