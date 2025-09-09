@@ -92,7 +92,7 @@ tokio = { version = "1.26.0", default-features = false, features = ["macros", "r
 tokio-retry = "0.3.0"
 tokio-stream = "0.1.14"
 toml = "0.9"
-tracing = "0.1"
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_debug"] }
 tracing-log = "0.2"
 tracing-opentelemetry = { version = "0.31", optional = true }
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
