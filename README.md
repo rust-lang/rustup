@@ -1,6 +1,6 @@
 # Rustup: the Rust toolchain installer
 
-![Build Status][actions-default-branch]
+[![Build Status][actions-default-branch]][actions-default-branch-status]
 
 *Rustup* installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta,
@@ -36,3 +36,4 @@ at your option.
 
 <!-- Badges -->
 [actions-default-branch]: https://github.com/rust-lang/rustup/actions/workflows/ci.yaml/badge.svg
+[actions-default-branch-status]: https://github.com/rust-lang/rustup/actions?query=branch%3Amaster
