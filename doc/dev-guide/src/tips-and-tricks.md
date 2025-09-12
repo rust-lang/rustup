@@ -7,9 +7,15 @@ it's a particular binary, rather than e.g. copying it, symlinking it or other
 tricks with exec. This is handy when testing particular code paths from cargo
 run.
 
-```shell
-RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
+For example, if you want to run `rustup show` with `cargo run`, you may execute:
+
+```console
+> cargo run --config env.RUSTUP_FORCE_ARG0=\'rustup\' -- show
 ```
+
+This command passes the `RUSTUP_FORCE_ARG0` environment variable to the
+`rustup-init` binary without influencing the `cargo run` command itself,
+which is very important since `cargo` could also be a rustup proxy.
 
 ## `RUSTUP_BACKTRACK_LIMIT`
 
