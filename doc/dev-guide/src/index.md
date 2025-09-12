@@ -8,8 +8,15 @@
 6. Push to the branch: `git push origin my-new-feature`
 7. Submit a pull request :D
 
-For developing on `rustup` itself, you may want to install into a temporary
-directory, with a series of commands similar to this:
+For developing on `rustup` itself, the easiest way is to run the development
+build on your current installation. This approach is best used for minor fixes
+or improvements. See the documentation for [`RUSTUP_FORCE_ARG0`] for more info.
+
+[`RUSTUP_FORCE_ARG0`]: tips-and-tricks.md#rustup_force_arg0
+
+A more formal solution involves installing rustup into a temporary directory as
+your dedicated test environment.
+To do so, you can run a series of commands similar to this:
 
 ```bash
 cargo build
