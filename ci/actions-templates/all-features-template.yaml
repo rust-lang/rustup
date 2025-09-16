@@ -34,7 +34,7 @@ jobs: # skip-all
         run: |
           Get-Command openssl
           openssl version
-          echo "OPENSSL_LIB_DIR=C:/Program Files/OpenSSL/lib" >> $env:GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=C:/Program Files/OpenSSL/lib/VC/x64/MD" >> $env:GITHUB_ENV
           echo "OPENSSL_DIR=C:/Program Files/OpenSSL/" >> $env:GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=C:/Program Files/OpenSSL/include" >> $env:GITHUB_ENV
       - name: Install NASM
