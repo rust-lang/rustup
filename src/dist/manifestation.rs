@@ -308,18 +308,21 @@ impl Manifestation {
                         && let Some(message) = download_rx.recv().await
                     {
                         let (component_bin, installer_file) = message?;
-                        current_tx = {
+                        current_tx = tokio::task::spawn_blocking({
                             let this = self.clone();
                             let new_manifest = new_manifest.clone();
                             let download_cfg = download_cfg.clone();
-                            component_bin.install(
-                                installer_file,
-                                current_tx,
-                                &new_manifest,
-                                &this,
-                                &download_cfg,
-                            )
-                        }?;
+                            move || {
+                                component_bin.install(
+                                    installer_file,
+                                    current_tx,
+                                    &new_manifest,
+                                    &this,
+                                    &download_cfg,
+                                )
+                            }
+                        })
+                        .await??;
                         counter += 1;
                     }
                     Ok::<_, Error>(current_tx)
