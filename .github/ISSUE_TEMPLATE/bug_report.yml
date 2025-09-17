@@ -12,7 +12,7 @@ body:
       label: Verification
       description: Please verify that you've followed these steps.
       options:
-        - label: I searched for recent similar issues at https://github.com/rust-lang/rustup/issues?q=is%3Aissue+is%3Aopen%2Cclosed and found no duplicates.
+        - label: I searched for recent similar issues at https://github.com/rust-lang/rustup/issues?q=is%3Aissue and found no duplicates.
           required: true
         - label: I am on the latest version of Rustup according to https://github.com/rust-lang/rustup/tags and am still able to reproduce my issue.
           required: true
