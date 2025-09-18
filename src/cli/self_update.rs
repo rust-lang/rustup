@@ -1127,7 +1127,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 }
 
 /// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<utils::ExitCode> {
+pub(crate) async fn self_update(dl_cfg: &DownloadCfg) -> Result<utils::ExitCode> {
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             error!("Unable to self-update.  STOP");
@@ -1144,7 +1144,7 @@ pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<utils::ExitC
         return run_update(setup_path);
     } else {
         // Try again in case we emitted "tool `{}` is already installed" last time.
-        install_proxies(dl_cfg.process)?;
+        install_proxies(&dl_cfg.process)?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1242,7 +1242,7 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<PathBuf>> {
+pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg) -> Result<Option<PathBuf>> {
     let cargo_home = dl_cfg.process.cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
@@ -1265,10 +1265,10 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     // If someone really wants to use another version, they still can enforce
     // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
     #[cfg(windows)]
-    let triple = TargetTriple::from_host(dl_cfg.process).unwrap_or(triple);
+    let triple = TargetTriple::from_host(&dl_cfg.process).unwrap_or(triple);
 
     // Get update root.
-    let update_root = update_root(dl_cfg.process);
+    let update_root = update_root(&dl_cfg.process);
 
     // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
@@ -1296,7 +1296,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
 
     // Download new version
     info!("downloading self-update (new version: {available_version})");
-    download_file(&download_url, &setup_path, None, None, dl_cfg.process).await?;
+    download_file(&download_url, &setup_path, None, None, &dl_cfg.process).await?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
@@ -1304,8 +1304,8 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     Ok(Some(setup_path))
 }
 
-async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String> {
-    let update_root = update_root(dl_cfg.process);
+async fn get_available_rustup_version(dl_cfg: &DownloadCfg) -> Result<String> {
+    let update_root = update_root(&dl_cfg.process);
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
         .tempdir()
@@ -1315,7 +1315,14 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    download_file(&release_file_url, &release_file, None, None, dl_cfg.process).await?;
+    download_file(
+        &release_file_url,
+        &release_file,
+        None,
+        None,
+        &dl_cfg.process,
+    )
+    .await?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml = toml::from_str::<RustupManifest>(&release_toml_str)
         .context("unable to parse rustup release file")?;
@@ -1363,7 +1370,7 @@ impl fmt::Display for SchemaVersion {
 }
 
 /// Returns whether an update was available
-pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> Result<bool> {
+pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg) -> Result<bool> {
     let t = dl_cfg.process.stdout();
     let mut t = t.lock();
     // Get current rustup version

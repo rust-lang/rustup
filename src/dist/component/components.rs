@@ -55,7 +55,7 @@ impl Components {
             Ok(None)
         }
     }
-    fn write_version(&self, tx: &mut Transaction<'_>) -> Result<()> {
+    fn write_version(&self, tx: &mut Transaction) -> Result<()> {
         tx.modify_file(self.prefix.rel_manifest_file(VERSION_FILE))?;
         utils::write_file(
             VERSION_FILE,
@@ -79,7 +79,7 @@ impl Components {
             })
             .collect())
     }
-    pub(crate) fn add<'a>(&self, name: &str, tx: Transaction<'a>) -> ComponentBuilder<'a> {
+    pub(crate) fn add(&self, name: &str, tx: Transaction) -> ComponentBuilder {
         ComponentBuilder {
             components: self.clone(),
             name: name.to_owned(),
@@ -96,14 +96,14 @@ impl Components {
     }
 }
 
-pub(crate) struct ComponentBuilder<'a> {
+pub(crate) struct ComponentBuilder {
     components: Components,
     name: String,
     parts: Vec<ComponentPart>,
-    tx: Transaction<'a>,
+    tx: Transaction,
 }
 
-impl<'a> ComponentBuilder<'a> {
+impl ComponentBuilder {
     pub(crate) fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.parts.push(ComponentPart {
             kind: ComponentPartKind::File,
@@ -132,7 +132,7 @@ impl<'a> ComponentBuilder<'a> {
         });
         self.tx.move_dir(&self.name, path, src)
     }
-    pub(crate) fn finish(mut self) -> Result<Transaction<'a>> {
+    pub(crate) fn finish(mut self) -> Result<Transaction> {
         // Write component manifest
         let path = self.components.rel_component_manifest(&self.name);
         let abs_path = self.components.prefix.abs_path(&path);
@@ -255,11 +255,7 @@ impl Component {
         }
         Ok(result)
     }
-    pub fn uninstall<'a>(
-        &self,
-        mut tx: Transaction<'a>,
-        process: &Process,
-    ) -> Result<Transaction<'a>> {
+    pub fn uninstall(&self, mut tx: Transaction, process: &Process) -> Result<Transaction> {
         // Update components file
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);

@@ -480,16 +480,16 @@ impl TestContext {
         force: bool,
     ) -> Result<UpdateStatus> {
         let dl_cfg = DownloadCfg {
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
-            tracker: DownloadTracker::new(false, &self.tp.process),
-            process: &self.tp.process,
+            tmp_cx: Arc::new(self.tmp_cx.clone()),
+            download_dir: Arc::new(self.download_dir.clone()),
+            tracker: Arc::new(DownloadTracker::new(false, &self.tp.process)),
+            process: Arc::new(self.tp.process.clone()),
         };
 
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
-        download_file(&manifest_url, &manifest_file, None, None, dl_cfg.process).await?;
+        download_file(&manifest_url, &manifest_file, None, None, &dl_cfg.process).await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
         let manifest = Manifest::parse(&manifest_str)?;
 
@@ -507,12 +507,12 @@ impl TestContext {
             remove_components: remove.to_owned(),
         };
 
-        manifestation
+        Arc::new(manifestation)
             .update(
-                &manifest,
+                Arc::new(manifest),
                 changes,
                 force,
-                &dl_cfg,
+                dl_cfg,
                 &self.toolchain.manifest_name(),
                 true,
             )
@@ -524,7 +524,11 @@ impl TestContext {
         let manifestation = Manifestation::open(self.prefix.clone(), trip)?;
         let manifest = manifestation.load_manifest()?.unwrap();
 
-        manifestation.uninstall(&manifest, &self.tmp_cx, &self.tp.process)?;
+        manifestation.uninstall(
+            Arc::new(manifest),
+            Arc::new(self.tmp_cx.clone()),
+            Arc::new(self.tp.process.clone()),
+        )?;
 
         Ok(())
     }
