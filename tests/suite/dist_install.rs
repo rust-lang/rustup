@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use std::sync::Arc;
 
 use rustup::dist::DEFAULT_DIST_SERVER;
 use rustup::dist::Notification;
@@ -114,11 +115,16 @@ fn basic_install() {
     let tmp_cx = temp::Context::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
+        Arc::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let tx = Transaction::new(
+        prefix.clone(),
+        Arc::new(tmp_cx),
+        Arc::new(notify),
+        Arc::new(tp.process),
+    );
 
     let components = Components::open(prefix).unwrap();
 
@@ -161,11 +167,16 @@ fn multiple_component_install() {
     let tmp_cx = temp::Context::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
+        Arc::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let tx = Transaction::new(
+        prefix.clone(),
+        Arc::new(tmp_cx),
+        Arc::new(notify),
+        Arc::new(tp.process),
+    );
 
     let components = Components::open(prefix).unwrap();
 
@@ -212,11 +223,16 @@ fn uninstall() {
     let tmp_cx = temp::Context::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
+        Arc::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let tx = Transaction::new(
+        prefix.clone(),
+        Arc::new(tmp_cx.clone()),
+        Arc::new(notify),
+        Arc::new(tp.process),
+    );
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -229,7 +245,12 @@ fn uninstall() {
     // Now uninstall
     let notify = |_: Notification<'_>| ();
     let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let mut tx = Transaction::new(
+        prefix.clone(),
+        Arc::new(tmp_cx),
+        Arc::new(notify),
+        Arc::new(tp.process.clone()),
+    );
     for component in components.list().unwrap() {
         tx = component.uninstall(tx, &tp.process).unwrap();
     }
@@ -271,11 +292,16 @@ fn component_bad_version() {
     let tmp_cx = temp::Context::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
+        Arc::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let tx = Transaction::new(
+        prefix.clone(),
+        Arc::new(tmp_cx),
+        Arc::new(notify),
+        Arc::new(tp.process),
+    );
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -318,11 +344,16 @@ fn install_to_prefix_that_does_not_exist() {
     let tmp_cx = temp::Context::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
+        Arc::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let tx = Transaction::new(
+        prefix.clone(),
+        Arc::new(tmp_cx),
+        Arc::new(notify),
+        Arc::new(tp.process),
+    );
 
     let components = Components::open(prefix).unwrap();
 

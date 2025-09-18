@@ -7,6 +7,8 @@ use std::path::Path;
 
 use super::manifest::Manifest;
 
+pub type NotifyHandler = dyn for<'a> Fn(Notification<'a>) + Sync + Send;
+
 #[derive(Debug)]
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),

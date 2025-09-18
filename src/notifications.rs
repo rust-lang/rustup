@@ -8,6 +8,8 @@ use crate::{
     utils::notify::NotificationLevel,
 };
 
+pub(crate) type NotifyHandler = dyn for<'a> Fn(Notification<'a>) + Sync + Send;
+
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
