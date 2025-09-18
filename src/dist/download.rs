@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::fs;
 use std::ops;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -20,21 +21,22 @@ use crate::utils;
 
 const UPDATE_HASH_LEN: usize = 20;
 
-pub struct DownloadCfg<'a> {
-    pub tmp_cx: &'a temp::Context,
-    pub download_dir: &'a PathBuf,
-    pub(super) tracker: DownloadTracker,
-    pub process: &'a Process,
+#[derive(Clone)]
+pub struct DownloadCfg {
+    pub tmp_cx: Arc<temp::Context>,
+    pub download_dir: Arc<PathBuf>,
+    pub(super) tracker: Arc<DownloadTracker>,
+    pub process: Arc<Process>,
 }
 
-impl<'a> DownloadCfg<'a> {
+impl DownloadCfg {
     /// construct a download configuration
-    pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
+    pub(crate) fn new(cfg: &'_ Cfg<'_>) -> Self {
         DownloadCfg {
-            tmp_cx: &cfg.tmp_cx,
-            download_dir: &cfg.download_dir,
-            tracker: DownloadTracker::new(!cfg.quiet, cfg.process),
-            process: cfg.process,
+            tmp_cx: cfg.tmp_cx.clone(),
+            download_dir: Arc::new(cfg.download_dir.clone()),
+            tracker: Arc::new(DownloadTracker::new(!cfg.quiet, cfg.process)),
+            process: Arc::new(cfg.process.clone()),
         }
     }
 
@@ -48,7 +50,7 @@ impl<'a> DownloadCfg<'a> {
         hash: &str,
         status: &DownloadStatus,
     ) -> Result<File> {
-        utils::ensure_dir_exists("Download Directory", self.download_dir)?;
+        utils::ensure_dir_exists("Download Directory", &self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
@@ -82,7 +84,7 @@ impl<'a> DownloadCfg<'a> {
             Some(&mut hasher),
             true,
             Some(status),
-            self.process,
+            &self.process,
         )
         .await
         {
@@ -111,7 +113,12 @@ impl<'a> DownloadCfg<'a> {
             }
         } else {
             debug!(url = url.as_ref(), "checksum passed");
-            utils::rename("downloaded", &partial_file_path, &target_file, self.process)?;
+            utils::rename(
+                "downloaded",
+                &partial_file_path,
+                &target_file,
+                &self.process,
+            )?;
             Ok(File { path: target_file })
         }
     }
@@ -128,9 +135,9 @@ impl<'a> DownloadCfg<'a> {
 
     async fn download_hash(&self, url: &str) -> Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
-        let hash_file = self.tmp_cx.new_file()?;
+        let hash_file = self.tmp_cx.clone().new_file()?;
 
-        download_file(&hash_url, &hash_file, None, None, self.process).await?;
+        download_file(&hash_url, &hash_file, None, None, &self.process).await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
@@ -169,10 +176,10 @@ impl<'a> DownloadCfg<'a> {
         }
 
         let url = utils::parse_url(url_str)?;
-        let file = self.tmp_cx.new_file_with_ext("", ext)?;
+        let file = self.tmp_cx.clone().new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        download_file(&url, &file, Some(&mut hasher), status, self.process).await?;
+        download_file(&url, &file, Some(&mut hasher), status, &self.process).await?;
         let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {

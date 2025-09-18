@@ -106,30 +106,31 @@ impl Manifestation {
     /// It is *not* safe to run two updates concurrently. See
     /// https://github.com/rust-lang/rustup/issues/988 for the details.
     pub async fn update(
-        &self,
-        new_manifest: &Manifest,
+        self: Arc<Self>,
+        new_manifest: Arc<Manifest>,
         changes: Changes,
         force_update: bool,
-        download_cfg: &DownloadCfg<'_>,
+        download_cfg: DownloadCfg,
         toolchain_str: &str,
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
-        let tmp_cx = download_cfg.tmp_cx;
+        let download_cfg = Arc::new(download_cfg);
+        let tmp_cx = download_cfg.tmp_cx.clone();
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::build_update(self, new_manifest, &changes, &config)?;
+        let mut update = Update::build_update(&self, &new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
         }
 
         // Validate that the requested components are available
-        if let Err(e) = update.unavailable_components(new_manifest, toolchain_str) {
+        if let Err(e) = update.unavailable_components(&new_manifest, toolchain_str) {
             if !force_update {
                 return Err(e);
             }
@@ -140,12 +141,12 @@ impl Manifestation {
                     match &component.target {
                         Some(t) if t != &self.target_triple => warn!(
                             "skipping unavailable component {} for target {}",
-                            component.short_name(new_manifest),
+                            component.short_name(&new_manifest),
                             t
                         ),
                         _ => warn!(
                             "skipping unavailable component {}",
-                            component.short_name(new_manifest)
+                            component.short_name(&new_manifest)
                         ),
                     }
                 }
@@ -159,12 +160,12 @@ impl Manifestation {
         let mut things_to_install = Vec::new();
         let mut things_downloaded = Vec::new();
         let components = update
-            .components_urls_and_hashes(new_manifest)
+            .components_urls_and_hashes(&new_manifest)
             .map(|res| {
                 res.map(|(component, binary)| ComponentBinary {
-                    component,
-                    binary,
-                    status: download_cfg.status_for(component.short_name(new_manifest)),
+                    component: Arc::new(component.clone()),
+                    binary: Arc::new(binary.clone()),
+                    status: download_cfg.status_for(component.short_name(&new_manifest)),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -188,19 +189,18 @@ impl Manifestation {
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
         let component_stream = tokio_stream::iter(components.into_iter()).map(|bin| {
             let sem = semaphore.clone();
+            let new_manifest = new_manifest.clone();
+            let dist_server = tmp_cx.dist_server.as_str();
+            let download_cfg = download_cfg.clone();
             async move {
                 let _permit = sem.acquire().await.unwrap();
                 let url = if altered {
-                    utils::parse_url(
-                        &bin.binary
-                            .url
-                            .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str()),
-                    )?
+                    utils::parse_url(&bin.binary.url.replace(DEFAULT_DIST_SERVER, dist_server))?
                 } else {
                     utils::parse_url(&bin.binary.url)?
                 };
 
-                bin.download(&url, download_cfg, max_retries, new_manifest)
+                bin.download(&url, &download_cfg, max_retries, &new_manifest)
                     .await
                     .map(|downloaded| (bin, downloaded))
             }
@@ -218,11 +218,11 @@ impl Manifestation {
         }
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.process);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx.clone(), download_cfg.process.clone());
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
-        tx = self.maybe_handle_v2_upgrade(&config, tx, download_cfg.process)?;
+        tx = self.maybe_handle_v2_upgrade(&config, tx, &download_cfg.process)?;
 
         // Uninstall components
         for component in &update.components_to_uninstall {
@@ -230,38 +230,38 @@ impl Manifestation {
                 (true, Some(t)) if t != &self.target_triple => {
                     info!(
                         "removing previous version of component {} for target {}",
-                        component.short_name(new_manifest),
+                        component.short_name(&new_manifest),
                         t
                     );
                 }
                 (false, Some(t)) if t != &self.target_triple => {
                     info!(
                         "removing component {} for target {}",
-                        component.short_name(new_manifest),
+                        component.short_name(&new_manifest),
                         t
                     );
                 }
                 (true, _) => {
                     info!(
                         "removing previous version of component {}",
-                        component.short_name(new_manifest),
+                        component.short_name(&new_manifest),
                     );
                 }
                 (false, _) => {
-                    info!("removing component {}", component.short_name(new_manifest));
+                    info!("removing component {}", component.short_name(&new_manifest));
                 }
             }
 
-            tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
+            tx = self.uninstall_component(component, &new_manifest, tx, &download_cfg.process)?;
         }
 
         // Install components
         for (component_bin, installer_file) in things_to_install {
-            tx = component_bin.install(installer_file, tx, new_manifest, self, download_cfg)?;
+            tx = component_bin.install(installer_file, tx, &new_manifest, &self, &download_cfg)?;
         }
 
         // Install new distribution manifest
-        let new_manifest_str = new_manifest.clone().stringify()?;
+        let new_manifest_str = (*new_manifest).clone().stringify()?;
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
 
@@ -292,13 +292,13 @@ impl Manifestation {
     #[cfg(test)]
     pub(crate) fn uninstall(
         &self,
-        manifest: &Manifest,
-        tmp_cx: &temp::Context,
-        process: &Process,
+        manifest: Arc<Manifest>,
+        tmp_cx: Arc<temp::Context>,
+        process: Arc<Process>,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
 
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, process);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx.clone(), process.clone());
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
@@ -311,20 +311,20 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx, process)?;
+            tx = self.uninstall_component(&component, &manifest, tx, &process)?;
         }
         tx.commit();
 
         Ok(())
     }
 
-    fn uninstall_component<'a>(
+    fn uninstall_component(
         &self,
         component: &Component,
         manifest: &Manifest,
-        mut tx: Transaction<'a>,
+        mut tx: Transaction,
         process: &Process,
-    ) -> Result<Transaction<'a>> {
+    ) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -386,7 +386,7 @@ impl Manifestation {
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
-        dl_cfg: &DownloadCfg<'_>,
+        dl_cfg: Arc<DownloadCfg>,
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -422,17 +422,17 @@ impl Manifestation {
         info!("installing component rust");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx, dl_cfg.process);
+        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx.clone(), dl_cfg.process.clone());
 
         // Uninstall components
         let components = self.installation.list()?;
         for component in components {
-            tx = component.uninstall(tx, dl_cfg.process)?;
+            tx = component.uninstall(tx, &dl_cfg.process)?;
         }
 
         // Install all the components in the installer
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
-        let package: &dyn Package = &TarGzPackage::new(reader, dl_cfg)?;
+        let package: &dyn Package = &TarGzPackage::new(reader, &dl_cfg)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
         }
@@ -447,12 +447,12 @@ impl Manifestation {
     // doesn't have a configuration or manifest-derived list of
     // component/target pairs. Uninstall it using the installer's
     // component list before upgrading.
-    fn maybe_handle_v2_upgrade<'a>(
+    fn maybe_handle_v2_upgrade(
         &self,
         config: &Option<Config>,
-        mut tx: Transaction<'a>,
+        mut tx: Transaction,
         process: &Process,
-    ) -> Result<Transaction<'a>> {
+    ) -> Result<Transaction> {
         let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
@@ -690,17 +690,17 @@ impl Update {
     }
 }
 
-struct ComponentBinary<'a> {
-    component: &'a Component,
-    binary: &'a HashedBinary,
+struct ComponentBinary {
+    component: Arc<Component>,
+    binary: Arc<HashedBinary>,
     status: DownloadStatus,
 }
 
-impl<'a> ComponentBinary<'a> {
+impl ComponentBinary {
     async fn download(
         &self,
         url: &Url,
-        download_cfg: &DownloadCfg<'_>,
+        download_cfg: &DownloadCfg,
         max_retries: usize,
         new_manifest: &Manifest,
     ) -> Result<File> {
@@ -727,19 +727,19 @@ impl<'a> ComponentBinary<'a> {
         Ok(downloaded_file)
     }
 
-    fn install<'t>(
+    fn install(
         &self,
         installer_file: File,
-        tx: Transaction<'t>,
+        tx: Transaction,
         new_manifest: &Manifest,
         manifestation: &Manifestation,
-        download_cfg: &DownloadCfg<'_>,
-    ) -> Result<Transaction<'t>> {
+        download_cfg: &DownloadCfg,
+    ) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
-        let component = self.component;
+        let component = &self.component;
         let pkg_name = component.name_in_manifest();
         let short_pkg_name = component.short_name_in_manifest();
         let short_name = component.short_name(new_manifest);

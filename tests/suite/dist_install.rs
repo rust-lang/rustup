@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use std::sync::Arc;
 
 use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
@@ -169,7 +170,11 @@ fn uninstall() {
     tx.commit();
 
     // Now uninstall
-    let mut tx = Transaction::new(cx.prefix.clone(), &cx.cx, &cx.tp.process);
+    let mut tx = Transaction::new(
+        cx.prefix.clone(),
+        Arc::new(cx.cx),
+        Arc::new(cx.tp.process.clone()),
+    );
     for component in components.list().unwrap() {
         tx = component.uninstall(tx, &cx.tp.process).unwrap();
     }

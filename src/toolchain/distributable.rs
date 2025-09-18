@@ -1,6 +1,9 @@
 #[cfg(windows)]
 use std::fs;
-use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, path::Path, process::Command};
+use std::{
+    convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, path::Path, process::Command,
+    sync::Arc,
+};
 
 #[cfg(windows)]
 use anyhow::Context;
@@ -111,12 +114,12 @@ impl<'a> DistributableToolchain<'a> {
         };
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
-        manifestation
+        Arc::new(manifestation)
             .update(
-                &manifest,
+                Arc::new(manifest),
                 changes,
                 false,
-                &download_cfg,
+                download_cfg,
                 &self.desc.manifest_name(),
                 false,
             )
@@ -508,12 +511,12 @@ impl<'a> DistributableToolchain<'a> {
         };
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
-        manifestation
+        Arc::new(manifestation)
             .update(
-                &manifest,
+                Arc::new(manifest),
                 changes,
                 false,
-                &download_cfg,
+                download_cfg,
                 &self.desc.manifest_name(),
                 false,
             )
