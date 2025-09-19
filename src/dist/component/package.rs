@@ -7,6 +7,7 @@ use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
@@ -26,13 +27,13 @@ pub(crate) const VERSION_FILE: &str = "rust-installer-version";
 
 pub trait Package: fmt::Debug {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
-    fn install<'a>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>>;
+        tx: Transaction,
+    ) -> Result<Transaction>;
     fn components(&self) -> Vec<String>;
 }
 
@@ -79,13 +80,13 @@ impl Package for DirectoryPackage {
                 false
             }
     }
-    fn install<'a>(
+    fn install(
         &self,
         target: &Components,
         name: &str,
         short_name: Option<&str>,
-        tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         let actual_name = if self.components.contains(name) {
             name
         } else if let Some(n) = short_name {
@@ -137,13 +138,13 @@ impl Package for DirectoryPackage {
 
 #[derive(Debug)]
 #[allow(dead_code)] // temp::Dir is held for drop.
-pub(crate) struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
+pub(crate) struct TarPackage(DirectoryPackage, temp::Dir);
 
-impl<'a> TarPackage<'a> {
+impl TarPackage {
     pub(crate) fn new<R: Read>(
         stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Option<&dyn Fn(Notification<'_>)>,
         process: &Process,
     ) -> Result<Self> {
         let temp_dir = tmp_cx.new_directory()?;
@@ -532,17 +533,17 @@ fn unpack_without_first_dir<R: Read>(
     Ok(())
 }
 
-impl Package for TarPackage<'_> {
+impl Package for TarPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
@@ -551,13 +552,13 @@ impl Package for TarPackage<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TarGzPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarGzPackage(TarPackage);
 
-impl<'a> TarGzPackage<'a> {
+impl TarGzPackage {
     pub(crate) fn new<R: Read>(
         stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Option<&dyn Fn(Notification<'_>)>,
         process: &Process,
     ) -> Result<Self> {
         let stream = flate2::read::GzDecoder::new(stream);
@@ -570,17 +571,17 @@ impl<'a> TarGzPackage<'a> {
     }
 }
 
-impl Package for TarGzPackage<'_> {
+impl Package for TarGzPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
@@ -589,13 +590,13 @@ impl Package for TarGzPackage<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TarXzPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarXzPackage(TarPackage);
 
-impl<'a> TarXzPackage<'a> {
+impl TarXzPackage {
     pub(crate) fn new<R: Read>(
         stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Option<&dyn Fn(Notification<'_>)>,
         process: &Process,
     ) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
@@ -608,17 +609,17 @@ impl<'a> TarXzPackage<'a> {
     }
 }
 
-impl Package for TarXzPackage<'_> {
+impl Package for TarXzPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
@@ -627,13 +628,13 @@ impl Package for TarXzPackage<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TarZStdPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarZStdPackage(TarPackage);
 
-impl<'a> TarZStdPackage<'a> {
+impl TarZStdPackage {
     pub(crate) fn new<R: Read>(
         stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Option<&dyn Fn(Notification<'_>)>,
         process: &Process,
     ) -> Result<Self> {
         let stream = zstd::stream::read::Decoder::new(stream)?;
@@ -646,17 +647,17 @@ impl<'a> TarZStdPackage<'a> {
     }
 }
 
-impl Package for TarZStdPackage<'_> {
+impl Package for TarZStdPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {

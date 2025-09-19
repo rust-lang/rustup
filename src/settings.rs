@@ -1,8 +1,8 @@
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::RwLock;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -13,22 +13,22 @@ use crate::errors::*;
 use crate::notifications::*;
 use crate::utils;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct SettingsFile {
     path: PathBuf,
-    cache: RefCell<Option<Settings>>,
+    cache: RwLock<Option<Settings>>,
 }
 
 impl SettingsFile {
     pub(crate) fn new(path: PathBuf) -> Self {
         Self {
             path,
-            cache: RefCell::new(None),
+            cache: RwLock::default(),
         }
     }
 
     fn write_settings(&self) -> Result<()> {
-        let settings = self.cache.borrow();
+        let settings = self.cache.read().unwrap();
         utils::write_file(
             "settings",
             &self.path,
@@ -40,10 +40,10 @@ impl SettingsFile {
     fn read_settings(&self) -> Result<()> {
         let mut needs_save = false;
         {
-            let b = self.cache.borrow();
+            let b = self.cache.read().unwrap();
             if b.is_none() {
                 drop(b);
-                *self.cache.borrow_mut() = Some(if utils::is_file(&self.path) {
+                *self.cache.write().unwrap() = Some(if utils::is_file(&self.path) {
                     let content = utils::read_file("settings", &self.path)?;
                     Settings::parse(&content).with_context(|| RustupError::ParsingFile {
                         name: "settings",
@@ -65,14 +65,17 @@ impl SettingsFile {
         self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
-        f(self.cache.borrow().as_ref().unwrap())
+        f(self.cache.read().unwrap().as_ref().unwrap())
     }
 
     pub(crate) fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
         self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
-        let result = { f(self.cache.borrow_mut().as_mut().unwrap())? };
+        let result = {
+            let mut result = self.cache.write().unwrap();
+            f(result.as_mut().unwrap())?
+        };
         self.write_settings()?;
         Ok(result)
     }

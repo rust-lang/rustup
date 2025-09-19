@@ -6,10 +6,10 @@ mod tests;
 
 use std::path::Path;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Error, Result, anyhow, bail};
 use futures_util::stream::StreamExt;
 use std::sync::Arc;
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, mpsc};
 use tracing::info;
 
 use crate::dist::component::{
@@ -105,16 +105,17 @@ impl Manifestation {
     /// It is *not* safe to run two updates concurrently. See
     /// https://github.com/rust-lang/rustup/issues/988 for the details.
     pub async fn update(
-        &self,
-        new_manifest: &Manifest,
+        self: Arc<Self>,
+        new_manifest: Arc<Manifest>,
         changes: Changes,
         force_update: bool,
-        download_cfg: &DownloadCfg<'_>,
+        download_cfg: DownloadCfg,
         toolchain_str: &str,
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
-        let tmp_cx = download_cfg.tmp_cx;
+        let download_cfg = Arc::new(download_cfg);
+        let tmp_cx = Arc::clone(&download_cfg.tmp_cx);
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
@@ -122,11 +123,11 @@ impl Manifestation {
         // Create the lists of components needed for installation
         let config = self.read_config()?;
         let mut update = Update::build_update(
-            self,
-            new_manifest,
+            &self,
+            &new_manifest,
             &changes,
             &config,
-            &download_cfg.notify_handler,
+            &*download_cfg.notify_handler,
         )?;
 
         if update.nothing_changes() {
@@ -134,7 +135,7 @@ impl Manifestation {
         }
 
         // Validate that the requested components are available
-        if let Err(e) = update.unavailable_components(new_manifest, toolchain_str) {
+        if let Err(e) = update.unavailable_components(&new_manifest, toolchain_str) {
             if !force_update {
                 return Err(e);
             }
@@ -143,7 +144,7 @@ impl Manifestation {
             {
                 for component in &components {
                     (download_cfg.notify_handler)(Notification::ForcingUnavailableComponent(
-                        &component.name(new_manifest),
+                        &component.name(&new_manifest),
                     ));
                 }
                 update.drop_components_to_install(&components);
@@ -153,9 +154,8 @@ impl Manifestation {
         let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
-        let components = update.components_urls_and_hashes(new_manifest)?;
+        let components = update.components_urls_and_hashes(&new_manifest)?;
         let components_len = components.len();
 
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
@@ -172,59 +172,27 @@ impl Manifestation {
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
+        // Begin transaction before the downloads, as installations are interleaved with those
+        let mut tx = Transaction::new(
+            prefix.clone(),
+            Arc::clone(&download_cfg.tmp_cx),
+            Arc::clone(&download_cfg.notify_handler),
+            Arc::clone(&download_cfg.process),
+        );
+
+        // If the previous installation was from a v1 manifest we need
+        // to uninstall it first.
+        tx = self.maybe_handle_v2_upgrade(&config, tx, &download_cfg.process)?;
+
         info!("downloading component(s)");
         for (component, _, url, _) in components.clone() {
             (download_cfg.notify_handler)(Notification::DownloadingComponent(
-                &component.short_name(new_manifest),
+                &component.short_name(&new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
                 &url,
             ));
         }
-
-        let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-        let component_stream =
-            tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
-                let sem = semaphore.clone();
-                async move {
-                    let _permit = sem.acquire().await.unwrap();
-                    self.download_component(
-                        component,
-                        format,
-                        url,
-                        hash,
-                        altered,
-                        tmp_cx,
-                        download_cfg,
-                        max_retries,
-                        new_manifest,
-                    )
-                    .await
-                }
-            });
-        if components_len > 0 {
-            let results = component_stream
-                .buffered(components_len)
-                .collect::<Vec<_>>()
-                .await;
-            for result in results {
-                let (component, format, downloaded_file, hash) = result?;
-                things_downloaded.push(hash);
-                things_to_install.push((component, format, downloaded_file));
-            }
-        }
-
-        // Begin transaction
-        let mut tx = Transaction::new(
-            prefix.clone(),
-            tmp_cx,
-            download_cfg.notify_handler,
-            download_cfg.process,
-        );
-
-        // If the previous installation was from a v1 manifest we need
-        // to uninstall it first.
-        tx = self.maybe_handle_v2_upgrade(&config, tx, download_cfg.process)?;
 
         // Uninstall components
         for component in &update.components_to_uninstall {
@@ -234,85 +202,125 @@ impl Manifestation {
                 Notification::RemovingComponent
             };
             (download_cfg.notify_handler)(notification(
-                &component.short_name(new_manifest),
+                &component.short_name(&new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
             ));
 
             tx = self.uninstall_component(
                 component,
-                new_manifest,
+                &new_manifest,
                 tx,
-                &download_cfg.notify_handler,
-                download_cfg.process,
+                &*download_cfg.notify_handler,
+                &download_cfg.process,
             )?;
         }
 
-        // Install components
-        for (component, format, installer_file) in things_to_install {
-            // For historical reasons, the rust-installer component
-            // names are not the same as the dist manifest component
-            // names. Some are just the component name some are the
-            // component name plus the target triple.
-            let pkg_name = component.name_in_manifest();
-            let short_pkg_name = component.short_name_in_manifest();
-            let short_name = component.short_name(new_manifest);
+        if components_len > 0 {
+            // Create a channel to communicate whenever a download is done and the component can be installed
+            // The `mpsc` channel was used as we need to send many messages from one producer (download's thread) to one consumer (install's thread)
+            // This is recommended in the official docs: https://docs.rs/tokio/latest/tokio/sync/index.html#mpsc-channel
+            let total_components = components.len();
+            let (download_tx, mut download_rx) =
+                mpsc::channel::<Result<(Component, CompressionKind, File)>>(total_components);
 
-            (download_cfg.notify_handler)(Notification::InstallingComponent(
-                &short_name,
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+            let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
+            let component_stream = tokio_stream::iter(components.into_iter()).map({
+                let download_tx = download_tx.clone();
+                {
+                    let this = Arc::clone(&self);
+                    let new_manifest = Arc::clone(&new_manifest);
+                    let download_cfg = download_cfg.clone();
+                    move |(component, format, url, hash)| {
+                        let sem = semaphore.clone();
+                        let download_tx = download_tx.clone();
+                        let this = Arc::clone(&this);
+                        let tmp_cx = Arc::clone(&tmp_cx);
+                        let new_manifest = Arc::clone(&new_manifest);
+                        let download_cfg = download_cfg.clone();
+                        async move {
+                            let _permit = sem.acquire().await.unwrap();
+                            this.download_component(
+                                component,
+                                format,
+                                url,
+                                hash,
+                                altered,
+                                &tmp_cx,
+                                &download_cfg,
+                                max_retries,
+                                &new_manifest,
+                                download_tx,
+                            )
+                            .await
+                        }
+                    }
+                }
+            });
 
-            let notification_converter = |notification: crate::utils::Notification<'_>| {
-                (download_cfg.notify_handler)(notification.into());
+            let mut stream = component_stream.buffered(components_len);
+            let download_handle = async move {
+                let mut hashes = Vec::new();
+                while let Some(result) = stream.next().await {
+                    match result {
+                        Ok(hash) => {
+                            hashes.push(hash);
+                        }
+                        Err(e) => {
+                            let _ = download_tx.send(Err(e)).await;
+                        }
+                    }
+                }
+                hashes
             };
-            let gz;
-            let xz;
-            let zst;
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-            let package: &dyn Package = match format {
-                CompressionKind::GZip => {
-                    gz = TarGzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &gz
-                }
-                CompressionKind::XZ => {
-                    xz = TarXzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &xz
-                }
-                CompressionKind::ZStd => {
-                    zst = TarZStdPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
-                    &zst
+            let install_handle = {
+                let new_manifest = Arc::clone(&new_manifest);
+                let download_cfg = Arc::clone(&download_cfg);
+                async move {
+                    let mut current_tx = tx;
+                    let mut counter = 0;
+                    while counter < total_components
+                        && let Some(message) = download_rx.recv().await
+                    {
+                        let (component, format, installer_file) = message?;
+                        let component_name = component.short_name(&new_manifest);
+                        let notify_handler = Arc::clone(&download_cfg.notify_handler);
+                        current_tx = tokio::task::spawn_blocking({
+                            let this = Arc::clone(&self);
+                            let new_manifest = Arc::clone(&new_manifest);
+                            let tmp_cx = Arc::clone(&download_cfg.tmp_cx);
+                            let download_cfg = Arc::clone(&download_cfg);
+                            move || {
+                                this.install_component(
+                                    component,
+                                    format,
+                                    installer_file,
+                                    tmp_cx,
+                                    download_cfg,
+                                    new_manifest,
+                                    current_tx,
+                                )
+                            }
+                        })
+                        .await??;
+                        (notify_handler)(Notification::ComponentInstalled(
+                            &component_name,
+                            &self.target_triple,
+                            Some(&self.target_triple),
+                        ));
+                        counter += 1;
+                    }
+                    Ok::<_, Error>(current_tx)
                 }
             };
 
-            // If the package doesn't contain the component that the
-            // manifest says it does then somebody must be playing a joke on us.
-            if !package.contains(&pkg_name, Some(short_pkg_name)) {
-                return Err(RustupError::CorruptComponent(short_name).into());
-            }
-
-            tx = package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)?;
+            let (download_results, install_result) = tokio::join!(download_handle, install_handle);
+            things_downloaded = download_results;
+            tx = install_result?;
         }
 
         // Install new distribution manifest
-        let new_manifest_str = new_manifest.clone().stringify()?;
+        let new_manifest_str = (*new_manifest).clone().stringify()?;
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
 
@@ -343,14 +351,19 @@ impl Manifestation {
     #[cfg(test)]
     pub fn uninstall(
         &self,
-        manifest: &Manifest,
-        tmp_cx: &temp::Context,
-        notify_handler: &dyn Fn(Notification<'_>),
-        process: &Process,
+        manifest: Arc<Manifest>,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Arc<NotifyHandler>,
+        process: Arc<Process>,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
 
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, notify_handler, process);
+        let mut tx = Transaction::new(
+            prefix.clone(),
+            Arc::clone(&tmp_cx),
+            Arc::clone(&notify_handler),
+            Arc::clone(&process),
+        );
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
@@ -363,21 +376,21 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx, notify_handler, process)?;
+            tx = self.uninstall_component(&component, &manifest, tx, &*notify_handler, &process)?;
         }
         tx.commit();
 
         Ok(())
     }
 
-    fn uninstall_component<'a>(
+    fn uninstall_component(
         &self,
         component: &Component,
         manifest: &Manifest,
-        mut tx: Transaction<'a>,
-        notify_handler: &dyn Fn(Notification<'_>),
+        mut tx: Transaction,
+        notify_handler: &NotifyHandler,
         process: &Process,
-    ) -> Result<Transaction<'a>> {
+    ) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -438,9 +451,9 @@ impl Manifestation {
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
-        tmp_cx: &temp::Context,
-        notify_handler: &dyn Fn(Notification<'_>),
-        process: &Process,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Arc<NotifyHandler>,
+        process: Arc<Process>,
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -473,11 +486,11 @@ impl Manifestation {
         use std::path::PathBuf;
         let dld_dir = PathBuf::from("bogus");
         let dlcfg = DownloadCfg {
-            dist_root: "bogus",
-            download_dir: &dld_dir,
-            tmp_cx,
-            notify_handler,
-            process,
+            dist_root: Arc::from("bogus".to_string()),
+            download_dir: Arc::new(dld_dir),
+            tmp_cx: Arc::clone(&tmp_cx),
+            notify_handler: Arc::clone(&notify_handler),
+            process: Arc::clone(&process),
         };
 
         let dl = dlcfg
@@ -497,12 +510,17 @@ impl Manifestation {
         ));
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, tmp_cx, notify_handler, process);
+        let mut tx = Transaction::new(
+            prefix,
+            Arc::clone(&tmp_cx),
+            Arc::clone(&notify_handler),
+            Arc::clone(&process),
+        );
 
         // Uninstall components
         let components = self.installation.list()?;
         for component in components {
-            tx = component.uninstall(tx, process)?;
+            tx = component.uninstall(tx, &process)?;
         }
 
         // Install all the components in the installer
@@ -512,7 +530,7 @@ impl Manifestation {
         let reader =
             utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
         let package: &dyn Package =
-            &TarGzPackage::new(reader, tmp_cx, Some(&notification_converter), process)?;
+            &TarGzPackage::new(reader, tmp_cx, Some(&notification_converter), &process)?;
 
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
@@ -528,12 +546,12 @@ impl Manifestation {
     // doesn't have a configuration or manifest-derived list of
     // component/target pairs. Uninstall it using the installer's
     // component list before upgrading.
-    fn maybe_handle_v2_upgrade<'a>(
+    fn maybe_handle_v2_upgrade(
         &self,
         config: &Option<Config>,
-        mut tx: Transaction<'a>,
+        mut tx: Transaction,
         process: &Process,
-    ) -> Result<Transaction<'a>> {
+    ) -> Result<Transaction> {
         let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
@@ -557,10 +575,11 @@ impl Manifestation {
         hash: String,
         altered: bool,
         tmp_cx: &temp::Context,
-        download_cfg: &DownloadCfg<'_>,
+        download_cfg: &DownloadCfg,
         max_retries: usize,
         new_manifest: &Manifest,
-    ) -> Result<(Component, CompressionKind, File, String)> {
+        notification_tx: mpsc::Sender<Result<(Component, CompressionKind, File)>>,
+    ) -> Result<String> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = if altered {
@@ -589,7 +608,82 @@ impl Manifestation {
         .await
         .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
-        Ok((component, format, downloaded_file, hash))
+        let _ = notification_tx
+            .send(Ok((component.clone(), format, downloaded_file)))
+            .await;
+        Ok(hash)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn install_component(
+        &self,
+        component: Component,
+        format: CompressionKind,
+        installer_file: File,
+        tmp_cx: Arc<temp::Context>,
+        download_cfg: Arc<DownloadCfg>,
+        new_manifest: Arc<Manifest>,
+        tx: Transaction,
+    ) -> Result<Transaction> {
+        // For historical reasons, the rust-installer component
+        // names are not the same as the dist manifest component
+        // names. Some are just the component name some are the
+        // component name plus the target triple.
+        let pkg_name = component.name_in_manifest();
+        let short_pkg_name = component.short_name_in_manifest();
+        let short_name = component.short_name(&new_manifest);
+
+        (download_cfg.notify_handler)(Notification::InstallingComponent(
+            &short_name,
+            &self.target_triple,
+            component.target.as_ref(),
+        ));
+
+        let notification_converter = |notification: crate::utils::Notification<'_>| {
+            (download_cfg.notify_handler)(notification.into());
+        };
+        let gz;
+        let xz;
+        let zst;
+        let reader =
+            utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+        let package: &dyn Package = match format {
+            CompressionKind::GZip => {
+                gz = TarGzPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    &download_cfg.process,
+                )?;
+                &gz
+            }
+            CompressionKind::XZ => {
+                xz = TarXzPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    &download_cfg.process,
+                )?;
+                &xz
+            }
+            CompressionKind::ZStd => {
+                zst = TarZStdPackage::new(
+                    reader,
+                    tmp_cx,
+                    Some(&notification_converter),
+                    &download_cfg.process,
+                )?;
+                &zst
+            }
+        };
+
+        // If the package doesn't contain the component that the
+        // manifest says it does then somebody must be playing a joke on us.
+        if !package.contains(&pkg_name, Some(short_pkg_name)) {
+            return Err(RustupError::CorruptComponent(short_name).into());
+        }
+
+        package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)
     }
 }
 
