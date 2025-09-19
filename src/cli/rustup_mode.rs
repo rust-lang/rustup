@@ -902,16 +902,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         }
     }
 
-    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
-    // Priority: no-self-update feature > self_update_mode > no-self-update args.
-    // Check for update only if rustup does **not** have the no-self-update feature,
-    // and auto-self-update is configured to **enable**
-    // and has **no** no-self-update parameter.
-    let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
-        && !opts.no_self_update;
-
-    if self_update && check_rustup_update(cfg.process).await? {
+    if check_rustup_update(opts.no_self_update, cfg).await? {
         update_available = true;
     }
 
@@ -927,14 +918,6 @@ async fn update(
     let mut exit_code = utils::ExitCode(0);
 
     common::warn_if_host_is_emulated(cfg.process);
-    let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
-    // Priority: no-self-update feature > self_update_mode > no-self-update args.
-    // Update only if rustup does **not** have the no-self-update feature,
-    // and auto-self-update is configured to **enable**
-    // and has **no** no-self-update parameter.
-    let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
-        && !opts.no_self_update;
     let force_non_host = opts.force_non_host;
     if let Some(p) = opts.profile {
         cfg.set_profile_override(p);
@@ -995,31 +978,19 @@ async fn update(
                 cfg.set_default(Some(&desc.into()))?;
             }
         }
-        if self_update {
-            exit_code &= common::self_update(cfg.process).await?;
-        }
     } else if ensure_active_toolchain {
         let (toolchain, reason) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {reason}");
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
-        if self_update {
-            exit_code &= common::self_update(cfg.process).await?;
-        }
-
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
     }
 
-    if !cfg!(feature = "no-self-update") && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update(cfg.process).await?;
-    }
-
-    if cfg!(feature = "no-self-update") {
-        info!("self-update is disabled for this build of rustup");
-        info!("any updates to rustup will need to be fetched with your system package manager")
+    if !ensure_active_toolchain {
+        exit_code &= self_update::self_update(opts.no_self_update, cfg).await?;
     }
 
     Ok(exit_code)
