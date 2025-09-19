@@ -89,7 +89,7 @@ impl Components {
     }
     pub fn find(&self, name: &str) -> Result<Option<Component>> {
         let result = self.list()?;
-        Ok(result.into_iter().find(|c| (c.name() == name)))
+        Ok(result.into_iter().find(|c| c.name() == name))
     }
     pub(crate) fn prefix(&self) -> InstallPrefix {
         self.prefix.clone()
