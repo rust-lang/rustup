@@ -140,18 +140,13 @@ impl Package for DirectoryPackage {
 pub(crate) struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {
-    pub(crate) fn new<R: Read>(
-        stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-        process: &Process,
-    ) -> Result<Self> {
-        let temp_dir = tmp_cx.new_directory()?;
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
+        let temp_dir = cx.tmp_cx.new_directory()?;
         let mut archive = tar::Archive::new(stream);
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(&mut archive, &temp_dir, notify_handler, process)
+        unpack_without_first_dir(&mut archive, &temp_dir, cx)
             .context("failed to extract package")?;
 
         Ok(TarPackage(
@@ -165,8 +160,7 @@ impl<'a> TarPackage<'a> {
 fn unpack_ram(
     io_chunk_size: usize,
     effective_max_ram: Option<usize>,
-    notify_handler: Option<&dyn Fn(Notification<'_>)>,
-    process: &Process,
+    cx: &PackageContext<'_>,
 ) -> usize {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
     let minimum_ram = io_chunk_size * 2;
@@ -180,7 +174,8 @@ fn unpack_ram(
         // Rustup does not know how much RAM the machine has: use the minimum
         minimum_ram
     };
-    let unpack_ram = match process
+    let unpack_ram = match cx
+        .process
         .var("RUSTUP_UNPACK_RAM")
         .ok()
         .and_then(|budget_str| budget_str.parse::<usize>().ok())
@@ -203,7 +198,7 @@ fn unpack_ram(
             }
         }
         None => {
-            if let Some(h) = notify_handler {
+            if let Some(h) = cx.notify_handler {
                 h(Notification::SetDefaultBufferSize(default_max_unpack_ram))
             }
             default_max_unpack_ram
@@ -289,21 +284,21 @@ enum DirStatus {
 fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
-    notify_handler: Option<&dyn Fn(Notification<'_>)>,
-    process: &Process,
+    cx: &PackageContext<'_>,
 ) -> Result<()> {
     let entries = archive.entries()?;
     let effective_max_ram = match effective_limits::memory_limit() {
         Ok(ram) => Some(ram as usize),
         Err(e) => {
-            if let Some(h) = notify_handler {
+            if let Some(h) = cx.notify_handler {
                 h(Notification::Error(e.to_string()))
             }
             None
         }
     };
-    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, notify_handler, process);
-    let mut io_executor: Box<dyn Executor> = get_executor(notify_handler, unpack_ram, process)?;
+    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, cx);
+    let mut io_executor: Box<dyn Executor> =
+        get_executor(cx.notify_handler, unpack_ram, cx.process)?;
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
@@ -463,7 +458,7 @@ fn unpack_without_first_dir<R: Read>(
                     // Tar has item before containing directory
                     // Complain about this so we can see if these exist.
                     writeln!(
-                        process.stderr().lock(),
+                        cx.process.stderr().lock(),
                         "Unexpected: missing parent '{}' for '{}'",
                         parent.display(),
                         entry.path()?.display()
@@ -554,19 +549,9 @@ impl Package for TarPackage<'_> {
 pub(crate) struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {
-    pub(crate) fn new<R: Read>(
-        stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-        process: &Process,
-    ) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
         let stream = flate2::read::GzDecoder::new(stream);
-        Ok(TarGzPackage(TarPackage::new(
-            stream,
-            tmp_cx,
-            notify_handler,
-            process,
-        )?))
+        Ok(TarGzPackage(TarPackage::new(stream, cx)?))
     }
 }
 
@@ -592,19 +577,9 @@ impl Package for TarGzPackage<'_> {
 pub(crate) struct TarXzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarXzPackage<'a> {
-    pub(crate) fn new<R: Read>(
-        stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-        process: &Process,
-    ) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
-        Ok(TarXzPackage(TarPackage::new(
-            stream,
-            tmp_cx,
-            notify_handler,
-            process,
-        )?))
+        Ok(TarXzPackage(TarPackage::new(stream, cx)?))
     }
 }
 
@@ -630,19 +605,9 @@ impl Package for TarXzPackage<'_> {
 pub(crate) struct TarZStdPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarZStdPackage<'a> {
-    pub(crate) fn new<R: Read>(
-        stream: R,
-        tmp_cx: &'a temp::Context,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-        process: &Process,
-    ) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
         let stream = zstd::stream::read::Decoder::new(stream)?;
-        Ok(TarZStdPackage(TarPackage::new(
-            stream,
-            tmp_cx,
-            notify_handler,
-            process,
-        )?))
+        Ok(TarZStdPackage(TarPackage::new(stream, cx)?))
     }
 }
 
@@ -662,4 +627,10 @@ impl Package for TarZStdPackage<'_> {
     fn components(&self) -> Vec<String> {
         self.0.components()
     }
+}
+
+pub(crate) struct PackageContext<'a> {
+    pub(crate) tmp_cx: &'a temp::Context,
+    pub(crate) notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+    pub(crate) process: &'a Process,
 }

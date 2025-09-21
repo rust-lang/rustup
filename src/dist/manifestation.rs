@@ -13,7 +13,7 @@ use tokio::sync::Semaphore;
 use tracing::info;
 
 use crate::dist::component::{
-    Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
+    Components, Package, PackageContext, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, File};
@@ -267,37 +267,27 @@ impl Manifestation {
             let notification_converter = |notification: crate::utils::Notification<'_>| {
                 (download_cfg.notify_handler)(notification.into());
             };
-            let gz;
-            let xz;
-            let zst;
+
+            let cx = PackageContext {
+                tmp_cx,
+                notify_handler: Some(&notification_converter),
+                process: download_cfg.process,
+            };
+
+            let (gz, xz, zst);
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
             let package: &dyn Package = match format {
                 CompressionKind::GZip => {
-                    gz = TarGzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
+                    gz = TarGzPackage::new(reader, &cx)?;
                     &gz
                 }
                 CompressionKind::XZ => {
-                    xz = TarXzPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
+                    xz = TarXzPackage::new(reader, &cx)?;
                     &xz
                 }
                 CompressionKind::ZStd => {
-                    zst = TarZStdPackage::new(
-                        reader,
-                        tmp_cx,
-                        Some(&notification_converter),
-                        download_cfg.process,
-                    )?;
+                    zst = TarZStdPackage::new(reader, &cx)?;
                     &zst
                 }
             };
@@ -511,9 +501,13 @@ impl Manifestation {
         };
         let reader =
             utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-        let package: &dyn Package =
-            &TarGzPackage::new(reader, tmp_cx, Some(&notification_converter), process)?;
+        let cx = PackageContext {
+            tmp_cx,
+            notify_handler: Some(&notification_converter),
+            process,
+        };
 
+        let package: &dyn Package = &TarGzPackage::new(reader, &cx)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
         }
