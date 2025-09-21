@@ -153,8 +153,8 @@ impl Manifestation {
         let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
-        let mut things_downloaded: Vec<String> = Vec::new();
+        let mut things_to_install = Vec::new();
+        let mut things_downloaded = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
         let components_len = components.len();
 
