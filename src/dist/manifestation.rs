@@ -173,7 +173,7 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         info!("downloading component(s)");
-        for (component, _, url, _) in components.clone() {
+        for (component, _, url, _) in &components {
             (download_cfg.notify_handler)(Notification::DownloadingComponent(
                 &component.short_name(new_manifest),
                 &self.target_triple,
