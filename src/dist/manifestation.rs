@@ -11,6 +11,7 @@ use futures_util::stream::StreamExt;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::info;
+use url::Url;
 
 use crate::dist::component::{
     Components, Package, PackageContext, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
@@ -187,7 +188,17 @@ impl Manifestation {
             let sem = semaphore.clone();
             async move {
                 let _permit = sem.acquire().await.unwrap();
-                bin.download(altered, tmp_cx, download_cfg, max_retries, new_manifest)
+                let url = if altered {
+                    utils::parse_url(
+                        &bin.binary
+                            .url
+                            .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str()),
+                    )?
+                } else {
+                    utils::parse_url(&bin.binary.url)?
+                };
+
+                bin.download(&url, download_cfg, max_retries, new_manifest)
                     .await
                     .map(|downloaded| (bin, downloaded))
             }
@@ -745,33 +756,22 @@ struct ComponentBinary<'a> {
 impl<'a> ComponentBinary<'a> {
     async fn download(
         &self,
-        altered: bool,
-        tmp_cx: &temp::Context,
+        url: &Url,
         download_cfg: &DownloadCfg<'_>,
         max_retries: usize,
         new_manifest: &Manifest,
     ) -> Result<File> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
-        let url = if altered {
-            self.binary
-                .url
-                .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
-        } else {
-            self.binary.url.clone()
-        };
-
-        let url_url = utils::parse_url(&url)?;
-
         let downloaded_file = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
-            || download_cfg.download(&url_url, &self.binary.hash),
+            || download_cfg.download(url, &self.binary.hash),
             |e: &anyhow::Error| {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
-                        (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
+                        (download_cfg.notify_handler)(Notification::RetryingDownload(url.as_str()));
                         true
                     }
                     _ => false,
