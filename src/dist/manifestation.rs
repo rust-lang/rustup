@@ -17,7 +17,7 @@ use crate::dist::component::{
 };
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, File};
-use crate::dist::manifest::{Component, CompressionKind, Manifest, TargetedPackage};
+use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
@@ -173,44 +173,41 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         info!("downloading component(s)");
-        for (component, _, url, _) in &components {
+        for bin in &components {
             (download_cfg.notify_handler)(Notification::DownloadingComponent(
-                &component.short_name(new_manifest),
+                &bin.component.short_name(new_manifest),
                 &self.target_triple,
-                component.target.as_ref(),
-                &url,
+                bin.component.target.as_ref(),
+                &bin.binary.url,
             ));
         }
 
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-        let component_stream =
-            tokio_stream::iter(components.into_iter()).map(|(component, format, url, hash)| {
-                let sem = semaphore.clone();
-                async move {
-                    let _permit = sem.acquire().await.unwrap();
-                    self.download_component(
-                        &component,
-                        &url,
-                        &hash,
-                        altered,
-                        tmp_cx,
-                        download_cfg,
-                        max_retries,
-                        new_manifest,
-                    )
-                    .await
-                    .map(|downloaded| (component, format, downloaded, hash))
-                }
-            });
+        let component_stream = tokio_stream::iter(components.into_iter()).map(|bin| {
+            let sem = semaphore.clone();
+            async move {
+                let _permit = sem.acquire().await.unwrap();
+                self.download_component(
+                    &bin,
+                    altered,
+                    tmp_cx,
+                    download_cfg,
+                    max_retries,
+                    new_manifest,
+                )
+                .await
+                .map(|downloaded| (bin, downloaded))
+            }
+        });
         if components_len > 0 {
             let results = component_stream
                 .buffered(components_len)
                 .collect::<Vec<_>>()
                 .await;
             for result in results {
-                let (component, format, downloaded_file, hash) = result?;
-                things_downloaded.push(hash);
-                things_to_install.push((component, format, downloaded_file));
+                let (bin, downloaded_file) = result?;
+                things_downloaded.push(bin.binary.hash.clone());
+                things_to_install.push((bin.component, bin.binary.compression, downloaded_file));
             }
         }
 
@@ -548,12 +545,9 @@ impl Manifestation {
         Ok(tx)
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn download_component(
         &self,
-        component: &Component,
-        url: &str,
-        hash: &str,
+        component: &ComponentBinary<'_>,
         altered: bool,
         tmp_cx: &temp::Context,
         download_cfg: &DownloadCfg<'_>,
@@ -563,16 +557,19 @@ impl Manifestation {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = if altered {
-            url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
+            component
+                .binary
+                .url
+                .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
         } else {
-            url.to_owned()
+            component.binary.url.clone()
         };
 
         let url_url = utils::parse_url(&url)?;
 
         let downloaded_file = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
-            || download_cfg.download(&url_url, &hash),
+            || download_cfg.download(&url_url, &component.binary.hash),
             |e: &anyhow::Error| {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {
@@ -586,7 +583,9 @@ impl Manifestation {
             },
         )
         .await
-        .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
+        .with_context(|| {
+            RustupError::ComponentDownloadFailed(component.component.name(new_manifest))
+        })?;
 
         Ok(downloaded_file)
     }
@@ -781,10 +780,10 @@ impl Update {
     }
 
     /// Map components to urls and hashes
-    fn components_urls_and_hashes(
-        &self,
-        new_manifest: &Manifest,
-    ) -> Result<Vec<(Component, CompressionKind, String, String)>> {
+    fn components_urls_and_hashes<'a>(
+        &'a self,
+        new_manifest: &'a Manifest,
+    ) -> Result<Vec<ComponentBinary<'a>>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
             let package = new_manifest.get_package(component.short_name_in_manifest())?;
@@ -796,14 +795,17 @@ impl Update {
             }
             // We prefer the first format in the list, since the parsing of the
             // manifest leaves us with the files/hash pairs in preference order.
-            components_urls_and_hashes.push((
-                component.clone(),
-                target_package.bins[0].compression,
-                target_package.bins[0].url.clone(),
-                target_package.bins[0].hash.clone(),
-            ));
+            components_urls_and_hashes.push(ComponentBinary {
+                component,
+                binary: &target_package.bins[0],
+            });
         }
 
         Ok(components_urls_and_hashes)
     }
+}
+
+struct ComponentBinary<'a> {
+    component: &'a Component,
+    binary: &'a HashedBinary,
 }
