@@ -189,10 +189,9 @@ impl Manifestation {
                 async move {
                     let _permit = sem.acquire().await.unwrap();
                     self.download_component(
-                        component,
-                        format,
-                        url,
-                        hash,
+                        &component,
+                        &url,
+                        &hash,
                         altered,
                         tmp_cx,
                         download_cfg,
@@ -200,6 +199,7 @@ impl Manifestation {
                         new_manifest,
                     )
                     .await
+                    .map(|downloaded| (component, format, downloaded, hash))
                 }
             });
         if components_len > 0 {
@@ -535,22 +535,21 @@ impl Manifestation {
     #[allow(clippy::too_many_arguments)]
     async fn download_component(
         &self,
-        component: Component,
-        format: CompressionKind,
-        url: String,
-        hash: String,
+        component: &Component,
+        url: &str,
+        hash: &str,
         altered: bool,
         tmp_cx: &temp::Context,
         download_cfg: &DownloadCfg<'_>,
         max_retries: usize,
         new_manifest: &Manifest,
-    ) -> Result<(Component, CompressionKind, File, String)> {
+    ) -> Result<File> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = if altered {
             url.replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
         } else {
-            url
+            url.to_owned()
         };
 
         let url_url = utils::parse_url(&url)?;
@@ -573,7 +572,7 @@ impl Manifestation {
         .await
         .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
-        Ok((component, format, downloaded_file, hash))
+        Ok(downloaded_file)
     }
 }
 
