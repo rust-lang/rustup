@@ -187,16 +187,9 @@ impl Manifestation {
             let sem = semaphore.clone();
             async move {
                 let _permit = sem.acquire().await.unwrap();
-                self.download_component(
-                    &bin,
-                    altered,
-                    tmp_cx,
-                    download_cfg,
-                    max_retries,
-                    new_manifest,
-                )
-                .await
-                .map(|downloaded| (bin, downloaded))
+                bin.download(altered, tmp_cx, download_cfg, max_retries, new_manifest)
+                    .await
+                    .map(|downloaded| (bin, downloaded))
             }
         });
         if components_len > 0 {
@@ -544,51 +537,6 @@ impl Manifestation {
 
         Ok(tx)
     }
-
-    async fn download_component(
-        &self,
-        component: &ComponentBinary<'_>,
-        altered: bool,
-        tmp_cx: &temp::Context,
-        download_cfg: &DownloadCfg<'_>,
-        max_retries: usize,
-        new_manifest: &Manifest,
-    ) -> Result<File> {
-        use tokio_retry::{RetryIf, strategy::FixedInterval};
-
-        let url = if altered {
-            component
-                .binary
-                .url
-                .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
-        } else {
-            component.binary.url.clone()
-        };
-
-        let url_url = utils::parse_url(&url)?;
-
-        let downloaded_file = RetryIf::spawn(
-            FixedInterval::from_millis(0).take(max_retries),
-            || download_cfg.download(&url_url, &component.binary.hash),
-            |e: &anyhow::Error| {
-                // retry only known retriable cases
-                match e.downcast_ref::<RustupError>() {
-                    Some(RustupError::BrokenPartialFile)
-                    | Some(RustupError::DownloadingFile { .. }) => {
-                        (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
-                        true
-                    }
-                    _ => false,
-                }
-            },
-        )
-        .await
-        .with_context(|| {
-            RustupError::ComponentDownloadFailed(component.component.name(new_manifest))
-        })?;
-
-        Ok(downloaded_file)
-    }
 }
 
 #[derive(Debug)]
@@ -808,4 +756,47 @@ impl Update {
 struct ComponentBinary<'a> {
     component: &'a Component,
     binary: &'a HashedBinary,
+}
+
+impl<'a> ComponentBinary<'a> {
+    async fn download(
+        &self,
+        altered: bool,
+        tmp_cx: &temp::Context,
+        download_cfg: &DownloadCfg<'_>,
+        max_retries: usize,
+        new_manifest: &Manifest,
+    ) -> Result<File> {
+        use tokio_retry::{RetryIf, strategy::FixedInterval};
+
+        let url = if altered {
+            self.binary
+                .url
+                .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str())
+        } else {
+            self.binary.url.clone()
+        };
+
+        let url_url = utils::parse_url(&url)?;
+
+        let downloaded_file = RetryIf::spawn(
+            FixedInterval::from_millis(0).take(max_retries),
+            || download_cfg.download(&url_url, &self.binary.hash),
+            |e: &anyhow::Error| {
+                // retry only known retriable cases
+                match e.downcast_ref::<RustupError>() {
+                    Some(RustupError::BrokenPartialFile)
+                    | Some(RustupError::DownloadingFile { .. }) => {
+                        (download_cfg.notify_handler)(Notification::RetryingDownload(&url));
+                        true
+                    }
+                    _ => false,
+                }
+            },
+        )
+        .await
+        .with_context(|| RustupError::ComponentDownloadFailed(self.component.name(new_manifest)))?;
+
+        Ok(downloaded_file)
+    }
 }
