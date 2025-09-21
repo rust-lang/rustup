@@ -274,22 +274,12 @@ impl Manifestation {
                 process: download_cfg.process,
             };
 
-            let (gz, xz, zst);
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-            let package: &dyn Package = match format {
-                CompressionKind::GZip => {
-                    gz = TarGzPackage::new(reader, &cx)?;
-                    &gz
-                }
-                CompressionKind::XZ => {
-                    xz = TarXzPackage::new(reader, &cx)?;
-                    &xz
-                }
-                CompressionKind::ZStd => {
-                    zst = TarZStdPackage::new(reader, &cx)?;
-                    &zst
-                }
+            let package = match format {
+                CompressionKind::GZip => &TarGzPackage::new(reader, &cx)? as &dyn Package,
+                CompressionKind::XZ => &TarXzPackage::new(reader, &cx)?,
+                CompressionKind::ZStd => &TarZStdPackage::new(reader, &cx)?,
             };
 
             // If the package doesn't contain the component that the
