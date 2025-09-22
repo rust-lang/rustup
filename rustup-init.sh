@@ -568,6 +568,20 @@ get_architecture() {
 
     _arch="${_cputype}-${_ostype}"
 
+    case "$_ostype" in
+        pc-windows-*)
+            case "$_arch" in
+                *-pc-windows-msvc)
+                    # User specifically wants MSVC, keep it
+                    ;;
+                *)
+                    # Default to GNU for Windows
+                    _arch="${_cputype}-pc-windows-gnu"
+                    ;;
+            esac
+            ;;
+    esac
+
     RETVAL="$_arch"
 }
 
