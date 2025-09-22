@@ -80,6 +80,13 @@ main() {
     local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
 
+    local _default_host_override=""
+    case "$_arch" in
+        *windows*)
+            _default_host_override="--default-host=$_arch"
+            ;;
+    esac
+
     local _ext=""
     case "$_arch" in
         *windows*)
@@ -177,9 +184,9 @@ main() {
             exit 1;
         fi
 
-        ignore "$_file" "$@" < /dev/tty
+        ignore "$_file" ${_default_host_override:+"$_default_host_override"} "$@" < /dev/tty
     else
-        ignore "$_file" "$@"
+        ignore "$_file" ${_default_host_override:+"$_default_host_override"} "$@"
     fi
 
     local _retval=$?
