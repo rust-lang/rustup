@@ -1,13 +1,11 @@
-use std::fmt::{self, Display};
-use std::fs;
-use std::io;
-use std::ops;
 use std::path::{Path, PathBuf};
+use std::{fmt, fs, ops};
 
 pub(crate) use anyhow::{Context as _, Result};
 use thiserror::Error as ThisError;
 
-use crate::utils::{self, notify::NotificationLevel, raw};
+use crate::notifications::Notification;
+use crate::utils::{self, raw};
 
 #[derive(Debug, ThisError)]
 pub(crate) enum CreatingError {
@@ -64,56 +62,6 @@ impl Drop for File<'_> {
         if raw::is_file(&self.path) {
             let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
             (self.cfg.notify_handler)(n);
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Notification<'a> {
-    CreatingRoot(&'a Path),
-    CreatingFile(&'a Path),
-    CreatingDirectory(&'a Path),
-    FileDeletion(&'a Path, io::Result<()>),
-    DirectoryDeletion(&'a Path, io::Result<()>),
-}
-
-impl Notification<'_> {
-    pub(crate) fn level(&self) -> NotificationLevel {
-        use self::Notification::*;
-        match self {
-            CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Debug,
-            FileDeletion(_, result) | DirectoryDeletion(_, result) => {
-                if result.is_ok() {
-                    NotificationLevel::Debug
-                } else {
-                    NotificationLevel::Warn
-                }
-            }
-        }
-    }
-}
-
-impl Display for Notification<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        use self::Notification::*;
-        match self {
-            CreatingRoot(path) => write!(f, "creating temp root: {}", path.display()),
-            CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
-            CreatingDirectory(path) => write!(f, "creating temp directory: {}", path.display()),
-            FileDeletion(path, result) => {
-                if result.is_ok() {
-                    write!(f, "deleted temp file: {}", path.display())
-                } else {
-                    write!(f, "could not delete temp file: {}", path.display())
-                }
-            }
-            DirectoryDeletion(path, result) => {
-                if result.is_ok() {
-                    write!(f, "deleted temp directory: {}", path.display())
-                } else {
-                    write!(f, "could not delete temp directory: {}", path.display())
-                }
-            }
         }
     }
 }

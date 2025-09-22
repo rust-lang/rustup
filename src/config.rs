@@ -295,7 +295,7 @@ impl<'a> Cfg<'a> {
         let tmp_cx = temp::Context::new(
             rustup_dir.join("tmp"),
             dist_root_server.as_str(),
-            Box::new(move |n| (notify_clone)(n.into())),
+            Box::new(move |n| (notify_clone)(n)),
         );
         let dist_root = dist_root_server + "/dist";
 
