@@ -1238,7 +1238,7 @@ async fn show_toolchain_override_not_installed() {
         .await
         .is_ok();
     cx.config
-        .expect(["rustup", "show"])
+        .expect_with_env(["rustup", "show"], [("RUSTUP_AUTO_INSTALL", "1")])
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
@@ -1327,7 +1327,7 @@ async fn show_toolchain_env() {
         .await
         .is_ok();
     cx.config
-        .expect_with_env(["rustup", "show"], &[("RUSTUP_TOOLCHAIN", "nightly")])
+        .expect_with_env(["rustup", "show"], [("RUSTUP_TOOLCHAIN", "nightly")])
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .is_ok()
@@ -1353,7 +1353,13 @@ installed targets:
 async fn show_toolchain_env_not_installed() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
-        .expect_with_env(["rustup", "show"], &[("RUSTUP_TOOLCHAIN", "nightly")])
+        .expect_with_env(
+            ["rustup", "show"],
+            [
+                ("RUSTUP_TOOLCHAIN", "nightly"),
+                ("RUSTUP_AUTO_INSTALL", "1"),
+            ],
+        )
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .is_ok()
@@ -3027,7 +3033,7 @@ error: no active toolchain
                 "show",
                 "active-toolchain",
             ],
-            &[("RUSTUP_TOOLCHAIN", &**env_tc)],
+            [("RUSTUP_TOOLCHAIN", &**env_tc)],
         )
         .await
         .extend_redactions([("[COMMAND_TC]", command_tc)])

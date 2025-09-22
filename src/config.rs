@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::trace;
+use tracing::{info, trace, warn};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -387,12 +387,26 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn should_auto_install(&self) -> Result<bool> {
-        if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
-            Ok(mode != "0")
-        } else {
-            self.settings_file
-                .with(|s| Ok(s.auto_install != Some(AutoInstallMode::Disable)))
+        let should_auto = match self.process.var("RUSTUP_AUTO_INSTALL") {
+            Ok(mode) => mode != "0",
+            Err(_) => self
+                .settings_file
+                .with(|s| Ok(s.auto_install != Some(AutoInstallMode::Disable)))?,
+        };
+        if !should_auto {
+            return Ok(false);
         }
+
+        // We also need to suppress this warning if we're deep inside a recursive call.
+        let recursions = self.process.var("RUSTUP_RECURSION_COUNT");
+        if recursions.is_ok_and(|it| it != "0") {
+            return Ok(true);
+        }
+
+        warn!("auto-install is enabled, active toolchain will be installed if absent");
+        warn!("this might cause rustup commands to take longer time to finish than expected");
+        info!("you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`");
+        Ok(true)
     }
 
     // Returns a profile, if one exists in the settings file.
@@ -746,10 +760,7 @@ impl<'a> Cfg<'a> {
 
     async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
         match name {
-            Some(tc) => {
-                let install_if_missing = self.should_auto_install()?;
-                Toolchain::from_local(tc, install_if_missing, self).await
-            }
+            Some(tc) => Toolchain::from_local(tc, || self.should_auto_install(), self).await,
             None => {
                 let tc = self
                     .maybe_ensure_active_toolchain(None)

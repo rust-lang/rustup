@@ -277,6 +277,12 @@ impl Config {
             "/bogus-config-file.toml",
         );
 
+        // Clear current recursion count to avoid messing up related logic
+        cmd.env("RUST_RECURSION_COUNT", "");
+
+        // Clear override for auto installation of active toolchain unless explicitly requested
+        cmd.env("RUSTUP_AUTO_INSTALL", "");
+
         // Pass `RUSTUP_CI` over to the test process in case it is required downstream
         if let Some(ci) = env::var_os("RUSTUP_CI") {
             cmd.env("RUSTUP_CI", ci);
@@ -291,7 +297,7 @@ impl Config {
     /// specified by `args` under the default environment.
     #[must_use]
     pub async fn expect<S: AsRef<OsStr> + Clone + Debug>(&self, args: impl AsRef<[S]>) -> Assert {
-        self.expect_with_env(args, &[]).await
+        self.expect_with_env(args, []).await
     }
 
     /// Returns an [`Assert`] object to check the output of running the command
