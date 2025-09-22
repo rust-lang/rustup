@@ -455,7 +455,7 @@ impl Manifestation {
         if url.is_none() {
             return Err(anyhow!(
                 "binary package was not provided for '{}'",
-                self.target_triple.to_string()
+                self.target_triple,
             ));
         }
         // Only replace once. The cost is inexpensive.
