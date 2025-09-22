@@ -543,7 +543,7 @@ async fn plus_override_toolchain_err_handling() {
     cx.config
         .expect_with_env(
             ["rustc", "+beta", "--version"],
-            &[("RUSTUP_AUTO_INSTALL", "0")],
+            [("RUSTUP_AUTO_INSTALL", "0")],
         )
         .await
         .with_stderr(snapbox::str![[r#"
@@ -1191,7 +1191,7 @@ async fn list_targets_no_toolchain() {
     cx.config
         .expect_with_env(
             ["rustup", "target", "list", "--toolchain=nightly"],
-            &[("RUSTUP_AUTO_INSTALL", "0")],
+            [("RUSTUP_AUTO_INSTALL", "0")],
         )
         .await
         .with_stderr(snapbox::str![[r#"
@@ -1221,7 +1221,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
     cx.config
         .expect_with_env(
             ["rustup", "target", "list", "--toolchain=nightly"],
-            &[("RUSTUP_AUTO_INSTALL", "0")],
+            [("RUSTUP_AUTO_INSTALL", "0")],
         )
         .await
         .with_stderr(snapbox::str![[r#"
@@ -1234,7 +1234,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
     cx.config
         .expect_with_env(
             ["rustup", "target", "list", "--toolchain=nightly"],
-            &[("RUSTUP_AUTO_INSTALL", "1")],
+            [("RUSTUP_AUTO_INSTALL", "1")],
         )
         .await
         .is_ok();
@@ -1502,7 +1502,7 @@ async fn add_target_no_toolchain() {
                 CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
-            &[("RUSTUP_AUTO_INSTALL", "0")],
+            [("RUSTUP_AUTO_INSTALL", "0")],
         )
         .await
         .with_stderr(snapbox::str![[r#"
@@ -1725,7 +1725,7 @@ async fn remove_target_no_toolchain() {
                 CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
-            &[("RUSTUP_AUTO_INSTALL", "0")],
+            [("RUSTUP_AUTO_INSTALL", "0")],
         )
         .await
         .with_stderr(snapbox::str![[r#"
