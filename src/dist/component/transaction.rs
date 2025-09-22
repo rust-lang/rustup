@@ -14,10 +14,10 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 
-use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 

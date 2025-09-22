@@ -2,7 +2,6 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use crate::dist::Notification as In;
 use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils::Notification as Un;
@@ -40,36 +39,33 @@ impl DownloadTracker {
 
     pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
         match *n {
-            Notification::Install(In::Utils(Un::DownloadContentLengthReceived(
-                content_len,
-                url,
-            ))) => {
+            Notification::Utils(Un::DownloadContentLengthReceived(content_len, url)) => {
                 if let Some(url) = url {
                     self.content_length_received(content_len, url);
                 }
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadDataReceived(data, url))) => {
+            Notification::Utils(Un::DownloadDataReceived(data, url)) => {
                 if let Some(url) = url {
                     self.data_received(data.len(), url);
                 }
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadFinished(url))) => {
+            Notification::Utils(Un::DownloadFinished(url)) => {
                 if let Some(url) = url {
                     self.download_finished(url);
                 }
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadFailed(url))) => {
+            Notification::Utils(Un::DownloadFailed(url)) => {
                 self.download_failed(url);
                 false
             }
-            Notification::Install(In::DownloadingComponent(component, _, _, url)) => {
+            Notification::DownloadingComponent(component, _, _, url) => {
                 self.create_progress_bar(component.to_owned(), url.to_owned());
                 true
             }
-            Notification::Install(In::RetryingDownload(url)) => {
+            Notification::RetryingDownload(url) => {
                 self.retrying_download(url);
                 true
             }

@@ -19,11 +19,11 @@ use crate::dist::component::{
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
-use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
+use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 

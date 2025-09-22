@@ -6,9 +6,9 @@ use anyhow::Result;
 
 use crate::{
     config::Cfg,
-    dist::{self, DistOptions, Notification, prefix::InstallPrefix},
+    dist::{self, DistOptions, prefix::InstallPrefix},
     errors::RustupError,
-    notifications::Notification as RootNotification,
+    notifications::Notification,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
 };
@@ -51,20 +51,20 @@ impl InstallMethod<'_> {
             | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
-            }) => nh(RootNotification::InstallingToolchain(&self.dest_basename())),
-            _ => nh(RootNotification::UpdatingToolchain(&self.dest_basename())),
+            }) => nh(Notification::InstallingToolchain(&self.dest_basename())),
+            _ => nh(Notification::UpdatingToolchain(&self.dest_basename())),
         }
 
-        nh(RootNotification::ToolchainDirectory(&self.dest_path()));
-        let updated = self.run(&self.dest_path(), &|n| nh(n.into())).await?;
+        nh(Notification::ToolchainDirectory(&self.dest_path()));
+        let updated = self.run(&self.dest_path(), &|n| nh(n)).await?;
 
         let status = match updated {
             false => {
-                nh(RootNotification::UpdateHashMatches);
+                nh(Notification::UpdateHashMatches);
                 UpdateStatus::Unchanged
             }
             true => {
-                nh(RootNotification::InstalledToolchain(&self.dest_basename()));
+                nh(Notification::InstalledToolchain(&self.dest_basename()));
                 match self {
                     InstallMethod::Dist(DistOptions {
                         old_date_version: Some((_, v)),

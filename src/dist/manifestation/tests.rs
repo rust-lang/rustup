@@ -16,21 +16,16 @@ use url::Url;
 
 use crate::{
     dist::{
-        DEFAULT_DIST_SERVER, Notification, Profile, TargetTriple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
         download::DownloadCfg,
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
         prefix::InstallPrefix,
         temp,
-    },
-    download::download_file,
-    errors::RustupError,
-    process::TestProcess,
-    test::{
+    }, download::download_file, errors::RustupError, notifications::Notification, process::TestProcess, test::{
         dist::*,
         mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
-    },
-    utils::{self, raw as utils_raw},
+    }, utils::{self, raw as utils_raw}
 };
 
 const SHA256_HASH_LEN: usize = 64;

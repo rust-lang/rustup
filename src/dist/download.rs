@@ -6,11 +6,11 @@ use anyhow::{Context, Result, anyhow};
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::download::download_file;
 use crate::download::download_file_with_resume;
 use crate::errors::*;
+use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 

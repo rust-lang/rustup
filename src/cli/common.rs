@@ -16,7 +16,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 use crate::{
     cli::download_tracker::DownloadTracker,
     config::Cfg,
-    dist::{TargetTriple, ToolchainDesc, notifications as dist_notifications},
+    dist::{TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
     notifications::Notification,
@@ -139,10 +139,7 @@ impl Notifier {
             return;
         }
 
-        if let Notification::Install(dist_notifications::Notification::Utils(
-            util_notifications::Notification::SetDefaultBufferSize(_),
-        )) = &n
-        {
+        if let Notification::Utils(util_notifications::Notification::SetDefaultBufferSize(_)) = &n {
             if *self.ram_notice_shown.borrow() {
                 return;
             } else {
