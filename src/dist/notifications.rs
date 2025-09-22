@@ -1,5 +1,4 @@
 use crate::dist::manifest::Component;
-use crate::dist::temp;
 use crate::dist::{TargetTriple, ToolchainDesc};
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
@@ -10,8 +9,6 @@ use super::manifest::Manifest;
 #[derive(Debug)]
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
-    Temp(temp::Notification<'a>),
-
     Extracting(&'a Path, &'a Path),
     ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
@@ -45,17 +42,10 @@ impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
     }
 }
 
-impl<'a> From<temp::Notification<'a>> for Notification<'a> {
-    fn from(n: temp::Notification<'a>) -> Self {
-        Notification::Temp(n)
-    }
-}
-
 impl Notification<'_> {
     pub(crate) fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
-            Temp(n) => n.level(),
             Utils(n) => n.level(),
             ChecksumValid(_)
             | NoUpdateHash(_)
@@ -89,7 +79,6 @@ impl Display for Notification<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match self {
-            Temp(n) => n.fmt(f),
             Utils(n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
             ComponentAlreadyInstalled(c) => write!(f, "component {c} is up to date"),
