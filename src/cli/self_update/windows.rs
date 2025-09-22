@@ -23,8 +23,9 @@ use super::{InstallOpts, install_bins, report_error};
 use crate::cli::{download_tracker::DownloadTracker, markdown::md};
 use crate::dist::TargetTriple;
 use crate::download::download_file;
+use crate::notifications::Notification;
 use crate::process::{Process, terminalsource::ColorableTerminal};
-use crate::utils::{self, Notification};
+use crate::utils;
 
 pub(crate) fn ensure_prompt(process: &Process) -> Result<()> {
     writeln!(process.stdout().lock(),)?;
@@ -285,9 +286,7 @@ pub(crate) async fn try_install_msvc(
         &visual_studio,
         None,
         &move |n| {
-            download_tracker.lock().unwrap().handle_notification(
-                &crate::notifications::Notification::Install(crate::dist::Notification::Utils(n)),
-            );
+            download_tracker.lock().unwrap().handle_notification(&n);
         },
         process,
     )

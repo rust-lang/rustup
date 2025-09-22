@@ -4,7 +4,6 @@ use std::time::{Duration, Instant};
 
 use crate::notifications::Notification;
 use crate::process::Process;
-use crate::utils::Notification as Un;
 
 /// Tracks download progress and displays information about it to a terminal.
 ///
@@ -39,25 +38,25 @@ impl DownloadTracker {
 
     pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
         match *n {
-            Notification::Utils(Un::DownloadContentLengthReceived(content_len, url)) => {
+            Notification::DownloadContentLengthReceived(content_len, url) => {
                 if let Some(url) = url {
                     self.content_length_received(content_len, url);
                 }
                 true
             }
-            Notification::Utils(Un::DownloadDataReceived(data, url)) => {
+            Notification::DownloadDataReceived(data, url) => {
                 if let Some(url) = url {
                     self.data_received(data.len(), url);
                 }
                 true
             }
-            Notification::Utils(Un::DownloadFinished(url)) => {
+            Notification::DownloadFinished(url) => {
                 if let Some(url) = url {
                     self.download_finished(url);
                 }
                 true
             }
-            Notification::Utils(Un::DownloadFailed(url)) => {
+            Notification::DownloadFailed(url) => {
                 self.download_failed(url);
                 false
             }

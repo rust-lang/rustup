@@ -14,7 +14,12 @@ use thiserror::Error as ThisError;
 use tracing::{info, warn};
 
 use crate::{
-    config::{Cfg, dist_root_server}, errors::RustupError, notifications::Notification, process::Process, toolchain::ToolchainName, utils
+    config::{Cfg, dist_root_server},
+    errors::RustupError,
+    notifications::Notification,
+    process::Process,
+    toolchain::ToolchainName,
+    utils,
 };
 
 pub mod component;

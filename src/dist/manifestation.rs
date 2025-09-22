@@ -265,18 +265,16 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            let notification_converter = |notification: crate::utils::Notification<'_>| {
-                (download_cfg.notify_handler)(notification.into());
-            };
-
             let cx = PackageContext {
                 tmp_cx,
-                notify_handler: Some(&notification_converter),
+                notify_handler: Some(download_cfg.notify_handler),
                 process: download_cfg.process,
             };
 
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+            let reader = utils::FileReaderWithProgress::new_file(
+                &installer_file,
+                download_cfg.notify_handler,
+            )?;
             let package = match format {
                 CompressionKind::GZip => &TarGzPackage::new(reader, &cx)? as &dyn Package,
                 CompressionKind::XZ => &TarXzPackage::new(reader, &cx)?,
@@ -487,14 +485,10 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let notification_converter = |notification: crate::utils::Notification<'_>| {
-            notify_handler(notification.into());
-        };
-        let reader =
-            utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+        let reader = utils::FileReaderWithProgress::new_file(&installer_file, notify_handler)?;
         let cx = PackageContext {
             tmp_cx,
-            notify_handler: Some(&notification_converter),
+            notify_handler: Some(notify_handler),
             process,
         };
 

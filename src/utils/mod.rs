@@ -16,12 +16,12 @@ use url::Url;
 use crate::errors::*;
 use crate::process::Process;
 
+use crate::notifications::Notification;
 #[cfg(not(windows))]
 pub(crate) use crate::utils::raw::find_cmd;
+pub(crate) use crate::utils::raw::is_directory;
 pub use crate::utils::raw::{is_file, path_exists};
-pub(crate) use crate::utils::{notifications::Notification, raw::is_directory};
 
-pub(crate) mod notifications;
 pub(crate) mod notify;
 pub mod raw;
 pub(crate) mod units;

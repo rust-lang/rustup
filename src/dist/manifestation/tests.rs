@@ -22,10 +22,16 @@ use crate::{
         manifestation::{Changes, Manifestation, UpdateStatus},
         prefix::InstallPrefix,
         temp,
-    }, download::download_file, errors::RustupError, notifications::Notification, process::TestProcess, test::{
+    },
+    download::download_file,
+    errors::RustupError,
+    notifications::Notification,
+    process::TestProcess,
+    test::{
         dist::*,
         mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
-    }, utils::{self, raw as utils_raw}
+    },
+    utils::{self, raw as utils_raw},
 };
 
 const SHA256_HASH_LEN: usize = 64;

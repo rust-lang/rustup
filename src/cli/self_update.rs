@@ -61,12 +61,13 @@ use crate::{
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
+    notifications::Notification,
     process::{Process, terminalsource},
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
     },
-    utils::{self, Notification},
+    utils,
 };
 
 #[cfg(unix)]

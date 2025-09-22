@@ -2,9 +2,12 @@ use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 
+use url::Url;
+
 use crate::dist::TargetTriple;
 use crate::dist::manifest::{Component, Manifest};
 use crate::settings::MetadataVersion;
+use crate::utils::units;
 use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::NotificationLevel};
 
 #[derive(Debug)]
@@ -34,10 +37,37 @@ pub enum Notification<'a> {
     StrayHash(&'a Path),
     SignatureInvalid(&'a str),
     RetryingDownload(&'a str),
-    Utils(crate::utils::Notification<'a>),
+    CreatingDirectory(&'a str, &'a Path),
+    LinkingDirectory(&'a Path, &'a Path),
+    CopyingDirectory(&'a Path, &'a Path),
+    RemovingDirectory(&'a str, &'a Path),
+    DownloadingFile(&'a Url, &'a Path),
+    /// Received the Content-Length of the to-be downloaded data with
+    /// the respective URL of the download (for tracking concurrent downloads).
+    DownloadContentLengthReceived(u64, Option<&'a str>),
+    /// Received some data.
+    DownloadDataReceived(&'a [u8], Option<&'a str>),
+    /// Download has finished.
+    DownloadFinished(Option<&'a str>),
+    /// Download has failed.
+    DownloadFailed(&'a str),
+    NoCanonicalPath(&'a Path),
+    ResumingPartialDownload,
+    /// This would make more sense as a crate::notifications::Notification
+    /// member, but the notification callback is already narrowed to
+    /// utils::notifications by the time tar unpacking is called.
+    SetDefaultBufferSize(usize),
+    Error(String),
+    UsingCurl,
+    UsingReqwest,
+    /// Renaming encountered a file in use error and is retrying.
+    /// The InUse aspect is a heuristic - the OS specifies
+    /// Permission denied, but as we work in users home dirs and
+    /// running programs like virus scanner are known to cause this
+    /// the heuristic is quite good.
+    RenameInUse(&'a Path, &'a Path),
     CreatingRoot(&'a Path),
     CreatingFile(&'a Path),
-    CreatingDirectory(&'a Path),
     FileDeletion(&'a Path, io::Result<()>),
     DirectoryDeletion(&'a Path, io::Result<()>),
     SetAutoInstall(&'a str),
@@ -63,12 +93,6 @@ pub enum Notification<'a> {
         rust_toolchain: &'a Path,
         rust_toolchain_toml: &'a Path,
     },
-}
-
-impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
-    fn from(n: crate::utils::Notification<'a>) -> Self {
-        Notification::Utils(n)
-    }
 }
 
 impl Notification<'_> {
@@ -99,8 +123,23 @@ impl Notification<'_> {
             | StrayHash(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
             SignatureInvalid(_) => NotificationLevel::Warn,
-            Utils(n) => n.level(),
-            CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Debug,
+            SetDefaultBufferSize(_) => NotificationLevel::Trace,
+            CreatingDirectory(_, _)
+            | RemovingDirectory(_, _)
+            | LinkingDirectory(_, _)
+            | CopyingDirectory(_, _)
+            | DownloadingFile(_, _)
+            | DownloadContentLengthReceived(_, _)
+            | DownloadDataReceived(_, _)
+            | DownloadFinished(_)
+            | DownloadFailed(_)
+            | ResumingPartialDownload
+            | UsingCurl
+            | UsingReqwest => NotificationLevel::Debug,
+            RenameInUse(_, _) => NotificationLevel::Info,
+            NoCanonicalPath(_) => NotificationLevel::Warn,
+            Error(_) => NotificationLevel::Error,
+            CreatingRoot(_) | CreatingFile(_) => NotificationLevel::Debug,
             FileDeletion(_, result) | DirectoryDeletion(_, result) => {
                 if result.is_ok() {
                     NotificationLevel::Debug
@@ -225,10 +264,37 @@ impl Display for Notification<'_> {
             }
             SignatureInvalid(url) => write!(f, "Signature verification failed for '{url}'"),
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
-            Utils(n) => n.fmt(f),
+            CreatingDirectory(name, path) => {
+                write!(f, "creating {} directory: '{}'", name, path.display())
+            }
+            Error(e) => write!(f, "error: '{e}'"),
+            LinkingDirectory(_, dest) => write!(f, "linking directory from: '{}'", dest.display()),
+            CopyingDirectory(src, _) => write!(f, "copying directory from: '{}'", src.display()),
+            RemovingDirectory(name, path) => {
+                write!(f, "removing {} directory: '{}'", name, path.display())
+            }
+            RenameInUse(src, dest) => write!(
+                f,
+                "retrying renaming '{}' to '{}'",
+                src.display(),
+                dest.display()
+            ),
+            SetDefaultBufferSize(size) => write!(
+                f,
+                "using up to {} of RAM to unpack components",
+                units::Size::new(*size)
+            ),
+            DownloadingFile(url, _) => write!(f, "downloading file from: '{url}'"),
+            DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
+            DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
+            DownloadFinished(_) => write!(f, "download finished"),
+            DownloadFailed(_) => write!(f, "download failed"),
+            NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
+            ResumingPartialDownload => write!(f, "resuming partial download"),
+            UsingCurl => write!(f, "downloading with curl"),
+            UsingReqwest => write!(f, "downloading with reqwest"),
             CreatingRoot(path) => write!(f, "creating temp root: {}", path.display()),
             CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
-            CreatingDirectory(path) => write!(f, "creating temp directory: {}", path.display()),
             FileDeletion(path, result) => {
                 if result.is_ok() {
                     write!(f, "deleted temp file: {}", path.display())
