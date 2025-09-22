@@ -65,8 +65,8 @@ use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
 
+use crate::notifications::Notification;
 use crate::process::Process;
-use crate::utils::notifications::Notification;
 use threaded::PoolReference;
 
 /// Carries the implementation specific data for complete file transfers into the executor.

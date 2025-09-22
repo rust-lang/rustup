@@ -20,7 +20,7 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use crate::{errors::RustupError, process::Process, utils::Notification};
+use crate::{errors::RustupError, notifications::Notification, process::Process};
 
 #[cfg(test)]
 mod tests;

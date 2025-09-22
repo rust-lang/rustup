@@ -17,8 +17,9 @@ use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::notifications::Notification;
 use crate::process::Process;
-use crate::utils::{self, Notification};
+use crate::utils;
 
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";

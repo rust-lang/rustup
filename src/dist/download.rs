@@ -80,7 +80,7 @@ impl<'a> DownloadCfg<'a> {
             &partial_file_path,
             Some(&mut hasher),
             true,
-            &|n| (self.notify_handler)(n.into()),
+            &|n| (self.notify_handler)(n),
             self.process,
         )
         .await
@@ -140,7 +140,7 @@ impl<'a> DownloadCfg<'a> {
             &hash_url,
             &hash_file,
             None,
-            &|n| (self.notify_handler)(n.into()),
+            &|n| (self.notify_handler)(n),
             self.process,
         )
         .await?;
@@ -185,7 +185,7 @@ impl<'a> DownloadCfg<'a> {
             &url,
             &file,
             Some(&mut hasher),
-            &|n| (self.notify_handler)(n.into()),
+            &|n| (self.notify_handler)(n),
             self.process,
         )
         .await?;
@@ -209,10 +209,7 @@ impl<'a> DownloadCfg<'a> {
 
 fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<String> {
     let mut hasher = Sha256::new();
-    let notification_converter = |notification: crate::utils::Notification<'_>| {
-        notify_handler(notification.into());
-    };
-    let mut downloaded = utils::FileReaderWithProgress::new_file(path, &notification_converter)?;
+    let mut downloaded = utils::FileReaderWithProgress::new_file(path, notify_handler)?;
     use std::io::Read;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {
