@@ -1,19 +1,19 @@
 use std::fmt::{self, Display};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::settings::MetadataVersion;
-use crate::{
-    dist::{ToolchainDesc, temp},
-    toolchain::ToolchainName,
-    utils::notify::NotificationLevel,
-};
+use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::NotificationLevel};
 
 #[derive(Debug)]
-pub(crate) enum Notification<'a> {
+pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
-    Temp(temp::Notification<'a>),
-
+    CreatingRoot(&'a Path),
+    CreatingFile(&'a Path),
+    CreatingDirectory(&'a Path),
+    FileDeletion(&'a Path, io::Result<()>),
+    DirectoryDeletion(&'a Path, io::Result<()>),
     SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -50,11 +50,6 @@ impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
         Notification::Utils(n)
     }
 }
-impl<'a> From<temp::Notification<'a>> for Notification<'a> {
-    fn from(n: temp::Notification<'a>) -> Self {
-        Notification::Temp(n)
-    }
-}
 
 impl Notification<'_> {
     pub(crate) fn level(&self) -> NotificationLevel {
@@ -62,7 +57,14 @@ impl Notification<'_> {
         match self {
             Install(n) => n.level(),
             Utils(n) => n.level(),
-            Temp(n) => n.level(),
+            CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Debug,
+            FileDeletion(_, result) | DirectoryDeletion(_, result) => {
+                if result.is_ok() {
+                    NotificationLevel::Debug
+                } else {
+                    NotificationLevel::Warn
+                }
+            }
             ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
@@ -92,7 +94,23 @@ impl Display for Notification<'_> {
         match self {
             Install(n) => n.fmt(f),
             Utils(n) => n.fmt(f),
-            Temp(n) => n.fmt(f),
+            CreatingRoot(path) => write!(f, "creating temp root: {}", path.display()),
+            CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
+            CreatingDirectory(path) => write!(f, "creating temp directory: {}", path.display()),
+            FileDeletion(path, result) => {
+                if result.is_ok() {
+                    write!(f, "deleted temp file: {}", path.display())
+                } else {
+                    write!(f, "could not delete temp file: {}", path.display())
+                }
+            }
+            DirectoryDeletion(path, result) => {
+                if result.is_ok() {
+                    write!(f, "deleted temp directory: {}", path.display())
+                } else {
+                    write!(f, "could not delete temp directory: {}", path.display())
+                }
+            }
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),
             SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
             SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),

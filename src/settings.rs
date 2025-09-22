@@ -147,7 +147,7 @@ impl Settings {
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub(crate) enum MetadataVersion {
+pub enum MetadataVersion {
     #[serde(rename = "2")]
     V2,
     #[serde(rename = "12")]
