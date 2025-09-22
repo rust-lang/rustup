@@ -92,8 +92,6 @@ fn package_bad_version() {
 
 #[test]
 fn basic_install() {
-    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "mycomponent".to_string(),
@@ -105,40 +103,25 @@ fn basic_install() {
         }],
     };
 
-    mock.build(pkgdir.path());
-
-    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned());
-
-    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let tmp_cx = temp::Context::new(
-        tmpdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-    let notify = |_: Notification<'_>| ();
-    let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
-
-    let components = Components::open(prefix).unwrap();
-
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
-
+    let cx = DistContext::new(mock).unwrap();
+    let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
 
-    assert!(utils::path_exists(instdir.path().join("bin/foo")));
-    assert!(utils::path_exists(instdir.path().join("lib/bar")));
-    assert!(utils::path_exists(instdir.path().join("doc/stuff/doc1")));
-    assert!(utils::path_exists(instdir.path().join("doc/stuff/doc2")));
+    assert!(utils::path_exists(cx.inst_dir.path().join("bin/foo")));
+    assert!(utils::path_exists(cx.inst_dir.path().join("lib/bar")));
+    assert!(utils::path_exists(
+        cx.inst_dir.path().join("doc/stuff/doc1")
+    ));
+    assert!(utils::path_exists(
+        cx.inst_dir.path().join("doc/stuff/doc2")
+    ));
 
     assert!(components.find("mycomponent").unwrap().is_some());
 }
 
 #[test]
 fn multiple_component_install() {
-    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
     let mock = MockInstallerBuilder {
         components: vec![
             MockComponentBuilder {
@@ -152,31 +135,14 @@ fn multiple_component_install() {
         ],
     };
 
-    mock.build(pkgdir.path());
-
-    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned());
-
-    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let tmp_cx = temp::Context::new(
-        tmpdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-    let notify = |_: Notification<'_>| ();
-    let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
-
-    let components = Components::open(prefix).unwrap();
-
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
-
+    let cx = DistContext::new(mock).unwrap();
+    let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
     tx.commit();
 
-    assert!(utils::path_exists(instdir.path().join("bin/foo")));
-    assert!(utils::path_exists(instdir.path().join("lib/bar")));
+    assert!(utils::path_exists(cx.inst_dir.path().join("bin/foo")));
+    assert!(utils::path_exists(cx.inst_dir.path().join("lib/bar")));
 
     assert!(components.find("mycomponent").unwrap().is_some());
     assert!(components.find("mycomponent2").unwrap().is_some());
@@ -184,8 +150,6 @@ fn multiple_component_install() {
 
 #[test]
 fn uninstall() {
-    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
     let mock = MockInstallerBuilder {
         components: vec![
             MockComponentBuilder {
@@ -203,43 +167,29 @@ fn uninstall() {
         ],
     };
 
-    mock.build(pkgdir.path());
-
-    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned());
-
-    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let tmp_cx = temp::Context::new(
-        tmpdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-    let notify = |_: Notification<'_>| ();
-    let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
-
-    let components = Components::open(prefix.clone()).unwrap();
-
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
-
+    let cx = DistContext::new(mock).unwrap();
+    let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
     tx.commit();
 
     // Now uninstall
     let notify = |_: Notification<'_>| ();
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
+    let mut tx = Transaction::new(cx.prefix.clone(), &cx.cx, &notify, &cx.tp.process);
     for component in components.list().unwrap() {
-        tx = component.uninstall(tx, &tp.process).unwrap();
+        tx = component.uninstall(tx, &cx.tp.process).unwrap();
     }
     tx.commit();
 
-    assert!(!utils::path_exists(instdir.path().join("bin/foo")));
-    assert!(!utils::path_exists(instdir.path().join("lib/bar")));
-    assert!(!utils::path_exists(instdir.path().join("doc/stuff/doc1")));
-    assert!(!utils::path_exists(instdir.path().join("doc/stuff/doc2")));
-    assert!(!utils::path_exists(instdir.path().join("doc/stuff")));
+    assert!(!utils::path_exists(cx.inst_dir.path().join("bin/foo")));
+    assert!(!utils::path_exists(cx.inst_dir.path().join("lib/bar")));
+    assert!(!utils::path_exists(
+        cx.inst_dir.path().join("doc/stuff/doc1")
+    ));
+    assert!(!utils::path_exists(
+        cx.inst_dir.path().join("doc/stuff/doc2")
+    ));
+    assert!(!utils::path_exists(cx.inst_dir.path().join("doc/stuff")));
     assert!(components.find("mycomponent").unwrap().is_none());
     assert!(components.find("mycomponent2").unwrap().is_none());
 }
@@ -253,8 +203,6 @@ fn uninstall_best_effort() {
 
 #[test]
 fn component_bad_version() {
-    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "mycomponent".to_string(),
@@ -262,33 +210,21 @@ fn component_bad_version() {
         }],
     };
 
-    mock.build(pkgdir.path());
-
-    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned());
-
-    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let tmp_cx = temp::Context::new(
-        tmpdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-    let notify = |_: Notification<'_>| ();
-    let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
-
-    let components = Components::open(prefix.clone()).unwrap();
-
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
-
+    let cx = DistContext::new(mock).unwrap();
+    let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
 
     // Write a bogus version to the component manifest directory
-    utils::write_file("", &prefix.manifest_file("rust-installer-version"), "100\n").unwrap();
+    utils::write_file(
+        "",
+        &cx.prefix.manifest_file("rust-installer-version"),
+        "100\n",
+    )
+    .unwrap();
 
     // Can't open components now
-    let e = Components::open(prefix).unwrap_err();
+    let e = Components::open(cx.prefix).unwrap_err();
     assert_eq!(
         "unsupported metadata version in existing installation: 100",
         format!("{e}")
@@ -298,8 +234,6 @@ fn component_bad_version() {
 // Installing to a prefix that doesn't exist creates it automatically
 #[test]
 fn install_to_prefix_that_does_not_exist() {
-    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "mycomponent".to_string(),
@@ -307,29 +241,59 @@ fn install_to_prefix_that_does_not_exist() {
         }],
     };
 
-    mock.build(pkgdir.path());
-
-    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    // The directory that does not exist
-    let does_not_exist = instdir.path().join("super_not_real");
-    let prefix = InstallPrefix::from(does_not_exist.clone());
-
-    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let tmp_cx = temp::Context::new(
-        tmpdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-    let notify = |_: Notification<'_>| ();
-    let tp = TestProcess::default();
-    let tx = Transaction::new(prefix.clone(), &tmp_cx, &notify, &tp.process);
-
-    let components = Components::open(prefix).unwrap();
-
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
-
+    let mut cx = DistContext::new(mock).unwrap();
+    let does_not_exist = cx.inst_dir.path().join("does_not_exist");
+    cx.prefix = InstallPrefix::from(does_not_exist.clone());
+    let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
 
+    // The directory that does not exist
     assert!(utils::path_exists(does_not_exist.join("bin/foo")));
+}
+
+struct DistContext {
+    pkg_dir: tempfile::TempDir,
+    inst_dir: tempfile::TempDir,
+    prefix: InstallPrefix,
+    _tmp_dir: tempfile::TempDir,
+    cx: temp::Context,
+    tp: TestProcess,
+}
+
+impl DistContext {
+    fn new(mock: MockInstallerBuilder) -> anyhow::Result<Self> {
+        let pkg_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
+        mock.build(pkg_dir.path());
+
+        let inst_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
+        let prefix = InstallPrefix::from(inst_dir.path().to_owned());
+        let tmp_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
+
+        Ok(Self {
+            pkg_dir,
+            inst_dir,
+            prefix,
+            cx: temp::Context::new(
+                tmp_dir.path().to_owned(),
+                DEFAULT_DIST_SERVER,
+                Box::new(|_| ()),
+            ),
+            tp: TestProcess::default(),
+            _tmp_dir: tmp_dir,
+        })
+    }
+
+    fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage)> {
+        let tx = Transaction::new(
+            self.prefix.clone(),
+            &self.cx,
+            &|_: Notification<'_>| (),
+            &self.tp.process,
+        );
+
+        let components = Components::open(self.prefix.clone())?;
+        let pkg = DirectoryPackage::new(self.pkg_dir.path().to_owned(), true)?;
+        Ok((tx, components, pkg))
+    }
 }
