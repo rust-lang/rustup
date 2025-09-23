@@ -56,7 +56,6 @@ pub enum Notification<'a> {
     CreatingRoot(&'a Path),
     CreatingFile(&'a Path),
     FileDeletion(&'a Path, io::Result<()>),
-    DirectoryDeletion(&'a Path, io::Result<()>),
     SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -119,7 +118,7 @@ impl Notification<'_> {
             | UsingReqwest => NotificationLevel::Debug,
             Error(_) => NotificationLevel::Error,
             CreatingRoot(_) | CreatingFile(_) => NotificationLevel::Debug,
-            FileDeletion(_, result) | DirectoryDeletion(_, result) => match result {
+            FileDeletion(_, result) => match result {
                 Ok(_) => NotificationLevel::Debug,
                 Err(_) => NotificationLevel::Warn,
             },
@@ -259,13 +258,6 @@ impl Display for Notification<'_> {
                     write!(f, "deleted temp file: {}", path.display())
                 } else {
                     write!(f, "could not delete temp file: {}", path.display())
-                }
-            }
-            DirectoryDeletion(path, result) => {
-                if result.is_ok() {
-                    write!(f, "deleted temp directory: {}", path.display())
-                } else {
-                    write!(f, "could not delete temp directory: {}", path.display())
                 }
             }
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),

@@ -187,7 +187,7 @@ enum ChangedItem<'a> {
     AddedFile(PathBuf),
     AddedDir(PathBuf),
     RemovedFile(PathBuf, temp::File<'a>),
-    RemovedDir(PathBuf, temp::Dir<'a>),
+    RemovedDir(PathBuf, temp::Dir),
     ModifiedFile(PathBuf, Option<temp::File<'a>>),
 }
 

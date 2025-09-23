@@ -3,7 +3,7 @@ use std::{fmt, fs, ops};
 
 pub(crate) use anyhow::{Context as _, Result};
 use thiserror::Error as ThisError;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::notifications::Notification;
 use crate::utils::{self, raw};
@@ -19,12 +19,11 @@ pub(crate) enum CreatingError {
 }
 
 #[derive(Debug)]
-pub(crate) struct Dir<'a> {
-    cfg: &'a Context,
+pub(crate) struct Dir {
     path: PathBuf,
 }
 
-impl ops::Deref for Dir<'_> {
+impl ops::Deref for Dir {
     type Target = Path;
 
     fn deref(&self) -> &Path {
@@ -32,14 +31,15 @@ impl ops::Deref for Dir<'_> {
     }
 }
 
-impl Drop for Dir<'_> {
+impl Drop for Dir {
     fn drop(&mut self) {
         if raw::is_directory(&self.path) {
-            let n = Notification::DirectoryDeletion(
-                &self.path,
-                remove_dir_all::remove_dir_all(&self.path),
-            );
-            (self.cfg.notify_handler)(n);
+            match remove_dir_all::remove_dir_all(&self.path) {
+                Ok(()) => debug!(path = %self.path.display(), "deleted temp directory"),
+                Err(e) => {
+                    warn!(path = %self.path.display(), error = %e, "could not delete temp directory")
+                }
+            }
         }
     }
 }
@@ -93,7 +93,7 @@ impl Context {
         .with_context(|| CreatingError::Root(PathBuf::from(&self.root_directory)))
     }
 
-    pub(crate) fn new_directory(&self) -> Result<Dir<'_>> {
+    pub(crate) fn new_directory(&self) -> Result<Dir> {
         self.create_root()?;
 
         loop {
@@ -107,10 +107,7 @@ impl Context {
                 debug!(name = "temp", path = %temp_dir.display(), "creating directory");
                 fs::create_dir(&temp_dir)
                     .with_context(|| CreatingError::Directory(PathBuf::from(&temp_dir)))?;
-                return Ok(Dir {
-                    cfg: self,
-                    path: temp_dir,
-                });
+                return Ok(Dir { path: temp_dir });
             }
         }
     }
