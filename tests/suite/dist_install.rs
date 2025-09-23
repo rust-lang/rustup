@@ -5,7 +5,6 @@ use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
 use rustup::dist::component::{DirectoryPackage, Package};
 use rustup::dist::prefix::InstallPrefix;
-use rustup::notifications::Notification;
 use rustup::test::{DistContext, MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup::utils;
 
@@ -170,8 +169,7 @@ fn uninstall() {
     tx.commit();
 
     // Now uninstall
-    let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(cx.prefix.clone(), &cx.cx, &notify, &cx.tp.process);
+    let mut tx = Transaction::new(cx.prefix.clone(), &cx.cx, &cx.tp.process);
     for component in components.list().unwrap() {
         tx = component.uninstall(tx, &cx.tp.process).unwrap();
     }

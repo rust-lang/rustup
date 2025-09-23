@@ -216,12 +216,7 @@ impl Manifestation {
         }
 
         // Begin transaction
-        let mut tx = Transaction::new(
-            prefix.clone(),
-            tmp_cx,
-            download_cfg.notify_handler,
-            download_cfg.process,
-        );
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.process);
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
@@ -329,7 +324,7 @@ impl Manifestation {
     ) -> Result<()> {
         let prefix = self.installation.prefix();
 
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, notify_handler, process);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx, process);
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
@@ -476,7 +471,7 @@ impl Manifestation {
         ));
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, tmp_cx, notify_handler, process);
+        let mut tx = Transaction::new(prefix, tmp_cx, process);
 
         // Uninstall components
         let components = self.installation.list()?;

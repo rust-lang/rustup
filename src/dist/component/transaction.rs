@@ -13,12 +13,11 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
-use tracing::info;
+use tracing::{error, info};
 
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
-use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 
@@ -39,23 +38,16 @@ pub struct Transaction<'a> {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem<'a>>,
     tmp_cx: &'a temp::Context,
-    notify_handler: &'a dyn Fn(Notification<'_>),
     committed: bool,
     process: &'a Process,
 }
 
 impl<'a> Transaction<'a> {
-    pub fn new(
-        prefix: InstallPrefix,
-        tmp_cx: &'a temp::Context,
-        notify_handler: &'a dyn Fn(Notification<'_>),
-        process: &'a Process,
-    ) -> Self {
+    pub fn new(prefix: InstallPrefix, tmp_cx: &'a temp::Context, process: &'a Process) -> Self {
         Transaction {
             prefix,
             changes: Vec::new(),
             tmp_cx,
-            notify_handler,
             committed: false,
             process,
         }
@@ -179,9 +171,7 @@ impl Drop for Transaction<'_> {
                 //          Notification::NonFatalError,
                 match item.roll_back(&self.prefix, self.process) {
                     Ok(()) => {}
-                    Err(e) => {
-                        (self.notify_handler)(Notification::NonFatalError(&e));
-                    }
+                    Err(e) => error!("{e}"),
                 }
             }
         }
