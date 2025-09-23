@@ -13,6 +13,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
+use tracing::info;
 
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
@@ -172,7 +173,7 @@ impl<'a> Transaction<'a> {
 impl Drop for Transaction<'_> {
     fn drop(&mut self) {
         if !self.committed {
-            (self.notify_handler)(Notification::RollingBack);
+            info!("rolling back changes");
             for item in self.changes.iter().rev() {
                 // ok_ntfy!(self.notify_handler,
                 //          Notification::NonFatalError,
