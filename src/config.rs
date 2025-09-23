@@ -247,7 +247,7 @@ impl<'a> Cfg<'a> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
 
-        utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
+        utils::ensure_dir_exists("home", &rustup_dir)?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         settings_file.with(|s| {
@@ -411,9 +411,7 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn ensure_toolchains_dir(&self) -> Result<(), anyhow::Error> {
-        utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
-            (self.notify_handler)(n)
-        })?;
+        utils::ensure_dir_exists("toolchains", &self.toolchains_dir)?;
         Ok(())
     }
 
@@ -437,11 +435,7 @@ impl<'a> Cfg<'a> {
         create_parent: bool,
     ) -> Result<PathBuf> {
         if create_parent {
-            utils::ensure_dir_exists(
-                "update-hash",
-                &self.update_hash_dir,
-                self.notify_handler.as_ref(),
-            )?;
+            utils::ensure_dir_exists("update-hash", &self.update_hash_dir)?;
         }
 
         Ok(self.update_hash_dir.join(toolchain.to_string()))
