@@ -52,7 +52,6 @@ pub enum Notification<'a> {
     Error(String),
     UsingCurl,
     UsingReqwest,
-    CreatingFile(&'a Path),
     SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -114,7 +113,6 @@ impl Notification<'_> {
             | UsingCurl
             | UsingReqwest => NotificationLevel::Debug,
             Error(_) => NotificationLevel::Error,
-            CreatingFile(_) => NotificationLevel::Debug,
             ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
@@ -244,7 +242,6 @@ impl Display for Notification<'_> {
             ResumingPartialDownload => write!(f, "resuming partial download"),
             UsingCurl => write!(f, "downloading with curl"),
             UsingReqwest => write!(f, "downloading with reqwest"),
-            CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),
             SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
             SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),

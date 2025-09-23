@@ -48,11 +48,7 @@ impl DistContext {
             pkg_dir,
             inst_dir,
             prefix,
-            cx: temp::Context::new(
-                tmp_dir.path().to_owned(),
-                DEFAULT_DIST_SERVER,
-                Box::new(|_| ()),
-            ),
+            cx: temp::Context::new(tmp_dir.path().to_owned(), DEFAULT_DIST_SERVER),
             tp: TestProcess::default(),
             _tmp_dir: tmp_dir,
         })
