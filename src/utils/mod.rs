@@ -248,15 +248,8 @@ pub(crate) fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     }
 }
 
-pub(crate) fn remove_dir<'a, N>(
-    name: &'static str,
-    path: &'a Path,
-    notify_handler: &dyn Fn(N),
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
-    notify_handler(Notification::RemovingDirectory(name, path).into());
+pub(crate) fn remove_dir(name: &'static str, path: &Path) -> Result<()> {
+    debug!(name, path = %path.display(), "removing directory");
     raw::remove_dir(path).with_context(|| RustupError::RemovingDirectory {
         name,
         path: PathBuf::from(path),

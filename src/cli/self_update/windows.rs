@@ -23,7 +23,6 @@ use super::{InstallOpts, install_bins, report_error};
 use crate::cli::{download_tracker::DownloadTracker, markdown::md};
 use crate::dist::TargetTriple;
 use crate::download::download_file;
-use crate::notifications::Notification;
 use crate::process::{Process, terminalsource::ColorableTerminal};
 use crate::utils;
 
@@ -373,7 +372,7 @@ pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> 
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
     let cargo_home = process.cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
+    utils::remove_dir("cargo_home", &cargo_home)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
