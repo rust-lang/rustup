@@ -138,10 +138,10 @@ impl Package for DirectoryPackage {
 
 #[derive(Debug)]
 #[allow(dead_code)] // temp::Dir is held for drop.
-pub(crate) struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
+pub(crate) struct TarPackage(DirectoryPackage, temp::Dir);
 
-impl<'a> TarPackage<'a> {
-    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
+impl TarPackage {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'_>) -> Result<Self> {
         let temp_dir = cx.tmp_cx.new_directory()?;
         let mut archive = tar::Archive::new(stream);
         // The rust-installer packages unpack to a directory called
@@ -528,7 +528,7 @@ fn unpack_without_first_dir<R: Read>(
     Ok(())
 }
 
-impl Package for TarPackage<'_> {
+impl Package for TarPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
@@ -547,16 +547,16 @@ impl Package for TarPackage<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TarGzPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarGzPackage(TarPackage);
 
-impl<'a> TarGzPackage<'a> {
-    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
+impl TarGzPackage {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'_>) -> Result<Self> {
         let stream = flate2::read::GzDecoder::new(stream);
         Ok(TarGzPackage(TarPackage::new(stream, cx)?))
     }
 }
 
-impl Package for TarGzPackage<'_> {
+impl Package for TarGzPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
@@ -575,16 +575,16 @@ impl Package for TarGzPackage<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TarXzPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarXzPackage(TarPackage);
 
-impl<'a> TarXzPackage<'a> {
-    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
+impl TarXzPackage {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'_>) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
         Ok(TarXzPackage(TarPackage::new(stream, cx)?))
     }
 }
 
-impl Package for TarXzPackage<'_> {
+impl Package for TarXzPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
@@ -603,16 +603,16 @@ impl Package for TarXzPackage<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TarZStdPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarZStdPackage(TarPackage);
 
-impl<'a> TarZStdPackage<'a> {
-    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'a>) -> Result<Self> {
+impl TarZStdPackage {
+    pub(crate) fn new<R: Read>(stream: R, cx: &PackageContext<'_>) -> Result<Self> {
         let stream = zstd::stream::read::Decoder::new(stream)?;
         Ok(TarZStdPackage(TarPackage::new(stream, cx)?))
     }
 }
 
-impl Package for TarZStdPackage<'_> {
+impl Package for TarZStdPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
