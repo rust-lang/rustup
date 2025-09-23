@@ -296,7 +296,7 @@ impl<'a> ChangedItem<'a> {
         src: &Path,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::copy_dir(src, &abs_path, &|_: Notification<'_>| ())?;
+        utils::copy_dir(src, &abs_path)?;
         Ok(ChangedItem::AddedDir(relpath))
     }
     fn remove_file(

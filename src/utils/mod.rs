@@ -217,15 +217,8 @@ fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     })
 }
 
-pub(crate) fn copy_dir<'a, N>(
-    src: &'a Path,
-    dest: &'a Path,
-    notify_handler: &dyn Fn(N),
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
-    notify_handler(Notification::CopyingDirectory(src, dest).into());
+pub(crate) fn copy_dir(src: &Path, dest: &Path) -> Result<()> {
+    debug!(source = %src.display(), destination = %dest.display(), "copying directory");
     raw::copy_dir(src, dest).with_context(|| {
         format!(
             "could not copy directory from '{}' to '{}'",
@@ -381,25 +374,17 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
 }
 
 #[cfg(target_os = "linux")]
-fn copy_and_delete<'a, N>(
-    name: &'static str,
-    src: &'a Path,
-    dest: &'a Path,
-    notify_handler: &'a dyn Fn(N),
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
+fn copy_and_delete(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     // https://github.com/rust-lang/rustup/issues/1239
     // This uses std::fs::copy() instead of the faster std::fs::rename() to
     // avoid cross-device link errors.
     if src.is_dir() {
-        copy_dir(src, dest, notify_handler).and(remove_dir_all::remove_dir_all(src).with_context(
-            || RustupError::RemovingDirectory {
+        copy_dir(src, dest).and(remove_dir_all::remove_dir_all(src).with_context(|| {
+            RustupError::RemovingDirectory {
                 name,
                 path: PathBuf::from(src),
-            },
-        ))
+            }
+        }))
     } else {
         copy_file(src, dest).and(remove_file(name, src))
     }
@@ -435,7 +420,7 @@ where
                 _ if process.var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
                     && Some(EXDEV) == e.raw_os_error() =>
                 {
-                    match copy_and_delete(name, src, dest, notify_handler) {
+                    match copy_and_delete(name, src, dest) {
                         Ok(()) => OperationResult::Ok(()),
                         Err(_) => OperationResult::Err(e),
                     }

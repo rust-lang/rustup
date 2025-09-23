@@ -97,7 +97,7 @@ impl InstallMethod<'_> {
 
         match self {
             InstallMethod::Copy { src, .. } => {
-                utils::copy_dir(src, path, notify_handler)?;
+                utils::copy_dir(src, path)?;
                 Ok(true)
             }
             InstallMethod::Link { src, .. } => {
