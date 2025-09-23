@@ -154,15 +154,8 @@ pub(crate) fn assert_is_directory(path: &Path) -> Result<()> {
     }
 }
 
-pub(crate) fn symlink_dir<'a, N>(
-    src: &'a Path,
-    dest: &'a Path,
-    notify_handler: &dyn Fn(N),
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
-    notify_handler(Notification::LinkingDirectory(src, dest).into());
+pub(crate) fn symlink_dir(src: &Path, dest: &Path) -> Result<()> {
+    debug!(source = %src.display(), destination = %dest.display(), "linking directory");
     raw::symlink_dir(src, dest).with_context(|| {
         format!(
             "could not create link from '{}' to '{}'",

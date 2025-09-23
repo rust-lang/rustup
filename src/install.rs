@@ -101,7 +101,7 @@ impl InstallMethod<'_> {
                 Ok(true)
             }
             InstallMethod::Link { src, .. } => {
-                utils::symlink_dir(src, path, notify_handler)?;
+                utils::symlink_dir(src, path)?;
                 Ok(true)
             }
             InstallMethod::Dist(opts) => {
