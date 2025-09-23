@@ -19,7 +19,6 @@ pub enum Notification<'a> {
     ChecksumValid(&'a str),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    RollingBack,
     ExtensionNotInstalled(&'a str),
     NonFatalError(&'a anyhow::Error),
     MissingInstalledComponent(&'a str),
@@ -98,7 +97,6 @@ impl Notification<'_> {
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
             | ComponentAlreadyInstalled(_)
-            | RollingBack
             | DownloadingManifest(_)
             | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
@@ -164,7 +162,6 @@ impl Display for Notification<'_> {
             ChecksumValid(_) => write!(f, "checksum passed"),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            RollingBack => write!(f, "rolling back changes"),
             ExtensionNotInstalled(c) => write!(f, "extension '{c}' was not installed"),
             NonFatalError(e) => write!(f, "{e}"),
             MissingInstalledComponent(c) => {
