@@ -45,12 +45,11 @@ impl Drop for Dir {
 }
 
 #[derive(Debug)]
-pub struct File<'a> {
-    cfg: &'a Context,
+pub struct File {
     path: PathBuf,
 }
 
-impl ops::Deref for File<'_> {
+impl ops::Deref for File {
     type Target = Path;
 
     fn deref(&self) -> &Path {
@@ -58,11 +57,15 @@ impl ops::Deref for File<'_> {
     }
 }
 
-impl Drop for File<'_> {
+impl Drop for File {
     fn drop(&mut self) {
         if raw::is_file(&self.path) {
-            let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
-            (self.cfg.notify_handler)(n);
+            match fs::remove_file(&self.path) {
+                Ok(()) => debug!(path = %self.path.display(), "deleted temp file"),
+                Err(e) => {
+                    warn!(path = %self.path.display(), error = %e, "could not delete temp file")
+                }
+            }
         }
     }
 }
@@ -112,11 +115,11 @@ impl Context {
         }
     }
 
-    pub fn new_file(&self) -> Result<File<'_>> {
+    pub fn new_file(&self) -> Result<File> {
         self.new_file_with_ext("", "")
     }
 
-    pub(crate) fn new_file_with_ext(&self, prefix: &str, ext: &str) -> Result<File<'_>> {
+    pub(crate) fn new_file_with_ext(&self, prefix: &str, ext: &str) -> Result<File> {
         self.create_root()?;
 
         loop {
@@ -130,10 +133,7 @@ impl Context {
                 (self.notify_handler)(Notification::CreatingFile(&temp_file));
                 fs::File::create(&temp_file)
                     .with_context(|| CreatingError::File(PathBuf::from(&temp_file)))?;
-                return Ok(File {
-                    cfg: self,
-                    path: temp_file,
-                });
+                return Ok(File { path: temp_file });
             }
         }
     }
