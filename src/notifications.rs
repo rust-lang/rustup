@@ -50,7 +50,6 @@ pub enum Notification<'a> {
     DownloadFinished(Option<&'a str>),
     /// Download has failed.
     DownloadFailed(&'a str),
-    NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
     /// This would make more sense as a crate::notifications::Notification
     /// member, but the notification callback is already narrowed to
@@ -135,7 +134,6 @@ impl Notification<'_> {
             | UsingCurl
             | UsingReqwest => NotificationLevel::Debug,
             RenameInUse(_, _) => NotificationLevel::Info,
-            NoCanonicalPath(_) => NotificationLevel::Warn,
             Error(_) => NotificationLevel::Error,
             CreatingRoot(_) | CreatingFile(_) => NotificationLevel::Debug,
             FileDeletion(_, result) | DirectoryDeletion(_, result) => match result {
@@ -281,7 +279,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
             UsingCurl => write!(f, "downloading with curl"),
             UsingReqwest => write!(f, "downloading with reqwest"),

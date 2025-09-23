@@ -98,22 +98,16 @@ pub struct Settings {
 }
 
 impl Settings {
-    fn path_to_key(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> String {
+    fn path_to_key(path: &Path) -> String {
         if path.exists() {
-            utils::canonicalize_path(path, notify_handler)
-                .display()
-                .to_string()
+            utils::canonicalize_path(path).display().to_string()
         } else {
             path.display().to_string()
         }
     }
 
-    pub(crate) fn remove_override(
-        &mut self,
-        path: &Path,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) -> bool {
-        let key = Self::path_to_key(path, notify_handler);
+    pub(crate) fn remove_override(&mut self, path: &Path) -> bool {
+        let key = Self::path_to_key(path);
         self.overrides.remove(&key).is_some()
     }
 
@@ -123,17 +117,13 @@ impl Settings {
         toolchain: String,
         notify_handler: &dyn Fn(Notification<'_>),
     ) {
-        let key = Self::path_to_key(path, notify_handler);
+        let key = Self::path_to_key(path);
         notify_handler(Notification::SetOverrideToolchain(path, &toolchain));
         self.overrides.insert(key, toolchain);
     }
 
-    pub(crate) fn dir_override(
-        &self,
-        dir: &Path,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) -> Option<String> {
-        let key = Self::path_to_key(dir, notify_handler);
+    pub(crate) fn dir_override(&self, dir: &Path) -> Option<String> {
+        let key = Self::path_to_key(dir);
         self.overrides.get(&key).cloned()
     }
 
