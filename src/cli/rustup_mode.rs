@@ -1557,10 +1557,7 @@ fn override_remove(
     };
 
     for p in &paths {
-        if cfg
-            .settings_file
-            .with_mut(|s| Ok(s.remove_override(p, cfg.notify_handler.as_ref())))?
-        {
+        if cfg.settings_file.with_mut(|s| Ok(s.remove_override(p)))? {
             info!("override toolchain for '{}' removed", p.display());
         } else {
             info!("no override toolchain for '{}'", p.display());

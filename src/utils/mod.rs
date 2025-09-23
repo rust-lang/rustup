@@ -11,7 +11,7 @@ use std::process::ExitStatus;
 use anyhow::{Context, Result, anyhow, bail};
 use retry::delay::{Fibonacci, jitter};
 use retry::{OperationResult, retry};
-use tracing::debug;
+use tracing::{debug, warn};
 use url::Url;
 
 use crate::errors::*;
@@ -127,12 +127,9 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     })
 }
 
-pub(crate) fn canonicalize_path<'a, N>(path: &'a Path, notify_handler: &dyn Fn(N)) -> PathBuf
-where
-    N: From<Notification<'a>>,
-{
+pub(crate) fn canonicalize_path(path: &Path) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| {
-        notify_handler(Notification::NoCanonicalPath(path).into());
+        warn!(path = %path.display(), "could not canonicalize path");
         PathBuf::from(path)
     })
 }

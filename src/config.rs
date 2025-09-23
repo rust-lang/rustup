@@ -576,7 +576,7 @@ impl<'a> Cfg<'a> {
 
         while let Some(d) = dir {
             // First check the override database
-            if let Some(name) = settings.dir_override(d, notify) {
+            if let Some(name) = settings.dir_override(d) {
                 let reason = ActiveReason::OverrideDB(d.to_owned());
                 // Note that `rustup override set` fully resolves it's input
                 // before writing to settings.toml, so resolving here may not
