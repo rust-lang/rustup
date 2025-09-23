@@ -5,7 +5,6 @@ pub(crate) use anyhow::{Context as _, Result};
 use thiserror::Error as ThisError;
 use tracing::{debug, warn};
 
-use crate::notifications::Notification;
 use crate::utils::{self, raw};
 
 #[derive(Debug, ThisError)]
@@ -73,19 +72,13 @@ impl Drop for File {
 pub struct Context {
     root_directory: PathBuf,
     pub dist_server: String,
-    notify_handler: Box<dyn Fn(Notification<'_>)>,
 }
 
 impl Context {
-    pub fn new(
-        root_directory: PathBuf,
-        dist_server: &str,
-        notify_handler: Box<dyn Fn(Notification<'_>)>,
-    ) -> Self {
+    pub fn new(root_directory: PathBuf, dist_server: &str) -> Self {
         Self {
             root_directory,
             dist_server: dist_server.to_owned(),
-            notify_handler,
         }
     }
 
@@ -130,7 +123,7 @@ impl Context {
             // This is technically racey, but the probability of getting the same
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_file) {
-                (self.notify_handler)(Notification::CreatingFile(&temp_file));
+                debug!(path = %temp_file.display(), "creating temp file");
                 fs::File::create(&temp_file)
                     .with_context(|| CreatingError::File(PathBuf::from(&temp_file)))?;
                 return Ok(File { path: temp_file });

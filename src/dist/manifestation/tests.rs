@@ -454,11 +454,7 @@ impl TestContext {
         let prefix_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
         let work_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-        let tmp_cx = temp::Context::new(
-            work_tempdir.path().to_owned(),
-            DEFAULT_DIST_SERVER,
-            Box::new(|_| ()),
-        );
+        let tmp_cx = temp::Context::new(work_tempdir.path().to_owned(), DEFAULT_DIST_SERVER);
 
         let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
         let prefix = InstallPrefix::from(prefix_tempdir.path());
