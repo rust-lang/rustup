@@ -107,13 +107,7 @@ impl<'a> DownloadCfg<'a> {
         } else {
             (self.notify_handler)(Notification::ChecksumValid(url.as_ref()));
 
-            utils::rename(
-                "downloaded",
-                &partial_file_path,
-                &target_file,
-                self.notify_handler,
-                self.process,
-            )?;
+            utils::rename("downloaded", &partial_file_path, &target_file, self.process)?;
             Ok(File { path: target_file })
         }
     }

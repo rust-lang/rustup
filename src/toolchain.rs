@@ -554,9 +554,7 @@ impl<'a> Toolchain<'a> {
                         InstalledPath::File { name, path } => {
                             utils::ensure_file_removed(name, &path)?
                         }
-                        InstalledPath::Dir { path } => {
-                            install::uninstall(path)?
-                        }
+                        InstalledPath::Dir { path } => install::uninstall(path)?,
                     }
                 }
                 true

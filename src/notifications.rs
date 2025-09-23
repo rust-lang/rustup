@@ -55,12 +55,6 @@ pub enum Notification<'a> {
     Error(String),
     UsingCurl,
     UsingReqwest,
-    /// Renaming encountered a file in use error and is retrying.
-    /// The InUse aspect is a heuristic - the OS specifies
-    /// Permission denied, but as we work in users home dirs and
-    /// running programs like virus scanner are known to cause this
-    /// the heuristic is quite good.
-    RenameInUse(&'a Path, &'a Path),
     CreatingRoot(&'a Path),
     CreatingFile(&'a Path),
     FileDeletion(&'a Path, io::Result<()>),
@@ -127,7 +121,6 @@ impl Notification<'_> {
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Debug,
-            RenameInUse(_, _) => NotificationLevel::Info,
             Error(_) => NotificationLevel::Error,
             CreatingRoot(_) | CreatingFile(_) => NotificationLevel::Debug,
             FileDeletion(_, result) | DirectoryDeletion(_, result) => match result {
@@ -252,12 +245,6 @@ impl Display for Notification<'_> {
             SignatureInvalid(url) => write!(f, "Signature verification failed for '{url}'"),
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
             Error(e) => write!(f, "error: '{e}'"),
-            RenameInUse(src, dest) => write!(
-                f,
-                "retrying renaming '{}' to '{}'",
-                src.display(),
-                dest.display()
-            ),
             SetDefaultBufferSize(size) => write!(
                 f,
                 "using up to {} of RAM to unpack components",

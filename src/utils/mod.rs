@@ -11,7 +11,7 @@ use std::process::ExitStatus;
 use anyhow::{Context, Result, anyhow, bail};
 use retry::delay::{Fibonacci, jitter};
 use retry::{OperationResult, retry};
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::errors::*;
@@ -383,17 +383,13 @@ fn copy_and_delete(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     }
 }
 
-pub fn rename<'a, N>(
+pub fn rename(
     name: &'static str,
-    src: &'a Path,
-    dest: &'a Path,
-    notify_handler: &'a dyn Fn(N),
+    src: &Path,
+    dest: &Path,
     #[allow(unused_variables)] // Only used on Linux
     process: &Process,
-) -> Result<()>
-where
-    N: From<Notification<'a>>,
-{
+) -> Result<()> {
     // https://github.com/rust-lang/rustup/issues/1870
     // 21 fib steps from 1 sums to ~28 seconds, hopefully more than enough
     // for our previous poor performance that avoided the race condition with
@@ -406,7 +402,12 @@ where
             Ok(()) => OperationResult::Ok(()),
             Err(e) => match e.kind() {
                 io::ErrorKind::PermissionDenied => {
-                    notify_handler(Notification::RenameInUse(src, dest).into());
+                    // Renaming encountered a file in use error and is retrying.
+                    // The InUse aspect is a heuristic - the OS specifies
+                    // Permission denied, but as we work in users home dirs and
+                    // running programs like virus scanner are known to cause this
+                    // the heuristic is quite good.
+                    info!(source = %src.display(), destination = %dest.display(), "renaming file in use, retrying");
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]
