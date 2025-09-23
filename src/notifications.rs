@@ -20,7 +20,6 @@ pub enum Notification<'a> {
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
     ExtensionNotInstalled(&'a str),
-    NonFatalError(&'a anyhow::Error),
     MissingInstalledComponent(&'a str),
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
@@ -108,7 +107,6 @@ impl Notification<'_> {
             | ComponentUnavailable(_, _)
             | ForcingUnavailableComponent(_)
             | StrayHash(_) => NotificationLevel::Warn,
-            NonFatalError(_) => NotificationLevel::Error,
             SignatureInvalid(_) => NotificationLevel::Warn,
             SetDefaultBufferSize(_) => NotificationLevel::Trace,
             DownloadingFile(_, _)
@@ -163,7 +161,6 @@ impl Display for Notification<'_> {
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             ExtensionNotInstalled(c) => write!(f, "extension '{c}' was not installed"),
-            NonFatalError(e) => write!(f, "{e}"),
             MissingInstalledComponent(c) => {
                 write!(f, "during uninstall component {c} was not found")
             }

@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::trace;
+use tracing::{error, trace};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -939,7 +939,7 @@ impl<'a> Cfg<'a> {
                 .update_extra(&[], &[], profile, force_update, false)
                 .await;
             if let Err(e) = &st {
-                (self.notify_handler)(Notification::NonFatalError(e));
+                error!("{e}");
             }
             (desc, st)
         });
