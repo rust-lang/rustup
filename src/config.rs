@@ -462,7 +462,7 @@ impl<'a> Cfg<'a> {
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
                     let dir = dir.context("IO Error reading toolchains")?;
-                    utils::remove_dir("toolchain", &dir.path(), self.notify_handler.as_ref())?;
+                    utils::remove_dir("toolchain", &dir.path())?;
                 }
 
                 // Also delete the update hashes

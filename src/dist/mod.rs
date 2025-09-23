@@ -1050,7 +1050,7 @@ pub(crate) async fn update_from_dist(
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
         // FIXME Ignoring cascading errors
-        let _ = utils::remove_dir("toolchain", prefix.path(), opts.dl_cfg.notify_handler);
+        let _ = utils::remove_dir("toolchain", prefix.path());
     }
 
     res

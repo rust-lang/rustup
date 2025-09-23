@@ -61,7 +61,6 @@ use crate::{
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
-    notifications::Notification,
     process::{Process, terminalsource},
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
@@ -1004,7 +1003,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
     // Delete RUSTUP_HOME
     let rustup_dir = home::rustup_home()?;
     if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", &rustup_dir, &|_: Notification<'_>| {})?;
+        utils::remove_dir("rustup_home", &rustup_dir)?;
     }
 
     info!("removing cargo home");
@@ -1026,7 +1025,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
         })?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
+                utils::remove_dir("cargo_home", &dirent.path())?;
             } else {
                 utils::remove_file("cargo_home", &dirent.path())?;
             }
@@ -1054,7 +1053,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
+                utils::remove_dir("cargo_home", &dirent.path())?;
             } else {
                 utils::remove_file("cargo_home", &dirent.path())?;
             }
