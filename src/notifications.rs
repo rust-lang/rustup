@@ -37,7 +37,6 @@ pub enum Notification<'a> {
     StrayHash(&'a Path),
     SignatureInvalid(&'a str),
     RetryingDownload(&'a str),
-    LinkingDirectory(&'a Path, &'a Path),
     CopyingDirectory(&'a Path, &'a Path),
     RemovingDirectory(&'a str, &'a Path),
     DownloadingFile(&'a Url, &'a Path),
@@ -123,7 +122,6 @@ impl Notification<'_> {
             SignatureInvalid(_) => NotificationLevel::Warn,
             SetDefaultBufferSize(_) => NotificationLevel::Trace,
             RemovingDirectory(_, _)
-            | LinkingDirectory(_, _)
             | CopyingDirectory(_, _)
             | DownloadingFile(_, _)
             | DownloadContentLengthReceived(_, _)
@@ -258,7 +256,6 @@ impl Display for Notification<'_> {
             SignatureInvalid(url) => write!(f, "Signature verification failed for '{url}'"),
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
             Error(e) => write!(f, "error: '{e}'"),
-            LinkingDirectory(_, dest) => write!(f, "linking directory from: '{}'", dest.display()),
             CopyingDirectory(src, _) => write!(f, "copying directory from: '{}'", src.display()),
             RemovingDirectory(name, path) => {
                 write!(f, "removing {} directory: '{}'", name, path.display())
