@@ -140,13 +140,10 @@ impl Notification<'_> {
             NoCanonicalPath(_) => NotificationLevel::Warn,
             Error(_) => NotificationLevel::Error,
             CreatingRoot(_) | CreatingFile(_) => NotificationLevel::Debug,
-            FileDeletion(_, result) | DirectoryDeletion(_, result) => {
-                if result.is_ok() {
-                    NotificationLevel::Debug
-                } else {
-                    NotificationLevel::Warn
-                }
-            }
+            FileDeletion(_, result) | DirectoryDeletion(_, result) => match result {
+                Ok(_) => NotificationLevel::Debug,
+                Err(_) => NotificationLevel::Warn,
+            },
             ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
