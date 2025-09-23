@@ -91,7 +91,7 @@ impl Context {
 
     pub(crate) fn create_root(&self) -> Result<bool> {
         raw::ensure_dir_exists(&self.root_directory, |p| {
-            (self.notify_handler)(Notification::CreatingRoot(p));
+            debug!(path = %p.display(), "creating temp root");
         })
         .with_context(|| CreatingError::Root(PathBuf::from(&self.root_directory)))
     }
