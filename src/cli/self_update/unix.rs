@@ -98,7 +98,7 @@ pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
                     rc.display()
                 )
             })?;
-            utils::ensure_dir_exists("rcfile dir", rc_dir, &|_: Notification<'_>| ())?;
+            utils::ensure_dir_exists("rcfile dir", rc_dir)?;
             utils::append_file("rcfile", &rc, cmd_to_write)
                 .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
         }

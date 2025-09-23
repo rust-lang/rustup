@@ -11,6 +11,7 @@ use std::process::ExitStatus;
 use anyhow::{Context, Result, anyhow, bail};
 use retry::delay::{Fibonacci, jitter};
 use retry::{OperationResult, retry};
+use tracing::debug;
 use url::Url;
 
 use crate::errors::*;
@@ -60,16 +61,9 @@ impl From<ExitStatus> for ExitCode {
     }
 }
 
-pub fn ensure_dir_exists<'a, N>(
-    name: &'static str,
-    path: &'a Path,
-    notify_handler: &'a dyn Fn(N),
-) -> Result<bool>
-where
-    N: From<Notification<'a>>,
-{
+pub fn ensure_dir_exists(name: &'static str, path: &Path) -> Result<bool> {
     raw::ensure_dir_exists(path, |_| {
-        notify_handler(Notification::CreatingDirectory(name, path).into())
+        debug!(name, path = %path.display(), "creating directory");
     })
     .with_context(|| RustupError::CreatingDirectory {
         name,

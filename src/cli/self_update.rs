@@ -770,7 +770,7 @@ fn install_bins(process: &Process) -> Result<()> {
     let this_exe_path = utils::current_exe()?;
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
-    utils::ensure_dir_exists("bin", &bin_path, &|_: Notification<'_>| {})?;
+    utils::ensure_dir_exists("bin", &bin_path)?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if rustup_path.exists() {

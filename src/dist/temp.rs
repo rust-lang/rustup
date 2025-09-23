@@ -3,6 +3,7 @@ use std::{fmt, fs, ops};
 
 pub(crate) use anyhow::{Context as _, Result};
 use thiserror::Error as ThisError;
+use tracing::debug;
 
 use crate::notifications::Notification;
 use crate::utils::{self, raw};
@@ -103,7 +104,7 @@ impl Context {
             // This is technically racey, but the probability of getting the same
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_dir) {
-                (self.notify_handler)(Notification::CreatingDirectory("temp", &temp_dir));
+                debug!(name = "temp", path = %temp_dir.display(), "creating directory");
                 fs::create_dir(&temp_dir)
                     .with_context(|| CreatingError::Directory(PathBuf::from(&temp_dir)))?;
                 return Ok(Dir {

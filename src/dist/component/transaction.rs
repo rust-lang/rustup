@@ -268,7 +268,7 @@ impl<'a> ChangedItem<'a> {
             }))
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_: Notification<'_>| ())?;
+                utils::ensure_dir_exists("component", p)?;
             }
             Ok(abs_path)
         }
@@ -354,7 +354,7 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_: Notification<'_>| {})?;
+                utils::ensure_dir_exists("component", p)?;
             }
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }
