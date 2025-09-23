@@ -315,7 +315,7 @@ impl Manifestation {
     }
 
     #[cfg(test)]
-    pub fn uninstall(
+    pub(crate) fn uninstall(
         &self,
         manifest: &Manifest,
         tmp_cx: &temp::Context,

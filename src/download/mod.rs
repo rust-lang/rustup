@@ -96,7 +96,7 @@ async fn download_file_(
     use sha2::Digest;
     use std::cell::RefCell;
 
-    notify_handler(Notification::DownloadingFile(url, path));
+    notify_handler(Notification::DownloadingFile(url));
 
     let hasher = RefCell::new(hasher);
 

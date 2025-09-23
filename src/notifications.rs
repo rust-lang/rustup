@@ -10,15 +10,13 @@ use crate::utils::units;
 use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::NotificationLevel};
 
 #[derive(Debug)]
-pub enum Notification<'a> {
-    Extracting(&'a Path, &'a Path),
+pub(crate) enum Notification<'a> {
     ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    ExtensionNotInstalled(&'a str),
     MissingInstalledComponent(&'a str),
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
@@ -30,11 +28,9 @@ pub enum Notification<'a> {
     DownloadingLegacyManifest,
     SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a Manifest, &'a [Component]),
     ForcingUnavailableComponent(&'a str),
-    ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
     StrayHash(&'a Path),
-    SignatureInvalid(&'a str),
     RetryingDownload(&'a str),
-    DownloadingFile(&'a Url, &'a Path),
+    DownloadingFile(&'a Url),
     /// Received the Content-Length of the to-be downloaded data with
     /// the respective URL of the download (for tracking concurrent downloads).
     DownloadContentLengthReceived(u64, Option<&'a str>),
@@ -50,6 +46,7 @@ pub enum Notification<'a> {
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
     Error(String),
+    #[cfg(feature = "curl-backend")]
     UsingCurl,
     UsingReqwest,
     SetAutoInstall(&'a str),
@@ -85,8 +82,7 @@ impl Notification<'_> {
             | NoUpdateHash(_)
             | FileAlreadyDownloaded
             | DownloadingLegacyManifest => NotificationLevel::Debug,
-            Extracting(_, _)
-            | DownloadingComponent(_, _, _, _)
+            DownloadingComponent(_, _, _, _)
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
@@ -96,22 +92,20 @@ impl Notification<'_> {
             | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
             CantReadUpdateHash(_)
-            | ExtensionNotInstalled(_)
             | MissingInstalledComponent(_)
             | CachedFileChecksumFailed
-            | ComponentUnavailable(_, _)
             | ForcingUnavailableComponent(_)
             | StrayHash(_) => NotificationLevel::Warn,
-            SignatureInvalid(_) => NotificationLevel::Warn,
             SetDefaultBufferSize(_) => NotificationLevel::Trace,
-            DownloadingFile(_, _)
+            DownloadingFile(_)
             | DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_)
             | ResumingPartialDownload
-            | UsingCurl
             | UsingReqwest => NotificationLevel::Debug,
+            #[cfg(feature = "curl-backend")]
+            UsingCurl => NotificationLevel::Debug,
             Error(_) => NotificationLevel::Error,
             ToolchainDirectory(_)
             | LookingForToolchain(_)
@@ -139,7 +133,6 @@ impl Display for Notification<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match self {
-            Extracting(_, _) => write!(f, "extracting..."),
             ComponentAlreadyInstalled(c) => write!(f, "component {c} is up to date"),
             CantReadUpdateHash(path) => write!(
                 f,
@@ -147,10 +140,9 @@ impl Display for Notification<'_> {
                 path.display()
             ),
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
-            ChecksumValid(_) => write!(f, "checksum passed"),
+            ChecksumValid(url) => write!(f, "checksum passed for {url}"),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            ExtensionNotInstalled(c) => write!(f, "extension '{c}' was not installed"),
             MissingInstalledComponent(c) => {
                 write!(f, "during uninstall component {c} was not found")
             }
@@ -195,13 +187,6 @@ impl Display for Notification<'_> {
                 write!(f, "latest update on {date}, no rust version")
             }
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
-            ComponentUnavailable(pkg, toolchain) => {
-                if let Some(tc) = toolchain {
-                    write!(f, "component '{pkg}' is not available on target '{tc}'")
-                } else {
-                    write!(f, "component '{pkg}' is not available")
-                }
-            }
             StrayHash(path) => write!(
                 f,
                 "removing stray hash found at '{}' in order to continue",
@@ -226,7 +211,6 @@ impl Display for Notification<'_> {
             ForcingUnavailableComponent(component) => {
                 write!(f, "Force-skipping unavailable component '{component}'")
             }
-            SignatureInvalid(url) => write!(f, "Signature verification failed for '{url}'"),
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
             Error(e) => write!(f, "error: '{e}'"),
             SetDefaultBufferSize(size) => write!(
@@ -234,12 +218,13 @@ impl Display for Notification<'_> {
                 "using up to {} of RAM to unpack components",
                 units::Size::new(*size)
             ),
-            DownloadingFile(url, _) => write!(f, "downloading file from: '{url}'"),
+            DownloadingFile(url) => write!(f, "downloading file from: '{url}'"),
             DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
             ResumingPartialDownload => write!(f, "resuming partial download"),
+            #[cfg(feature = "curl-backend")]
             UsingCurl => write!(f, "downloading with curl"),
             UsingReqwest => write!(f, "downloading with reqwest"),
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),

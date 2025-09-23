@@ -21,7 +21,7 @@ pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
-    pub notify_handler: &'a dyn Fn(Notification<'_>),
+    pub(crate) notify_handler: &'a dyn Fn(Notification<'_>),
     pub process: &'a Process,
 }
 
