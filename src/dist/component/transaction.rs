@@ -36,7 +36,7 @@ use crate::utils;
 /// already exists.
 pub struct Transaction<'a> {
     prefix: InstallPrefix,
-    changes: Vec<ChangedItem<'a>>,
+    changes: Vec<ChangedItem>,
     tmp_cx: &'a temp::Context,
     committed: bool,
     process: &'a Process,
@@ -59,7 +59,7 @@ impl<'a> Transaction<'a> {
         self.committed = true;
     }
 
-    fn change(&mut self, item: ChangedItem<'a>) {
+    fn change(&mut self, item: ChangedItem) {
         self.changes.push(item);
     }
 
@@ -183,15 +183,15 @@ impl Drop for Transaction<'_> {
 /// package, or updating a component, distill down into a series of
 /// these primitives.
 #[derive(Debug)]
-enum ChangedItem<'a> {
+enum ChangedItem {
     AddedFile(PathBuf),
     AddedDir(PathBuf),
-    RemovedFile(PathBuf, temp::File<'a>),
+    RemovedFile(PathBuf, temp::File),
     RemovedDir(PathBuf, temp::Dir),
-    ModifiedFile(PathBuf, Option<temp::File<'a>>),
+    ModifiedFile(PathBuf, Option<temp::File>),
 }
 
-impl<'a> ChangedItem<'a> {
+impl ChangedItem {
     fn roll_back(&self, prefix: &InstallPrefix, process: &Process) -> Result<()> {
         use self::ChangedItem::*;
         match self {
@@ -259,7 +259,7 @@ impl<'a> ChangedItem<'a> {
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        tmp_cx: &'a temp::Context,
+        tmp_cx: &temp::Context,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
@@ -279,7 +279,7 @@ impl<'a> ChangedItem<'a> {
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        tmp_cx: &'a temp::Context,
+        tmp_cx: &temp::Context,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
@@ -298,7 +298,7 @@ impl<'a> ChangedItem<'a> {
     fn modify_file(
         prefix: &InstallPrefix,
         relpath: PathBuf,
-        tmp_cx: &'a temp::Context,
+        tmp_cx: &temp::Context,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
 

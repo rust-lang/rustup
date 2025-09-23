@@ -1,5 +1,4 @@
 use std::fmt::{self, Display};
-use std::io;
 use std::path::{Path, PathBuf};
 
 use url::Url;
@@ -55,7 +54,6 @@ pub enum Notification<'a> {
     UsingReqwest,
     CreatingRoot(&'a Path),
     CreatingFile(&'a Path),
-    FileDeletion(&'a Path, io::Result<()>),
     SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -118,10 +116,6 @@ impl Notification<'_> {
             | UsingReqwest => NotificationLevel::Debug,
             Error(_) => NotificationLevel::Error,
             CreatingRoot(_) | CreatingFile(_) => NotificationLevel::Debug,
-            FileDeletion(_, result) => match result {
-                Ok(_) => NotificationLevel::Debug,
-                Err(_) => NotificationLevel::Warn,
-            },
             ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
@@ -253,13 +247,6 @@ impl Display for Notification<'_> {
             UsingReqwest => write!(f, "downloading with reqwest"),
             CreatingRoot(path) => write!(f, "creating temp root: {}", path.display()),
             CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
-            FileDeletion(path, result) => {
-                if result.is_ok() {
-                    write!(f, "deleted temp file: {}", path.display())
-                } else {
-                    write!(f, "could not delete temp file: {}", path.display())
-                }
-            }
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),
             SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
             SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),
