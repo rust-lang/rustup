@@ -11,7 +11,6 @@ use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::Notifi
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
-    NoUpdateHash(&'a Path),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
     MissingInstalledComponent(&'a str),
@@ -72,9 +71,7 @@ impl Notification<'_> {
     pub(crate) fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
-            NoUpdateHash(_) | FileAlreadyDownloaded | DownloadingLegacyManifest => {
-                NotificationLevel::Debug
-            }
+            FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _)
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
@@ -121,7 +118,6 @@ impl Display for Notification<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match self {
-            NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             MissingInstalledComponent(c) => {
