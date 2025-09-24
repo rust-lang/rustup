@@ -21,7 +21,7 @@ async fn update_once() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
@@ -68,7 +68,7 @@ rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 "#]]);
@@ -111,7 +111,7 @@ async fn update_once_and_self_update() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: checking for self-update (current version: [CURRENT_VERSION])
@@ -322,7 +322,7 @@ async fn default() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
@@ -868,7 +868,7 @@ async fn install_unreleased_component() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
-info: latest update on 2019-09-13, rust version 1.37.0 (hash-nightly-2)
+info: latest update updated=2019-09-13 version=1.37.0 (hash-nightly-2)
 info: skipping nightly which is missing installed component 'rust-std-[MULTI_ARCH_I]'
 info: syncing channel updates toolchain=nightly-2019-09-12-[HOST_TRIPLE]
 
@@ -888,10 +888,10 @@ info: syncing channel updates toolchain=nightly-2019-09-12-[HOST_TRIPLE]
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
-info: latest update on 2019-09-14, rust version 1.37.0 (hash-nightly-3)
+info: latest update updated=2019-09-14 version=1.37.0 (hash-nightly-3)
 info: skipping nightly which is missing installed component 'rls'
 info: syncing channel updates toolchain=nightly-2019-09-13-[HOST_TRIPLE]
-info: latest update on 2019-09-13, rust version 1.37.0 (hash-nightly-2)
+info: latest update updated=2019-09-13 version=1.37.0 (hash-nightly-2)
 info: skipping nightly which is missing installed component 'rust-std-[MULTI_ARCH_I]'
 info: syncing channel updates toolchain=nightly-2019-09-12-[HOST_TRIPLE]
 

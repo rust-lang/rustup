@@ -1088,10 +1088,10 @@ async fn try_update_from_dist_(
     .await
     {
         Ok(Some((m, hash))) => {
-            (download.notify_handler)(Notification::DownloadedManifest(
-                &m.date,
-                m.get_rust_version().ok(),
-            ));
+            match m.get_rust_version() {
+                Ok(version) => info!(updated = %m.date, %version, "latest update"),
+                Err(_) => info!(updated = %m.date, "latest update"),
+            }
 
             let profile_components = match profile {
                 Some(profile) => m.get_profile_components(profile, &toolchain.target)?,
