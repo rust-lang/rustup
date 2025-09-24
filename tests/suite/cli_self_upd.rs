@@ -74,7 +74,7 @@ info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
-info: default toolchain set to 'stable-[HOST_TRIPLE]'
+info: default toolchain set to stable-[HOST_TRIPLE]
 
 "#]])
         .is_ok();
@@ -119,8 +119,8 @@ info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
-info: default toolchain set to 'stable-[HOST_TRIPLE]'
-
+info: default toolchain set to stable-[HOST_TRIPLE]
+...
 "#]])
         .is_ok();
 
@@ -899,7 +899,7 @@ async fn reinstall_specifying_different_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+info: default toolchain set to nightly-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();
