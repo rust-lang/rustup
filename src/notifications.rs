@@ -13,7 +13,6 @@ use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::Notifi
 pub(crate) enum Notification<'a> {
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    MissingInstalledComponent(&'a str),
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
@@ -79,10 +78,9 @@ impl Notification<'_> {
             | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
-            MissingInstalledComponent(_)
-            | CachedFileChecksumFailed
-            | ForcingUnavailableComponent(_)
-            | StrayHash(_) => NotificationLevel::Warn,
+            CachedFileChecksumFailed | ForcingUnavailableComponent(_) | StrayHash(_) => {
+                NotificationLevel::Warn
+            }
             SetDefaultBufferSize(_) => NotificationLevel::Trace,
             DownloadingFile(_)
             | DownloadContentLengthReceived(_, _)
@@ -118,9 +116,6 @@ impl Display for Notification<'_> {
         match self {
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            MissingInstalledComponent(c) => {
-                write!(f, "during uninstall component {c} was not found")
-            }
             DownloadingComponent(c, h, t, _) => {
                 if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "downloading component '{c}'")
