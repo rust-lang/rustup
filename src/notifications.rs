@@ -15,8 +15,6 @@ pub(crate) enum Notification<'a> {
     CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
-    RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
-    RemovingOldComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
@@ -70,8 +68,6 @@ impl Notification<'_> {
         match self {
             FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _)
-            | RemovingComponent(_, _, _)
-            | RemovingOldComponent(_, _, _)
             | DownloadingManifest(_)
             | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
@@ -119,25 +115,6 @@ impl Display for Notification<'_> {
                     write!(f, "downloading component '{c}'")
                 } else {
                     write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
-                }
-            }
-            RemovingComponent(c, h, t) => {
-                if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "removing component '{c}'")
-                } else {
-                    write!(f, "removing component '{}' for '{}'", c, t.unwrap())
-                }
-            }
-            RemovingOldComponent(c, h, t) => {
-                if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "removing previous version of component '{c}'")
-                } else {
-                    write!(
-                        f,
-                        "removing previous version of component '{}' for '{}'",
-                        c,
-                        t.unwrap()
-                    )
                 }
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{t}'"),
