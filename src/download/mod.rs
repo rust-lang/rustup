@@ -102,8 +102,7 @@ async fn download_file_(
     use sha2::Digest;
     use std::cell::RefCell;
 
-    notify_handler(Notification::DownloadingFile(url));
-
+    debug!(url = %url, "downloading file");
     let hasher = RefCell::new(hasher);
 
     // This callback will write the download to disk and optionally
