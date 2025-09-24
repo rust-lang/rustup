@@ -124,9 +124,7 @@ async fn download_file_(
             Event::DownloadDataReceived(data) => {
                 notify_handler(Notification::DownloadDataReceived(data, Some(url.as_str())));
             }
-            Event::ResumingPartialDownload => {
-                notify_handler(Notification::ResumingPartialDownload);
-            }
+            Event::ResumingPartialDownload => debug!("resuming partial download"),
         }
 
         Ok(())

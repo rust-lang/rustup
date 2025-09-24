@@ -22,7 +22,6 @@ pub(crate) enum Notification<'a> {
     DownloadFinished(Option<&'a str>),
     /// Download has failed.
     DownloadFailed(&'a str),
-    ResumingPartialDownload,
     /// This would make more sense as a crate::notifications::Notification
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
@@ -63,8 +62,7 @@ impl Notification<'_> {
             DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
-            | DownloadFailed(_)
-            | ResumingPartialDownload => NotificationLevel::Debug,
+            | DownloadFailed(_) => NotificationLevel::Debug,
             ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
@@ -110,7 +108,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            ResumingPartialDownload => write!(f, "resuming partial download"),
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),
             SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
             SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),
