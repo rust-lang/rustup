@@ -485,7 +485,7 @@ async fn remove_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'beta-[HOST_TRIPLE]'
+info: syncing channel updates fpr beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
@@ -518,7 +518,7 @@ async fn file_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'beta-[HOST_TRIPLE]'
+info: syncing channel updates fpr beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
@@ -2458,7 +2458,7 @@ async fn run_with_install_flag_against_unavailable_component() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
+info: syncing channel updates fpr nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 warn: Force-skipping unavailable component 'rust-std-[HOST_TRIPLE]'
 info: downloading component[..]
