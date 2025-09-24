@@ -242,11 +242,17 @@ impl Manifestation {
             let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
 
-            (download_cfg.notify_handler)(Notification::InstallingComponent(
-                &short_name,
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+            match &component.target {
+                Some(t) if t != &self.target_triple => {
+                    info!("installing component {short_name}");
+                }
+                _ => {
+                    info!(
+                        "installing component {short_name} for target {}",
+                        self.target_triple
+                    )
+                }
+            }
 
             let cx = PackageContext {
                 tmp_cx,
@@ -450,12 +456,7 @@ impl Manifestation {
         let (installer_file, installer_hash) = dl.unwrap();
 
         let prefix = self.installation.prefix();
-
-        notify_handler(Notification::InstallingComponent(
-            "rust",
-            &self.target_triple,
-            Some(&self.target_triple),
-        ));
+        info!("installing component rust");
 
         // Begin transaction
         let mut tx = Transaction::new(prefix, tmp_cx, process);
