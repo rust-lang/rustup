@@ -164,7 +164,7 @@ impl<'a> DownloadCfg<'a> {
                     warn!(file = %hash_file.display(), "can't read update hash file, can't skip update");
                 }
             } else {
-                (self.notify_handler)(Notification::NoUpdateHash(hash_file));
+                debug!(file = %hash_file.display(), "no update hash file found");
             }
         }
 
