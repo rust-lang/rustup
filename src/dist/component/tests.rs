@@ -2,29 +2,14 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use crate::dist::DEFAULT_DIST_SERVER;
-use crate::dist::component::Transaction;
-use crate::dist::prefix::InstallPrefix;
-use crate::dist::temp;
 use crate::errors::RustupError;
-use crate::process::TestProcess;
+use crate::test::DistContext;
 use crate::utils::{self, raw as utils_raw};
 
 #[test]
 fn add_file() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     let mut file = tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
     write!(file, "test").unwrap();
@@ -33,51 +18,29 @@ fn add_file() {
     drop(file);
 
     assert_eq!(
-        fs::read_to_string(prefix.path().join("foo/bar")).unwrap(),
+        fs::read_to_string(cx.prefix.path().join("foo/bar")).unwrap(),
         "test"
     );
 }
 
 #[test]
 fn add_file_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
     drop(tx);
 
-    assert!(!utils::is_file(prefix.path().join("foo/bar")));
+    assert!(!utils::is_file(cx.prefix.path().join("foo/bar")));
 }
 
 #[test]
 fn add_file_that_exists() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    fs::create_dir_all(prefixdir.path().join("foo")).unwrap();
-    utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
+    fs::create_dir_all(cx.prefix.path().join("foo")).unwrap();
+    utils::write_file("", &cx.prefix.path().join("foo/bar"), "").unwrap();
 
     let err = tx.add_file("c", PathBuf::from("foo/bar")).unwrap_err();
 
@@ -92,80 +55,44 @@ fn add_file_that_exists() {
 
 #[test]
 fn copy_file() {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let srcpath = srcdir.path().join("bar");
+    let srcpath = cx.pkg_dir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
     tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath)
         .unwrap();
     tx.commit();
 
-    assert!(utils::is_file(prefix.path().join("foo/bar")));
+    assert!(utils::is_file(cx.prefix.path().join("foo/bar")));
 }
 
 #[test]
 fn copy_file_then_rollback() {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let srcpath = srcdir.path().join("bar");
+    let srcpath = cx.pkg_dir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
     tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath)
         .unwrap();
     drop(tx);
 
-    assert!(!utils::is_file(prefix.path().join("foo/bar")));
+    assert!(!utils::is_file(cx.prefix.path().join("foo/bar")));
 }
 
 #[test]
 fn copy_file_that_exists() {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let srcpath = srcdir.path().join("bar");
+    let srcpath = cx.pkg_dir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
-    fs::create_dir_all(prefixdir.path().join("foo")).unwrap();
-    utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
+    fs::create_dir_all(cx.prefix.path().join("foo")).unwrap();
+    utils::write_file("", &cx.prefix.path().join("foo/bar"), "").unwrap();
 
     let err = tx
         .copy_file("c", PathBuf::from("foo/bar"), &srcpath)
@@ -182,93 +109,59 @@ fn copy_file_that_exists() {
 
 #[test]
 fn copy_dir() {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let srcpath1 = srcdir.path().join("foo");
-    let srcpath2 = srcdir.path().join("bar/baz");
-    let srcpath3 = srcdir.path().join("bar/qux/tickle");
+    let srcpath1 = cx.pkg_dir.path().join("foo");
+    let srcpath2 = cx.pkg_dir.path().join("bar/baz");
+    let srcpath3 = cx.pkg_dir.path().join("bar/qux/tickle");
     utils::write_file("", &srcpath1, "").unwrap();
     fs::create_dir_all(srcpath2.parent().unwrap()).unwrap();
     utils::write_file("", &srcpath2, "").unwrap();
     fs::create_dir_all(srcpath3.parent().unwrap()).unwrap();
     utils::write_file("", &srcpath3, "").unwrap();
 
-    tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap();
+    tx.copy_dir("c", PathBuf::from("a"), cx.pkg_dir.path())
+        .unwrap();
     tx.commit();
 
-    assert!(utils::is_file(prefix.path().join("a/foo")));
-    assert!(utils::is_file(prefix.path().join("a/bar/baz")));
-    assert!(utils::is_file(prefix.path().join("a/bar/qux/tickle")));
+    assert!(utils::is_file(cx.prefix.path().join("a/foo")));
+    assert!(utils::is_file(cx.prefix.path().join("a/bar/baz")));
+    assert!(utils::is_file(cx.prefix.path().join("a/bar/qux/tickle")));
 }
 
 #[test]
 fn copy_dir_then_rollback() {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let srcpath1 = srcdir.path().join("foo");
-    let srcpath2 = srcdir.path().join("bar/baz");
-    let srcpath3 = srcdir.path().join("bar/qux/tickle");
+    let srcpath1 = cx.pkg_dir.path().join("foo");
+    let srcpath2 = cx.pkg_dir.path().join("bar/baz");
+    let srcpath3 = cx.pkg_dir.path().join("bar/qux/tickle");
     utils::write_file("", &srcpath1, "").unwrap();
     fs::create_dir_all(srcpath2.parent().unwrap()).unwrap();
     utils::write_file("", &srcpath2, "").unwrap();
     fs::create_dir_all(srcpath3.parent().unwrap()).unwrap();
     utils::write_file("", &srcpath3, "").unwrap();
 
-    tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap();
+    tx.copy_dir("c", PathBuf::from("a"), cx.pkg_dir.path())
+        .unwrap();
     drop(tx);
 
-    assert!(!utils::is_file(prefix.path().join("a/foo")));
-    assert!(!utils::is_file(prefix.path().join("a/bar/baz")));
-    assert!(!utils::is_file(prefix.path().join("a/bar/qux/tickle")));
+    assert!(!utils::is_file(cx.prefix.path().join("a/foo")));
+    assert!(!utils::is_file(cx.prefix.path().join("a/bar/baz")));
+    assert!(!utils::is_file(cx.prefix.path().join("a/bar/qux/tickle")));
 }
 
 #[test]
 fn copy_dir_that_exists() {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    fs::create_dir_all(prefix.path().join("a")).unwrap();
+    fs::create_dir_all(cx.prefix.path().join("a")).unwrap();
 
     let err = tx
-        .copy_dir("c", PathBuf::from("a"), srcdir.path())
+        .copy_dir("c", PathBuf::from("a"), cx.pkg_dir.path())
         .unwrap_err();
 
     match err.downcast_ref::<RustupError>() {
@@ -282,21 +175,10 @@ fn copy_dir_that_exists() {
 
 #[test]
 fn remove_file() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let filepath = prefixdir.path().join("foo");
+    let filepath = cx.prefix.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
 
     tx.remove_file("c", PathBuf::from("foo")).unwrap();
@@ -307,21 +189,10 @@ fn remove_file() {
 
 #[test]
 fn remove_file_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let filepath = prefixdir.path().join("foo");
+    let filepath = cx.prefix.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
 
     tx.remove_file("c", PathBuf::from("foo")).unwrap();
@@ -332,19 +203,8 @@ fn remove_file_then_rollback() {
 
 #[test]
 fn remove_file_that_not_exists() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
@@ -359,21 +219,10 @@ fn remove_file_that_not_exists() {
 
 #[test]
 fn remove_dir() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let filepath = prefixdir.path().join("foo/bar");
+    let filepath = cx.prefix.path().join("foo/bar");
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
     utils::write_file("", &filepath, "").unwrap();
 
@@ -385,21 +234,10 @@ fn remove_dir() {
 
 #[test]
 fn remove_dir_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let filepath = prefixdir.path().join("foo/bar");
+    let filepath = cx.prefix.path().join("foo/bar");
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
     utils::write_file("", &filepath, "").unwrap();
 
@@ -411,19 +249,8 @@ fn remove_dir_then_rollback() {
 
 #[test]
 fn remove_dir_that_not_exists() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
@@ -438,26 +265,15 @@ fn remove_dir_that_not_exists() {
 
 #[test]
 fn write_file() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     let content = "hi".to_string();
     tx.write_file("c", PathBuf::from("foo/bar"), content.clone())
         .unwrap();
     tx.commit();
 
-    let path = prefix.path().join("foo/bar");
+    let path = cx.prefix.path().join("foo/bar");
     assert!(utils::is_file(&path));
     let file_content = fs::read_to_string(&path).unwrap();
     assert_eq!(content, file_content);
@@ -465,46 +281,24 @@ fn write_file() {
 
 #[test]
 fn write_file_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     let content = "hi".to_string();
     tx.write_file("c", PathBuf::from("foo/bar"), content)
         .unwrap();
     drop(tx);
 
-    assert!(!utils::is_file(prefix.path().join("foo/bar")));
+    assert!(!utils::is_file(cx.prefix.path().join("foo/bar")));
 }
 
 #[test]
 fn write_file_that_exists() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     let content = "hi".to_string();
-    utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
+    utils_raw::write_file(&cx.prefix.path().join("a"), &content).unwrap();
     let err = tx.write_file("c", PathBuf::from("a"), content).unwrap_err();
 
     match err.downcast_ref::<RustupError>() {
@@ -520,45 +314,23 @@ fn write_file_that_exists() {
 // but the file is not.
 #[test]
 fn modify_file_that_not_exists() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     tx.modify_file(PathBuf::from("foo/bar")).unwrap();
     tx.commit();
 
-    assert!(utils::path_exists(prefix.path().join("foo")));
-    assert!(!utils::path_exists(prefix.path().join("foo/bar")));
+    assert!(utils::path_exists(cx.prefix.path().join("foo")));
+    assert!(!utils::path_exists(cx.prefix.path().join("foo/bar")));
 }
 
 // If the file does exist, then it's just backed up
 #[test]
 fn modify_file_that_exists() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let path = prefix.path().join("foo");
+    let path = cx.prefix.path().join("foo");
     utils_raw::write_file(&path, "wow").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
     tx.commit();
@@ -568,43 +340,21 @@ fn modify_file_that_exists() {
 
 #[test]
 fn modify_file_that_not_exists_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     tx.modify_file(PathBuf::from("foo/bar")).unwrap();
     drop(tx);
 
-    assert!(!utils::path_exists(prefix.path().join("foo/bar")));
+    assert!(!utils::path_exists(cx.prefix.path().join("foo/bar")));
 }
 
 #[test]
 fn modify_file_that_exists_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let path = prefix.path().join("foo");
+    let path = cx.prefix.path().join("foo");
     utils_raw::write_file(&path, "wow").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
     utils_raw::write_file(&path, "eww").unwrap();
@@ -617,21 +367,10 @@ fn modify_file_that_exists_then_rollback() {
 // to overwrite the earliest backup.
 #[test]
 fn modify_twice_then_rollback() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
-
-    let path = prefix.path().join("foo");
+    let path = cx.prefix.path().join("foo");
     utils_raw::write_file(&path, "wow").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
     utils_raw::write_file(&path, "eww").unwrap();
@@ -643,20 +382,8 @@ fn modify_twice_then_rollback() {
 }
 
 fn do_multiple_op_transaction(rollback: bool) {
-    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     // copy_file
     let relpath1 = PathBuf::from("bin/rustc");
@@ -672,27 +399,27 @@ fn do_multiple_op_transaction(rollback: bool) {
     // remove_dir
     let relpath8 = PathBuf::from("olddoc/htm/index.html");
 
-    let path1 = prefix.path().join(&relpath1);
-    let path2 = prefix.path().join(&relpath2);
-    let path4 = prefix.path().join(&relpath4);
-    let path5 = prefix.path().join(&relpath5);
-    let path6 = prefix.path().join(&relpath6);
-    let path7 = prefix.path().join(&relpath7);
-    let path8 = prefix.path().join(relpath8);
+    let path1 = cx.prefix.path().join(&relpath1);
+    let path2 = cx.prefix.path().join(&relpath2);
+    let path4 = cx.prefix.path().join(&relpath4);
+    let path5 = cx.prefix.path().join(&relpath5);
+    let path6 = cx.prefix.path().join(&relpath6);
+    let path7 = cx.prefix.path().join(&relpath7);
+    let path8 = cx.prefix.path().join(relpath8);
 
-    let srcpath1 = srcdir.path().join(&relpath1);
+    let srcpath1 = cx.pkg_dir.path().join(&relpath1);
     fs::create_dir_all(srcpath1.parent().unwrap()).unwrap();
     utils_raw::write_file(&srcpath1, "").unwrap();
     tx.copy_file("", relpath1, &srcpath1).unwrap();
 
-    let srcpath2 = srcdir.path().join(&relpath2);
+    let srcpath2 = cx.pkg_dir.path().join(&relpath2);
     utils_raw::write_file(&srcpath2, "").unwrap();
     tx.copy_file("", relpath2, &srcpath2).unwrap();
 
-    let srcpath4 = srcdir.path().join(&relpath4);
+    let srcpath4 = cx.pkg_dir.path().join(&relpath4);
     fs::create_dir_all(srcpath4.parent().unwrap()).unwrap();
     utils_raw::write_file(&srcpath4, "").unwrap();
-    tx.copy_dir("", PathBuf::from("doc"), &srcdir.path().join("doc"))
+    tx.copy_dir("", PathBuf::from("doc"), &cx.pkg_dir.path().join("doc"))
         .unwrap();
 
     tx.modify_file(relpath5).unwrap();
@@ -745,30 +472,19 @@ fn multiple_op_transaction_then_rollback() {
 // continue to rollback other steps.
 #[test]
 fn rollback_failure_keeps_going() {
-    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
-    let tmp_cx = temp::Context::new(
-        txdir.path().to_owned(),
-        DEFAULT_DIST_SERVER,
-        Box::new(|_| ()),
-    );
-
-    let prefix = InstallPrefix::from(prefixdir.path());
-
-    let tp = TestProcess::default();
-    let mut tx = Transaction::new(prefix.clone(), &tmp_cx, &|_| (), &tp.process);
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
 
     write!(tx.add_file("", PathBuf::from("foo")).unwrap(), "").unwrap();
     write!(tx.add_file("", PathBuf::from("bar")).unwrap(), "").unwrap();
     write!(tx.add_file("", PathBuf::from("baz")).unwrap(), "").unwrap();
 
-    fs::remove_file(prefix.path().join("bar")).unwrap();
+    fs::remove_file(cx.prefix.path().join("bar")).unwrap();
 
     drop(tx);
 
-    assert!(!utils::path_exists(prefix.path().join("foo")));
-    assert!(!utils::path_exists(prefix.path().join("baz")));
+    assert!(!utils::path_exists(cx.prefix.path().join("foo")));
+    assert!(!utils::path_exists(cx.prefix.path().join("baz")));
 }
 
 // Test that when a transaction creates intermediate directories that
