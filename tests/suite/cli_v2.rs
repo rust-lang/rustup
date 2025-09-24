@@ -1914,7 +1914,7 @@ async fn warn_about_and_remove_stray_hash() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: removing stray hash found at '[..]/update-hashes/nightly-[HOST_TRIPLE]' in order to continue
+warn: removing stray hash file in order to continue: [..]/update-hashes/nightly-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();

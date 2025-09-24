@@ -16,7 +16,6 @@ use tracing::{debug, info, warn};
 use crate::{
     config::{Cfg, dist_root_server},
     errors::RustupError,
-    notifications::Notification,
     process::Process,
     toolchain::ToolchainName,
     utils,
@@ -912,7 +911,10 @@ pub(crate) async fn update_from_dist(
     if let Some(hash) = opts.update_hash {
         // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
         if fresh_install && Path::exists(hash) {
-            (opts.dl_cfg.notify_handler)(Notification::StrayHash(hash));
+            warn!(
+                "removing stray hash file in order to continue: {}",
+                hash.display()
+            );
             std::fs::remove_file(hash)?;
         }
     }
