@@ -15,7 +15,6 @@ pub(crate) enum Notification<'a> {
     CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
-    DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
     SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a Manifest, &'a [Component]),
     ForcingUnavailableComponent(&'a str),
@@ -68,8 +67,7 @@ impl Notification<'_> {
             FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _)
             | SkippingNightlyMissingComponent(_, _, _)
-            | RetryingDownload(_)
-            | DownloadedManifest(_, _) => NotificationLevel::Info,
+            | RetryingDownload(_) => NotificationLevel::Info,
             CachedFileChecksumFailed | ForcingUnavailableComponent(_) | StrayHash(_) => {
                 NotificationLevel::Warn
             }
@@ -114,12 +112,6 @@ impl Display for Notification<'_> {
                 } else {
                     write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
                 }
-            }
-            DownloadedManifest(date, Some(version)) => {
-                write!(f, "latest update on {date}, rust version {version}")
-            }
-            DownloadedManifest(date, None) => {
-                write!(f, "latest update on {date}, no rust version")
             }
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
             StrayHash(path) => write!(
