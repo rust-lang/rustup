@@ -46,9 +46,6 @@ pub(crate) enum Notification<'a> {
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
     Error(String),
-    #[cfg(feature = "curl-backend")]
-    UsingCurl,
-    UsingReqwest,
     SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -102,10 +99,7 @@ impl Notification<'_> {
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_)
-            | ResumingPartialDownload
-            | UsingReqwest => NotificationLevel::Debug,
-            #[cfg(feature = "curl-backend")]
-            UsingCurl => NotificationLevel::Debug,
+            | ResumingPartialDownload => NotificationLevel::Debug,
             Error(_) => NotificationLevel::Error,
             ToolchainDirectory(_)
             | LookingForToolchain(_)
@@ -224,9 +218,6 @@ impl Display for Notification<'_> {
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
             ResumingPartialDownload => write!(f, "resuming partial download"),
-            #[cfg(feature = "curl-backend")]
-            UsingCurl => write!(f, "downloading with curl"),
-            UsingReqwest => write!(f, "downloading with reqwest"),
             SetAutoInstall(auto) => write!(f, "auto install set to '{auto}'"),
             SetDefaultToolchain(None) => write!(f, "default toolchain unset"),
             SetDefaultToolchain(Some(name)) => write!(f, "default toolchain set to '{name}'"),
