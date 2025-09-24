@@ -990,11 +990,18 @@ pub(crate) async fn update_from_dist(
         let cause = e.downcast_ref::<DistError>();
         match cause {
             Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
-                (opts.dl_cfg.notify_handler)(Notification::SkippingNightlyMissingComponent(
-                    &toolchain,
-                    current_manifest.as_ref().unwrap_or(manifest),
-                    components,
-                ));
+                let plural = if components.len() > 1 { "s" } else { "" };
+                let manifest = current_manifest.as_ref().unwrap_or(manifest);
+                let components = components
+                    .iter()
+                    .map(
+                        |component| match component.target.as_ref() == Some(&toolchain.target) {
+                            true => component.short_name(manifest),
+                            false => component.name(manifest),
+                        },
+                    )
+                    .join(", ");
+                info!("skipping nightly with missing component{plural}: {components}");
 
                 if first_err.is_none() {
                     first_err = Some(e);
