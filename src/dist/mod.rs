@@ -11,7 +11,7 @@ use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     config::{Cfg, dist_root_server},
@@ -1173,7 +1173,7 @@ async fn try_update_from_dist_(
                 Some(RustupError::ChecksumFailed { .. }) => return Ok(None),
                 Some(RustupError::DownloadNotExists { .. }) => {
                     // Proceed to try v1 as a fallback
-                    (download.notify_handler)(Notification::DownloadingLegacyManifest)
+                    debug!("manifest not found; trying legacy manifest");
                 }
                 _ => return Err(err),
             }
