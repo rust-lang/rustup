@@ -2419,7 +2419,7 @@ error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download fo
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: Force-skipping unavailable component 'rls-[HOST_TRIPLE]'
+warn: skipping unavailable component rls
 ...
 "#]])
         .is_ok();
@@ -2460,7 +2460,7 @@ async fn run_with_install_flag_against_unavailable_component() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-warn: Force-skipping unavailable component 'rust-std-[HOST_TRIPLE]'
+warn: skipping unavailable component rust-std
 info: downloading component[..]
 ...
 "#]])

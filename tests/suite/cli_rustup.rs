@@ -2770,7 +2770,7 @@ components = [ "rust-bongo" ]
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: Force-skipping unavailable component 'rust-bongo-[HOST_TRIPLE]'
+warn: skipping unavailable component rust-bongo
 ...
 "#]])
         .is_ok();

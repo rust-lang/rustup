@@ -478,7 +478,7 @@ async fn install_forces_and_skips_rls() {
     .is_ok()
     .with_stderr(snapbox::str![[r#"
 ...
-warn: Force-skipping unavailable component 'rls-[HOST_TRIPLE]'
+warn: skipping unavailable component rls
 ...
 "#]]);
 }
