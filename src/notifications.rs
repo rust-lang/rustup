@@ -11,7 +11,6 @@ use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::Notifi
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
-    ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     FileAlreadyDownloaded,
@@ -81,7 +80,6 @@ impl Notification<'_> {
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
-            | ComponentAlreadyInstalled(_)
             | DownloadingManifest(_)
             | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
@@ -125,7 +123,6 @@ impl Display for Notification<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match self {
-            ComponentAlreadyInstalled(c) => write!(f, "component {c} is up to date"),
             CantReadUpdateHash(path) => write!(
                 f,
                 "can't read update hash file: '{}', can't skip update...",

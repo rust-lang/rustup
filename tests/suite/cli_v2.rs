@@ -1630,7 +1630,7 @@ async fn add_target_again() {
         .expect(["rustup", "target", "add", CROSS_ARCH1])
         .await
         .with_stderr(snapbox::str![[r#"
-info: component 'rust-std' for target '[CROSS_ARCH_I]' is up to date
+info: component rust-std for target [CROSS_ARCH_I] is up to date
 
 "#]])
         .is_ok();
@@ -2563,7 +2563,7 @@ async fn regression_2601() {
         .expect(["rustup", "component", "add", "rust-src"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: component 'rust-src' is up to date
+info: component rust-src is up to date
 
 "#]])
         .is_ok();
