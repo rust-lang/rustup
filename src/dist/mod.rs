@@ -1072,7 +1072,7 @@ async fn try_update_from_dist_(
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
     // TODO: Add a notification about which manifest version is going to be used
-    (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
+    info!("syncing channel updates for {toolchain_str}");
     match dl_v2_manifest(
         download,
         // Even if manifest has not changed, we must continue to install requested components.

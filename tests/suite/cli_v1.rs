@@ -278,7 +278,7 @@ async fn remove_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'beta-[HOST_TRIPLE]'
+info: syncing channel updates for beta-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();

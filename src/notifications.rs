@@ -15,7 +15,6 @@ pub(crate) enum Notification<'a> {
     CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
-    DownloadingManifest(&'a str),
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
     SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a Manifest, &'a [Component]),
@@ -68,7 +67,6 @@ impl Notification<'_> {
         match self {
             FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _)
-            | DownloadingManifest(_)
             | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
@@ -117,7 +115,6 @@ impl Display for Notification<'_> {
                     write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
                 }
             }
-            DownloadingManifest(t) => write!(f, "syncing channel updates for '{t}'"),
             DownloadedManifest(date, Some(version)) => {
                 write!(f, "latest update on {date}, rust version {version}")
             }
