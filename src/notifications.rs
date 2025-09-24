@@ -41,7 +41,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    Error(String),
     SetAutoInstall(&'a str),
     SetDefaultToolchain(Option<&'a ToolchainName>),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -91,7 +90,6 @@ impl Notification<'_> {
             | DownloadFinished(_)
             | DownloadFailed(_)
             | ResumingPartialDownload => NotificationLevel::Debug,
-            Error(_) => NotificationLevel::Error,
             ToolchainDirectory(_)
             | LookingForToolchain(_)
             | InstallingToolchain(_)
@@ -189,7 +187,6 @@ impl Display for Notification<'_> {
                 write!(f, "Force-skipping unavailable component '{component}'")
             }
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
-            Error(e) => write!(f, "error: '{e}'"),
             SetDefaultBufferSize(size) => write!(
                 f,
                 "using up to {} of RAM to unpack components",
