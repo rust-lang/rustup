@@ -26,7 +26,7 @@ use crate::notifications::Notification;
 use crate::process::TestProcess;
 
 pub struct DistContext {
-    pkg_dir: tempfile::TempDir,
+    pub pkg_dir: tempfile::TempDir,
     pub inst_dir: tempfile::TempDir,
     pub prefix: InstallPrefix,
     _tmp_dir: tempfile::TempDir,
@@ -35,9 +35,11 @@ pub struct DistContext {
 }
 
 impl DistContext {
-    pub fn new(mock: MockInstallerBuilder) -> anyhow::Result<Self> {
+    pub fn new(mock: Option<MockInstallerBuilder>) -> anyhow::Result<Self> {
         let pkg_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
-        mock.build(pkg_dir.path());
+        if let Some(mock) = mock {
+            mock.build(pkg_dir.path());
+        }
 
         let inst_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
         let prefix = InstallPrefix::from(inst_dir.path().to_owned());
@@ -58,16 +60,19 @@ impl DistContext {
     }
 
     pub fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage)> {
-        let tx = Transaction::new(
+        let tx = self.transaction();
+        let components = Components::open(self.prefix.clone())?;
+        let pkg = DirectoryPackage::new(self.pkg_dir.path().to_owned(), true)?;
+        Ok((tx, components, pkg))
+    }
+
+    pub fn transaction(&self) -> Transaction<'_> {
+        Transaction::new(
             self.prefix.clone(),
             &self.cx,
             &|_: Notification<'_>| (),
             &self.tp.process,
-        );
-
-        let components = Components::open(self.prefix.clone())?;
-        let pkg = DirectoryPackage::new(self.pkg_dir.path().to_owned(), true)?;
-        Ok((tx, components, pkg))
+        )
     }
 }
 

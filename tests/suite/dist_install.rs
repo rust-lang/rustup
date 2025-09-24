@@ -99,7 +99,7 @@ fn basic_install() {
         }],
     };
 
-    let cx = DistContext::new(mock).unwrap();
+    let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
@@ -131,7 +131,7 @@ fn multiple_component_install() {
         ],
     };
 
-    let cx = DistContext::new(mock).unwrap();
+    let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
@@ -163,7 +163,7 @@ fn uninstall() {
         ],
     };
 
-    let cx = DistContext::new(mock).unwrap();
+    let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
@@ -206,7 +206,7 @@ fn component_bad_version() {
         }],
     };
 
-    let cx = DistContext::new(mock).unwrap();
+    let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
@@ -237,7 +237,7 @@ fn install_to_prefix_that_does_not_exist() {
         }],
     };
 
-    let mut cx = DistContext::new(mock).unwrap();
+    let mut cx = DistContext::new(Some(mock)).unwrap();
     let does_not_exist = cx.inst_dir.path().join("does_not_exist");
     cx.prefix = InstallPrefix::from(does_not_exist.clone());
     let (tx, components, pkg) = cx.start().unwrap();
