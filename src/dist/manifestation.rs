@@ -122,13 +122,7 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::build_update(
-            self,
-            new_manifest,
-            &changes,
-            &config,
-            &download_cfg.notify_handler,
-        )?;
+        let mut update = Update::build_update(self, new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -539,7 +533,6 @@ impl Update {
         new_manifest: &Manifest,
         changes: &Changes,
         config: &Option<Config>,
-        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Self> {
         // The package to install.
         let rust_package = new_manifest.get_package("rust")?;
@@ -601,9 +594,17 @@ impl Update {
                 if !starting_list.contains(component) {
                     result.components_to_install.push(component.clone());
                 } else if changes.explicit_add_components.contains(component) {
-                    notify_handler(Notification::ComponentAlreadyInstalled(
-                        &component.description(new_manifest),
-                    ));
+                    match &component.target {
+                        Some(t) if t != &manifestation.target_triple => info!(
+                            "component {} for target {} is up to date",
+                            component.short_name(new_manifest),
+                            t,
+                        ),
+                        _ => info!(
+                            "component {} is up to date",
+                            component.short_name(new_manifest)
+                        ),
+                    }
                 }
             }
         } else {
