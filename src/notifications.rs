@@ -11,7 +11,6 @@ use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::Notifi
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
-    CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
@@ -84,8 +83,7 @@ impl Notification<'_> {
             | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
-            CantReadUpdateHash(_)
-            | MissingInstalledComponent(_)
+            MissingInstalledComponent(_)
             | CachedFileChecksumFailed
             | ForcingUnavailableComponent(_)
             | StrayHash(_) => NotificationLevel::Warn,
@@ -123,11 +121,6 @@ impl Display for Notification<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match self {
-            CantReadUpdateHash(path) => write!(
-                f,
-                "can't read update hash file: '{}', can't skip update...",
-                path.display()
-            ),
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),

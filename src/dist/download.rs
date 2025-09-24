@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, anyhow};
 use sha2::{Digest, Sha256};
 use tracing::debug;
+use tracing::warn;
 use url::Url;
 
 use crate::dist::temp;
@@ -160,7 +161,7 @@ impl<'a> DownloadCfg<'a> {
                         return Ok(None);
                     }
                 } else {
-                    (self.notify_handler)(Notification::CantReadUpdateHash(hash_file));
+                    warn!(file = %hash_file.display(), "can't read update hash file, can't skip update");
                 }
             } else {
                 (self.notify_handler)(Notification::NoUpdateHash(hash_file));
