@@ -167,7 +167,7 @@ impl<'a> DownloadCfg<'a> {
                     );
                 }
             } else {
-                (self.notify_handler)(Notification::NoUpdateHash(hash_file));
+                debug!(file = %hash_file.display(), "no update hash file found");
             }
         }
 
