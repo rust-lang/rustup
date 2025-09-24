@@ -10,7 +10,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::StreamExt;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::dist::component::{
@@ -229,13 +229,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(
-                component,
-                new_manifest,
-                tx,
-                &download_cfg.notify_handler,
-                download_cfg.process,
-            )?;
+            tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
         }
 
         // Install components
@@ -313,7 +307,6 @@ impl Manifestation {
         &self,
         manifest: &Manifest,
         tmp_cx: &temp::Context,
-        notify_handler: &dyn Fn(Notification<'_>),
         process: &Process,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
@@ -331,7 +324,7 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx, notify_handler, process)?;
+            tx = self.uninstall_component(&component, manifest, tx, process)?;
         }
         tx.commit();
 
@@ -343,7 +336,6 @@ impl Manifestation {
         component: &Component,
         manifest: &Manifest,
         mut tx: Transaction<'a>,
-        notify_handler: &dyn Fn(Notification<'_>),
         process: &Process,
     ) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
@@ -357,9 +349,10 @@ impl Manifestation {
         } else if let Some(c) = self.installation.find(short_name)? {
             tx = c.uninstall(tx, process)?;
         } else {
-            notify_handler(Notification::MissingInstalledComponent(
-                &component.short_name(manifest),
-            ));
+            warn!(
+                "component {} not found during uninstall",
+                component.short_name(manifest),
+            );
         }
 
         Ok(tx)
