@@ -71,7 +71,7 @@ async fn install_bins_to_cargo_home() {
         .with_stderr(snapbox::str![[r#"
 ...
 info: syncing channel updates for stable-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
 info: default toolchain set to 'stable-[HOST_TRIPLE]'
@@ -116,7 +116,7 @@ async fn proxies_are_relative_symlinks() {
         .with_stderr(snapbox::str![[r#"
 ...
 info: syncing channel updates for stable-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
 info: default toolchain set to 'stable-[HOST_TRIPLE]'

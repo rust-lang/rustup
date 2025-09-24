@@ -34,7 +34,7 @@ async fn rustup_stable() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for stable-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
 info: cleaning up downloads & tmp directories
@@ -130,15 +130,15 @@ async fn rustup_all_channels() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for stable-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
 info: syncing channel updates for beta-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
+info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
 info: syncing channel updates for nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: cleaning up downloads & tmp directories
@@ -207,12 +207,12 @@ async fn rustup_some_channels_up_to_date() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for stable-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: syncing channel updates for nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: cleaning up downloads & tmp directories
@@ -283,7 +283,7 @@ async fn default() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
@@ -1707,7 +1707,7 @@ channel = "nightly"
         .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file)])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
@@ -3718,7 +3718,7 @@ async fn custom_toolchain_with_components_toolchains_profile_does_not_err() {
         .await
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
 info: default toolchain set to 'nightly-[HOST_TRIPLE]'
