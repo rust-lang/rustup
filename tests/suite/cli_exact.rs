@@ -24,7 +24,7 @@ info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
 info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+info: default toolchain set new=nightly-[HOST_TRIPLE]
 
 "#]]);
     cx.config
@@ -325,7 +325,7 @@ info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
 info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+info: default toolchain set new=nightly-[HOST_TRIPLE]
 
 "#]]);
     cx.config

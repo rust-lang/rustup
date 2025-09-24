@@ -344,7 +344,12 @@ impl<'a> Cfg<'a> {
             s.default_toolchain = toolchain.map(|t| t.to_string());
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
+
+        match toolchain {
+            Some(t) => info!(new = %t, "default toolchain set"),
+            None => info!("default toolchain unset"),
+        }
+
         Ok(())
     }
 

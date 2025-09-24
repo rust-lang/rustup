@@ -286,7 +286,7 @@ info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
 info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+info: default toolchain set new=nightly-[HOST_TRIPLE]
 
 "#]])
         .is_ok();
@@ -323,7 +323,7 @@ async fn default_override() {
         .await
         .with_stderr(snapbox::str![[r#"
 info: using existing install for 'stable-[HOST_TRIPLE]'
-info: default toolchain set to 'stable-[HOST_TRIPLE]'
+info: default toolchain set new=stable-[HOST_TRIPLE]
 info: note that the toolchain 'nightly-[HOST_TRIPLE]' is currently in use (directory override for '[..]')
 
 "#]])
@@ -3721,7 +3721,7 @@ info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
 info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to 'nightly-[HOST_TRIPLE]'
+info: default toolchain set new=nightly-[HOST_TRIPLE]
 
 "#]])
         .is_ok();
