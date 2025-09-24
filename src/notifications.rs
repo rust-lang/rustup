@@ -15,7 +15,6 @@ pub(crate) enum Notification<'a> {
     CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
-    InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingOldComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
@@ -71,7 +70,6 @@ impl Notification<'_> {
         match self {
             FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _)
-            | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
             | DownloadingManifest(_)
@@ -121,13 +119,6 @@ impl Display for Notification<'_> {
                     write!(f, "downloading component '{c}'")
                 } else {
                     write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
-                }
-            }
-            InstallingComponent(c, h, t) => {
-                if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "installing component '{c}'")
-                } else {
-                    write!(f, "installing component '{}' for '{}'", c, t.unwrap())
                 }
             }
             RemovingComponent(c, h, t) => {
