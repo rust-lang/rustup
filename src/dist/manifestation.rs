@@ -137,9 +137,17 @@ impl Manifestation {
                 e.downcast::<RustupError>()
             {
                 for component in &components {
-                    (download_cfg.notify_handler)(Notification::ForcingUnavailableComponent(
-                        &component.name(new_manifest),
-                    ));
+                    match &component.target {
+                        Some(t) if t != &self.target_triple => warn!(
+                            component = %component.short_name(new_manifest),
+                            target = %t,
+                            "skipping unavailable component"
+                        ),
+                        _ => warn!(
+                            component = %component.short_name(new_manifest),
+                            "skipping unavailable component"
+                        ),
+                    }
                 }
                 update.drop_components_to_install(&components);
             }

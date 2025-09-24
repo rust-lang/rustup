@@ -14,7 +14,6 @@ pub(crate) enum Notification<'a> {
     CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
-    ForcingUnavailableComponent(&'a str),
     StrayHash(&'a Path),
     RetryingDownload(&'a str),
     DownloadingFile(&'a Url),
@@ -63,9 +62,7 @@ impl Notification<'_> {
         match self {
             FileAlreadyDownloaded => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _) | RetryingDownload(_) => NotificationLevel::Info,
-            CachedFileChecksumFailed | ForcingUnavailableComponent(_) | StrayHash(_) => {
-                NotificationLevel::Warn
-            }
+            CachedFileChecksumFailed | StrayHash(_) => NotificationLevel::Warn,
             SetDefaultBufferSize(_) => NotificationLevel::Trace,
             DownloadingFile(_)
             | DownloadContentLengthReceived(_, _)
@@ -113,9 +110,6 @@ impl Display for Notification<'_> {
                 "removing stray hash found at '{}' in order to continue",
                 path.display()
             ),
-            ForcingUnavailableComponent(component) => {
-                write!(f, "Force-skipping unavailable component '{component}'")
-            }
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
             SetDefaultBufferSize(size) => write!(
                 f,
