@@ -1,8 +1,6 @@
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-use url::Url;
-
 use crate::dist::TargetTriple;
 use crate::settings::MetadataVersion;
 use crate::utils::units;
@@ -15,7 +13,6 @@ pub(crate) enum Notification<'a> {
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
     RetryingDownload(&'a str),
-    DownloadingFile(&'a Url),
     /// Received the Content-Length of the to-be downloaded data with
     /// the respective URL of the download (for tracking concurrent downloads).
     DownloadContentLengthReceived(u64, Option<&'a str>),
@@ -63,8 +60,7 @@ impl Notification<'_> {
             DownloadingComponent(_, _, _, _) | RetryingDownload(_) => NotificationLevel::Info,
             CachedFileChecksumFailed => NotificationLevel::Warn,
             SetDefaultBufferSize(_) => NotificationLevel::Trace,
-            DownloadingFile(_)
-            | DownloadContentLengthReceived(_, _)
+            DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_)
@@ -110,7 +106,6 @@ impl Display for Notification<'_> {
                 "using up to {} of RAM to unpack components",
                 units::Size::new(*size)
             ),
-            DownloadingFile(url) => write!(f, "downloading file from: '{url}'"),
             DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
