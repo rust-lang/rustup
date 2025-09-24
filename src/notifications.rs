@@ -14,7 +14,6 @@ pub(crate) enum Notification<'a> {
     ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
-    ChecksumValid(&'a str),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
     MissingInstalledComponent(&'a str),
@@ -75,10 +74,9 @@ impl Notification<'_> {
     pub(crate) fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
-            ChecksumValid(_)
-            | NoUpdateHash(_)
-            | FileAlreadyDownloaded
-            | DownloadingLegacyManifest => NotificationLevel::Debug,
+            NoUpdateHash(_) | FileAlreadyDownloaded | DownloadingLegacyManifest => {
+                NotificationLevel::Debug
+            }
             DownloadingComponent(_, _, _, _)
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
@@ -134,7 +132,6 @@ impl Display for Notification<'_> {
                 path.display()
             ),
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
-            ChecksumValid(url) => write!(f, "checksum passed for {url}"),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             MissingInstalledComponent(c) => {
