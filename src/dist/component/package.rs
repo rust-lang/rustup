@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
 use crate::dist::component::components::*;
@@ -290,10 +290,8 @@ fn unpack_without_first_dir<R: Read>(
     let entries = archive.entries()?;
     let effective_max_ram = match effective_limits::memory_limit() {
         Ok(ram) => Some(ram as usize),
-        Err(e) => {
-            if let Some(h) = cx.notify_handler {
-                h(Notification::Error(e.to_string()))
-            }
+        Err(error) => {
+            error!("can't determine memory limit: {error}");
             None
         }
     };
