@@ -869,7 +869,7 @@ async fn install_unreleased_component() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
 info: latest update updated=2019-09-13 version=1.37.0 (hash-nightly-2)
-info: skipping nightly which is missing installed component 'rust-std-[MULTI_ARCH_I]'
+info: skipping nightly with missing component components="rust-std-[MULTI_ARCH_I]"
 info: syncing channel updates toolchain=nightly-2019-09-12-[HOST_TRIPLE]
 
 "#]]);
@@ -889,10 +889,10 @@ info: syncing channel updates toolchain=nightly-2019-09-12-[HOST_TRIPLE]
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
 info: latest update updated=2019-09-14 version=1.37.0 (hash-nightly-3)
-info: skipping nightly which is missing installed component 'rls'
+info: skipping nightly with missing component components="rls"
 info: syncing channel updates toolchain=nightly-2019-09-13-[HOST_TRIPLE]
 info: latest update updated=2019-09-13 version=1.37.0 (hash-nightly-2)
-info: skipping nightly which is missing installed component 'rust-std-[MULTI_ARCH_I]'
+info: skipping nightly with missing component components="rust-std-[MULTI_ARCH_I]"
 info: syncing channel updates toolchain=nightly-2019-09-12-[HOST_TRIPLE]
 
 "#]]);

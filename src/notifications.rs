@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use url::Url;
 
 use crate::dist::TargetTriple;
-use crate::dist::manifest::{Component, Manifest};
 use crate::settings::MetadataVersion;
 use crate::utils::units;
 use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::NotificationLevel};
@@ -15,7 +14,6 @@ pub(crate) enum Notification<'a> {
     CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
-    SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a Manifest, &'a [Component]),
     ForcingUnavailableComponent(&'a str),
     StrayHash(&'a Path),
     RetryingDownload(&'a str),
@@ -64,9 +62,7 @@ impl Notification<'_> {
         use self::Notification::*;
         match self {
             FileAlreadyDownloaded => NotificationLevel::Debug,
-            DownloadingComponent(_, _, _, _)
-            | SkippingNightlyMissingComponent(_, _, _)
-            | RetryingDownload(_) => NotificationLevel::Info,
+            DownloadingComponent(_, _, _, _) | RetryingDownload(_) => NotificationLevel::Info,
             CachedFileChecksumFailed | ForcingUnavailableComponent(_) | StrayHash(_) => {
                 NotificationLevel::Warn
             }
@@ -116,22 +112,6 @@ impl Display for Notification<'_> {
                 f,
                 "removing stray hash found at '{}' in order to continue",
                 path.display()
-            ),
-            SkippingNightlyMissingComponent(toolchain, manifest, components) => write!(
-                f,
-                "skipping nightly which is missing installed component{} '{}'",
-                if components.len() > 1 { "s" } else { "" },
-                components
-                    .iter()
-                    .map(|component| {
-                        if component.target.as_ref() != Some(&toolchain.target) {
-                            component.name(manifest)
-                        } else {
-                            component.short_name(manifest)
-                        }
-                    })
-                    .collect::<Vec<_>>()
-                    .join("', '")
             ),
             ForcingUnavailableComponent(component) => {
                 write!(f, "Force-skipping unavailable component '{component}'")
