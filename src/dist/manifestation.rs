@@ -218,16 +218,31 @@ impl Manifestation {
 
         // Uninstall components
         for component in &update.components_to_uninstall {
-            let notification = if implicit_modify {
-                Notification::RemovingOldComponent
-            } else {
-                Notification::RemovingComponent
-            };
-            (download_cfg.notify_handler)(notification(
-                &component.short_name(new_manifest),
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+            match (implicit_modify, &component.target) {
+                (true, Some(t)) if t != &self.target_triple => {
+                    info!(
+                        "removing previous version of component {} for target {}",
+                        component.short_name(new_manifest),
+                        t
+                    );
+                }
+                (false, Some(t)) if t != &self.target_triple => {
+                    info!(
+                        "removing component {} for target {}",
+                        component.short_name(new_manifest),
+                        t
+                    );
+                }
+                (true, _) => {
+                    info!(
+                        "removing previous version of component {}",
+                        component.short_name(new_manifest),
+                    );
+                }
+                (false, _) => {
+                    info!("removing component {}", component.short_name(new_manifest));
+                }
+            }
 
             tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
         }
