@@ -1,17 +1,13 @@
 use std::fs::File;
 use std::io::Write;
 
-use rustup::dist::DEFAULT_DIST_SERVER;
 use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
 use rustup::dist::component::{DirectoryPackage, Package};
 use rustup::dist::prefix::InstallPrefix;
-use rustup::dist::temp;
 use rustup::notifications::Notification;
-use rustup::process::TestProcess;
+use rustup::test::{DistContext, MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup::utils;
-
-use rustup::test::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Just testing that the mocks work
 #[test]
@@ -250,50 +246,4 @@ fn install_to_prefix_that_does_not_exist() {
 
     // The directory that does not exist
     assert!(utils::path_exists(does_not_exist.join("bin/foo")));
-}
-
-struct DistContext {
-    pkg_dir: tempfile::TempDir,
-    inst_dir: tempfile::TempDir,
-    prefix: InstallPrefix,
-    _tmp_dir: tempfile::TempDir,
-    cx: temp::Context,
-    tp: TestProcess,
-}
-
-impl DistContext {
-    fn new(mock: MockInstallerBuilder) -> anyhow::Result<Self> {
-        let pkg_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
-        mock.build(pkg_dir.path());
-
-        let inst_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
-        let prefix = InstallPrefix::from(inst_dir.path().to_owned());
-        let tmp_dir = tempfile::Builder::new().prefix("rustup").tempdir()?;
-
-        Ok(Self {
-            pkg_dir,
-            inst_dir,
-            prefix,
-            cx: temp::Context::new(
-                tmp_dir.path().to_owned(),
-                DEFAULT_DIST_SERVER,
-                Box::new(|_| ()),
-            ),
-            tp: TestProcess::default(),
-            _tmp_dir: tmp_dir,
-        })
-    }
-
-    fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage)> {
-        let tx = Transaction::new(
-            self.prefix.clone(),
-            &self.cx,
-            &|_: Notification<'_>| (),
-            &self.tp.process,
-        );
-
-        let components = Components::open(self.prefix.clone())?;
-        let pkg = DirectoryPackage::new(self.pkg_dir.path().to_owned(), true)?;
-        Ok((tx, components, pkg))
-    }
 }

@@ -32,6 +32,7 @@ pub use clitools::{
     output_release_file, print_command, print_indented,
 };
 pub(crate) mod dist;
+pub use dist::DistContext;
 pub(crate) mod mock;
 pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
