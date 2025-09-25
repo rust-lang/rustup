@@ -1,11 +1,10 @@
 //! Just a dumping ground for cli stuff
 
-use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex, RwLock};
 use std::{cmp, env};
 
 use anyhow::{Context, Result, anyhow};
@@ -123,14 +122,14 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
 
 pub(super) struct Notifier {
     tracker: Mutex<DownloadTracker>,
-    ram_notice_shown: RefCell<bool>,
+    ram_notice_shown: RwLock<bool>,
 }
 
 impl Notifier {
     pub(super) fn new(quiet: bool, process: &Process) -> Self {
         Self {
             tracker: Mutex::new(DownloadTracker::new_with_display_progress(!quiet, process)),
-            ram_notice_shown: RefCell::new(false),
+            ram_notice_shown: RwLock::new(false),
         }
     }
 
@@ -140,10 +139,10 @@ impl Notifier {
         }
 
         if let Notification::SetDefaultBufferSize(_) = &n {
-            if *self.ram_notice_shown.borrow() {
+            if *self.ram_notice_shown.read().unwrap() {
                 return;
             } else {
-                *self.ram_notice_shown.borrow_mut() = true;
+                *self.ram_notice_shown.write().unwrap() = true;
             }
         };
         let level = n.level();

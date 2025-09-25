@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::{fmt, fs, ops};
 
 pub(crate) use anyhow::{Context as _, Result};
@@ -18,12 +19,12 @@ pub(crate) enum CreatingError {
 }
 
 #[derive(Debug)]
-pub(crate) struct Dir<'a> {
-    cfg: &'a Context,
+pub(crate) struct Dir {
+    cfg: Arc<Context>,
     path: PathBuf,
 }
 
-impl ops::Deref for Dir<'_> {
+impl ops::Deref for Dir {
     type Target = Path;
 
     fn deref(&self) -> &Path {
@@ -31,7 +32,7 @@ impl ops::Deref for Dir<'_> {
     }
 }
 
-impl Drop for Dir<'_> {
+impl Drop for Dir {
     fn drop(&mut self) {
         if raw::is_directory(&self.path) {
             let n = Notification::DirectoryDeletion(
@@ -44,12 +45,12 @@ impl Drop for Dir<'_> {
 }
 
 #[derive(Debug)]
-pub struct File<'a> {
-    cfg: &'a Context,
+pub struct File {
+    cfg: Arc<Context>,
     path: PathBuf,
 }
 
-impl ops::Deref for File<'_> {
+impl ops::Deref for File {
     type Target = Path;
 
     fn deref(&self) -> &Path {
@@ -57,7 +58,7 @@ impl ops::Deref for File<'_> {
     }
 }
 
-impl Drop for File<'_> {
+impl Drop for File {
     fn drop(&mut self) {
         if raw::is_file(&self.path) {
             let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
@@ -66,17 +67,20 @@ impl Drop for File<'_> {
     }
 }
 
+pub type NotifyHandler = dyn for<'a> Fn(Notification<'a>) + Sync + Send;
+
+#[derive(Clone)]
 pub struct Context {
     root_directory: PathBuf,
     pub dist_server: String,
-    notify_handler: Box<dyn Fn(Notification<'_>)>,
+    notify_handler: Arc<NotifyHandler>,
 }
 
 impl Context {
     pub fn new(
         root_directory: PathBuf,
         dist_server: &str,
-        notify_handler: Box<dyn Fn(Notification<'_>)>,
+        notify_handler: Arc<NotifyHandler>,
     ) -> Self {
         Self {
             root_directory,
@@ -92,7 +96,7 @@ impl Context {
         .with_context(|| CreatingError::Root(PathBuf::from(&self.root_directory)))
     }
 
-    pub(crate) fn new_directory(&self) -> Result<Dir<'_>> {
+    pub(crate) fn new_directory(self: Arc<Self>) -> Result<Dir> {
         self.create_root()?;
 
         loop {
@@ -114,11 +118,11 @@ impl Context {
         }
     }
 
-    pub fn new_file(&self) -> Result<File<'_>> {
+    pub fn new_file(self: Arc<Self>) -> Result<File> {
         self.new_file_with_ext("", "")
     }
 
-    pub(crate) fn new_file_with_ext(&self, prefix: &str, ext: &str) -> Result<File<'_>> {
+    pub(crate) fn new_file_with_ext(self: Arc<Self>, prefix: &str, ext: &str) -> Result<File> {
         self.create_root()?;
 
         loop {

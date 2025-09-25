@@ -229,11 +229,11 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     pub update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub tmp_cx: temp::Context,
+    pub tmp_cx: Arc<temp::Context>,
     pub toolchain_override: Option<ResolvableToolchainName>,
     pub env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
-    pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
+    pub notify_handler: Arc<NotifyHandler>,
     pub current_dir: PathBuf,
     pub process: &'a Process,
 }
@@ -241,7 +241,7 @@ pub(crate) struct Cfg<'a> {
 impl<'a> Cfg<'a> {
     pub(crate) fn from_env(
         current_dir: PathBuf,
-        notify_handler: Arc<dyn Fn(Notification<'_>)>,
+        notify_handler: Arc<NotifyHandler>,
         process: &'a Process,
     ) -> Result<Self> {
         // Set up the rustup home directory
@@ -292,11 +292,11 @@ impl<'a> Cfg<'a> {
         let dist_root_server = dist_root_server(process)?;
 
         let notify_clone = notify_handler.clone();
-        let tmp_cx = temp::Context::new(
+        let tmp_cx = Arc::new(temp::Context::new(
             rustup_dir.join("tmp"),
             dist_root_server.as_str(),
-            Box::new(move |n| (notify_clone)(n)),
-        );
+            Arc::new(move |n| (notify_clone)(n)),
+        ));
         let dist_root = dist_root_server + "/dist";
 
         let cfg = Self {
@@ -328,16 +328,13 @@ impl<'a> Cfg<'a> {
     }
 
     /// construct a download configuration
-    pub(crate) fn download_cfg(
-        &'a self,
-        notify_handler: &'a dyn Fn(Notification<'_>),
-    ) -> DownloadCfg<'a> {
+    pub(crate) fn download_cfg(&self, notify_handler: Arc<NotifyHandler>) -> DownloadCfg {
         DownloadCfg {
-            dist_root: &self.dist_root_url,
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
+            dist_root: Arc::from(self.dist_root_url.clone()),
+            tmp_cx: Arc::clone(&self.tmp_cx),
+            download_dir: Arc::new(self.download_dir.clone()),
             notify_handler,
-            process: self.process,
+            process: Arc::new(self.process.clone()),
         }
     }
 

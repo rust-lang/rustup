@@ -9,15 +9,15 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::{fs::File, sync::Arc};
 
 use anyhow::{Context, Result, anyhow};
 
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
-use crate::notifications::Notification;
+use crate::notifications::{Notification, NotifyHandler};
 use crate::process::Process;
 use crate::utils;
 
@@ -34,21 +34,21 @@ use crate::utils;
 ///
 /// All operations that create files will fail if the destination
 /// already exists.
-pub struct Transaction<'a> {
+pub struct Transaction {
     prefix: InstallPrefix,
-    changes: Vec<ChangedItem<'a>>,
-    tmp_cx: &'a temp::Context,
-    notify_handler: &'a dyn Fn(Notification<'_>),
+    changes: Vec<ChangedItem>,
+    tmp_cx: Arc<temp::Context>,
+    notify_handler: Arc<NotifyHandler>,
     committed: bool,
-    process: &'a Process,
+    process: Arc<Process>,
 }
 
-impl<'a> Transaction<'a> {
+impl Transaction {
     pub fn new(
         prefix: InstallPrefix,
-        tmp_cx: &'a temp::Context,
-        notify_handler: &'a dyn Fn(Notification<'_>),
-        process: &'a Process,
+        tmp_cx: Arc<temp::Context>,
+        notify_handler: Arc<NotifyHandler>,
+        process: Arc<Process>,
     ) -> Self {
         Transaction {
             prefix,
@@ -66,7 +66,7 @@ impl<'a> Transaction<'a> {
         self.committed = true;
     }
 
-    fn change(&mut self, item: ChangedItem<'a>) {
+    fn change(&mut self, item: ChangedItem) {
         self.changes.push(item);
     }
 
@@ -103,9 +103,9 @@ impl<'a> Transaction<'a> {
             &self.prefix,
             component,
             relpath,
-            self.tmp_cx,
-            self.notify_handler(),
-            self.process,
+            Arc::clone(&self.tmp_cx),
+            &*self.notify_handler,
+            &self.process,
         )?;
         self.change(item);
         Ok(())
@@ -119,9 +119,9 @@ impl<'a> Transaction<'a> {
             &self.prefix,
             component,
             relpath,
-            self.tmp_cx,
-            self.notify_handler(),
-            self.process,
+            Arc::clone(&self.tmp_cx),
+            &*self.notify_handler,
+            &self.process,
         )?;
         self.change(item);
         Ok(())
@@ -148,7 +148,7 @@ impl<'a> Transaction<'a> {
     /// This is used for arbitrarily manipulating a file.
     pub fn modify_file(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::modify_file(&self.prefix, relpath, self.tmp_cx)?;
+        let item = ChangedItem::modify_file(&self.prefix, relpath, Arc::clone(&self.tmp_cx))?;
         self.change(item);
         Ok(())
     }
@@ -166,8 +166,8 @@ impl<'a> Transaction<'a> {
             component,
             relpath,
             src,
-            self.notify_handler(),
-            self.process,
+            &*self.notify_handler,
+            &self.process,
         )?;
         self.change(item);
         Ok(())
@@ -181,31 +181,32 @@ impl<'a> Transaction<'a> {
             component,
             relpath,
             src,
-            self.notify_handler(),
-            self.process,
+            &*self.notify_handler,
+            &self.process,
         )?;
         self.change(item);
         Ok(())
     }
 
-    pub(crate) fn temp(&self) -> &'a temp::Context {
-        self.tmp_cx
+    pub(crate) fn temp(&self) -> Arc<temp::Context> {
+        Arc::clone(&self.tmp_cx)
     }
-    pub(crate) fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {
-        self.notify_handler
+
+    pub(crate) fn notify_handler(&self) -> Arc<NotifyHandler> {
+        Arc::clone(&self.notify_handler)
     }
 }
 
 /// If a Transaction is dropped without being committed, the changes
 /// are automatically rolled back.
-impl Drop for Transaction<'_> {
+impl Drop for Transaction {
     fn drop(&mut self) {
         if !self.committed {
             (self.notify_handler)(Notification::RollingBack);
             for item in self.changes.iter().rev() {
                 // ok_ntfy!(self.notify_handler,
                 //          Notification::NonFatalError,
-                match item.roll_back(&self.prefix, self.notify_handler(), self.process) {
+                match item.roll_back(&self.prefix, &*self.notify_handler(), &self.process) {
                     Ok(()) => {}
                     Err(e) => {
                         (self.notify_handler)(Notification::NonFatalError(&e));
@@ -221,19 +222,19 @@ impl Drop for Transaction<'_> {
 /// package, or updating a component, distill down into a series of
 /// these primitives.
 #[derive(Debug)]
-enum ChangedItem<'a> {
+enum ChangedItem {
     AddedFile(PathBuf),
     AddedDir(PathBuf),
-    RemovedFile(PathBuf, temp::File<'a>),
-    RemovedDir(PathBuf, temp::Dir<'a>),
-    ModifiedFile(PathBuf, Option<temp::File<'a>>),
+    RemovedFile(PathBuf, Arc<temp::File>),
+    RemovedDir(PathBuf, Arc<temp::Dir>),
+    ModifiedFile(PathBuf, Option<Arc<temp::File>>),
 }
 
-impl<'a> ChangedItem<'a> {
+impl ChangedItem {
     fn roll_back(
         &self,
         prefix: &InstallPrefix,
-        notify: &'a dyn Fn(Notification<'_>),
+        notify: &NotifyHandler,
         process: &Process,
     ) -> Result<()> {
         use self::ChangedItem::*;
@@ -259,6 +260,7 @@ impl<'a> ChangedItem<'a> {
         }
         Ok(())
     }
+
     fn dest_abs_path(prefix: &InstallPrefix, component: &str, relpath: &Path) -> Result<PathBuf> {
         let abs_path = prefix.abs_path(relpath);
         if utils::path_exists(&abs_path) {
@@ -273,12 +275,14 @@ impl<'a> ChangedItem<'a> {
             Ok(abs_path)
         }
     }
+
     fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
         let file = File::create(&abs_path)
             .with_context(|| format!("error creating file '{}'", abs_path.display()))?;
         Ok((ChangedItem::AddedFile(relpath), file))
     }
+
     fn copy_file(
         prefix: &InstallPrefix,
         component: &str,
@@ -289,6 +293,7 @@ impl<'a> ChangedItem<'a> {
         utils::copy_file(src, &abs_path)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
+
     fn copy_dir(
         prefix: &InstallPrefix,
         component: &str,
@@ -299,12 +304,13 @@ impl<'a> ChangedItem<'a> {
         utils::copy_dir(src, &abs_path, &|_: Notification<'_>| ())?;
         Ok(ChangedItem::AddedDir(relpath))
     }
+
     fn remove_file(
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        tmp_cx: &'a temp::Context,
-        notify: &'a dyn Fn(Notification<'_>),
+        tmp_cx: Arc<temp::Context>,
+        notify: &NotifyHandler,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
@@ -317,15 +323,16 @@ impl<'a> ChangedItem<'a> {
             .into())
         } else {
             utils::rename("component", &abs_path, &backup, notify, process)?;
-            Ok(ChangedItem::RemovedFile(relpath, backup))
+            Ok(ChangedItem::RemovedFile(relpath, Arc::new(backup)))
         }
     }
+
     fn remove_dir(
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        tmp_cx: &'a temp::Context,
-        notify: &'a dyn Fn(Notification<'_>),
+        tmp_cx: Arc<temp::Context>,
+        notify: &NotifyHandler,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
@@ -338,20 +345,21 @@ impl<'a> ChangedItem<'a> {
             .into())
         } else {
             utils::rename("component", &abs_path, &backup.join("bk"), notify, process)?;
-            Ok(ChangedItem::RemovedDir(relpath, backup))
+            Ok(ChangedItem::RemovedDir(relpath, Arc::new(backup)))
         }
     }
+
     fn modify_file(
         prefix: &InstallPrefix,
         relpath: PathBuf,
-        tmp_cx: &'a temp::Context,
+        tmp_cx: Arc<temp::Context>,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
 
         if utils::is_file(&abs_path) {
             let backup = tmp_cx.new_file()?;
             utils::copy_file(&abs_path, &backup)?;
-            Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
+            Ok(ChangedItem::ModifiedFile(relpath, Some(Arc::new(backup))))
         } else {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, &|_: Notification<'_>| {})?;
@@ -359,24 +367,26 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }
     }
+
     fn move_file(
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
         src: &Path,
-        notify: &'a dyn Fn(Notification<'_>),
+        notify: &NotifyHandler,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
         utils::rename("component", src, &abs_path, notify, process)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
+
     fn move_dir(
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
         src: &Path,
-        notify: &'a dyn Fn(Notification<'_>),
+        notify: &NotifyHandler,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;

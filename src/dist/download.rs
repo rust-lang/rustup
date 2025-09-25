@@ -1,6 +1,7 @@
 use std::fs;
 use std::ops;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow};
 use sha2::{Digest, Sha256};
@@ -10,19 +11,19 @@ use crate::dist::temp;
 use crate::download::download_file;
 use crate::download::download_file_with_resume;
 use crate::errors::*;
-use crate::notifications::Notification;
+use crate::notifications::{Notification, NotifyHandler};
 use crate::process::Process;
 use crate::utils;
 
 const UPDATE_HASH_LEN: usize = 20;
 
-#[derive(Copy, Clone)]
-pub struct DownloadCfg<'a> {
-    pub dist_root: &'a str,
-    pub tmp_cx: &'a temp::Context,
-    pub download_dir: &'a PathBuf,
-    pub notify_handler: &'a dyn Fn(Notification<'_>),
-    pub process: &'a Process,
+#[derive(Clone)]
+pub struct DownloadCfg {
+    pub dist_root: Arc<str>,
+    pub tmp_cx: Arc<temp::Context>,
+    pub download_dir: Arc<PathBuf>,
+    pub notify_handler: Arc<NotifyHandler>,
+    pub process: Arc<Process>,
 }
 
 pub(crate) struct File {
@@ -37,7 +38,7 @@ impl ops::Deref for File {
     }
 }
 
-impl<'a> DownloadCfg<'a> {
+impl DownloadCfg {
     /// Downloads a file and validates its hash. Resumes interrupted downloads.
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
@@ -45,13 +46,13 @@ impl<'a> DownloadCfg<'a> {
     pub(crate) async fn download(&self, url: &Url, hash: &str) -> Result<File> {
         utils::ensure_dir_exists(
             "Download Directory",
-            self.download_dir,
-            &self.notify_handler,
+            &self.download_dir,
+            &*self.notify_handler,
         )?;
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = file_hash(&target_file, self.notify_handler)?;
+            let cached_result = file_hash(&target_file, &*self.notify_handler)?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
                 (self.notify_handler)(Notification::ChecksumValid(url.as_ref()));
@@ -81,7 +82,7 @@ impl<'a> DownloadCfg<'a> {
             Some(&mut hasher),
             true,
             &|n| (self.notify_handler)(n),
-            self.process,
+            &self.process,
         )
         .await
         {
@@ -115,8 +116,8 @@ impl<'a> DownloadCfg<'a> {
                 "downloaded",
                 &partial_file_path,
                 &target_file,
-                self.notify_handler,
-                self.process,
+                &*self.notify_handler,
+                &self.process,
             )?;
             Ok(File { path: target_file })
         }
@@ -134,14 +135,14 @@ impl<'a> DownloadCfg<'a> {
 
     async fn download_hash(&self, url: &str) -> Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
-        let hash_file = self.tmp_cx.new_file()?;
+        let hash_file = Arc::clone(&self.tmp_cx).new_file()?;
 
         download_file(
             &hash_url,
             &hash_file,
             None,
             &|n| (self.notify_handler)(n),
-            self.process,
+            &self.process,
         )
         .await?;
 
@@ -158,7 +159,7 @@ impl<'a> DownloadCfg<'a> {
         url_str: &str,
         update_hash: Option<&Path>,
         ext: &str,
-    ) -> Result<Option<(temp::File<'a>, String)>> {
+    ) -> Result<Option<(temp::File, String)>> {
         let hash = self.download_hash(url_str).await?;
         let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 
@@ -178,7 +179,7 @@ impl<'a> DownloadCfg<'a> {
         }
 
         let url = utils::parse_url(url_str)?;
-        let file = self.tmp_cx.new_file_with_ext("", ext)?;
+        let file = Arc::clone(&self.tmp_cx).new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
         download_file(
@@ -186,7 +187,7 @@ impl<'a> DownloadCfg<'a> {
             &file,
             Some(&mut hasher),
             &|n| (self.notify_handler)(n),
-            self.process,
+            &self.process,
         )
         .await?;
         let actual_hash = format!("{:x}", hasher.finalize());

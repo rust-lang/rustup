@@ -3,12 +3,11 @@
 #![allow(clippy::type_complexity)]
 
 use std::{
-    cell::Cell,
     collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use anyhow::{Result, anyhow};
@@ -457,7 +456,7 @@ impl TestContext {
         let tmp_cx = temp::Context::new(
             work_tempdir.path().to_owned(),
             DEFAULT_DIST_SERVER,
-            Box::new(|_| ()),
+            Arc::new(|_| ()),
         );
 
         let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
@@ -475,13 +474,13 @@ impl TestContext {
         }
     }
 
-    fn default_dl_cfg(&self) -> DownloadCfg<'_> {
+    fn default_dl_cfg(&self) -> DownloadCfg {
         DownloadCfg {
-            dist_root: "phony",
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
-            notify_handler: &|event| println!("{event}"),
-            process: &self.tp.process,
+            dist_root: Arc::from("phony".to_string()),
+            tmp_cx: Arc::new(self.tmp_cx.clone()),
+            download_dir: Arc::new(self.download_dir.clone()),
+            notify_handler: Arc::new(|event| println!("{event}")),
+            process: Arc::new(self.tp.process.clone()),
         }
     }
 
@@ -495,7 +494,7 @@ impl TestContext {
         remove: &[Component],
         force: bool,
     ) -> Result<UpdateStatus> {
-        self.update_from_dist_with_dl_cfg(add, remove, force, &self.default_dl_cfg())
+        self.update_from_dist_with_dl_cfg(add, remove, force, self.default_dl_cfg())
             .await
     }
 
@@ -504,12 +503,19 @@ impl TestContext {
         add: &[Component],
         remove: &[Component],
         force: bool,
-        dl_cfg: &DownloadCfg<'_>,
+        dl_cfg: DownloadCfg,
     ) -> Result<UpdateStatus> {
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
-        let manifest_file = self.tmp_cx.new_file()?;
-        download_file(&manifest_url, &manifest_file, None, &|_| {}, dl_cfg.process).await?;
+        let manifest_file = Arc::new(self.tmp_cx.clone()).new_file()?;
+        download_file(
+            &manifest_url,
+            &manifest_file,
+            None,
+            &|_| {},
+            &dl_cfg.process,
+        )
+        .await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
         let manifest = Manifest::parse(&manifest_str)?;
 
@@ -527,9 +533,9 @@ impl TestContext {
             remove_components: remove.to_owned(),
         };
 
-        manifestation
+        Arc::new(manifestation)
             .update(
-                &manifest,
+                Arc::new(manifest),
                 changes,
                 force,
                 dl_cfg,
@@ -544,7 +550,12 @@ impl TestContext {
         let manifestation = Manifestation::open(self.prefix.clone(), trip)?;
         let manifest = manifestation.load_manifest()?.unwrap();
 
-        manifestation.uninstall(&manifest, &self.tmp_cx, &|_| (), &self.tp.process)?;
+        manifestation.uninstall(
+            Arc::new(manifest),
+            Arc::new(self.tmp_cx.clone()),
+            Arc::new(|_| ()),
+            Arc::new(self.tp.process.clone()),
+        )?;
 
         Ok(())
     }
@@ -1491,27 +1502,30 @@ async fn reuse_downloaded_file() {
     let cx = TestContext::new(None, GZOnly);
     prevent_installation(&cx.prefix);
 
-    let reuse_notification_fired = Arc::new(Cell::new(false));
+    let reuse_notification_fired = Arc::new(Mutex::new(false));
     let dl_cfg = DownloadCfg {
-        notify_handler: &|n| {
-            if let Notification::FileAlreadyDownloaded = n {
-                reuse_notification_fired.set(true);
+        notify_handler: Arc::new({
+            let reuse_notification_fired = Arc::clone(&reuse_notification_fired);
+            move |n| {
+                if let Notification::FileAlreadyDownloaded = n {
+                    *reuse_notification_fired.lock().unwrap() = true;
+                }
             }
-        },
+        }),
         ..cx.default_dl_cfg()
     };
 
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
+    cx.update_from_dist_with_dl_cfg(&[], &[], false, dl_cfg.clone())
         .await
         .unwrap_err();
-    assert!(!reuse_notification_fired.get());
+    assert!(!*reuse_notification_fired.lock().unwrap());
 
     allow_installation(&cx.prefix);
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
+    cx.update_from_dist_with_dl_cfg(&[], &[], false, dl_cfg)
         .await
         .unwrap();
 
-    assert!(reuse_notification_fired.get());
+    assert!(*reuse_notification_fired.lock().unwrap());
 }
 
 #[tokio::test]
@@ -1530,21 +1544,24 @@ async fn checks_files_hashes_before_reuse() {
     utils::write_file("bad previous download", &prev_download, "bad content").unwrap();
     println!("wrote previous download to {}", prev_download.display());
 
-    let noticed_bad_checksum = Arc::new(Cell::new(false));
+    let noticed_bad_checksum = Arc::new(Mutex::new(false));
     let dl_cfg = DownloadCfg {
-        notify_handler: &|n| {
-            if let Notification::CachedFileChecksumFailed = n {
-                noticed_bad_checksum.set(true);
+        notify_handler: Arc::new({
+            let noticed_bad_checksum = Arc::clone(&noticed_bad_checksum);
+            move |n| {
+                if let Notification::CachedFileChecksumFailed = n {
+                    *noticed_bad_checksum.lock().unwrap() = true;
+                }
             }
-        },
+        }),
         ..cx.default_dl_cfg()
     };
 
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
+    cx.update_from_dist_with_dl_cfg(&[], &[], false, dl_cfg)
         .await
         .unwrap();
 
-    assert!(noticed_bad_checksum.get());
+    assert!(*noticed_bad_checksum.lock().unwrap());
 }
 
 #[tokio::test]
