@@ -540,7 +540,7 @@ impl TestContext {
         let manifestation = Manifestation::open(self.prefix.clone(), trip)?;
         let manifest = manifestation.load_manifest()?.unwrap();
 
-        manifestation.uninstall(&manifest, &self.tmp_cx, &|_| (), &self.tp.process)?;
+        manifestation.uninstall(&manifest, &self.tmp_cx, &self.tp.process)?;
 
         Ok(())
     }

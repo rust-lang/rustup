@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::{error, trace};
+use tracing::{error, info, trace};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -344,7 +344,12 @@ impl<'a> Cfg<'a> {
             s.default_toolchain = toolchain.map(|t| t.to_string());
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
+
+        match toolchain {
+            Some(t) => info!(new = %t, "default toolchain set"),
+            None => info!("default toolchain unset"),
+        }
+
         Ok(())
     }
 
@@ -376,7 +381,7 @@ impl<'a> Cfg<'a> {
             s.auto_install = Some(mode);
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetAutoInstall(mode.as_str()));
+        info!(new = mode.as_str(), "setting auto install mode");
         Ok(())
     }
 

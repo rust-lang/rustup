@@ -10,7 +10,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::StreamExt;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::dist::component::{
@@ -122,13 +122,7 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::build_update(
-            self,
-            new_manifest,
-            &changes,
-            &config,
-            &download_cfg.notify_handler,
-        )?;
+        let mut update = Update::build_update(self, new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -143,9 +137,17 @@ impl Manifestation {
                 e.downcast::<RustupError>()
             {
                 for component in &components {
-                    (download_cfg.notify_handler)(Notification::ForcingUnavailableComponent(
-                        &component.name(new_manifest),
-                    ));
+                    match &component.target {
+                        Some(t) if t != &self.target_triple => warn!(
+                            component = %component.short_name(new_manifest),
+                            target = %t,
+                            "skipping unavailable component"
+                        ),
+                        _ => warn!(
+                            component = %component.short_name(new_manifest),
+                            "skipping unavailable component"
+                        ),
+                    }
                 }
                 update.drop_components_to_install(&components);
             }
@@ -224,24 +226,21 @@ impl Manifestation {
 
         // Uninstall components
         for component in &update.components_to_uninstall {
-            let notification = if implicit_modify {
-                Notification::RemovingOldComponent
-            } else {
-                Notification::RemovingComponent
+            let message = match implicit_modify {
+                true => "removing previous version of component",
+                false => "removing component",
             };
-            (download_cfg.notify_handler)(notification(
-                &component.short_name(new_manifest),
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
 
-            tx = self.uninstall_component(
-                component,
-                new_manifest,
-                tx,
-                &download_cfg.notify_handler,
-                download_cfg.process,
-            )?;
+            match &component.target {
+                Some(t) if t != &self.target_triple => {
+                    info!(component = %component.short_name(new_manifest), message);
+                }
+                _ => {
+                    info!(component = %component.short_name(new_manifest), target = %self.target_triple, message);
+                }
+            }
+
+            tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
         }
 
         // Install components
@@ -254,11 +253,14 @@ impl Manifestation {
             let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
 
-            (download_cfg.notify_handler)(Notification::InstallingComponent(
-                &short_name,
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+            match &component.target {
+                Some(t) if t != &self.target_triple => {
+                    info!(component = short_name, "installing component");
+                }
+                _ => {
+                    info!(component = short_name, target = %self.target_triple, "installing component")
+                }
+            }
 
             let cx = PackageContext {
                 tmp_cx,
@@ -319,7 +321,6 @@ impl Manifestation {
         &self,
         manifest: &Manifest,
         tmp_cx: &temp::Context,
-        notify_handler: &dyn Fn(Notification<'_>),
         process: &Process,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
@@ -337,7 +338,7 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx, notify_handler, process)?;
+            tx = self.uninstall_component(&component, manifest, tx, process)?;
         }
         tx.commit();
 
@@ -349,7 +350,6 @@ impl Manifestation {
         component: &Component,
         manifest: &Manifest,
         mut tx: Transaction<'a>,
-        notify_handler: &dyn Fn(Notification<'_>),
         process: &Process,
     ) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
@@ -363,9 +363,10 @@ impl Manifestation {
         } else if let Some(c) = self.installation.find(short_name)? {
             tx = c.uninstall(tx, process)?;
         } else {
-            notify_handler(Notification::MissingInstalledComponent(
-                &component.short_name(manifest),
-            ));
+            warn!(
+                component = %component.short_name(manifest),
+                "component not found during uninstall"
+            );
         }
 
         Ok(tx)
@@ -463,12 +464,7 @@ impl Manifestation {
         let (installer_file, installer_hash) = dl.unwrap();
 
         let prefix = self.installation.prefix();
-
-        notify_handler(Notification::InstallingComponent(
-            "rust",
-            &self.target_triple,
-            Some(&self.target_triple),
-        ));
+        info!(component = "rust", "installing component");
 
         // Begin transaction
         let mut tx = Transaction::new(prefix, tmp_cx, process);
@@ -539,7 +535,6 @@ impl Update {
         new_manifest: &Manifest,
         changes: &Changes,
         config: &Option<Config>,
-        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Self> {
         // The package to install.
         let rust_package = new_manifest.get_package("rust")?;
@@ -601,9 +596,17 @@ impl Update {
                 if !starting_list.contains(component) {
                     result.components_to_install.push(component.clone());
                 } else if changes.explicit_add_components.contains(component) {
-                    notify_handler(Notification::ComponentAlreadyInstalled(
-                        &component.description(new_manifest),
-                    ));
+                    match &component.target {
+                        Some(t) if t != &manifestation.target_triple => info!(
+                            component = %component.short_name(new_manifest),
+                            target = %t,
+                            "component is up to date"
+                        ),
+                        _ => info!(
+                            component = %component.short_name(new_manifest),
+                            "component is up to date"
+                        ),
+                    }
                 }
             }
         } else {

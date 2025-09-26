@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 use sha2::{Digest, Sha256};
+use tracing::debug;
+use tracing::warn;
 use url::Url;
 
 use crate::dist::temp;
@@ -50,7 +52,7 @@ impl<'a> DownloadCfg<'a> {
             let cached_result = file_hash(&target_file, self.notify_handler)?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
-                (self.notify_handler)(Notification::ChecksumValid(url.as_ref()));
+                debug!(url = url.as_ref(), "checksum passed");
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
@@ -105,8 +107,7 @@ impl<'a> DownloadCfg<'a> {
                 .into())
             }
         } else {
-            (self.notify_handler)(Notification::ChecksumValid(url.as_ref()));
-
+            debug!(url = url.as_ref(), "checksum passed");
             utils::rename("downloaded", &partial_file_path, &target_file, self.process)?;
             Ok(File { path: target_file })
         }
@@ -160,10 +161,10 @@ impl<'a> DownloadCfg<'a> {
                         return Ok(None);
                     }
                 } else {
-                    (self.notify_handler)(Notification::CantReadUpdateHash(hash_file));
+                    warn!(file = %hash_file.display(), "can't read update hash file, can't skip update");
                 }
             } else {
-                (self.notify_handler)(Notification::NoUpdateHash(hash_file));
+                debug!(file = %hash_file.display(), "no update hash file found");
             }
         }
 
@@ -190,7 +191,7 @@ impl<'a> DownloadCfg<'a> {
             }
             .into());
         } else {
-            (self.notify_handler)(Notification::ChecksumValid(url_str));
+            debug!(url = url_str, "checksum passed");
         }
 
         Ok(Some((file, partial_hash)))

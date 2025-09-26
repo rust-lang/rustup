@@ -11,12 +11,11 @@ use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     config::{Cfg, dist_root_server},
     errors::RustupError,
-    notifications::Notification,
     process::Process,
     toolchain::ToolchainName,
     utils,
@@ -912,7 +911,7 @@ pub(crate) async fn update_from_dist(
     if let Some(hash) = opts.update_hash {
         // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
         if fresh_install && Path::exists(hash) {
-            (opts.dl_cfg.notify_handler)(Notification::StrayHash(hash));
+            warn!(file = %hash.display(), "removing stray hash file in order to continue");
             std::fs::remove_file(hash)?;
         }
     }
@@ -990,11 +989,21 @@ pub(crate) async fn update_from_dist(
         let cause = e.downcast_ref::<DistError>();
         match cause {
             Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
-                (opts.dl_cfg.notify_handler)(Notification::SkippingNightlyMissingComponent(
-                    &toolchain,
-                    current_manifest.as_ref().unwrap_or(manifest),
+                let plural = if components.len() > 1 { "s" } else { "" };
+                let manifest = current_manifest.as_ref().unwrap_or(manifest);
+                let components = components
+                    .iter()
+                    .map(
+                        |component| match component.target.as_ref() == Some(&toolchain.target) {
+                            true => component.short_name(manifest),
+                            false => component.name(manifest),
+                        },
+                    )
+                    .join(", ");
+                info!(
                     components,
-                ));
+                    "skipping nightly with missing component{plural}"
+                );
 
                 if first_err.is_none() {
                     first_err = Some(e);
@@ -1072,7 +1081,7 @@ async fn try_update_from_dist_(
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
     // TODO: Add a notification about which manifest version is going to be used
-    (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
+    info!(toolchain = %toolchain_str, "syncing channel updates");
     match dl_v2_manifest(
         download,
         // Even if manifest has not changed, we must continue to install requested components.
@@ -1088,10 +1097,10 @@ async fn try_update_from_dist_(
     .await
     {
         Ok(Some((m, hash))) => {
-            (download.notify_handler)(Notification::DownloadedManifest(
-                &m.date,
-                m.get_rust_version().ok(),
-            ));
+            match m.get_rust_version() {
+                Ok(version) => info!(updated = %m.date, %version, "latest update"),
+                Err(_) => info!(updated = %m.date, "latest update"),
+            }
 
             let profile_components = match profile {
                 Some(profile) => m.get_profile_components(profile, &toolchain.target)?,
@@ -1173,7 +1182,7 @@ async fn try_update_from_dist_(
                 Some(RustupError::ChecksumFailed { .. }) => return Ok(None),
                 Some(RustupError::DownloadNotExists { .. }) => {
                     // Proceed to try v1 as a fallback
-                    (download.notify_handler)(Notification::DownloadingLegacyManifest)
+                    debug!("manifest not found; trying legacy manifest");
                 }
                 _ => return Err(err),
             }

@@ -15,6 +15,12 @@ use anyhow::Context;
 use anyhow::anyhow;
 use sha2::Sha256;
 use thiserror::Error;
+#[cfg(any(
+    feature = "curl-backend",
+    feature = "reqwest-rustls-tls",
+    feature = "reqwest-native-tls"
+))]
+use tracing::debug;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 use tracing::info;
 use tracing::warn;
@@ -96,8 +102,7 @@ async fn download_file_(
     use sha2::Digest;
     use std::cell::RefCell;
 
-    notify_handler(Notification::DownloadingFile(url));
-
+    debug!(url = %url, "downloading file");
     let hasher = RefCell::new(hasher);
 
     // This callback will write the download to disk and optionally
@@ -119,9 +124,7 @@ async fn download_file_(
             Event::DownloadDataReceived(data) => {
                 notify_handler(Notification::DownloadDataReceived(data, Some(url.as_str())));
             }
-            Event::ResumingPartialDownload => {
-                notify_handler(Notification::ResumingPartialDownload);
-            }
+            Event::ResumingPartialDownload => debug!("resuming partial download"),
         }
 
         Ok(())
@@ -209,12 +212,12 @@ async fn download_file_(
         Err(_) => 180,
     });
 
-    notify_handler(match backend {
+    match backend {
         #[cfg(feature = "curl-backend")]
-        Backend::Curl => Notification::UsingCurl,
+        Backend::Curl => debug!("downloading with curl"),
         #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-        Backend::Reqwest(_) => Notification::UsingReqwest,
-    });
+        Backend::Reqwest(_) => debug!("downloading with reqwest"),
+    };
 
     let res = backend
         .download_to_path(url, path, resume_from_partial, Some(callback), timeout)

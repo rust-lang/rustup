@@ -485,8 +485,8 @@ async fn remove_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'beta-[HOST_TRIPLE]'
-info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
+info: syncing channel updates toolchain=beta-[HOST_TRIPLE]
+info: latest update updated=2015-01-02 version=1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
 "#]])
@@ -518,8 +518,8 @@ async fn file_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'beta-[HOST_TRIPLE]'
-info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
+info: syncing channel updates toolchain=beta-[HOST_TRIPLE]
+info: latest update updated=2015-01-02 version=1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
 "#]])
@@ -1630,7 +1630,7 @@ async fn add_target_again() {
         .expect(["rustup", "target", "add", CROSS_ARCH1])
         .await
         .with_stderr(snapbox::str![[r#"
-info: component 'rust-std' for target '[CROSS_ARCH_I]' is up to date
+info: component is up to date component=rust-std target=[CROSS_ARCH_I]
 
 "#]])
         .is_ok();
@@ -1914,7 +1914,7 @@ async fn warn_about_and_remove_stray_hash() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: removing stray hash found at '[..]/update-hashes/nightly-[HOST_TRIPLE]' in order to continue
+warn: removing stray hash file in order to continue file=[..]/update-hashes/nightly-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();
@@ -2419,7 +2419,7 @@ error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download fo
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: Force-skipping unavailable component 'rls-[HOST_TRIPLE]'
+warn: skipping unavailable component component=rls
 ...
 "#]])
         .is_ok();
@@ -2458,9 +2458,9 @@ async fn run_with_install_flag_against_unavailable_component() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for 'nightly-[HOST_TRIPLE]'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-warn: Force-skipping unavailable component 'rust-std-[HOST_TRIPLE]'
+info: syncing channel updates toolchain=nightly-[HOST_TRIPLE]
+info: latest update updated=2015-01-02 version=1.3.0 (hash-nightly-2)
+warn: skipping unavailable component component=rust-std
 info: downloading component[..]
 ...
 "#]])
@@ -2563,7 +2563,7 @@ async fn regression_2601() {
         .expect(["rustup", "component", "add", "rust-src"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: component 'rust-src' is up to date
+info: component is up to date component=rust-src
 
 "#]])
         .is_ok();
