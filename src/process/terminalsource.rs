@@ -185,15 +185,6 @@ impl ColorableTerminal {
         }
     }
 
-    pub fn carriage_return(&mut self) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, _color) => s.write(b"\r")?,
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w, _) => w.write(b"\r")?,
-        };
-        Ok(())
-    }
-
     pub fn is_a_tty(&self) -> bool {
         self.is_a_tty
     }
