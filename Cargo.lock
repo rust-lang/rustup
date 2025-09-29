@@ -2203,6 +2203,7 @@ dependencies = [
 name = "rustup"
 version = "1.28.2"
 dependencies = [
+ "anstyle",
  "anyhow",
  "cc",
  "cfg-if 1.0.3",
