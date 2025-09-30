@@ -11,8 +11,9 @@ use std::{
 
 use anstream::AutoStream;
 pub(crate) use anstream::ColorChoice;
-use anstyle::Reset;
-pub(crate) use anstyle::{AnsiColor, Style};
+#[cfg(feature = "test")]
+use anstream::StripStream;
+pub(crate) use anstyle::{AnsiColor, Reset, Style};
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -95,7 +96,7 @@ enum TerminalInnerLocked {
     Stdout(AutoStream<std::io::StdoutLock<'static>>),
     Stderr(AutoStream<std::io::StderrLock<'static>>),
     #[cfg(feature = "test")]
-    TestWriter(TestWriter),
+    TestWriter(StripStream<Box<dyn Write>>),
 }
 
 impl TerminalInnerLocked {
@@ -185,35 +186,12 @@ impl ColorableTerminal {
                     TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
                 }
                 #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.clone()),
+                TerminalInner::TestWriter(w, _) => {
+                    TerminalInnerLocked::TestWriter(StripStream::new(Box::new(w.clone())))
+                }
             });
             // ColorableTerminalLocked { inner, guard, locked }
             uninit.assume_init()
-        }
-    }
-
-    pub fn style(&mut self, new: &Style) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::Stdout(s) => {
-                write!(s, "{Reset}{new}")
-            }
-            TerminalInner::Stderr(s) => {
-                write!(s, "{Reset}{new}")
-            }
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_, _) => Ok(()),
-        }
-    }
-    pub fn reset(&mut self) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::Stdout(s) => {
-                write!(s, "{Reset}")
-            }
-            TerminalInner::Stderr(s) => {
-                write!(s, "{Reset}")
-            }
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
 

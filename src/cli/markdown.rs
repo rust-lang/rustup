@@ -3,7 +3,7 @@ use std::io::Write;
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
-use crate::process::terminalsource::{AnsiColor, ColorableTerminal, Style};
+use crate::process::terminalsource::{AnsiColor, ColorableTerminal, Reset, Style};
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a> {
@@ -110,7 +110,7 @@ impl<'a> LineFormatter<'a> {
     fn push_attr(&mut self, attr: Attr) {
         self.attrs.push(attr);
         attr.apply_to(&mut self.style);
-        let _ = self.wrapper.w.style(&self.style);
+        let _ = write!(self.wrapper.w.lock(), "{Reset}{}", self.style);
     }
     fn pop_attr(&mut self) {
         self.attrs.pop();
@@ -118,7 +118,7 @@ impl<'a> LineFormatter<'a> {
         for attr in &self.attrs {
             attr.apply_to(&mut self.style);
         }
-        let _ = self.wrapper.w.style(&self.style);
+        let _ = write!(self.wrapper.w.lock(), "{Reset}{}", self.style);
     }
 
     fn start_tag(&mut self, tag: Tag<'a>) {
