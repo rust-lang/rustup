@@ -42,6 +42,7 @@ test = ["dep:snapbox", "dep:walkdir"]
 # Sorted by alphabetic order
 [dependencies]
 anstyle = "1.0.11"
+anstyle-termcolor = "1.1.4"
 anyhow = "1.0.69"
 cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }

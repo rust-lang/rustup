@@ -3,7 +3,7 @@ use std::io::Write;
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
-use crate::process::terminalsource::{Attr, Color, ColorableTerminal};
+use crate::process::terminalsource::{AnsiColor, Attr, ColorableTerminal};
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a> {
@@ -150,7 +150,7 @@ impl<'a> LineFormatter<'a> {
                 self.wrapper.write_line();
             }
             Tag::Emphasis => {
-                self.push_attr(Attr::ForegroundColor(Color::Red));
+                self.push_attr(Attr::ForegroundColor(AnsiColor::Red));
             }
             Tag::Strong => {}
             Tag::Strikethrough => {}

@@ -203,10 +203,10 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
         let (banner, color) = match &result {
-            Ok(UpdateStatus::Installed) => ("installed", Some(terminalsource::Color::Green)),
-            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminalsource::Color::Green)),
+            Ok(UpdateStatus::Installed) => ("installed", Some(terminalsource::AnsiColor::Green)),
+            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminalsource::AnsiColor::Green)),
             Ok(UpdateStatus::Unchanged) => ("unchanged", None),
-            Err(_) => ("update failed", Some(terminalsource::Color::Red)),
+            Err(_) => ("update failed", Some(terminalsource::AnsiColor::Red)),
         };
 
         let (previous_version, version) = match &pkg {

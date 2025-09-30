@@ -9,7 +9,9 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-pub(crate) use termcolor::{Color, ColorChoice};
+pub(crate) use anstyle::AnsiColor;
+use anstyle_termcolor::to_termcolor_color;
+pub(crate) use termcolor::ColorChoice;
 use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
@@ -182,10 +184,10 @@ impl ColorableTerminal {
         }
     }
 
-    pub fn fg(&mut self, color: Color) -> io::Result<()> {
+    pub fn fg(&mut self, color: AnsiColor) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, spec) => {
-                spec.set_fg(Some(color));
+                spec.set_fg(Some(to_termcolor_color(color.into())));
                 s.set_color(spec)
             }
             #[cfg(feature = "test")]
@@ -198,7 +200,9 @@ impl ColorableTerminal {
             TerminalInner::StandardStream(s, spec) => {
                 match attr {
                     Attr::Bold => spec.set_bold(true),
-                    Attr::ForegroundColor(color) => spec.set_fg(Some(color)),
+                    Attr::ForegroundColor(color) => {
+                        spec.set_fg(Some(to_termcolor_color(color.into())))
+                    }
                 };
                 s.set_color(spec)
             }
@@ -230,7 +234,7 @@ impl ColorableTerminal {
 #[derive(Copy, Clone, Debug)]
 pub enum Attr {
     Bold,
-    ForegroundColor(Color),
+    ForegroundColor(AnsiColor),
 }
 
 impl io::Write for ColorableTerminal {

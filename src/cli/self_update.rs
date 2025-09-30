@@ -1358,13 +1358,13 @@ pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<boo
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(terminalsource::Color::Yellow);
+        let _ = t.fg(terminalsource::AnsiColor::Yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version} -> {available_version}")?;
         true
     } else {
-        let _ = t.fg(terminalsource::Color::Green);
+        let _ = t.fg(terminalsource::AnsiColor::Green);
         write!(t.lock(), "Up to date")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version}")?;
