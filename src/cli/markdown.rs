@@ -1,8 +1,8 @@
 // Write Markdown to the terminal
 use std::io::Write;
 
+use anstyle::AnsiColor;
 use pulldown_cmark::{Event, Tag, TagEnd};
-use termcolor::Color;
 
 use crate::process::{Attr, ColorableTerminal};
 
@@ -151,7 +151,7 @@ impl<'a> LineFormatter<'a> {
                 self.wrapper.write_line();
             }
             Tag::Emphasis => {
-                self.push_attr(Attr::ForegroundColor(Color::Red));
+                self.push_attr(Attr::ForegroundColor(AnsiColor::Red));
             }
             Tag::Strong => {}
             Tag::Strikethrough => {}

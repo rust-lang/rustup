@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::{cmp, env};
 
+use anstyle::AnsiColor;
 use anyhow::{Context, Result, anyhow};
 use git_testament::{git_testament, render_testament};
-use termcolor::Color;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
@@ -152,10 +152,10 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
         let (banner, color) = match &result {
-            Ok(UpdateStatus::Installed) => ("installed", Some(Color::Green)),
-            Ok(UpdateStatus::Updated(_)) => ("updated", Some(Color::Green)),
+            Ok(UpdateStatus::Installed) => ("installed", Some(AnsiColor::Green)),
+            Ok(UpdateStatus::Updated(_)) => ("updated", Some(AnsiColor::Green)),
             Ok(UpdateStatus::Unchanged) => ("unchanged", None),
-            Err(_) => ("update failed", Some(Color::Red)),
+            Err(_) => ("update failed", Some(AnsiColor::Red)),
         };
 
         let (previous_version, version) = match &pkg {

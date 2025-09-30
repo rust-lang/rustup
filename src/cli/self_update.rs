@@ -40,6 +40,7 @@ use std::process::Command;
 use std::str::FromStr;
 use std::{fmt, fs};
 
+use anstyle::AnsiColor;
 use anyhow::{Context, Result, anyhow};
 use cfg_if::cfg_if;
 use clap::ValueEnum;
@@ -47,7 +48,6 @@ use clap::builder::PossibleValue;
 use itertools::Itertools;
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
-use termcolor::Color;
 use tracing::{error, info, trace, warn};
 
 use crate::dist::download::DownloadCfg;
@@ -1368,13 +1368,13 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Res
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(Color::Yellow);
+        let _ = t.fg(AnsiColor::Yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version} -> {available_version}")?;
         true
     } else {
-        let _ = t.fg(Color::Green);
+        let _ = t.fg(AnsiColor::Green);
         write!(t.lock(), "Up to date")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version}")?;

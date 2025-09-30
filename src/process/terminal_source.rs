@@ -9,7 +9,10 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
+use anstyle::AnsiColor;
+use anstyle_termcolor::to_termcolor_color;
+use termcolor::ColorChoice;
+use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -108,10 +111,10 @@ impl ColorableTerminal {
         }
     }
 
-    pub fn fg(&mut self, color: Color) -> io::Result<()> {
+    pub fn fg(&mut self, color: AnsiColor) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
             TerminalInner::StandardStream(s, spec) => {
-                spec.set_fg(Some(color));
+                spec.set_fg(Some(to_termcolor_color(color.into())));
                 s.set_color(spec)
             }
             #[cfg(feature = "test")]
@@ -124,7 +127,9 @@ impl ColorableTerminal {
             TerminalInner::StandardStream(s, spec) => {
                 match attr {
                     Attr::Bold => spec.set_bold(true),
-                    Attr::ForegroundColor(color) => spec.set_fg(Some(color)),
+                    Attr::ForegroundColor(color) => {
+                        spec.set_fg(Some(to_termcolor_color(color.into())))
+                    }
                 };
                 s.set_color(spec)
             }
@@ -356,7 +361,7 @@ impl StreamSelector {
 #[derive(Copy, Clone, Debug)]
 pub enum Attr {
     Bold,
-    ForegroundColor(Color),
+    ForegroundColor(AnsiColor),
 }
 
 #[cfg(test)]

@@ -75,6 +75,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "anstyle-termcolor"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8969b2b476cad1bf03d37494ad7b8a84ae9e030e248fddc62bdc4484e5ed4a95"
+dependencies = [
+ "anstyle",
+ "termcolor",
+]
+
+[[package]]
 name = "anstyle-wincon"
 version = "3.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2206,6 +2216,7 @@ name = "rustup"
 version = "1.28.2"
 dependencies = [
  "anstyle",
+ "anstyle-termcolor",
  "anyhow",
  "cc",
  "cfg-if 1.0.3",
