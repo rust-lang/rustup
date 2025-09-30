@@ -1,7 +1,7 @@
 // Write Markdown to the terminal
 use std::io::Write;
 
-use anstyle::{AnsiColor, Style};
+use anstyle::{AnsiColor, Reset, Style};
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::process::ColorableTerminal;
@@ -111,7 +111,7 @@ impl<'a> LineFormatter<'a> {
     fn push_attr(&mut self, attr: Attr) {
         self.attrs.push(attr);
         attr.apply_to(&mut self.style);
-        let _ = self.wrapper.w.style(&self.style);
+        let _ = write!(self.wrapper.w.lock(), "{Reset}{}", self.style);
     }
     fn pop_attr(&mut self) {
         self.attrs.pop();
@@ -119,7 +119,7 @@ impl<'a> LineFormatter<'a> {
         for attr in &self.attrs {
             attr.apply_to(&mut self.style);
         }
-        let _ = self.wrapper.w.style(&self.style);
+        let _ = write!(self.wrapper.w.lock(), "{Reset}{}", self.style);
     }
 
     fn start_tag(&mut self, tag: Tag<'a>) {
