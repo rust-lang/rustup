@@ -9,8 +9,9 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
+#[cfg(feature = "test")]
+use anstream::StripStream;
 use anstream::{AutoStream, ColorChoice};
-use anstyle::{Reset, Style};
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -102,35 +103,12 @@ impl ColorableTerminal {
                     TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
                 }
                 #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.clone()),
+                TerminalInner::TestWriter(w, _) => {
+                    TerminalInnerLocked::TestWriter(StripStream::new(Box::new(w.clone())))
+                }
             });
             // ColorableTerminalLocked { inner, guard, locked }
             uninit.assume_init()
-        }
-    }
-
-    pub fn style(&mut self, new: &Style) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::Stdout(s) => {
-                write!(s, "{Reset}{new}")
-            }
-            TerminalInner::Stderr(s) => {
-                write!(s, "{Reset}{new}")
-            }
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_, _) => Ok(()),
-        }
-    }
-    pub fn reset(&mut self) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::Stdout(s) => {
-                write!(s, "{Reset}")
-            }
-            TerminalInner::Stderr(s) => {
-                write!(s, "{Reset}")
-            }
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
 
@@ -282,7 +260,7 @@ enum TerminalInnerLocked {
     Stdout(AutoStream<io::StdoutLock<'static>>),
     Stderr(AutoStream<io::StderrLock<'static>>),
     #[cfg(feature = "test")]
-    TestWriter(TestWriter),
+    TestWriter(StripStream<Box<dyn Write>>),
 }
 
 impl TerminalInnerLocked {
