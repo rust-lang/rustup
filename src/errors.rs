@@ -205,7 +205,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             if toolchain.starts_with("nightly") {
                 let _ = write!(
                     buf,
-                    "Sometimes not all components are available in any given nightly. "
+                    "(sometimes not all components are available in any given nightly)"
                 );
             }
         }
@@ -235,7 +235,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             if toolchain.starts_with("nightly") {
                 let _ = write!(
                     buf,
-                    "Sometimes not all components are available in any given nightly. "
+                    "(sometimes not all components are available in any given nightly)"
                 );
             }
         }
