@@ -1073,7 +1073,7 @@ jobs:
   build-macos-x86_64: # job-name skip-aarch64
     env: # skip-aarch64
       MACOSX_DEPLOYMENT_TARGET: 10.12 # skip-aarch64
-    runs-on: macos-latest
+    runs-on: macos-15-intel # skip-aarch64
     permissions:
       id-token: write
       contents: read
@@ -1205,7 +1205,7 @@ jobs:
   build-macos-aarch64: # job-name skip-x86_64
     env: # skip-x86_64
       MACOSX_DEPLOYMENT_TARGET: 11.0 # skip-x86_64
-    runs-on: macos-latest
+    runs-on: macos-latest # skip-x86_64
     permissions:
       id-token: write
       contents: read
