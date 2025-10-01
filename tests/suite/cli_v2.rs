@@ -1972,7 +1972,7 @@ async fn add_missing_component() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-Sometimes not all components are available in any given nightly. 
+(sometimes not all components are available in any given nightly)
 ...
 "#]])
         .is_err();
