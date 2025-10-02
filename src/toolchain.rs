@@ -28,7 +28,6 @@ use crate::{
         prefix::InstallPrefix,
     },
     env_var, install,
-    notifications::Notification,
     utils::{self, raw::open_dir_following_links},
 };
 
@@ -544,7 +543,7 @@ impl<'a> Toolchain<'a> {
         };
         let fs_modified = match Self::exists(cfg, &(&name).into())? {
             true => {
-                (cfg.notify_handler)(Notification::UninstallingToolchain(&name));
+                info!("uninstalling toolchain {name}");
                 let installed_paths = match &name {
                     ToolchainName::Custom(_) => Ok(vec![InstalledPath::Dir { path: &path }]),
                     ToolchainName::Official(desc) => cfg.installed_paths(desc, &path),
@@ -562,7 +561,7 @@ impl<'a> Toolchain<'a> {
             false => {
                 // Might be a dangling symlink
                 if path.is_symlink() {
-                    (cfg.notify_handler)(Notification::UninstallingToolchain(&name));
+                    info!("uninstalling toolchain {name}");
                     fs::remove_dir_all(&path)?;
                     true
                 } else {
@@ -579,7 +578,7 @@ impl<'a> Toolchain<'a> {
         };
 
         if !path.is_symlink() && !path.exists() && fs_modified {
-            (cfg.notify_handler)(Notification::UninstalledToolchain(&name));
+            info!("toolchain {name} uninstalled");
         }
         Ok(())
     }
