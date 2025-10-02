@@ -26,7 +26,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    InstalledToolchain(&'a str),
     UninstallingToolchain(&'a ToolchainName),
     UninstalledToolchain(&'a ToolchainName),
     UpdateHashMatches,
@@ -53,7 +52,7 @@ impl Notification<'_> {
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
-            ReadMetadataVersion(_) | InstalledToolchain(_) | UpdateHashMatches => {
+            ReadMetadataVersion(_) | UpdateHashMatches => {
                 NotificationLevel::Debug
             }
             UninstallingToolchain(_)
@@ -88,7 +87,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            InstalledToolchain(name) => write!(f, "toolchain '{name}' installed"),
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{name}'"),
             UninstalledToolchain(name) => write!(f, "toolchain '{name}' uninstalled"),
             UpdateHashMatches => write!(f, "toolchain is already up to date"),

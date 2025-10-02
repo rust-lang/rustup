@@ -65,7 +65,7 @@ impl InstallMethod<'_> {
                 UpdateStatus::Unchanged
             }
             true => {
-                nh(Notification::InstalledToolchain(&self.dest_basename()));
+                debug!("toolchain {} installed", self.dest_basename());
                 match self {
                     InstallMethod::Dist(DistOptions {
                         old_date_version: Some((_, v)),
