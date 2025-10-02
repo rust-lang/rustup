@@ -28,7 +28,6 @@ pub(crate) enum Notification<'a> {
     SetDefaultBufferSize(usize),
     UninstallingToolchain(&'a ToolchainName),
     UninstalledToolchain(&'a ToolchainName),
-    UpdateHashMatches,
     UpgradingMetadata(MetadataVersion, MetadataVersion),
     MetadataUpgradeNotNeeded(MetadataVersion),
     ReadMetadataVersion(MetadataVersion),
@@ -52,9 +51,7 @@ impl Notification<'_> {
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
-            ReadMetadataVersion(_) | UpdateHashMatches => {
-                NotificationLevel::Debug
-            }
+            ReadMetadataVersion(_) => NotificationLevel::Debug,
             UninstallingToolchain(_)
             | UninstalledToolchain(_)
             | UpgradingMetadata(_, _)
@@ -89,7 +86,6 @@ impl Display for Notification<'_> {
             DownloadFailed(_) => write!(f, "download failed"),
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{name}'"),
             UninstalledToolchain(name) => write!(f, "toolchain '{name}' uninstalled"),
-            UpdateHashMatches => write!(f, "toolchain is already up to date"),
             UpgradingMetadata(from_ver, to_ver) => write!(
                 f,
                 "upgrading metadata version from '{from_ver}' to '{to_ver}'"
