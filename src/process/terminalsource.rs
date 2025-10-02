@@ -9,10 +9,10 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
+use anstream::AutoStream;
+pub(crate) use anstream::ColorChoice;
+use anstyle::Reset;
 pub(crate) use anstyle::{AnsiColor, Style};
-use anstyle_termcolor::to_termcolor_spec;
-pub(crate) use termcolor::ColorChoice;
-use termcolor::{StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -65,7 +65,8 @@ pub struct ColorableTerminal {
 
 /// Internal state for ColorableTerminal
 enum TerminalInner {
-    StandardStream(StandardStream),
+    Stdout(AutoStream<std::io::Stdout>),
+    Stderr(AutoStream<std::io::Stderr>),
     #[cfg(feature = "test")]
     #[allow(dead_code)] // ColorChoice only read in test code
     TestWriter(TestWriter, ColorChoice),
@@ -74,7 +75,8 @@ enum TerminalInner {
 impl TerminalInner {
     fn as_write(&mut self) -> &mut dyn io::Write {
         match self {
-            TerminalInner::StandardStream(s) => s,
+            TerminalInner::Stdout(s) => s,
+            TerminalInner::Stderr(s) => s,
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(w, _) => w,
         }
@@ -90,7 +92,8 @@ pub struct ColorableTerminalLocked {
 }
 
 enum TerminalInnerLocked {
-    StandardStream(StandardStreamLock<'static>),
+    Stdout(AutoStream<std::io::StdoutLock<'static>>),
+    Stderr(AutoStream<std::io::StderrLock<'static>>),
     #[cfg(feature = "test")]
     TestWriter(TestWriterLock<'static>),
 }
@@ -98,7 +101,8 @@ enum TerminalInnerLocked {
 impl TerminalInnerLocked {
     fn as_write(&mut self) -> &mut dyn io::Write {
         match self {
-            TerminalInnerLocked::StandardStream(s) => s,
+            TerminalInnerLocked::Stdout(s) => s,
+            TerminalInnerLocked::Stderr(s) => s,
             #[cfg(feature = "test")]
             TerminalInnerLocked::TestWriter(w) => w,
         }
@@ -133,8 +137,12 @@ impl ColorableTerminal {
             _ => ColorChoice::Never,
         };
         let inner = match stream {
-            StreamSelector::Stdout => TerminalInner::StandardStream(StandardStream::stdout(choice)),
-            StreamSelector::Stderr => TerminalInner::StandardStream(StandardStream::stderr(choice)),
+            StreamSelector::Stdout => {
+                TerminalInner::Stdout(AutoStream::new(std::io::stdout(), choice))
+            }
+            StreamSelector::Stderr => {
+                TerminalInner::Stderr(AutoStream::new(std::io::stderr(), choice))
+            }
             #[cfg(feature = "test")]
             StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w, choice),
             #[cfg(all(test, feature = "test"))]
@@ -168,9 +176,13 @@ impl ColorableTerminal {
             addr_of_mut!((*ptr).guard).write((*ptr).inner.lock().unwrap());
             // let locked = match *guard {....}
             addr_of_mut!((*ptr).locked).write(match (*ptr).guard.deref_mut() {
-                TerminalInner::StandardStream(s) => {
-                    let locked = s.lock();
-                    TerminalInnerLocked::StandardStream(locked)
+                TerminalInner::Stdout(_) => {
+                    let locked = std::io::stdout().lock();
+                    TerminalInnerLocked::Stdout(AutoStream::new(locked, self.color_choice))
+                }
+                TerminalInner::Stderr(_) => {
+                    let locked = std::io::stderr().lock();
+                    TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
                 }
                 #[cfg(feature = "test")]
                 TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.lock()),
@@ -182,15 +194,24 @@ impl ColorableTerminal {
 
     pub fn style(&mut self, new: &Style) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s) => s.set_color(&to_termcolor_spec(*new)),
+            TerminalInner::Stdout(s) => {
+                write!(s, "{Reset}{new}")
+            }
+            TerminalInner::Stderr(s) => {
+                write!(s, "{Reset}{new}")
+            }
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(_, _) => Ok(()),
         }
     }
-
     pub fn reset(&mut self) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s) => s.reset(),
+            TerminalInner::Stdout(s) => {
+                write!(s, "{Reset}")
+            }
+            TerminalInner::Stderr(s) => {
+                write!(s, "{Reset}")
+            }
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(_, _) => Ok(()),
         }
