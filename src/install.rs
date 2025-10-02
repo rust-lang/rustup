@@ -52,8 +52,8 @@ impl InstallMethod<'_> {
             | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
-            }) => nh(Notification::InstallingToolchain(&self.dest_basename())),
-            _ => nh(Notification::UpdatingToolchain(&self.dest_basename())),
+            }) => debug!("installing toolchain {}", self.dest_basename()),
+            _ => debug!("updating existing install for '{}'", self.dest_basename()),
         }
 
         debug!("toolchain directory: {}", self.dest_path().display());
