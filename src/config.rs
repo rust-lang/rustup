@@ -919,7 +919,7 @@ impl<'a> Cfg<'a> {
     /// Create an override for a toolchain
     pub(crate) fn make_override(&self, path: &Path, toolchain: &ToolchainName) -> Result<()> {
         self.settings_file.with_mut(|s| {
-            s.add_override(path, toolchain.to_string(), self.notify_handler.as_ref());
+            s.add_override(path, toolchain.to_string());
             Ok(())
         })
     }
