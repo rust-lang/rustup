@@ -16,7 +16,7 @@ pub(crate) use anstyle::{AnsiColor, Style};
 
 use super::Process;
 #[cfg(feature = "test")]
-use super::filesource::{TestWriter, TestWriterLock};
+use super::filesource::TestWriter;
 
 /// Select what stream to make a terminal on
 pub(super) enum StreamSelector {
@@ -95,7 +95,7 @@ enum TerminalInnerLocked {
     Stdout(AutoStream<std::io::StdoutLock<'static>>),
     Stderr(AutoStream<std::io::StderrLock<'static>>),
     #[cfg(feature = "test")]
-    TestWriter(TestWriterLock<'static>),
+    TestWriter(TestWriter),
 }
 
 impl TerminalInnerLocked {
@@ -185,7 +185,7 @@ impl ColorableTerminal {
                     TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
                 }
                 #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.lock()),
+                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.clone()),
             });
             // ColorableTerminalLocked { inner, guard, locked }
             uninit.assume_init()
