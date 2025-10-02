@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
+use tracing::debug;
 
 use crate::{
     config::Cfg,
@@ -55,7 +56,7 @@ impl InstallMethod<'_> {
             _ => nh(Notification::UpdatingToolchain(&self.dest_basename())),
         }
 
-        nh(Notification::ToolchainDirectory(&self.dest_path()));
+        debug!("toolchain directory: {}", self.dest_path().display());
         let updated = self.run(&self.dest_path()).await?;
 
         let status = match updated {
