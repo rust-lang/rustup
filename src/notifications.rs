@@ -26,7 +26,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    MetadataUpgradeNotNeeded(MetadataVersion),
     ReadMetadataVersion(MetadataVersion),
     UpgradeRemovesToolchains,
     /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
@@ -49,7 +48,6 @@ impl Notification<'_> {
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
             ReadMetadataVersion(_) => NotificationLevel::Debug,
-            MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             UpgradeRemovesToolchains | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
@@ -78,9 +76,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            MetadataUpgradeNotNeeded(ver) => {
-                write!(f, "nothing to upgrade: metadata version is already '{ver}'")
-            }
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{ver}'"),
             UpgradeRemovesToolchains => write!(
                 f,
