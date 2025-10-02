@@ -571,7 +571,6 @@ impl<'a> Cfg<'a> {
         dir: &Path,
         settings: &Settings,
     ) -> Result<Option<(OverrideCfg, ActiveReason)>> {
-        let notify = self.notify_handler.as_ref();
         let mut dir = Some(dir);
 
         while let Some(d) = dir {
@@ -609,10 +608,17 @@ impl<'a> Cfg<'a> {
                 (Ok(contents), Ok(_)) => {
                     // both `rust-toolchain` and `rust-toolchain.toml` exist
 
-                    notify(Notification::DuplicateToolchainFile {
-                        rust_toolchain: &path_rust_toolchain,
-                        rust_toolchain_toml: &path_rust_toolchain_toml,
-                    });
+                    warn!(
+                        "both {} and {} exist; using contents of {0}",
+                        path_rust_toolchain
+                            .canonicalize()
+                            .unwrap_or_else(|_| PathBuf::from(&path_rust_toolchain))
+                            .display(),
+                        path_rust_toolchain_toml
+                            .canonicalize()
+                            .unwrap_or_else(|_| PathBuf::from(&path_rust_toolchain_toml))
+                            .display(),
+                    );
 
                     (path_rust_toolchain, Ok(contents), ParseMode::Both)
                 }
