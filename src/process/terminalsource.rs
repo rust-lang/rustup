@@ -104,12 +104,25 @@ impl TerminalInnerLocked {
 }
 
 impl ColorableTerminal {
+    pub(super) fn stdout(process: &Process) -> Self {
+        Self::new(StreamSelector::Stdout, process)
+    }
+
+    pub(super) fn stderr(process: &Process) -> Self {
+        Self::new(StreamSelector::Stderr, process)
+    }
+
+    #[cfg(feature = "test")]
+    pub(super) fn test(writer: TestWriter, process: &Process) -> Self {
+        Self::new(StreamSelector::TestWriter(writer), process)
+    }
+
     /// A terminal that supports colorisation of a stream.
     /// If `RUSTUP_TERM_COLOR` is set to `always`, or if the stream is a tty and
     /// `RUSTUP_TERM_COLOR` either unset or set to `auto`,
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
-    pub(super) fn new(stream: StreamSelector, process: &Process) -> Self {
+    fn new(stream: StreamSelector, process: &Process) -> Self {
         let is_a_tty = stream.is_a_tty(process);
         let choice = match process.var("RUSTUP_TERM_COLOR") {
             Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,

@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Read, Write};
 
-use super::terminalsource::{ColorableTerminal, StreamSelector};
+use super::terminalsource::ColorableTerminal;
 use crate::process::Process;
 
 /// Stand-in for std::io::Stdin
@@ -59,7 +59,7 @@ impl Writer for io::Stdout {
     }
 
     fn terminal(&self, process: &Process) -> ColorableTerminal {
-        ColorableTerminal::new(StreamSelector::Stdout, process)
+        ColorableTerminal::stdout(process)
     }
 }
 
@@ -79,7 +79,7 @@ impl Writer for io::Stderr {
     }
 
     fn terminal(&self, process: &Process) -> ColorableTerminal {
-        ColorableTerminal::new(StreamSelector::Stderr, process)
+        ColorableTerminal::stderr(process)
     }
 }
 
@@ -174,7 +174,7 @@ mod test_support {
         }
 
         fn terminal(&self, process: &Process) -> ColorableTerminal {
-            ColorableTerminal::new(StreamSelector::TestWriter(self.clone()), process)
+            ColorableTerminal::test(self.clone(), process)
         }
     }
 
