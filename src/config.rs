@@ -368,7 +368,7 @@ impl<'a> Cfg<'a> {
             s.auto_self_update = Some(mode);
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetSelfUpdate(mode.as_str()));
+        info!("auto-self-update mode set to {}", mode.as_str());
         Ok(())
     }
 
