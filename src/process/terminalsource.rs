@@ -9,10 +9,10 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-pub(crate) use anstyle::AnsiColor;
-use anstyle_termcolor::to_termcolor_color;
+pub(crate) use anstyle::{AnsiColor, Style};
+use anstyle_termcolor::to_termcolor_spec;
 pub(crate) use termcolor::ColorChoice;
-use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
+use termcolor::{StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -65,7 +65,7 @@ pub struct ColorableTerminal {
 
 /// Internal state for ColorableTerminal
 enum TerminalInner {
-    StandardStream(StandardStream, ColorSpec),
+    StandardStream(StandardStream),
     #[cfg(feature = "test")]
     #[allow(dead_code)] // ColorChoice only read in test code
     TestWriter(TestWriter, ColorChoice),
@@ -74,7 +74,7 @@ enum TerminalInner {
 impl TerminalInner {
     fn as_write(&mut self) -> &mut dyn io::Write {
         match self {
-            TerminalInner::StandardStream(s, _) => s,
+            TerminalInner::StandardStream(s) => s,
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(w, _) => w,
         }
@@ -133,12 +133,8 @@ impl ColorableTerminal {
             _ => ColorChoice::Never,
         };
         let inner = match stream {
-            StreamSelector::Stdout => {
-                TerminalInner::StandardStream(StandardStream::stdout(choice), ColorSpec::new())
-            }
-            StreamSelector::Stderr => {
-                TerminalInner::StandardStream(StandardStream::stderr(choice), ColorSpec::new())
-            }
+            StreamSelector::Stdout => TerminalInner::StandardStream(StandardStream::stdout(choice)),
+            StreamSelector::Stderr => TerminalInner::StandardStream(StandardStream::stderr(choice)),
             #[cfg(feature = "test")]
             StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w, choice),
             #[cfg(all(test, feature = "test"))]
@@ -172,7 +168,7 @@ impl ColorableTerminal {
             addr_of_mut!((*ptr).guard).write((*ptr).inner.lock().unwrap());
             // let locked = match *guard {....}
             addr_of_mut!((*ptr).locked).write(match (*ptr).guard.deref_mut() {
-                TerminalInner::StandardStream(s, _) => {
+                TerminalInner::StandardStream(s) => {
                     let locked = s.lock();
                     TerminalInnerLocked::StandardStream(locked)
                 }
@@ -184,28 +180,9 @@ impl ColorableTerminal {
         }
     }
 
-    pub fn fg(&mut self, color: AnsiColor) -> io::Result<()> {
+    pub fn style(&mut self, new: &Style) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, spec) => {
-                spec.set_fg(Some(to_termcolor_color(color.into())));
-                s.set_color(spec)
-            }
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(_, _) => Ok(()),
-        }
-    }
-
-    pub fn attr(&mut self, attr: Attr) -> io::Result<()> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, spec) => {
-                match attr {
-                    Attr::Bold => spec.set_bold(true),
-                    Attr::ForegroundColor(color) => {
-                        spec.set_fg(Some(to_termcolor_color(color.into())))
-                    }
-                };
-                s.set_color(spec)
-            }
+            TerminalInner::StandardStream(s) => s.set_color(&to_termcolor_spec(*new)),
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(_, _) => Ok(()),
         }
@@ -213,10 +190,7 @@ impl ColorableTerminal {
 
     pub fn reset(&mut self) -> io::Result<()> {
         match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, color) => {
-                color.clear();
-                s.reset()
-            }
+            TerminalInner::StandardStream(s) => s.reset(),
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(_, _) => Ok(()),
         }
@@ -229,12 +203,6 @@ impl ColorableTerminal {
     pub fn color_choice(&self) -> ColorChoice {
         self.color_choice
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Attr {
-    Bold,
-    ForegroundColor(AnsiColor),
 }
 
 impl io::Write for ColorableTerminal {

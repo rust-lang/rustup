@@ -254,11 +254,14 @@ fn show_channel_updates(
     for (pkg, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
-        let _ = write!(t.lock(), "  {padding}");
-        let _ = t.attr(terminalsource::Attr::Bold);
-        if let Some(color) = color {
-            let _ = t.fg(color);
+        let style = if let Some(color) = color {
+            color.on_default()
+        } else {
+            terminalsource::Style::new()
         }
+        .bold();
+        let _ = write!(t.lock(), "  {padding}");
+        let _ = t.style(&style);
         let _ = write!(t.lock(), "{pkg} {banner}");
         let _ = t.reset();
         let _ = write!(t.lock(), " - {version}");
@@ -308,9 +311,10 @@ pub(super) fn list_items(
     process: &Process,
 ) -> Result<utils::ExitCode> {
     let mut t = process.stdout();
+    let bold = terminalsource::Style::new().bold();
     for (name, installed) in items {
         if installed && !installed_only && !quiet {
-            t.attr(terminalsource::Attr::Bold)?;
+            t.style(&bold)?;
             writeln!(t.lock(), "{name} (installed)")?;
             t.reset()?;
         } else if installed || !installed_only {

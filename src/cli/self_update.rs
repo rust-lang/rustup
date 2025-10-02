@@ -1354,17 +1354,21 @@ pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<boo
     // Get available rustup version
     let available_version = get_available_rustup_version(process).await?;
 
-    let _ = t.attr(terminalsource::Attr::Bold);
+    let bold = terminalsource::Style::new().bold();
+    let yellow = terminalsource::AnsiColor::Yellow.on_default().bold();
+    let green = terminalsource::AnsiColor::Green.on_default().bold();
+
+    let _ = t.style(&bold);
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(terminalsource::AnsiColor::Yellow);
+        let _ = t.style(&yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version} -> {available_version}")?;
         true
     } else {
-        let _ = t.fg(terminalsource::AnsiColor::Green);
+        let _ = t.style(&green);
         write!(t.lock(), "Up to date")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version}")?;
