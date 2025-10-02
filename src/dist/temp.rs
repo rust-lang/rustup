@@ -65,7 +65,7 @@ impl Drop for File {
             match fs::remove_file(&self.path) {
                 Ok(()) => debug!(path = %self.path.display(), "deleted temp file"),
                 Err(e) => {
-                    warn!(path = %self.path.display(), error = %e, "could not delete temp file")
+                    warn!("could not delete temp file {} ({e})", self.path.display())
                 }
             }
         }
