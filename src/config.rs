@@ -448,11 +448,10 @@ impl<'a> Cfg<'a> {
             return Ok(());
         }
 
-        (self.notify_handler)(Notification::UpgradingMetadata(
-            current_version,
-            MetadataVersion::default(),
-        ));
-
+        info!(
+            "upgrading metadata version from {current_version} to {}",
+            MetadataVersion::default()
+        );
         match current_version {
             MetadataVersion::V2 => {
                 // The toolchain installation format changed. Just delete them all.

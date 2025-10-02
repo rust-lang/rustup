@@ -26,7 +26,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    UpgradingMetadata(MetadataVersion, MetadataVersion),
     MetadataUpgradeNotNeeded(MetadataVersion),
     ReadMetadataVersion(MetadataVersion),
     UpgradeRemovesToolchains,
@@ -50,7 +49,7 @@ impl Notification<'_> {
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
             ReadMetadataVersion(_) => NotificationLevel::Debug,
-            UpgradingMetadata(_, _) | MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
+            MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             UpgradeRemovesToolchains | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
@@ -79,10 +78,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            UpgradingMetadata(from_ver, to_ver) => write!(
-                f,
-                "upgrading metadata version from '{from_ver}' to '{to_ver}'"
-            ),
             MetadataUpgradeNotNeeded(ver) => {
                 write!(f, "nothing to upgrade: metadata version is already '{ver}'")
             }
