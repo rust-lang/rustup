@@ -10,6 +10,7 @@ use std::{
     time::Duration,
 };
 
+use anstyle::Style;
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
 use clap_complete::Shell;
@@ -39,7 +40,7 @@ use crate::{
     },
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
-    process::{Attr, ColorableTerminal, Process},
+    process::{ColorableTerminal, Process},
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName,
         MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
@@ -1072,10 +1073,12 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
+    let bold = Style::new().bold();
+
     // Print host triple
     {
         let mut t = cfg.process.stdout();
-        t.attr(Attr::Bold)?;
+        t.style(&bold)?;
         write!(t.lock(), "Default host: ")?;
         t.reset()?;
         writeln!(t.lock(), "{}", cfg.get_default_host_triple()?)?;
@@ -1084,7 +1087,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     // Print rustup home directory
     {
         let mut t = cfg.process.stdout();
-        t.attr(Attr::Bold)?;
+        t.style(&bold)?;
         write!(t.lock(), "rustup home:  ")?;
         t.reset()?;
         writeln!(t.lock(), "{}", cfg.rustup_dir.display())?;
@@ -1193,7 +1196,8 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     }
 
     fn print_header(t: &mut ColorableTerminal, s: &str) -> Result<(), Error> {
-        t.attr(Attr::Bold)?;
+        let bold = Style::new().bold();
+        t.style(&bold)?;
         {
             let mut term_lock = t.lock();
             writeln!(term_lock, "{s}")?;

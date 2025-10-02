@@ -1,10 +1,10 @@
 // Write Markdown to the terminal
 use std::io::Write;
 
-use anstyle::AnsiColor;
+use anstyle::{AnsiColor, Style};
 use pulldown_cmark::{Event, Tag, TagEnd};
 
-use crate::process::{Attr, ColorableTerminal};
+use crate::process::ColorableTerminal;
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a> {
@@ -96,6 +96,7 @@ struct LineFormatter<'a> {
     is_code_block: bool,
     wrapper: LineWrapper<'a>,
     attrs: Vec<Attr>,
+    style: Style,
 }
 
 impl<'a> LineFormatter<'a> {
@@ -104,18 +105,21 @@ impl<'a> LineFormatter<'a> {
             is_code_block: false,
             wrapper: LineWrapper::new(w, indent, margin),
             attrs: Vec::new(),
+            style: Style::new(),
         }
     }
     fn push_attr(&mut self, attr: Attr) {
         self.attrs.push(attr);
-        let _ = self.wrapper.w.attr(attr);
+        attr.apply_to(&mut self.style);
+        let _ = self.wrapper.w.style(&self.style);
     }
     fn pop_attr(&mut self) {
         self.attrs.pop();
-        let _ = self.wrapper.w.reset();
+        self.style = Style::new();
         for attr in &self.attrs {
-            let _ = self.wrapper.w.attr(*attr);
+            attr.apply_to(&mut self.style);
         }
+        let _ = self.wrapper.w.style(&self.style);
     }
 
     fn start_tag(&mut self, tag: Tag<'a>) {
@@ -236,6 +240,21 @@ impl<'a> LineFormatter<'a> {
             InlineHtml(_) => {}
             InlineMath(_) => {}
             DisplayMath(_) => {}
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Attr {
+    Bold,
+    ForegroundColor(AnsiColor),
+}
+
+impl Attr {
+    fn apply_to(&self, style: &mut Style) {
+        match self {
+            Self::Bold => *style = style.bold(),
+            Self::ForegroundColor(color) => *style = style.fg_color(Some((*color).into())),
         }
     }
 }

@@ -40,7 +40,7 @@ use std::process::Command;
 use std::str::FromStr;
 use std::{fmt, fs};
 
-use anstyle::AnsiColor;
+use anstyle::{AnsiColor, Style};
 use anyhow::{Context, Result, anyhow};
 use cfg_if::cfg_if;
 use clap::ValueEnum;
@@ -63,7 +63,7 @@ use crate::{
     download::download_file,
     errors::RustupError,
     install::UpdateStatus,
-    process::{Attr, Process},
+    process::Process,
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
@@ -1364,17 +1364,21 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Res
     // Get available rustup version
     let available_version = get_available_rustup_version(dl_cfg).await?;
 
-    let _ = t.attr(Attr::Bold);
+    let bold = Style::new().bold();
+    let yellow = AnsiColor::Yellow.on_default().bold();
+    let green = AnsiColor::Green.on_default().bold();
+
+    let _ = t.style(&bold);
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(AnsiColor::Yellow);
+        let _ = t.style(&yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version} -> {available_version}")?;
         true
     } else {
-        let _ = t.fg(AnsiColor::Green);
+        let _ = t.style(&green);
         write!(t.lock(), "Up to date")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version}")?;

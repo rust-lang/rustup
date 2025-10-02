@@ -28,7 +28,7 @@ use crate::cli::log;
 
 mod file_source;
 mod terminal_source;
-pub use terminal_source::{Attr, ColorableTerminal};
+pub use terminal_source::ColorableTerminal;
 
 /// Allows concrete types for the process abstraction.
 #[derive(Clone, Debug)]
