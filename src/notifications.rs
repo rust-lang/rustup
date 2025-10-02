@@ -2,7 +2,6 @@ use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
 use crate::dist::TargetTriple;
-use crate::settings::MetadataVersion;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::units;
 
@@ -26,7 +25,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    ReadMetadataVersion(MetadataVersion),
     UpgradeRemovesToolchains,
     /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
     DuplicateToolchainFile {
@@ -47,7 +45,6 @@ impl Notification<'_> {
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
-            ReadMetadataVersion(_) => NotificationLevel::Debug,
             UpgradeRemovesToolchains | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
@@ -76,7 +73,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            ReadMetadataVersion(ver) => write!(f, "read metadata version: '{ver}'"),
             UpgradeRemovesToolchains => write!(
                 f,
                 "this upgrade will remove all existing toolchains. you will need to reinstall them"

@@ -251,7 +251,7 @@ impl<'a> Cfg<'a> {
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         settings_file.with(|s| {
-            (notify_handler)(Notification::ReadMetadataVersion(s.version));
+            debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
                 Ok(())
             } else {
