@@ -10,6 +10,7 @@ use std::{
     time::Duration,
 };
 
+use anstream::ColorChoice;
 use anstyle::Style;
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
@@ -18,7 +19,6 @@ use console::style;
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
-use termcolor::ColorChoice;
 use tokio::sync::Semaphore;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};

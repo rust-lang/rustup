@@ -75,16 +75,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anstyle-termcolor"
-version = "1.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8969b2b476cad1bf03d37494ad7b8a84ae9e030e248fddc62bdc4484e5ed4a95"
-dependencies = [
- "anstyle",
- "termcolor",
-]
-
-[[package]]
 name = "anstyle-wincon"
 version = "3.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2215,8 +2205,8 @@ dependencies = [
 name = "rustup"
 version = "1.28.2"
 dependencies = [
+ "anstream",
  "anstyle",
- "anstyle-termcolor",
  "anyhow",
  "cc",
  "cfg-if 1.0.3",
@@ -2266,7 +2256,6 @@ dependencies = [
  "strsim",
  "tar",
  "tempfile",
- "termcolor",
  "thiserror 2.0.17",
  "threadpool",
  "tokio",
@@ -2614,15 +2603,6 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "termcolor"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
-dependencies = [
- "winapi-util",
 ]
 
 [[package]]
