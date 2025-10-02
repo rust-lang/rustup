@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::{error, info, trace};
+use tracing::{debug, error, info, trace};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -815,7 +815,7 @@ impl<'a> Cfg<'a> {
             force_non_host,
         )?;
         if verbose {
-            (self.notify_handler)(Notification::LookingForToolchain(toolchain));
+            debug!("looking for installed toolchain {toolchain}");
         }
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
