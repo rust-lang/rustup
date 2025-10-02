@@ -41,8 +41,8 @@ test = ["dep:snapbox", "dep:walkdir"]
 
 # Sorted by alphabetic order
 [dependencies]
+anstream = "0.6.20"
 anstyle = "1.0.11"
-anstyle-termcolor = "1.1.4"
 anyhow = "1.0.69"
 cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
@@ -87,7 +87,6 @@ sharded-slab = "0.1.1"
 strsim = "0.11"
 tar = "0.4.26"
 tempfile = "3.8"
-termcolor = "1.2"
 thiserror = "2"
 threadpool = "1"
 tokio = { version = "1.26.0", default-features = false, features = ["macros", "rt-multi-thread", "sync"] }
