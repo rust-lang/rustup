@@ -129,7 +129,7 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
 
 pub(crate) fn canonicalize_path(path: &Path) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| {
-        warn!(path = %path.display(), "could not canonicalize path");
+        warn!("could not canonicalize path {}", path.display());
         PathBuf::from(path)
     })
 }
