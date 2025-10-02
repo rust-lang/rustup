@@ -1028,8 +1028,8 @@ test
         .expect(["rustup", "toolchain", "uninstall", "test"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: uninstalling toolchain 'test'
-info: toolchain 'test' uninstalled
+info: uninstalling toolchain test
+info: toolchain test uninstalled
 
 "#]])
         .is_ok();

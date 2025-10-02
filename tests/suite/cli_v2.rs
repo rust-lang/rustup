@@ -375,7 +375,7 @@ async fn remove_toolchain_ignore_trailing_slash() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: toolchain 'dev' uninstalled
+info: toolchain dev uninstalled
 ...
 "#]])
         .is_ok();
@@ -397,7 +397,7 @@ info: toolchain 'dev' uninstalled
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: toolchain 'nightly-[HOST_TRIPLE]' uninstalled
+info: toolchain nightly-[HOST_TRIPLE] uninstalled
 ...
 "#]])
         .is_ok();
