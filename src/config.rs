@@ -444,7 +444,7 @@ impl<'a> Cfg<'a> {
     pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version))?;
         if current_version == MetadataVersion::default() {
-            (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(current_version));
+            info!("nothing to upgrade: metadata version is already '{current_version}'");
             return Ok(());
         }
 
