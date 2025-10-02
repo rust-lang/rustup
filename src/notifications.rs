@@ -26,7 +26,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    SetOverrideToolchain(&'a Path, &'a str),
     SetProfile(&'a str),
     SetSelfUpdate(&'a str),
     LookingForToolchain(&'a ToolchainDesc),
@@ -68,8 +67,7 @@ impl Notification<'_> {
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
             | UpdateHashMatches => NotificationLevel::Debug,
-            SetOverrideToolchain(_, _)
-            | SetProfile(_)
+            SetProfile(_)
             | SetSelfUpdate(_)
             | UsingExistingToolchain(_)
             | UninstallingToolchain(_)
@@ -104,12 +102,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            SetOverrideToolchain(path, name) => write!(
-                f,
-                "override toolchain for '{}' set to '{}'",
-                path.display(),
-                name
-            ),
             SetProfile(name) => write!(f, "profile set to '{name}'"),
             SetSelfUpdate(mode) => write!(f, "auto-self-update mode set to '{mode}'"),
             LookingForToolchain(name) => write!(f, "looking for installed toolchain '{name}'"),

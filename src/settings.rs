@@ -6,11 +6,11 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::{AutoInstallMode, Profile};
 use crate::errors::*;
-use crate::notifications::*;
 use crate::utils;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -111,14 +111,12 @@ impl Settings {
         self.overrides.remove(&key).is_some()
     }
 
-    pub(crate) fn add_override(
-        &mut self,
-        path: &Path,
-        toolchain: String,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) {
+    pub(crate) fn add_override(&mut self, path: &Path, toolchain: String) {
         let key = Self::path_to_key(path);
-        notify_handler(Notification::SetOverrideToolchain(path, &toolchain));
+        info!(
+            "override toolchain for {} set to {toolchain}",
+            path.display(),
+        );
         self.overrides.insert(key, toolchain);
     }
 
