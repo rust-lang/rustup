@@ -196,7 +196,7 @@ async fn default_existing_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: using existing install for 'nightly-[HOST_TRIPLE]'
+info: using existing install for nightly-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();
