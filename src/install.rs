@@ -9,7 +9,6 @@ use crate::{
     config::Cfg,
     dist::{self, DistOptions, prefix::InstallPrefix},
     errors::RustupError,
-    notifications::Notification,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
 };
@@ -45,7 +44,6 @@ impl InstallMethod<'_> {
         let _ = rayon::ThreadPoolBuilder::new()
             .num_threads(self.cfg().process.io_thread_count()?)
             .build_global();
-        let nh = &self.cfg().notify_handler;
         match self {
             InstallMethod::Copy { .. }
             | InstallMethod::Link { .. }
@@ -61,7 +59,7 @@ impl InstallMethod<'_> {
 
         let status = match updated {
             false => {
-                nh(Notification::UpdateHashMatches);
+                debug!("toolchain is already up to date");
                 UpdateStatus::Unchanged
             }
             true => {
