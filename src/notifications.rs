@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::dist::TargetTriple;
 use crate::settings::MetadataVersion;
 use crate::utils::units;
-use crate::{dist::ToolchainDesc, toolchain::ToolchainName, utils::notify::NotificationLevel};
+use crate::{toolchain::ToolchainName, utils::notify::NotificationLevel};
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
@@ -30,7 +30,6 @@ pub(crate) enum Notification<'a> {
     UpdatingToolchain(&'a str),
     InstallingToolchain(&'a str),
     InstalledToolchain(&'a str),
-    UsingExistingToolchain(&'a ToolchainDesc),
     UninstallingToolchain(&'a ToolchainName),
     UninstalledToolchain(&'a ToolchainName),
     UpdateHashMatches,
@@ -63,8 +62,7 @@ impl Notification<'_> {
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
             | UpdateHashMatches => NotificationLevel::Debug,
-            UsingExistingToolchain(_)
-            | UninstallingToolchain(_)
+            UninstallingToolchain(_)
             | UninstalledToolchain(_)
             | UpgradingMetadata(_, _)
             | MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
@@ -100,7 +98,6 @@ impl Display for Notification<'_> {
             UpdatingToolchain(name) => write!(f, "updating existing install for '{name}'"),
             InstallingToolchain(name) => write!(f, "installing toolchain '{name}'"),
             InstalledToolchain(name) => write!(f, "toolchain '{name}' installed"),
-            UsingExistingToolchain(name) => write!(f, "using existing install for '{name}'"),
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{name}'"),
             UninstalledToolchain(name) => write!(f, "toolchain '{name}' uninstalled"),
             UpdateHashMatches => write!(f, "toolchain is already up to date"),

@@ -837,7 +837,7 @@ impl<'a> Cfg<'a> {
             }
             Ok(mut distributable) => {
                 if verbose {
-                    (self.notify_handler)(Notification::UsingExistingToolchain(toolchain));
+                    info!("using existing install for {toolchain}");
                 }
                 let status = if !distributable.components_exist(&components, &targets)? {
                     distributable.update(&components, &targets, profile).await?

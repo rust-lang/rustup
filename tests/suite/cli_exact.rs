@@ -355,7 +355,7 @@ async fn override_again() {
         .is_ok()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-info: override toolchain for '[CWD]' set to 'nightly-[HOST_TRIPLE]'
+info: override toolchain for [CWD] set to nightly-[HOST_TRIPLE]
 
 "#]]);
 }

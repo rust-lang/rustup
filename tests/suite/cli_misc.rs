@@ -636,7 +636,7 @@ async fn toolchains_are_resolved_early() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: using existing install for 'nightly-[HOST_TRIPLE]'
+info: using existing install for nightly-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();
