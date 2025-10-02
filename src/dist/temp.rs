@@ -36,7 +36,10 @@ impl Drop for Dir {
             match remove_dir_all::remove_dir_all(&self.path) {
                 Ok(()) => debug!(path = %self.path.display(), "deleted temp directory"),
                 Err(e) => {
-                    warn!(path = %self.path.display(), error = %e, "could not delete temp directory")
+                    warn!(
+                        "could not delete temp directory {} ({e})",
+                        self.path.display()
+                    )
                 }
             }
         }
