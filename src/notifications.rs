@@ -25,7 +25,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    UpgradeRemovesToolchains,
     /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
     DuplicateToolchainFile {
         rust_toolchain: &'a Path,
@@ -45,7 +44,7 @@ impl Notification<'_> {
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
-            UpgradeRemovesToolchains | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
+            DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
 }
@@ -73,10 +72,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            UpgradeRemovesToolchains => write!(
-                f,
-                "this upgrade will remove all existing toolchains. you will need to reinstall them"
-            ),
             DuplicateToolchainFile {
                 rust_toolchain,
                 rust_toolchain_toml,

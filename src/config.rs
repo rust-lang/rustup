@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::{debug, error, info, trace};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -455,7 +455,9 @@ impl<'a> Cfg<'a> {
         match current_version {
             MetadataVersion::V2 => {
                 // The toolchain installation format changed. Just delete them all.
-                (self.notify_handler)(Notification::UpgradeRemovesToolchains);
+                warn!(
+                    "this upgrade will remove all existing toolchains; you will need to reinstall them"
+                );
 
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
