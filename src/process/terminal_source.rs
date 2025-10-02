@@ -14,7 +14,7 @@ use anstyle::{Reset, Style};
 
 use super::Process;
 #[cfg(feature = "test")]
-use super::file_source::{TestWriter, TestWriterLock};
+use super::file_source::TestWriter;
 
 /// A colorable terminal that can be written to
 pub struct ColorableTerminal {
@@ -102,7 +102,7 @@ impl ColorableTerminal {
                     TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
                 }
                 #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.lock()),
+                TerminalInner::TestWriter(w, _) => TerminalInnerLocked::TestWriter(w.clone()),
             });
             // ColorableTerminalLocked { inner, guard, locked }
             uninit.assume_init()
@@ -282,7 +282,7 @@ enum TerminalInnerLocked {
     Stdout(AutoStream<io::StdoutLock<'static>>),
     Stderr(AutoStream<io::StderrLock<'static>>),
     #[cfg(feature = "test")]
-    TestWriter(TestWriterLock<'static>),
+    TestWriter(TestWriter),
 }
 
 impl TerminalInnerLocked {
