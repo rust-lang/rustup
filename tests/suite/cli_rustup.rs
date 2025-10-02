@@ -3692,7 +3692,7 @@ async fn warn_on_duplicate_rust_toolchain_file() {
         .extend_redactions([("[CWD]", &cwd.canonicalize().unwrap())])
         .with_stderr(snapbox::str![[r#"
 ...
-warn: both `[CWD]/rust-toolchain` and `[CWD]/rust-toolchain.toml` exist. Using `[CWD]/rust-toolchain`
+warn: both [CWD]/rust-toolchain and [CWD]/rust-toolchain.toml exist; using contents of [CWD]/rust-toolchain
 ...
 "#]])
         .is_ok();

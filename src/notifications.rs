@@ -1,5 +1,4 @@
 use std::fmt::{self, Display};
-use std::path::{Path, PathBuf};
 
 use crate::dist::TargetTriple;
 use crate::utils::notify::NotificationLevel;
@@ -25,11 +24,6 @@ pub(crate) enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
-    /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
-    DuplicateToolchainFile {
-        rust_toolchain: &'a Path,
-        rust_toolchain_toml: &'a Path,
-    },
 }
 
 impl Notification<'_> {
@@ -44,7 +38,6 @@ impl Notification<'_> {
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
             | DownloadFailed(_) => NotificationLevel::Debug,
-            DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
 }
@@ -72,21 +65,6 @@ impl Display for Notification<'_> {
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
             DownloadFailed(_) => write!(f, "download failed"),
-            DuplicateToolchainFile {
-                rust_toolchain,
-                rust_toolchain_toml,
-            } => write!(
-                f,
-                "both `{0}` and `{1}` exist. Using `{0}`",
-                rust_toolchain
-                    .canonicalize()
-                    .unwrap_or_else(|_| PathBuf::from(rust_toolchain))
-                    .display(),
-                rust_toolchain_toml
-                    .canonicalize()
-                    .unwrap_or_else(|_| PathBuf::from(rust_toolchain_toml))
-                    .display(),
-            ),
         }
     }
 }
