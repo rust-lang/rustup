@@ -1520,7 +1520,7 @@ error: override toolchain 'foo' is not installed: the +toolchain on the command 
         .expect(["rustup", "+stable", "set", "profile", "minimal"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: profile set to 'minimal'
+info: profile set to minimal
 
 "#]])
         .is_ok();
