@@ -359,7 +359,7 @@ impl<'a> Cfg<'a> {
             s.profile = Some(profile);
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetProfile(profile.as_str()));
+        info!("profile set to {}", profile.as_str());
         Ok(())
     }
 
