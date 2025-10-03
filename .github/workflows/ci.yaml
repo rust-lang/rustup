@@ -1584,6 +1584,7 @@ jobs:
         if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) }}
         run: |
           cd ${{ runner.temp }}/book
+          git config --global init.defaultBranch main
           git init
           git config user.name "Deploy from CI"
           git config user.email ""
