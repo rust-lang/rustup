@@ -226,9 +226,24 @@ impl io::Write for ColorableTerminal {
         locked.deref_mut().as_write().write(buf)
     }
 
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write_vectored(bufs)
+    }
+
     fn flush(&mut self) -> std::result::Result<(), io::Error> {
         let mut locked = self.inner.lock().unwrap();
         locked.deref_mut().as_write().flush()
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write_all(buf)
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write_fmt(args)
     }
 }
 
@@ -237,8 +252,20 @@ impl io::Write for ColorableTerminalLocked {
         self.locked.as_write().write(buf)
     }
 
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+        self.locked.as_write().write_vectored(bufs)
+    }
+
     fn flush(&mut self) -> io::Result<()> {
         self.locked.as_write().flush()
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        self.locked.as_write().write_all(buf)
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+        self.locked.as_write().write_fmt(args)
     }
 }
 
