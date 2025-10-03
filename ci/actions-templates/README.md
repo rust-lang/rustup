@@ -7,8 +7,8 @@ This directory contains all the workflows we use in Rustup for GitHub Actions.
 Rustup has five situations in which we perform CI builds:
 
 1. On PR changes
-2. On merge to master
-3. Time-based rebuilds of master
+2. On merge to main
+3. Time-based rebuilds of main
 4. Pushes to the stable branch
 5. Renovate branches with dependency updates, tested before opening a PR or
    merging. They are assessed the same as a PR: if it would be good enough as a
@@ -17,9 +17,9 @@ Rustup has five situations in which we perform CI builds:
 The goals for each of those situations are subtly different. For PR changes,
 we want to know as quickly as possible if the change is likely to be an issue.
 
-Once a change hits master, we want to know that all our targets build.
+Once a change hits main, we want to know that all our targets build.
 
-Time based rebuilds of master are about determining if updates to the toolchain
+Time based rebuilds of main are about determining if updates to the toolchain
 have caused us problems, and also to try and highlight if we have flaky tests.
 
 The stable branch is about making releases. Builds from that branch are uploaded
@@ -65,5 +65,5 @@ Due to limitations in how github workflows work, we have to create our workflows
 from template files and then commit them.
 
 The templates are in this directory, and the built workflows end up in the
-`.github/workflows` directory. `-all` always runs, `-on-pr` `-on-master` and
+`.github/workflows` directory. `-all` always runs, `-on-pr` `-on-main` and
 `-on-stable` do the obvious.

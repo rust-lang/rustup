@@ -20,7 +20,7 @@ on:
       - "*"
   push:
     branches:
-      - master
+      - main
       - stable
   schedule:
     - cron: "30 0 * * 1,3,5" # At 00:30 UTC on Monday, Wednesday, and Friday
@@ -29,17 +29,17 @@ jobs:
 EOF
 
 gen_job windows-builds pr
-gen_job windows-builds master
+gen_job windows-builds main
 gen_job windows-builds stable
 
 gen_job linux-builds pr
-gen_job linux-builds master
+gen_job linux-builds main
 gen_job linux-builds stable
 
 gen_job macos-builds x86_64
 gen_job macos-builds aarch64
 
-gen_job freebsd-builds master
+gen_job freebsd-builds main
 gen_job freebsd-builds stable
 
 # The following targets only have a single job
