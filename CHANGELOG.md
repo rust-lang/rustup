@@ -1,5 +1,256 @@
 # Changelog
 
+## [1.29.0] - Unreleased
+
+This new release of rustup comes with significant changes.
+
+The headline feature is better concurrency for certain operations,
+implemented by @FranciscoTGouveia with the help from the team as a part of
+the GSoC 2025 event:
+
+- Improved the UX for the `rustup update` and `rustup toolchain` subcommands by
+  downloading components concurrently and unpacking during downloads, which
+  should speed up the toolchain installation process. Meanwhile, progress bars
+  have been updated accordingly to and provide better feedback about where time
+  is being spent. [pr#4426] [pr#4436] [pr#4471] [pr#4605]
+
+  - You can use the `RUSTUP_CONCURRENT_DOWNLOADS` environment variable to
+    adjust the number of concurrent downloads to better reflect the needs of
+    your specific environment (the current default is `2`). Particularly, you
+    may set the value to `1` to restore the sequential downloading behavior.
+    [pr#4455]
+
+- Improved the UX for the `rustup check` subcommand by checking for toolchain
+  updates concurrently and updating the progress reporting UI. [pr#4388]
+
+rustup now officially supports the following host platforms:
+
+- `sparcv9-sun-solaris` [pr#4380]
+- `x86_64-pc-solaris` [pr#4380]
+
+In addition, basic support for more shells has been added, including:
+
+- `tcsh` [pr#4459]
+- `xonsh` [pr#4626]
+
+This release also comes with other quality-of-life improvements, to name a few:
+
+- When running rust-analyzer via a proxy, rustup will consider the
+  `rust-analyzer` binary from `PATH` when the rustup-managed one is not found.
+  [pr#4324]
+
+- Empty environment variables are now treated as unset. This should help with
+  resetting configuration values to default when an override is present.
+  [pr#4422]
+
+[1.29.0]: https://github.com/rust-lang/rustup/releases/tag/1.29.0
+[pr#4324]: https://github.com/rust-lang/rustup/pull/4324
+[pr#4380]: https://github.com/rust-lang/rustup/pull/4380
+[pr#4388]: https://github.com/rust-lang/rustup/pull/4388
+[pr#4422]: https://github.com/rust-lang/rustup/pull/4422
+[pr#4426]: https://github.com/rust-lang/rustup/pull/4426
+[pr#4436]: https://github.com/rust-lang/rustup/pull/4436
+[pr#4455]: https://github.com/rust-lang/rustup/pull/4455
+[pr#4459]: https://github.com/rust-lang/rustup/pull/4459
+[pr#4471]: https://github.com/rust-lang/rustup/pull/4471
+[pr#4605]: https://github.com/rust-lang/rustup/pull/4605
+[pr#4626]: https://github.com/rust-lang/rustup/pull/4626
+
+### Detailed changes
+
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4321
+* docs(changelog): mirror changes from the release announcement, take 2 by @rami3l in https://github.com/rust-lang/rustup/pull/4322
+* deps: update aws-lc-rs to 1.13.1 by @ognevny in https://github.com/rust-lang/rustup/pull/4326
+* feat(toolchain): consider external `rust-analyzer` when calling a proxy by @rami3l in https://github.com/rust-lang/rustup/pull/4324
+* chore(deps): bump semver-compatible dependencies by @rami3l in https://github.com/rust-lang/rustup/pull/4329
+* toolchain: hoist binary name conditionals out of fallback functions by @djc in https://github.com/rust-lang/rustup/pull/4330
+* Fix cargo lints on Windows by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4335
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4341
+* Log versions during self updates by @djc in https://github.com/rust-lang/rustup/pull/4331
+* feat(custom-toolchains): `rustup show` now reporting installed targets by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4333
+* refactor(test): add new APIs for easier snapshot testing by @rami3l in https://github.com/rust-lang/rustup/pull/4334
+* style(test): clarify uses of `snapbox::str![]` by @rami3l in https://github.com/rust-lang/rustup/pull/4342
+* feat(self_update): add proxy sanity checks by @manyinsects in https://github.com/rust-lang/rustup/pull/4338
+* rustup check: add exit status and no-self-update logic by @tjkirch in https://github.com/rust-lang/rustup/pull/4340
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4348
+* fix(deps): update rust crate opener to 0.8.0 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4346
+* Skip manifest loading if there are no components/targets to check by @Kobzol in https://github.com/rust-lang/rustup/pull/4350
+* feat(custom-toolchains): targets and components are now reported for custom toolchains by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4347
+* Custom list tweaks by @djc in https://github.com/rust-lang/rustup/pull/4351
+* test(cli-self-upd): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4343
+* test(cli-paths): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4354
+* Unset RUSTUP_AUTO_INSTALL for tests by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4360
+* test(cli-inst-interactive): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4353
+* Increase Windows main thread stack size to 2mb by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4362
+* Clean up installed components/targets list tweaks by @djc in https://github.com/rust-lang/rustup/pull/4361
+* test(cli-exact): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4352
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4357
+* Update platforms to 3.6 by @djc in https://github.com/rust-lang/rustup/pull/4364
+* Fix CI image names for downloading ARM and PowerPC artifacts by @Kobzol in https://github.com/rust-lang/rustup/pull/4368
+* test(cli-rustup): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4365
+* fix(deps): update opentelemetry by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4371
+* test(download): serialize tests with proxy-sensitive URLs by @cuviper in https://github.com/rust-lang/rustup/pull/4372
+* test(cli-misc): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4363
+* test(cli-v1): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4366
+* test(cli-v2): migrate to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4367
+* Upgrade to rustls-platform-verifier 0.6 by @djc in https://github.com/rust-lang/rustup/pull/4373
+* docs: mention the `Assert` APIs, add misc fixes by @rami3l in https://github.com/rust-lang/rustup/pull/4374
+* Update bash completions instructions and test by @rickhg12hs in https://github.com/rust-lang/rustup/pull/4378
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4379
+* test: finish migration to `.expect()` APIs by @rami3l in https://github.com/rust-lang/rustup/pull/4376
+* add Solaris support by @psumbera in https://github.com/rust-lang/rustup/pull/4380
+* Fix rustup-init.sh cputype check for sparcv9 by @psumbera in https://github.com/rust-lang/rustup/pull/4382
+* docs(README): update CI status badge by @rami3l in https://github.com/rust-lang/rustup/pull/4383
+* Emphasize that `llvm-tools` dist component is not subject to compiler stability guarantees by @jieyouxu in https://github.com/rust-lang/rustup/pull/4384
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4386
+* Upgrade to windows-sys 0.60 by @djc in https://github.com/rust-lang/rustup/pull/4387
+* Block broken snap curl by @konstin in https://github.com/rust-lang/rustup/pull/4389
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4390
+* docs: replace Discord links by @rami3l in https://github.com/rust-lang/rustup/pull/4393
+* ci(run): install `codegen-cli` with `cargo-binstall` by @rami3l in https://github.com/rust-lang/rustup/pull/4394
+* feat(www): improve "copy" button style compatibility with Chromium by @rami3l in https://github.com/rust-lang/rustup/pull/4395
+* fix(ci/run): specify target triple for bindgen-cli installation by @rami3l in https://github.com/rust-lang/rustup/pull/4398
+* style: migrate the codebase to `let-chains` by @rami3l in https://github.com/rust-lang/rustup/pull/4397
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4399
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4402
+* Check for updates concurrently by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4388
+* Bump `toml` to 0.9 by @Kobzol in https://github.com/rust-lang/rustup/pull/4405
+* Limit the default number of I/O threads by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4407
+* Introduce `RUSTUP_TERM_WIDTH` and `RUSTUP_TERM_PROGRESS_WHEN` by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4406
+* Simplify updates by @djc in https://github.com/rust-lang/rustup/pull/4404
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4410
+* fix(ci/docker): update `CC` name for `powerpc64le-unknown-linux-gnu` by @rami3l in https://github.com/rust-lang/rustup/pull/4411
+* fix(toolchain/distributable): refine handling of known targets with no prebuilt artifacts by @rami3l in https://github.com/rust-lang/rustup/pull/4409
+* Set a maximum thread limit for the `remove_dir_all` crate by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4413
+* opt(err): show renaming file error source by @Binlogo in https://github.com/rust-lang/rustup/pull/4414
+* Limit Tokio worker threads to I/O thread count by @djc in https://github.com/rust-lang/rustup/pull/4417
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4418
+* docs(user-guide/environment-variables): update description of `RUSTUP_IO_THREADS` by @rami3l in https://github.com/rust-lang/rustup/pull/4427
+* ci(macos): run x64 workflows with Rosetta 2 by @rami3l in https://github.com/rust-lang/rustup/pull/4428
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4430
+* Refactor the DownloadTracker in favor of `indicatif` by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4426
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4437
+* test: detach snapshots from component installation order by @rami3l in https://github.com/rust-lang/rustup/pull/4435
+* feat: improve error message for `rustup which` by @Bogay in https://github.com/rust-lang/rustup/pull/4429
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4441
+* Introduce `RUSTUP_DOWNLOAD_TIMEOUT` to override the download timeout by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4440
+* chore(deps): update actions/checkout action to v5 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4443
+* Justify the presence of an `.unwrap()` on getting the content of an `OnceLock` by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4444
+* Concurrently download components of a toolchain by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4436
+* Delete unnecessary Download(Pop/Push)Unit notifications by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4447
+* ci(check): make installation of `taplo-cli` faster by @AudaciousAxiom in https://github.com/rust-lang/rustup/pull/4449
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4451
+* Introduce `RUSTUP_CONCURRENT_DOWNLOADS` to control concurrency by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4450
+* chore(deps): disable default features for zstd by @klensy in https://github.com/rust-lang/rustup/pull/4453
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4456
+* Introduce a `Semaphore` to fully honor `RUSTUP_CONCURRENT_DOWNLOADS` by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4455
+* Treat empty environment variables as unset by @djc in https://github.com/rust-lang/rustup/pull/4422
+* Report the real elapsed time of a download instead of the cumulative time by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4460
+* Replace non_empty_env_var() with Process::var_opt() by @djc in https://github.com/rust-lang/rustup/pull/4461
+* feat(config): add support for `tcsh` shell by @cachebag in https://github.com/rust-lang/rustup/pull/4459
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4467
+* Correct `DownloadTracker` reporting on retries and failures by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4466
+* Remove hardcoded dependency to the master branch by @Kobzol in https://github.com/rust-lang/rustup/pull/4470
+* feat(install): warn if default linker (`cc`) is missing from PATH by @cachebag in https://github.com/rust-lang/rustup/pull/4469
+* chore(deps): update aws-actions/configure-aws-credentials action to v5 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4472
+* fix(cli/rustup_mode): use ASCII-compatible spinner by @rami3l in https://github.com/rust-lang/rustup/pull/4473
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4478
+* Upgrade windows crates by @djc in https://github.com/rust-lang/rustup/pull/4479
+* chore(deps/renovate): group version bumps for `windows-rs` crates by @rami3l in https://github.com/rust-lang/rustup/pull/4480
+* feat: adjust default concurrent download count by @rami3l in https://github.com/rust-lang/rustup/pull/4474
+* docs(README): link CI status badge to GitHub Actions panel by @rami3l in https://github.com/rust-lang/rustup/pull/4482
+* docs(dev-guide): mention the arg0 override trick on welcome page by @rami3l in https://github.com/rust-lang/rustup/pull/4484
+* chore(deps): lock file maintenance by @rami3l in https://github.com/rust-lang/rustup/pull/4486
+* Fix link in the bug reporting template by @LingMan in https://github.com/rust-lang/rustup/pull/4487
+* Remove unneeded paranthesees by @DasMatus in https://github.com/rust-lang/rustup/pull/4488
+* chore(deps): lock file maintenance by @rami3l in https://github.com/rust-lang/rustup/pull/4492
+* Further refactoring of self update logic by @djc in https://github.com/rust-lang/rustup/pull/4412
+* Simplify package unpacking code by @djc in https://github.com/rust-lang/rustup/pull/4490
+* refactor: remove redundant references by @rami3l in https://github.com/rust-lang/rustup/pull/4494
+* Simplify component downloads by @djc in https://github.com/rust-lang/rustup/pull/4489
+* Flatten notification enums by @djc in https://github.com/rust-lang/rustup/pull/4496
+* tests: deduplicate distribution installation tests by @djc in https://github.com/rust-lang/rustup/pull/4495
+* tests: use DistContext for dist::component tests by @djc in https://github.com/rust-lang/rustup/pull/4500
+* Start removing Notification variants by @djc in https://github.com/rust-lang/rustup/pull/4499
+* refactor: Remove unused ColorableTerminal::carriage_return by @epage in https://github.com/rust-lang/rustup/pull/4506
+* refactor: Switch logging to anstyle by @epage in https://github.com/rust-lang/rustup/pull/4507
+* Remove more Notification variants by @djc in https://github.com/rust-lang/rustup/pull/4501
+* ci: use macOS Intel runners by @djc in https://github.com/rust-lang/rustup/pull/4509
+* Upgrade opentelemetry dependencies by @djc in https://github.com/rust-lang/rustup/pull/4508
+* Move the default branch from `master` to `main` by @Kobzol in https://github.com/rust-lang/rustup/pull/4511
+* ci(docs): fix local doc branch name by @rami3l in https://github.com/rust-lang/rustup/pull/4512
+* Fix typo in clitools.rs comment by @smoelius in https://github.com/rust-lang/rustup/pull/4516
+* docs(changelog): describe default profile change during auto-install by @rami3l in https://github.com/rust-lang/rustup/pull/4515
+* fix(process): Ensure stdout/stderr lock is held across calls  by @epage in https://github.com/rust-lang/rustup/pull/4514
+* refactor: Simplify abstracted stdout/stderr by @epage in https://github.com/rust-lang/rustup/pull/4517
+* feat(cli/self-update): add support for PowerShell on Unix systems by @paxbun in https://github.com/rust-lang/rustup/pull/4519
+* Clean up terminal source usage by @djc in https://github.com/rust-lang/rustup/pull/4521
+* Remove more Notification variants (part 3) by @djc in https://github.com/rust-lang/rustup/pull/4510
+* Update platforms to 3.7.0 by @djc in https://github.com/rust-lang/rustup/pull/4524
+* Scope notifications to downloads only by @djc in https://github.com/rust-lang/rustup/pull/4526
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4530
+* fix(www): removes www subdomain from all rust-lang.org urls by @WilliamCollishaw in https://github.com/rust-lang/rustup/pull/4533
+* refactor: Replace termcolor with anstream by @epage in https://github.com/rust-lang/rustup/pull/4520
+* Download cleanup by @djc in https://github.com/rust-lang/rustup/pull/4531
+* Set `RUSTUP_TOOLCHAIN_SOURCE` by @smoelius in https://github.com/rust-lang/rustup/pull/4518
+* process: clean up more terminal stuff by @djc in https://github.com/rust-lang/rustup/pull/4538
+* style: Encourage using existing imports by @epage in https://github.com/rust-lang/rustup/pull/4540
+* refactor(log): Single source RUSTUP_TERM_COLOR by @epage in https://github.com/rust-lang/rustup/pull/4539
+* Update the default Windows SDK version by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4542
+* test: Replace trycmd with snapbox by @epage in https://github.com/rust-lang/rustup/pull/4536
+* Naming/miscellaneous cleanup by @djc in https://github.com/rust-lang/rustup/pull/4547
+* refactor(installation): extract installation of a component into a separate function by @rami3l in https://github.com/rust-lang/rustup/pull/4545
+* Expand `RUSTUP_TOOLCHAIN_SOURCE`'s documentation by @smoelius in https://github.com/rust-lang/rustup/pull/4549
+* config: clean up override handling by @djc in https://github.com/rust-lang/rustup/pull/4546
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4550
+* feat(cli): Add color to clap help/errors by @epage in https://github.com/rust-lang/rustup/pull/4551
+* Handle the progress reporting of installations through progress bars by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4552
+* style: Remove wildcard imports by @epage in https://github.com/rust-lang/rustup/pull/4553
+* feat(cli/help): discuss `rustup toolchain install` by @rami3l in https://github.com/rust-lang/rustup/pull/4554
+* fix(cli/help): change indentation of discussions to 2 spaces by @rami3l in https://github.com/rust-lang/rustup/pull/4555
+* cli: add `rustup self uninstall --no-modify-path` by @cyqsimon in https://github.com/rust-lang/rustup/pull/4534
+* fix: Use HEADER styling in 'rustup show'  by @epage in https://github.com/rust-lang/rustup/pull/4556
+* fix(check): Respect RUSTUP_TERM_COLOR  in `rustup check` by @epage in https://github.com/rust-lang/rustup/pull/4561
+* fix(update): Match 'cargo update's colors by @epage in https://github.com/rust-lang/rustup/pull/4557
+* fix(toolchain): Have 'list' match 'show's styling  by @epage in https://github.com/rust-lang/rustup/pull/4559
+* fix(list): Match show command's styling  by @epage in https://github.com/rust-lang/rustup/pull/4558
+* rustup: tweak update check output style by @djc in https://github.com/rust-lang/rustup/pull/4568
+* fix(cli/rustup-mode): add missing self-update in `rustup toolchain install` by @rami3l in https://github.com/rust-lang/rustup/pull/4566
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4569
+* chore(deps): update actions/upload-artifact action to v5 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4572
+* Simplify unpacking abstractions by @djc in https://github.com/rust-lang/rustup/pull/4573
+* fix(check): Use Cargo's colors by @epage in https://github.com/rust-lang/rustup/pull/4563
+* Apply suggestions from clippy 1.91 by @djc in https://github.com/rust-lang/rustup/pull/4578
+* Concurrent downloads & installation by @djc in https://github.com/rust-lang/rustup/pull/4570
+* Take semver-compatible dependencies by @djc in https://github.com/rust-lang/rustup/pull/4583
+* cli: avoid dropped temporary by @djc in https://github.com/rust-lang/rustup/pull/4584
+* dist: improve cohesion for downloads/installation by @djc in https://github.com/rust-lang/rustup/pull/4586
+* feat(rustup-mode): add `no_update` flag to `rustup toolchain install` by @nozwock in https://github.com/rust-lang/rustup/pull/4522
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4589
+* Be more consistent about aliases for different subcommands by @joshtriplett in https://github.com/rust-lang/rustup/pull/4588
+* dist: move update_from_dist() to DistOptions::install_into() by @djc in https://github.com/rust-lang/rustup/pull/4591
+* rustup: unhide top-level install/uninstall commands by @djc in https://github.com/rust-lang/rustup/pull/4592
+* dist: attach manifest download functions to DownloadCfg by @djc in https://github.com/rust-lang/rustup/pull/4593
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4596
+* chore(config): migrate Renovate config by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4597
+* Clarify installation process dependencies by @djc in https://github.com/rust-lang/rustup/pull/4599
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4601
+* Manifest names by @djc in https://github.com/rust-lang/rustup/pull/4600
+* Unpack progress by @djc in https://github.com/rust-lang/rustup/pull/4594
+* Fix refresh rate for progress bars by @djc in https://github.com/rust-lang/rustup/pull/4602
+* dist: align progress bar elements by @djc in https://github.com/rust-lang/rustup/pull/4604
+* dist: make installation asynchronous by @djc in https://github.com/rust-lang/rustup/pull/4605
+* Prepare for mdbook 0.5 migration by @ehuss in https://github.com/rust-lang/rustup/pull/4612
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4619
+* chore(deps): update actions/checkout action to v6 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4617
+* fix(utils): downgrade panic to warning in `delete_dir_contents_following_links()` by @rami3l in https://github.com/rust-lang/rustup/pull/4618
+* fix(dist/manifestation): print "downloading component" only on `InstallEvents` by @rami3l in https://github.com/rust-lang/rustup/pull/4625
+* fix(install): default to GNU host in Cygwin/MSYS/MinGW environments (#4421) by @cachebag in https://github.com/rust-lang/rustup/pull/4497
+* fix(dist/download): align `total_bytes` fields in progress reporting UI by @rami3l in https://github.com/rust-lang/rustup/pull/4629
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4630
+* feat: Added xonsh shell support by @anki-code in https://github.com/rust-lang/rustup/pull/4626
+* download: statically bundle relevant trust anchors by @djc in https://github.com/rust-lang/rustup/pull/4631
+
 ## [1.28.2] - 2025-05-05
 
 This new patch release has brought even more tiny fixes and improvements over the previous one.
