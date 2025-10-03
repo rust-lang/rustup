@@ -129,7 +129,7 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
 
 pub(crate) fn canonicalize_path(path: &Path) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| {
-        warn!(path = %path.display(), "could not canonicalize path");
+        warn!("could not canonicalize path {}", path.display());
         PathBuf::from(path)
     })
 }
@@ -407,7 +407,7 @@ pub fn rename(
                     // Permission denied, but as we work in users home dirs and
                     // running programs like virus scanner are known to cause this
                     // the heuristic is quite good.
-                    info!(source = %src.display(), destination = %dest.display(), "renaming file in use, retrying");
+                    info!("retrying renaming {} to {}", src.display(), dest.display());
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]

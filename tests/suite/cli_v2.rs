@@ -196,7 +196,7 @@ async fn default_existing_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: using existing install for 'nightly-[HOST_TRIPLE]'
+info: using existing install for nightly-[HOST_TRIPLE]
 ...
 "#]])
         .is_ok();
@@ -375,7 +375,7 @@ async fn remove_toolchain_ignore_trailing_slash() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: toolchain 'dev' uninstalled
+info: toolchain dev uninstalled
 ...
 "#]])
         .is_ok();
@@ -397,7 +397,7 @@ info: toolchain 'dev' uninstalled
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: toolchain 'nightly-[HOST_TRIPLE]' uninstalled
+info: toolchain nightly-[HOST_TRIPLE] uninstalled
 ...
 "#]])
         .is_ok();

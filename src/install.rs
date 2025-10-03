@@ -3,12 +3,12 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
+use tracing::debug;
 
 use crate::{
     config::Cfg,
     dist::{self, DistOptions, prefix::InstallPrefix},
     errors::RustupError,
-    notifications::Notification,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
 };
@@ -44,27 +44,26 @@ impl InstallMethod<'_> {
         let _ = rayon::ThreadPoolBuilder::new()
             .num_threads(self.cfg().process.io_thread_count()?)
             .build_global();
-        let nh = &self.cfg().notify_handler;
         match self {
             InstallMethod::Copy { .. }
             | InstallMethod::Link { .. }
             | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
-            }) => nh(Notification::InstallingToolchain(&self.dest_basename())),
-            _ => nh(Notification::UpdatingToolchain(&self.dest_basename())),
+            }) => debug!("installing toolchain {}", self.dest_basename()),
+            _ => debug!("updating existing install for '{}'", self.dest_basename()),
         }
 
-        nh(Notification::ToolchainDirectory(&self.dest_path()));
+        debug!("toolchain directory: {}", self.dest_path().display());
         let updated = self.run(&self.dest_path()).await?;
 
         let status = match updated {
             false => {
-                nh(Notification::UpdateHashMatches);
+                debug!("toolchain is already up to date");
                 UpdateStatus::Unchanged
             }
             true => {
-                nh(Notification::InstalledToolchain(&self.dest_basename()));
+                debug!("toolchain {} installed", self.dest_basename());
                 match self {
                     InstallMethod::Dist(DistOptions {
                         old_date_version: Some((_, v)),

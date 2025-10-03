@@ -322,7 +322,7 @@ async fn default_override() {
         .expect(["rustup", "default", "stable"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: using existing install for 'stable-[HOST_TRIPLE]'
+info: using existing install for stable-[HOST_TRIPLE]
 info: default toolchain set to stable-[HOST_TRIPLE]
 info: note that the toolchain 'nightly-[HOST_TRIPLE]' is currently in use (directory override for '[..]')
 
@@ -1729,7 +1729,7 @@ rustc-[HOST_TRIPLE]
         .await
         .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file)])
         .with_stderr(snapbox::str![[r#"
-info: using existing install for 'nightly-[HOST_TRIPLE]'
+info: using existing install for nightly-[HOST_TRIPLE]
 info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
 info: it's active because: overridden by '[TOOLCHAIN_FILE]'
 
@@ -3692,7 +3692,7 @@ async fn warn_on_duplicate_rust_toolchain_file() {
         .extend_redactions([("[CWD]", &cwd.canonicalize().unwrap())])
         .with_stderr(snapbox::str![[r#"
 ...
-warn: both `[CWD]/rust-toolchain` and `[CWD]/rust-toolchain.toml` exist. Using `[CWD]/rust-toolchain`
+warn: both [CWD]/rust-toolchain and [CWD]/rust-toolchain.toml exist; using contents of [CWD]/rust-toolchain
 ...
 "#]])
         .is_ok();

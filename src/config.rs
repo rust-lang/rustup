@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio_stream::StreamExt;
-use tracing::{error, info, trace};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::dist::AutoInstallMode;
 use crate::{
@@ -251,7 +251,7 @@ impl<'a> Cfg<'a> {
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         settings_file.with(|s| {
-            (notify_handler)(Notification::ReadMetadataVersion(s.version));
+            debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
                 Ok(())
             } else {
@@ -359,7 +359,7 @@ impl<'a> Cfg<'a> {
             s.profile = Some(profile);
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetProfile(profile.as_str()));
+        info!("profile set to {}", profile.as_str());
         Ok(())
     }
 
@@ -368,7 +368,7 @@ impl<'a> Cfg<'a> {
             s.auto_self_update = Some(mode);
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetSelfUpdate(mode.as_str()));
+        info!("auto-self-update mode set to {}", mode.as_str());
         Ok(())
     }
 
@@ -444,19 +444,20 @@ impl<'a> Cfg<'a> {
     pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version))?;
         if current_version == MetadataVersion::default() {
-            (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(current_version));
+            info!("nothing to upgrade: metadata version is already '{current_version}'");
             return Ok(());
         }
 
-        (self.notify_handler)(Notification::UpgradingMetadata(
-            current_version,
-            MetadataVersion::default(),
-        ));
-
+        info!(
+            "upgrading metadata version from {current_version} to {}",
+            MetadataVersion::default()
+        );
         match current_version {
             MetadataVersion::V2 => {
                 // The toolchain installation format changed. Just delete them all.
-                (self.notify_handler)(Notification::UpgradeRemovesToolchains);
+                warn!(
+                    "this upgrade will remove all existing toolchains; you will need to reinstall them"
+                );
 
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
@@ -570,7 +571,6 @@ impl<'a> Cfg<'a> {
         dir: &Path,
         settings: &Settings,
     ) -> Result<Option<(OverrideCfg, ActiveReason)>> {
-        let notify = self.notify_handler.as_ref();
         let mut dir = Some(dir);
 
         while let Some(d) = dir {
@@ -608,10 +608,17 @@ impl<'a> Cfg<'a> {
                 (Ok(contents), Ok(_)) => {
                     // both `rust-toolchain` and `rust-toolchain.toml` exist
 
-                    notify(Notification::DuplicateToolchainFile {
-                        rust_toolchain: &path_rust_toolchain,
-                        rust_toolchain_toml: &path_rust_toolchain_toml,
-                    });
+                    warn!(
+                        "both {} and {} exist; using contents of {0}",
+                        path_rust_toolchain
+                            .canonicalize()
+                            .unwrap_or_else(|_| PathBuf::from(&path_rust_toolchain))
+                            .display(),
+                        path_rust_toolchain_toml
+                            .canonicalize()
+                            .unwrap_or_else(|_| PathBuf::from(&path_rust_toolchain_toml))
+                            .display(),
+                    );
 
                     (path_rust_toolchain, Ok(contents), ParseMode::Both)
                 }
@@ -815,7 +822,7 @@ impl<'a> Cfg<'a> {
             force_non_host,
         )?;
         if verbose {
-            (self.notify_handler)(Notification::LookingForToolchain(toolchain));
+            debug!("looking for installed toolchain {toolchain}");
         }
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
@@ -837,7 +844,7 @@ impl<'a> Cfg<'a> {
             }
             Ok(mut distributable) => {
                 if verbose {
-                    (self.notify_handler)(Notification::UsingExistingToolchain(toolchain));
+                    info!("using existing install for {toolchain}");
                 }
                 let status = if !distributable.components_exist(&components, &targets)? {
                     distributable.update(&components, &targets, profile).await?
@@ -919,7 +926,7 @@ impl<'a> Cfg<'a> {
     /// Create an override for a toolchain
     pub(crate) fn make_override(&self, path: &Path, toolchain: &ToolchainName) -> Result<()> {
         self.settings_file.with_mut(|s| {
-            s.add_override(path, toolchain.to_string(), self.notify_handler.as_ref());
+            s.add_override(path, toolchain.to_string());
             Ok(())
         })
     }
