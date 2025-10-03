@@ -12,9 +12,9 @@ use std::{
 pub(crate) use termcolor::{Color, ColorChoice};
 use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
-use super::Process;
 #[cfg(feature = "test")]
 use super::filesource::{TestWriter, TestWriterLock};
+use super::Process;
 
 /// Select what stream to make a terminal on
 pub(super) enum StreamSelector {
@@ -194,6 +194,26 @@ impl ColorableTerminal {
     }
 }
 
+impl TerminalInner {
+    fn as_write(&mut self) -> &mut dyn io::Write {
+        match self {
+            TerminalInner::StandardStream(s, _) => s,
+            #[cfg(feature = "test")]
+            TerminalInner::TestWriter(w, _) => w,
+        }
+    }
+}
+
+impl TerminalInnerLocked {
+    fn as_write(&mut self) -> &mut dyn io::Write {
+        match self {
+            TerminalInnerLocked::StandardStream(s) => s,
+            #[cfg(feature = "test")]
+            TerminalInnerLocked::TestWriter(w) => w,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum Attr {
     Bold,
@@ -202,37 +222,23 @@ pub enum Attr {
 
 impl io::Write for ColorableTerminal {
     fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, io::Error> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, _) => s.write(buf),
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w, _) => w.write(buf),
-        }
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write(buf)
     }
 
     fn flush(&mut self) -> std::result::Result<(), io::Error> {
-        match self.inner.lock().unwrap().deref_mut() {
-            TerminalInner::StandardStream(s, _) => s.flush(),
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w, _) => w.flush(),
-        }
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().flush()
     }
 }
 
 impl io::Write for ColorableTerminalLocked {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match &mut self.locked {
-            TerminalInnerLocked::StandardStream(s) => s.write(buf),
-            #[cfg(feature = "test")]
-            TerminalInnerLocked::TestWriter(w) => w.write(buf),
-        }
+        self.locked.as_write().write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        match &mut self.locked {
-            TerminalInnerLocked::StandardStream(s) => s.flush(),
-            #[cfg(feature = "test")]
-            TerminalInnerLocked::TestWriter(w) => w.flush(),
-        }
+        self.locked.as_write().flush()
     }
 }
 
