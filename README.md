@@ -15,7 +15,7 @@ And it runs on all platforms Rust supports, including Windows.
 See [**The Rustup book**](https://rust-lang.github.io/rustup/) for
 documentation on installing and using Rustup.
 
-The latest documentation for the master branch can be found
+The latest documentation for the main branch can be found
 under [devel](https://rust-lang.github.io/rustup/devel/).
 
 ## Contributing
@@ -36,4 +36,4 @@ at your option.
 
 <!-- Badges -->
 [actions-default-branch]: https://github.com/rust-lang/rustup/actions/workflows/ci.yaml/badge.svg
-[actions-default-branch-status]: https://github.com/rust-lang/rustup/actions?query=branch%3Amaster
+[actions-default-branch-status]: https://github.com/rust-lang/rustup/actions?query=branch%3Amain

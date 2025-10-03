@@ -30,7 +30,7 @@ info: downloading self-update
 
 ## Keeping `rustup` up to date
 
-If your `rustup` was built with the [no-self-update feature](https://github.com/rust-lang/rustup/blob/master/Cargo.toml#L25), it can not update
+If your `rustup` was built with the [no-self-update feature](https://github.com/rust-lang/rustup/blob/HEAD/Cargo.toml#L25), it can not update
 itself. This is not the default, and only versions of `rustup` built with
 `--no-default-features`, or obtained from a third-party distributor who has
 disabled it (such as NixOS).

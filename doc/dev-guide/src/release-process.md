@@ -36,11 +36,11 @@ or an official [r]elease:
    2. Update `CHANGELOG.md` accordingly if necessary.
 2. [b/r] After merging the PR made in step 1, in a separate PR:
    1. Update the commit shasum in `rustup-init.sh` to match the latest commit
-      on `master`.
-3. [b/r] After merging the PR made in step 2, sync `master` to `stable` using
+      on `main`.
+3. [b/r] After merging the PR made in step 2, sync `main` to `stable` using
    `--ff-only`:
-   - `git fetch origin master:master`
-   - `git checkout stable && git merge --ff-only master`
+   - `git fetch origin main:main`
+   - `git checkout stable && git merge --ff-only main`
    - `git push origin HEAD:stable`
 4. [b/r] While you wait for green CI on `stable`, double-check the
    functionality of `rustup-init.sh` and `rustup-init` just in case.

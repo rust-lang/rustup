@@ -97,13 +97,13 @@ jobs: # skip-x86_64 skip-aarch64
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
       - name: Ensure that awscli is installed
-        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
         run: |
           brew install --overwrite awscli
           which aws
           aws --version
       - name: Prepare the dist
-        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
         run: |
           bash ci/prepare-deploy.bash
       - name: Deploy build to dev-static dist tree for release team
@@ -115,13 +115,13 @@ jobs: # skip-x86_64 skip-aarch64
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.mode == 'release'
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
       - name: Deploy build to rustup-builds bucket for release team
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.mode == 'release'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.mode == 'release'
         run: |
           aws --debug s3 cp --recursive deploy/ s3://rustup-builds/${{ github.sha }}
         env:

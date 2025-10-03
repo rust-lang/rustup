@@ -16,7 +16,7 @@ The source code of rustup and this manual may be found at
 
 Release notes for rustup may be found in the [CHANGELOG].
 
-[CHANGELOG]: https://github.com/rust-lang/rustup/blob/master/CHANGELOG.md
+[CHANGELOG]: https://github.com/rust-lang/rustup/blob/HEAD/CHANGELOG.md
 [concepts]: concepts/index.md
 [installation]: installation/index.md
 [issue tracker]: https://github.com/rust-lang/rustup/issues
