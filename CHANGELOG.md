@@ -31,6 +31,11 @@ The headlines of this release are:
 - Fixed a bug in Nushell integration that might generate invalid commands in the shell configuration.
   Reinstalling rustup might be required for the fix to work. [pr#4265]
 
+- The logic of fetching the active toolchain's profile has been adjusted in automatic installation.
+  Now, when the profile is not specified, the profile from `rustup override set profile` will be chosen
+  instead of the profile named `default`. This aligns with the behavior of `rustup toolchain install`.
+  [pr#4258]
+
 ### Detailed changes
 
 - Fix build script `cargo` instructions by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4235
@@ -64,6 +69,7 @@ The headlines of this release are:
 
 [1.28.2]: https://github.com/rust-lang/rustup/releases/tag/1.28.2
 [pr#4254]: https://github.com/rust-lang/rustup/pull/4254
+[pr#4258]: https://github.com/rust-lang/rustup/pull/4258
 [pr#4259]: https://github.com/rust-lang/rustup/pull/4259
 [pr#4265]: https://github.com/rust-lang/rustup/pull/4265
 [pr#4277]: https://github.com/rust-lang/rustup/pull/4277
