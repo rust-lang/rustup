@@ -1118,7 +1118,7 @@ where
     // - proxies themselves behave appropriately the proxied output needs to be
     //   collected for assertions to be made on it as our tests traverse layers.
     // - self update executions cannot run in-process because on windows the
-    //    process replacement dance would replace the test process.
+    //   process replacement dance would replace the test process.
     // - any command with --version in it is testing to see something was
     //   installed properly, so we have to shell out to it to be sure
     if name != "rustup" {
