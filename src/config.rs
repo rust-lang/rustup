@@ -102,6 +102,19 @@ pub(crate) enum ActiveReason {
     ToolchainFile(PathBuf),
 }
 
+impl ActiveReason {
+    /// Format `ActiveReason` for setting the `RUSTUP_TOOLCHAIN_SOURCE` environment variable.
+    pub fn to_source(&self) -> &str {
+        match self {
+            Self::Default => "default",
+            Self::Environment => "env",
+            Self::CommandLine => "cli",
+            Self::OverrideDB(_) => "path-override",
+            Self::ToolchainFile(_) => "toolchain-file",
+        }
+    }
+}
+
 impl Display for ActiveReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
