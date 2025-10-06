@@ -1,4 +1,4 @@
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -108,6 +108,18 @@ impl ActiveSource {
             Self::OverrideDB(path) => format!("directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => format!("overridden by '{}'", path.display()),
         }
+    }
+}
+
+impl Display for ActiveSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Default => "default",
+            Self::Environment => "env",
+            Self::CommandLine => "cli",
+            Self::OverrideDB(_) => "path-override",
+            Self::ToolchainFile(_) => "toolchain-file",
+        })
     }
 }
 

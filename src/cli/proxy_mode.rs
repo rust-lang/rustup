@@ -5,6 +5,7 @@ use anyhow::Result;
 use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
+    config::ActiveSource,
     process::Process,
     toolchain::ResolvableLocalToolchainName,
 };
@@ -24,6 +25,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .filter(|arg| arg.starts_with('+'))
         .map(|name| ResolvableLocalToolchainName::try_from(&name.as_ref()[1..]))
         .transpose()?;
+    let toolchain_specified = toolchain.is_some();
 
     // Build command args now while we know whether or not to skip arg 1.
     let cmd_args: Vec<_> = process
@@ -32,9 +34,15 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .collect();
 
     let cfg = set_globals(current_dir, true, process)?;
-    let cmd = cfg
-        .resolve_local_toolchain(toolchain)
-        .await?
-        .command(arg0)?;
+    let toolchain = cfg.resolve_local_toolchain(toolchain).await?;
+    let mut cmd = toolchain.command(arg0)?;
+    if toolchain_specified {
+        cmd.env(
+            "RUSTUP_TOOLCHAIN_SOURCE",
+            ActiveSource::CommandLine.to_string(),
+        );
+    } else if let Ok(Some((_, source))) = cfg.active_toolchain() {
+        cmd.env("RUSTUP_TOOLCHAIN_SOURCE", source.to_string());
+    }
     run_command_for_dir(cmd, arg0, &cmd_args)
 }
