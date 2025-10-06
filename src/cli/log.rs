@@ -54,7 +54,7 @@ where
         Ok(s) if s.eq_ignore_ascii_case("never") => false,
         // `RUSTUP_TERM_COLOR` is prioritized over `NO_COLOR`.
         _ if process.var("NO_COLOR").is_ok() => false,
-        _ => process.stderr().is_a_tty(process),
+        _ => process.stderr().is_a_tty(),
     };
     let maybe_rustup_log_directives = process.var("RUSTUP_LOG");
     let process = process.clone();

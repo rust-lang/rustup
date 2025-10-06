@@ -244,7 +244,7 @@ fn show_channel_updates(
         Ok((pkg, banner, width, color, version, previous_version))
     });
 
-    let mut t = cfg.process.stdout().terminal(cfg.process);
+    let mut t = cfg.process.stdout();
 
     let data: Vec<_> = data.collect::<Result<_>>()?;
     let max_width = data
@@ -307,7 +307,7 @@ pub(super) fn list_items(
     quiet: bool,
     process: &Process,
 ) -> Result<utils::ExitCode> {
-    let mut t = process.stdout().terminal(process);
+    let mut t = process.stdout();
     for (name, installed) in items {
         if installed && !installed_only && !quiet {
             t.attr(terminalsource::Attr::Bold)?;

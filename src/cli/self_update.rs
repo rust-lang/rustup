@@ -537,7 +537,7 @@ pub(crate) async fn install(
         exit_code &= unix::do_anti_sudo_check(no_prompt, process)?;
     }
 
-    let mut term = process.stdout().terminal(process);
+    let mut term = process.stdout();
 
     #[cfg(windows)]
     windows::maybe_install_msvc(&mut term, no_prompt, quiet, &opts, process).await?;
@@ -991,7 +991,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
             pre_uninstall_msg!(),
             cargo_home = canonical_cargo_home(process)?
         );
-        md(&mut process.stdout().terminal(process), msg);
+        md(&mut process.stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false, process)? {
             info!("aborting uninstallation");
             return Ok(utils::ExitCode(0));
@@ -1347,7 +1347,7 @@ impl fmt::Display for SchemaVersion {
 
 /// Returns whether an update was available
 pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<bool> {
-    let mut t = process.stdout().terminal(process);
+    let mut t = process.stdout();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 

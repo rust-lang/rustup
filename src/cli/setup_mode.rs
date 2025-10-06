@@ -97,6 +97,7 @@ pub async fn main(
     } = match RustupInit::try_parse() {
         Ok(args) => args,
         Err(e) if [ErrorKind::DisplayHelp, ErrorKind::DisplayVersion].contains(&e.kind()) => {
+            use std::io::Write as _;
             write!(process.stdout().lock(), "{e}")?;
             return Ok(utils::ExitCode(0));
         }

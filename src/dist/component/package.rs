@@ -456,6 +456,7 @@ fn unpack_without_first_dir<R: Read>(
                 None => {
                     // Tar has item before containing directory
                     // Complain about this so we can see if these exist.
+                    use std::io::Write as _;
                     writeln!(
                         cx.process.stderr().lock(),
                         "Unexpected: missing parent '{}' for '{}'",
