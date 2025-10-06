@@ -797,7 +797,7 @@ async fn default_(
 }
 
 async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
-    let t = cfg.process.stdout().terminal(cfg.process);
+    let t = cfg.process.stdout();
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
     let channels = cfg.list_channels()?;
@@ -890,7 +890,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
                 .await
         };
 
-        let t = cfg.process.stdout().terminal(cfg.process);
+        let t = cfg.process.stdout();
         for result in channels {
             let (update_a, message) = result?;
             if update_a {
@@ -1072,7 +1072,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     // Print host triple
     {
-        let mut t = cfg.process.stdout().terminal(cfg.process);
+        let mut t = cfg.process.stdout();
         t.attr(terminalsource::Attr::Bold)?;
         write!(t.lock(), "Default host: ")?;
         t.reset()?;
@@ -1081,7 +1081,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     // Print rustup home directory
     {
-        let mut t = cfg.process.stdout().terminal(cfg.process);
+        let mut t = cfg.process.stdout();
         t.attr(terminalsource::Attr::Bold)?;
         write!(t.lock(), "rustup home:  ")?;
         t.reset()?;
@@ -1121,7 +1121,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     // show installed toolchains
     {
-        let mut t = cfg.process.stdout().terminal(cfg.process);
+        let mut t = cfg.process.stdout();
 
         print_header::<Error>(&mut t, "installed toolchains")?;
 
@@ -1157,7 +1157,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
     // show active toolchain
     {
-        let mut t = cfg.process.stdout().terminal(cfg.process);
+        let mut t = cfg.process.stdout();
 
         writeln!(t.lock())?;
 

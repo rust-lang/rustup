@@ -148,19 +148,25 @@ impl Process {
         }
     }
 
-    pub(crate) fn stdout(&self) -> Box<dyn filesource::Writer> {
+    pub(crate) fn stdout(&self) -> terminalsource::ColorableTerminal {
         match self {
-            Process::OsProcess(_) => Box::new(io::stdout()),
+            Process::OsProcess(_) => terminalsource::ColorableTerminal::stdout(self),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stdout.clone())),
+            Process::TestProcess(p) => terminalsource::ColorableTerminal::test(
+                filesource::TestWriter(p.stdout.clone()),
+                self,
+            ),
         }
     }
 
-    pub(crate) fn stderr(&self) -> Box<dyn filesource::Writer> {
+    pub(crate) fn stderr(&self) -> terminalsource::ColorableTerminal {
         match self {
-            Process::OsProcess(_) => Box::new(io::stderr()),
+            Process::OsProcess(_) => terminalsource::ColorableTerminal::stderr(self),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Box::new(filesource::TestWriter(p.stderr.clone())),
+            Process::TestProcess(p) => terminalsource::ColorableTerminal::test(
+                filesource::TestWriter(p.stderr.clone()),
+                self,
+            ),
         }
     }
 
@@ -178,7 +184,7 @@ impl Process {
             #[cfg(feature = "test")]
             Process::TestProcess(_) => return ProgressDrawTarget::hidden(),
         }
-        let t = self.stdout().terminal(self);
+        let t = self.stdout();
         match self.var("RUSTUP_TERM_PROGRESS_WHEN") {
             Ok(s) if s.eq_ignore_ascii_case("always") => ProgressDrawTarget::term_like(Box::new(t)),
             Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
