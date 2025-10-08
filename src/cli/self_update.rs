@@ -401,6 +401,7 @@ This is usually done by running one of the following (note the leading DOT):
     source "{cargo_home}/env.fish"  # For fish
     source $"{cargo_home_nushell}/env.nu"  # For nushell
     source "{cargo_home}/env.tcsh"  # For tcsh
+    . "{cargo_home}/env.ps1"        # For pwsh
 "#
     };
 }
