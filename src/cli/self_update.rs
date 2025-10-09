@@ -61,7 +61,7 @@ use crate::{
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
-    process::{Process, terminalsource},
+    process::{Process, terminal_source},
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
@@ -1355,17 +1355,17 @@ pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<boo
     // Get available rustup version
     let available_version = get_available_rustup_version(process).await?;
 
-    let _ = t.attr(terminalsource::Attr::Bold);
+    let _ = t.attr(terminal_source::Attr::Bold);
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(terminalsource::Color::Yellow);
+        let _ = t.fg(terminal_source::Color::Yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version} -> {available_version}")?;
         true
     } else {
-        let _ = t.fg(terminalsource::Color::Green);
+        let _ = t.fg(terminal_source::Color::Green);
         write!(t.lock(), "Up to date")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version}")?;
