@@ -1121,7 +1121,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     {
         let mut t = cfg.process.stdout();
 
-        print_header::<Error>(&mut t, "installed toolchains")?;
+        print_header(&mut t, "installed toolchains")?;
 
         let default_toolchain_name = cfg.get_default()?;
         let last_index = installed_toolchains.len().wrapping_sub(1);
@@ -1159,7 +1159,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
         writeln!(t.lock())?;
 
-        print_header::<Error>(&mut t, "active toolchain")?;
+        print_header(&mut t, "active toolchain")?;
 
         match active_toolchain_and_reason {
             Some((active_toolchain_name, active_reason)) => {
@@ -1188,10 +1188,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         }
     }
 
-    fn print_header<E>(t: &mut ColorableTerminal, s: &str) -> Result<(), E>
-    where
-        E: From<io::Error>,
-    {
+    fn print_header(t: &mut ColorableTerminal, s: &str) -> Result<(), Error> {
         t.attr(Attr::Bold)?;
         {
             let mut term_lock = t.lock();
