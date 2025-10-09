@@ -20,7 +20,7 @@ use crate::{
     errors::RustupError,
     install::UpdateStatus,
     notifications::Notification,
-    process::{Process, terminalsource},
+    process::{Process, terminal_source},
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
     utils::{self, notify::NotificationLevel},
 };
@@ -203,10 +203,10 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
         let (banner, color) = match &result {
-            Ok(UpdateStatus::Installed) => ("installed", Some(terminalsource::Color::Green)),
-            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminalsource::Color::Green)),
+            Ok(UpdateStatus::Installed) => ("installed", Some(terminal_source::Color::Green)),
+            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminal_source::Color::Green)),
             Ok(UpdateStatus::Unchanged) => ("unchanged", None),
-            Err(_) => ("update failed", Some(terminalsource::Color::Red)),
+            Err(_) => ("update failed", Some(terminal_source::Color::Red)),
         };
 
         let (previous_version, version) = match &pkg {
@@ -255,7 +255,7 @@ fn show_channel_updates(
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
         let _ = write!(t.lock(), "  {padding}");
-        let _ = t.attr(terminalsource::Attr::Bold);
+        let _ = t.attr(terminal_source::Attr::Bold);
         if let Some(color) = color {
             let _ = t.fg(color);
         }
@@ -310,7 +310,7 @@ pub(super) fn list_items(
     let mut t = process.stdout();
     for (name, installed) in items {
         if installed && !installed_only && !quiet {
-            t.attr(terminalsource::Attr::Bold)?;
+            t.attr(terminal_source::Attr::Bold)?;
             writeln!(t.lock(), "{name} (installed)")?;
             t.reset()?;
         } else if installed || !installed_only {

@@ -27,7 +27,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 use crate::cli::log;
 
 pub mod file_source;
-pub mod terminalsource;
+pub mod terminal_source;
 
 /// Allows concrete types for the process abstraction.
 #[derive(Clone, Debug)]
@@ -148,22 +148,22 @@ impl Process {
         }
     }
 
-    pub(crate) fn stdout(&self) -> terminalsource::ColorableTerminal {
+    pub(crate) fn stdout(&self) -> terminal_source::ColorableTerminal {
         match self {
-            Process::OsProcess(_) => terminalsource::ColorableTerminal::stdout(self),
+            Process::OsProcess(_) => terminal_source::ColorableTerminal::stdout(self),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => terminalsource::ColorableTerminal::test(
+            Process::TestProcess(p) => terminal_source::ColorableTerminal::test(
                 file_source::TestWriter(p.stdout.clone()),
                 self,
             ),
         }
     }
 
-    pub(crate) fn stderr(&self) -> terminalsource::ColorableTerminal {
+    pub(crate) fn stderr(&self) -> terminal_source::ColorableTerminal {
         match self {
-            Process::OsProcess(_) => terminalsource::ColorableTerminal::stderr(self),
+            Process::OsProcess(_) => terminal_source::ColorableTerminal::stderr(self),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => terminalsource::ColorableTerminal::test(
+            Process::TestProcess(p) => terminal_source::ColorableTerminal::test(
                 file_source::TestWriter(p.stderr.clone()),
                 self,
             ),

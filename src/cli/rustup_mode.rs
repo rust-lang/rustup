@@ -39,7 +39,7 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{
         Process,
-        terminalsource::{self, ColorChoice, ColorableTerminal},
+        terminal_source::{self, ColorChoice, ColorableTerminal},
     },
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName,
@@ -1073,7 +1073,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     // Print host triple
     {
         let mut t = cfg.process.stdout();
-        t.attr(terminalsource::Attr::Bold)?;
+        t.attr(terminal_source::Attr::Bold)?;
         write!(t.lock(), "Default host: ")?;
         t.reset()?;
         writeln!(t.lock(), "{}", cfg.get_default_host_triple()?)?;
@@ -1082,7 +1082,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     // Print rustup home directory
     {
         let mut t = cfg.process.stdout();
-        t.attr(terminalsource::Attr::Bold)?;
+        t.attr(terminal_source::Attr::Bold)?;
         write!(t.lock(), "rustup home:  ")?;
         t.reset()?;
         writeln!(t.lock(), "{}", cfg.rustup_dir.display())?;
@@ -1194,7 +1194,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     where
         E: From<io::Error>,
     {
-        t.attr(terminalsource::Attr::Bold)?;
+        t.attr(terminal_source::Attr::Bold)?;
         {
             let mut term_lock = t.lock();
             writeln!(term_lock, "{s}")?;
