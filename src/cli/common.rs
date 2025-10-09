@@ -21,7 +21,7 @@ use crate::{
     errors::RustupError,
     install::UpdateStatus,
     notifications::Notification,
-    process::{Process, terminal_source},
+    process::{Attr, Process},
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
     utils::{self, notify::NotificationLevel},
 };
@@ -256,7 +256,7 @@ fn show_channel_updates(
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
         let _ = write!(t.lock(), "  {padding}");
-        let _ = t.attr(terminal_source::Attr::Bold);
+        let _ = t.attr(Attr::Bold);
         if let Some(color) = color {
             let _ = t.fg(color);
         }
@@ -311,7 +311,7 @@ pub(super) fn list_items(
     let mut t = process.stdout();
     for (name, installed) in items {
         if installed && !installed_only && !quiet {
-            t.attr(terminal_source::Attr::Bold)?;
+            t.attr(Attr::Bold)?;
             writeln!(t.lock(), "{name} (installed)")?;
             t.reset()?;
         } else if installed || !installed_only {

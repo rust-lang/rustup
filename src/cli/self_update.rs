@@ -50,7 +50,6 @@ use serde::{Deserialize, Serialize};
 use termcolor::Color;
 use tracing::{error, info, trace, warn};
 
-use crate::download::download_file;
 use crate::{
     DUP_TOOLS, TOOLS,
     cli::{
@@ -60,9 +59,10 @@ use crate::{
     },
     config::Cfg,
     dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
+    download::download_file,
     errors::RustupError,
     install::UpdateStatus,
-    process::{Process, terminal_source},
+    process::{Attr, Process},
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
@@ -1355,7 +1355,7 @@ pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<boo
     // Get available rustup version
     let available_version = get_available_rustup_version(process).await?;
 
-    let _ = t.attr(terminal_source::Attr::Bold);
+    let _ = t.attr(Attr::Bold);
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
