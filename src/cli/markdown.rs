@@ -4,7 +4,7 @@ use std::io::Write;
 use pulldown_cmark::{Event, Tag, TagEnd};
 use termcolor::Color;
 
-use crate::process::terminal_source::{Attr, ColorableTerminal};
+use crate::process::{Attr, ColorableTerminal};
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a> {

@@ -26,8 +26,9 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 #[cfg(all(feature = "test", feature = "otel"))]
 use crate::cli::log;
 
-pub mod file_source;
-pub mod terminal_source;
+mod file_source;
+mod terminal_source;
+pub use terminal_source::{Attr, ColorableTerminal};
 
 /// Allows concrete types for the process abstraction.
 #[derive(Clone, Debug)]
