@@ -17,6 +17,7 @@ use console::style;
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
+use termcolor::ColorChoice;
 use tokio::sync::Semaphore;
 use tracing::{info, trace, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -39,7 +40,7 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{
         Process,
-        terminal_source::{self, ColorChoice, ColorableTerminal},
+        terminal_source::{self, ColorableTerminal},
     },
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName,
