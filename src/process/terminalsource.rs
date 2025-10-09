@@ -14,7 +14,7 @@ use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
 #[cfg(feature = "test")]
-use super::filesource::{TestWriter, TestWriterLock};
+use super::file_source::{TestWriter, TestWriterLock};
 
 /// A colorable terminal that can be written to
 pub struct ColorableTerminal {

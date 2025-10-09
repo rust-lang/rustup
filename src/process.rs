@@ -26,7 +26,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 #[cfg(all(feature = "test", feature = "otel"))]
 use crate::cli::log;
 
-pub mod filesource;
+pub mod file_source;
 pub mod terminalsource;
 
 /// Allows concrete types for the process abstraction.
@@ -140,11 +140,11 @@ impl Process {
         }
     }
 
-    pub(crate) fn stdin(&self) -> Box<dyn filesource::Stdin> {
+    pub(crate) fn stdin(&self) -> Box<dyn file_source::Stdin> {
         match self {
             Process::OsProcess(_) => Box::new(io::stdin()),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Box::new(filesource::TestStdin(p.stdin.clone())),
+            Process::TestProcess(p) => Box::new(file_source::TestStdin(p.stdin.clone())),
         }
     }
 
@@ -153,7 +153,7 @@ impl Process {
             Process::OsProcess(_) => terminalsource::ColorableTerminal::stdout(self),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => terminalsource::ColorableTerminal::test(
-                filesource::TestWriter(p.stdout.clone()),
+                file_source::TestWriter(p.stdout.clone()),
                 self,
             ),
         }
@@ -164,7 +164,7 @@ impl Process {
             Process::OsProcess(_) => terminalsource::ColorableTerminal::stderr(self),
             #[cfg(feature = "test")]
             Process::TestProcess(p) => terminalsource::ColorableTerminal::test(
-                filesource::TestWriter(p.stderr.clone()),
+                file_source::TestWriter(p.stderr.clone()),
                 self,
             ),
         }
@@ -330,7 +330,7 @@ pub struct TestContext {
     pub cwd: PathBuf,
     args: Vec<String>,
     vars: HashMap<String, String>,
-    stdin: filesource::TestStdinInner,
-    stdout: filesource::TestWriterInner,
-    stderr: filesource::TestWriterInner,
+    stdin: file_source::TestStdinInner,
+    stdout: file_source::TestWriterInner,
+    stderr: file_source::TestWriterInner,
 }
