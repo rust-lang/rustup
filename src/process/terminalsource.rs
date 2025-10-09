@@ -16,37 +16,6 @@ use super::Process;
 #[cfg(feature = "test")]
 use super::filesource::{TestWriter, TestWriterLock};
 
-/// Select what stream to make a terminal on
-pub(super) enum StreamSelector {
-    Stdout,
-    Stderr,
-    #[cfg(feature = "test")]
-    TestWriter(TestWriter),
-    #[cfg(all(test, feature = "test"))]
-    TestTtyWriter(TestWriter),
-}
-
-impl StreamSelector {
-    fn is_a_tty(&self, process: &Process) -> bool {
-        match self {
-            StreamSelector::Stdout => match process {
-                Process::OsProcess(p) => p.stdout_is_a_tty,
-                #[cfg(feature = "test")]
-                Process::TestProcess(_) => unreachable!(),
-            },
-            StreamSelector::Stderr => match process {
-                Process::OsProcess(p) => p.stderr_is_a_tty,
-                #[cfg(feature = "test")]
-                Process::TestProcess(_) => unreachable!(),
-            },
-            #[cfg(feature = "test")]
-            StreamSelector::TestWriter(_) => false,
-            #[cfg(all(test, feature = "test"))]
-            StreamSelector::TestTtyWriter(_) => true,
-        }
-    }
-}
-
 /// A colorable terminal that can be written to
 pub struct ColorableTerminal {
     // TermColor uses a lifetime on locked variants, but the API we want to
@@ -59,48 +28,6 @@ pub struct ColorableTerminal {
     is_a_tty: bool,
     color_choice: ColorChoice,
     width: Option<NonZero<u16>>,
-}
-
-/// Internal state for ColorableTerminal
-enum TerminalInner {
-    StandardStream(StandardStream, ColorSpec),
-    #[cfg(feature = "test")]
-    #[allow(dead_code)] // ColorChoice only read in test code
-    TestWriter(TestWriter, ColorChoice),
-}
-
-impl TerminalInner {
-    fn as_write(&mut self) -> &mut dyn io::Write {
-        match self {
-            TerminalInner::StandardStream(s, _) => s,
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w, _) => w,
-        }
-    }
-}
-
-pub struct ColorableTerminalLocked {
-    // Must drop the lock before the guard, as the guard borrows from inner.
-    locked: TerminalInnerLocked,
-    // must drop the guard before inner as the guard borrows from  inner.
-    guard: MutexGuard<'static, TerminalInner>,
-    inner: Arc<Mutex<TerminalInner>>,
-}
-
-enum TerminalInnerLocked {
-    StandardStream(StandardStreamLock<'static>),
-    #[cfg(feature = "test")]
-    TestWriter(TestWriterLock<'static>),
-}
-
-impl TerminalInnerLocked {
-    fn as_write(&mut self) -> &mut dyn io::Write {
-        match self {
-            TerminalInnerLocked::StandardStream(s) => s,
-            #[cfg(feature = "test")]
-            TerminalInnerLocked::TestWriter(w) => w,
-        }
-    }
 }
 
 impl ColorableTerminal {
@@ -227,61 +154,6 @@ impl ColorableTerminal {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum Attr {
-    Bold,
-    ForegroundColor(Color),
-}
-
-impl io::Write for ColorableTerminal {
-    fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, io::Error> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write(buf)
-    }
-
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write_vectored(bufs)
-    }
-
-    fn flush(&mut self) -> std::result::Result<(), io::Error> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().flush()
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write_all(buf)
-    }
-
-    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write_fmt(args)
-    }
-}
-
-impl io::Write for ColorableTerminalLocked {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.locked.as_write().write(buf)
-    }
-
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        self.locked.as_write().write_vectored(bufs)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.locked.as_write().flush()
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        self.locked.as_write().write_all(buf)
-    }
-
-    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
-        self.locked.as_write().write_fmt(args)
-    }
-}
-
 impl TermLike for ColorableTerminal {
     fn width(&self) -> u16 {
         match self.width {
@@ -354,10 +226,138 @@ impl TermLike for ColorableTerminal {
     }
 }
 
+impl io::Write for ColorableTerminal {
+    fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, io::Error> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write(buf)
+    }
+
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write_vectored(bufs)
+    }
+
+    fn flush(&mut self) -> std::result::Result<(), io::Error> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().flush()
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write_all(buf)
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+        let mut locked = self.inner.lock().unwrap();
+        locked.deref_mut().as_write().write_fmt(args)
+    }
+}
+
 impl std::fmt::Debug for ColorableTerminal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ColorableTerminal {{ inner: ... }}")
     }
+}
+
+pub struct ColorableTerminalLocked {
+    // Must drop the lock before the guard, as the guard borrows from inner.
+    locked: TerminalInnerLocked,
+    // must drop the guard before inner as the guard borrows from  inner.
+    guard: MutexGuard<'static, TerminalInner>,
+    inner: Arc<Mutex<TerminalInner>>,
+}
+
+impl io::Write for ColorableTerminalLocked {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.locked.as_write().write(buf)
+    }
+
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+        self.locked.as_write().write_vectored(bufs)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.locked.as_write().flush()
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        self.locked.as_write().write_all(buf)
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+        self.locked.as_write().write_fmt(args)
+    }
+}
+
+enum TerminalInnerLocked {
+    StandardStream(StandardStreamLock<'static>),
+    #[cfg(feature = "test")]
+    TestWriter(TestWriterLock<'static>),
+}
+
+impl TerminalInnerLocked {
+    fn as_write(&mut self) -> &mut dyn io::Write {
+        match self {
+            TerminalInnerLocked::StandardStream(s) => s,
+            #[cfg(feature = "test")]
+            TerminalInnerLocked::TestWriter(w) => w,
+        }
+    }
+}
+
+/// Internal state for ColorableTerminal
+enum TerminalInner {
+    StandardStream(StandardStream, ColorSpec),
+    #[cfg(feature = "test")]
+    #[allow(dead_code)] // ColorChoice only read in test code
+    TestWriter(TestWriter, ColorChoice),
+}
+
+impl TerminalInner {
+    fn as_write(&mut self) -> &mut dyn io::Write {
+        match self {
+            TerminalInner::StandardStream(s, _) => s,
+            #[cfg(feature = "test")]
+            TerminalInner::TestWriter(w, _) => w,
+        }
+    }
+}
+
+/// Select what stream to make a terminal on
+pub(super) enum StreamSelector {
+    Stdout,
+    Stderr,
+    #[cfg(feature = "test")]
+    TestWriter(TestWriter),
+    #[cfg(all(test, feature = "test"))]
+    TestTtyWriter(TestWriter),
+}
+
+impl StreamSelector {
+    fn is_a_tty(&self, process: &Process) -> bool {
+        match self {
+            StreamSelector::Stdout => match process {
+                Process::OsProcess(p) => p.stdout_is_a_tty,
+                #[cfg(feature = "test")]
+                Process::TestProcess(_) => unreachable!(),
+            },
+            StreamSelector::Stderr => match process {
+                Process::OsProcess(p) => p.stderr_is_a_tty,
+                #[cfg(feature = "test")]
+                Process::TestProcess(_) => unreachable!(),
+            },
+            #[cfg(feature = "test")]
+            StreamSelector::TestWriter(_) => false,
+            #[cfg(all(test, feature = "test"))]
+            StreamSelector::TestTtyWriter(_) => true,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Attr {
+    Bold,
+    ForegroundColor(Color),
 }
 
 #[cfg(test)]
