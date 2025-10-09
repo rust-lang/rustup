@@ -47,6 +47,7 @@ use clap::builder::PossibleValue;
 use itertools::Itertools;
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
+use termcolor::Color;
 use tracing::{error, info, trace, warn};
 
 use crate::download::download_file;
@@ -1359,13 +1360,13 @@ pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<boo
     write!(t.lock(), "rustup - ")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(terminal_source::Color::Yellow);
+        let _ = t.fg(Color::Yellow);
         write!(t.lock(), "Update available")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version} -> {available_version}")?;
         true
     } else {
-        let _ = t.fg(terminal_source::Color::Green);
+        let _ = t.fg(Color::Green);
         write!(t.lock(), "Up to date")?;
         let _ = t.reset();
         writeln!(t.lock(), " : {current_version}")?;

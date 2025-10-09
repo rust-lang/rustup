@@ -9,8 +9,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-pub(crate) use termcolor::{Color, ColorChoice};
-use termcolor::{ColorSpec, StandardStream, StandardStreamLock, WriteColor};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
 use super::Process;
 #[cfg(feature = "test")]
