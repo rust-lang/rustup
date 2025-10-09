@@ -1070,23 +1070,29 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
+    let bold = terminalsource::Style::new().bold();
+
     // Print host triple
     {
-        let mut t = cfg.process.stdout();
-        t.attr(terminalsource::Attr::Bold)?;
-        write!(t.lock(), "Default host: ")?;
-        t.reset()?;
-        writeln!(t.lock(), "{}", cfg.get_default_host_triple()?)?;
+        let t = cfg.process.stdout();
+        let mut t = t.lock();
+        writeln!(
+            t,
+            "{bold}Default host: {bold:#}{}",
+            cfg.get_default_host_triple()?
+        )?;
     }
 
     // Print rustup home directory
     {
-        let mut t = cfg.process.stdout();
-        t.attr(terminalsource::Attr::Bold)?;
-        write!(t.lock(), "rustup home:  ")?;
-        t.reset()?;
-        writeln!(t.lock(), "{}", cfg.rustup_dir.display())?;
-        writeln!(t.lock())?;
+        let t = cfg.process.stdout();
+        let mut t = t.lock();
+        writeln!(
+            t,
+            "{bold}rustup home:  {bold:#}{}",
+            cfg.rustup_dir.display()
+        )?;
+        writeln!(t)?;
     }
 
     let installed_toolchains = cfg.list_toolchains()?;
@@ -1190,17 +1196,15 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         }
     }
 
-    fn print_header<E>(t: &mut ColorableTerminal, s: &str) -> Result<(), E>
+    fn print_header<E>(t: &mut ColorableTerminal, text: &str) -> Result<(), E>
     where
         E: From<io::Error>,
     {
-        t.attr(terminalsource::Attr::Bold)?;
-        {
-            let mut term_lock = t.lock();
-            writeln!(term_lock, "{s}")?;
-            writeln!(term_lock, "{}", "-".repeat(s.len()))?;
-        } // drop the term_lock
-        t.reset()?;
+        let bold = terminalsource::Style::new().bold();
+        let divider = "-".repeat(text.len());
+        let mut term_lock = t.lock();
+        writeln!(term_lock, "{bold}{text}{bold:#}")?;
+        writeln!(term_lock, "{bold}{divider}{bold:#}")?;
         Ok(())
     }
 

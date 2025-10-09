@@ -203,10 +203,10 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
         let (banner, color) = match &result {
-            Ok(UpdateStatus::Installed) => ("installed", Some(terminalsource::Color::Green)),
-            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminalsource::Color::Green)),
+            Ok(UpdateStatus::Installed) => ("installed", Some(terminalsource::AnsiColor::Green)),
+            Ok(UpdateStatus::Updated(_)) => ("updated", Some(terminalsource::AnsiColor::Green)),
             Ok(UpdateStatus::Unchanged) => ("unchanged", None),
-            Err(_) => ("update failed", Some(terminalsource::Color::Red)),
+            Err(_) => ("update failed", Some(terminalsource::AnsiColor::Red)),
         };
 
         let (previous_version, version) = match &pkg {
@@ -244,7 +244,8 @@ fn show_channel_updates(
         Ok((pkg, banner, width, color, version, previous_version))
     });
 
-    let mut t = cfg.process.stdout();
+    let t = cfg.process.stdout();
+    let mut t = t.lock();
 
     let data: Vec<_> = data.collect::<Result<_>>()?;
     let max_width = data
@@ -254,20 +255,19 @@ fn show_channel_updates(
     for (pkg, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
-        let _ = write!(t.lock(), "  {padding}");
-        let _ = t.attr(terminalsource::Attr::Bold);
-        if let Some(color) = color {
-            let _ = t.fg(color);
+        let style = if let Some(color) = color {
+            color.on_default()
+        } else {
+            terminalsource::Style::new()
         }
-        let _ = write!(t.lock(), "{pkg} {banner}");
-        let _ = t.reset();
-        let _ = write!(t.lock(), " - {version}");
+        .bold();
+        let _ = write!(t, "  {padding}{style}{pkg} {banner}{style:#} - {version}");
         if let Some(previous_version) = previous_version {
-            let _ = write!(t.lock(), " (from {previous_version})");
+            let _ = write!(t, " (from {previous_version})");
         }
-        let _ = writeln!(t.lock());
+        let _ = writeln!(t);
     }
-    let _ = writeln!(t.lock());
+    let _ = writeln!(t);
 
     Ok(())
 }
@@ -307,14 +307,14 @@ pub(super) fn list_items(
     quiet: bool,
     process: &Process,
 ) -> Result<utils::ExitCode> {
-    let mut t = process.stdout();
+    let t = process.stdout();
+    let mut t = t.lock();
+    let bold = terminalsource::Style::new().bold();
     for (name, installed) in items {
         if installed && !installed_only && !quiet {
-            t.attr(terminalsource::Attr::Bold)?;
-            writeln!(t.lock(), "{name} (installed)")?;
-            t.reset()?;
+            writeln!(t, "{bold}{name} (installed){bold:#}")?;
         } else if installed || !installed_only {
-            writeln!(t.lock(), "{name}")?;
+            writeln!(t, "{name}")?;
         }
     }
     Ok(utils::ExitCode(0))

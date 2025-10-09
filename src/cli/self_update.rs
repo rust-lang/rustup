@@ -1348,27 +1348,28 @@ impl fmt::Display for SchemaVersion {
 
 /// Returns whether an update was available
 pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<bool> {
-    let mut t = process.stdout();
+    let t = process.stdout();
+    let mut t = t.lock();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
     let available_version = get_available_rustup_version(process).await?;
 
-    let _ = t.attr(terminalsource::Attr::Bold);
-    write!(t.lock(), "rustup - ")?;
+    let bold = terminalsource::Style::new().bold();
+    let yellow = terminalsource::AnsiColor::Yellow.on_default().bold();
+    let green = terminalsource::AnsiColor::Green.on_default().bold();
+
+    write!(t, "{bold}rustup - {bold:#}")?;
 
     Ok(if current_version != available_version {
-        let _ = t.fg(terminalsource::Color::Yellow);
-        write!(t.lock(), "Update available")?;
-        let _ = t.reset();
-        writeln!(t.lock(), " : {current_version} -> {available_version}")?;
+        writeln!(
+            t,
+            "{yellow}Update available{yellow:#} : {current_version} -> {available_version}"
+        )?;
         true
     } else {
-        let _ = t.fg(terminalsource::Color::Green);
-        write!(t.lock(), "Up to date")?;
-        let _ = t.reset();
-        writeln!(t.lock(), " : {current_version}")?;
+        writeln!(t, "{green}Up to date{green:#} : {current_version}")?;
         false
     })
 }
