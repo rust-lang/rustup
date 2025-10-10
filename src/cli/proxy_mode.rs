@@ -8,7 +8,7 @@ use anyhow::Result;
 use crate::{
     cli::{common::set_globals, job, self_update},
     command::run_command_for_dir,
-    config::ActiveReason,
+    config::ActiveSource,
     process::Process,
     toolchain::ResolvableLocalToolchainName,
 };
@@ -42,9 +42,9 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
     set_env_source(
         &mut cmd,
         if toolchain_specified {
-            Some(ActiveReason::CommandLine)
-        } else if let Ok(Some((_, reason))) = cfg.active_toolchain() {
-            Some(reason)
+            Some(ActiveSource::CommandLine)
+        } else if let Ok(Some((_, source))) = cfg.active_toolchain() {
+            Some(source)
         } else {
             None
         },
@@ -54,8 +54,8 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
 
 /// Set the `RUSTUP_TOOLCHAIN_SOURCE` environment variable to indicate how the toolchain was
 /// determined.
-fn set_env_source(cmd: &mut Command, reason: Option<ActiveReason>) {
-    if let Some(reason) = reason {
-        cmd.env("RUSTUP_TOOLCHAIN_SOURCE", reason.to_source());
+fn set_env_source(cmd: &mut Command, source: Option<ActiveSource>) {
+    if let Some(source) = source {
+        cmd.env("RUSTUP_TOOLCHAIN_SOURCE", source.to_string());
     }
 }
