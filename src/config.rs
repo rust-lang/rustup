@@ -1,4 +1,4 @@
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Debug};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -102,14 +102,16 @@ pub(crate) enum ActiveSource {
     ToolchainFile(PathBuf),
 }
 
-impl Display for ActiveSource {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
+impl ActiveSource {
+    pub fn to_reason(&self) -> String {
         match self {
-            Self::Default => write!(f, "it's the default toolchain"),
-            Self::Environment => write!(f, "overridden by environment variable RUSTUP_TOOLCHAIN"),
-            Self::CommandLine => write!(f, "overridden by +toolchain on the command line"),
-            Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
-            Self::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
+            Self::Default => String::from("it's the default toolchain"),
+            Self::Environment => {
+                String::from("overridden by environment variable RUSTUP_TOOLCHAIN")
+            }
+            Self::CommandLine => String::from("overridden by +toolchain on the command line"),
+            Self::OverrideDB(path) => format!("directory override for '{}'", path.display()),
+            Self::ToolchainFile(path) => format!("overridden by '{}'", path.display()),
         }
     }
 }

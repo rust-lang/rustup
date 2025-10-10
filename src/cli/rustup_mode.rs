@@ -782,7 +782,10 @@ async fn default_(
         if let Some((toolchain, source)) = cfg.active_toolchain()?
             && !matches!(source, ActiveSource::Default)
         {
-            info!("note that the toolchain '{toolchain}' is currently in use ({source})");
+            info!(
+                "note that the toolchain '{toolchain}' is currently in use ({})",
+                source.to_reason()
+            );
         }
     } else {
         let default_toolchain = cfg
@@ -999,7 +1002,7 @@ async fn update(
     } else if ensure_active_toolchain {
         let (toolchain, source) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
-        info!("it's active because: {source}");
+        info!("it's active because: {}", source.to_reason());
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
         if self_update {
@@ -1169,7 +1172,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
                     &active_source,
                 )?;
                 writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-                writeln!(t.lock(), "active because: {active_source}")?;
+                writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
                 if verbose {
                     writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
                     writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
@@ -1212,7 +1215,7 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::Ex
                     cfg.process.stdout().lock(),
                     "{}\nactive because: {}\ncompiler: {}\npath: {}",
                     toolchain.name(),
-                    source,
+                    source.to_reason(),
                     toolchain.rustc_version(),
                     toolchain.path().display()
                 )?;
@@ -1223,7 +1226,7 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::Ex
                     toolchain.name(),
                     match source {
                         ActiveSource::Default => &"default" as &dyn fmt::Display,
-                        _ => &source,
+                        _ => &source.to_reason(),
                     }
                 )?;
             }
