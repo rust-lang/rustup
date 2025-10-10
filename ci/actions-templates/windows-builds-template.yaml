@@ -27,6 +27,7 @@ jobs: # skip-main skip-pr skip-stable
           - aarch64-pc-windows-msvc
           - x86_64-pc-windows-gnu
           - i686-pc-windows-gnu # skip-pr skip-main
+          - aarch64-pc-windows-gnullvm
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -39,6 +40,11 @@ jobs: # skip-main skip-pr skip-stable
             rustup_arch: aarch64
             os: windows-11-arm
             run_tests: YES
+          - target: aarch64-pc-windows-gnullvm
+            rustup_arch: aarch64
+            os: windows-11-arm
+            llvm_mingw_version: 20260616
+            gcc: aarch64-w64-mingw32-clang
           - target: i686-pc-windows-gnu # skip-pr skip-main
             arch: i686 # skip-pr skip-main
             mingwdir: mingw32 # skip-pr skip-main
@@ -70,6 +76,27 @@ jobs: # skip-main skip-pr skip-stable
         if: matrix.mingwdir != ''
         with:
           architecture: ${{ matrix.arch }}
+      - name: Install llvm-mingw
+        shell: powershell
+        if: matrix.llvm_mingw_version != ''
+        run: |
+          $version = "${{ matrix.llvm_mingw_version }}"
+          $archive = "llvm-mingw-$version-ucrt-${{ matrix.rustup_arch }}.zip"
+          $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/$archive"
+          $destination = Join-Path $env:RUNNER_TEMP $archive
+          $installDir = Join-Path $env:RUNNER_TEMP "llvm-mingw-$version-ucrt-${{ matrix.rustup_arch }}"
+
+          Write-Host "Downloading $archive with aria2c"
+          & aria2c --max-connection-per-server=8 --split=8 --dir="$env:RUNNER_TEMP" --out="$archive" "$url"
+
+          Write-Host "Extracting $archive with 7-Zip"
+          & 7z x "$destination" "-o$env:RUNNER_TEMP" -y
+
+          $targetEnvUpper = "${{ matrix.target }}".Replace('-', '_').ToUpperInvariant()
+
+          "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Verify mingw gcc installation
         shell: powershell
         if: matrix.gcc != ''
