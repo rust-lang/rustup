@@ -38,6 +38,7 @@ jobs:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
           - x86_64-pc-windows-gnu
+          - aarch64-pc-windows-gnullvm
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -47,6 +48,10 @@ jobs:
             gcc: x86_64-w64-mingw32-gcc
           - target: aarch64-pc-windows-msvc
             # Architecture of the rustup build that installs Rust in this workflow.
+            rustup_arch: aarch64
+            os: windows-11-arm
+            run_tests: YES
+          - target: aarch64-pc-windows-gnullvm
             rustup_arch: aarch64
             os: windows-11-arm
             run_tests: YES
@@ -210,6 +215,7 @@ jobs:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
           - x86_64-pc-windows-gnu
+          - aarch64-pc-windows-gnullvm
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -219,6 +225,10 @@ jobs:
             gcc: x86_64-w64-mingw32-gcc
           - target: aarch64-pc-windows-msvc
             # Architecture of the rustup build that installs Rust in this workflow.
+            rustup_arch: aarch64
+            os: windows-11-arm
+            run_tests: YES
+          - target: aarch64-pc-windows-gnullvm
             rustup_arch: aarch64
             os: windows-11-arm
             run_tests: YES
@@ -384,6 +394,7 @@ jobs:
           - aarch64-pc-windows-msvc
           - x86_64-pc-windows-gnu
           - i686-pc-windows-gnu # skip-pr skip-main
+          - aarch64-pc-windows-gnullvm
         include:
           - target: x86_64-pc-windows-msvc
             run_tests: YES
@@ -393,6 +404,10 @@ jobs:
             gcc: x86_64-w64-mingw32-gcc
           - target: aarch64-pc-windows-msvc
             # Architecture of the rustup build that installs Rust in this workflow.
+            rustup_arch: aarch64
+            os: windows-11-arm
+            run_tests: YES
+          - target: aarch64-pc-windows-gnullvm
             rustup_arch: aarch64
             os: windows-11-arm
             run_tests: YES
