@@ -73,7 +73,7 @@ jobs:
         # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
         # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
         uses: ilammy/setup-nasm@v1
-        if: matrix.mingwdir == ''
+        if: contains(matrix.target, 'msvc')
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1.16
         if: matrix.mingwdir != ''
@@ -81,7 +81,7 @@ jobs:
           architecture: ${{ matrix.arch }}
       - name: Verify mingw gcc installation
         shell: powershell
-        if: matrix.mingwdir != ''
+        if: matrix.gcc != ''
         run: |
           Get-Command ${{ matrix.gcc }}
           ${{ matrix.gcc }} --version
@@ -245,7 +245,7 @@ jobs:
         # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
         # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
         uses: ilammy/setup-nasm@v1
-        if: matrix.mingwdir == ''
+        if: contains(matrix.target, 'msvc')
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1.16
         if: matrix.mingwdir != ''
@@ -253,7 +253,7 @@ jobs:
           architecture: ${{ matrix.arch }}
       - name: Verify mingw gcc installation
         shell: powershell
-        if: matrix.mingwdir != ''
+        if: matrix.gcc != ''
         run: |
           Get-Command ${{ matrix.gcc }}
           ${{ matrix.gcc }} --version
@@ -423,7 +423,7 @@ jobs:
         # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
         # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
         uses: ilammy/setup-nasm@v1
-        if: matrix.mingwdir == ''
+        if: contains(matrix.target, 'msvc')
       - name: Install mingw
         uses: bwoodsend/setup-winlibs-action@v1.16
         if: matrix.mingwdir != ''
@@ -431,7 +431,7 @@ jobs:
           architecture: ${{ matrix.arch }}
       - name: Verify mingw gcc installation
         shell: powershell
-        if: matrix.mingwdir != ''
+        if: matrix.gcc != ''
         run: |
           Get-Command ${{ matrix.gcc }}
           ${{ matrix.gcc }} --version
