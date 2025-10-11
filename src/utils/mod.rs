@@ -14,6 +14,7 @@ use retry::{OperationResult, retry};
 use tracing::{debug, info, warn};
 use url::Url;
 
+use crate::dist::download::Notifier;
 use crate::errors::*;
 use crate::process::Process;
 
@@ -447,7 +448,7 @@ pub(crate) fn delete_dir_contents_following_links(dir_path: &Path) {
 
 pub(crate) struct FileReaderWithProgress<'a> {
     fh: io::BufReader<File>,
-    notify_handler: &'a dyn Fn(Notification<'_>),
+    notifier: &'a Notifier,
     nbytes: u64,
     flen: u64,
 }
@@ -455,7 +456,7 @@ pub(crate) struct FileReaderWithProgress<'a> {
 impl<'a> FileReaderWithProgress<'a> {
     pub(crate) fn new_file(
         path: &Path,
-        notify_handler: &'a dyn Fn(Notification<'_>),
+        notifier: &'a Notifier,
     ) -> Result<Self> {
         let fh = match File::open(path) {
             Ok(fh) => fh,
@@ -469,13 +470,13 @@ impl<'a> FileReaderWithProgress<'a> {
 
         // Inform the tracker of the file size
         let flen = fh.metadata()?.len();
-        (notify_handler)(Notification::DownloadContentLengthReceived(flen, None));
+        notifier.handle(Notification::DownloadContentLengthReceived(flen, None));
 
         let fh = BufReader::with_capacity(8 * 1024 * 1024, fh);
 
         Ok(FileReaderWithProgress {
             fh,
-            notify_handler,
+            notifier,
             nbytes: 0,
             flen,
         })
@@ -488,13 +489,13 @@ impl io::Read for FileReaderWithProgress<'_> {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
                 if nbytes != 0 {
-                    (self.notify_handler)(Notification::DownloadDataReceived(
+                    self.notifier.handle(Notification::DownloadDataReceived(
                         &buf[0..nbytes],
                         None,
                     ));
                 }
                 if (nbytes == 0) || (self.flen == self.nbytes) {
-                    (self.notify_handler)(Notification::DownloadFinished(None));
+                    self.notifier.handle(Notification::DownloadFinished(None));
                 }
                 Ok(nbytes)
             }

@@ -16,7 +16,7 @@ use url::Url;
 use crate::{
     dist::{
         DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
-        download::DownloadCfg,
+        download::{DownloadCfg, Notifier},
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
         prefix::InstallPrefix,
@@ -482,14 +482,21 @@ impl TestContext {
         let dl_cfg = DownloadCfg {
             tmp_cx: &self.tmp_cx,
             download_dir: &self.download_dir,
-            notify_handler: &|event| println!("{event}"),
+            notifier: Notifier::new(false, &self.tp.process),
             process: &self.tp.process,
         };
 
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
-        download_file(&manifest_url, &manifest_file, None, &|_| {}, dl_cfg.process).await?;
+        download_file(
+            &manifest_url,
+            &manifest_file,
+            None,
+            &dl_cfg.notifier,
+            dl_cfg.process,
+        )
+        .await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
         let manifest = Manifest::parse(&manifest_str)?;
 

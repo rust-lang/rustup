@@ -178,12 +178,14 @@ impl Manifestation {
 
         info!("downloading component(s)");
         for bin in &components {
-            (download_cfg.notify_handler)(Notification::DownloadingComponent(
-                &bin.component.short_name(new_manifest),
-                &self.target_triple,
-                bin.component.target.as_ref(),
-                &bin.binary.url,
-            ));
+            download_cfg
+                .notifier
+                .handle(Notification::DownloadingComponent(
+                    &bin.component.short_name(new_manifest),
+                    &self.target_triple,
+                    bin.component.target.as_ref(),
+                    &bin.binary.url,
+                ));
         }
 
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
@@ -280,14 +282,12 @@ impl Manifestation {
 
             let cx = PackageContext {
                 tmp_cx,
-                notify_handler: Some(download_cfg.notify_handler),
+                notifier: Some(&download_cfg.notifier),
                 process: download_cfg.process,
             };
 
-            let reader = utils::FileReaderWithProgress::new_file(
-                &installer_file,
-                download_cfg.notify_handler,
-            )?;
+            let reader =
+                utils::FileReaderWithProgress::new_file(&installer_file, &download_cfg.notifier)?;
             let package = match format {
                 CompressionKind::GZip => &TarGzPackage::new(reader, &cx)? as &dyn Package,
                 CompressionKind::XZ => &TarXzPackage::new(reader, &cx)?,
@@ -452,7 +452,7 @@ impl Manifestation {
             .unwrap()
             .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
-        (dl_cfg.notify_handler)(Notification::DownloadingComponent(
+        dl_cfg.notifier.handle(Notification::DownloadingComponent(
             "rust",
             &self.target_triple,
             Some(&self.target_triple),
@@ -480,11 +480,10 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let reader =
-            utils::FileReaderWithProgress::new_file(&installer_file, dl_cfg.notify_handler)?;
+        let reader = utils::FileReaderWithProgress::new_file(&installer_file, &dl_cfg.notifier)?;
         let cx = PackageContext {
             tmp_cx: dl_cfg.tmp_cx,
-            notify_handler: Some(dl_cfg.notify_handler),
+            notifier: Some(&dl_cfg.notifier),
             process: dl_cfg.process,
         };
 
@@ -768,7 +767,9 @@ impl<'a> ComponentBinary<'a> {
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
-                        (download_cfg.notify_handler)(Notification::RetryingDownload(url.as_str()));
+                        download_cfg
+                            .notifier
+                            .handle(Notification::RetryingDownload(url.as_str()));
                         true
                     }
                     _ => false,
