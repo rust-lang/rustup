@@ -106,6 +106,14 @@ fn main() {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::current_exe().unwrap().display()).unwrap();
         }
+        Some("--echo-rustup-toolchain-source") => {
+            let mut out = io::stderr();
+            if let Ok(rustup_toolchain_source) = std::env::var("RUSTUP_TOOLCHAIN_SOURCE") {
+                writeln!(out, "{rustup_toolchain_source}").unwrap();
+            } else {
+                panic!("RUSTUP_TOOLCHAIN_SOURCE environment variable not set");
+            }
+        }
         arg => panic!("bad mock proxy commandline: {:?}", arg),
     }
 }

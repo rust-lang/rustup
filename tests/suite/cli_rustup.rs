@@ -3039,6 +3039,88 @@ error: no active toolchain
 }
 
 #[tokio::test]
+async fn rustup_toolchain_source_cli() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(&["rustup", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["cargo", "+nightly", "--echo-rustup-toolchain-source"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+cli
+
+"#]]);
+}
+
+#[tokio::test]
+async fn rustup_toolchain_source_env() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["cargo", "--echo-rustup-toolchain-source"],
+            [("RUSTUP_TOOLCHAIN", "nightly")],
+        )
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+env
+
+"#]]);
+}
+
+#[tokio::test]
+async fn rustup_toolchain_source_path_override() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "override", "set", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["cargo", "--echo-rustup-toolchain-source"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+path-override
+
+"#]]);
+}
+
+#[tokio::test]
+async fn rustup_toolchain_source_toolchain_file() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
+    raw::write_file(&toolchain_file, "[toolchain]\nchannel='nightly'").unwrap();
+    cx.config
+        .expect(["cargo", "--echo-rustup-toolchain-source"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+toolchain-file
+
+"#]]);
+}
+
+#[tokio::test]
+async fn rustup_toolchain_source_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(&["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["cargo", "--echo-rustup-toolchain-source"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+default
+
+"#]]);
+}
+
+#[tokio::test]
 async fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

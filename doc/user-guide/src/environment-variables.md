@@ -72,6 +72,8 @@
 - `RUSTUP_CONCURRENT_DOWNLOADS` *unstable* (default: the number of components to download). Controls the number of
   downloads made concurrently.
 
+- `RUSTUP_TOOLCHAIN_SOURCE` *unstable*. Set by rustup to tell proxied tools how `RUSTUP_TOOLCHAIN` was determined.
+
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
 [override]: overrides.md
