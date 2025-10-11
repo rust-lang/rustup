@@ -5,9 +5,8 @@ use std::io::Write;
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Mutex};
 #[cfg(any(test, feature = "test"))]
-use std::sync::{LockResult, MutexGuard};
+use std::sync::{LockResult, Mutex, MutexGuard};
 
 use anyhow::{Context, Result, anyhow};
 use tracing::{info, warn};
@@ -20,8 +19,10 @@ use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 use super::super::errors::*;
 use super::common;
 use super::{InstallOpts, install_bins, report_error};
-use crate::cli::{download_tracker::DownloadTracker, markdown::md};
+use crate::cli::markdown::md;
+use crate::config::Cfg;
 use crate::dist::TargetTriple;
+use crate::dist::download::DownloadCfg;
 use crate::download::download_file;
 use crate::process::{ColorableTerminal, Process};
 use crate::utils;
@@ -91,36 +92,35 @@ pub(crate) fn choose_vs_install(process: &Process) -> Result<Option<VsInstallPla
 pub(super) async fn maybe_install_msvc(
     term: &mut ColorableTerminal,
     no_prompt: bool,
-    quiet: bool,
     opts: &InstallOpts<'_>,
-    process: &Process,
+    cfg: &Cfg<'_>,
 ) -> Result<()> {
-    let Some(plan) = do_msvc_check(opts, process) else {
+    let Some(plan) = do_msvc_check(opts, cfg.process) else {
         return Ok(());
     };
 
     if no_prompt {
         warn!("installing msvc toolchain without its prerequisites");
-    } else if !quiet && plan == VsInstallPlan::Automatic {
+    } else if !cfg.quiet && plan == VsInstallPlan::Automatic {
         md(term, MSVC_AUTO_INSTALL_MESSAGE);
-        match choose_vs_install(process)? {
+        match choose_vs_install(cfg.process)? {
             Some(VsInstallPlan::Automatic) => {
-                match try_install_msvc(opts, process).await {
+                match try_install_msvc(opts, cfg).await {
                     Err(e) => {
                         // Make sure the console doesn't exit before the user can
                         // see the error and give the option to continue anyway.
-                        report_error(&e, process);
-                        if !common::question_bool("\nContinue?", false, process)? {
+                        report_error(&e, cfg.process);
+                        if !common::question_bool("\nContinue?", false, cfg.process)? {
                             info!("aborting installation");
                         }
                     }
-                    Ok(ContinueInstall::No) => ensure_prompt(process)?,
+                    Ok(ContinueInstall::No) => ensure_prompt(cfg.process)?,
                     _ => {}
                 }
             }
             Some(VsInstallPlan::Manual) => {
                 md(term, MSVC_MANUAL_INSTALL_MESSAGE);
-                if !common::question_bool("\nContinue?", false, process)? {
+                if !common::question_bool("\nContinue?", false, cfg.process)? {
                     info!("aborting installation");
                 }
             }
@@ -129,7 +129,7 @@ pub(super) async fn maybe_install_msvc(
     } else {
         md(term, MSVC_MESSAGE);
         md(term, MSVC_MANUAL_INSTALL_MESSAGE);
-        if !common::question_bool("\nContinue?", false, process)? {
+        if !common::question_bool("\nContinue?", false, cfg.process)? {
             info!("aborting installation");
         }
     }
@@ -260,7 +260,7 @@ pub(crate) enum ContinueInstall {
 /// but the rustup install should not be continued at this time.
 pub(crate) async fn try_install_msvc(
     opts: &InstallOpts<'_>,
-    process: &Process,
+    cfg: &Cfg<'_>,
 ) -> Result<ContinueInstall> {
     // download the installer
     let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
@@ -271,23 +271,14 @@ pub(crate) async fn try_install_msvc(
         .context("error creating temp directory")?;
 
     let visual_studio = tempdir.path().join("vs_setup.exe");
-    let download_tracker = Arc::new(Mutex::new(DownloadTracker::new_with_display_progress(
-        true, process,
-    )));
-    download_tracker
-        .lock()
-        .unwrap()
-        .download_finished(visual_studio_url.as_str());
-
+    let dl_cfg = DownloadCfg::new(cfg);
     info!("downloading Visual Studio installer");
     download_file(
         &visual_studio_url,
         &visual_studio,
         None,
-        &move |n| {
-            download_tracker.lock().unwrap().handle_notification(&n);
-        },
-        process,
+        &dl_cfg.notifier,
+        dl_cfg.process,
     )
     .await?;
 
@@ -304,7 +295,7 @@ pub(crate) async fn try_install_msvc(
 
     // It's possible an earlier or later version of the Windows SDK has been
     // installed separately from Visual Studio so installing it can be skipped.
-    if !has_windows_sdk_libs(process) {
+    if !has_windows_sdk_libs(cfg.process) {
         cmd.args([
             "--add",
             "Microsoft.VisualStudio.Component.Windows11SDK.22000",
@@ -337,8 +328,8 @@ pub(crate) async fn try_install_msvc(
                 // It's possible that the installer returned a non-zero exit code
                 // even though the required components were successfully installed.
                 // In that case we warn about the error but continue on.
-                let have_msvc = do_msvc_check(opts, process).is_none();
-                let has_libs = has_windows_sdk_libs(process);
+                let have_msvc = do_msvc_check(opts, cfg.process).is_none();
+                let has_libs = has_windows_sdk_libs(cfg.process);
                 if have_msvc && has_libs {
                     warn!("Visual Studio is installed but a problem occurred during installation");
                     warn!("{}", err);

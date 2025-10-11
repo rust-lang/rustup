@@ -24,7 +24,7 @@ const UPDATE_HASH_LEN: usize = 20;
 pub struct DownloadCfg<'a> {
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
-    pub(crate) notify_handler: &'a dyn Fn(Notification<'_>),
+    pub(crate) notifier: Notifier,
     pub process: &'a Process,
 }
 
@@ -34,7 +34,7 @@ impl<'a> DownloadCfg<'a> {
         DownloadCfg {
             tmp_cx: &cfg.tmp_cx,
             download_dir: &cfg.download_dir,
-            notify_handler: &*cfg.notify_handler,
+            notifier: Notifier::new(cfg.quiet, cfg.process),
             process: cfg.process,
         }
     }
@@ -48,7 +48,7 @@ impl<'a> DownloadCfg<'a> {
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = file_hash(&target_file, self.notify_handler)?;
+            let cached_result = file_hash(&target_file, &self.notifier)?;
             if hash == cached_result {
                 debug!("reusing previously downloaded file");
                 debug!(url = url.as_ref(), "checksum passed");
@@ -77,7 +77,7 @@ impl<'a> DownloadCfg<'a> {
             &partial_file_path,
             Some(&mut hasher),
             true,
-            &|n| (self.notify_handler)(n),
+            &self.notifier,
             self.process,
         )
         .await
@@ -126,14 +126,7 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        download_file(
-            &hash_url,
-            &hash_file,
-            None,
-            &|n| (self.notify_handler)(n),
-            self.process,
-        )
-        .await?;
+        download_file(&hash_url, &hash_file, None, &self.notifier, self.process).await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
@@ -174,14 +167,7 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        download_file(
-            &url,
-            &file,
-            Some(&mut hasher),
-            &|n| (self.notify_handler)(n),
-            self.process,
-        )
-        .await?;
+        download_file(&url, &file, Some(&mut hasher), &self.notifier, self.process).await?;
         let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {
@@ -353,7 +339,7 @@ impl DownloadTracker {
     }
 }
 
-fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<String> {
+fn file_hash(path: &Path, notify_handler: &Notifier) -> Result<String> {
     let mut hasher = Sha256::new();
     let mut downloaded = utils::FileReaderWithProgress::new_file(path, notify_handler)?;
     use std::io::Read;
