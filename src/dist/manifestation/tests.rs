@@ -480,7 +480,6 @@ impl TestContext {
         force: bool,
     ) -> Result<UpdateStatus> {
         let dl_cfg = DownloadCfg {
-            dist_root: "phony",
             tmp_cx: &self.tmp_cx,
             download_dir: &self.download_dir,
             notify_handler: &|event| println!("{event}"),
