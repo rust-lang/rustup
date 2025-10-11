@@ -13,10 +13,7 @@ use tracing::{debug, error, info, trace, warn};
 use crate::dist::AutoInstallMode;
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
-    dist::{
-        self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, download::DownloadCfg,
-        temp,
-    },
+    dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, temp},
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
@@ -319,17 +316,6 @@ impl<'a> Cfg<'a> {
         )?;
 
         Ok(cfg)
-    }
-
-    /// construct a download configuration
-    pub(crate) fn download_cfg(&'a self) -> DownloadCfg<'a> {
-        DownloadCfg {
-            dist_root: &self.dist_root_url,
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
-            notify_handler: &*self.notify_handler,
-            process: self.process,
-        }
     }
 
     pub(crate) fn set_profile_override(&mut self, profile: Profile) {
