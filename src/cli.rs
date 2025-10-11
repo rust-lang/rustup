@@ -2,7 +2,6 @@
 #[macro_use]
 pub mod log;
 pub mod common;
-mod download_tracker;
 pub mod errors;
 mod help;
 mod job;
