@@ -8,6 +8,7 @@ use tracing::debug;
 use tracing::warn;
 use url::Url;
 
+use crate::config::Cfg;
 use crate::dist::temp;
 use crate::download::download_file;
 use crate::download::download_file_with_resume;
@@ -40,6 +41,17 @@ impl ops::Deref for File {
 }
 
 impl<'a> DownloadCfg<'a> {
+    /// construct a download configuration
+    pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
+        DownloadCfg {
+            dist_root: &cfg.dist_root_url,
+            tmp_cx: &cfg.tmp_cx,
+            download_dir: &cfg.download_dir,
+            notify_handler: &*cfg.notify_handler,
+            process: cfg.process,
+        }
+    }
+
     /// Downloads a file and validates its hash. Resumes interrupted downloads.
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
