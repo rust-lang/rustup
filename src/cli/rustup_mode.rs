@@ -33,7 +33,9 @@ use crate::{
     command, component_for_bin,
     config::{ActiveReason, Cfg},
     dist::{
-        AutoInstallMode, PartialToolchainDesc, Profile, TargetTriple, download::DownloadCfg, manifest::{Component, ComponentStatus}
+        AutoInstallMode, PartialToolchainDesc, Profile, TargetTriple,
+        download::DownloadCfg,
+        manifest::{Component, ComponentStatus},
     },
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},

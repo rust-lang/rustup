@@ -14,11 +14,10 @@ use retry::{OperationResult, retry};
 use tracing::{debug, info, warn};
 use url::Url;
 
-use crate::dist::download::Notifier;
+use crate::dist::download::{Notification, Notifier};
 use crate::errors::*;
 use crate::process::Process;
 
-use crate::notifications::Notification;
 #[cfg(not(windows))]
 pub(crate) use crate::utils::raw::find_cmd;
 pub(crate) use crate::utils::raw::is_directory;
@@ -454,10 +453,7 @@ pub(crate) struct FileReaderWithProgress<'a> {
 }
 
 impl<'a> FileReaderWithProgress<'a> {
-    pub(crate) fn new_file(
-        path: &Path,
-        notifier: &'a Notifier,
-    ) -> Result<Self> {
+    pub(crate) fn new_file(path: &Path, notifier: &'a Notifier) -> Result<Self> {
         let fh = match File::open(path) {
             Ok(fh) => fh,
             Err(_) => {
@@ -489,10 +485,8 @@ impl io::Read for FileReaderWithProgress<'_> {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
                 if nbytes != 0 {
-                    self.notifier.handle(Notification::DownloadDataReceived(
-                        &buf[0..nbytes],
-                        None,
-                    ));
+                    self.notifier
+                        .handle(Notification::DownloadDataReceived(&buf[0..nbytes], None));
                 }
                 if (nbytes == 0) || (self.flen == self.nbytes) {
                     self.notifier.handle(Notification::DownloadFinished(None));

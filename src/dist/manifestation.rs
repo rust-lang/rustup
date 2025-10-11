@@ -17,14 +17,13 @@ use crate::dist::component::{
     Components, Package, PackageContext, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
 use crate::dist::config::Config;
-use crate::dist::download::{DownloadCfg, File};
+use crate::dist::download::{DownloadCfg, File, Notification};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
 use crate::dist::prefix::InstallPrefix;
 #[cfg(test)]
 use crate::dist::temp;
 use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
-use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 
