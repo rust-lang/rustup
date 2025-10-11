@@ -1213,13 +1213,7 @@ async fn try_update_from_dist_(
     };
 
     let result = manifestation
-        .update_v1(
-            &manifest,
-            update_hash,
-            download.tmp_cx,
-            &download.notify_handler,
-            download.process,
-        )
+        .update_v1(&manifest, update_hash, download)
         .await;
 
     // inspect, determine what context to add, then process afterwards.
