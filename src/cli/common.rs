@@ -1,6 +1,5 @@
 //! Just a dumping ground for cli stuff
 
-use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
@@ -124,14 +123,12 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
 
 pub(super) struct Notifier {
     tracker: Mutex<DownloadTracker>,
-    ram_notice_shown: RefCell<bool>,
 }
 
 impl Notifier {
     pub(super) fn new(quiet: bool, process: &Process) -> Self {
         Self {
             tracker: Mutex::new(DownloadTracker::new_with_display_progress(!quiet, process)),
-            ram_notice_shown: RefCell::new(false),
         }
     }
 
@@ -140,13 +137,6 @@ impl Notifier {
             return;
         }
 
-        if let Notification::SetDefaultBufferSize(_) = &n {
-            if *self.ram_notice_shown.borrow() {
-                return;
-            } else {
-                *self.ram_notice_shown.borrow_mut() = true;
-            }
-        };
         let level = n.level();
         for n in format!("{n}").lines() {
             match level {
