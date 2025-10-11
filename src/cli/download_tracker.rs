@@ -68,7 +68,6 @@ impl DownloadTracker {
                 self.retrying_download(url);
                 true
             }
-            _ => false,
         }
     }
 
