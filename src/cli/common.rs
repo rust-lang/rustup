@@ -10,7 +10,7 @@ use std::{cmp, env};
 use anyhow::{Context, Result, anyhow};
 use git_testament::{git_testament, render_testament};
 use termcolor::Color;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
@@ -22,7 +22,7 @@ use crate::{
     notifications::Notification,
     process::{Attr, Process},
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
-    utils::{self, notify::NotificationLevel},
+    utils,
 };
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
@@ -133,30 +133,7 @@ impl Notifier {
     }
 
     pub(super) fn handle(&self, n: Notification<'_>) {
-        if self.tracker.lock().unwrap().handle_notification(&n) {
-            return;
-        }
-
-        let level = n.level();
-        for n in format!("{n}").lines() {
-            match level {
-                NotificationLevel::Debug => {
-                    debug!("{}", n);
-                }
-                NotificationLevel::Info => {
-                    info!("{}", n);
-                }
-                NotificationLevel::Warn => {
-                    warn!("{}", n);
-                }
-                NotificationLevel::Error => {
-                    error!("{}", n);
-                }
-                NotificationLevel::Trace => {
-                    trace!("{}", n);
-                }
-            }
-        }
+        self.tracker.lock().unwrap().handle_notification(&n);
     }
 }
 
