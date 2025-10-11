@@ -7,10 +7,11 @@ use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
-use tracing::{error, warn};
+use tracing::{error, trace, warn};
 
 use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
 use crate::dist::component::components::*;
@@ -20,6 +21,7 @@ use crate::errors::*;
 use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
+use crate::utils::units::Size;
 
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";
@@ -199,8 +201,8 @@ fn unpack_ram(
             }
         }
         None => {
-            if let Some(h) = cx.notify_handler {
-                h(Notification::SetDefaultBufferSize(default_max_unpack_ram))
+            if RAM_NOTICE_SHOWN.set(()).is_ok() {
+                trace!(size = %Size::new(default_max_unpack_ram), "unpacking components in memory");
             }
             default_max_unpack_ram
         }
@@ -212,6 +214,8 @@ fn unpack_ram(
         unpack_ram
     }
 }
+
+static RAM_NOTICE_SHOWN: OnceLock<()> = OnceLock::new();
 
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())

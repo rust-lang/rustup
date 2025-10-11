@@ -2,7 +2,6 @@ use std::fmt::{self, Display};
 
 use crate::dist::TargetTriple;
 use crate::utils::notify::NotificationLevel;
-use crate::utils::units;
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
@@ -20,10 +19,6 @@ pub(crate) enum Notification<'a> {
     DownloadFinished(Option<&'a str>),
     /// Download has failed.
     DownloadFailed(&'a str),
-    /// This would make more sense as a crate::notifications::Notification
-    /// member, but the notification callback is already narrowed to
-    /// utils::notifications by the time tar unpacking is called.
-    SetDefaultBufferSize(usize),
 }
 
 impl Notification<'_> {
@@ -33,7 +28,6 @@ impl Notification<'_> {
             FileAlreadyDownloaded => NotificationLevel::Debug,
             DownloadingComponent(_, _, _, _) | RetryingDownload(_) => NotificationLevel::Info,
             CachedFileChecksumFailed => NotificationLevel::Warn,
-            SetDefaultBufferSize(_) => NotificationLevel::Trace,
             DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
@@ -56,11 +50,6 @@ impl Display for Notification<'_> {
                 }
             }
             RetryingDownload(url) => write!(f, "retrying download for '{url}'"),
-            SetDefaultBufferSize(size) => write!(
-                f,
-                "using up to {} of RAM to unpack components",
-                units::Size::new(*size)
-            ),
             DownloadContentLengthReceived(len, _) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data, _) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished(_) => write!(f, "download finished"),
