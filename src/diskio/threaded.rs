@@ -15,8 +15,7 @@ use sharded_slab::pool::{OwnedRef, OwnedRefMut};
 use tracing::debug;
 
 use super::{CompletedIo, Executor, Item, perform};
-use crate::dist::download::Notifier;
-use crate::notifications::Notification;
+use crate::dist::download::{Notification, Notifier};
 
 #[derive(Copy, Clone, Debug, Enum)]
 pub(crate) enum Bucket {
