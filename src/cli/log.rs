@@ -56,7 +56,7 @@ where
         _ if process.var("NO_COLOR").is_ok() => false,
         _ => process.stderr().is_a_tty(),
     };
-    let maybe_rustup_log_directives = process.var("RUSTUP_LOG");
+    let maybe_rustup_log_directives = dbg!(process.var("RUSTUP_LOG"));
     let process = process.clone();
     let logger = tracing_subscriber::fmt::layer()
         .with_writer(move || process.stderr())

@@ -1479,30 +1479,29 @@ fn allow_installation(prefix: &InstallPrefix) {
 
 #[tokio::test]
 async fn reuse_downloaded_file() {
-    let cx = TestContext::new(None, GZOnly);
+    let mut env = HashMap::default();
+    env.insert("RUSTUP_LOG".to_owned(), "debug".to_owned());
+    let cx = TestContext::with_env(None, GZOnly, env);
+
     prevent_installation(&cx.prefix);
-
-    let reuse_notification_fired = Arc::new(Cell::new(false));
-    let dl_cfg = DownloadCfg {
-        notify_handler: &|n| {
-            if let Notification::FileAlreadyDownloaded = n {
-                reuse_notification_fired.set(true);
-            }
-        },
-        ..cx.default_dl_cfg()
-    };
-
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
-        .await
-        .unwrap_err();
-    assert!(!reuse_notification_fired.get());
+    cx.update_from_dist(&[], &[], false).await.unwrap_err();
+    assert!(
+        str::from_utf8(&cx.tp.stderr())
+            .unwrap()
+            .lines()
+            .find(|&ln| ln.contains("reusing previously downloaded file"))
+            .is_none()
+    );
 
     allow_installation(&cx.prefix);
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
-        .await
-        .unwrap();
-
-    assert!(reuse_notification_fired.get());
+    cx.update_from_dist(&[], &[], false).await.unwrap();
+    assert!(
+        str::from_utf8(&cx.tp.stderr())
+            .unwrap()
+            .lines()
+            .find(|&ln| ln.contains("reusing previously downloaded file"))
+            .is_some()
+    );
 }
 
 #[tokio::test]
