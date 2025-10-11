@@ -109,10 +109,7 @@ impl<'a> DistributableToolchain<'a> {
             remove_components: vec![],
         };
 
-        let download_cfg = self
-            .toolchain
-            .cfg
-            .download_cfg(&*self.toolchain.cfg.notify_handler);
+        let download_cfg = self.toolchain.cfg.download_cfg();
         manifestation
             .update(
                 &manifest,
@@ -355,7 +352,7 @@ impl<'a> DistributableToolchain<'a> {
             toolchain,
             profile,
             update_hash,
-            dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n)),
+            dl_cfg: cfg.download_cfg(),
             force,
             allow_downgrade: false,
             exists: false,
@@ -413,7 +410,7 @@ impl<'a> DistributableToolchain<'a> {
             toolchain: &self.desc,
             profile,
             update_hash,
-            dl_cfg: cfg.download_cfg(&|n| (cfg.notify_handler)(n)),
+            dl_cfg: cfg.download_cfg(),
             force,
             allow_downgrade,
             exists: true,
@@ -509,10 +506,7 @@ impl<'a> DistributableToolchain<'a> {
             remove_components: vec![component],
         };
 
-        let download_cfg = self
-            .toolchain
-            .cfg
-            .download_cfg(&*self.toolchain.cfg.notify_handler);
+        let download_cfg = self.toolchain.cfg.download_cfg();
         manifestation
             .update(
                 &manifest,
@@ -529,10 +523,7 @@ impl<'a> DistributableToolchain<'a> {
 
     pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
         let update_hash = self.toolchain.cfg.get_hash_file(&self.desc, false)?;
-        let download_cfg = self
-            .toolchain
-            .cfg
-            .download_cfg(&*self.toolchain.cfg.notify_handler);
+        let download_cfg = self.toolchain.cfg.download_cfg();
 
         match crate::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc).await? {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
