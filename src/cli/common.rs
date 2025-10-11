@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 use std::{cmp, env};
 
 use anyhow::{Context, Result, anyhow};
@@ -13,7 +13,6 @@ use termcolor::Color;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
-use crate::dist::download::Notifier;
 use crate::{
     config::Cfg,
     dist::{TargetTriple, ToolchainDesc},
@@ -122,8 +121,7 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
 
 #[tracing::instrument(level = "trace", skip(process))]
 pub(crate) fn set_globals(current_dir: PathBuf, quiet: bool, process: &Process) -> Result<Cfg<'_>> {
-    let notifier = Notifier::new(quiet, process);
-    Cfg::from_env(current_dir, Arc::new(move |n| notifier.handle(n)), process)
+    Cfg::from_env(current_dir, quiet, process)
 }
 
 pub(crate) fn show_channel_update(

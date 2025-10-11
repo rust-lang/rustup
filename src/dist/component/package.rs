@@ -16,9 +16,9 @@ use tracing::{error, trace, warn};
 use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
+use crate::dist::download::Notifier;
 use crate::dist::temp;
 use crate::errors::*;
-use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 use crate::utils::units::Size;
@@ -300,8 +300,7 @@ fn unpack_without_first_dir<R: Read>(
         }
     };
     let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, cx);
-    let mut io_executor: Box<dyn Executor> =
-        get_executor(cx.notify_handler, unpack_ram, cx.process)?;
+    let mut io_executor: Box<dyn Executor> = get_executor(cx.notifier, unpack_ram, cx.process)?;
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
@@ -635,6 +634,6 @@ impl Package for TarZStdPackage {
 
 pub(crate) struct PackageContext<'a> {
     pub(crate) tmp_cx: &'a temp::Context,
-    pub(crate) notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+    pub(crate) notifier: Option<&'a Notifier>,
     pub(crate) process: &'a Process,
 }

@@ -50,6 +50,7 @@ use serde::{Deserialize, Serialize};
 use termcolor::Color;
 use tracing::{error, info, trace, warn};
 
+use crate::dist::download::DownloadCfg;
 use crate::{
     DUP_TOOLS, TOOLS,
     cli::{
@@ -541,7 +542,7 @@ pub(crate) async fn install(
     let mut term = cfg.process.stdout();
 
     #[cfg(windows)]
-    windows::maybe_install_msvc(&mut term, no_prompt, quiet, &opts, process).await?;
+    windows::maybe_install_msvc(&mut term, no_prompt, &opts, &*cfg).await?;
 
     if !no_prompt {
         let msg = pre_install_msg(opts.no_modify_path, cfg.process)?;
@@ -576,7 +577,7 @@ pub(crate) async fn install(
         // window closes.
         #[cfg(windows)]
         if !no_prompt {
-            windows::ensure_prompt(process)?;
+            windows::ensure_prompt(cfg.process)?;
         }
 
         return Ok(utils::ExitCode(1));
@@ -620,7 +621,7 @@ pub(crate) async fn install(
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
-        windows::ensure_prompt(process)?;
+        windows::ensure_prompt(cfg.process)?;
     }
 
     Ok(exit_code)
@@ -1105,7 +1106,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 }
 
 /// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update(process: &Process) -> Result<utils::ExitCode> {
+pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<utils::ExitCode> {
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             error!("Unable to self-update.  STOP");
@@ -1116,13 +1117,13 @@ pub(crate) async fn self_update(process: &Process) -> Result<utils::ExitCode> {
         SelfUpdatePermission::Permit => {}
     }
 
-    let setup_path = prepare_update(process).await?;
+    let setup_path = prepare_update(dl_cfg).await?;
 
     if let Some(setup_path) = &setup_path {
         return run_update(setup_path);
     } else {
         // Try again in case we emitted "tool `{}` is already installed" last time.
-        install_proxies(process)?;
+        install_proxies(dl_cfg.process)?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1167,7 +1168,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
         Permit => {}
     }
 
-    match prepare_update(cfg.process).await? {
+    match prepare_update(&DownloadCfg::new(cfg)).await? {
         Some(setup_path) => {
             let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
                 error!("failed to get rustup version");
@@ -1220,8 +1221,8 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>> {
-    let cargo_home = process.cargo_home()?;
+pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<PathBuf>> {
+    let cargo_home = dl_cfg.process.cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
@@ -1243,22 +1244,22 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
     // If someone really wants to use another version, they still can enforce
     // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
     #[cfg(windows)]
-    let triple = dist::TargetTriple::from_host(process).unwrap_or(triple);
+    let triple = dist::TargetTriple::from_host(dl_cfg.process).unwrap_or(triple);
 
     // Get update root.
-    let update_root = update_root(process);
+    let update_root = update_root(dl_cfg.process);
 
     // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available version
     info!("checking for self-update (current version: {current_version})");
-    let available_version = match process.var_opt("RUSTUP_VERSION")? {
+    let available_version = match dl_cfg.process.var_opt("RUSTUP_VERSION")? {
         Some(ver) => {
             info!("`RUSTUP_VERSION` has been set to `{ver}`");
             ver
         }
-        None => get_available_rustup_version(process).await?,
+        None => get_available_rustup_version(dl_cfg).await?,
     };
 
     // If up-to-date
@@ -1274,7 +1275,14 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
 
     // Download new version
     info!("downloading self-update (new version: {available_version})");
-    download_file(&download_url, &setup_path, None, &|_| (), process).await?;
+    download_file(
+        &download_url,
+        &setup_path,
+        None,
+        &dl_cfg.notifier,
+        dl_cfg.process,
+    )
+    .await?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
@@ -1282,8 +1290,8 @@ pub(crate) async fn prepare_update(process: &Process) -> Result<Option<PathBuf>>
     Ok(Some(setup_path))
 }
 
-async fn get_available_rustup_version(process: &Process) -> Result<String> {
-    let update_root = update_root(process);
+async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String> {
+    let update_root = update_root(dl_cfg.process);
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
         .tempdir()
@@ -1293,7 +1301,14 @@ async fn get_available_rustup_version(process: &Process) -> Result<String> {
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    download_file(&release_file_url, &release_file, None, &|_| (), process).await?;
+    download_file(
+        &release_file_url,
+        &release_file,
+        None,
+        &dl_cfg.notifier,
+        dl_cfg.process,
+    )
+    .await?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml = toml::from_str::<RustupManifest>(&release_toml_str)
         .context("unable to parse rustup release file")?;
@@ -1341,13 +1356,13 @@ impl fmt::Display for SchemaVersion {
 }
 
 /// Returns whether an update was available
-pub(crate) async fn check_rustup_update(process: &Process) -> anyhow::Result<bool> {
-    let mut t = process.stdout();
+pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<bool> {
+    let mut t = dl_cfg.process.stdout();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = get_available_rustup_version(process).await?;
+    let available_version = get_available_rustup_version(dl_cfg).await?;
 
     let _ = t.attr(Attr::Bold);
     write!(t.lock(), "rustup - ")?;

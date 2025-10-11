@@ -26,7 +26,9 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use crate::{errors::RustupError, notifications::Notification, process::Process};
+use crate::{
+    dist::download::Notifier, errors::RustupError, notifications::Notification, process::Process,
+};
 
 #[cfg(test)]
 mod tests;
@@ -35,10 +37,10 @@ pub(crate) async fn download_file(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
-    notify_handler: &dyn Fn(Notification<'_>),
+    notifier: &Notifier,
     process: &Process,
 ) -> anyhow::Result<()> {
-    download_file_with_resume(url, path, hasher, false, &notify_handler, process).await
+    download_file_with_resume(url, path, hasher, false, notifier, process).await
 }
 
 pub(crate) async fn download_file_with_resume(
@@ -46,20 +48,11 @@ pub(crate) async fn download_file_with_resume(
     path: &Path,
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
-    notify_handler: &dyn Fn(Notification<'_>),
+    notifier: &Notifier,
     process: &Process,
 ) -> anyhow::Result<()> {
     use crate::download::DownloadError as DEK;
-    match download_file_(
-        url,
-        path,
-        hasher,
-        resume_from_partial,
-        notify_handler,
-        process,
-    )
-    .await
-    {
+    match download_file_(url, path, hasher, resume_from_partial, notifier, process).await {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {
@@ -94,7 +87,7 @@ async fn download_file_(
     path: &Path,
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
-    notify_handler: &dyn Fn(Notification<'_>),
+    notifier: &Notifier,
     process: &Process,
 ) -> anyhow::Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
@@ -116,13 +109,13 @@ async fn download_file_(
 
         match msg {
             Event::DownloadContentLengthReceived(len) => {
-                notify_handler(Notification::DownloadContentLengthReceived(
+                notifier.handle(Notification::DownloadContentLengthReceived(
                     len,
                     Some(url.as_str()),
                 ));
             }
             Event::DownloadDataReceived(data) => {
-                notify_handler(Notification::DownloadDataReceived(data, Some(url.as_str())));
+                notifier.handle(Notification::DownloadDataReceived(data, Some(url.as_str())));
             }
             Event::ResumingPartialDownload => debug!("resuming partial download"),
         }
@@ -224,7 +217,7 @@ async fn download_file_(
         .await;
 
     // The notification should only be sent if the download was successful (i.e. didn't timeout)
-    notify_handler(match &res {
+    notifier.handle(match &res {
         Ok(_) => Notification::DownloadFinished(Some(url.as_str())),
         Err(_) => Notification::DownloadFailed(url.as_str()),
     });
