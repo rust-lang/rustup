@@ -876,7 +876,6 @@ impl fmt::Display for Profile {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct DistOptions<'a> {
     pub(crate) cfg: &'a Cfg<'a>,
     pub(crate) toolchain: &'a ToolchainDesc,
