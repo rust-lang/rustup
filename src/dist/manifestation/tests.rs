@@ -469,16 +469,6 @@ impl TestContext {
         }
     }
 
-    fn default_dl_cfg(&self) -> DownloadCfg<'_> {
-        DownloadCfg {
-            dist_root: "phony",
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
-            notify_handler: &|event| println!("{event}"),
-            process: &self.tp.process,
-        }
-    }
-
     // Installs or updates a toolchain from a dist server.  If an initial
     // install then it will be installed with the default components.  If
     // an upgrade then all the existing components will be upgraded.
@@ -489,17 +479,14 @@ impl TestContext {
         remove: &[Component],
         force: bool,
     ) -> Result<UpdateStatus> {
-        self.update_from_dist_with_dl_cfg(add, remove, force, &self.default_dl_cfg())
-            .await
-    }
+        let dl_cfg = DownloadCfg {
+            dist_root: "phony",
+            tmp_cx: &self.tmp_cx,
+            download_dir: &self.download_dir,
+            notify_handler: &|event| println!("{event}"),
+            process: &self.tp.process,
+        };
 
-    async fn update_from_dist_with_dl_cfg(
-        &self,
-        add: &[Component],
-        remove: &[Component],
-        force: bool,
-        dl_cfg: &DownloadCfg<'_>,
-    ) -> Result<UpdateStatus> {
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
@@ -526,7 +513,7 @@ impl TestContext {
                 &manifest,
                 changes,
                 force,
-                dl_cfg,
+                &dl_cfg,
                 &self.toolchain.manifest_name(),
                 true,
             )
