@@ -526,7 +526,7 @@ impl<'a> DistributableToolchain<'a> {
         let update_hash = self.toolchain.cfg.get_hash_file(&self.desc, false)?;
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
 
-        match crate::dist::dl_v2_manifest(download_cfg, Some(&update_hash), &self.desc).await? {
+        match crate::dist::dl_v2_manifest(&download_cfg, Some(&update_hash), &self.desc).await? {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }

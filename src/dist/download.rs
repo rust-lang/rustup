@@ -21,7 +21,7 @@ use crate::utils;
 
 const UPDATE_HASH_LEN: usize = 20;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub tmp_cx: &'a temp::Context,
