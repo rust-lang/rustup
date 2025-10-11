@@ -27,7 +27,9 @@ use tracing::warn;
 use url::Url;
 
 use crate::{
-    dist::download::Notifier, errors::RustupError, notifications::Notification, process::Process,
+    dist::download::{Notification, Notifier},
+    errors::RustupError,
+    process::Process,
 };
 
 #[cfg(test)]

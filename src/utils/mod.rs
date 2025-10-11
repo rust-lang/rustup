@@ -14,11 +14,10 @@ use retry::{OperationResult, retry};
 use tracing::{debug, info, warn};
 use url::Url;
 
-use crate::dist::download::Notifier;
+use crate::dist::download::{Notification, Notifier};
 use crate::errors::*;
 use crate::process::Process;
 
-use crate::notifications::Notification;
 #[cfg(not(windows))]
 pub(crate) use crate::utils::raw::find_cmd;
 pub(crate) use crate::utils::raw::is_directory;
