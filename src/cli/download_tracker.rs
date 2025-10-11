@@ -1,6 +1,7 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use tracing::debug;
 
 use crate::notifications::Notification;
 use crate::process::Process;
@@ -36,37 +37,32 @@ impl DownloadTracker {
         }
     }
 
-    pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
+    pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) {
         match *n {
             Notification::DownloadContentLengthReceived(content_len, url) => {
                 if let Some(url) = url {
                     self.content_length_received(content_len, url);
                 }
-                true
             }
             Notification::DownloadDataReceived(data, url) => {
                 if let Some(url) = url {
                     self.data_received(data.len(), url);
                 }
-                true
             }
             Notification::DownloadFinished(url) => {
                 if let Some(url) = url {
                     self.download_finished(url);
                 }
-                true
             }
             Notification::DownloadFailed(url) => {
                 self.download_failed(url);
-                false
+                debug!("download failed");
             }
             Notification::DownloadingComponent(component, _, _, url) => {
                 self.create_progress_bar(component.to_owned(), url.to_owned());
-                true
             }
             Notification::RetryingDownload(url) => {
                 self.retrying_download(url);
-                true
             }
         }
     }

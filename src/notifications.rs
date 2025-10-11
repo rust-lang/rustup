@@ -1,7 +1,6 @@
 use std::fmt::{self, Display};
 
 use crate::dist::TargetTriple;
-use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
@@ -17,19 +16,6 @@ pub(crate) enum Notification<'a> {
     DownloadFinished(Option<&'a str>),
     /// Download has failed.
     DownloadFailed(&'a str),
-}
-
-impl Notification<'_> {
-    pub(crate) fn level(&self) -> NotificationLevel {
-        use self::Notification::*;
-        match self {
-            DownloadingComponent(_, _, _, _) | RetryingDownload(_) => NotificationLevel::Info,
-            DownloadContentLengthReceived(_, _)
-            | DownloadDataReceived(_, _)
-            | DownloadFinished(_)
-            | DownloadFailed(_) => NotificationLevel::Debug,
-        }
-    }
 }
 
 impl Display for Notification<'_> {
