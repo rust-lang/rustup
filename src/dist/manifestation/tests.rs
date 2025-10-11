@@ -3,7 +3,6 @@
 #![allow(clippy::type_complexity)]
 
 use std::{
-    cell::Cell,
     collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
@@ -25,7 +24,6 @@ use crate::{
     },
     download::download_file,
     errors::RustupError,
-    notifications::Notification,
     process::TestProcess,
     test::{
         dist::*,
@@ -1516,21 +1514,9 @@ async fn checks_files_hashes_before_reuse() {
     utils::write_file("bad previous download", &prev_download, "bad content").unwrap();
     println!("wrote previous download to {}", prev_download.display());
 
-    let noticed_bad_checksum = Arc::new(Cell::new(false));
-    let dl_cfg = DownloadCfg {
-        notify_handler: &|n| {
-            if let Notification::CachedFileChecksumFailed = n {
-                noticed_bad_checksum.set(true);
-            }
-        },
-        ..cx.default_dl_cfg()
-    };
-
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
-        .await
-        .unwrap();
-
-    assert!(noticed_bad_checksum.get());
+    cx.update_from_dist(&[], &[], false).await.unwrap();
+    const EXPECTED_LOG: &str = "bad checksum for cached download";
+    assert!(cx.stderr_line_contains(EXPECTED_LOG));
 }
 
 #[tokio::test]

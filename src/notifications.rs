@@ -5,7 +5,6 @@ use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub(crate) enum Notification<'a> {
-    CachedFileChecksumFailed,
     /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>, &'a str),
     RetryingDownload(&'a str),
@@ -25,7 +24,6 @@ impl Notification<'_> {
         use self::Notification::*;
         match self {
             DownloadingComponent(_, _, _, _) | RetryingDownload(_) => NotificationLevel::Info,
-            CachedFileChecksumFailed => NotificationLevel::Warn,
             DownloadContentLengthReceived(_, _)
             | DownloadDataReceived(_, _)
             | DownloadFinished(_)
@@ -38,7 +36,6 @@ impl Display for Notification<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match self {
-            CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             DownloadingComponent(c, h, t, _) => {
                 if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "downloading component '{c}'")
