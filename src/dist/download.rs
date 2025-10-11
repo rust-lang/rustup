@@ -254,7 +254,7 @@ impl DownloadTracker {
                 self.download_failed(url);
                 debug!("download failed");
             }
-            Notification::DownloadingComponent(component, _, _, url) => {
+            Notification::DownloadingComponent(component, url) => {
                 self.create_progress_bar(component.to_owned(), url.to_owned());
             }
             Notification::RetryingDownload(url) => {

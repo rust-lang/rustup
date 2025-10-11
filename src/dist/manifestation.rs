@@ -182,8 +182,6 @@ impl Manifestation {
                 .notifier
                 .handle(Notification::DownloadingComponent(
                     &bin.component.short_name(new_manifest),
-                    &self.target_triple,
-                    bin.component.target.as_ref(),
                     &bin.binary.url,
                 ));
         }
@@ -452,12 +450,9 @@ impl Manifestation {
             .unwrap()
             .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
-        dl_cfg.notifier.handle(Notification::DownloadingComponent(
-            "rust",
-            &self.target_triple,
-            Some(&self.target_triple),
-            &url,
-        ));
+        dl_cfg
+            .notifier
+            .handle(Notification::DownloadingComponent("rust", &url));
 
         let dl = dl_cfg
             .download_and_check(&url, update_hash, ".tar.gz")
