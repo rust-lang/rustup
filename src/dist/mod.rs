@@ -1216,9 +1216,7 @@ async fn try_update_from_dist_(
         .update_v1(
             &manifest,
             update_hash,
-            download.tmp_cx,
-            &download.notify_handler,
-            download.process,
+            download,
         )
         .await;
 
