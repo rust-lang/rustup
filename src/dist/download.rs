@@ -28,18 +28,6 @@ pub struct DownloadCfg<'a> {
     pub process: &'a Process,
 }
 
-pub(crate) struct File {
-    path: PathBuf,
-}
-
-impl ops::Deref for File {
-    type Target = Path;
-
-    fn deref(&self) -> &Path {
-        self.path.as_path()
-    }
-}
-
 impl<'a> DownloadCfg<'a> {
     /// construct a download configuration
     pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
@@ -226,4 +214,16 @@ fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<S
     }
 
     Ok(format!("{:x}", hasher.finalize()))
+}
+
+pub(crate) struct File {
+    path: PathBuf,
+}
+
+impl ops::Deref for File {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        self.path.as_path()
+    }
 }
