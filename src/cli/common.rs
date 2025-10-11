@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock};
 use std::{cmp, env};
 
 use anyhow::{Context, Result, anyhow};
@@ -13,13 +13,12 @@ use termcolor::Color;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
+use crate::dist::download::Notifier;
 use crate::{
-    cli::download_tracker::DownloadTracker,
     config::Cfg,
     dist::{TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
-    notifications::Notification,
     process::{Attr, Process},
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
     utils,
@@ -119,22 +118,6 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
         Some(v) => Ok(v),
     }
     .context("unable to read from stdin for confirmation")
-}
-
-pub(super) struct Notifier {
-    tracker: Mutex<DownloadTracker>,
-}
-
-impl Notifier {
-    pub(super) fn new(quiet: bool, process: &Process) -> Self {
-        Self {
-            tracker: Mutex::new(DownloadTracker::new(!quiet, process)),
-        }
-    }
-
-    pub(super) fn handle(&self, n: Notification<'_>) {
-        self.tracker.lock().unwrap().handle_notification(&n);
-    }
 }
 
 #[tracing::instrument(level = "trace", skip(process))]
