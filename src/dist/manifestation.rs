@@ -463,7 +463,6 @@ impl Manifestation {
         use std::path::PathBuf;
         let dld_dir = PathBuf::from("bogus");
         let dlcfg = DownloadCfg {
-            dist_root: "bogus",
             download_dir: &dld_dir,
             tmp_cx,
             notify_handler,

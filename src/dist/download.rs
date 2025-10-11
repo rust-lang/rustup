@@ -22,7 +22,6 @@ use crate::utils;
 const UPDATE_HASH_LEN: usize = 20;
 
 pub struct DownloadCfg<'a> {
-    pub dist_root: &'a str,
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
     pub(crate) notify_handler: &'a dyn Fn(Notification<'_>),
@@ -33,7 +32,6 @@ impl<'a> DownloadCfg<'a> {
     /// construct a download configuration
     pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
         DownloadCfg {
-            dist_root: &cfg.dist_root_url,
             tmp_cx: &cfg.tmp_cx,
             download_dir: &cfg.download_dir,
             notify_handler: &*cfg.notify_handler,
