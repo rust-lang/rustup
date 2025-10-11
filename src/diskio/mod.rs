@@ -55,6 +55,7 @@ pub(crate) mod immediate;
 #[cfg(test)]
 mod test;
 pub(crate) mod threaded;
+use threaded::PoolReference;
 
 use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
@@ -65,9 +66,8 @@ use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
 
-use crate::notifications::Notification;
+use crate::dist::download::Notifier;
 use crate::process::Process;
-use threaded::PoolReference;
 
 /// Carries the implementation specific data for complete file transfers into the executor.
 #[derive(Debug)]
@@ -443,13 +443,13 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 
 /// Get the executor for disk IO.
 pub(crate) fn get_executor<'a>(
-    notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+    notifier: Option<&'a Notifier>,
     ram_budget: usize,
     process: &Process,
 ) -> anyhow::Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
     Ok(match process.io_thread_count()? {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
-        n => Box::new(threaded::Threaded::new(notify_handler, n, ram_budget)),
+        n => Box::new(threaded::Threaded::new(notifier, n, ram_budget)),
     })
 }

@@ -1,45 +1,43 @@
+use std::collections::HashMap;
 use std::fs;
 use std::ops;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use sha2::{Digest, Sha256};
-use tracing::debug;
-use tracing::warn;
+use tracing::{debug, warn};
 use url::Url;
 
+use crate::config::Cfg;
 use crate::dist::temp;
-use crate::download::download_file;
-use crate::download::download_file_with_resume;
+use crate::download::{download_file, download_file_with_resume};
 use crate::errors::*;
-use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 
 const UPDATE_HASH_LEN: usize = 20;
 
-#[derive(Copy, Clone)]
 pub struct DownloadCfg<'a> {
-    pub dist_root: &'a str,
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
-    pub(crate) notify_handler: &'a dyn Fn(Notification<'_>),
+    pub(crate) notifier: Notifier,
     pub process: &'a Process,
 }
 
-pub(crate) struct File {
-    path: PathBuf,
-}
-
-impl ops::Deref for File {
-    type Target = Path;
-
-    fn deref(&self) -> &Path {
-        self.path.as_path()
-    }
-}
-
 impl<'a> DownloadCfg<'a> {
+    /// construct a download configuration
+    pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
+        DownloadCfg {
+            tmp_cx: &cfg.tmp_cx,
+            download_dir: &cfg.download_dir,
+            notifier: Notifier::new(cfg.quiet, cfg.process),
+            process: cfg.process,
+        }
+    }
+
     /// Downloads a file and validates its hash. Resumes interrupted downloads.
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
@@ -49,13 +47,13 @@ impl<'a> DownloadCfg<'a> {
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = file_hash(&target_file, self.notify_handler)?;
+            let cached_result = file_hash(&target_file, &self.notifier)?;
             if hash == cached_result {
-                (self.notify_handler)(Notification::FileAlreadyDownloaded);
+                debug!("reusing previously downloaded file");
                 debug!(url = url.as_ref(), "checksum passed");
                 return Ok(File { path: target_file });
             } else {
-                (self.notify_handler)(Notification::CachedFileChecksumFailed);
+                warn!("bad checksum for cached download");
                 fs::remove_file(&target_file).context("cleaning up previous download")?;
             }
         }
@@ -78,7 +76,7 @@ impl<'a> DownloadCfg<'a> {
             &partial_file_path,
             Some(&mut hasher),
             true,
-            &|n| (self.notify_handler)(n),
+            &self.notifier,
             self.process,
         )
         .await
@@ -127,14 +125,7 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        download_file(
-            &hash_url,
-            &hash_file,
-            None,
-            &|n| (self.notify_handler)(n),
-            self.process,
-        )
-        .await?;
+        download_file(&hash_url, &hash_file, None, &self.notifier, self.process).await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
@@ -175,14 +166,7 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        download_file(
-            &url,
-            &file,
-            Some(&mut hasher),
-            &|n| (self.notify_handler)(n),
-            self.process,
-        )
-        .await?;
+        download_file(&url, &file, Some(&mut hasher), &self.notifier, self.process).await?;
         let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {
@@ -201,9 +185,178 @@ impl<'a> DownloadCfg<'a> {
     }
 }
 
-fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<String> {
+pub(crate) struct Notifier {
+    tracker: Mutex<DownloadTracker>,
+}
+
+impl Notifier {
+    pub(crate) fn new(quiet: bool, process: &Process) -> Self {
+        Self {
+            tracker: Mutex::new(DownloadTracker::new(!quiet, process)),
+        }
+    }
+
+    pub(crate) fn handle(&self, n: Notification<'_>) {
+        self.tracker.lock().unwrap().handle_notification(&n);
+    }
+}
+
+/// Tracks download progress and displays information about it to a terminal.
+///
+/// *not* safe for tracking concurrent downloads yet - it is basically undefined
+/// what will happen.
+pub(crate) struct DownloadTracker {
+    /// MultiProgress bar for the downloads.
+    multi_progress_bars: MultiProgress,
+    /// Mapping of URLs being downloaded to their corresponding progress bars.
+    /// The `Option<Instant>` represents the instant where the download is being retried,
+    /// allowing us delay the reappearance of the progress bar so that the user can see
+    /// the message "retrying download" for at least a second.
+    /// Without it, the progress bar would reappear immediately, not allowing the user to
+    /// correctly see the message, before the progress bar starts again.
+    file_progress_bars: HashMap<String, (ProgressBar, Option<Instant>)>,
+}
+
+impl DownloadTracker {
+    /// Creates a new DownloadTracker.
+    pub(crate) fn new(display_progress: bool, process: &Process) -> Self {
+        let multi_progress_bars = MultiProgress::with_draw_target(if display_progress {
+            process.progress_draw_target()
+        } else {
+            ProgressDrawTarget::hidden()
+        });
+
+        Self {
+            multi_progress_bars,
+            file_progress_bars: HashMap::new(),
+        }
+    }
+
+    pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) {
+        match *n {
+            Notification::DownloadContentLengthReceived(content_len, url) => {
+                if let Some(url) = url {
+                    self.content_length_received(content_len, url);
+                }
+            }
+            Notification::DownloadDataReceived(data, url) => {
+                if let Some(url) = url {
+                    self.data_received(data.len(), url);
+                }
+            }
+            Notification::DownloadFinished(url) => {
+                if let Some(url) = url {
+                    self.download_finished(url);
+                }
+            }
+            Notification::DownloadFailed(url) => {
+                self.download_failed(url);
+                debug!("download failed");
+            }
+            Notification::DownloadingComponent(component, url) => {
+                self.create_progress_bar(component.to_owned(), url.to_owned());
+            }
+            Notification::RetryingDownload(url) => {
+                self.retrying_download(url);
+            }
+        }
+    }
+
+    /// Creates a new ProgressBar for the given component.
+    pub(crate) fn create_progress_bar(&mut self, component: String, url: String) {
+        let pb = ProgressBar::hidden();
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+            )
+            .unwrap()
+            .progress_chars("## "),
+        );
+        pb.set_message(component);
+        self.multi_progress_bars.add(pb.clone());
+        self.file_progress_bars.insert(url, (pb, None));
+    }
+
+    /// Sets the length for a new ProgressBar and gives it a style.
+    pub(crate) fn content_length_received(&mut self, content_len: u64, url: &str) {
+        if let Some((pb, _)) = self.file_progress_bars.get(url) {
+            pb.reset();
+            pb.set_length(content_len);
+        }
+    }
+
+    /// Notifies self that data of size `len` has been received.
+    pub(crate) fn data_received(&mut self, len: usize, url: &str) {
+        let Some((pb, retry_time)) = self.file_progress_bars.get_mut(url) else {
+            return;
+        };
+        pb.inc(len as u64);
+        if !retry_time.is_some_and(|instant| instant.elapsed() > Duration::from_secs(1)) {
+            return;
+        }
+        *retry_time = None;
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+            )
+            .unwrap()
+            .progress_chars("## "),
+        );
+    }
+
+    /// Notifies self that the download has finished.
+    pub(crate) fn download_finished(&mut self, url: &str) {
+        let Some((pb, _)) = self.file_progress_bars.get(url) else {
+            return;
+        };
+        pb.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
+                .unwrap(),
+        );
+        pb.finish();
+    }
+
+    /// Notifies self that the download has failed.
+    pub(crate) fn download_failed(&mut self, url: &str) {
+        let Some((pb, _)) = self.file_progress_bars.get(url) else {
+            return;
+        };
+        pb.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  download failed after {elapsed}")
+                .unwrap(),
+        );
+        pb.finish();
+    }
+
+    /// Notifies self that the download is being retried.
+    pub(crate) fn retrying_download(&mut self, url: &str) {
+        let Some((pb, retry_time)) = self.file_progress_bars.get_mut(url) else {
+            return;
+        };
+        *retry_time = Some(Instant::now());
+        pb.set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum Notification<'a> {
+    /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
+    DownloadingComponent(&'a str, &'a str),
+    RetryingDownload(&'a str),
+    /// Received the Content-Length of the to-be downloaded data with
+    /// the respective URL of the download (for tracking concurrent downloads).
+    DownloadContentLengthReceived(u64, Option<&'a str>),
+    /// Received some data.
+    DownloadDataReceived(&'a [u8], Option<&'a str>),
+    /// Download has finished.
+    DownloadFinished(Option<&'a str>),
+    /// Download has failed.
+    DownloadFailed(&'a str),
+}
+
+fn file_hash(path: &Path, notifier: &Notifier) -> Result<String> {
     let mut hasher = Sha256::new();
-    let mut downloaded = utils::FileReaderWithProgress::new_file(path, notify_handler)?;
+    let mut downloaded = utils::FileReaderWithProgress::new_file(path, notifier)?;
     use std::io::Read;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {
@@ -214,4 +367,16 @@ fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<S
     }
 
     Ok(format!("{:x}", hasher.finalize()))
+}
+
+pub(crate) struct File {
+    path: PathBuf,
+}
+
+impl ops::Deref for File {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        self.path.as_path()
+    }
 }

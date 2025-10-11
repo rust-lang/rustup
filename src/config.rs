@@ -2,7 +2,6 @@ use std::fmt::{self, Debug, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
@@ -13,14 +12,10 @@ use tracing::{debug, error, info, trace, warn};
 use crate::dist::AutoInstallMode;
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
-    dist::{
-        self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, download::DownloadCfg,
-        temp,
-    },
+    dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, temp},
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::UpdateStatus,
-    notifications::*,
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
@@ -233,7 +228,7 @@ pub(crate) struct Cfg<'a> {
     pub toolchain_override: Option<ResolvableToolchainName>,
     pub env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
-    pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
+    pub quiet: bool,
     pub current_dir: PathBuf,
     pub process: &'a Process,
 }
@@ -241,7 +236,7 @@ pub(crate) struct Cfg<'a> {
 impl<'a> Cfg<'a> {
     pub(crate) fn from_env(
         current_dir: PathBuf,
-        notify_handler: Arc<dyn Fn(Notification<'_>)>,
+        quiet: bool,
         process: &'a Process,
     ) -> Result<Self> {
         // Set up the rustup home directory
@@ -302,10 +297,10 @@ impl<'a> Cfg<'a> {
             update_hash_dir,
             download_dir,
             tmp_cx,
-            notify_handler,
             toolchain_override: None,
             env_override,
             dist_root_url: dist_root,
+            quiet,
             current_dir,
             process,
         };
@@ -319,20 +314,6 @@ impl<'a> Cfg<'a> {
         )?;
 
         Ok(cfg)
-    }
-
-    /// construct a download configuration
-    pub(crate) fn download_cfg(
-        &'a self,
-        notify_handler: &'a dyn Fn(Notification<'_>),
-    ) -> DownloadCfg<'a> {
-        DownloadCfg {
-            dist_root: &self.dist_root_url,
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
-            notify_handler,
-            process: self.process,
-        }
     }
 
     pub(crate) fn set_profile_override(&mut self, profile: Profile) {
@@ -1014,7 +995,7 @@ impl Debug for Cfg<'_> {
             toolchain_override,
             env_override,
             dist_root_url,
-            notify_handler: _,
+            quiet,
             current_dir,
             process: _,
         } = self;
@@ -1031,6 +1012,7 @@ impl Debug for Cfg<'_> {
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
             .field("dist_root_url", dist_root_url)
+            .field("quiet", quiet)
             .field("current_dir", current_dir)
             .finish()
     }

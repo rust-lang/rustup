@@ -876,7 +876,6 @@ impl fmt::Display for Profile {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct DistOptions<'a> {
     pub(crate) cfg: &'a Cfg<'a>,
     pub(crate) toolchain: &'a ToolchainDesc,
@@ -968,7 +967,7 @@ pub(crate) async fn update_from_dist(
     let mut toolchain = opts.toolchain.clone();
     let res = loop {
         let result = try_update_from_dist_(
-            opts.dl_cfg,
+            &opts.dl_cfg,
             opts.update_hash,
             &toolchain,
             match opts.exists {
@@ -980,6 +979,7 @@ pub(crate) async fn update_from_dist(
             opts.components,
             opts.targets,
             &mut fetched,
+            &opts.cfg.dist_root_url,
         )
         .await;
 
@@ -1067,7 +1067,7 @@ pub(crate) async fn update_from_dist(
 
 #[allow(clippy::too_many_arguments)]
 async fn try_update_from_dist_(
-    download: DownloadCfg<'_>,
+    download: &DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -1076,6 +1076,7 @@ async fn try_update_from_dist_(
     components: &[&str],
     targets: &[&str],
     fetched: &mut String,
+    dist_root: &str,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
@@ -1083,6 +1084,7 @@ async fn try_update_from_dist_(
     // TODO: Add a notification about which manifest version is going to be used
     info!("syncing channel updates for {toolchain_str}");
     match dl_v2_manifest(
+        dist_root,
         download,
         // Even if manifest has not changed, we must continue to install requested components.
         // So if components or targets is not empty, we skip passing `update_hash` so that
@@ -1190,7 +1192,7 @@ async fn try_update_from_dist_(
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = match dl_v1_manifest(download, toolchain).await {
+    let manifest = match dl_v1_manifest(dist_root, download, toolchain).await {
         Ok(m) => m,
         Err(err) => match err.downcast_ref::<RustupError>() {
             Some(RustupError::ChecksumFailed { .. }) => return Err(err),
@@ -1211,13 +1213,7 @@ async fn try_update_from_dist_(
     };
 
     let result = manifestation
-        .update_v1(
-            &manifest,
-            update_hash,
-            download.tmp_cx,
-            &download.notify_handler,
-            download.process,
-        )
+        .update_v1(&manifest, update_hash, download)
         .await;
 
     // inspect, determine what context to add, then process afterwards.
@@ -1233,11 +1229,12 @@ async fn try_update_from_dist_(
 }
 
 pub(crate) async fn dl_v2_manifest(
-    download: DownloadCfg<'_>,
+    dist_root: &str,
+    download: &DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
-    let manifest_url = toolchain.manifest_v2_url(download.dist_root, download.process);
+    let manifest_url = toolchain.manifest_v2_url(dist_root, download.process);
     match download
         .download_and_check(&manifest_url, update_hash, ".toml")
         .await
@@ -1282,10 +1279,11 @@ pub(crate) async fn dl_v2_manifest(
 }
 
 async fn dl_v1_manifest(
-    download: DownloadCfg<'_>,
+    dist_root: &str,
+    download: &DownloadCfg<'_>,
     toolchain: &ToolchainDesc,
 ) -> Result<Vec<String>> {
-    let root_url = toolchain.package_dir(download.dist_root);
+    let root_url = toolchain.package_dir(dist_root);
 
     if let Channel::Version(ver) = &toolchain.channel {
         // This is an explicit version. In v1 there was no manifest,
@@ -1294,7 +1292,7 @@ async fn dl_v1_manifest(
         return Ok(vec![installer_name]);
     }
 
-    let manifest_url = toolchain.manifest_v1_url(download.dist_root, download.process);
+    let manifest_url = toolchain.manifest_v1_url(dist_root, download.process);
     let manifest_dl = download.download_and_check(&manifest_url, None, "").await?;
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = utils::read_file("manifest", &manifest_file)?;

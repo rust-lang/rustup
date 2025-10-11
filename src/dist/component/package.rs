@@ -2,6 +2,7 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
@@ -10,16 +11,17 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
-use tracing::{error, warn};
+use tracing::{error, trace, warn};
 
 use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
+use crate::dist::download::Notifier;
 use crate::dist::temp;
 use crate::errors::*;
-use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
+use crate::utils::units::Size;
 
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";
@@ -199,8 +201,8 @@ fn unpack_ram(
             }
         }
         None => {
-            if let Some(h) = cx.notify_handler {
-                h(Notification::SetDefaultBufferSize(default_max_unpack_ram))
+            if RAM_NOTICE_SHOWN.set(true).is_ok() {
+                trace!(size = %Size::new(default_max_unpack_ram), "unpacking components in memory");
             }
             default_max_unpack_ram
         }
@@ -212,6 +214,8 @@ fn unpack_ram(
         unpack_ram
     }
 }
+
+const RAM_NOTICE_SHOWN: OnceCell<bool> = OnceCell::new();
 
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())
@@ -296,8 +300,7 @@ fn unpack_without_first_dir<R: Read>(
         }
     };
     let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, cx);
-    let mut io_executor: Box<dyn Executor> =
-        get_executor(cx.notify_handler, unpack_ram, cx.process)?;
+    let mut io_executor: Box<dyn Executor> = get_executor(cx.notifier, unpack_ram, cx.process)?;
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
@@ -631,6 +634,6 @@ impl Package for TarZStdPackage {
 
 pub(crate) struct PackageContext<'a> {
     pub(crate) tmp_cx: &'a temp::Context,
-    pub(crate) notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+    pub(crate) notifier: Option<&'a Notifier>,
     pub(crate) process: &'a Process,
 }

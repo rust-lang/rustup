@@ -3,7 +3,6 @@
 #![allow(clippy::type_complexity)]
 
 use std::{
-    cell::Cell,
     collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
@@ -17,7 +16,7 @@ use url::Url;
 use crate::{
     dist::{
         DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
-        download::DownloadCfg,
+        download::{DownloadCfg, Notifier},
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
         prefix::InstallPrefix,
@@ -25,7 +24,6 @@ use crate::{
     },
     download::download_file,
     errors::RustupError,
-    notifications::Notification,
     process::TestProcess,
     test::{
         dist::*,
@@ -471,16 +469,6 @@ impl TestContext {
         }
     }
 
-    fn default_dl_cfg(&self) -> DownloadCfg<'_> {
-        DownloadCfg {
-            dist_root: "phony",
-            tmp_cx: &self.tmp_cx,
-            download_dir: &self.download_dir,
-            notify_handler: &|event| println!("{event}"),
-            process: &self.tp.process,
-        }
-    }
-
     // Installs or updates a toolchain from a dist server.  If an initial
     // install then it will be installed with the default components.  If
     // an upgrade then all the existing components will be upgraded.
@@ -491,21 +479,24 @@ impl TestContext {
         remove: &[Component],
         force: bool,
     ) -> Result<UpdateStatus> {
-        self.update_from_dist_with_dl_cfg(add, remove, force, &self.default_dl_cfg())
-            .await
-    }
+        let dl_cfg = DownloadCfg {
+            tmp_cx: &self.tmp_cx,
+            download_dir: &self.download_dir,
+            notifier: Notifier::new(false, &self.tp.process),
+            process: &self.tp.process,
+        };
 
-    async fn update_from_dist_with_dl_cfg(
-        &self,
-        add: &[Component],
-        remove: &[Component],
-        force: bool,
-        dl_cfg: &DownloadCfg<'_>,
-    ) -> Result<UpdateStatus> {
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
-        download_file(&manifest_url, &manifest_file, None, &|_| {}, dl_cfg.process).await?;
+        download_file(
+            &manifest_url,
+            &manifest_file,
+            None,
+            &dl_cfg.notifier,
+            dl_cfg.process,
+        )
+        .await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
         let manifest = Manifest::parse(&manifest_str)?;
 
@@ -528,7 +519,7 @@ impl TestContext {
                 &manifest,
                 changes,
                 force,
-                dl_cfg,
+                &dl_cfg,
                 &self.toolchain.manifest_name(),
                 true,
             )
@@ -1479,30 +1470,29 @@ fn allow_installation(prefix: &InstallPrefix) {
 
 #[tokio::test]
 async fn reuse_downloaded_file() {
-    let cx = TestContext::new(None, GZOnly);
+    let mut env = HashMap::default();
+    env.insert("RUSTUP_LOG".to_owned(), "debug".to_owned());
+    let cx = TestContext::with_env(None, GZOnly, env);
+
     prevent_installation(&cx.prefix);
-
-    let reuse_notification_fired = Arc::new(Cell::new(false));
-    let dl_cfg = DownloadCfg {
-        notify_handler: &|n| {
-            if let Notification::FileAlreadyDownloaded = n {
-                reuse_notification_fired.set(true);
-            }
-        },
-        ..cx.default_dl_cfg()
-    };
-
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
-        .await
-        .unwrap_err();
-    assert!(!reuse_notification_fired.get());
+    cx.update_from_dist(&[], &[], false).await.unwrap_err();
+    assert!(
+        str::from_utf8(&cx.tp.stderr())
+            .unwrap()
+            .lines()
+            .find(|&ln| ln.contains("reusing previously downloaded file"))
+            .is_none()
+    );
 
     allow_installation(&cx.prefix);
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
-        .await
-        .unwrap();
-
-    assert!(reuse_notification_fired.get());
+    cx.update_from_dist(&[], &[], false).await.unwrap();
+    assert!(
+        str::from_utf8(&cx.tp.stderr())
+            .unwrap()
+            .lines()
+            .find(|&ln| ln.contains("reusing previously downloaded file"))
+            .is_some()
+    );
 }
 
 #[tokio::test]
@@ -1521,21 +1511,14 @@ async fn checks_files_hashes_before_reuse() {
     utils::write_file("bad previous download", &prev_download, "bad content").unwrap();
     println!("wrote previous download to {}", prev_download.display());
 
-    let noticed_bad_checksum = Arc::new(Cell::new(false));
-    let dl_cfg = DownloadCfg {
-        notify_handler: &|n| {
-            if let Notification::CachedFileChecksumFailed = n {
-                noticed_bad_checksum.set(true);
-            }
-        },
-        ..cx.default_dl_cfg()
-    };
-
-    cx.update_from_dist_with_dl_cfg(&[], &[], false, &dl_cfg)
-        .await
-        .unwrap();
-
-    assert!(noticed_bad_checksum.get());
+    cx.update_from_dist(&[], &[], false).await.unwrap();
+    assert!(
+        str::from_utf8(&cx.tp.stderr())
+            .unwrap()
+            .lines()
+            .find(|&ln| ln.contains("bad checksum for cached download"))
+            .is_some()
+    );
 }
 
 #[tokio::test]

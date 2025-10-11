@@ -1,29 +1,26 @@
 //! Just a dumping ground for cli stuff
 
-use std::cell::RefCell;
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::LazyLock;
 use std::{cmp, env};
 
 use anyhow::{Context, Result, anyhow};
 use git_testament::{git_testament, render_testament};
 use termcolor::Color;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
-    cli::download_tracker::DownloadTracker,
     config::Cfg,
     dist::{TargetTriple, ToolchainDesc},
     errors::RustupError,
     install::UpdateStatus,
-    notifications::Notification,
     process::{Attr, Process},
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
-    utils::{self, notify::NotificationLevel},
+    utils,
 };
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
@@ -122,58 +119,9 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
     .context("unable to read from stdin for confirmation")
 }
 
-pub(super) struct Notifier {
-    tracker: Mutex<DownloadTracker>,
-    ram_notice_shown: RefCell<bool>,
-}
-
-impl Notifier {
-    pub(super) fn new(quiet: bool, process: &Process) -> Self {
-        Self {
-            tracker: Mutex::new(DownloadTracker::new_with_display_progress(!quiet, process)),
-            ram_notice_shown: RefCell::new(false),
-        }
-    }
-
-    pub(super) fn handle(&self, n: Notification<'_>) {
-        if self.tracker.lock().unwrap().handle_notification(&n) {
-            return;
-        }
-
-        if let Notification::SetDefaultBufferSize(_) = &n {
-            if *self.ram_notice_shown.borrow() {
-                return;
-            } else {
-                *self.ram_notice_shown.borrow_mut() = true;
-            }
-        };
-        let level = n.level();
-        for n in format!("{n}").lines() {
-            match level {
-                NotificationLevel::Debug => {
-                    debug!("{}", n);
-                }
-                NotificationLevel::Info => {
-                    info!("{}", n);
-                }
-                NotificationLevel::Warn => {
-                    warn!("{}", n);
-                }
-                NotificationLevel::Error => {
-                    error!("{}", n);
-                }
-                NotificationLevel::Trace => {
-                    trace!("{}", n);
-                }
-            }
-        }
-    }
-}
-
 #[tracing::instrument(level = "trace", skip(process))]
 pub(crate) fn set_globals(current_dir: PathBuf, quiet: bool, process: &Process) -> Result<Cfg<'_>> {
-    let notifier = Notifier::new(quiet, process);
-    Cfg::from_env(current_dir, Arc::new(move |n| notifier.handle(n)), process)
+    Cfg::from_env(current_dir, quiet, process)
 }
 
 pub(crate) fn show_channel_update(

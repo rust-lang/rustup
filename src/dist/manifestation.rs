@@ -17,13 +17,13 @@ use crate::dist::component::{
     Components, Package, PackageContext, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
 use crate::dist::config::Config;
-use crate::dist::download::{DownloadCfg, File};
+use crate::dist::download::{DownloadCfg, File, Notification};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
 use crate::dist::prefix::InstallPrefix;
+#[cfg(test)]
 use crate::dist::temp;
 use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
-use crate::notifications::Notification;
 use crate::process::Process;
 use crate::utils;
 
@@ -177,12 +177,12 @@ impl Manifestation {
 
         info!("downloading component(s)");
         for bin in &components {
-            (download_cfg.notify_handler)(Notification::DownloadingComponent(
-                &bin.component.short_name(new_manifest),
-                &self.target_triple,
-                bin.component.target.as_ref(),
-                &bin.binary.url,
-            ));
+            download_cfg
+                .notifier
+                .handle(Notification::DownloadingComponent(
+                    &bin.component.short_name(new_manifest),
+                    &bin.binary.url,
+                ));
         }
 
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
@@ -279,14 +279,12 @@ impl Manifestation {
 
             let cx = PackageContext {
                 tmp_cx,
-                notify_handler: Some(download_cfg.notify_handler),
+                notifier: Some(&download_cfg.notifier),
                 process: download_cfg.process,
             };
 
-            let reader = utils::FileReaderWithProgress::new_file(
-                &installer_file,
-                download_cfg.notify_handler,
-            )?;
+            let reader =
+                utils::FileReaderWithProgress::new_file(&installer_file, &download_cfg.notifier)?;
             let package = match format {
                 CompressionKind::GZip => &TarGzPackage::new(reader, &cx)? as &dyn Package,
                 CompressionKind::XZ => &TarXzPackage::new(reader, &cx)?,
@@ -428,9 +426,7 @@ impl Manifestation {
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
-        tmp_cx: &temp::Context,
-        notify_handler: &dyn Fn(Notification<'_>),
-        process: &Process,
+        dl_cfg: &DownloadCfg<'_>,
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -451,26 +447,13 @@ impl Manifestation {
         // Only replace once. The cost is inexpensive.
         let url = url
             .unwrap()
-            .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str());
+            .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
-        notify_handler(Notification::DownloadingComponent(
-            "rust",
-            &self.target_triple,
-            Some(&self.target_triple),
-            &url,
-        ));
+        dl_cfg
+            .notifier
+            .handle(Notification::DownloadingComponent("rust", &url));
 
-        use std::path::PathBuf;
-        let dld_dir = PathBuf::from("bogus");
-        let dlcfg = DownloadCfg {
-            dist_root: "bogus",
-            download_dir: &dld_dir,
-            tmp_cx,
-            notify_handler,
-            process,
-        };
-
-        let dl = dlcfg
+        let dl = dl_cfg
             .download_and_check(&url, update_hash, ".tar.gz")
             .await?;
         if dl.is_none() {
@@ -482,20 +465,20 @@ impl Manifestation {
         info!("installing component rust");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, tmp_cx, process);
+        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx, dl_cfg.process);
 
         // Uninstall components
         let components = self.installation.list()?;
         for component in components {
-            tx = component.uninstall(tx, process)?;
+            tx = component.uninstall(tx, dl_cfg.process)?;
         }
 
         // Install all the components in the installer
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file, notify_handler)?;
+        let reader = utils::FileReaderWithProgress::new_file(&installer_file, &dl_cfg.notifier)?;
         let cx = PackageContext {
-            tmp_cx,
-            notify_handler: Some(notify_handler),
-            process,
+            tmp_cx: dl_cfg.tmp_cx,
+            notifier: Some(&dl_cfg.notifier),
+            process: dl_cfg.process,
         };
 
         let package: &dyn Package = &TarGzPackage::new(reader, &cx)?;
@@ -778,7 +761,9 @@ impl<'a> ComponentBinary<'a> {
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
-                        (download_cfg.notify_handler)(Notification::RetryingDownload(url.as_str()));
+                        download_cfg
+                            .notifier
+                            .handle(Notification::RetryingDownload(url.as_str()));
                         true
                     }
                     _ => false,

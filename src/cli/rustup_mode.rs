@@ -34,6 +34,7 @@ use crate::{
     config::{ActiveReason, Cfg},
     dist::{
         AutoInstallMode, PartialToolchainDesc, Profile, TargetTriple,
+        download::DownloadCfg,
         manifest::{Component, ComponentStatus},
     },
     errors::RustupError,
@@ -909,7 +910,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
 
-    if self_update && check_rustup_update(cfg.process).await? {
+    if self_update && check_rustup_update(&DownloadCfg::new(cfg)).await? {
         update_available = true;
     }
 
@@ -937,10 +938,13 @@ async fn update(
     if let Some(p) = opts.profile {
         cfg.set_profile_override(p);
     }
+
     let cfg = &cfg;
     if cfg.get_profile()? == Profile::Complete {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
+
+    let dl_cfg = DownloadCfg::new(cfg);
     let names = opts.toolchain;
     if !names.is_empty() {
         for name in names {
@@ -994,7 +998,7 @@ async fn update(
             }
         }
         if self_update {
-            exit_code &= self_update::self_update(cfg.process).await?;
+            exit_code &= self_update::self_update(&dl_cfg).await?;
         }
     } else if ensure_active_toolchain {
         let (toolchain, reason) = cfg.ensure_active_toolchain(force_non_host, true).await?;
@@ -1003,7 +1007,7 @@ async fn update(
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
         if self_update {
-            exit_code &= self_update::self_update(cfg.process).await?;
+            exit_code &= self_update::self_update(&dl_cfg).await?;
         }
 
         info!("cleaning up downloads & tmp directories");
@@ -1012,7 +1016,7 @@ async fn update(
     }
 
     if !cfg!(feature = "no-self-update") && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update(cfg.process).await?;
+        check_rustup_update(&dl_cfg).await?;
     }
 
     if cfg!(feature = "no-self-update") {
