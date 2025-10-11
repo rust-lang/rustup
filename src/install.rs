@@ -20,7 +20,6 @@ pub(crate) enum UpdateStatus {
     Unchanged,
 }
 
-#[derive(Clone)]
 pub(crate) enum InstallMethod<'a> {
     Copy {
         src: &'a Path,
