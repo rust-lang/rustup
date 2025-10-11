@@ -968,7 +968,7 @@ pub(crate) async fn update_from_dist(
     let mut toolchain = opts.toolchain.clone();
     let res = loop {
         let result = try_update_from_dist_(
-            opts.dl_cfg,
+            &opts.dl_cfg,
             opts.update_hash,
             &toolchain,
             match opts.exists {
@@ -1067,7 +1067,7 @@ pub(crate) async fn update_from_dist(
 
 #[allow(clippy::too_many_arguments)]
 async fn try_update_from_dist_(
-    download: DownloadCfg<'_>,
+    download: &DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -1152,7 +1152,7 @@ async fn try_update_from_dist_(
                     &m,
                     changes,
                     force_update,
-                    &download,
+                    download,
                     &toolchain.manifest_name(),
                     true,
                 )
@@ -1233,7 +1233,7 @@ async fn try_update_from_dist_(
 }
 
 pub(crate) async fn dl_v2_manifest(
-    download: DownloadCfg<'_>,
+    download: &DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
@@ -1282,7 +1282,7 @@ pub(crate) async fn dl_v2_manifest(
 }
 
 async fn dl_v1_manifest(
-    download: DownloadCfg<'_>,
+    download: &DownloadCfg<'_>,
     toolchain: &ToolchainDesc,
 ) -> Result<Vec<String>> {
     let root_url = toolchain.package_dir(download.dist_root);
