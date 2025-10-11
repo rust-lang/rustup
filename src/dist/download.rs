@@ -51,7 +51,7 @@ impl<'a> DownloadCfg<'a> {
         if target_file.exists() {
             let cached_result = file_hash(&target_file, self.notify_handler)?;
             if hash == cached_result {
-                (self.notify_handler)(Notification::FileAlreadyDownloaded);
+                debug!("reusing previously downloaded file");
                 debug!(url = url.as_ref(), "checksum passed");
                 return Ok(File { path: target_file });
             } else {
