@@ -24,7 +24,7 @@ pub(crate) struct DownloadTracker {
 
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
-    pub(crate) fn new_with_display_progress(display_progress: bool, process: &Process) -> Self {
+    pub(crate) fn new(display_progress: bool, process: &Process) -> Self {
         let multi_progress_bars = MultiProgress::with_draw_target(if display_progress {
             process.progress_draw_target()
         } else {

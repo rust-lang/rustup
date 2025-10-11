@@ -128,7 +128,7 @@ pub(super) struct Notifier {
 impl Notifier {
     pub(super) fn new(quiet: bool, process: &Process) -> Self {
         Self {
-            tracker: Mutex::new(DownloadTracker::new_with_display_progress(!quiet, process)),
+            tracker: Mutex::new(DownloadTracker::new(!quiet, process)),
         }
     }
 
