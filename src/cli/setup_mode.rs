@@ -128,5 +128,6 @@ pub async fn main(
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    self_update::install(current_dir, no_prompt, quiet, opts, process).await
+    let mut cfg = common::set_globals(current_dir, quiet, process)?;
+    self_update::install(no_prompt, opts, &mut cfg).await
 }

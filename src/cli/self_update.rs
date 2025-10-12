@@ -508,50 +508,49 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub(crate) async fn install(
-    current_dir: PathBuf,
     no_prompt: bool,
-    quiet: bool,
     mut opts: InstallOpts<'_>,
-    process: &Process,
+    cfg: &mut Cfg<'_>,
 ) -> Result<utils::ExitCode> {
     #[cfg_attr(not(unix), allow(unused_mut))]
     let mut exit_code = utils::ExitCode(0);
 
-    opts.validate(process).map_err(|e| {
+    opts.validate(cfg.process).map_err(|e| {
         anyhow!(
             "Pre-checks for host and toolchain failed: {e}\n\
             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
             Valid host triples look something like: {}",
-            TargetTriple::from_host_or_build(process)
+            TargetTriple::from_host_or_build(cfg.process)
         )
     })?;
 
-    if process
+    if cfg
+        .process
         .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
         .is_none_or(|s| s != "yes")
     {
-        check_existence_of_rustc_or_cargo_in_path(no_prompt, process)?;
-        check_existence_of_settings_file(process)?;
+        check_existence_of_rustc_or_cargo_in_path(no_prompt, cfg.process)?;
+        check_existence_of_settings_file(cfg.process)?;
     }
 
     #[cfg(unix)]
     {
-        exit_code &= unix::do_anti_sudo_check(no_prompt, process)?;
+        exit_code &= unix::do_anti_sudo_check(no_prompt, cfg.process)?;
     }
 
-    let mut term = process.stdout();
+    let mut term = cfg.process.stdout();
 
     #[cfg(windows)]
     windows::maybe_install_msvc(&mut term, no_prompt, quiet, &opts, process).await?;
 
     if !no_prompt {
-        let msg = pre_install_msg(opts.no_modify_path, process)?;
+        let msg = pre_install_msg(opts.no_modify_path, cfg.process)?;
 
         md(&mut term, msg);
         let mut customized_install = false;
         loop {
-            md(&mut term, current_install_opts(&opts, process));
-            match common::confirm_advanced(customized_install, process)? {
+            md(&mut term, current_install_opts(&opts, cfg.process));
+            match common::confirm_advanced(customized_install, cfg.process)? {
                 Confirm::No => {
                     info!("aborting installation");
                     return Ok(utils::ExitCode(0));
@@ -561,15 +560,15 @@ pub(crate) async fn install(
                 }
                 Confirm::Advanced => {
                     customized_install = true;
-                    opts.customize(process)?;
+                    opts.customize(cfg.process)?;
                 }
             }
         }
     }
 
     let no_modify_path = opts.no_modify_path;
-    if let Err(e) = maybe_install_rust(current_dir, quiet, opts, process).await {
-        report_error(&e, process);
+    if let Err(e) = maybe_install_rust(opts, cfg).await {
+        report_error(&e, cfg.process);
 
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, give
@@ -583,7 +582,7 @@ pub(crate) async fn install(
         return Ok(utils::ExitCode(1));
     }
 
-    let cargo_home = canonical_cargo_home(process)?;
+    let cargo_home = canonical_cargo_home(cfg.process)?;
     #[cfg(windows)]
     let cargo_home = cargo_home.replace('\\', r"\\");
     #[cfg(windows)]
@@ -596,7 +595,7 @@ pub(crate) async fn install(
         format!(post_install_msg_win!(), cargo_home = cargo_home)
     };
     #[cfg(not(windows))]
-    let cargo_home_nushell = Nu.cargo_home_str(process)?;
+    let cargo_home_nushell = Nu.cargo_home_str(cfg.process)?;
     #[cfg(not(windows))]
     let msg = if no_modify_path {
         format!(
@@ -614,7 +613,7 @@ pub(crate) async fn install(
     md(&mut term, msg);
 
     #[cfg(unix)]
-    warn_if_default_linker_missing(process);
+    warn_if_default_linker_missing(cfg.process);
 
     #[cfg(windows)]
     if !no_prompt {
@@ -911,24 +910,20 @@ fn check_proxy_sanity(process: &Process, components: &[&str], desc: &ToolchainDe
     Ok(())
 }
 
-async fn maybe_install_rust(
-    current_dir: PathBuf,
-    quiet: bool,
-    opts: InstallOpts<'_>,
-    process: &Process,
-) -> Result<()> {
-    install_bins(process)?;
+async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<()> {
+    install_bins(cfg.process)?;
 
     #[cfg(unix)]
-    unix::do_write_env_files(process)?;
+    unix::do_write_env_files(cfg.process)?;
 
     if !opts.no_modify_path {
-        do_add_to_path(process)?;
+        do_add_to_path(cfg.process)?;
     }
 
     // If RUSTUP_HOME is not set, make sure it exists
-    if process.var_os("RUSTUP_HOME").is_none() {
-        let home = process
+    if cfg.process.var_os("RUSTUP_HOME").is_none() {
+        let home = cfg
+            .process
             .home_dir()
             .map(|p| p.join(".rustup"))
             .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
@@ -936,25 +931,23 @@ async fn maybe_install_rust(
         fs::create_dir_all(home).context("unable to create ~/.rustup")?;
     }
 
-    let mut cfg = common::set_globals(current_dir, quiet, process)?;
-
     let (components, targets) = (opts.components, opts.targets);
-    let toolchain = opts.install(&mut cfg)?;
+    let toolchain = opts.install(cfg)?;
     if let Some(desc) = &toolchain {
-        let status = if Toolchain::exists(&cfg, &desc.into())? {
+        let status = if Toolchain::exists(cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
             // If we have a partial install we might not be able to read content here. We could:
             // - fail and folk have to delete the partially present toolchain to recover
             // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
             // - delete the partial install and start over
             // For now, we error.
-            let mut toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
+            let mut toolchain = DistributableToolchain::new(cfg, desc.clone())?;
             toolchain
                 .update(components, targets, cfg.get_profile()?)
                 .await?
         } else {
             DistributableToolchain::install(
-                &cfg,
+                cfg,
                 desc,
                 components,
                 targets,
@@ -965,11 +958,11 @@ async fn maybe_install_rust(
             .0
         };
 
-        check_proxy_sanity(process, components, desc)?;
+        check_proxy_sanity(cfg.process, components, desc)?;
 
         cfg.set_default(Some(&desc.into()))?;
-        writeln!(process.stdout().lock())?;
-        common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
+        writeln!(cfg.process.stdout().lock())?;
+        common::show_channel_update(cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
     }
     Ok(())
 }
