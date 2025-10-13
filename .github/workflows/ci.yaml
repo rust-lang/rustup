@@ -25,6 +25,9 @@ jobs:
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
+      # Below is a workaround in order to generate the right bindings for `aws-lc-sys`.
+      # See https://github.com/aws/aws-lc-rs/issues/919 for more details.
+      AWS_LC_SYS_EFFECTIVE_TARGET_aarch64_pc_windows_gnullvm: aarch64-pc-windows-gnu
     permissions:
       id-token: write
       contents: read
@@ -202,6 +205,9 @@ jobs:
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
+      # Below is a workaround in order to generate the right bindings for `aws-lc-sys`.
+      # See https://github.com/aws/aws-lc-rs/issues/919 for more details.
+      AWS_LC_SYS_EFFECTIVE_TARGET_aarch64_pc_windows_gnullvm: aarch64-pc-windows-gnu
     permissions:
       id-token: write
       contents: read
@@ -379,6 +385,9 @@ jobs:
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
+      # Below is a workaround in order to generate the right bindings for `aws-lc-sys`.
+      # See https://github.com/aws/aws-lc-rs/issues/919 for more details.
+      AWS_LC_SYS_EFFECTIVE_TARGET_aarch64_pc_windows_gnullvm: aarch64-pc-windows-gnu
     permissions:
       id-token: write
       contents: read
