@@ -92,9 +92,9 @@ impl<T: Into<String>> From<T> for OverrideFile {
     }
 }
 
-// Represents the reason why the active toolchain is active.
+// Represents the source that determined the current active toolchain.
 #[derive(Debug)]
-pub(crate) enum ActiveReason {
+pub(crate) enum ActiveSource {
     Default,
     Environment,
     CommandLine,
@@ -102,7 +102,7 @@ pub(crate) enum ActiveReason {
     ToolchainFile(PathBuf),
 }
 
-impl Display for ActiveReason {
+impl Display for ActiveSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
             Self::Default => write!(f, "it's the default toolchain"),
@@ -505,7 +505,7 @@ impl<'a> Cfg<'a> {
     pub(crate) async fn maybe_ensure_active_toolchain(
         &self,
         force_ensure: Option<bool>,
-    ) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
+    ) -> Result<Option<(LocalToolchainName, ActiveSource)>> {
         let should_ensure = if let Some(force) = force_ensure {
             force
         } else {
@@ -524,23 +524,23 @@ impl<'a> Cfg<'a> {
         }
     }
 
-    pub(crate) fn active_toolchain(&self) -> Result<Option<(LocalToolchainName, ActiveReason)>> {
+    pub(crate) fn active_toolchain(&self) -> Result<Option<(LocalToolchainName, ActiveSource)>> {
         Ok(
-            if let Some((override_config, reason)) = self.find_override_config()? {
-                Some((override_config.into_local_toolchain_name(), reason))
+            if let Some((override_config, source)) = self.find_override_config()? {
+                Some((override_config.into_local_toolchain_name(), source))
             } else {
                 self.get_default()?
-                    .map(|x| (x.into(), ActiveReason::Default))
+                    .map(|x| (x.into(), ActiveSource::Default))
             },
         )
     }
 
-    fn find_override_config(&self) -> Result<Option<(OverrideCfg, ActiveReason)>> {
-        let override_config: Option<(OverrideCfg, ActiveReason)> =
+    fn find_override_config(&self) -> Result<Option<(OverrideCfg, ActiveSource)>> {
+        let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
                 let override_config = name.resolve(&self.get_default_host_triple()?)?.into();
-                Some((override_config, ActiveReason::CommandLine))
+                Some((override_config, ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
             else if let Some(name) = &self.env_override {
@@ -548,15 +548,15 @@ impl<'a> Cfg<'a> {
                 // custom, distributable, and absolute path toolchains otherwise
                 // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
                 // error when a nested rustup invocation occurs
-                Some((name.clone().into(), ActiveReason::Environment))
+                Some((name.clone().into(), ActiveSource::Environment))
             }
             // Then walk up the directory tree from 'path' looking for either the
             // directory in the override database, or a `rust-toolchain{.toml}` file,
             // in that order.
-            else if let Some((override_cfg, active_reason)) = self.settings_file.with(|s| {
+            else if let Some((override_cfg, active_source)) = self.settings_file.with(|s| {
                     self.find_override_from_dir_walk(&self.current_dir, s)
                 })? {
-                Some((override_cfg, active_reason))
+                Some((override_cfg, active_source))
             }
             // Otherwise, there is no override.
             else {
@@ -570,13 +570,13 @@ impl<'a> Cfg<'a> {
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(OverrideCfg, ActiveReason)>> {
+    ) -> Result<Option<(OverrideCfg, ActiveSource)>> {
         let mut dir = Some(dir);
 
         while let Some(d) = dir {
             // First check the override database
             if let Some(name) = settings.dir_override(d) {
-                let reason = ActiveReason::OverrideDB(d.to_owned());
+                let source = ActiveSource::OverrideDB(d.to_owned());
                 // Note that `rustup override set` fully resolves it's input
                 // before writing to settings.toml, so resolving here may not
                 // be strictly necessary (could instead model as ToolchainName).
@@ -586,7 +586,7 @@ impl<'a> Cfg<'a> {
                 let toolchain_name = ResolvableToolchainName::try_from(name)?
                     .resolve(&get_default_host_triple(settings, self.process))?;
                 let override_cfg = toolchain_name.into();
-                return Ok(Some((override_cfg, reason)));
+                return Ok(Some((override_cfg, source)));
             }
 
             // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
@@ -670,9 +670,9 @@ impl<'a> Cfg<'a> {
                     }
                 }
 
-                let reason = ActiveReason::ToolchainFile(toolchain_file);
+                let source = ActiveSource::ToolchainFile(toolchain_file);
                 let override_cfg = OverrideCfg::from_file(self, override_file)?;
-                return Ok(Some((override_cfg, reason)));
+                return Ok(Some((override_cfg, source)));
             }
 
             dir = d.parent();
@@ -766,8 +766,8 @@ impl<'a> Cfg<'a> {
         &self,
         force_non_host: bool,
         verbose: bool,
-    ) -> Result<(LocalToolchainName, ActiveReason)> {
-        if let Some((override_config, reason)) = self.find_override_config()? {
+    ) -> Result<(LocalToolchainName, ActiveSource)> {
+        if let Some((override_config, source)) = self.find_override_config()? {
             let toolchain = override_config.clone().into_local_toolchain_name();
             if let OverrideCfg::Official {
                 toolchain,
@@ -786,18 +786,18 @@ impl<'a> Cfg<'a> {
                 )
                 .await?;
             } else {
-                Toolchain::with_reason(self, toolchain.clone(), &reason)?;
+                Toolchain::with_source(self, toolchain.clone(), &source)?;
             }
-            Ok((toolchain, reason))
+            Ok((toolchain, source))
         } else if let Some(toolchain) = self.get_default()? {
-            let reason = ActiveReason::Default;
+            let source = ActiveSource::Default;
             if let ToolchainName::Official(desc) = &toolchain {
                 self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
                     .await?;
             } else {
-                Toolchain::with_reason(self, toolchain.clone().into(), &reason)?;
+                Toolchain::with_source(self, toolchain.clone().into(), &source)?;
             }
-            Ok((toolchain.into(), reason))
+            Ok((toolchain.into(), source))
         } else {
             Err(no_toolchain_error(self.process))
         }

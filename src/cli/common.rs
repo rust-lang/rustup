@@ -332,7 +332,7 @@ pub(crate) async fn list_toolchains(
     } else {
         let default_toolchain_name = cfg.get_default()?;
         let active_toolchain_name: Option<ToolchainName> =
-            if let Ok(Some((LocalToolchainName::Named(toolchain), _reason))) =
+            if let Ok(Some((LocalToolchainName::Named(toolchain), _source))) =
                 cfg.maybe_ensure_active_toolchain(None).await
             {
                 Some(toolchain)

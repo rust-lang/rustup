@@ -31,7 +31,7 @@ use crate::{
         topical_doc,
     },
     command, component_for_bin,
-    config::{ActiveReason, Cfg},
+    config::{ActiveSource, Cfg},
     dist::{
         AutoInstallMode, PartialToolchainDesc, Profile, TargetTriple,
         manifest::{Component, ComponentStatus},
@@ -779,10 +779,10 @@ async fn default_(
             }
         };
 
-        if let Some((toolchain, reason)) = cfg.active_toolchain()?
-            && !matches!(reason, ActiveReason::Default)
+        if let Some((toolchain, source)) = cfg.active_toolchain()?
+            && !matches!(source, ActiveSource::Default)
         {
-            info!("note that the toolchain '{toolchain}' is currently in use ({reason})");
+            info!("note that the toolchain '{toolchain}' is currently in use ({source})");
         }
     } else {
         let default_toolchain = cfg
@@ -997,9 +997,9 @@ async fn update(
             exit_code &= self_update::self_update(cfg.process).await?;
         }
     } else if ensure_active_toolchain {
-        let (toolchain, reason) = cfg.ensure_active_toolchain(force_non_host, true).await?;
+        let (toolchain, source) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
-        info!("it's active because: {reason}");
+        info!("it's active because: {source}");
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
         if self_update {
@@ -1088,16 +1088,16 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     }
 
     let installed_toolchains = cfg.list_toolchains()?;
-    let active_toolchain_and_reason: Option<(ToolchainName, ActiveReason)> =
-        if let Ok(Some((LocalToolchainName::Named(toolchain_name), reason))) =
+    let active_toolchain_and_source: Option<(ToolchainName, ActiveSource)> =
+        if let Ok(Some((LocalToolchainName::Named(toolchain_name), source))) =
             cfg.maybe_ensure_active_toolchain(None).await
         {
-            Some((toolchain_name, reason))
+            Some((toolchain_name, source))
         } else {
             None
         };
 
-    let (active_toolchain_name, _active_reason) = active_toolchain_and_reason
+    let (active_toolchain_name, _active_source) = active_toolchain_and_source
         .as_ref()
         .map(|atar| (&atar.0, &atar.1))
         .unzip();
@@ -1161,15 +1161,15 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 
         print_header(&mut t, "active toolchain")?;
 
-        match active_toolchain_and_reason {
-            Some((active_toolchain_name, active_reason)) => {
-                let active_toolchain = Toolchain::with_reason(
+        match active_toolchain_and_source {
+            Some((active_toolchain_name, active_source)) => {
+                let active_toolchain = Toolchain::with_source(
                     cfg,
                     active_toolchain_name.clone().into(),
-                    &active_reason,
+                    &active_source,
                 )?;
                 writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-                writeln!(t.lock(), "active because: {active_reason}")?;
+                writeln!(t.lock(), "active because: {active_source}")?;
                 if verbose {
                     writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
                     writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
@@ -1205,14 +1205,14 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
 #[tracing::instrument(level = "trace", skip_all)]
 async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
     match cfg.maybe_ensure_active_toolchain(None).await? {
-        Some((toolchain_name, reason)) => {
-            let toolchain = Toolchain::with_reason(cfg, toolchain_name.clone(), &reason)?;
+        Some((toolchain_name, source)) => {
+            let toolchain = Toolchain::with_source(cfg, toolchain_name.clone(), &source)?;
             if verbose {
                 writeln!(
                     cfg.process.stdout().lock(),
                     "{}\nactive because: {}\ncompiler: {}\npath: {}",
                     toolchain.name(),
-                    reason,
+                    source,
                     toolchain.rustc_version(),
                     toolchain.path().display()
                 )?;
@@ -1221,9 +1221,9 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::Ex
                     cfg.process.stdout().lock(),
                     "{} ({})",
                     toolchain.name(),
-                    match reason {
-                        ActiveReason::Default => &"default" as &dyn fmt::Display,
-                        _ => &reason,
+                    match source {
+                        ActiveSource::Default => &"default" as &dyn fmt::Display,
+                        _ => &source,
                     }
                 )?;
             }
