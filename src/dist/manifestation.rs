@@ -17,7 +17,7 @@ use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
 use crate::dist::config::Config;
-use crate::dist::download::{DownloadCfg, File};
+use crate::dist::download::{DownloadCfg, DownloadStatus, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
 use crate::dist::prefix::InstallPrefix;
 #[cfg(test)]
@@ -160,7 +160,15 @@ impl Manifestation {
         let mut things_downloaded = Vec::new();
         let components = update
             .components_urls_and_hashes(new_manifest)
-            .map(|res| res.map(|(component, binary)| ComponentBinary { component, binary }))
+            .map(|res| {
+                res.map(|(component, binary)| ComponentBinary {
+                    component,
+                    binary,
+                    status: download_cfg
+                        .tracker
+                        .status_for(component.short_name(new_manifest)),
+                })
+            })
             .collect::<Result<Vec<_>>>()?;
 
         let components_len = components.len();
@@ -179,13 +187,6 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         info!("downloading component(s)");
-        for bin in &components {
-            download_cfg.tracker.create_progress_bar(
-                bin.component.short_name(new_manifest),
-                bin.binary.url.clone(),
-            );
-        }
-
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
         let component_stream = tokio_stream::iter(components.into_iter()).map(|bin| {
             let sem = semaphore.clone();
@@ -443,12 +444,9 @@ impl Manifestation {
             .unwrap()
             .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
-        dl_cfg
-            .tracker
-            .create_progress_bar("rust".to_owned(), url.clone());
-
+        let status = dl_cfg.tracker.status_for("rust");
         let dl = dl_cfg
-            .download_and_check(&url, update_hash, ".tar.gz")
+            .download_and_check(&url, update_hash, Some(&status), ".tar.gz")
             .await?;
         if dl.is_none() {
             return Ok(None);
@@ -730,6 +728,7 @@ impl Update {
 struct ComponentBinary<'a> {
     component: &'a Component,
     binary: &'a HashedBinary,
+    status: DownloadStatus,
 }
 
 impl<'a> ComponentBinary<'a> {
@@ -744,13 +743,13 @@ impl<'a> ComponentBinary<'a> {
 
         let downloaded_file = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
-            || download_cfg.download(url, &self.binary.hash),
+            || download_cfg.download(url, &self.binary.hash, &self.status),
             |e: &anyhow::Error| {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
-                        download_cfg.tracker.retrying_download(url.as_str());
+                        self.status.retrying();
                         true
                     }
                     _ => false,

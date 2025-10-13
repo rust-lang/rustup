@@ -489,14 +489,7 @@ impl TestContext {
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
-        download_file(
-            &manifest_url,
-            &manifest_file,
-            None,
-            &dl_cfg.tracker,
-            dl_cfg.process,
-        )
-        .await?;
+        download_file(&manifest_url, &manifest_file, None, None, dl_cfg.process).await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
         let manifest = Manifest::parse(&manifest_str)?;
 
