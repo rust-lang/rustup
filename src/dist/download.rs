@@ -23,7 +23,7 @@ const UPDATE_HASH_LEN: usize = 20;
 pub struct DownloadCfg<'a> {
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
-    pub(crate) tracker: DownloadTracker,
+    pub(super) tracker: DownloadTracker,
     pub process: &'a Process,
 }
 
@@ -189,6 +189,24 @@ impl<'a> DownloadCfg<'a> {
 
         Ok(Some((file, partial_hash)))
     }
+
+    pub(crate) fn status_for(&self, component: impl Into<Cow<'static, str>>) -> DownloadStatus {
+        let progress = ProgressBar::hidden();
+        progress.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+            )
+            .unwrap()
+            .progress_chars("## "),
+        );
+        progress.set_message(component);
+        self.tracker.multi_progress_bars.add(progress.clone());
+
+        DownloadStatus {
+            progress,
+            retry_time: Mutex::new(None),
+        }
+    }
 }
 
 /// Tracks download progress and displays information about it to a terminal.
@@ -213,13 +231,6 @@ impl DownloadTracker {
             multi_progress_bars,
         }
     }
-
-    /// Creates a new ProgressBar for the given component.
-    pub(crate) fn status_for(&self, component: impl Into<Cow<'static, str>>) -> DownloadStatus {
-        let status = DownloadStatus::new(component);
-        self.multi_progress_bars.add(status.progress.clone());
-        status
-    }
 }
 
 pub(crate) struct DownloadStatus {
@@ -234,23 +245,6 @@ pub(crate) struct DownloadStatus {
 }
 
 impl DownloadStatus {
-    fn new(component: impl Into<Cow<'static, str>>) -> Self {
-        let progress = ProgressBar::hidden();
-        progress.set_style(
-            ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
-            )
-            .unwrap()
-            .progress_chars("## "),
-        );
-        progress.set_message(component);
-
-        Self {
-            progress,
-            retry_time: Mutex::new(None),
-        }
-    }
-
     pub(crate) fn received_length(&self, len: u64) {
         self.progress.reset();
         self.progress.set_length(len);
