@@ -164,9 +164,7 @@ impl Manifestation {
                 res.map(|(component, binary)| ComponentBinary {
                     component,
                     binary,
-                    status: download_cfg
-                        .tracker
-                        .status_for(component.short_name(new_manifest)),
+                    status: download_cfg.status_for(component.short_name(new_manifest)),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -444,7 +442,7 @@ impl Manifestation {
             .unwrap()
             .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
-        let status = dl_cfg.tracker.status_for("rust");
+        let status = dl_cfg.status_for("rust");
         let dl = dl_cfg
             .download_and_check(&url, update_hash, Some(&status), ".tar.gz")
             .await?;
