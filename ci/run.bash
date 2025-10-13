@@ -34,7 +34,6 @@ case "$TARGET" in
   *netbsd* ) ;;
   *illumos* ) ;;
   *solaris* ) ;;
-  aarch64-pc-windows-gnullvm ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
 esac
@@ -68,7 +67,6 @@ build_test() {
     mips* ) ;;
     riscv* ) ;;
     s390x* ) ;;
-    aarch64-pc-windows-gnullvm ) ;;
     # default case, build with rustls enabled
     * ) features+=('--features' 'reqwest-rustls-tls') ;;
   esac
