@@ -47,7 +47,7 @@ impl<'a> DownloadCfg<'a> {
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = file_hash(&target_file, &self.tracker)?;
+            let cached_result = file_hash(&target_file)?;
             if hash == cached_result {
                 debug!("reusing previously downloaded file");
                 debug!(url = url.as_ref(), "checksum passed");
@@ -216,36 +216,6 @@ impl DownloadTracker {
         }
     }
 
-    pub(crate) fn handle(&self, n: Notification<'_>) {
-        match n {
-            Notification::DownloadContentLengthReceived(content_len, url) => {
-                if let Some(url) = url {
-                    self.content_length_received(content_len, url);
-                }
-            }
-            Notification::DownloadDataReceived(data, url) => {
-                if let Some(url) = url {
-                    self.data_received(data.len(), url);
-                }
-            }
-            Notification::DownloadFinished(url) => {
-                if let Some(url) = url {
-                    self.download_finished(url);
-                }
-            }
-            Notification::DownloadFailed(url) => {
-                self.download_failed(url);
-                debug!("download failed");
-            }
-            Notification::DownloadingComponent(component, url) => {
-                self.create_progress_bar(component.to_owned(), url.to_owned());
-            }
-            Notification::RetryingDownload(url) => {
-                self.retrying_download(url);
-            }
-        }
-    }
-
     /// Creates a new ProgressBar for the given component.
     pub(crate) fn create_progress_bar(&self, component: String, url: String) {
         let pb = ProgressBar::hidden();
@@ -329,25 +299,9 @@ impl DownloadTracker {
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum Notification<'a> {
-    /// The URL of the download is passed as the last argument, to allow us to track concurrent downloads.
-    DownloadingComponent(&'a str, &'a str),
-    RetryingDownload(&'a str),
-    /// Received the Content-Length of the to-be downloaded data with
-    /// the respective URL of the download (for tracking concurrent downloads).
-    DownloadContentLengthReceived(u64, Option<&'a str>),
-    /// Received some data.
-    DownloadDataReceived(&'a [u8], Option<&'a str>),
-    /// Download has finished.
-    DownloadFinished(Option<&'a str>),
-    /// Download has failed.
-    DownloadFailed(&'a str),
-}
-
-fn file_hash(path: &Path, tracker: &DownloadTracker) -> Result<String> {
+fn file_hash(path: &Path) -> Result<String> {
     let mut hasher = Sha256::new();
-    let mut downloaded = utils::FileReaderWithProgress::new_file(path, tracker)?;
+    let mut downloaded = utils::FileReaderWithProgress::new_file(path)?;
     use std::io::Read;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {

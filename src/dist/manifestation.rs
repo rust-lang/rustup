@@ -17,7 +17,7 @@ use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
 use crate::dist::config::Config;
-use crate::dist::download::{DownloadCfg, File, Notification};
+use crate::dist::download::{DownloadCfg, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
 use crate::dist::prefix::InstallPrefix;
 #[cfg(test)]
@@ -177,12 +177,10 @@ impl Manifestation {
 
         info!("downloading component(s)");
         for bin in &components {
-            download_cfg
-                .tracker
-                .handle(Notification::DownloadingComponent(
-                    &bin.component.short_name(new_manifest),
-                    &bin.binary.url,
-                ));
+            download_cfg.tracker.create_progress_bar(
+                bin.component.short_name(new_manifest),
+                bin.binary.url.clone(),
+            );
         }
 
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
@@ -277,8 +275,7 @@ impl Manifestation {
                 }
             }
 
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &download_cfg.tracker)?;
+            let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
             let package = match format {
                 CompressionKind::GZip => &TarGzPackage::new(reader, download_cfg)? as &dyn Package,
                 CompressionKind::XZ => &TarXzPackage::new(reader, download_cfg)?,
@@ -445,7 +442,7 @@ impl Manifestation {
 
         dl_cfg
             .tracker
-            .handle(Notification::DownloadingComponent("rust", &url));
+            .create_progress_bar("rust".to_owned(), url.clone());
 
         let dl = dl_cfg
             .download_and_check(&url, update_hash, ".tar.gz")
@@ -468,7 +465,7 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file, &dl_cfg.tracker)?;
+        let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
         let package: &dyn Package = &TarGzPackage::new(reader, dl_cfg)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
@@ -749,9 +746,7 @@ impl<'a> ComponentBinary<'a> {
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
-                        download_cfg
-                            .tracker
-                            .handle(Notification::RetryingDownload(url.as_str()));
+                        download_cfg.tracker.retrying_download(url.as_str());
                         true
                     }
                     _ => false,

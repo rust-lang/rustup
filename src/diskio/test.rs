@@ -24,7 +24,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
 
     let mut written = 0;
     let mut file_finished = false;
-    let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024, &tp.process)?;
+    let mut io_executor: Box<dyn Executor> = get_executor(32 * 1024 * 1024, &tp.process)?;
     let (item, mut sender) = Item::write_file_segmented(
         work_dir.path().join("scratch"),
         0o666,
@@ -90,7 +90,7 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
     vars.insert("RUSTUP_IO_THREADS".to_string(), io_threads.to_string());
     let tp = TestProcess::with_vars(vars);
 
-    let mut io_executor: Box<dyn Executor> = get_executor(None, 32 * 1024 * 1024, &tp.process)?;
+    let mut io_executor: Box<dyn Executor> = get_executor(32 * 1024 * 1024, &tp.process)?;
     let mut chunk = io_executor.get_buffer(10);
     chunk.extend(b"0123456789");
     assert_eq!(chunk.len(), 10);
