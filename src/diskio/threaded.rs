@@ -15,7 +15,7 @@ use sharded_slab::pool::{OwnedRef, OwnedRefMut};
 use tracing::debug;
 
 use super::{CompletedIo, Executor, Item, perform};
-use crate::dist::download::{Notification, Notifier};
+use crate::dist::download::{DownloadTracker, Notification};
 
 #[derive(Copy, Clone, Debug, Enum)]
 pub(crate) enum Bucket {
@@ -99,7 +99,7 @@ impl fmt::Debug for Pool {
 pub(crate) struct Threaded<'a> {
     n_files: Arc<AtomicUsize>,
     pool: threadpool::ThreadPool,
-    notifier: Option<&'a Notifier>,
+    tracker: Option<&'a DownloadTracker>,
     rx: Receiver<Task>,
     tx: Sender<Task>,
     vec_pools: EnumMap<Bucket, Pool>,
@@ -109,7 +109,7 @@ pub(crate) struct Threaded<'a> {
 impl<'a> Threaded<'a> {
     /// Construct a new Threaded executor.
     pub(crate) fn new(
-        notify_handler: Option<&'a Notifier>,
+        tracker: Option<&'a DownloadTracker>,
         thread_count: usize,
         ram_budget: usize,
     ) -> Self {
@@ -168,7 +168,7 @@ impl<'a> Threaded<'a> {
         Self {
             n_files: Arc::new(AtomicUsize::new(0)),
             pool,
-            notifier: notify_handler,
+            tracker,
             rx,
             tx,
             vec_pools,
@@ -261,9 +261,9 @@ impl Executor for Threaded<'_> {
         // actual handling of data today, we synthesis a data buffer and
         // pretend to have bytes to deliver.
         let mut prev_files = self.n_files.load(Ordering::Relaxed);
-        if let Some(notifier) = self.notifier {
-            notifier.handle(Notification::DownloadFinished(None));
-            notifier.handle(Notification::DownloadContentLengthReceived(
+        if let Some(tracker) = self.tracker {
+            tracker.handle(Notification::DownloadFinished(None));
+            tracker.handle(Notification::DownloadContentLengthReceived(
                 prev_files as u64,
                 None,
             ));
@@ -282,16 +282,16 @@ impl Executor for Threaded<'_> {
             prev_files = current_files;
             current_files = self.n_files.load(Ordering::Relaxed);
             let step_count = prev_files - current_files;
-            if let Some(notifier) = self.notifier {
-                notifier.handle(Notification::DownloadDataReceived(
+            if let Some(tracker) = self.tracker {
+                tracker.handle(Notification::DownloadDataReceived(
                     &buf[0..step_count],
                     None,
                 ));
             }
         }
         self.pool.join();
-        if let Some(notifier) = self.notifier {
-            notifier.handle(Notification::DownloadFinished(None));
+        if let Some(tracker) = self.tracker {
+            tracker.handle(Notification::DownloadFinished(None));
         }
         // close the feedback channel so that blocking reads on it can
         // complete. send is atomic, and we know the threads completed from the

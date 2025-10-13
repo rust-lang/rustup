@@ -14,7 +14,7 @@ use retry::{OperationResult, retry};
 use tracing::{debug, info, warn};
 use url::Url;
 
-use crate::dist::download::{Notification, Notifier};
+use crate::dist::download::{DownloadTracker, Notification};
 use crate::errors::*;
 use crate::process::Process;
 
@@ -447,13 +447,13 @@ pub(crate) fn delete_dir_contents_following_links(dir_path: &Path) {
 
 pub(crate) struct FileReaderWithProgress<'a> {
     fh: io::BufReader<File>,
-    notifier: &'a Notifier,
+    tracker: &'a DownloadTracker,
     nbytes: u64,
     flen: u64,
 }
 
 impl<'a> FileReaderWithProgress<'a> {
-    pub(crate) fn new_file(path: &Path, notifier: &'a Notifier) -> Result<Self> {
+    pub(crate) fn new_file(path: &Path, tracker: &'a DownloadTracker) -> Result<Self> {
         let fh = match File::open(path) {
             Ok(fh) => fh,
             Err(_) => {
@@ -466,13 +466,13 @@ impl<'a> FileReaderWithProgress<'a> {
 
         // Inform the tracker of the file size
         let flen = fh.metadata()?.len();
-        notifier.handle(Notification::DownloadContentLengthReceived(flen, None));
+        tracker.handle(Notification::DownloadContentLengthReceived(flen, None));
 
         let fh = BufReader::with_capacity(8 * 1024 * 1024, fh);
 
         Ok(FileReaderWithProgress {
             fh,
-            notifier,
+            tracker,
             nbytes: 0,
             flen,
         })
@@ -485,11 +485,11 @@ impl io::Read for FileReaderWithProgress<'_> {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
                 if nbytes != 0 {
-                    self.notifier
+                    self.tracker
                         .handle(Notification::DownloadDataReceived(&buf[0..nbytes], None));
                 }
                 if (nbytes == 0) || (self.flen == self.nbytes) {
-                    self.notifier.handle(Notification::DownloadFinished(None));
+                    self.tracker.handle(Notification::DownloadFinished(None));
                 }
                 Ok(nbytes)
             }

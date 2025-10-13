@@ -66,7 +66,7 @@ use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
 
-use crate::dist::download::Notifier;
+use crate::dist::download::DownloadTracker;
 use crate::process::Process;
 
 /// Carries the implementation specific data for complete file transfers into the executor.
@@ -443,13 +443,13 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 
 /// Get the executor for disk IO.
 pub(crate) fn get_executor<'a>(
-    notifier: Option<&'a Notifier>,
+    tracker: Option<&'a DownloadTracker>,
     ram_budget: usize,
     process: &Process,
 ) -> anyhow::Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
     Ok(match process.io_thread_count()? {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
-        n => Box::new(threaded::Threaded::new(notifier, n, ram_budget)),
+        n => Box::new(threaded::Threaded::new(tracker, n, ram_budget)),
     })
 }
