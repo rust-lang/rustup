@@ -192,13 +192,8 @@ impl<'a> DownloadCfg<'a> {
 pub(crate) struct DownloadTracker {
     /// MultiProgress bar for the downloads.
     multi_progress_bars: MultiProgress,
-    /// Mapping of URLs being downloaded to their corresponding progress bars.
-    /// The `Option<Instant>` represents the instant where the download is being retried,
-    /// allowing us delay the reappearance of the progress bar so that the user can see
-    /// the message "retrying download" for at least a second.
-    /// Without it, the progress bar would reappear immediately, not allowing the user to
-    /// correctly see the message, before the progress bar starts again.
-    file_progress_bars: Mutex<HashMap<String, (ProgressBar, Option<Instant>)>>,
+    /// Mapping of URLs being downloaded to their corresponding download status.
+    file_progress_bars: Mutex<HashMap<String, DownloadStatus>>,
 }
 
 impl DownloadTracker {
@@ -218,42 +213,96 @@ impl DownloadTracker {
 
     /// Creates a new ProgressBar for the given component.
     pub(crate) fn create_progress_bar(&self, component: String, url: String) {
-        let pb = ProgressBar::hidden();
-        pb.set_style(
-            ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
-            )
-            .unwrap()
-            .progress_chars("## "),
-        );
-        pb.set_message(component);
-        self.multi_progress_bars.add(pb.clone());
-        self.file_progress_bars
-            .lock()
-            .unwrap()
-            .insert(url, (pb, None));
+        let status = DownloadStatus::new(component);
+        self.multi_progress_bars.add(status.progress.clone());
+        self.file_progress_bars.lock().unwrap().insert(url, status);
     }
 
     /// Sets the length for a new ProgressBar and gives it a style.
     pub(crate) fn content_length_received(&self, content_len: u64, url: &str) {
-        if let Some((pb, _)) = self.file_progress_bars.lock().unwrap().get(url) {
-            pb.reset();
-            pb.set_length(content_len);
+        if let Some(status) = self.file_progress_bars.lock().unwrap().get(url) {
+            status.received_length(content_len);
         }
     }
 
     /// Notifies self that data of size `len` has been received.
     pub(crate) fn data_received(&self, len: usize, url: &str) {
         let mut map = self.file_progress_bars.lock().unwrap();
-        let Some((pb, retry_time)) = map.get_mut(url) else {
-            return;
+        if let Some(status) = map.get_mut(url) {
+            status.received_data(len);
         };
-        pb.inc(len as u64);
-        if !retry_time.is_some_and(|instant| instant.elapsed() > Duration::from_secs(1)) {
+    }
+
+    /// Notifies self that the download has finished.
+    pub(crate) fn download_finished(&self, url: &str) {
+        let map = self.file_progress_bars.lock().unwrap();
+        if let Some(status) = map.get(url) {
+            status.finished()
+        };
+    }
+
+    /// Notifies self that the download has failed.
+    pub(crate) fn download_failed(&self, url: &str) {
+        let map = self.file_progress_bars.lock().unwrap();
+        if let Some(status) = map.get(url) {
+            status.failed();
+        };
+    }
+
+    /// Notifies self that the download is being retried.
+    pub(crate) fn retrying_download(&self, url: &str) {
+        let mut map = self.file_progress_bars.lock().unwrap();
+        if let Some(status) = map.get_mut(url) {
+            status.retrying();
+        };
+    }
+}
+
+struct DownloadStatus {
+    progress: ProgressBar,
+    /// The instant where the download is being retried.
+    ///
+    /// Allows us to delay the reappearance of the progress bar so that the user can see
+    /// the message "retrying download" for at least a second. Without it, the progress
+    /// bar would reappear immediately, not allowing the user to correctly see the message,
+    /// before the progress bar starts again.
+    retry_time: Option<Instant>,
+}
+
+impl DownloadStatus {
+    fn new(component: String) -> Self {
+        let progress = ProgressBar::hidden();
+        progress.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+            )
+            .unwrap()
+            .progress_chars("## "),
+        );
+        progress.set_message(component);
+
+        Self {
+            progress,
+            retry_time: None,
+        }
+    }
+
+    fn received_length(&self, len: u64) {
+        self.progress.reset();
+        self.progress.set_length(len);
+    }
+
+    fn received_data(&mut self, len: usize) {
+        self.progress.inc(len as u64);
+        if !self
+            .retry_time
+            .is_some_and(|instant| instant.elapsed() > Duration::from_secs(1))
+        {
             return;
         }
-        *retry_time = None;
-        pb.set_style(
+
+        self.retry_time = None;
+        self.progress.set_style(
             ProgressStyle::with_template(
                 "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
@@ -262,40 +311,26 @@ impl DownloadTracker {
         );
     }
 
-    /// Notifies self that the download has finished.
-    pub(crate) fn download_finished(&self, url: &str) {
-        let map = self.file_progress_bars.lock().unwrap();
-        let Some((pb, _)) = map.get(url) else {
-            return;
-        };
-        pb.set_style(
+    fn finished(&self) {
+        self.progress.set_style(
             ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
                 .unwrap(),
         );
-        pb.finish();
+        self.progress.finish();
     }
 
-    /// Notifies self that the download has failed.
-    pub(crate) fn download_failed(&self, url: &str) {
-        let map = self.file_progress_bars.lock().unwrap();
-        let Some((pb, _)) = map.get(url) else {
-            return;
-        };
-        pb.set_style(
+    fn failed(&self) {
+        self.progress.set_style(
             ProgressStyle::with_template("{msg:>12.bold}  download failed after {elapsed}")
                 .unwrap(),
         );
-        pb.finish();
+        self.progress.finish();
     }
 
-    /// Notifies self that the download is being retried.
-    pub(crate) fn retrying_download(&self, url: &str) {
-        let mut map = self.file_progress_bars.lock().unwrap();
-        let Some((pb, retry_time)) = map.get_mut(url) else {
-            return;
-        };
-        *retry_time = Some(Instant::now());
-        pb.set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
+    fn retrying(&mut self) {
+        self.retry_time = Some(Instant::now());
+        self.progress
+            .set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
     }
 }
 
