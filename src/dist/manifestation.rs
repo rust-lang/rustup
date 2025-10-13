@@ -178,7 +178,7 @@ impl Manifestation {
         info!("downloading component(s)");
         for bin in &components {
             download_cfg
-                .notifier
+                .tracker
                 .handle(Notification::DownloadingComponent(
                     &bin.component.short_name(new_manifest),
                     &bin.binary.url,
@@ -278,7 +278,7 @@ impl Manifestation {
             }
 
             let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &download_cfg.notifier)?;
+                utils::FileReaderWithProgress::new_file(&installer_file, &download_cfg.tracker)?;
             let package = match format {
                 CompressionKind::GZip => &TarGzPackage::new(reader, download_cfg)? as &dyn Package,
                 CompressionKind::XZ => &TarXzPackage::new(reader, download_cfg)?,
@@ -444,7 +444,7 @@ impl Manifestation {
             .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
         dl_cfg
-            .notifier
+            .tracker
             .handle(Notification::DownloadingComponent("rust", &url));
 
         let dl = dl_cfg
@@ -468,7 +468,7 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file, &dl_cfg.notifier)?;
+        let reader = utils::FileReaderWithProgress::new_file(&installer_file, &dl_cfg.tracker)?;
         let package: &dyn Package = &TarGzPackage::new(reader, dl_cfg)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
@@ -750,7 +750,7 @@ impl<'a> ComponentBinary<'a> {
                     Some(RustupError::BrokenPartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
                         download_cfg
-                            .notifier
+                            .tracker
                             .handle(Notification::RetryingDownload(url.as_str()));
                         true
                     }

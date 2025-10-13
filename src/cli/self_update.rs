@@ -1279,7 +1279,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
         &download_url,
         &setup_path,
         None,
-        &dl_cfg.notifier,
+        &dl_cfg.tracker,
         dl_cfg.process,
     )
     .await?;
@@ -1305,7 +1305,7 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String
         &release_file_url,
         &release_file,
         None,
-        &dl_cfg.notifier,
+        &dl_cfg.tracker,
         dl_cfg.process,
     )
     .await?;
