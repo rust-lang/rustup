@@ -14,7 +14,7 @@ use tracing::{info, warn};
 use url::Url;
 
 use crate::dist::component::{
-    Components, Package, PackageContext, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
+    Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, File, Notification};
@@ -277,18 +277,12 @@ impl Manifestation {
                 }
             }
 
-            let cx = PackageContext {
-                tmp_cx,
-                notifier: Some(&download_cfg.notifier),
-                process: download_cfg.process,
-            };
-
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &download_cfg.notifier)?;
             let package = match format {
-                CompressionKind::GZip => &TarGzPackage::new(reader, &cx)? as &dyn Package,
-                CompressionKind::XZ => &TarXzPackage::new(reader, &cx)?,
-                CompressionKind::ZStd => &TarZStdPackage::new(reader, &cx)?,
+                CompressionKind::GZip => &TarGzPackage::new(reader, download_cfg)? as &dyn Package,
+                CompressionKind::XZ => &TarXzPackage::new(reader, download_cfg)?,
+                CompressionKind::ZStd => &TarZStdPackage::new(reader, download_cfg)?,
             };
 
             // If the package doesn't contain the component that the
@@ -475,13 +469,7 @@ impl Manifestation {
 
         // Install all the components in the installer
         let reader = utils::FileReaderWithProgress::new_file(&installer_file, &dl_cfg.notifier)?;
-        let cx = PackageContext {
-            tmp_cx: dl_cfg.tmp_cx,
-            notifier: Some(&dl_cfg.notifier),
-            process: dl_cfg.process,
-        };
-
-        let package: &dyn Package = &TarGzPackage::new(reader, &cx)?;
+        let package: &dyn Package = &TarGzPackage::new(reader, dl_cfg)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
         }
