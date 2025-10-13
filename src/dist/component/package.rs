@@ -299,8 +299,7 @@ fn unpack_without_first_dir<R: Read>(
         }
     };
     let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, dl_cfg);
-    let mut io_executor: Box<dyn Executor> =
-        get_executor(Some(&dl_cfg.tracker), unpack_ram, dl_cfg.process)?;
+    let mut io_executor: Box<dyn Executor> = get_executor(unpack_ram, dl_cfg.process)?;
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.

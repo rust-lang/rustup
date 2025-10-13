@@ -26,11 +26,7 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use crate::{
-    dist::download::{DownloadTracker, Notification},
-    errors::RustupError,
-    process::Process,
-};
+use crate::{dist::download::DownloadTracker, errors::RustupError, process::Process};
 
 #[cfg(test)]
 mod tests;
@@ -111,14 +107,9 @@ async fn download_file_(
 
         match msg {
             Event::DownloadContentLengthReceived(len) => {
-                tracker.handle(Notification::DownloadContentLengthReceived(
-                    len,
-                    Some(url.as_str()),
-                ));
+                tracker.content_length_received(len, url.as_str())
             }
-            Event::DownloadDataReceived(data) => {
-                tracker.handle(Notification::DownloadDataReceived(data, Some(url.as_str())));
-            }
+            Event::DownloadDataReceived(data) => tracker.data_received(data.len(), url.as_str()),
             Event::ResumingPartialDownload => debug!("resuming partial download"),
         }
 
@@ -219,10 +210,10 @@ async fn download_file_(
         .await;
 
     // The notification should only be sent if the download was successful (i.e. didn't timeout)
-    tracker.handle(match &res {
-        Ok(_) => Notification::DownloadFinished(Some(url.as_str())),
-        Err(_) => Notification::DownloadFailed(url.as_str()),
-    });
+    match &res {
+        Ok(_) => tracker.download_finished(url.as_str()),
+        Err(_) => tracker.download_failed(url.as_str()),
+    };
 
     res
 }
