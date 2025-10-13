@@ -1236,7 +1236,7 @@ pub(crate) async fn dl_v2_manifest(
 ) -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(dist_root, download.process);
     match download
-        .download_and_check(&manifest_url, update_hash, ".toml")
+        .download_and_check(&manifest_url, update_hash, None, ".toml")
         .await
     {
         Ok(manifest_dl) => {
@@ -1293,7 +1293,9 @@ async fn dl_v1_manifest(
     }
 
     let manifest_url = toolchain.manifest_v1_url(dist_root, download.process);
-    let manifest_dl = download.download_and_check(&manifest_url, None, "").await?;
+    let manifest_dl = download
+        .download_and_check(&manifest_url, None, None, "")
+        .await?;
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let urls = manifest_str

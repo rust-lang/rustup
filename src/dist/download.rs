@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::borrow::Cow;
 use std::fs;
 use std::ops;
 use std::path::{Path, PathBuf};
@@ -42,7 +42,12 @@ impl<'a> DownloadCfg<'a> {
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
-    pub(crate) async fn download(&self, url: &Url, hash: &str) -> Result<File> {
+    pub(crate) async fn download(
+        &self,
+        url: &Url,
+        hash: &str,
+        status: &DownloadStatus,
+    ) -> Result<File> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
 
@@ -76,7 +81,7 @@ impl<'a> DownloadCfg<'a> {
             &partial_file_path,
             Some(&mut hasher),
             true,
-            &self.tracker,
+            Some(status),
             self.process,
         )
         .await
@@ -125,7 +130,7 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
 
-        download_file(&hash_url, &hash_file, None, &self.tracker, self.process).await?;
+        download_file(&hash_url, &hash_file, None, None, self.process).await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
@@ -139,6 +144,7 @@ impl<'a> DownloadCfg<'a> {
         &self,
         url_str: &str,
         update_hash: Option<&Path>,
+        status: Option<&DownloadStatus>,
         ext: &str,
     ) -> Result<Option<(temp::File, String)>> {
         let hash = self.download_hash(url_str).await?;
@@ -166,7 +172,7 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        download_file(&url, &file, Some(&mut hasher), &self.tracker, self.process).await?;
+        download_file(&url, &file, Some(&mut hasher), status, self.process).await?;
         let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {
@@ -192,8 +198,6 @@ impl<'a> DownloadCfg<'a> {
 pub(crate) struct DownloadTracker {
     /// MultiProgress bar for the downloads.
     multi_progress_bars: MultiProgress,
-    /// Mapping of URLs being downloaded to their corresponding download status.
-    file_progress_bars: Mutex<HashMap<String, DownloadStatus>>,
 }
 
 impl DownloadTracker {
@@ -207,58 +211,18 @@ impl DownloadTracker {
 
         Self {
             multi_progress_bars,
-            file_progress_bars: Mutex::new(HashMap::new()),
         }
     }
 
     /// Creates a new ProgressBar for the given component.
-    pub(crate) fn create_progress_bar(&self, component: String, url: String) {
+    pub(crate) fn status_for(&self, component: impl Into<Cow<'static, str>>) -> DownloadStatus {
         let status = DownloadStatus::new(component);
         self.multi_progress_bars.add(status.progress.clone());
-        self.file_progress_bars.lock().unwrap().insert(url, status);
-    }
-
-    /// Sets the length for a new ProgressBar and gives it a style.
-    pub(crate) fn content_length_received(&self, content_len: u64, url: &str) {
-        if let Some(status) = self.file_progress_bars.lock().unwrap().get(url) {
-            status.received_length(content_len);
-        }
-    }
-
-    /// Notifies self that data of size `len` has been received.
-    pub(crate) fn data_received(&self, len: usize, url: &str) {
-        let mut map = self.file_progress_bars.lock().unwrap();
-        if let Some(status) = map.get_mut(url) {
-            status.received_data(len);
-        };
-    }
-
-    /// Notifies self that the download has finished.
-    pub(crate) fn download_finished(&self, url: &str) {
-        let map = self.file_progress_bars.lock().unwrap();
-        if let Some(status) = map.get(url) {
-            status.finished()
-        };
-    }
-
-    /// Notifies self that the download has failed.
-    pub(crate) fn download_failed(&self, url: &str) {
-        let map = self.file_progress_bars.lock().unwrap();
-        if let Some(status) = map.get(url) {
-            status.failed();
-        };
-    }
-
-    /// Notifies self that the download is being retried.
-    pub(crate) fn retrying_download(&self, url: &str) {
-        let mut map = self.file_progress_bars.lock().unwrap();
-        if let Some(status) = map.get_mut(url) {
-            status.retrying();
-        };
+        status
     }
 }
 
-struct DownloadStatus {
+pub(crate) struct DownloadStatus {
     progress: ProgressBar,
     /// The instant where the download is being retried.
     ///
@@ -266,11 +230,11 @@ struct DownloadStatus {
     /// the message "retrying download" for at least a second. Without it, the progress
     /// bar would reappear immediately, not allowing the user to correctly see the message,
     /// before the progress bar starts again.
-    retry_time: Option<Instant>,
+    retry_time: Mutex<Option<Instant>>,
 }
 
 impl DownloadStatus {
-    fn new(component: String) -> Self {
+    fn new(component: impl Into<Cow<'static, str>>) -> Self {
         let progress = ProgressBar::hidden();
         progress.set_style(
             ProgressStyle::with_template(
@@ -283,25 +247,23 @@ impl DownloadStatus {
 
         Self {
             progress,
-            retry_time: None,
+            retry_time: Mutex::new(None),
         }
     }
 
-    fn received_length(&self, len: u64) {
+    pub(crate) fn received_length(&self, len: u64) {
         self.progress.reset();
         self.progress.set_length(len);
     }
 
-    fn received_data(&mut self, len: usize) {
+    pub(crate) fn received_data(&self, len: usize) {
         self.progress.inc(len as u64);
-        if !self
-            .retry_time
-            .is_some_and(|instant| instant.elapsed() > Duration::from_secs(1))
-        {
+        let mut retry_time = self.retry_time.lock().unwrap();
+        if !retry_time.is_some_and(|instant| instant.elapsed() > Duration::from_secs(1)) {
             return;
         }
 
-        self.retry_time = None;
+        *retry_time = None;
         self.progress.set_style(
             ProgressStyle::with_template(
                 "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
@@ -311,7 +273,7 @@ impl DownloadStatus {
         );
     }
 
-    fn finished(&self) {
+    pub(crate) fn finished(&self) {
         self.progress.set_style(
             ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
                 .unwrap(),
@@ -319,7 +281,7 @@ impl DownloadStatus {
         self.progress.finish();
     }
 
-    fn failed(&self) {
+    pub(crate) fn failed(&self) {
         self.progress.set_style(
             ProgressStyle::with_template("{msg:>12.bold}  download failed after {elapsed}")
                 .unwrap(),
@@ -327,8 +289,8 @@ impl DownloadStatus {
         self.progress.finish();
     }
 
-    fn retrying(&mut self) {
-        self.retry_time = Some(Instant::now());
+    pub(crate) fn retrying(&self) {
+        *self.retry_time.lock().unwrap() = Some(Instant::now());
         self.progress
             .set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
     }

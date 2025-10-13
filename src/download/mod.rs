@@ -26,7 +26,7 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use crate::{dist::download::DownloadTracker, errors::RustupError, process::Process};
+use crate::{dist::download::DownloadStatus, errors::RustupError, process::Process};
 
 #[cfg(test)]
 mod tests;
@@ -35,10 +35,10 @@ pub(crate) async fn download_file(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
-    tracker: &DownloadTracker,
+    status: Option<&DownloadStatus>,
     process: &Process,
 ) -> anyhow::Result<()> {
-    download_file_with_resume(url, path, hasher, false, tracker, process).await
+    download_file_with_resume(url, path, hasher, false, status, process).await
 }
 
 pub(crate) async fn download_file_with_resume(
@@ -46,11 +46,11 @@ pub(crate) async fn download_file_with_resume(
     path: &Path,
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
-    tracker: &DownloadTracker,
+    status: Option<&DownloadStatus>,
     process: &Process,
 ) -> anyhow::Result<()> {
     use crate::download::DownloadError as DEK;
-    match download_file_(url, path, hasher, resume_from_partial, tracker, process).await {
+    match download_file_(url, path, hasher, resume_from_partial, status, process).await {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {
@@ -85,7 +85,7 @@ async fn download_file_(
     path: &Path,
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
-    tracker: &DownloadTracker,
+    status: Option<&DownloadStatus>,
     process: &Process,
 ) -> anyhow::Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
@@ -107,9 +107,15 @@ async fn download_file_(
 
         match msg {
             Event::DownloadContentLengthReceived(len) => {
-                tracker.content_length_received(len, url.as_str())
+                if let Some(status) = status {
+                    status.received_length(len)
+                }
             }
-            Event::DownloadDataReceived(data) => tracker.data_received(data.len(), url.as_str()),
+            Event::DownloadDataReceived(data) => {
+                if let Some(status) = status {
+                    status.received_data(data.len())
+                }
+            }
             Event::ResumingPartialDownload => debug!("resuming partial download"),
         }
 
@@ -210,10 +216,12 @@ async fn download_file_(
         .await;
 
     // The notification should only be sent if the download was successful (i.e. didn't timeout)
-    match &res {
-        Ok(_) => tracker.download_finished(url.as_str()),
-        Err(_) => tracker.download_failed(url.as_str()),
-    };
+    if let Some(status) = status {
+        match &res {
+            Ok(_) => status.finished(),
+            Err(_) => status.failed(),
+        };
+    }
 
     res
 }
