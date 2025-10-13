@@ -21,7 +21,7 @@ use wait_timeout::ChildExt;
 
 use crate::{
     RustupError,
-    config::{ActiveReason, Cfg, InstalledPath},
+    config::{ActiveSource, Cfg, InstalledPath},
     dist::{
         PartialToolchainDesc, TargetTriple,
         component::{Component, Components},
@@ -73,11 +73,11 @@ impl<'a> Toolchain<'a> {
     }
 
     /// Calls Toolchain::new(), but augments the error message with more context
-    /// from the ActiveReason if the toolchain isn't installed.
-    pub(crate) fn with_reason(
+    /// from the ActiveSource if the toolchain isn't installed.
+    pub(crate) fn with_source(
         cfg: &'a Cfg<'a>,
         name: LocalToolchainName,
-        reason: &ActiveReason,
+        source: &ActiveSource,
     ) -> anyhow::Result<Self> {
         match Self::new(cfg, name.clone()) {
             Err(RustupError::ToolchainNotInstalled { .. }) => (),
@@ -86,28 +86,28 @@ impl<'a> Toolchain<'a> {
             }
         }
 
-        let reason_err = match reason {
-            ActiveReason::Environment => {
+        let source_err = match source {
+            ActiveSource::Environment => {
                 "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
                     .to_string()
             }
-            ActiveReason::CommandLine => {
+            ActiveSource::CommandLine => {
                 "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
             }
-            ActiveReason::OverrideDB(path) => format!(
+            ActiveSource::OverrideDB(path) => format!(
                 "the directory override for '{}' specifies an uninstalled toolchain",
                 utils::canonicalize_path(path).display(),
             ),
-            ActiveReason::ToolchainFile(path) => format!(
+            ActiveSource::ToolchainFile(path) => format!(
                 "the toolchain file at '{}' specifies an uninstalled toolchain",
                 utils::canonicalize_path(path).display(),
             ),
-            ActiveReason::Default => {
+            ActiveSource::Default => {
                 "the default toolchain does not describe an installed toolchain".to_string()
             }
         };
 
-        Err(anyhow!(reason_err).context(format!("override toolchain '{name}' is not installed")))
+        Err(anyhow!(source_err).context(format!("override toolchain '{name}' is not installed")))
     }
 
     pub(crate) fn new(cfg: &'a Cfg<'a>, name: LocalToolchainName) -> Result<Self, RustupError> {
