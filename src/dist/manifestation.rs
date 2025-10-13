@@ -158,9 +158,12 @@ impl Manifestation {
         // Download component packages and validate hashes
         let mut things_to_install = Vec::new();
         let mut things_downloaded = Vec::new();
-        let components = update.components_urls_and_hashes(new_manifest)?;
-        let components_len = components.len();
+        let components = update
+            .components_urls_and_hashes(new_manifest)
+            .map(|res| res.map(|(component, binary)| ComponentBinary { component, binary }))
+            .collect::<Result<Vec<_>>>()?;
 
+        let components_len = components.len();
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
         let concurrent_downloads = download_cfg
             .process
@@ -701,25 +704,26 @@ impl Update {
     fn components_urls_and_hashes<'a>(
         &'a self,
         new_manifest: &'a Manifest,
-    ) -> Result<Vec<ComponentBinary<'a>>> {
-        let mut components_urls_and_hashes = Vec::new();
-        for component in &self.components_to_install {
-            let package = new_manifest.get_package(component.short_name_in_manifest())?;
-            let target_package = package.get_target(component.target.as_ref())?;
+    ) -> impl Iterator<Item = anyhow::Result<(&'a Component, &'a HashedBinary)>> + 'a {
+        self.components_to_install.iter().filter_map(|component| {
+            let package = match new_manifest.get_package(component.short_name_in_manifest()) {
+                Ok(p) => p,
+                Err(e) => return Some(Err(e)),
+            };
 
-            if target_package.bins.is_empty() {
+            let target_package = match package.get_target(component.target.as_ref()) {
+                Ok(tp) => tp,
+                Err(e) => return Some(Err(e)),
+            };
+
+            match target_package.bins.is_empty() {
                 // This package is not available, no files to download.
-                continue;
+                true => None,
+                // We prefer the first format in the list, since the parsing of the
+                // manifest leaves us with the files/hash pairs in preference order.
+                false => Some(Ok((component, &target_package.bins[0]))),
             }
-            // We prefer the first format in the list, since the parsing of the
-            // manifest leaves us with the files/hash pairs in preference order.
-            components_urls_and_hashes.push(ComponentBinary {
-                component,
-                binary: &target_package.bins[0],
-            });
-        }
-
-        Ok(components_urls_and_hashes)
+        })
     }
 }
 
