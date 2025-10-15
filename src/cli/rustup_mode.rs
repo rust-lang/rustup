@@ -543,6 +543,10 @@ enum SelfSubcmd {
         /// Disable confirmation prompt
         #[arg(short = 'y')]
         no_prompt: bool,
+
+        /// Do not clean up the `PATH` environment variable
+        #[arg(long)]
+        no_modify_path: bool,
     },
 
     /// Upgrade the internal data format
@@ -725,7 +729,10 @@ pub async fn main(
         RustupSubcmd::Man { command, toolchain } => man(cfg, &command, toolchain).await,
         RustupSubcmd::Self_ { subcmd } => match subcmd {
             SelfSubcmd::Update => self_update::update(cfg).await,
-            SelfSubcmd::Uninstall { no_prompt } => self_update::uninstall(no_prompt, process),
+            SelfSubcmd::Uninstall {
+                no_prompt,
+                no_modify_path,
+            } => self_update::uninstall(no_prompt, no_modify_path, process),
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
