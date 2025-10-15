@@ -30,7 +30,7 @@
 </tspan>
     <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-y</tspan><tspan>          </tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-y</tspan><tspan>          Disable confirmation prompt</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>  Print help</tspan>
 </tspan>
