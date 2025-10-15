@@ -1,0 +1,89 @@
+<svg width="740px" height="632px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Modify toolchain overrides for directories</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] override &lt;COMMAND&gt;</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Commands:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  list   List directory toolchain overrides</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>  set    Set the override toolchain for a directory</tspan>
+</tspan>
+    <tspan x="10px" y="154px"><tspan>  unset  Remove the override toolchain for a directory</tspan>
+</tspan>
+    <tspan x="10px" y="172px"><tspan>  help   Print this message or the help of the given subcommand(s)</tspan>
+</tspan>
+    <tspan x="10px" y="190px">
+</tspan>
+    <tspan x="10px" y="208px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="226px"><tspan>  -h, --help  Print help</tspan>
+</tspan>
+    <tspan x="10px" y="244px">
+</tspan>
+    <tspan x="10px" y="262px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="280px"><tspan>    Overrides configure Rustup to use a specific toolchain when</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>    running in a specific directory.</tspan>
+</tspan>
+    <tspan x="10px" y="316px">
+</tspan>
+    <tspan x="10px" y="334px"><tspan>    Directories can be assigned their own Rust toolchain with `rustup</tspan>
+</tspan>
+    <tspan x="10px" y="352px"><tspan>    override`. When a directory has an override then any time `rustc`</tspan>
+</tspan>
+    <tspan x="10px" y="370px"><tspan>    or `cargo` is run inside that directory, or one of its child</tspan>
+</tspan>
+    <tspan x="10px" y="388px"><tspan>    directories, the override toolchain will be invoked.</tspan>
+</tspan>
+    <tspan x="10px" y="406px">
+</tspan>
+    <tspan x="10px" y="424px"><tspan>    To pin to a specific nightly:</tspan>
+</tspan>
+    <tspan x="10px" y="442px">
+</tspan>
+    <tspan x="10px" y="460px"><tspan>        $ rustup override set nightly-2014-12-18</tspan>
+</tspan>
+    <tspan x="10px" y="478px">
+</tspan>
+    <tspan x="10px" y="496px"><tspan>    Or a specific stable release:</tspan>
+</tspan>
+    <tspan x="10px" y="514px">
+</tspan>
+    <tspan x="10px" y="532px"><tspan>        $ rustup override set 1.0.0</tspan>
+</tspan>
+    <tspan x="10px" y="550px">
+</tspan>
+    <tspan x="10px" y="568px"><tspan>    To see the active toolchain use `rustup show`. To remove the</tspan>
+</tspan>
+    <tspan x="10px" y="586px"><tspan>    override and use the default toolchain again, `rustup override</tspan>
+</tspan>
+    <tspan x="10px" y="604px"><tspan>    unset`.</tspan>
+</tspan>
+    <tspan x="10px" y="622px">
+</tspan>
+  </text>
+
+</svg>

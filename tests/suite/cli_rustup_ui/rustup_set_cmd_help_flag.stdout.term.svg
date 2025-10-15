@@ -1,0 +1,49 @@
+<svg width="740px" height="272px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Alter rustup settings</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] set &lt;COMMAND&gt;</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Commands:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  default-host      The triple used to identify toolchains when not specified</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>  profile           The default components installed with a toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="154px"><tspan>  auto-self-update  The rustup auto self update mode</tspan>
+</tspan>
+    <tspan x="10px" y="172px"><tspan>  auto-install      The auto toolchain install mode</tspan>
+</tspan>
+    <tspan x="10px" y="190px"><tspan>  help              Print this message or the help of the given subcommand(s)</tspan>
+</tspan>
+    <tspan x="10px" y="208px">
+</tspan>
+    <tspan x="10px" y="226px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="244px"><tspan>  -h, --help  Print help</tspan>
+</tspan>
+    <tspan x="10px" y="262px">
+</tspan>
+  </text>
+
+</svg>
