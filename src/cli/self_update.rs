@@ -474,6 +474,17 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
+macro_rules! pre_uninstall_msg_no_modify_path {
+    () => {
+        r"# Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and data.
+Your `PATH` environment variable will not be touched.
+
+"
+    };
+}
+
 static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 fn update_root(process: &Process) -> String {
@@ -968,7 +979,11 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     Ok(())
 }
 
-pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn uninstall(
+    no_prompt: bool,
+    no_modify_path: bool,
+    process: &Process,
+) -> Result<utils::ExitCode> {
     if cfg!(feature = "no-self-update") {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
@@ -983,10 +998,14 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
 
     if !no_prompt {
         writeln!(process.stdout().lock())?;
-        let msg = format!(
-            pre_uninstall_msg!(),
-            cargo_home = canonical_cargo_home(process)?
-        );
+        let msg = if no_modify_path {
+            pre_uninstall_msg_no_modify_path!().to_owned()
+        } else {
+            format!(
+                pre_uninstall_msg!(),
+                cargo_home = canonical_cargo_home(process)?
+            )
+        };
         md(&mut process.stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false, process)? {
             info!("aborting uninstallation");
@@ -1005,7 +1024,9 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
     info!("removing cargo home");
 
     // Remove CARGO_HOME/bin from PATH
-    do_remove_from_path(process)?;
+    if !no_modify_path {
+        do_remove_from_path(process)?;
+    }
 
     // Delete everything in CARGO_HOME *except* the rustup bin
 
