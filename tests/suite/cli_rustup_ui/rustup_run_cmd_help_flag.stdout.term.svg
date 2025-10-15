@@ -1,0 +1,77 @@
+<svg width="860px" height="524px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Run a command with an environment configured for a given toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] run [OPTIONS] &lt;TOOLCHAIN&gt; &lt;COMMAND&gt;...</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  &lt;TOOLCHAIN&gt;   Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain name, or</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>                an absolute path. For more information see `rustup help toolchain`</tspan>
+</tspan>
+    <tspan x="10px" y="154px"><tspan>  &lt;COMMAND&gt;...  </tspan>
+</tspan>
+    <tspan x="10px" y="172px">
+</tspan>
+    <tspan x="10px" y="190px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="208px"><tspan>      --install  Install the requested toolchain if needed</tspan>
+</tspan>
+    <tspan x="10px" y="226px"><tspan>  -h, --help     Print help</tspan>
+</tspan>
+    <tspan x="10px" y="244px">
+</tspan>
+    <tspan x="10px" y="262px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="280px"><tspan>    Configures an environment to use the given toolchain and then runs</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>    the specified program. The command may be any program, not just</tspan>
+</tspan>
+    <tspan x="10px" y="316px"><tspan>    rustc or cargo. This can be used for testing arbitrary toolchains</tspan>
+</tspan>
+    <tspan x="10px" y="334px"><tspan>    without setting an override.</tspan>
+</tspan>
+    <tspan x="10px" y="352px">
+</tspan>
+    <tspan x="10px" y="370px"><tspan>    Commands explicitly proxied by `rustup` (such as `rustc` and</tspan>
+</tspan>
+    <tspan x="10px" y="388px"><tspan>    `cargo`) also have a shorthand for this available. The toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="406px"><tspan>    can be set by using `+toolchain` as the first argument. These are</tspan>
+</tspan>
+    <tspan x="10px" y="424px"><tspan>    equivalent:</tspan>
+</tspan>
+    <tspan x="10px" y="442px">
+</tspan>
+    <tspan x="10px" y="460px"><tspan>        $ cargo +nightly build</tspan>
+</tspan>
+    <tspan x="10px" y="478px">
+</tspan>
+    <tspan x="10px" y="496px"><tspan>        $ rustup run nightly cargo build</tspan>
+</tspan>
+    <tspan x="10px" y="514px">
+</tspan>
+  </text>
+
+</svg>

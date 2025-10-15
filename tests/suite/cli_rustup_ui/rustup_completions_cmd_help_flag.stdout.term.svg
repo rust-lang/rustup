@@ -1,0 +1,285 @@
+<svg width="835px" height="2396px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Generate tab-completion scripts for your shell</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] completions &lt;SHELL&gt; [COMMAND]</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  &lt;SHELL&gt;    [possible values: bash, elvish, fish, powershell, zsh]</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>  [COMMAND]  [default: rustup] [possible values: rustup, cargo]</tspan>
+</tspan>
+    <tspan x="10px" y="154px">
+</tspan>
+    <tspan x="10px" y="172px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="190px"><tspan>  -h, --help  Print help</tspan>
+</tspan>
+    <tspan x="10px" y="208px">
+</tspan>
+    <tspan x="10px" y="226px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="244px"><tspan>    Enable tab completion for Bash, Fish, Zsh, or PowerShell</tspan>
+</tspan>
+    <tspan x="10px" y="262px"><tspan>    The script is output on `stdout`, allowing one to re-direct the</tspan>
+</tspan>
+    <tspan x="10px" y="280px"><tspan>    output to the file of their choosing. Where you place the file</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>    will depend on which shell, and which operating system you are</tspan>
+</tspan>
+    <tspan x="10px" y="316px"><tspan>    using. Your particular configuration may also determine where</tspan>
+</tspan>
+    <tspan x="10px" y="334px"><tspan>    these scripts need to be placed.</tspan>
+</tspan>
+    <tspan x="10px" y="352px">
+</tspan>
+    <tspan x="10px" y="370px"><tspan>    Here are some common set ups for the three supported shells under</tspan>
+</tspan>
+    <tspan x="10px" y="388px"><tspan>    Unix and similar operating systems (such as GNU/Linux).</tspan>
+</tspan>
+    <tspan x="10px" y="406px">
+</tspan>
+    <tspan x="10px" y="424px"><tspan>    Bash:</tspan>
+</tspan>
+    <tspan x="10px" y="442px">
+</tspan>
+    <tspan x="10px" y="460px"><tspan>    Completion files are commonly stored in `/etc/bash_completion.d/` for</tspan>
+</tspan>
+    <tspan x="10px" y="478px"><tspan>    system-wide commands, but can be stored in</tspan>
+</tspan>
+    <tspan x="10px" y="496px"><tspan>    `~/.local/share/bash-completion/completions` for user-specific commands.</tspan>
+</tspan>
+    <tspan x="10px" y="514px"><tspan>    Run the command:</tspan>
+</tspan>
+    <tspan x="10px" y="532px">
+</tspan>
+    <tspan x="10px" y="550px"><tspan>        $ mkdir -p ~/.local/share/bash-completion/completions</tspan>
+</tspan>
+    <tspan x="10px" y="568px"><tspan>        $ rustup completions bash &gt; ~/.local/share/bash-completion/completions/rustup</tspan>
+</tspan>
+    <tspan x="10px" y="586px">
+</tspan>
+    <tspan x="10px" y="604px"><tspan>    This installs the completion script. You may have to log out and</tspan>
+</tspan>
+    <tspan x="10px" y="622px"><tspan>    log back in to your shell session for the changes to take effect.</tspan>
+</tspan>
+    <tspan x="10px" y="640px">
+</tspan>
+    <tspan x="10px" y="658px"><tspan>    Bash (macOS/Homebrew):</tspan>
+</tspan>
+    <tspan x="10px" y="676px">
+</tspan>
+    <tspan x="10px" y="694px"><tspan>    Homebrew stores bash completion files within the Homebrew directory.</tspan>
+</tspan>
+    <tspan x="10px" y="712px"><tspan>    With the `bash-completion` brew formula installed, run the command:</tspan>
+</tspan>
+    <tspan x="10px" y="730px">
+</tspan>
+    <tspan x="10px" y="748px"><tspan>        $ mkdir -p $(brew --prefix)/etc/bash_completion.d</tspan>
+</tspan>
+    <tspan x="10px" y="766px"><tspan>        $ rustup completions bash &gt; $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion</tspan>
+</tspan>
+    <tspan x="10px" y="784px">
+</tspan>
+    <tspan x="10px" y="802px"><tspan>    Fish:</tspan>
+</tspan>
+    <tspan x="10px" y="820px">
+</tspan>
+    <tspan x="10px" y="838px"><tspan>    Fish completion files are commonly stored in</tspan>
+</tspan>
+    <tspan x="10px" y="856px"><tspan>    `$HOME/.config/fish/completions`. Run the command:</tspan>
+</tspan>
+    <tspan x="10px" y="874px">
+</tspan>
+    <tspan x="10px" y="892px"><tspan>        $ mkdir -p ~/.config/fish/completions</tspan>
+</tspan>
+    <tspan x="10px" y="910px"><tspan>        $ rustup completions fish &gt; ~/.config/fish/completions/rustup.fish</tspan>
+</tspan>
+    <tspan x="10px" y="928px">
+</tspan>
+    <tspan x="10px" y="946px"><tspan>    This installs the completion script. You may have to log out and</tspan>
+</tspan>
+    <tspan x="10px" y="964px"><tspan>    log back in to your shell session for the changes to take effect.</tspan>
+</tspan>
+    <tspan x="10px" y="982px">
+</tspan>
+    <tspan x="10px" y="1000px"><tspan>    Zsh:</tspan>
+</tspan>
+    <tspan x="10px" y="1018px">
+</tspan>
+    <tspan x="10px" y="1036px"><tspan>    ZSH completions are commonly stored in any directory listed in</tspan>
+</tspan>
+    <tspan x="10px" y="1054px"><tspan>    your `$fpath` variable. To use these completions, you must either</tspan>
+</tspan>
+    <tspan x="10px" y="1072px"><tspan>    add the generated script to one of those directories, or add your</tspan>
+</tspan>
+    <tspan x="10px" y="1090px"><tspan>    own to this list.</tspan>
+</tspan>
+    <tspan x="10px" y="1108px">
+</tspan>
+    <tspan x="10px" y="1126px"><tspan>    Adding a custom directory is often the safest bet if you are</tspan>
+</tspan>
+    <tspan x="10px" y="1144px"><tspan>    unsure of which directory to use. First create the directory; for</tspan>
+</tspan>
+    <tspan x="10px" y="1162px"><tspan>    this example we'll create a hidden directory inside our `$HOME`</tspan>
+</tspan>
+    <tspan x="10px" y="1180px"><tspan>    directory:</tspan>
+</tspan>
+    <tspan x="10px" y="1198px">
+</tspan>
+    <tspan x="10px" y="1216px"><tspan>        $ mkdir ~/.zfunc</tspan>
+</tspan>
+    <tspan x="10px" y="1234px">
+</tspan>
+    <tspan x="10px" y="1252px"><tspan>    Then add the following lines to your `.zshrc` just before</tspan>
+</tspan>
+    <tspan x="10px" y="1270px"><tspan>    `compinit`:</tspan>
+</tspan>
+    <tspan x="10px" y="1288px">
+</tspan>
+    <tspan x="10px" y="1306px"><tspan>        fpath+=~/.zfunc</tspan>
+</tspan>
+    <tspan x="10px" y="1324px">
+</tspan>
+    <tspan x="10px" y="1342px"><tspan>    Now you can install the completions script using the following</tspan>
+</tspan>
+    <tspan x="10px" y="1360px"><tspan>    command:</tspan>
+</tspan>
+    <tspan x="10px" y="1378px">
+</tspan>
+    <tspan x="10px" y="1396px"><tspan>        $ rustup completions zsh &gt; ~/.zfunc/_rustup</tspan>
+</tspan>
+    <tspan x="10px" y="1414px">
+</tspan>
+    <tspan x="10px" y="1432px"><tspan>    You must then either log out and log back in, or simply run</tspan>
+</tspan>
+    <tspan x="10px" y="1450px">
+</tspan>
+    <tspan x="10px" y="1468px"><tspan>        $ exec zsh</tspan>
+</tspan>
+    <tspan x="10px" y="1486px">
+</tspan>
+    <tspan x="10px" y="1504px"><tspan>    for the new completions to take effect.</tspan>
+</tspan>
+    <tspan x="10px" y="1522px">
+</tspan>
+    <tspan x="10px" y="1540px"><tspan>    Custom locations:</tspan>
+</tspan>
+    <tspan x="10px" y="1558px">
+</tspan>
+    <tspan x="10px" y="1576px"><tspan>    Alternatively, you could save these files to the place of your</tspan>
+</tspan>
+    <tspan x="10px" y="1594px"><tspan>    choosing, such as a custom directory inside your $HOME. Doing so</tspan>
+</tspan>
+    <tspan x="10px" y="1612px"><tspan>    will require you to add the proper directives, such as `source`ing</tspan>
+</tspan>
+    <tspan x="10px" y="1630px"><tspan>    inside your login script. Consult your shells documentation for</tspan>
+</tspan>
+    <tspan x="10px" y="1648px"><tspan>    how to add such directives.</tspan>
+</tspan>
+    <tspan x="10px" y="1666px">
+</tspan>
+    <tspan x="10px" y="1684px"><tspan>    PowerShell:</tspan>
+</tspan>
+    <tspan x="10px" y="1702px">
+</tspan>
+    <tspan x="10px" y="1720px"><tspan>    The powershell completion scripts require PowerShell v5.0+ (which</tspan>
+</tspan>
+    <tspan x="10px" y="1738px"><tspan>    comes with Windows 10, but can be downloaded separately for windows 7</tspan>
+</tspan>
+    <tspan x="10px" y="1756px"><tspan>    or 8.1).</tspan>
+</tspan>
+    <tspan x="10px" y="1774px">
+</tspan>
+    <tspan x="10px" y="1792px"><tspan>    First, check if a profile has already been set</tspan>
+</tspan>
+    <tspan x="10px" y="1810px">
+</tspan>
+    <tspan x="10px" y="1828px"><tspan>        PS C:/&gt; Test-Path $profile</tspan>
+</tspan>
+    <tspan x="10px" y="1846px">
+</tspan>
+    <tspan x="10px" y="1864px"><tspan>    If the above command returns `False` run the following</tspan>
+</tspan>
+    <tspan x="10px" y="1882px">
+</tspan>
+    <tspan x="10px" y="1900px"><tspan>        PS C:/&gt; New-Item -path $profile -type file -force</tspan>
+</tspan>
+    <tspan x="10px" y="1918px">
+</tspan>
+    <tspan x="10px" y="1936px"><tspan>    Now open the file provided by `$profile` (if you used the</tspan>
+</tspan>
+    <tspan x="10px" y="1954px"><tspan>    `New-Item` command it will be</tspan>
+</tspan>
+    <tspan x="10px" y="1972px"><tspan>    `${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`</tspan>
+</tspan>
+    <tspan x="10px" y="1990px">
+</tspan>
+    <tspan x="10px" y="2008px"><tspan>    Next, we either save the completions file into our profile, or</tspan>
+</tspan>
+    <tspan x="10px" y="2026px"><tspan>    into a separate file and source it inside our profile. To save the</tspan>
+</tspan>
+    <tspan x="10px" y="2044px"><tspan>    completions into our profile simply use</tspan>
+</tspan>
+    <tspan x="10px" y="2062px">
+</tspan>
+    <tspan x="10px" y="2080px"><tspan>        PS C:/&gt; rustup completions powershell &gt;&gt;</tspan>
+</tspan>
+    <tspan x="10px" y="2098px"><tspan>        ${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1</tspan>
+</tspan>
+    <tspan x="10px" y="2116px">
+</tspan>
+    <tspan x="10px" y="2134px"><tspan>    Cargo:</tspan>
+</tspan>
+    <tspan x="10px" y="2152px">
+</tspan>
+    <tspan x="10px" y="2170px"><tspan>    Rustup can also generate a completion script for `cargo`. The script output</tspan>
+</tspan>
+    <tspan x="10px" y="2188px"><tspan>    by `rustup` will source the completion script distributed with your default</tspan>
+</tspan>
+    <tspan x="10px" y="2206px"><tspan>    toolchain. Not all shells are currently supported. Here are examples for</tspan>
+</tspan>
+    <tspan x="10px" y="2224px"><tspan>    the currently supported shells.</tspan>
+</tspan>
+    <tspan x="10px" y="2242px">
+</tspan>
+    <tspan x="10px" y="2260px"><tspan>    Bash:</tspan>
+</tspan>
+    <tspan x="10px" y="2278px">
+</tspan>
+    <tspan x="10px" y="2296px"><tspan>        $ rustup completions bash cargo &gt;&gt; ~/.local/share/bash-completion/completions/cargo</tspan>
+</tspan>
+    <tspan x="10px" y="2314px">
+</tspan>
+    <tspan x="10px" y="2332px"><tspan>    Zsh:</tspan>
+</tspan>
+    <tspan x="10px" y="2350px">
+</tspan>
+    <tspan x="10px" y="2368px"><tspan>        $ rustup completions zsh cargo &gt; ~/.zfunc/_cargo</tspan>
+</tspan>
+    <tspan x="10px" y="2386px">
+</tspan>
+  </text>
+
+</svg>

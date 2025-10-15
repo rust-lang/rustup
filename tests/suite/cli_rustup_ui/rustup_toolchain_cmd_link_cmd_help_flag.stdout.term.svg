@@ -1,0 +1,85 @@
+<svg width="740px" height="596px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Create a custom toolchain by symlinking to a directory</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] toolchain link &lt;TOOLCHAIN&gt; &lt;PATH&gt;</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  &lt;TOOLCHAIN&gt;  Custom toolchain name</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>  &lt;PATH&gt;       Path to the directory</tspan>
+</tspan>
+    <tspan x="10px" y="154px">
+</tspan>
+    <tspan x="10px" y="172px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="190px"><tspan>  -h, --help  Print help</tspan>
+</tspan>
+    <tspan x="10px" y="208px">
+</tspan>
+    <tspan x="10px" y="226px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="244px"><tspan>    'toolchain' is the custom name to be assigned to the new toolchain.</tspan>
+</tspan>
+    <tspan x="10px" y="262px"><tspan>    Any name is permitted as long as:</tspan>
+</tspan>
+    <tspan x="10px" y="280px"><tspan>    - it does not include '/' or '/' except as the last character</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>    - it is not equal to 'none'</tspan>
+</tspan>
+    <tspan x="10px" y="316px"><tspan>    - it does not fully match an initialsubstring of a standard release channel.</tspan>
+</tspan>
+    <tspan x="10px" y="334px"><tspan>    For example, you can use the names 'latest' or '2017-04-01' but you cannot</tspan>
+</tspan>
+    <tspan x="10px" y="352px"><tspan>    use 'stable' or 'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.</tspan>
+</tspan>
+    <tspan x="10px" y="370px">
+</tspan>
+    <tspan x="10px" y="388px"><tspan>    'path' specifies the directory where the binaries and libraries for</tspan>
+</tspan>
+    <tspan x="10px" y="406px"><tspan>    the custom toolchain can be found. For example, when used for</tspan>
+</tspan>
+    <tspan x="10px" y="424px"><tspan>    development of Rust itself, toolchains can be linked directly out of</tspan>
+</tspan>
+    <tspan x="10px" y="442px"><tspan>    the build directory. After building, you can test out different</tspan>
+</tspan>
+    <tspan x="10px" y="460px"><tspan>    compiler versions as follows:</tspan>
+</tspan>
+    <tspan x="10px" y="478px">
+</tspan>
+    <tspan x="10px" y="496px"><tspan>        $ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1</tspan>
+</tspan>
+    <tspan x="10px" y="514px"><tspan>        $ rustup override set latest-stage1</tspan>
+</tspan>
+    <tspan x="10px" y="532px">
+</tspan>
+    <tspan x="10px" y="550px"><tspan>    If you now compile a crate in the current directory, the custom</tspan>
+</tspan>
+    <tspan x="10px" y="568px"><tspan>    toolchain 'latest-stage1' will be used.</tspan>
+</tspan>
+    <tspan x="10px" y="586px">
+</tspan>
+  </text>
+
+</svg>

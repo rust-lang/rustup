@@ -1,0 +1,105 @@
+<svg width="835px" height="776px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Open the documentation for the current toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] doc [OPTIONS] [TOPIC]</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  [TOPIC]  Topic such as 'core', 'fn', 'usize', 'eprintln!', 'core::arch', 'alloc::format!',</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>           'std::fs', 'std::fs::read_dir', 'std::io::Bytes', 'std::iter::Sum',</tspan>
+</tspan>
+    <tspan x="10px" y="154px"><tspan>           'std::io::error::Result' etc...</tspan>
+</tspan>
+    <tspan x="10px" y="172px">
+</tspan>
+    <tspan x="10px" y="190px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="208px"><tspan>      --path                   Only print the path to the documentation</tspan>
+</tspan>
+    <tspan x="10px" y="226px"><tspan>      --toolchain &lt;TOOLCHAIN&gt;  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more</tspan>
+</tspan>
+    <tspan x="10px" y="244px"><tspan>                               information see `rustup help toolchain`</tspan>
+</tspan>
+    <tspan x="10px" y="262px"><tspan>      --alloc                  The Rust core allocation and collections library</tspan>
+</tspan>
+    <tspan x="10px" y="280px"><tspan>      --book                   The Rust Programming Language book</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>      --cargo                  The Cargo Book</tspan>
+</tspan>
+    <tspan x="10px" y="316px"><tspan>      --clippy                 The Clippy Documentation</tspan>
+</tspan>
+    <tspan x="10px" y="334px"><tspan>      --core                   The Rust Core Library</tspan>
+</tspan>
+    <tspan x="10px" y="352px"><tspan>      --edition-guide          The Rust Edition Guide</tspan>
+</tspan>
+    <tspan x="10px" y="370px"><tspan>      --embedded-book          The Embedded Rust Book</tspan>
+</tspan>
+    <tspan x="10px" y="388px"><tspan>      --error-codes            The Rust Error Codes Index</tspan>
+</tspan>
+    <tspan x="10px" y="406px"><tspan>      --nomicon                The Dark Arts of Advanced and Unsafe Rust Programming</tspan>
+</tspan>
+    <tspan x="10px" y="424px"><tspan>      --proc_macro             A support library for macro authors when defining new macros</tspan>
+</tspan>
+    <tspan x="10px" y="442px"><tspan>      --reference              The Rust Reference</tspan>
+</tspan>
+    <tspan x="10px" y="460px"><tspan>      --rust-by-example        A collection of runnable examples that illustrate various Rust</tspan>
+</tspan>
+    <tspan x="10px" y="478px"><tspan>                               concepts and standard libraries</tspan>
+</tspan>
+    <tspan x="10px" y="496px"><tspan>      --rustc                  The compiler for the Rust programming language</tspan>
+</tspan>
+    <tspan x="10px" y="514px"><tspan>      --rustdoc                Documentation generator for Rust projects</tspan>
+</tspan>
+    <tspan x="10px" y="532px"><tspan>      --std                    Standard library API documentation</tspan>
+</tspan>
+    <tspan x="10px" y="550px"><tspan>      --style-guide            The Rust Style Guide</tspan>
+</tspan>
+    <tspan x="10px" y="568px"><tspan>      --test                   Support code for rustc's built in unit-test and micro-benchmarking</tspan>
+</tspan>
+    <tspan x="10px" y="586px"><tspan>                               framework</tspan>
+</tspan>
+    <tspan x="10px" y="604px"><tspan>      --unstable-book          The Unstable Book</tspan>
+</tspan>
+    <tspan x="10px" y="622px"><tspan>  -h, --help                   Print help</tspan>
+</tspan>
+    <tspan x="10px" y="640px">
+</tspan>
+    <tspan x="10px" y="658px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="676px"><tspan>    Opens the documentation for the currently active toolchain with</tspan>
+</tspan>
+    <tspan x="10px" y="694px"><tspan>    the default browser.</tspan>
+</tspan>
+    <tspan x="10px" y="712px">
+</tspan>
+    <tspan x="10px" y="730px"><tspan>    By default, it opens the documentation index. Use the various</tspan>
+</tspan>
+    <tspan x="10px" y="748px"><tspan>    flags to open specific pieces of documentation.</tspan>
+</tspan>
+    <tspan x="10px" y="766px">
+</tspan>
+  </text>
+
+</svg>

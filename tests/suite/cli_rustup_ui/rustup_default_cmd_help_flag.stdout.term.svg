@@ -1,0 +1,55 @@
+<svg width="860px" height="326px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Set the default toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] default [OPTIONS] [TOOLCHAIN]</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  [TOOLCHAIN]  'none', a toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>               name. For more information see `rustup help toolchain`</tspan>
+</tspan>
+    <tspan x="10px" y="154px">
+</tspan>
+    <tspan x="10px" y="172px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="190px"><tspan>      --force-non-host  Install toolchains that require an emulator. See</tspan>
+</tspan>
+    <tspan x="10px" y="208px"><tspan>                        https://github.com/rust-lang/rustup/wiki/Non-host-toolchains</tspan>
+</tspan>
+    <tspan x="10px" y="226px"><tspan>  -h, --help            Print help</tspan>
+</tspan>
+    <tspan x="10px" y="244px">
+</tspan>
+    <tspan x="10px" y="262px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="280px"><tspan>    Sets the default toolchain to the one specified. If the toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>    is not already installed then it is installed first.</tspan>
+</tspan>
+    <tspan x="10px" y="316px">
+</tspan>
+  </text>
+
+</svg>

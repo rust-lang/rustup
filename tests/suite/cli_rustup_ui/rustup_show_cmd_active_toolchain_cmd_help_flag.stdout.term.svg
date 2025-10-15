@@ -1,0 +1,55 @@
+<svg width="740px" height="326px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan>Show the active toolchain</tspan>
+</tspan>
+    <tspan x="10px" y="46px">
+</tspan>
+    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] show active-toolchain [OPTIONS]</tspan>
+</tspan>
+    <tspan x="10px" y="82px">
+</tspan>
+    <tspan x="10px" y="100px"><tspan>Options:</tspan>
+</tspan>
+    <tspan x="10px" y="118px"><tspan>  -v, --verbose  Enable verbose output with rustc information</tspan>
+</tspan>
+    <tspan x="10px" y="136px"><tspan>  -h, --help     Print help</tspan>
+</tspan>
+    <tspan x="10px" y="154px">
+</tspan>
+    <tspan x="10px" y="172px"><tspan>Discussion:</tspan>
+</tspan>
+    <tspan x="10px" y="190px"><tspan>    Shows the name of the active toolchain.</tspan>
+</tspan>
+    <tspan x="10px" y="208px">
+</tspan>
+    <tspan x="10px" y="226px"><tspan>    This is useful for figuring out the active tool chain from</tspan>
+</tspan>
+    <tspan x="10px" y="244px"><tspan>    scripts.</tspan>
+</tspan>
+    <tspan x="10px" y="262px">
+</tspan>
+    <tspan x="10px" y="280px"><tspan>    You should use `rustc --print sysroot` to get the sysroot, or</tspan>
+</tspan>
+    <tspan x="10px" y="298px"><tspan>    `rustc --version` to get the toolchain version.</tspan>
+</tspan>
+    <tspan x="10px" y="316px">
+</tspan>
+  </text>
+
+</svg>
