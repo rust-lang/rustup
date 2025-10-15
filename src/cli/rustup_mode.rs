@@ -540,6 +540,7 @@ enum SelfSubcmd {
 
     /// Uninstall rustup
     Uninstall {
+        /// Disable confirmation prompt
         #[arg(short = 'y')]
         no_prompt: bool,
     },
