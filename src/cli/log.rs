@@ -49,18 +49,11 @@ fn console_logger<S>(process: &Process) -> (impl Layer<S> + use<S>, reload::Hand
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
-    let has_ansi = match process.var("RUSTUP_TERM_COLOR") {
-        Ok(s) if s.eq_ignore_ascii_case("always") => true,
-        Ok(s) if s.eq_ignore_ascii_case("never") => false,
-        // `RUSTUP_TERM_COLOR` is prioritized over `NO_COLOR`.
-        _ if process.var("NO_COLOR").is_ok() => false,
-        _ => process.stderr().is_a_tty(),
-    };
     let maybe_rustup_log_directives = process.var("RUSTUP_LOG");
     let process = process.clone();
     let logger = tracing_subscriber::fmt::layer()
         .with_writer(process.stderr())
-        .with_ansi(has_ansi);
+        .with_ansi(true); // `process.stderr()` will translate ANSI escape codes
     if let Ok(directives) = maybe_rustup_log_directives {
         let (env_filter, handle) = reload::Layer::new(
             EnvFilter::builder()
@@ -96,14 +89,9 @@ where
         mut writer: format::Writer<'_>,
         event: &Event<'_>,
     ) -> fmt::Result {
-        let has_ansi = writer.has_ansi_escapes();
         let level = NotificationLevel::from(*event.metadata().level());
         {
-            let level_style = if has_ansi {
-                Style::new().bold().fg_color(level.fg_color())
-            } else {
-                Style::new()
-            };
+            let level_style = Style::new().bold().fg_color(level.fg_color());
             write!(&mut writer, "{level_style}{level}:{level_style:#} ")?;
         }
         ctx.field_format().format_fields(writer.by_ref(), event)?;
