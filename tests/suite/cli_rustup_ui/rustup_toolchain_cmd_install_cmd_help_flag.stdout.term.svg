@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,41 +24,41 @@
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] toolchain install [OPTIONS] [TOOLCHAIN]...</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup[EXE] toolchain install</tspan><tspan> </tspan><tspan class="fg-cyan">[OPTIONS]</tspan><tspan> </tspan><tspan class="fg-cyan">[TOOLCHAIN]...</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Arguments:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  [TOOLCHAIN]...  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see</tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-cyan">[TOOLCHAIN]...</tspan><tspan>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>                  `rustup help toolchain`</tspan>
 </tspan>
     <tspan x="10px" y="154px">
 </tspan>
-    <tspan x="10px" y="172px"><tspan>Options:</tspan>
+    <tspan x="10px" y="172px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="190px"><tspan>      --profile &lt;PROFILE&gt;      [possible values: minimal, default, complete]</tspan>
+    <tspan x="10px" y="190px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--profile</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;PROFILE&gt;</tspan><tspan>      [possible values: minimal, default, complete]</tspan>
 </tspan>
-    <tspan x="10px" y="208px"><tspan>  -c, --component &lt;COMPONENT&gt;  Comma-separated list of components to be added on installation</tspan>
+    <tspan x="10px" y="208px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-c</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--component</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;COMPONENT&gt;</tspan><tspan>  Comma-separated list of components to be added on installation</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan>  -t, --target &lt;TARGET&gt;        Comma-separated list of targets to be added on installation</tspan>
+    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-t</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--target</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;TARGET&gt;</tspan><tspan>        Comma-separated list of targets to be added on installation</tspan>
 </tspan>
-    <tspan x="10px" y="244px"><tspan>      --no-self-update         Don't perform self update when running the `rustup toolchain install`</tspan>
+    <tspan x="10px" y="244px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--no-self-update</tspan><tspan>         Don't perform self update when running the `rustup toolchain install`</tspan>
 </tspan>
     <tspan x="10px" y="262px"><tspan>                               command</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan>      --force                  Force an update, even if some components are missing</tspan>
+    <tspan x="10px" y="280px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--force</tspan><tspan>                  Force an update, even if some components are missing</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>      --allow-downgrade        Allow rustup to downgrade the toolchain to satisfy your component</tspan>
+    <tspan x="10px" y="298px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--allow-downgrade</tspan><tspan>        Allow rustup to downgrade the toolchain to satisfy your component</tspan>
 </tspan>
     <tspan x="10px" y="316px"><tspan>                               choice</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>      --force-non-host         Install toolchains that require an emulator. See</tspan>
+    <tspan x="10px" y="334px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--force-non-host</tspan><tspan>         Install toolchains that require an emulator. See</tspan>
 </tspan>
     <tspan x="10px" y="352px"><tspan>                               https://github.com/rust-lang/rustup/wiki/Non-host-toolchains</tspan>
 </tspan>
-    <tspan x="10px" y="370px"><tspan>  -h, --help                   Print help</tspan>
+    <tspan x="10px" y="370px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>                   Print help</tspan>
 </tspan>
     <tspan x="10px" y="388px">
 </tspan>

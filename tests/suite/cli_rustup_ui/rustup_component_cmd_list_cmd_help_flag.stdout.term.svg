@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,21 +24,21 @@
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] component list [OPTIONS]</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup[EXE] component list</tspan><tspan> </tspan><tspan class="fg-cyan">[OPTIONS]</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Options:</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>      --toolchain &lt;TOOLCHAIN&gt;  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more</tspan>
+    <tspan x="10px" y="118px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--toolchain</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;TOOLCHAIN&gt;</tspan><tspan>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>                               information see `rustup help toolchain`</tspan>
 </tspan>
-    <tspan x="10px" y="154px"><tspan>      --installed              List only installed components</tspan>
+    <tspan x="10px" y="154px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--installed</tspan><tspan>              List only installed components</tspan>
 </tspan>
-    <tspan x="10px" y="172px"><tspan>  -q, --quiet                  Force the output to be a single column</tspan>
+    <tspan x="10px" y="172px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-q</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--quiet</tspan><tspan>                  Force the output to be a single column</tspan>
 </tspan>
-    <tspan x="10px" y="190px"><tspan>  -h, --help                   Print help</tspan>
+    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>                   Print help</tspan>
 </tspan>
     <tspan x="10px" y="208px">
 </tspan>

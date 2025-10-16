@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,17 +24,17 @@
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] override unset [OPTIONS]</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup[EXE] override unset</tspan><tspan> </tspan><tspan class="fg-cyan">[OPTIONS]</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Options:</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>      --path &lt;PATH&gt;  Path to the directory</tspan>
+    <tspan x="10px" y="118px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--path</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;PATH&gt;</tspan><tspan>  Path to the directory</tspan>
 </tspan>
-    <tspan x="10px" y="136px"><tspan>      --nonexistent  Remove override toolchain for all nonexistent directories</tspan>
+    <tspan x="10px" y="136px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--nonexistent</tspan><tspan>  Remove override toolchain for all nonexistent directories</tspan>
 </tspan>
-    <tspan x="10px" y="154px"><tspan>  -h, --help         Print help</tspan>
+    <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>         Print help</tspan>
 </tspan>
     <tspan x="10px" y="172px">
 </tspan>

@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,25 +24,25 @@
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] run [OPTIONS] &lt;TOOLCHAIN&gt; &lt;COMMAND&gt;...</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup[EXE] run</tspan><tspan> </tspan><tspan class="fg-cyan">[OPTIONS]</tspan><tspan> </tspan><tspan class="fg-cyan">&lt;TOOLCHAIN&gt;</tspan><tspan> </tspan><tspan class="fg-cyan">&lt;COMMAND&gt;...</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Arguments:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  &lt;TOOLCHAIN&gt;   Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain name, or</tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-cyan">&lt;TOOLCHAIN&gt;</tspan><tspan>   Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain name, or</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>                an absolute path. For more information see `rustup help toolchain`</tspan>
 </tspan>
-    <tspan x="10px" y="154px"><tspan>  &lt;COMMAND&gt;...  </tspan>
+    <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-cyan">&lt;COMMAND&gt;...</tspan><tspan>  </tspan>
 </tspan>
     <tspan x="10px" y="172px">
 </tspan>
-    <tspan x="10px" y="190px"><tspan>Options:</tspan>
+    <tspan x="10px" y="190px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="208px"><tspan>      --install  Install the requested toolchain if needed</tspan>
+    <tspan x="10px" y="208px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--install</tspan><tspan>  Install the requested toolchain if needed</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan>  -h, --help     Print help</tspan>
+    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>     Print help</tspan>
 </tspan>
     <tspan x="10px" y="244px">
 </tspan>

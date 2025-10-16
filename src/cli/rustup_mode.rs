@@ -75,6 +75,7 @@ fn handle_epipe(res: Result<ExitCode>) -> Result<ExitCode> {
     version = common::version(),
     before_help = format!("rustup {}", common::version()),
     after_help = rustup_help(),
+    styles = clap_cargo::style::CLAP_STYLING,
 )]
 struct Rustup {
     /// Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
@@ -578,11 +579,11 @@ pub async fn main(
     let matches = match Rustup::try_parse_from(process.args_os()) {
         Ok(matches) => matches,
         Err(err) if err.kind() == DisplayHelp => {
-            write!(process.stdout().lock(), "{err}")?;
+            write!(process.stdout().lock(), "{}", err.render().ansi())?;
             return Ok(ExitCode(0));
         }
         Err(err) if err.kind() == DisplayVersion => {
-            write!(process.stdout().lock(), "{err}")?;
+            write!(process.stdout().lock(), "{}", err.render().ansi())?;
             display_version(current_dir, process).await?;
             return Ok(ExitCode(0));
         }
@@ -594,9 +595,9 @@ pub async fn main(
             ]
             .contains(&err.kind())
             {
-                write!(process.stdout().lock(), "{err}")?;
+                write!(process.stdout().lock(), "{}", err.render().ansi())?;
             } else {
-                write!(process.stderr().lock(), "{err}")?;
+                write!(process.stderr().lock(), "{}", err.render().ansi())?;
             }
             return Ok(ExitCode(1));
         }
@@ -609,7 +610,7 @@ pub async fn main(
 
     let Some(subcmd) = matches.subcmd else {
         let help = Rustup::command().render_long_help();
-        writeln!(process.stderr().lock(), "{help}")?;
+        writeln!(process.stderr().lock(), "{}", help.ansi())?;
         return Ok(ExitCode(1));
     };
 

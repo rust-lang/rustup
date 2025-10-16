@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -24,57 +28,57 @@
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Usage: rustup-init[EXE] [OPTIONS]</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup-init[EXE]</tspan><tspan> </tspan><tspan class="fg-cyan">[OPTIONS]</tspan>
 </tspan>
     <tspan x="10px" y="118px">
 </tspan>
-    <tspan x="10px" y="136px"><tspan>Options:</tspan>
+    <tspan x="10px" y="136px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="154px"><tspan>  -v, --verbose</tspan>
+    <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-v</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--verbose</tspan>
 </tspan>
     <tspan x="10px" y="172px"><tspan>          Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset</tspan>
 </tspan>
-    <tspan x="10px" y="190px"><tspan>  -q, --quiet</tspan>
+    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-q</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--quiet</tspan>
 </tspan>
     <tspan x="10px" y="208px"><tspan>          Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan>  -y</tspan>
+    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-y</tspan>
 </tspan>
     <tspan x="10px" y="244px"><tspan>          Disable confirmation prompt</tspan>
 </tspan>
-    <tspan x="10px" y="262px"><tspan>      --default-host &lt;DEFAULT_HOST&gt;</tspan>
+    <tspan x="10px" y="262px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--default-host</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;DEFAULT_HOST&gt;</tspan>
 </tspan>
     <tspan x="10px" y="280px"><tspan>          Choose a default host triple</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>      --default-toolchain &lt;DEFAULT_TOOLCHAIN&gt;</tspan>
+    <tspan x="10px" y="298px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--default-toolchain</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;DEFAULT_TOOLCHAIN&gt;</tspan>
 </tspan>
     <tspan x="10px" y="316px"><tspan>          Choose a default toolchain to install. Use 'none' to not install any toolchains at all</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>      --profile &lt;PROFILE&gt;</tspan>
+    <tspan x="10px" y="334px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--profile</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;PROFILE&gt;</tspan>
 </tspan>
     <tspan x="10px" y="352px"><tspan>          [default: default] [possible values: minimal, default, complete]</tspan>
 </tspan>
-    <tspan x="10px" y="370px"><tspan>  -c, --component &lt;COMPONENT&gt;</tspan>
+    <tspan x="10px" y="370px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-c</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--component</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;COMPONENT&gt;</tspan>
 </tspan>
     <tspan x="10px" y="388px"><tspan>          Comma-separated list of component names to also install</tspan>
 </tspan>
-    <tspan x="10px" y="406px"><tspan>  -t, --target &lt;TARGET&gt;</tspan>
+    <tspan x="10px" y="406px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-t</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--target</tspan><tspan class="fg-cyan"> </tspan><tspan class="fg-cyan">&lt;TARGET&gt;</tspan>
 </tspan>
     <tspan x="10px" y="424px"><tspan>          Comma-separated list of target names to also install</tspan>
 </tspan>
-    <tspan x="10px" y="442px"><tspan>      --no-update-default-toolchain</tspan>
+    <tspan x="10px" y="442px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--no-update-default-toolchain</tspan>
 </tspan>
     <tspan x="10px" y="460px"><tspan>          Don't update any existing default toolchain after install</tspan>
 </tspan>
-    <tspan x="10px" y="478px"><tspan>      --no-modify-path</tspan>
+    <tspan x="10px" y="478px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--no-modify-path</tspan>
 </tspan>
     <tspan x="10px" y="496px"><tspan>          Don't configure the PATH environment variable</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan>  -h, --help</tspan>
+    <tspan x="10px" y="514px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan>
 </tspan>
     <tspan x="10px" y="532px"><tspan>          Print help</tspan>
 </tspan>
-    <tspan x="10px" y="550px"><tspan>  -V, --version</tspan>
+    <tspan x="10px" y="550px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-V</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--version</tspan>
 </tspan>
     <tspan x="10px" y="568px"><tspan>          Print version</tspan>
 </tspan>

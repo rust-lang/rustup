@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,25 +24,25 @@
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] component &lt;COMMAND&gt;</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup[EXE] component</tspan><tspan> </tspan><tspan class="fg-cyan">&lt;COMMAND&gt;</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Commands:</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Commands:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  list    List installed and available components</tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">list</tspan><tspan>    List installed and available components</tspan>
 </tspan>
-    <tspan x="10px" y="136px"><tspan>  add     Add a component to a Rust toolchain</tspan>
+    <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">add</tspan><tspan>     Add a component to a Rust toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="154px"><tspan>  remove  Remove a component from a Rust toolchain</tspan>
+    <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">remove</tspan><tspan>  Remove a component from a Rust toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="172px"><tspan>  help    Print this message or the help of the given subcommand(s)</tspan>
+    <tspan x="10px" y="172px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">help</tspan><tspan>    Print this message or the help of the given subcommand(s)</tspan>
 </tspan>
     <tspan x="10px" y="190px">
 </tspan>
-    <tspan x="10px" y="208px"><tspan>Options:</tspan>
+    <tspan x="10px" y="208px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan>  -h, --help  Print help</tspan>
+    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>  Print help</tspan>
 </tspan>
     <tspan x="10px" y="244px">
 </tspan>
