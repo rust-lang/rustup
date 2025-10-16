@@ -2,11 +2,9 @@ use console::Term;
 use indicatif::TermLike;
 use std::{
     io::{self, Write},
-    mem::MaybeUninit,
     num::NonZero,
     ops::DerefMut,
-    ptr::addr_of_mut,
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{Arc, Mutex},
 };
 
 #[cfg(feature = "test")]
@@ -83,36 +81,26 @@ impl ColorableTerminal {
     }
 
     pub fn lock(&self) -> ColorableTerminalLocked {
-        let mut uninit = MaybeUninit::<ColorableTerminalLocked>::uninit();
-        let ptr = uninit.as_mut_ptr();
+        let locked = match self.inner.lock() {
+            Ok(l) => l,
+            Err(e) => e.into_inner(),
+        };
 
-        // Safety: panics during this will leak an arc reference, or an arc
-        // reference and a mutex guard, or an arc reference, mutex guard and a
-        // stream lock. Drop proceeds in field order after initialization,
-        // so the stream lock is dropped before the mutex guard, which is dropped
-        // before the arc<mutex>.
-        unsafe {
-            // let inner: Arc<Mutex<TerminalInner>> = self.inner.clone();
-            addr_of_mut!((*ptr).inner).write(self.inner.clone());
-            // let guard = inner.lock().unwrap();
-            addr_of_mut!((*ptr).guard).write((*ptr).inner.lock().unwrap());
-            // let locked = match *guard {....}
-            addr_of_mut!((*ptr).locked).write(match (*ptr).guard.deref_mut() {
-                TerminalInner::Stdout(_) => {
-                    let locked = io::stdout().lock();
-                    TerminalInnerLocked::Stdout(AutoStream::new(locked, self.color_choice))
-                }
-                TerminalInner::Stderr(_) => {
-                    let locked = io::stderr().lock();
-                    TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
-                }
+        ColorableTerminalLocked {
+            locked: match &*locked {
+                TerminalInner::Stdout(s) => TerminalInnerLocked::Stdout(AutoStream::new(
+                    s.as_inner().lock(),
+                    self.color_choice,
+                )),
+                TerminalInner::Stderr(s) => TerminalInnerLocked::Stderr(AutoStream::new(
+                    s.as_inner().lock(),
+                    self.color_choice,
+                )),
                 #[cfg(feature = "test")]
                 TerminalInner::TestWriter(w) => {
                     TerminalInnerLocked::TestWriter(StripStream::new(Box::new(w.clone())))
                 }
-            });
-            // ColorableTerminalLocked { inner, guard, locked }
-            uninit.assume_init()
+            },
         }
     }
 
@@ -231,11 +219,7 @@ impl std::fmt::Debug for ColorableTerminal {
 }
 
 pub struct ColorableTerminalLocked {
-    // Must drop the lock before the guard, as the guard borrows from inner.
     locked: TerminalInnerLocked,
-    // must drop the guard before inner as the guard borrows from  inner.
-    guard: MutexGuard<'static, TerminalInner>,
-    inner: Arc<Mutex<TerminalInner>>,
 }
 
 impl io::Write for ColorableTerminalLocked {
