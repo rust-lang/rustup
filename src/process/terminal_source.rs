@@ -3,8 +3,6 @@ use indicatif::TermLike;
 use std::{
     io::{self, Write},
     num::NonZero,
-    ops::DerefMut,
-    sync::{Arc, Mutex},
 };
 
 #[cfg(feature = "test")]
@@ -17,13 +15,7 @@ use super::file_source::TestWriter;
 
 /// A colorable terminal that can be written to
 pub struct ColorableTerminal {
-    // TermColor uses a lifetime on locked variants, but the API we want to
-    // emulate from std::io uses a static lifetime for locked variants: so we
-    // emulate it. For Test workloads this results in a double-layering of
-    // Arc<Mutex<...> which isn't great, but OTOH it is test code. Locking the
-    // source is important because otherwise parallel constructed terminals
-    // would not be locked out.
-    inner: Arc<Mutex<TerminalInner>>,
+    inner: TerminalInner,
     is_a_tty: bool,
     color_choice: ColorChoice,
     width: Option<NonZero<u16>>,
@@ -73,7 +65,7 @@ impl ColorableTerminal {
             .ok()
             .and_then(|s| s.parse::<NonZero<u16>>().ok());
         ColorableTerminal {
-            inner: Arc::new(Mutex::new(inner)),
+            inner,
             is_a_tty,
             color_choice: choice,
             width,
@@ -81,12 +73,7 @@ impl ColorableTerminal {
     }
 
     pub fn lock(&self) -> ColorableTerminalLocked {
-        let locked = match self.inner.lock() {
-            Ok(l) => l,
-            Err(e) => e.into_inner(),
-        };
-
-        match &*locked {
+        match &self.inner {
             TerminalInner::Stdout(s) => ColorableTerminalLocked::Stdout(AutoStream::new(
                 s.as_inner().lock(),
                 self.color_choice,
@@ -185,28 +172,23 @@ impl TermLike for ColorableTerminal {
 
 impl io::Write for ColorableTerminal {
     fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, io::Error> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write(buf)
+        self.lock().as_write().write(buf)
     }
 
     fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write_vectored(bufs)
+        self.lock().as_write().write_vectored(bufs)
     }
 
     fn flush(&mut self) -> std::result::Result<(), io::Error> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().flush()
+        self.lock().as_write().flush()
     }
 
     fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write_all(buf)
+        self.lock().as_write().write_all(buf)
     }
 
     fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
-        let mut locked = self.inner.lock().unwrap();
-        locked.deref_mut().as_write().write_fmt(args)
+        self.lock().as_write().write_fmt(args)
     }
 }
 
@@ -262,17 +244,6 @@ enum TerminalInner {
     Stderr(AutoStream<io::Stderr>),
     #[cfg(feature = "test")]
     TestWriter(TestWriter),
-}
-
-impl TerminalInner {
-    fn as_write(&mut self) -> &mut dyn io::Write {
-        match self {
-            TerminalInner::Stdout(s) => s,
-            TerminalInner::Stderr(s) => s,
-            #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w) => w,
-        }
-    }
 }
 
 /// Select what stream to make a terminal on
