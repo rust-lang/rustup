@@ -700,7 +700,7 @@ impl Update {
     fn components_urls_and_hashes<'a>(
         &'a self,
         new_manifest: &'a Manifest,
-    ) -> impl Iterator<Item = anyhow::Result<(&'a Component, &'a HashedBinary)>> + 'a {
+    ) -> impl Iterator<Item = Result<(&'a Component, &'a HashedBinary)>> + 'a {
         self.components_to_install.iter().filter_map(|component| {
             let package = match new_manifest.get_package(component.short_name_in_manifest()) {
                 Ok(p) => p,

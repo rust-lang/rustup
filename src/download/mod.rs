@@ -15,11 +15,6 @@ use anyhow::Context;
 use anyhow::anyhow;
 use sha2::Sha256;
 use thiserror::Error;
-#[cfg(any(
-    feature = "curl-backend",
-    feature = "reqwest-rustls-tls",
-    feature = "reqwest-native-tls"
-))]
 use tracing::debug;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 use tracing::info;

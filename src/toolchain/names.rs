@@ -428,7 +428,7 @@ impl Display for PathBasedToolchainName {
 impl TryFrom<&Path> for PathBasedToolchainName {
     type Error = InvalidName;
 
-    fn try_from(value: &Path) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: &Path) -> Result<Self, Self::Error> {
         // if official || at least a single path component
         let as_str = value.display().to_string();
         if PartialToolchainDesc::from_str(&as_str).is_ok()
@@ -452,7 +452,7 @@ impl TryFrom<&Path> for PathBasedToolchainName {
 impl TryFrom<&LocalToolchainName> for PathBasedToolchainName {
     type Error = InvalidName;
 
-    fn try_from(value: &LocalToolchainName) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: &LocalToolchainName) -> Result<Self, Self::Error> {
         match value {
             LocalToolchainName::Named(_) => Err(InvalidName::PathToolchain(format!("{value}"))),
             LocalToolchainName::Path(n) => Ok(n.clone()),

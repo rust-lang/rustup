@@ -85,7 +85,7 @@ mod imp {
                 job.inner,
                 JobObjectExtendedLimitInformation,
                 &mut info as *mut _ as *const std::ffi::c_void,
-                mem::size_of_val(&info) as u32,
+                size_of_val(&info) as u32,
             );
             if r == 0 {
                 return None;
@@ -115,7 +115,7 @@ mod imp {
                     self.job.inner,
                     JobObjectExtendedLimitInformation,
                     &mut info as *mut _ as *const std::ffi::c_void,
-                    mem::size_of_val(&info) as u32,
+                    size_of_val(&info) as u32,
                 );
                 if r == 0 {
                     info!("failed to configure job object to defaults: {}", last_err());

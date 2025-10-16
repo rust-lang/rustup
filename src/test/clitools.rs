@@ -43,7 +43,7 @@ pub struct Config {
     /// Where we put the rustup / rustc / cargo bins
     pub exedir: PathBuf,
     /// The tempfile for the mutable distribution server
-    pub test_dist_dir: tempfile::TempDir,
+    pub test_dist_dir: TempDir,
     /// The mutable distribution server; None if none is set.
     pub distdir: Option<PathBuf>,
     /// The const distribution server; None if none is set
@@ -265,7 +265,7 @@ impl Config {
         // Setup pgp test key
         cmd.env(
             "RUSTUP_PGP_KEY",
-            std::env::current_dir()
+            env::current_dir()
                 .unwrap()
                 .join("tests/mock/signing-key.pub.asc"),
         );
@@ -457,7 +457,7 @@ impl Config {
                 Err(e) => {
                     retries -= 1;
                     if retries > 0
-                        && e.kind() == std::io::ErrorKind::Other
+                        && e.kind() == io::ErrorKind::Other
                         && e.raw_os_error() == Some(26)
                     {
                         // This is an ETXTBSY situation
@@ -657,7 +657,7 @@ static CONST_TEST_STATE: LazyLock<ConstState> =
 /// Const test state - test dirs that can be reused across tests.
 struct ConstState {
     scenarios: EnumMap<Scenario, RwLock<Option<PathBuf>>>,
-    const_dist_dir: tempfile::TempDir,
+    const_dist_dir: TempDir,
 }
 
 /// The lock to be used when creating test environments.
@@ -670,7 +670,7 @@ struct ConstState {
 static CMD_LOCK: LazyLock<RwLock<usize>> = LazyLock::new(|| RwLock::new(0));
 
 impl ConstState {
-    fn new(const_dist_dir: tempfile::TempDir) -> Self {
+    fn new(const_dist_dir: TempDir) -> Self {
         Self {
             const_dist_dir,
             scenarios: enum_map! {
@@ -723,7 +723,7 @@ impl ConstState {
 }
 
 /// State a test can interact and mutate
-async fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
+async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
     // SAFETY: This is probably not the best way of doing such a thing, but it should be
     // okay since we are setting the environment variables for the integration tests only.
     // There are two types of integration test in rustup: in-process and subprocess.

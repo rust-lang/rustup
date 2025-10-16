@@ -445,7 +445,7 @@ pub(crate) fn delete_dir_contents_following_links(dir_path: &Path) {
 }
 
 pub(crate) struct FileReaderWithProgress {
-    fh: io::BufReader<File>,
+    fh: BufReader<File>,
     nbytes: u64,
 }
 

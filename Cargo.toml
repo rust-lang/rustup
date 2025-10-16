@@ -145,7 +145,8 @@ trycmd = "0.15.0"
 platforms = "3.4"
 
 [lints.rust]
-rust_2018_idioms = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
+unused_qualifications = "warn"
 
 [lints.clippy]
 # `dbg!()` and `todo!()` clearly shouldn't make it to production:

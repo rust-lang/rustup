@@ -406,7 +406,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
         });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
-        entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
+        entry.dwSize = size_of::<PROCESSENTRY32>() as u32;
 
         // Iterate over system processes looking for ours
         let success = Process32First(*snapshot, &mut entry);
@@ -682,7 +682,6 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
     use std::io;
-    use std::mem;
     use std::ptr;
     use std::thread;
     use std::time::Duration;
@@ -712,7 +711,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
 
     // Make the sub-process opened by gc exe inherit its attribute.
     let sa = SECURITY_ATTRIBUTES {
-        nLength: mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
+        nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
         lpSecurityDescriptor: ptr::null_mut(),
         bInheritHandle: 1,
     };
@@ -834,7 +833,7 @@ mod tests {
     fn windows_install_does_not_add_path_twice() {
         assert_eq!(
             None,
-            super::_add_to_path(
+            _add_to_path(
                 HSTRING::from(r"c:\users\example\.cargo\bin;foo"),
                 HSTRING::from(r"c:\users\example\.cargo\bin")
             )
@@ -855,12 +854,11 @@ mod tests {
 
         assert_eq!(
             final_path,
-            super::_add_to_path(HSTRING::from_wide(&initial_path), HSTRING::from(cargo_home))
-                .unwrap()
+            _add_to_path(HSTRING::from_wide(&initial_path), HSTRING::from(cargo_home)).unwrap()
         );
         assert_eq!(
             HSTRING::from_wide(&initial_path),
-            super::_remove_from_path(HSTRING::from(final_path), HSTRING::from(cargo_home)).unwrap()
+            _remove_from_path(HSTRING::from(final_path), HSTRING::from(cargo_home)).unwrap()
         );
     }
 
@@ -874,10 +872,7 @@ mod tests {
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!(
-                (),
-                super::_apply_new_path(Some(HSTRING::from("foo"))).unwrap()
-            );
+            assert_eq!((), _apply_new_path(Some(HSTRING::from("foo"))).unwrap());
         }
         let environment = CURRENT_USER.create("Environment").unwrap();
         let path = environment.get_value("PATH").unwrap();
@@ -899,7 +894,7 @@ mod tests {
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), super::_apply_new_path(Some(HSTRING::new())).unwrap());
+            assert_eq!((), _apply_new_path(Some(HSTRING::new())).unwrap());
         }
         let reg_value = environment.get_value("PATH");
         match reg_value {
@@ -927,7 +922,7 @@ mod tests {
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
-            super::_with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+            _with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
         );
 
         assert_eq!(
@@ -944,14 +939,14 @@ mod tests {
         let environment = CURRENT_USER.create("Environment").unwrap();
         environment.remove_value("PATH").unwrap();
 
-        assert_eq!(Some(HSTRING::new()), super::get_windows_path_var().unwrap());
+        assert_eq!(Some(HSTRING::new()), get_windows_path_var().unwrap());
     }
 
     #[test]
     fn windows_uninstall_removes_semicolon_from_path_prefix() {
         assert_eq!(
             HSTRING::from("foo"),
-            super::_remove_from_path(
+            _remove_from_path(
                 HSTRING::from(r"c:\users\example\.cargo\bin;foo"),
                 HSTRING::from(r"c:\users\example\.cargo\bin"),
             )
@@ -963,7 +958,7 @@ mod tests {
     fn windows_uninstall_removes_semicolon_from_path_suffix() {
         assert_eq!(
             HSTRING::from("foo"),
-            super::_remove_from_path(
+            _remove_from_path(
                 HSTRING::from(r"foo;c:\users\example\.cargo\bin"),
                 HSTRING::from(r"c:\users\example\.cargo\bin"),
             )
