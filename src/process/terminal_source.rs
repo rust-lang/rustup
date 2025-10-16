@@ -33,16 +33,28 @@ pub struct ColorableTerminal {
 
 impl ColorableTerminal {
     pub(super) fn stdout(process: &Process) -> Self {
-        Self::new(StreamSelector::Stdout, process)
+        let is_a_tty = match process {
+            Process::OsProcess(p) => p.stdout_is_a_tty,
+            #[cfg(feature = "test")]
+            Process::TestProcess(_) => unreachable!(),
+        };
+
+        Self::new(StreamSelector::Stdout, is_a_tty, process)
     }
 
     pub(super) fn stderr(process: &Process) -> Self {
-        Self::new(StreamSelector::Stderr, process)
+        let is_a_tty = match process {
+            Process::OsProcess(p) => p.stderr_is_a_tty,
+            #[cfg(feature = "test")]
+            Process::TestProcess(_) => unreachable!(),
+        };
+
+        Self::new(StreamSelector::Stderr, is_a_tty, process)
     }
 
     #[cfg(feature = "test")]
     pub(super) fn test(writer: TestWriter, process: &Process) -> Self {
-        Self::new(StreamSelector::TestWriter(writer), process)
+        Self::new(StreamSelector::TestWriter(writer), false, process)
     }
 
     /// A terminal that supports colorisation of a stream.
@@ -50,24 +62,7 @@ impl ColorableTerminal {
     /// `RUSTUP_TERM_COLOR` either unset or set to `auto`,
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
-    fn new(stream: StreamSelector, process: &Process) -> Self {
-        let is_a_tty = match stream {
-            StreamSelector::Stdout => match process {
-                Process::OsProcess(p) => p.stdout_is_a_tty,
-                #[cfg(feature = "test")]
-                Process::TestProcess(_) => unreachable!(),
-            },
-            StreamSelector::Stderr => match process {
-                Process::OsProcess(p) => p.stderr_is_a_tty,
-                #[cfg(feature = "test")]
-                Process::TestProcess(_) => unreachable!(),
-            },
-            #[cfg(feature = "test")]
-            StreamSelector::TestWriter(_) => false,
-            #[cfg(all(test, feature = "test"))]
-            StreamSelector::TestTtyWriter(_) => true,
-        };
-
+    fn new(stream: StreamSelector, is_a_tty: bool, process: &Process) -> Self {
         let choice = match process.var("RUSTUP_TERM_COLOR") {
             Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
             Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
@@ -330,12 +325,17 @@ mod tests {
 
     #[test]
     fn term_color_choice() {
-        fn assert_color_choice(env_val: &str, stream: StreamSelector, color_choice: ColorChoice) {
+        fn assert_color_choice(
+            env_val: &str,
+            stream: StreamSelector,
+            is_a_tty: bool,
+            color_choice: ColorChoice,
+        ) {
             let mut vars = HashMap::new();
             vars.env("RUSTUP_TERM_COLOR", env_val);
             let tp = TestProcess::with_vars(vars);
 
-            let term = ColorableTerminal::new(stream, &tp.process);
+            let term = ColorableTerminal::new(stream, is_a_tty, &tp.process);
             let inner = term.inner.lock().unwrap();
             assert!(matches!(
                 &*inner,
@@ -346,23 +346,27 @@ mod tests {
         assert_color_choice(
             "aLWayS",
             StreamSelector::TestWriter(Default::default()),
+            false,
             ColorChoice::Always,
         );
         assert_color_choice(
             "neVer",
             StreamSelector::TestWriter(Default::default()),
+            false,
             ColorChoice::Never,
         );
         // tty + `auto` enables the colors.
         assert_color_choice(
             "AutO",
             StreamSelector::TestTtyWriter(Default::default()),
+            true,
             ColorChoice::Auto,
         );
         // non-tty + `auto` does not enable the colors.
         assert_color_choice(
             "aUTo",
             StreamSelector::TestWriter(Default::default()),
+            false,
             ColorChoice::Never,
         );
     }
