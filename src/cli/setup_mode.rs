@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{Result, format_err};
 use clap::Parser;
 use tracing::warn;
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -24,6 +24,7 @@ use crate::{
     bin_name = "rustup-init[EXE]",
     version = common::version(),
     before_help = format!("rustup-init {}", common::version()),
+    styles = clap_cargo::style::CLAP_STYLING
 )]
 struct RustupInit {
     /// Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
@@ -99,10 +100,10 @@ pub async fn main(
         Ok(args) => args,
         Err(e) if [ErrorKind::DisplayHelp, ErrorKind::DisplayVersion].contains(&e.kind()) => {
             use std::io::Write as _;
-            write!(process.stdout().lock(), "{e}")?;
+            write!(process.stdout().lock(), "{}", e.render().ansi())?;
             return Ok(utils::ExitCode(0));
         }
-        Err(e) => return Err(e.into()),
+        Err(e) => return Err(format_err!("{}", e.render().ansi())),
     };
 
     if self_replace {

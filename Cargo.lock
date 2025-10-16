@@ -327,6 +327,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap-cargo"
+version = "0.18.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9c7f07f2b3c9fc1a21da5b4fa268083ac4d4d145a711b286055fdd70d149fcf"
+dependencies = [
+ "anstyle",
+ "clap",
+]
+
+[[package]]
 name = "clap_builder"
 version = "4.5.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2140,6 +2150,7 @@ dependencies = [
  "cfg-if 1.0.4",
  "chrono",
  "clap",
+ "clap-cargo",
  "clap_complete",
  "console",
  "curl",

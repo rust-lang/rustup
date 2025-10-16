@@ -2,10 +2,14 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-cyan { fill: #00AAAA }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,21 +24,21 @@
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>Usage: rustup[EXE] completions &lt;SHELL&gt; [COMMAND]</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup[EXE] completions</tspan><tspan> </tspan><tspan class="fg-cyan">&lt;SHELL&gt;</tspan><tspan> </tspan><tspan class="fg-cyan">[COMMAND]</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>Arguments:</tspan>
+    <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Arguments:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  &lt;SHELL&gt;    [possible values: bash, elvish, fish, powershell, zsh]</tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-cyan">&lt;SHELL&gt;</tspan><tspan>    [possible values: bash, elvish, fish, powershell, zsh]</tspan>
 </tspan>
-    <tspan x="10px" y="136px"><tspan>  [COMMAND]  [default: rustup] [possible values: rustup, cargo]</tspan>
+    <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-cyan">[COMMAND]</tspan><tspan>  [default: rustup] [possible values: rustup, cargo]</tspan>
 </tspan>
     <tspan x="10px" y="154px">
 </tspan>
-    <tspan x="10px" y="172px"><tspan>Options:</tspan>
+    <tspan x="10px" y="172px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="190px"><tspan>  -h, --help  Print help</tspan>
+    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>  Print help</tspan>
 </tspan>
     <tspan x="10px" y="208px">
 </tspan>

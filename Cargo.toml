@@ -37,7 +37,7 @@ otel = [
 ]
 
 # Exports code dependent on private interfaces for the integration test suite
-test = ["dep:snapbox", "dep:walkdir"]
+test = ["dep:snapbox", "dep:walkdir", "clap-cargo/testing_colors"]
 
 # Sorted by alphabetic order
 [dependencies]
@@ -47,6 +47,7 @@ anyhow = "1.0.69"
 cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help"] }
+clap-cargo = "0.18.2"
 clap_complete = "4"
 console = "0.16"
 curl = { version = "0.4.44", optional = true }
