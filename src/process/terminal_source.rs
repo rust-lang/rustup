@@ -63,19 +63,12 @@ impl ColorableTerminal {
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
     fn new(stream: StreamSelector, is_a_tty: bool, process: &Process) -> Self {
-        let choice = match process.var("RUSTUP_TERM_COLOR") {
-            Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
-            Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
-            _ if is_a_tty => ColorChoice::Auto,
-            _ => ColorChoice::Never,
-        };
+        let choice = process.color_choice(is_a_tty);
         let inner = match stream {
             StreamSelector::Stdout => TerminalInner::Stdout(AutoStream::new(io::stdout(), choice)),
             StreamSelector::Stderr => TerminalInner::Stderr(AutoStream::new(io::stderr(), choice)),
             #[cfg(feature = "test")]
-            StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w, choice),
-            #[cfg(all(test, feature = "test"))]
-            StreamSelector::TestTtyWriter(w) => TerminalInner::TestWriter(w, choice),
+            StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w),
         };
         let width = process
             .var("RUSTUP_TERM_WIDTH")
@@ -114,7 +107,7 @@ impl ColorableTerminal {
                     TerminalInnerLocked::Stderr(AutoStream::new(locked, self.color_choice))
                 }
                 #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w, _) => {
+                TerminalInner::TestWriter(w) => {
                     TerminalInnerLocked::TestWriter(StripStream::new(Box::new(w.clone())))
                 }
             });
@@ -290,8 +283,7 @@ enum TerminalInner {
     Stdout(AutoStream<io::Stdout>),
     Stderr(AutoStream<io::Stderr>),
     #[cfg(feature = "test")]
-    #[allow(dead_code)] // ColorChoice only read in test code
-    TestWriter(TestWriter, ColorChoice),
+    TestWriter(TestWriter),
 }
 
 impl TerminalInner {
@@ -300,7 +292,7 @@ impl TerminalInner {
             TerminalInner::Stdout(s) => s,
             TerminalInner::Stderr(s) => s,
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w, _) => w,
+            TerminalInner::TestWriter(w) => w,
         }
     }
 }
@@ -311,63 +303,4 @@ pub(super) enum StreamSelector {
     Stderr,
     #[cfg(feature = "test")]
     TestWriter(TestWriter),
-    #[cfg(all(test, feature = "test"))]
-    TestTtyWriter(TestWriter),
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
-
-    use super::*;
-    use crate::process::TestProcess;
-    use crate::test::Env;
-
-    #[test]
-    fn term_color_choice() {
-        fn assert_color_choice(
-            env_val: &str,
-            stream: StreamSelector,
-            is_a_tty: bool,
-            color_choice: ColorChoice,
-        ) {
-            let mut vars = HashMap::new();
-            vars.env("RUSTUP_TERM_COLOR", env_val);
-            let tp = TestProcess::with_vars(vars);
-
-            let term = ColorableTerminal::new(stream, is_a_tty, &tp.process);
-            let inner = term.inner.lock().unwrap();
-            assert!(matches!(
-                &*inner,
-                &TerminalInner::TestWriter(_, choice) if choice == color_choice
-            ));
-        }
-
-        assert_color_choice(
-            "aLWayS",
-            StreamSelector::TestWriter(Default::default()),
-            false,
-            ColorChoice::Always,
-        );
-        assert_color_choice(
-            "neVer",
-            StreamSelector::TestWriter(Default::default()),
-            false,
-            ColorChoice::Never,
-        );
-        // tty + `auto` enables the colors.
-        assert_color_choice(
-            "AutO",
-            StreamSelector::TestTtyWriter(Default::default()),
-            true,
-            ColorChoice::Auto,
-        );
-        // non-tty + `auto` does not enable the colors.
-        assert_color_choice(
-            "aUTo",
-            StreamSelector::TestWriter(Default::default()),
-            false,
-            ColorChoice::Never,
-        );
-    }
 }

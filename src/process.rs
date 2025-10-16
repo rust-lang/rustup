@@ -14,6 +14,7 @@ use std::{
 };
 use std::{env, thread};
 
+use anstream::ColorChoice;
 use anyhow::{Context, Result, bail};
 use indicatif::ProgressDrawTarget;
 #[cfg(feature = "test")]
@@ -192,6 +193,15 @@ impl Process {
         }
     }
 
+    fn color_choice(&self, is_a_tty: bool) -> ColorChoice {
+        match self.var("RUSTUP_TERM_COLOR") {
+            Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
+            Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
+            _ if is_a_tty => ColorChoice::Auto,
+            _ => ColorChoice::Never,
+        }
+    }
+
     pub fn concurrent_downloads(&self) -> Option<usize> {
         let s = self.var("RUSTUP_CONCURRENT_DOWNLOADS").ok()?;
         Some(NonZero::from_str(&s).ok()?.get())
@@ -332,4 +342,30 @@ pub struct TestContext {
     stdin: file_source::TestStdinInner,
     stdout: file_source::TestWriterInner,
     stderr: file_source::TestWriterInner,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::process::TestProcess;
+    use crate::test::Env;
+
+    #[test]
+    fn term_color_choice() {
+        fn assert_color_choice(env_val: &str, is_a_tty: bool, color_choice: ColorChoice) {
+            let mut vars = HashMap::new();
+            vars.env("RUSTUP_TERM_COLOR", env_val);
+            let tp = TestProcess::with_vars(vars);
+            assert_eq!(tp.process.color_choice(is_a_tty), color_choice);
+        }
+
+        assert_color_choice("aLWayS", false, ColorChoice::Always);
+        assert_color_choice("neVer", false, ColorChoice::Never);
+        // tty + `auto` enables the colors.
+        assert_color_choice("AutO", true, ColorChoice::Auto);
+        // non-tty + `auto` does not enable the colors.
+        assert_color_choice("aUTo", false, ColorChoice::Never);
+    }
 }
