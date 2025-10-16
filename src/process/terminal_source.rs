@@ -51,7 +51,23 @@ impl ColorableTerminal {
     /// then color commands will be sent to the stream.
     /// Otherwise color commands are discarded.
     fn new(stream: StreamSelector, process: &Process) -> Self {
-        let is_a_tty = stream.is_a_tty(process);
+        let is_a_tty = match stream {
+            StreamSelector::Stdout => match process {
+                Process::OsProcess(p) => p.stdout_is_a_tty,
+                #[cfg(feature = "test")]
+                Process::TestProcess(_) => unreachable!(),
+            },
+            StreamSelector::Stderr => match process {
+                Process::OsProcess(p) => p.stderr_is_a_tty,
+                #[cfg(feature = "test")]
+                Process::TestProcess(_) => unreachable!(),
+            },
+            #[cfg(feature = "test")]
+            StreamSelector::TestWriter(_) => false,
+            #[cfg(all(test, feature = "test"))]
+            StreamSelector::TestTtyWriter(_) => true,
+        };
+
         let choice = match process.var("RUSTUP_TERM_COLOR") {
             Ok(s) if s.eq_ignore_ascii_case("always") => ColorChoice::Always,
             Ok(s) if s.eq_ignore_ascii_case("never") => ColorChoice::Never,
@@ -302,27 +318,6 @@ pub(super) enum StreamSelector {
     TestWriter(TestWriter),
     #[cfg(all(test, feature = "test"))]
     TestTtyWriter(TestWriter),
-}
-
-impl StreamSelector {
-    fn is_a_tty(&self, process: &Process) -> bool {
-        match self {
-            StreamSelector::Stdout => match process {
-                Process::OsProcess(p) => p.stdout_is_a_tty,
-                #[cfg(feature = "test")]
-                Process::TestProcess(_) => unreachable!(),
-            },
-            StreamSelector::Stderr => match process {
-                Process::OsProcess(p) => p.stderr_is_a_tty,
-                #[cfg(feature = "test")]
-                Process::TestProcess(_) => unreachable!(),
-            },
-            #[cfg(feature = "test")]
-            StreamSelector::TestWriter(_) => false,
-            #[cfg(all(test, feature = "test"))]
-            StreamSelector::TestTtyWriter(_) => true,
-        }
-    }
 }
 
 #[cfg(test)]
