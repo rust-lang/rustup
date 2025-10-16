@@ -67,39 +67,16 @@ mod test_support {
 
     // ----------------------- test support for writers ------------------
 
-    pub(in super::super) struct TestWriterLock<'a> {
-        inner: MutexGuard<'a, Vec<u8>>,
-    }
-
-    impl Write for TestWriterLock<'_> {
-        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.inner.write(buf)
-        }
-
-        fn flush(&mut self) -> io::Result<()> {
-            Ok(())
-        }
-    }
-
     pub(in super::super) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
 
     /// A thread-safe test file handle that pretends to be e.g. stdout.
     #[derive(Clone, Default)]
     pub(in super::super) struct TestWriter(pub(in super::super) TestWriterInner);
 
-    impl TestWriter {
-        pub(in super::super) fn lock(&self) -> TestWriterLock<'_> {
-            // The stream can be locked even if a test thread panicked: its state
-            // will be ok
-            TestWriterLock {
-                inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
-            }
-        }
-    }
-
     impl Write for TestWriter {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            self.lock().write(buf)
+            // The stream can be locked even if a test thread panicked: its state will be ok
+            self.0.lock().unwrap_or_else(|e| e.into_inner()).write(buf)
         }
 
         fn flush(&mut self) -> io::Result<()> {
