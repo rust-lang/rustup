@@ -824,8 +824,8 @@ impl FromStr for AutoInstallMode {
     }
 }
 
-impl std::fmt::Display for AutoInstallMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for AutoInstallMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
 }

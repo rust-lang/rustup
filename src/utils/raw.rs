@@ -31,7 +31,7 @@ pub fn is_file<P: AsRef<Path>>(path: P) -> bool {
 }
 
 #[cfg(windows)]
-pub fn open_dir_following_links(p: &Path) -> std::io::Result<File> {
+pub fn open_dir_following_links(p: &Path) -> io::Result<File> {
     use std::fs::OpenOptions;
     use std::os::windows::fs::OpenOptionsExt;
 
@@ -44,7 +44,7 @@ pub fn open_dir_following_links(p: &Path) -> std::io::Result<File> {
 }
 
 #[cfg(not(windows))]
-pub fn open_dir_following_links(p: &Path) -> std::io::Result<File> {
+pub fn open_dir_following_links(p: &Path) -> io::Result<File> {
     use std::fs::OpenOptions;
 
     let mut options = OpenOptions::new();
@@ -72,7 +72,7 @@ pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
         .create(true)
         .open(path)?;
 
-    io::Write::write_all(&mut file, contents.as_bytes())?;
+    Write::write_all(&mut file, contents.as_bytes())?;
 
     file.sync_data()?;
 
@@ -84,8 +84,8 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     dest: &Path,
     mut filter: F,
 ) -> io::Result<usize> {
-    let src_file = fs::File::open(src)?;
-    let dest_file = fs::File::create(dest)?;
+    let src_file = File::open(src)?;
+    let dest_file = File::create(dest)?;
 
     let mut reader = io::BufReader::new(src_file);
     let mut writer = io::BufWriter::new(dest_file);

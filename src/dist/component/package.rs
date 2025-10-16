@@ -50,10 +50,7 @@ impl DirectoryPackage {
         validate_installer_version(&path)?;
 
         let content = utils::read_file("package components", &path.join("components"))?;
-        let components = content
-            .lines()
-            .map(std::borrow::ToOwned::to_owned)
-            .collect();
+        let components = content.lines().map(ToOwned::to_owned).collect();
         Ok(Self {
             path,
             components,
@@ -339,14 +336,14 @@ fn unpack_without_first_dir<R: Read>(
             continue;
         }
 
-        struct SenderEntry<'a, 'b, R: std::io::Read> {
+        struct SenderEntry<'a, 'b, R: Read> {
             sender: Box<dyn FnMut(FileBuffer) -> bool + 'a>,
             entry: tar::Entry<'b, R>,
         }
 
         /// true if either no sender_entry was provided, or the incremental file
         /// has been fully dispatched.
-        fn flush_ios<R: std::io::Read, P: AsRef<Path>>(
+        fn flush_ios<R: Read, P: AsRef<Path>>(
             io_executor: &mut dyn Executor,
             directories: &mut HashMap<PathBuf, DirStatus>,
             mut sender_entry: Option<&mut SenderEntry<'_, '_, R>>,

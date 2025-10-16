@@ -329,7 +329,7 @@ pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
 }
 
 fn serve_contents(
-    req: hyper::Request<hyper::body::Incoming>,
+    req: Request<hyper::body::Incoming>,
     contents: Vec<u8>,
 ) -> hyper::Response<Full<Bytes>> {
     let mut range_header = None;

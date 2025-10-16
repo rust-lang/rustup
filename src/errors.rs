@@ -170,7 +170,7 @@ pub enum RustupError {
     #[error("could not write {name} file: '{}'", .path.display())]
     WritingFile { name: &'static str, path: PathBuf },
     #[error("I/O Error")]
-    IOError(#[from] std::io::Error),
+    IOError(#[from] io::Error),
 }
 
 fn suggest_message(suggestion: &Option<String>) -> String {

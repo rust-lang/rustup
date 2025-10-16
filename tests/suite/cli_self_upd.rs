@@ -129,10 +129,10 @@ info: default toolchain set to stable-[HOST_TRIPLE]
         let path = &cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
         // If it's a normal file then it means that hardlinks are being used
         // for proxies instead of symlinks.
-        if std::fs::symlink_metadata(path).unwrap().is_file() {
+        if fs::symlink_metadata(path).unwrap().is_file() {
             continue;
         }
-        let is_rustup_symlink = match std::fs::read_link(path) {
+        let is_rustup_symlink = match fs::read_link(path) {
             Ok(p) => p.as_os_str() == rustup.as_str(),
             _ => false,
         };

@@ -12,7 +12,7 @@ pub(crate) enum NotificationLevel {
 }
 
 impl fmt::Display for NotificationLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             NotificationLevel::Trace => "trace",
             NotificationLevel::Debug => "debug",

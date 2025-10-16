@@ -52,14 +52,14 @@ use crate::{
 const TOOLCHAIN_OVERRIDE_ERROR: &str = "To override the toolchain using the 'rustup +toolchain' syntax, \
                         make sure to prefix the toolchain override with a '+'";
 
-fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
+fn handle_epipe(res: Result<ExitCode>) -> Result<ExitCode> {
     match res {
         Err(e) => {
             let root = e.root_cause();
             if let Some(io_err) = root.downcast_ref::<io::Error>()
                 && io_err.kind() == io::ErrorKind::BrokenPipe
             {
-                return Ok(utils::ExitCode(0));
+                return Ok(ExitCode(0));
             }
             Err(e)
         }
@@ -571,7 +571,7 @@ pub async fn main(
     current_dir: PathBuf,
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     self_update::cleanup_self_updater(process)?;
 
     use clap::error::ErrorKind::*;
@@ -579,7 +579,7 @@ pub async fn main(
         Ok(matches) => matches,
         Err(err) if err.kind() == DisplayHelp => {
             write!(process.stdout().lock(), "{err}")?;
-            return Ok(utils::ExitCode(0));
+            return Ok(ExitCode(0));
         }
         Err(err) if err.kind() == DisplayVersion => {
             write!(process.stdout().lock(), "{err}")?;
@@ -590,7 +590,7 @@ pub async fn main(
                 Ok(None) => info!("No `rustc` is currently active"),
                 Err(err) => trace!("Failed to display the current `rustc` version: {err}"),
             }
-            return Ok(utils::ExitCode(0));
+            return Ok(ExitCode(0));
         }
 
         Err(err) => {
@@ -605,7 +605,7 @@ pub async fn main(
             } else {
                 write!(process.stderr().lock(), "{err}")?;
             }
-            return Ok(utils::ExitCode(1));
+            return Ok(ExitCode(1));
         }
     };
 
@@ -620,7 +620,7 @@ pub async fn main(
     let Some(subcmd) = matches.subcmd else {
         let help = Rustup::command().render_long_help();
         writeln!(process.stderr().lock(), "{help}")?;
-        return Ok(utils::ExitCode(1));
+        return Ok(ExitCode(1));
     };
 
     match subcmd {
@@ -733,16 +733,16 @@ pub async fn main(
         RustupSubcmd::Set { subcmd } => match subcmd {
             SetSubcmd::DefaultHost { host_triple } => cfg
                 .set_default_host_triple(host_triple)
-                .map(|_| utils::ExitCode(0)),
+                .map(|_| ExitCode(0)),
             SetSubcmd::Profile { profile_name } => {
-                cfg.set_profile(profile_name).map(|_| utils::ExitCode(0))
+                cfg.set_profile(profile_name).map(|_| ExitCode(0))
             }
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
             } => set_auto_self_update(cfg, auto_self_update_mode),
-            SetSubcmd::AutoInstall { auto_install_mode } => cfg
-                .set_auto_install(auto_install_mode)
-                .map(|_| utils::ExitCode(0)),
+            SetSubcmd::AutoInstall { auto_install_mode } => {
+                cfg.set_auto_install(auto_install_mode).map(|_| ExitCode(0))
+            }
         },
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)
@@ -754,7 +754,7 @@ async fn default_(
     cfg: &Cfg<'_>,
     toolchain: Option<MaybeResolvableToolchainName>,
     force_non_host: bool,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     if let Some(toolchain) = toolchain {
@@ -796,10 +796,10 @@ async fn default_(
         writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
-async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode> {
+async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
     let t = cfg.process.stdout();
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
@@ -919,15 +919,15 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<utils::ExitCode
     }
 
     let exit_status = if update_available { 0 } else { 1 };
-    Ok(utils::ExitCode(exit_status))
+    Ok(ExitCode(exit_status))
 }
 
 async fn update(
     cfg: &mut Cfg<'_>,
     opts: UpdateOpts,
     ensure_active_toolchain: bool,
-) -> Result<utils::ExitCode> {
-    let mut exit_code = utils::ExitCode(0);
+) -> Result<ExitCode> {
+    let mut exit_code = ExitCode(0);
 
     common::warn_if_host_is_emulated(cfg.process);
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
@@ -1047,12 +1047,12 @@ async fn which(
     cfg: &Cfg<'_>,
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let toolchain = cfg.resolve_toolchain(toolchain).await?;
     let binary_path = toolchain.binary_file(binary);
     if utils::is_file(&binary_path) {
         writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
-        return Ok(utils::ExitCode(0));
+        return Ok(ExitCode(0));
     }
 
     let toolchain_name = toolchain.name();
@@ -1073,7 +1073,7 @@ async fn which(
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
+async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     let bold = Style::new().bold();
@@ -1211,11 +1211,11 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
         Ok(())
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::ExitCode> {
+async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     match cfg.maybe_ensure_active_toolchain(None).await? {
         Some((toolchain_name, source)) => {
             let toolchain = Toolchain::with_source(cfg, toolchain_name.clone(), &source)?;
@@ -1242,13 +1242,13 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<utils::Ex
         }
         None => return Err(anyhow!("no active toolchain")),
     }
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-fn show_rustup_home(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+fn show_rustup_home(cfg: &Cfg<'_>) -> Result<ExitCode> {
     writeln!(cfg.process.stdout().lock(), "{}", cfg.rustup_dir.display())?;
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 async fn target_list(
@@ -1256,7 +1256,7 @@ async fn target_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     // If a toolchain is Distributable, we can assume it has a manifest and thus print all possible targets and the installed ones.
     // However, if it is a custom toolchain, we can only print the installed targets.
     // NB: this decision is made based on the absence of a manifest in custom toolchains.
@@ -1288,7 +1288,7 @@ async fn target_add(
     cfg: &Cfg<'_>,
     mut targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1330,14 +1330,14 @@ async fn target_add(
         distributable.add_component(new_component).await?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 async fn target_remove(
     cfg: &Cfg<'_>,
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
 
     for target in targets {
@@ -1366,7 +1366,7 @@ async fn target_remove(
         distributable.remove_component(new_component).await?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 async fn component_list(
@@ -1374,7 +1374,7 @@ async fn component_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     // downcasting required because the toolchain files can name any toolchain
     if let Ok(distributable) = DistributableToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
@@ -1405,7 +1405,7 @@ async fn component_add(
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
@@ -1414,7 +1414,7 @@ async fn component_add(
         distributable.add_component(new_component).await?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 fn get_target(
@@ -1431,7 +1431,7 @@ async fn component_remove(
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
@@ -1440,14 +1440,10 @@ async fn component_remove(
         distributable.remove_component(new_component).await?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
-async fn toolchain_link(
-    cfg: &Cfg<'_>,
-    dest: &CustomToolchainName,
-    src: &Path,
-) -> Result<utils::ExitCode> {
+async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -> Result<ExitCode> {
     cfg.ensure_toolchains_dir()?;
     let mut pathbuf = PathBuf::from(src);
 
@@ -1471,10 +1467,10 @@ async fn toolchain_link(
         InstallMethod::Copy { src, dest, cfg }.install().await?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
-async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<utils::ExitCode> {
+async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode> {
     let default_toolchain = cfg.get_default().ok().flatten();
     let active_toolchain = cfg
         .maybe_ensure_active_toolchain(Some(false))
@@ -1505,14 +1501,14 @@ async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<util
 
         Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
     }
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 async fn override_add(
     cfg: &Cfg<'_>,
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
     match Toolchain::new(cfg, (&toolchain_name).into()) {
         Ok(_) => {}
@@ -1535,14 +1531,10 @@ async fn override_add(
     }
 
     cfg.make_override(path.unwrap_or(&cfg.current_dir), &toolchain_name)?;
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
-fn override_remove(
-    cfg: &Cfg<'_>,
-    path: Option<&Path>,
-    nonexistent: bool,
-) -> Result<utils::ExitCode> {
+fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Result<ExitCode> {
     let paths = if nonexistent {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
@@ -1576,7 +1568,7 @@ fn override_remove(
             }
         }
     }
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 macro_rules! docs_data {
@@ -1720,7 +1712,7 @@ async fn doc(
     toolchain: Option<PartialToolchainDesc>,
     mut topic: Option<&str>,
     doc_page: &DocPage,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let toolchain = cfg.toolchain_from_partial(toolchain).await?;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain)
@@ -1765,7 +1757,7 @@ async fn doc(
     if path_only {
         let doc_path = toolchain.doc_path(&doc_path)?;
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
-        return Ok(utils::ExitCode(0));
+        return Ok(ExitCode(0));
     }
 
     if let Some(name) = topic {
@@ -1777,7 +1769,7 @@ async fn doc(
         writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
     }
     toolchain.open_docs(&doc_path, fragment)?;
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 #[cfg(not(windows))]
@@ -1785,7 +1777,7 @@ async fn man(
     cfg: &Cfg<'_>,
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let toolchain = cfg.toolchain_from_partial(toolchain).await?;
     let path = toolchain.man_path();
     utils::assert_is_directory(&path)?;
@@ -1800,13 +1792,13 @@ async fn man(
         .arg(command)
         .status()
         .expect("failed to open man page");
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 fn set_auto_self_update(
     cfg: &mut Cfg<'_>,
     auto_self_update_mode: SelfUpdateMode,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     if cfg!(feature = "no-self-update") {
         let mut args = cfg.process.args_os();
         let arg0 = args.next().map(PathBuf::from);
@@ -1820,7 +1812,7 @@ fn set_auto_self_update(
         );
     }
     cfg.set_auto_self_update(auto_self_update_mode)?;
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -1829,7 +1821,7 @@ pub(crate) enum CompletionCommand {
     Cargo,
 }
 
-impl clap::ValueEnum for CompletionCommand {
+impl ValueEnum for CompletionCommand {
     fn value_variants<'a>() -> &'a [Self] {
         &[Self::Rustup, Self::Cargo]
     }
@@ -1855,7 +1847,7 @@ fn output_completion_script(
     shell: Shell,
     command: CompletionCommand,
     process: &Process,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     match command {
         CompletionCommand::Rustup => {
             clap_complete::generate(
@@ -1891,5 +1883,5 @@ fn output_completion_script(
         }
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }

@@ -413,7 +413,7 @@ impl<'a> Cfg<'a> {
         &self,
         desc: &ToolchainDesc,
         path: &'b Path,
-    ) -> anyhow::Result<Vec<InstalledPath<'b>>> {
+    ) -> Result<Vec<InstalledPath<'b>>> {
         Ok(vec![
             InstalledPath::File {
                 name: "update hash",
@@ -486,7 +486,7 @@ impl<'a> Cfg<'a> {
     pub(crate) async fn toolchain_from_partial(
         &self,
         toolchain: Option<PartialToolchainDesc>,
-    ) -> anyhow::Result<Toolchain<'_>> {
+    ) -> Result<Toolchain<'_>> {
         let toolchain = toolchain
             .map(|desc| {
                 anyhow::Ok(LocalToolchainName::Named(ToolchainName::Official(
@@ -952,7 +952,7 @@ impl<'a> Cfg<'a> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
-        dist::PartialToolchainDesc::from_str("stable")?
+        PartialToolchainDesc::from_str("stable")?
             .resolve(&TargetTriple::new(host_triple.clone()))?;
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple);

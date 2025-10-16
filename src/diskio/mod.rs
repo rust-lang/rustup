@@ -444,7 +444,7 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 pub(crate) fn get_executor<'a>(
     ram_budget: usize,
     process: &Process,
-) -> anyhow::Result<Box<dyn Executor + 'a>> {
+) -> Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
     Ok(match process.io_thread_count()? {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),

@@ -24,7 +24,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 #[cfg(feature = "test")]
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
-#[cfg(all(feature = "test", feature = "otel"))]
+#[cfg(feature = "test")]
 use crate::cli::log;
 
 mod file_source;
@@ -69,7 +69,7 @@ impl Process {
         home::env::rustup_home_with_env(self).context("failed to determine rustup home dir")
     }
 
-    pub fn io_thread_count(&self) -> anyhow::Result<usize> {
+    pub fn io_thread_count(&self) -> Result<usize> {
         if let Ok(n) = self.var("RUSTUP_IO_THREADS") {
             let threads = usize::from_str(&n).context(
                 "invalid value in RUSTUP_IO_THREADS -- must be a natural number greater than zero",
@@ -315,7 +315,7 @@ impl TestProcess {
 impl From<TestContext> for TestProcess {
     fn from(inner: TestContext) -> Self {
         let inner = Process::TestProcess(inner);
-        let (tracing_subscriber, console_filter) = crate::cli::log::tracing_subscriber(&inner);
+        let (tracing_subscriber, console_filter) = log::tracing_subscriber(&inner);
         Self {
             process: inner,
             console_filter,

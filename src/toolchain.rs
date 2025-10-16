@@ -160,7 +160,7 @@ impl<'a> Toolchain<'a> {
     pub fn binary_file(&self, name: &str) -> PathBuf {
         let mut path = self.path.clone();
         path.push("bin");
-        path.push(name.to_owned() + env::consts::EXE_SUFFIX);
+        path.push(name.to_owned() + EXE_SUFFIX);
         path
     }
 

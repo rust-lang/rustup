@@ -19,10 +19,7 @@ use crate::{process::Process, utils::notify::NotificationLevel};
 
 pub fn tracing_subscriber(
     process: &Process,
-) -> (
-    impl tracing::Subscriber + use<>,
-    reload::Handle<EnvFilter, Registry>,
-) {
+) -> (impl Subscriber + use<>, reload::Handle<EnvFilter, Registry>) {
     #[cfg(feature = "otel")]
     let telemetry = telemetry(process);
     let (console_logger, console_filter) = console_logger(process);

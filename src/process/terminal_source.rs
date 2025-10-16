@@ -193,7 +193,7 @@ pub enum ColorableTerminalLocked {
 }
 
 impl ColorableTerminalLocked {
-    fn as_write(&mut self) -> &mut dyn io::Write {
+    fn as_write(&mut self) -> &mut dyn Write {
         match self {
             Self::Stdout(s) => s,
             Self::Stderr(s) => s,
@@ -203,12 +203,12 @@ impl ColorableTerminalLocked {
     }
 }
 
-impl io::Write for ColorableTerminalLocked {
+impl Write for ColorableTerminalLocked {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.as_write().write(buf)
     }
 
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
         self.as_write().write_vectored(bufs)
     }
 
@@ -216,11 +216,11 @@ impl io::Write for ColorableTerminalLocked {
         self.as_write().flush()
     }
 
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
         self.as_write().write_all(buf)
     }
 
-    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> io::Result<()> {
         self.as_write().write_fmt(args)
     }
 }

@@ -283,7 +283,7 @@ impl Manifest {
         Ok(manifest)
     }
 
-    pub fn stringify(self) -> anyhow::Result<String> {
+    pub fn stringify(self) -> Result<String> {
         Ok(toml::to_string(&self)?)
     }
 

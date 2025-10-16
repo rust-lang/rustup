@@ -492,7 +492,7 @@ async fn remove_override_nonexistent() {
             path
         };
         // FIXME TempDir seems to succumb to difficulties removing dirs on windows
-        let _ = rustup::utils::raw::remove_dir(&path);
+        let _ = raw::remove_dir(&path);
         assert!(!path.exists());
         cx.config
             .expect(["rustup", "override", keyword, "--nonexistent"])
@@ -550,7 +550,7 @@ async fn list_overrides_with_nonexistent() {
         std::fs::canonicalize(dir.path()).unwrap()
     };
     // FIXME TempDir seems to succumb to difficulties removing dirs on windows
-    let _ = rustup::utils::raw::remove_dir(&nonexistent_path);
+    let _ = raw::remove_dir(&nonexistent_path);
     assert!(!nonexistent_path.exists());
     let mut path_formatted = format!("{}", nonexistent_path.display());
 
