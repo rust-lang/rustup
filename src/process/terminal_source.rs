@@ -1,5 +1,3 @@
-use console::Term;
-use indicatif::TermLike;
 use std::{
     io::{self, Write},
     num::NonZero,
@@ -8,6 +6,9 @@ use std::{
 #[cfg(feature = "test")]
 use anstream::StripStream;
 use anstream::{AutoStream, ColorChoice};
+use console::Term;
+use indicatif::TermLike;
+use tracing_subscriber::fmt::MakeWriter;
 
 use super::Process;
 #[cfg(feature = "test")]
@@ -170,25 +171,11 @@ impl TermLike for ColorableTerminal {
     }
 }
 
-impl io::Write for ColorableTerminal {
-    fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, io::Error> {
-        self.lock().as_write().write(buf)
-    }
+impl<'a> MakeWriter<'a> for ColorableTerminal {
+    type Writer = ColorableTerminalLocked;
 
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        self.lock().as_write().write_vectored(bufs)
-    }
-
-    fn flush(&mut self) -> std::result::Result<(), io::Error> {
-        self.lock().as_write().flush()
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        self.lock().as_write().write_all(buf)
-    }
-
-    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
-        self.lock().as_write().write_fmt(args)
+    fn make_writer(&self) -> Self::Writer {
+        self.lock()
     }
 }
 

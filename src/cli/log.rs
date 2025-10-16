@@ -59,7 +59,7 @@ where
     let maybe_rustup_log_directives = process.var("RUSTUP_LOG");
     let process = process.clone();
     let logger = tracing_subscriber::fmt::layer()
-        .with_writer(move || process.stderr())
+        .with_writer(process.stderr())
         .with_ansi(has_ansi);
     if let Ok(directives) = maybe_rustup_log_directives {
         let (env_filter, handle) = reload::Layer::new(
