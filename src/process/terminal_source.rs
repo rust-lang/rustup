@@ -86,21 +86,19 @@ impl ColorableTerminal {
             Err(e) => e.into_inner(),
         };
 
-        ColorableTerminalLocked {
-            locked: match &*locked {
-                TerminalInner::Stdout(s) => TerminalInnerLocked::Stdout(AutoStream::new(
-                    s.as_inner().lock(),
-                    self.color_choice,
-                )),
-                TerminalInner::Stderr(s) => TerminalInnerLocked::Stderr(AutoStream::new(
-                    s.as_inner().lock(),
-                    self.color_choice,
-                )),
-                #[cfg(feature = "test")]
-                TerminalInner::TestWriter(w) => {
-                    TerminalInnerLocked::TestWriter(StripStream::new(Box::new(w.clone())))
-                }
-            },
+        match &*locked {
+            TerminalInner::Stdout(s) => ColorableTerminalLocked::Stdout(AutoStream::new(
+                s.as_inner().lock(),
+                self.color_choice,
+            )),
+            TerminalInner::Stderr(s) => ColorableTerminalLocked::Stderr(AutoStream::new(
+                s.as_inner().lock(),
+                self.color_choice,
+            )),
+            #[cfg(feature = "test")]
+            TerminalInner::TestWriter(w) => {
+                ColorableTerminalLocked::TestWriter(StripStream::new(Box::new(w.clone())))
+            }
         }
     }
 
@@ -218,47 +216,43 @@ impl std::fmt::Debug for ColorableTerminal {
     }
 }
 
-pub struct ColorableTerminalLocked {
-    locked: TerminalInnerLocked,
-}
-
-impl io::Write for ColorableTerminalLocked {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.locked.as_write().write(buf)
-    }
-
-    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        self.locked.as_write().write_vectored(bufs)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.locked.as_write().flush()
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        self.locked.as_write().write_all(buf)
-    }
-
-    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
-        self.locked.as_write().write_fmt(args)
-    }
-}
-
-enum TerminalInnerLocked {
+pub enum ColorableTerminalLocked {
     Stdout(AutoStream<io::StdoutLock<'static>>),
     Stderr(AutoStream<io::StderrLock<'static>>),
     #[cfg(feature = "test")]
     TestWriter(StripStream<Box<dyn Write>>),
 }
 
-impl TerminalInnerLocked {
+impl ColorableTerminalLocked {
     fn as_write(&mut self) -> &mut dyn io::Write {
         match self {
-            TerminalInnerLocked::Stdout(s) => s,
-            TerminalInnerLocked::Stderr(s) => s,
+            Self::Stdout(s) => s,
+            Self::Stderr(s) => s,
             #[cfg(feature = "test")]
-            TerminalInnerLocked::TestWriter(w) => w,
+            Self::TestWriter(w) => w,
         }
+    }
+}
+
+impl io::Write for ColorableTerminalLocked {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.as_write().write(buf)
+    }
+
+    fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+        self.as_write().write_vectored(bufs)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.as_write().flush()
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        self.as_write().write_all(buf)
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+        self.as_write().write_fmt(args)
     }
 }
 
