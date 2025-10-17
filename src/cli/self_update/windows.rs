@@ -298,7 +298,7 @@ pub(crate) async fn try_install_msvc(
     if !has_windows_sdk_libs(cfg.process) {
         cmd.args([
             "--add",
-            "Microsoft.VisualStudio.Component.Windows11SDK.22000",
+            "Microsoft.VisualStudio.Component.Windows11SDK.26100",
         ]);
     }
     info!("running the Visual Studio install");
