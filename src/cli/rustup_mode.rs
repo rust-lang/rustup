@@ -583,21 +583,9 @@ pub async fn main(
         }
         Err(err) if err.kind() == DisplayVersion => {
             write!(process.stdout().lock(), "{err}")?;
-            info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
-            let mut cfg = Cfg::from_env(current_dir, true, process)?;
-            cfg.toolchain_override = cfg
-                .process
-                .args()
-                .find_map(|arg| arg.strip_prefix('+').map(ResolvableToolchainName::try_from))
-                .transpose()?;
-            match cfg.active_rustc_version().await {
-                Ok(Some(version)) => info!("The currently active `rustc` version is `{version}`"),
-                Ok(None) => info!("No `rustc` is currently active"),
-                Err(err) => trace!("Failed to display the current `rustc` version: {err}"),
-            }
+            display_version(current_dir, process).await?;
             return Ok(ExitCode(0));
         }
-
         Err(err) => {
             if [
                 InvalidSubcommand,
@@ -1890,4 +1878,22 @@ fn output_completion_script(
     }
 
     Ok(ExitCode(0))
+}
+
+async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> {
+    info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
+    let mut cfg = Cfg::from_env(current_dir, true, process)?;
+    cfg.toolchain_override = cfg
+        .process
+        .args()
+        .find_map(|arg| arg.strip_prefix('+').map(ResolvableToolchainName::try_from))
+        .transpose()?;
+
+    match cfg.active_rustc_version().await {
+        Ok(Some(version)) => info!("The currently active `rustc` version is `{version}`"),
+        Ok(None) => info!("No `rustc` is currently active"),
+        Err(err) => trace!("Failed to display the current `rustc` version: {err}"),
+    }
+
+    Ok(())
 }

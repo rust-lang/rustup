@@ -41,7 +41,7 @@ info: This is the version for the rustup toolchain manager, not the rustc compil
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: The currently active `rustc` version is `1.3.0 (hash-nightly-2)`
+info: the currently active `rustc` version is `1.3.0 (hash-nightly-2)`
 ...
 "#]])
         .is_ok();
