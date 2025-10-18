@@ -88,7 +88,7 @@ impl<T: Into<String>> From<T> for OverrideFile {
 }
 
 // Represents the source that determined the current active toolchain.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum ActiveSource {
     Default,
     Environment,
@@ -477,13 +477,16 @@ impl<'a> Cfg<'a> {
 
     pub(crate) async fn toolchain_from_partial(
         &self,
-        toolchain: Option<PartialToolchainDesc>,
-    ) -> Result<Toolchain<'_>> {
+        toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
+    ) -> Result<(Toolchain<'_>, ActiveSource)> {
         let toolchain = toolchain
-            .map(|desc| {
-                anyhow::Ok(LocalToolchainName::Named(ToolchainName::Official(
-                    desc.resolve(&self.get_default_host_triple()?)?,
-                )))
+            .map(|(desc, source)| {
+                anyhow::Ok((
+                    LocalToolchainName::Named(ToolchainName::Official(
+                        desc.resolve(&self.get_default_host_triple()?)?,
+                    )),
+                    source,
+                ))
             })
             .transpose()?;
         self.local_toolchain(toolchain).await
@@ -700,20 +703,22 @@ impl<'a> Cfg<'a> {
 
     pub(crate) async fn local_toolchain(
         &self,
-        name: Option<LocalToolchainName>,
-    ) -> Result<Toolchain<'_>> {
+        name: Option<(LocalToolchainName, ActiveSource)>,
+    ) -> Result<(Toolchain<'_>, ActiveSource)> {
         match name {
-            Some(tc) => {
+            Some((tc, source)) => {
                 let install_if_missing = self.should_auto_install()?;
-                Toolchain::from_local(tc, install_if_missing, self).await
+                Ok((
+                    Toolchain::from_local(tc, install_if_missing, self).await?,
+                    source,
+                ))
             }
             None => {
-                let tc = self
+                let (tc, source) = self
                     .maybe_ensure_active_toolchain(None)
                     .await?
-                    .ok_or_else(|| no_toolchain_error(self.process))?
-                    .0;
-                Ok(Toolchain::new(self, tc)?)
+                    .ok_or_else(|| no_toolchain_error(self.process))?;
+                Ok((Toolchain::new(self, tc)?, source))
             }
         }
     }

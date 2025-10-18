@@ -25,7 +25,6 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .filter(|arg| arg.starts_with('+'))
         .map(|name| ResolvableLocalToolchainName::try_from(&name.as_ref()[1..]))
         .transpose()?;
-    let toolchain_specified = toolchain.is_some();
 
     // Build command args now while we know whether or not to skip arg 1.
     let cmd_args: Vec<_> = process
@@ -34,21 +33,17 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .collect();
 
     let cfg = Cfg::from_env(current_dir, true, process)?;
-    let toolchain = cfg
+    let (toolchain, source) = cfg
         .local_toolchain(match toolchain {
-            Some(name) => Some(name.resolve(&cfg.get_default_host_triple()?)?),
+            Some(name) => Some((
+                name.resolve(&cfg.get_default_host_triple()?)?,
+                ActiveSource::CommandLine,
+            )),
             None => None,
         })
         .await?;
 
     let mut cmd = toolchain.command(arg0)?;
-    if toolchain_specified {
-        cmd.env(
-            "RUSTUP_TOOLCHAIN_SOURCE",
-            ActiveSource::CommandLine.to_string(),
-        );
-    } else if let Ok(Some((_, source))) = cfg.active_toolchain() {
-        cmd.env("RUSTUP_TOOLCHAIN_SOURCE", source.to_string());
-    }
+    cmd.env("RUSTUP_TOOLCHAIN_SOURCE", source.to_string());
     run_command_for_dir(cmd, arg0, &cmd_args)
 }

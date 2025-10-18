@@ -1036,9 +1036,12 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<ExitCode> {
-    let toolchain = cfg
+    let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
-            Some(name) => Some(name.resolve(&cfg.get_default_host_triple()?)?.into()),
+            Some(name) => Some((
+                name.resolve(&cfg.get_default_host_triple()?)?.into(),
+                ActiveSource::CommandLine, // From --toolchain option
+            )),
             None => None,
         })
         .await?;
@@ -1251,6 +1254,8 @@ async fn target_list(
     installed_only: bool,
     quiet: bool,
 ) -> Result<ExitCode> {
+    let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
+
     // If a toolchain is Distributable, we can assume it has a manifest and thus print all possible targets and the installed ones.
     // However, if it is a custom toolchain, we can only print the installed targets.
     // NB: this decision is made based on the absence of a manifest in custom toolchains.
@@ -1268,7 +1273,7 @@ async fn target_list(
             cfg.process,
         )
     } else {
-        let toolchain = cfg.toolchain_from_partial(toolchain).await?;
+        let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
         common::list_items(
             toolchain.installed_targets()?.iter().map(|s| (s, true)),
             installed_only,
@@ -1288,9 +1293,13 @@ async fn target_add(
     // isn't a feature yet.
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
-    let components = distributable.components()?;
+    let distributable = DistributableToolchain::from_partial(
+        toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
+        cfg,
+    )
+    .await?;
 
+    let components = distributable.components()?;
     if targets.contains(&"all".to_string()) {
         if targets.len() != 1 {
             return Err(anyhow!(
@@ -1332,7 +1341,11 @@ async fn target_remove(
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = DistributableToolchain::from_partial(
+        toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
+        cfg,
+    )
+    .await?;
 
     for target in targets {
         let target = TargetTriple::new(target);
@@ -1369,6 +1382,8 @@ async fn component_list(
     installed_only: bool,
     quiet: bool,
 ) -> Result<ExitCode> {
+    let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
+
     // downcasting required because the toolchain files can name any toolchain
     if let Ok(distributable) = DistributableToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
@@ -1381,7 +1396,7 @@ async fn component_list(
             cfg.process,
         )
     } else {
-        let toolchain = cfg.toolchain_from_partial(toolchain).await?;
+        let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
         common::list_items(
             toolchain
                 .installed_components()?
@@ -1400,9 +1415,13 @@ async fn component_add(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<ExitCode> {
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
-    let target = get_target(target, &distributable);
+    let distributable = DistributableToolchain::from_partial(
+        toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
+        cfg,
+    )
+    .await?;
 
+    let target = get_target(target, &distributable);
     for component in &components {
         let new_component = Component::try_new(component, &distributable, target.as_ref())?;
         distributable.add_component(new_component).await?;
@@ -1426,6 +1445,7 @@ async fn component_remove(
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
 ) -> Result<ExitCode> {
+    let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
@@ -1707,7 +1727,8 @@ async fn doc(
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> Result<ExitCode> {
-    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
+    let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
+    let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
 
     if let Ok(distributable) = DistributableToolchain::try_from(&toolchain)
         && let [_] = distributable
@@ -1772,7 +1793,8 @@ async fn man(
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
 ) -> Result<ExitCode> {
-    let toolchain = cfg.toolchain_from_partial(toolchain).await?;
+    let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
+    let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
     let path = toolchain.man_path();
     utils::assert_is_directory(&path)?;
 
