@@ -10,7 +10,7 @@ use strsim::damerau_levenshtein;
 use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
-pub enum CLIError {
+pub enum CliError {
     #[error("couldn't determine self executable name")]
     NoExeName,
     #[error("rustup is not installed at '{}'", .p.display())]

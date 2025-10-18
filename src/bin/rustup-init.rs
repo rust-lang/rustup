@@ -124,7 +124,7 @@ async fn run_rustup_inner(
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(rustup::cli::errors::CLIError::NoExeName.into())
+            Err(rustup::cli::errors::CliError::NoExeName.into())
         }
     }
 }

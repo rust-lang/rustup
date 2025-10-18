@@ -978,7 +978,7 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
     let cargo_home = process.cargo_home()?;
 
     if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
-        return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
+        return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
     }
 
     if !no_prompt {
@@ -1010,12 +1010,12 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
     // Delete everything in CARGO_HOME *except* the rustup bin
 
     // First everything except the bin directory
-    let diriter = fs::read_dir(&cargo_home).map_err(|e| CLIError::ReadDirError {
+    let diriter = fs::read_dir(&cargo_home).map_err(|e| CliError::ReadDirError {
         p: cargo_home.clone(),
         source: e,
     })?;
     for dirent in diriter {
-        let dirent = dirent.map_err(|e| CLIError::ReadDirError {
+        let dirent = dirent.map_err(|e| CliError::ReadDirError {
             p: cargo_home.clone(),
             source: e,
         })?;
@@ -1036,12 +1036,12 @@ pub(crate) fn uninstall(no_prompt: bool, process: &Process) -> Result<utils::Exi
         .map(|t| format!("{t}{EXE_SUFFIX}"));
     let tools: Vec<_> = tools.chain(vec![format!("rustup{EXE_SUFFIX}")]).collect();
     let bin_dir = cargo_home.join("bin");
-    let diriter = fs::read_dir(&bin_dir).map_err(|e| CLIError::ReadDirError {
+    let diriter = fs::read_dir(&bin_dir).map_err(|e| CliError::ReadDirError {
         p: bin_dir.clone(),
         source: e,
     })?;
     for dirent in diriter {
-        let dirent = dirent.map_err(|e| CLIError::ReadDirError {
+        let dirent = dirent.map_err(|e| CliError::ReadDirError {
             p: bin_dir.clone(),
             source: e,
         })?;
@@ -1227,7 +1227,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
-        return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
+        return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
     }
 
     if setup_path.exists() {
