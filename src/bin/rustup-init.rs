@@ -23,13 +23,10 @@ use rs_tracing::{
 };
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
-use rustup::cli::common;
-use rustup::cli::log;
-use rustup::cli::proxy_mode;
-use rustup::cli::rustup_mode;
+use rustup::cli::errors::CliError;
 #[cfg(windows)]
 use rustup::cli::self_update;
-use rustup::cli::setup_mode;
+use rustup::cli::{common, log, proxy_mode, rustup_mode, setup_mode};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::errors::RustupError;
 use rustup::is_proxyable_tools;
@@ -124,7 +121,7 @@ async fn run_rustup_inner(
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(rustup::cli::errors::CliError::NoExeName.into())
+            Err(CliError::NoExeName.into())
         }
     }
 }
