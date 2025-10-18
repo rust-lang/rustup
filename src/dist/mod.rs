@@ -397,7 +397,7 @@ impl TargetTriple {
     pub(crate) fn is_host_emulated() -> bool {
         unsafe {
             let mut ret: libc::c_int = 0;
-            let mut size = std::mem::size_of::<libc::c_int>() as libc::size_t;
+            let mut size = size_of::<libc::c_int>() as libc::size_t;
             let err = libc::sysctlbyname(
                 c"sysctl.proc_translated".as_ptr().cast(),
                 (&mut ret) as *mut _ as *mut libc::c_void,
