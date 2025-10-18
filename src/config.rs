@@ -706,16 +706,6 @@ impl<'a> Cfg<'a> {
         Ok(Some(Toolchain::new(self, name)?.rustc_version()))
     }
 
-    pub(crate) async fn resolve_toolchain(
-        &self,
-        name: Option<ResolvableToolchainName>,
-    ) -> Result<Toolchain<'_>> {
-        let toolchain = name
-            .map(|name| anyhow::Ok(name.resolve(&self.get_default_host_triple()?)?.into()))
-            .transpose()?;
-        self.local_toolchain(toolchain).await
-    }
-
     pub(crate) async fn resolve_local_toolchain(
         &self,
         name: Option<ResolvableLocalToolchainName>,
@@ -726,7 +716,10 @@ impl<'a> Cfg<'a> {
         self.local_toolchain(local).await
     }
 
-    async fn local_toolchain(&self, name: Option<LocalToolchainName>) -> Result<Toolchain<'_>> {
+    pub(crate) async fn local_toolchain(
+        &self,
+        name: Option<LocalToolchainName>,
+    ) -> Result<Toolchain<'_>> {
         match name {
             Some(tc) => {
                 let install_if_missing = self.should_auto_install()?;

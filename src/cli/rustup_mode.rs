@@ -1048,7 +1048,13 @@ async fn which(
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
 ) -> Result<ExitCode> {
-    let toolchain = cfg.resolve_toolchain(toolchain).await?;
+    let toolchain = cfg
+        .local_toolchain(match toolchain {
+            Some(name) => Some(name.resolve(&cfg.get_default_host_triple()?)?.into()),
+            None => None,
+        })
+        .await?;
+
     let binary_path = toolchain.binary_file(binary);
     if utils::is_file(&binary_path) {
         writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
