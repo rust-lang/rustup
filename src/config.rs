@@ -93,7 +93,7 @@ pub(crate) enum ActiveSource {
     Default,
     Environment,
     CommandLine,
-    OverrideDB(PathBuf),
+    OverrideDb(PathBuf),
     ToolchainFile(PathBuf),
 }
 
@@ -105,7 +105,7 @@ impl ActiveSource {
                 String::from("overridden by environment variable RUSTUP_TOOLCHAIN")
             }
             Self::CommandLine => String::from("overridden by +toolchain on the command line"),
-            Self::OverrideDB(path) => format!("directory override for '{}'", path.display()),
+            Self::OverrideDb(path) => format!("directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => format!("overridden by '{}'", path.display()),
         }
     }
@@ -117,7 +117,7 @@ impl Display for ActiveSource {
             Self::Default => "default",
             Self::Environment => "env",
             Self::CommandLine => "cli",
-            Self::OverrideDB(_) => "path-override",
+            Self::OverrideDb(_) => "path-override",
             Self::ToolchainFile(_) => "toolchain-file",
         })
     }
@@ -571,7 +571,7 @@ impl<'a> Cfg<'a> {
         while let Some(d) = dir {
             // First check the override database
             if let Some(name) = settings.dir_override(d) {
-                let source = ActiveSource::OverrideDB(d.to_owned());
+                let source = ActiveSource::OverrideDb(d.to_owned());
                 // Note that `rustup override set` fully resolves it's input
                 // before writing to settings.toml, so resolving here may not
                 // be strictly necessary (could instead model as ToolchainName).
