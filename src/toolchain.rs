@@ -94,7 +94,7 @@ impl<'a> Toolchain<'a> {
             ActiveSource::CommandLine => {
                 "the +toolchain on the command line specifies an uninstalled toolchain".to_string()
             }
-            ActiveSource::OverrideDB(path) => format!(
+            ActiveSource::OverrideDb(path) => format!(
                 "the directory override for '{}' specifies an uninstalled toolchain",
                 utils::canonicalize_path(path).display(),
             ),
