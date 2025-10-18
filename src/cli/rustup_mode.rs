@@ -20,7 +20,7 @@ use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use tokio::sync::Semaphore;
-use tracing::{info, trace, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
@@ -1895,10 +1895,10 @@ async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> 
                 "the currently active `rustc` version is `{}`",
                 tc.rustc_version()
             ),
-            Err(err) => trace!("failed to display the current `rustc` version: {err}"),
+            Err(err) => error!("failed to display the current `rustc` version: {err}"),
         },
         Ok(None) => info!("no `rustc` is currently active"),
-        Err(err) => trace!("failed to display the current `rustc` version: {err}"),
+        Err(err) => error!("failed to display the current `rustc` version: {err}"),
     }
 
     Ok(())
