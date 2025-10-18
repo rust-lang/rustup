@@ -706,16 +706,6 @@ impl<'a> Cfg<'a> {
         Ok(Some(Toolchain::new(self, name)?.rustc_version()))
     }
 
-    pub(crate) async fn resolve_local_toolchain(
-        &self,
-        name: Option<ResolvableLocalToolchainName>,
-    ) -> Result<Toolchain<'_>> {
-        let local = name
-            .map(|name| name.resolve(&self.get_default_host_triple()?))
-            .transpose()?;
-        self.local_toolchain(local).await
-    }
-
     pub(crate) async fn local_toolchain(
         &self,
         name: Option<LocalToolchainName>,

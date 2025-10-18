@@ -34,7 +34,13 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .collect();
 
     let cfg = Cfg::from_env(current_dir, true, process)?;
-    let toolchain = cfg.resolve_local_toolchain(toolchain).await?;
+    let toolchain = cfg
+        .local_toolchain(match toolchain {
+            Some(name) => Some(name.resolve(&cfg.get_default_host_triple()?)?),
+            None => None,
+        })
+        .await?;
+
     let mut cmd = toolchain.command(arg0)?;
     if toolchain_specified {
         cmd.env(
