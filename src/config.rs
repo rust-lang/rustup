@@ -231,7 +231,7 @@ impl From<LocalToolchainName> for OverrideCfg {
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
 pub(crate) struct Cfg<'a> {
-    profile_override: Option<Profile>,
+    pub profile_override: Option<Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
     pub fallback_settings: Option<FallbackSettings>,
@@ -330,10 +330,6 @@ impl<'a> Cfg<'a> {
         Ok(cfg)
     }
 
-    pub(crate) fn set_profile_override(&mut self, profile: Profile) {
-        self.profile_override = Some(profile);
-    }
-
     pub(crate) fn set_default(&self, toolchain: Option<&ToolchainName>) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = toolchain.map(|t| t.to_string());
@@ -365,10 +361,6 @@ impl<'a> Cfg<'a> {
         })?;
         info!("auto-self-update mode set to {}", mode.as_str());
         Ok(())
-    }
-
-    pub(crate) fn set_toolchain_override(&mut self, toolchain_override: &ResolvableToolchainName) {
-        self.toolchain_override = Some(toolchain_override.to_owned());
     }
 
     pub(crate) fn set_auto_install(&mut self, mode: AutoInstallMode) -> Result<()> {
@@ -710,7 +702,7 @@ impl<'a> Cfg<'a> {
     pub(crate) async fn active_rustc_version(&mut self) -> Result<Option<String>> {
         if let Some(t) = self.process.args().find(|x| x.starts_with('+')) {
             trace!("Fetching rustc version from toolchain `{}`", t);
-            self.set_toolchain_override(&ResolvableToolchainName::try_from(&t[1..])?);
+            self.toolchain_override = Some(ResolvableToolchainName::try_from(&t[1..])?);
         }
 
         let Some((name, _)) = self.maybe_ensure_active_toolchain(None).await? else {
