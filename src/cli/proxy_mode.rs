@@ -3,9 +3,9 @@ use std::{path::PathBuf, process::ExitStatus};
 use anyhow::Result;
 
 use crate::{
-    cli::{common::set_globals, job, self_update},
+    cli::{job, self_update},
     command::run_command_for_dir,
-    config::ActiveSource,
+    config::{ActiveSource, Cfg},
     process::Process,
     toolchain::ResolvableLocalToolchainName,
 };
@@ -33,7 +33,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .skip(1 + toolchain.is_some() as usize)
         .collect();
 
-    let cfg = set_globals(current_dir, true, process)?;
+    let cfg = Cfg::from_env(current_dir, true, process)?;
     let toolchain = cfg.resolve_local_toolchain(toolchain).await?;
     let mut cmd = toolchain.command(arg0)?;
     if toolchain_specified {

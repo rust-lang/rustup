@@ -3,7 +3,7 @@
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::LazyLock;
 use std::{cmp, env};
 
@@ -117,11 +117,6 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
         Some(v) => Ok(v),
     }
     .context("unable to read from stdin for confirmation")
-}
-
-#[tracing::instrument(level = "trace", skip(process))]
-pub(crate) fn set_globals(current_dir: PathBuf, quiet: bool, process: &Process) -> Result<Cfg<'_>> {
-    Cfg::from_env(current_dir, quiet, process)
 }
 
 pub(crate) fn show_channel_update(
