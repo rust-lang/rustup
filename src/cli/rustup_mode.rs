@@ -26,7 +26,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 use crate::{
     cli::{
         common::{self, PackageUpdate, update_console_filter},
-        errors::CLIError,
+        errors::CliError,
         help::*,
         self_update::{self, SelfUpdateMode, check_rustup_update},
         topical_doc,
@@ -1805,7 +1805,7 @@ fn set_auto_self_update(
         let arg0 = arg0
             .as_ref()
             .and_then(|a| a.to_str())
-            .ok_or(CLIError::NoExeName)?;
+            .ok_or(CliError::NoExeName)?;
         warn!(
             "{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",
             arg0

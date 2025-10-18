@@ -375,7 +375,7 @@ pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> 
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .context(CLIError::WindowsUninstallMadness)?;
+        .context(CliError::WindowsUninstallMadness)?;
 
     Ok(utils::ExitCode(0))
 }
@@ -398,7 +398,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).context(CLIError::WindowsUninstallMadness);
+            return Err(err).context(CliError::WindowsUninstallMadness);
         }
 
         let snapshot = scopeguard::guard(snapshot, |h| {
@@ -412,7 +412,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
         let success = Process32First(*snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
-            return Err(err).context(CLIError::WindowsUninstallMadness);
+            return Err(err).context(CliError::WindowsUninstallMadness);
         }
 
         let this_pid = GetCurrentProcessId();
@@ -420,7 +420,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
             let success = Process32Next(*snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
-                return Err(err).context(CLIError::WindowsUninstallMadness);
+                return Err(err).context(CliError::WindowsUninstallMadness);
             }
         }
 
@@ -445,7 +445,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
-            return Err(err).context(CLIError::WindowsUninstallMadness);
+            return Err(err).context(CliError::WindowsUninstallMadness);
         }
     }
 
@@ -514,7 +514,7 @@ fn get_windows_path_var() -> Result<Option<HSTRING>> {
             Ok(None)
         }
         Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(Some(HSTRING::new())),
-        Err(e) => Err(e).context(CLIError::WindowsUninstallMadness),
+        Err(e) => Err(e).context(CliError::WindowsUninstallMadness),
     }
 }
 
@@ -731,7 +731,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
 
         if gc_handle == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).context(CLIError::WindowsUninstallMadness);
+            return Err(err).context(CliError::WindowsUninstallMadness);
         }
 
         scopeguard::guard(gc_handle, |h| {
@@ -741,7 +741,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
 
     Command::new(gc_exe)
         .spawn()
-        .context(CLIError::WindowsUninstallMadness)?;
+        .context(CliError::WindowsUninstallMadness)?;
 
     // The catch 22 article says we must sleep here to give
     // Windows a chance to bump the processes file reference
