@@ -698,14 +698,6 @@ impl<'a> Cfg<'a> {
         }
     }
 
-    #[tracing::instrument(level = "trace")]
-    pub(crate) async fn active_rustc_version(&mut self) -> Result<Option<String>> {
-        let Some((name, _)) = self.maybe_ensure_active_toolchain(None).await? else {
-            return Ok(None);
-        };
-        Ok(Some(Toolchain::new(self, name)?.rustc_version()))
-    }
-
     pub(crate) async fn local_toolchain(
         &self,
         name: Option<LocalToolchainName>,
