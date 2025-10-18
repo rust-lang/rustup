@@ -10,6 +10,7 @@ use crate::{
         common::{self, update_console_filter},
         self_update::{self, InstallOpts},
     },
+    config::Cfg,
     dist::Profile,
     process::Process,
     toolchain::MaybeOfficialToolchainName,
@@ -128,6 +129,6 @@ pub async fn main(
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    let mut cfg = common::set_globals(current_dir, quiet, process)?;
+    let mut cfg = Cfg::from_env(current_dir, quiet, process)?;
     self_update::install(no_prompt, opts, &mut cfg).await
 }

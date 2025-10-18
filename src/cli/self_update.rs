@@ -1385,8 +1385,8 @@ pub(crate) fn cleanup_self_updater(process: &Process) -> Result<()> {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::cli::common;
     use crate::cli::self_update::InstallOpts;
+    use crate::config::Cfg;
     use crate::dist::{PartialToolchainDesc, Profile};
     use crate::test::{Env, test_dir, with_rustup_home};
     use crate::{for_host, process::TestProcess};
@@ -1398,7 +1398,7 @@ mod tests {
             home.apply(&mut vars);
             let tp = TestProcess::with_vars(vars);
             let mut cfg =
-                common::set_globals(tp.process.current_dir().unwrap(), false, &tp.process).unwrap();
+                Cfg::from_env(tp.process.current_dir().unwrap(), false, &tp.process).unwrap();
 
             let opts = InstallOpts {
                 default_host_triple: None,
