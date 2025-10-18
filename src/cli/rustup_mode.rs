@@ -1889,10 +1889,16 @@ async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> 
         .find_map(|arg| arg.strip_prefix('+').map(ResolvableToolchainName::try_from))
         .transpose()?;
 
-    match cfg.active_rustc_version().await {
-        Ok(Some(version)) => info!("The currently active `rustc` version is `{version}`"),
-        Ok(None) => info!("No `rustc` is currently active"),
-        Err(err) => trace!("Failed to display the current `rustc` version: {err}"),
+    match cfg.maybe_ensure_active_toolchain(None).await {
+        Ok(Some((name, _))) => match Toolchain::new(&cfg, name) {
+            Ok(tc) => info!(
+                "the currently active `rustc` version is `{}`",
+                tc.rustc_version()
+            ),
+            Err(err) => trace!("failed to display the current `rustc` version: {err}"),
+        },
+        Ok(None) => info!("no `rustc` is currently active"),
+        Err(err) => trace!("failed to display the current `rustc` version: {err}"),
     }
 
     Ok(())
