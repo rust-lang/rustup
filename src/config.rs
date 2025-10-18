@@ -700,11 +700,6 @@ impl<'a> Cfg<'a> {
 
     #[tracing::instrument(level = "trace")]
     pub(crate) async fn active_rustc_version(&mut self) -> Result<Option<String>> {
-        if let Some(t) = self.process.args().find(|x| x.starts_with('+')) {
-            trace!("Fetching rustc version from toolchain `{}`", t);
-            self.toolchain_override = Some(ResolvableToolchainName::try_from(&t[1..])?);
-        }
-
         let Some((name, _)) = self.maybe_ensure_active_toolchain(None).await? else {
             return Ok(None);
         };
