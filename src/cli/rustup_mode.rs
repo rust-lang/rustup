@@ -612,10 +612,7 @@ pub async fn main(
     update_console_filter(process, &console_filter, matches.quiet, matches.verbose);
 
     let cfg = &mut common::set_globals(current_dir, matches.quiet, process)?;
-
-    if let Some(t) = &matches.plus_toolchain {
-        cfg.set_toolchain_override(t);
-    }
+    cfg.toolchain_override = matches.plus_toolchain;
 
     let Some(subcmd) = matches.subcmd else {
         let help = Rustup::command().render_long_help();
@@ -939,9 +936,7 @@ async fn update(
         && self_update_mode == SelfUpdateMode::Enable
         && !opts.no_self_update;
     let force_non_host = opts.force_non_host;
-    if let Some(p) = opts.profile {
-        cfg.set_profile_override(p);
-    }
+    cfg.profile_override = opts.profile;
 
     let cfg = &cfg;
     if cfg.get_profile()? == Profile::Complete {
