@@ -9,7 +9,7 @@ use platforms::Platform;
 
 use crate::{
     RustupError, component_for_bin,
-    config::Cfg,
+    config::{ActiveSource, Cfg},
     dist::{
         DistOptions, PartialToolchainDesc, Profile, ToolchainDesc,
         config::Config,
@@ -35,11 +35,11 @@ pub(crate) struct DistributableToolchain<'a> {
 
 impl<'a> DistributableToolchain<'a> {
     pub(crate) async fn from_partial(
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         Ok(Self::try_from(
-            &cfg.toolchain_from_partial(toolchain).await?,
+            &cfg.toolchain_from_partial(toolchain).await?.0,
         )?)
     }
 
