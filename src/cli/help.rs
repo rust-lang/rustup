@@ -1,3 +1,4 @@
+use anstyle::Style;
 use clap_cargo::style::{HEADER, LITERAL, PLACEHOLDER};
 
 pub(crate) fn rustup_help() -> String {
@@ -221,7 +222,7 @@ pub(crate) fn completions_help() -> String {
     Here are some common set ups for the three supported shells under
     Unix and similar operating systems (such as GNU/Linux).
 
-    Bash:
+    {SUBHEADER}Bash:{SUBHEADER:#}
 
     Completion files are commonly stored in `/etc/bash_completion.d/` for
     system-wide commands, but can be stored in
@@ -234,7 +235,7 @@ pub(crate) fn completions_help() -> String {
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
 
-    Bash (macOS/Homebrew):
+    {SUBHEADER}Bash (macOS/Homebrew):{SUBHEADER:#}
 
     Homebrew stores bash completion files within the Homebrew directory.
     With the `bash-completion` brew formula installed, run the command:
@@ -242,7 +243,7 @@ pub(crate) fn completions_help() -> String {
         {LITERAL}$ mkdir -p $(brew --prefix)/etc/bash_completion.d{LITERAL:#}
         {LITERAL}$ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion{LITERAL:#}
 
-    Fish:
+    {SUBHEADER}Fish:{SUBHEADER:#}
 
     Fish completion files are commonly stored in
     `$HOME/.config/fish/completions`. Run the command:
@@ -253,7 +254,7 @@ pub(crate) fn completions_help() -> String {
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
 
-    Zsh:
+    {SUBHEADER}Zsh:{SUBHEADER:#}
 
     ZSH completions are commonly stored in any directory listed in
     your `$fpath` variable. To use these completions, you must either
@@ -283,7 +284,7 @@ pub(crate) fn completions_help() -> String {
 
     for the new completions to take effect.
 
-    Custom locations:
+    {SUBHEADER}Custom locations:{SUBHEADER:#}
 
     Alternatively, you could save these files to the place of your
     choosing, such as a custom directory inside your $HOME. Doing so
@@ -291,7 +292,7 @@ pub(crate) fn completions_help() -> String {
     inside your login script. Consult your shells documentation for
     how to add such directives.
 
-    PowerShell:
+    {SUBHEADER}PowerShell:{SUBHEADER:#}
 
     The powershell completion scripts require PowerShell v5.0+ (which
     comes with Windows 10, but can be downloaded separately for windows 7
@@ -315,18 +316,18 @@ pub(crate) fn completions_help() -> String {
 
         {LITERAL}PS C:\> rustup completions powershell >> ${{env:USERPROFILE}}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1{LITERAL:#}
 
-    Cargo:
+    {SUBHEADER}Cargo:{SUBHEADER:#}
 
     Rustup can also generate a completion script for `cargo`. The script output
     by `rustup` will source the completion script distributed with your default
     toolchain. Not all shells are currently supported. Here are examples for
     the currently supported shells.
 
-    Bash:
+    {SUBHEADER}Bash:{SUBHEADER:#}
 
         {LITERAL}$ rustup completions bash cargo >> ~/.local/share/bash-completion/completions/cargo{LITERAL:#}
 
-    Zsh:
+    {SUBHEADER}Zsh:{SUBHEADER:#}
 
         {LITERAL}$ rustup completions zsh cargo > ~/.zfunc/_cargo{LITERAL:#}"
     )
@@ -359,3 +360,5 @@ pub(crate) fn topic_arg_help() -> &'static str {
                                    'std::fs::read_dir', 'std::io::Bytes', \
                                    'std::iter::Sum', 'std::io::error::Result' etc..."
 }
+
+const SUBHEADER: Style = Style::new().bold();
