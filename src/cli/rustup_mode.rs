@@ -74,7 +74,7 @@ fn handle_epipe(res: Result<ExitCode>) -> Result<ExitCode> {
     bin_name = "rustup[EXE]",
     version = common::version(),
     before_help = format!("rustup {}", common::version()),
-    after_help = RUSTUP_HELP,
+    after_help = rustup_help(),
 )]
 struct Rustup {
     /// Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
@@ -115,7 +115,7 @@ fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolcha
 #[command(name = "rustup", bin_name = "rustup[EXE]")]
 enum RustupSubcmd {
     /// Install or update the given toolchains, or by default the active toolchain
-    #[command(hide = true, after_help = INSTALL_HELP)]
+    #[command(hide = true, after_help = install_help())]
     Install {
         #[command(flatten)]
         opts: UpdateOpts,
@@ -139,9 +139,9 @@ enum RustupSubcmd {
     },
 
     /// Set the default toolchain
-    #[command(after_help = DEFAULT_HELP)]
+    #[command(after_help = default_help())]
     Default {
-        #[arg(help = MAYBE_RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        #[arg(help = maybe_resolvable_toolchain_arg_help())]
         toolchain: Option<MaybeResolvableToolchainName>,
 
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
@@ -150,7 +150,7 @@ enum RustupSubcmd {
     },
 
     /// Show the active and installed toolchains or profiles
-    #[command(after_help = SHOW_HELP)]
+    #[command(after_help = show_help())]
     Show {
         /// Enable verbose output with rustc information for all installed toolchains
         #[arg(short, long)]
@@ -162,7 +162,7 @@ enum RustupSubcmd {
 
     /// Update Rust toolchains and rustup
     #[command(
-        after_help = UPDATE_HELP,
+        after_help = update_help(),
         aliases = ["upgrade", "up"],
     )]
     Update {
@@ -208,9 +208,9 @@ enum RustupSubcmd {
     },
 
     /// Run a command with an environment configured for a given toolchain
-    #[command(after_help = RUN_HELP, trailing_var_arg = true)]
+    #[command(after_help = run_help(), trailing_var_arg = true)]
     Run {
-        #[arg(help = RESOLVABLE_LOCAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(help = resolvable_local_toolchain_arg_help())]
         toolchain: ResolvableLocalToolchainName,
 
         #[arg(required = true, num_args = 1..)]
@@ -225,24 +225,24 @@ enum RustupSubcmd {
     Which {
         command: String,
 
-        #[arg(long, help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = resolvable_toolchain_arg_help())]
         toolchain: Option<ResolvableToolchainName>,
     },
 
     /// Open the documentation for the current toolchain
     #[command(
         alias = "docs",
-        after_help = DOC_HELP,
+        after_help = doc_help(),
     )]
     Doc {
         /// Only print the path to the documentation
         #[arg(long)]
         path: bool,
 
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
 
-        #[arg(help = TOPIC_ARG_HELP)]
+        #[arg(help = topic_arg_help())]
         topic: Option<String>,
 
         #[command(flatten)]
@@ -254,7 +254,7 @@ enum RustupSubcmd {
     Man {
         command: String,
 
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
     },
 
@@ -271,7 +271,7 @@ enum RustupSubcmd {
     },
 
     /// Generate tab-completion scripts for your shell
-    #[command(after_help = COMPLETIONS_HELP, arg_required_else_help = true)]
+    #[command(after_help = completions_help(), arg_required_else_help = true)]
     Completions {
         shell: Shell,
 
@@ -291,7 +291,7 @@ fn update_toolchain_value_parser(s: &str) -> Result<PartialToolchainDesc> {
 #[derive(Debug, Subcommand)]
 enum ShowSubcmd {
     /// Show the active toolchain
-    #[command(after_help = SHOW_ACTIVE_TOOLCHAIN_HELP)]
+    #[command(after_help = show_active_toolchain_help())]
     ActiveToolchain {
         /// Enable verbose output with rustc information
         #[arg(short, long)]
@@ -309,7 +309,7 @@ enum ShowSubcmd {
 #[command(
     arg_required_else_help = true,
     subcommand_required = true,
-    after_help = TOOLCHAIN_HELP,
+    after_help = toolchain_help(),
 )]
 enum ToolchainSubcmd {
     /// List installed toolchains
@@ -338,7 +338,7 @@ enum ToolchainSubcmd {
     },
 
     /// Create a custom toolchain by symlinking to a directory
-    #[command(after_help = TOOLCHAIN_LINK_HELP)]
+    #[command(after_help = toolchain_link_help())]
     Link {
         /// Custom toolchain name
         toolchain: CustomToolchainName,
@@ -358,7 +358,7 @@ struct CheckOpts {
 #[derive(Debug, Default, Args)]
 struct UpdateOpts {
     #[arg(
-        help = OFFICIAL_TOOLCHAIN_ARG_HELP,
+        help = official_toolchain_arg_help(),
         num_args = 1..,
     )]
     toolchain: Vec<PartialToolchainDesc>,
@@ -394,7 +394,7 @@ struct UpdateOpts {
 #[derive(Debug, Default, Args)]
 struct UninstallOpts {
     #[arg(
-        help = RESOLVABLE_TOOLCHAIN_ARG_HELP,
+        help = resolvable_toolchain_arg_help(),
         required = true,
         num_args = 1..,
     )]
@@ -408,7 +408,7 @@ enum TargetSubcmd {
     List {
         #[arg(
             long,
-            help = OFFICIAL_TOOLCHAIN_ARG_HELP,
+            help = official_toolchain_arg_help(),
         )]
         toolchain: Option<PartialToolchainDesc>,
 
@@ -428,7 +428,7 @@ enum TargetSubcmd {
         #[arg(required = true, num_args = 1..)]
         target: Vec<String>,
 
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
     },
 
@@ -439,7 +439,7 @@ enum TargetSubcmd {
         #[arg(required = true, num_args = 1..)]
         target: Vec<String>,
 
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
     },
 }
@@ -449,7 +449,7 @@ enum TargetSubcmd {
 enum ComponentSubcmd {
     /// List installed and available components
     List {
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
 
         /// List only installed components
@@ -466,7 +466,7 @@ enum ComponentSubcmd {
         #[arg(required = true, num_args = 1..)]
         component: Vec<String>,
 
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
 
         #[arg(long)]
@@ -479,7 +479,7 @@ enum ComponentSubcmd {
         #[arg(required = true, num_args = 1..)]
         component: Vec<String>,
 
-        #[arg(long, help = OFFICIAL_TOOLCHAIN_ARG_HELP)]
+        #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
 
         #[arg(long)]
@@ -489,7 +489,7 @@ enum ComponentSubcmd {
 
 #[derive(Debug, Subcommand)]
 #[command(
-    after_help = OVERRIDE_HELP,
+    after_help = override_help(),
     arg_required_else_help = true,
     subcommand_required = true,
 )]
@@ -500,7 +500,7 @@ enum OverrideSubcmd {
     /// Set the override toolchain for a directory
     #[command(alias = "add")]
     Set {
-        #[arg(help = RESOLVABLE_TOOLCHAIN_ARG_HELP)]
+        #[arg(help = resolvable_toolchain_arg_help())]
         toolchain: ResolvableToolchainName,
 
         /// Path to the directory
@@ -509,7 +509,7 @@ enum OverrideSubcmd {
     },
 
     /// Remove the override toolchain for a directory
-    #[command(aliases = ["remove", "rm", "delete", "del"], after_help = OVERRIDE_UNSET_HELP)]
+    #[command(aliases = ["remove", "rm", "delete", "del"], after_help = override_unset_help())]
     Unset {
         /// Path to the directory
         #[arg(long)]
