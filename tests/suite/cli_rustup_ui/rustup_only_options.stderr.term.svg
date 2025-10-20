@@ -102,7 +102,7 @@
 </tspan>
     <tspan x="10px" y="748px">
 </tspan>
-    <tspan x="10px" y="766px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="766px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="784px"><tspan>    Rustup installs The Rust Programming Language from the official</tspan>
 </tspan>

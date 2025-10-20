@@ -46,7 +46,7 @@
 </tspan>
     <tspan x="10px" y="244px">
 </tspan>
-    <tspan x="10px" y="262px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="262px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="280px"><tspan>    Configures an environment to use the given toolchain and then runs</tspan>
 </tspan>
@@ -68,11 +68,11 @@
 </tspan>
     <tspan x="10px" y="442px">
 </tspan>
-    <tspan x="10px" y="460px"><tspan>        $ cargo +nightly build</tspan>
+    <tspan x="10px" y="460px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ cargo +nightly build</tspan>
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>        $ rustup run nightly cargo build</tspan>
+    <tspan x="10px" y="496px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup run nightly cargo build</tspan>
 </tspan>
     <tspan x="10px" y="514px">
 </tspan>
