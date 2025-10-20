@@ -64,7 +64,7 @@
 </tspan>
     <tspan x="10px" y="406px">
 </tspan>
-    <tspan x="10px" y="424px"><tspan>    Bash:</tspan>
+    <tspan x="10px" y="424px"><tspan>    </tspan><tspan class="bold">Bash:</tspan>
 </tspan>
     <tspan x="10px" y="442px">
 </tspan>
@@ -90,7 +90,7 @@
 </tspan>
     <tspan x="10px" y="640px">
 </tspan>
-    <tspan x="10px" y="658px"><tspan>    Bash (macOS/Homebrew):</tspan>
+    <tspan x="10px" y="658px"><tspan>    </tspan><tspan class="bold">Bash (macOS/Homebrew):</tspan>
 </tspan>
     <tspan x="10px" y="676px">
 </tspan>
@@ -106,7 +106,7 @@
 </tspan>
     <tspan x="10px" y="784px">
 </tspan>
-    <tspan x="10px" y="802px"><tspan>    Fish:</tspan>
+    <tspan x="10px" y="802px"><tspan>    </tspan><tspan class="bold">Fish:</tspan>
 </tspan>
     <tspan x="10px" y="820px">
 </tspan>
@@ -128,7 +128,7 @@
 </tspan>
     <tspan x="10px" y="982px">
 </tspan>
-    <tspan x="10px" y="1000px"><tspan>    Zsh:</tspan>
+    <tspan x="10px" y="1000px"><tspan>    </tspan><tspan class="bold">Zsh:</tspan>
 </tspan>
     <tspan x="10px" y="1018px">
 </tspan>
@@ -188,7 +188,7 @@
 </tspan>
     <tspan x="10px" y="1522px">
 </tspan>
-    <tspan x="10px" y="1540px"><tspan>    Custom locations:</tspan>
+    <tspan x="10px" y="1540px"><tspan>    </tspan><tspan class="bold">Custom locations:</tspan>
 </tspan>
     <tspan x="10px" y="1558px">
 </tspan>
@@ -204,7 +204,7 @@
 </tspan>
     <tspan x="10px" y="1666px">
 </tspan>
-    <tspan x="10px" y="1684px"><tspan>    PowerShell:</tspan>
+    <tspan x="10px" y="1684px"><tspan>    </tspan><tspan class="bold">PowerShell:</tspan>
 </tspan>
     <tspan x="10px" y="1702px">
 </tspan>
@@ -254,7 +254,7 @@
 </tspan>
     <tspan x="10px" y="2116px">
 </tspan>
-    <tspan x="10px" y="2134px"><tspan>    Cargo:</tspan>
+    <tspan x="10px" y="2134px"><tspan>    </tspan><tspan class="bold">Cargo:</tspan>
 </tspan>
     <tspan x="10px" y="2152px">
 </tspan>
@@ -268,7 +268,7 @@
 </tspan>
     <tspan x="10px" y="2242px">
 </tspan>
-    <tspan x="10px" y="2260px"><tspan>    Bash:</tspan>
+    <tspan x="10px" y="2260px"><tspan>    </tspan><tspan class="bold">Bash:</tspan>
 </tspan>
     <tspan x="10px" y="2278px">
 </tspan>
@@ -276,7 +276,7 @@
 </tspan>
     <tspan x="10px" y="2314px">
 </tspan>
-    <tspan x="10px" y="2332px"><tspan>    Zsh:</tspan>
+    <tspan x="10px" y="2332px"><tspan>    </tspan><tspan class="bold">Zsh:</tspan>
 </tspan>
     <tspan x="10px" y="2350px">
 </tspan>
