@@ -50,7 +50,7 @@
 </tspan>
     <tspan x="10px" y="280px">
 </tspan>
-    <tspan x="10px" y="298px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="298px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="316px"><tspan>    With no toolchain specified, the `update` command updates each of</tspan>
 </tspan>

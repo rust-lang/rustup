@@ -1,5 +1,8 @@
-pub(crate) fn rustup_help() -> &'static str {
-    r"Discussion:
+use clap_cargo::style::{HEADER, LITERAL, PLACEHOLDER};
+
+pub(crate) fn rustup_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Rustup installs The Rust Programming Language from the official
     release channels, enabling you to easily switch between stable,
     beta, and nightly compilers and keep them updated. It makes
@@ -8,10 +11,12 @@ pub(crate) fn rustup_help() -> &'static str {
 
     If you are new to Rust consider running `rustup doc --book` to
     learn Rust."
+    )
 }
 
-pub(crate) fn show_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn show_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Shows the name of the active toolchain and the version of `rustc`.
 
     If the active toolchain has installed support for additional
@@ -19,10 +24,12 @@ pub(crate) fn show_help() -> &'static str {
 
     If there are multiple toolchains installed then all installed
     toolchains are listed as well."
+    )
 }
 
-pub(crate) fn show_active_toolchain_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn show_active_toolchain_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Shows the name of the active toolchain.
 
     This is useful for figuring out the active tool chain from
@@ -30,49 +37,57 @@ pub(crate) fn show_active_toolchain_help() -> &'static str {
 
     You should use `rustc --print sysroot` to get the sysroot, or
     `rustc --version` to get the toolchain version."
+    )
 }
 
-pub(crate) fn update_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn update_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     With no toolchain specified, the `update` command updates each of
     the installed toolchains from the official release channels, then
     updates rustup itself.
 
     If given a toolchain argument then `update` updates that
     toolchain, the same as `rustup toolchain install`."
+    )
 }
 
-pub(crate) fn install_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn install_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Installs a specific rust toolchain.
 
     The 'install' command is an alias for 'rustup update <toolchain>'."
+    )
 }
 
-pub(crate) fn default_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn default_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Sets the default toolchain to the one specified. If the toolchain
     is not already installed then it is installed first."
+    )
 }
 
-pub(crate) fn toolchain_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn toolchain_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Many `rustup` commands deal with *toolchains*, a single
     installation of the Rust compiler. `rustup` supports multiple
     types of toolchains. The most basic track the official release
-    channels: 'stable', 'beta' and 'nightly'} but `rustup` can also
+    channels: 'stable', 'beta' and 'nightly'; but `rustup` can also
     install specific toolchains from the official archives, toolchains for
     alternate host platforms, and from local builds ('custom toolchains').
 
     Standard release channel toolchain names have the following form:
 
-        <channel>[-<date>][-<host>]
+        {PLACEHOLDER}<channel>[-<date>][-<host>]{PLACEHOLDER:#}
 
-        <channel>       = stable|beta|nightly|<versioned>[-<prerelease>]
-        <versioned>     = <major.minor>|<major.minor.patch>
-        <prerelease>    = beta[.<number>]
-        <date>          = YYYY-MM-DD
-        <host>          = <target-triple>
+        {PLACEHOLDER}<channel>       = stable|beta|nightly|<versioned>[-<prerelease>]{PLACEHOLDER:#}
+        {PLACEHOLDER}<versioned>     = <major.minor>|<major.minor.patch>{PLACEHOLDER:#}
+        {PLACEHOLDER}<prerelease>    = beta[.<number>]{PLACEHOLDER:#}
+        {PLACEHOLDER}<date>          = YYYY-MM-DD{PLACEHOLDER:#}
+        {PLACEHOLDER}<host>          = <target-triple>{PLACEHOLDER:#}
 
     'channel' is a named release channel, a major and minor version
     number such as `1.42`, or a fully specified version number, such
@@ -84,25 +99,27 @@ pub(crate) fn toolchain_help() -> &'static str {
     for installing a 32-bit compiler on a 64-bit platform, or for
     installing the [MSVC-based toolchain] on Windows. For example:
 
-        $ rustup toolchain install stable-x86_64-pc-windows-msvc
+        {LITERAL}$ rustup toolchain install stable-x86_64-pc-windows-msvc{LITERAL:#}
 
     For convenience, omitted elements of the target triple will be
     inferred, so the above could be written:
 
-        $ rustup toolchain install stable-msvc
+        {LITERAL}$ rustup toolchain install stable-msvc{LITERAL:#}
 
     The `rustup default` command may be used to both install and set
     the desired toolchain as default in a single command:
 
-        $ rustup default stable-msvc
+        {LITERAL}$ rustup default stable-msvc{LITERAL:#}
 
     rustup can also manage symlinked local toolchain builds, which are
     often used for developing Rust itself. For more information see
     `rustup toolchain help link`."
+    )
 }
 
-pub(crate) fn toolchain_link_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn toolchain_link_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     'toolchain' is the custom name to be assigned to the new toolchain.
     Any name is permitted as long as:
     - it does not include '/' or '\' except as the last character
@@ -117,15 +134,17 @@ pub(crate) fn toolchain_link_help() -> &'static str {
     the build directory. After building, you can test out different
     compiler versions as follows:
 
-        $ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1
-        $ rustup override set latest-stage1
+        {LITERAL}$ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1{LITERAL:#}
+        {LITERAL}$ rustup override set latest-stage1{LITERAL:#}
 
     If you now compile a crate in the current directory, the custom
     toolchain 'latest-stage1' will be used."
+    )
 }
 
-pub(crate) fn override_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn override_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Overrides configure Rustup to use a specific toolchain when
     running in a specific directory.
 
@@ -136,28 +155,32 @@ pub(crate) fn override_help() -> &'static str {
 
     To pin to a specific nightly:
 
-        $ rustup override set nightly-2014-12-18
+        {LITERAL}$ rustup override set nightly-2014-12-18{LITERAL:#}
 
     Or a specific stable release:
 
-        $ rustup override set 1.0.0
+        {LITERAL}$ rustup override set 1.0.0{LITERAL:#}
 
     To see the active toolchain use `rustup show`. To remove the
     override and use the default toolchain again, `rustup override
     unset`."
+    )
 }
 
-pub(crate) fn override_unset_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn override_unset_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     If `--path` argument is present, removes the override toolchain
     for the specified directory. If `--nonexistent` argument is
     present, removes the override toolchain for all nonexistent
     directories. Otherwise, removes the override toolchain for the
     current directory."
+    )
 }
 
-pub(crate) fn run_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn run_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Configures an environment to use the given toolchain and then runs
     the specified program. The command may be any program, not just
     rustc or cargo. This can be used for testing arbitrary toolchains
@@ -168,22 +191,26 @@ pub(crate) fn run_help() -> &'static str {
     can be set by using `+toolchain` as the first argument. These are
     equivalent:
 
-        $ cargo +nightly build
+        {LITERAL}$ cargo +nightly build{LITERAL:#}
 
-        $ rustup run nightly cargo build"
+        {LITERAL}$ rustup run nightly cargo build{LITERAL:#}"
+    )
 }
 
-pub(crate) fn doc_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn doc_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Opens the documentation for the currently active toolchain with
     the default browser.
 
     By default, it opens the documentation index. Use the various
     flags to open specific pieces of documentation."
+    )
 }
 
-pub(crate) fn completions_help() -> &'static str {
-    r"Discussion:
+pub(crate) fn completions_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
     Enable tab completion for Bash, Fish, Zsh, or PowerShell
     The script is output on `stdout`, allowing one to re-direct the
     output to the file of their choosing. Where you place the file
@@ -201,8 +228,8 @@ pub(crate) fn completions_help() -> &'static str {
     `~/.local/share/bash-completion/completions` for user-specific commands.
     Run the command:
 
-        $ mkdir -p ~/.local/share/bash-completion/completions
-        $ rustup completions bash > ~/.local/share/bash-completion/completions/rustup
+        {LITERAL}$ mkdir -p ~/.local/share/bash-completion/completions{LITERAL:#}
+        {LITERAL}$ rustup completions bash > ~/.local/share/bash-completion/completions/rustup{LITERAL:#}
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
@@ -212,16 +239,16 @@ pub(crate) fn completions_help() -> &'static str {
     Homebrew stores bash completion files within the Homebrew directory.
     With the `bash-completion` brew formula installed, run the command:
 
-        $ mkdir -p $(brew --prefix)/etc/bash_completion.d
-        $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
+        {LITERAL}$ mkdir -p $(brew --prefix)/etc/bash_completion.d{LITERAL:#}
+        {LITERAL}$ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion{LITERAL:#}
 
     Fish:
 
     Fish completion files are commonly stored in
     `$HOME/.config/fish/completions`. Run the command:
 
-        $ mkdir -p ~/.config/fish/completions
-        $ rustup completions fish > ~/.config/fish/completions/rustup.fish
+        {LITERAL}$ mkdir -p ~/.config/fish/completions{LITERAL:#}
+        {LITERAL}$ rustup completions fish > ~/.config/fish/completions/rustup.fish{LITERAL:#}
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take effect.
@@ -234,25 +261,25 @@ pub(crate) fn completions_help() -> &'static str {
     own to this list.
 
     Adding a custom directory is often the safest bet if you are
-    unsure of which directory to use. First create the directory} for
+    unsure of which directory to use. First create the directory; for
     this example we'll create a hidden directory inside our `$HOME`
     directory:
 
-        $ mkdir ~/.zfunc
+        {LITERAL}$ mkdir ~/.zfunc{LITERAL:#}
 
     Then add the following lines to your `.zshrc` just before
     `compinit`:
 
-        fpath+=~/.zfunc
+        {LITERAL}fpath+=~/.zfunc{LITERAL:#}
 
     Now you can install the completions script using the following
     command:
 
-        $ rustup completions zsh > ~/.zfunc/_rustup
+        {LITERAL}$ rustup completions zsh > ~/.zfunc/_rustup{LITERAL:#}
 
     You must then either log out and log back in, or simply run
 
-        $ exec zsh
+        {LITERAL}$ exec zsh{LITERAL:#}
 
     for the new completions to take effect.
 
@@ -272,21 +299,21 @@ pub(crate) fn completions_help() -> &'static str {
 
     First, check if a profile has already been set
 
-        PS C:\> Test-Path $profile
+        {LITERAL}PS C:\> Test-Path $profile{LITERAL:#}
 
     If the above command returns `False` run the following
 
-        PS C:\> New-Item -path $profile -type file -force
+        {LITERAL}PS C:\> New-Item -path $profile -type file -force{LITERAL:#}
 
     Now open the file provided by `$profile` (if you used the
     `New-Item` command it will be
-    `${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+    `${{env:USERPROFILE}}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
 
     Next, we either save the completions file into our profile, or
     into a separate file and source it inside our profile. To save the
     completions into our profile simply use
 
-        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+        {LITERAL}PS C:\> rustup completions powershell >> ${{env:USERPROFILE}}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1{LITERAL:#}
 
     Cargo:
 
@@ -297,11 +324,12 @@ pub(crate) fn completions_help() -> &'static str {
 
     Bash:
 
-        $ rustup completions bash cargo >> ~/.local/share/bash-completion/completions/cargo
+        {LITERAL}$ rustup completions bash cargo >> ~/.local/share/bash-completion/completions/cargo{LITERAL:#}
 
     Zsh:
 
-        $ rustup completions zsh cargo > ~/.zfunc/_cargo"
+        {LITERAL}$ rustup completions zsh cargo > ~/.zfunc/_cargo{LITERAL:#}"
+    )
 }
 
 pub(crate) fn official_toolchain_arg_help() -> &'static str {

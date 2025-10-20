@@ -90,7 +90,7 @@
 </tspan>
     <tspan x="10px" y="640px">
 </tspan>
-    <tspan x="10px" y="658px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="658px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="676px"><tspan>    Opens the documentation for the currently active toolchain with</tspan>
 </tspan>

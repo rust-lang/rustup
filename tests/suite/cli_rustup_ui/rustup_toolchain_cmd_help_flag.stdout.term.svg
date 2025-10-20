@@ -48,7 +48,7 @@
 </tspan>
     <tspan x="10px" y="262px">
 </tspan>
-    <tspan x="10px" y="280px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="280px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="298px"><tspan>    Many `rustup` commands deal with *toolchains*, a single</tspan>
 </tspan>
@@ -68,19 +68,19 @@
 </tspan>
     <tspan x="10px" y="442px">
 </tspan>
-    <tspan x="10px" y="460px"><tspan>        &lt;channel&gt;[-&lt;date&gt;][-&lt;host&gt;]</tspan>
+    <tspan x="10px" y="460px"><tspan>        </tspan><tspan class="fg-cyan">&lt;channel&gt;[-&lt;date&gt;][-&lt;host&gt;]</tspan>
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>        &lt;channel&gt;       = stable|beta|nightly|&lt;versioned&gt;[-&lt;prerelease&gt;]</tspan>
+    <tspan x="10px" y="496px"><tspan>        </tspan><tspan class="fg-cyan">&lt;channel&gt;       = stable|beta|nightly|&lt;versioned&gt;[-&lt;prerelease&gt;]</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan>        &lt;versioned&gt;     = &lt;major.minor&gt;|&lt;major.minor.patch&gt;</tspan>
+    <tspan x="10px" y="514px"><tspan>        </tspan><tspan class="fg-cyan">&lt;versioned&gt;     = &lt;major.minor&gt;|&lt;major.minor.patch&gt;</tspan>
 </tspan>
-    <tspan x="10px" y="532px"><tspan>        &lt;prerelease&gt;    = beta[.&lt;number&gt;]</tspan>
+    <tspan x="10px" y="532px"><tspan>        </tspan><tspan class="fg-cyan">&lt;prerelease&gt;    = beta[.&lt;number&gt;]</tspan>
 </tspan>
-    <tspan x="10px" y="550px"><tspan>        &lt;date&gt;          = YYYY-MM-DD</tspan>
+    <tspan x="10px" y="550px"><tspan>        </tspan><tspan class="fg-cyan">&lt;date&gt;          = YYYY-MM-DD</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>        &lt;host&gt;          = &lt;target-triple&gt;</tspan>
+    <tspan x="10px" y="568px"><tspan>        </tspan><tspan class="fg-cyan">&lt;host&gt;          = &lt;target-triple&gt;</tspan>
 </tspan>
     <tspan x="10px" y="586px">
 </tspan>
@@ -104,7 +104,7 @@
 </tspan>
     <tspan x="10px" y="766px">
 </tspan>
-    <tspan x="10px" y="784px"><tspan>        $ rustup toolchain install stable-x86_64-pc-windows-msvc</tspan>
+    <tspan x="10px" y="784px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable-x86_64-pc-windows-msvc</tspan>
 </tspan>
     <tspan x="10px" y="802px">
 </tspan>
@@ -114,7 +114,7 @@
 </tspan>
     <tspan x="10px" y="856px">
 </tspan>
-    <tspan x="10px" y="874px"><tspan>        $ rustup toolchain install stable-msvc</tspan>
+    <tspan x="10px" y="874px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable-msvc</tspan>
 </tspan>
     <tspan x="10px" y="892px">
 </tspan>
@@ -124,7 +124,7 @@
 </tspan>
     <tspan x="10px" y="946px">
 </tspan>
-    <tspan x="10px" y="964px"><tspan>        $ rustup default stable-msvc</tspan>
+    <tspan x="10px" y="964px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup default stable-msvc</tspan>
 </tspan>
     <tspan x="10px" y="982px">
 </tspan>

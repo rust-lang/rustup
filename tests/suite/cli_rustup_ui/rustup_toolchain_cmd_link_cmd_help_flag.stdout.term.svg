@@ -42,7 +42,7 @@
 </tspan>
     <tspan x="10px" y="208px">
 </tspan>
-    <tspan x="10px" y="226px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="226px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="244px"><tspan>    'toolchain' is the custom name to be assigned to the new toolchain.</tspan>
 </tspan>
@@ -72,9 +72,9 @@
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>        $ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1</tspan>
+    <tspan x="10px" y="496px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan>        $ rustup override set latest-stage1</tspan>
+    <tspan x="10px" y="514px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup override set latest-stage1</tspan>
 </tspan>
     <tspan x="10px" y="532px">
 </tspan>

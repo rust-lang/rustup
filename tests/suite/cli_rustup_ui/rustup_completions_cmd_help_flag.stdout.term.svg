@@ -42,7 +42,7 @@
 </tspan>
     <tspan x="10px" y="208px">
 </tspan>
-    <tspan x="10px" y="226px"><tspan>Discussion:</tspan>
+    <tspan x="10px" y="226px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
     <tspan x="10px" y="244px"><tspan>    Enable tab completion for Bash, Fish, Zsh, or PowerShell</tspan>
 </tspan>
@@ -78,9 +78,9 @@
 </tspan>
     <tspan x="10px" y="532px">
 </tspan>
-    <tspan x="10px" y="550px"><tspan>        $ mkdir -p ~/.local/share/bash-completion/completions</tspan>
+    <tspan x="10px" y="550px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ mkdir -p ~/.local/share/bash-completion/completions</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>        $ rustup completions bash &gt; ~/.local/share/bash-completion/completions/rustup</tspan>
+    <tspan x="10px" y="568px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup completions bash &gt; ~/.local/share/bash-completion/completions/rustup</tspan>
 </tspan>
     <tspan x="10px" y="586px">
 </tspan>
@@ -100,9 +100,9 @@
 </tspan>
     <tspan x="10px" y="730px">
 </tspan>
-    <tspan x="10px" y="748px"><tspan>        $ mkdir -p $(brew --prefix)/etc/bash_completion.d</tspan>
+    <tspan x="10px" y="748px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ mkdir -p $(brew --prefix)/etc/bash_completion.d</tspan>
 </tspan>
-    <tspan x="10px" y="766px"><tspan>        $ rustup completions bash &gt; $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion</tspan>
+    <tspan x="10px" y="766px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup completions bash &gt; $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion</tspan>
 </tspan>
     <tspan x="10px" y="784px">
 </tspan>
@@ -116,9 +116,9 @@
 </tspan>
     <tspan x="10px" y="874px">
 </tspan>
-    <tspan x="10px" y="892px"><tspan>        $ mkdir -p ~/.config/fish/completions</tspan>
+    <tspan x="10px" y="892px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ mkdir -p ~/.config/fish/completions</tspan>
 </tspan>
-    <tspan x="10px" y="910px"><tspan>        $ rustup completions fish &gt; ~/.config/fish/completions/rustup.fish</tspan>
+    <tspan x="10px" y="910px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup completions fish &gt; ~/.config/fish/completions/rustup.fish</tspan>
 </tspan>
     <tspan x="10px" y="928px">
 </tspan>
@@ -152,7 +152,7 @@
 </tspan>
     <tspan x="10px" y="1198px">
 </tspan>
-    <tspan x="10px" y="1216px"><tspan>        $ mkdir ~/.zfunc</tspan>
+    <tspan x="10px" y="1216px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ mkdir ~/.zfunc</tspan>
 </tspan>
     <tspan x="10px" y="1234px">
 </tspan>
@@ -162,7 +162,7 @@
 </tspan>
     <tspan x="10px" y="1288px">
 </tspan>
-    <tspan x="10px" y="1306px"><tspan>        fpath+=~/.zfunc</tspan>
+    <tspan x="10px" y="1306px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">fpath+=~/.zfunc</tspan>
 </tspan>
     <tspan x="10px" y="1324px">
 </tspan>
@@ -172,7 +172,7 @@
 </tspan>
     <tspan x="10px" y="1378px">
 </tspan>
-    <tspan x="10px" y="1396px"><tspan>        $ rustup completions zsh &gt; ~/.zfunc/_rustup</tspan>
+    <tspan x="10px" y="1396px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup completions zsh &gt; ~/.zfunc/_rustup</tspan>
 </tspan>
     <tspan x="10px" y="1414px">
 </tspan>
@@ -180,7 +180,7 @@
 </tspan>
     <tspan x="10px" y="1450px">
 </tspan>
-    <tspan x="10px" y="1468px"><tspan>        $ exec zsh</tspan>
+    <tspan x="10px" y="1468px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ exec zsh</tspan>
 </tspan>
     <tspan x="10px" y="1486px">
 </tspan>
@@ -220,7 +220,7 @@
 </tspan>
     <tspan x="10px" y="1810px">
 </tspan>
-    <tspan x="10px" y="1828px"><tspan>        PS C:/&gt; Test-Path $profile</tspan>
+    <tspan x="10px" y="1828px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">PS C:/&gt; Test-Path $profile</tspan>
 </tspan>
     <tspan x="10px" y="1846px">
 </tspan>
@@ -228,7 +228,7 @@
 </tspan>
     <tspan x="10px" y="1882px">
 </tspan>
-    <tspan x="10px" y="1900px"><tspan>        PS C:/&gt; New-Item -path $profile -type file -force</tspan>
+    <tspan x="10px" y="1900px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">PS C:/&gt; New-Item -path $profile -type file -force</tspan>
 </tspan>
     <tspan x="10px" y="1918px">
 </tspan>
@@ -248,9 +248,9 @@
 </tspan>
     <tspan x="10px" y="2062px">
 </tspan>
-    <tspan x="10px" y="2080px"><tspan>        PS C:/&gt; rustup completions powershell &gt;&gt;</tspan>
+    <tspan x="10px" y="2080px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">PS C:/&gt; rustup completions powershell &gt;&gt;</tspan>
 </tspan>
-    <tspan x="10px" y="2098px"><tspan>        ${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1</tspan>
+    <tspan x="10px" y="2098px"><tspan class="fg-bright-cyan bold">        ${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1</tspan>
 </tspan>
     <tspan x="10px" y="2116px">
 </tspan>
@@ -272,7 +272,7 @@
 </tspan>
     <tspan x="10px" y="2278px">
 </tspan>
-    <tspan x="10px" y="2296px"><tspan>        $ rustup completions bash cargo &gt;&gt; ~/.local/share/bash-completion/completions/cargo</tspan>
+    <tspan x="10px" y="2296px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup completions bash cargo &gt;&gt; ~/.local/share/bash-completion/completions/cargo</tspan>
 </tspan>
     <tspan x="10px" y="2314px">
 </tspan>
@@ -280,7 +280,7 @@
 </tspan>
     <tspan x="10px" y="2350px">
 </tspan>
-    <tspan x="10px" y="2368px"><tspan>        $ rustup completions zsh cargo &gt; ~/.zfunc/_cargo</tspan>
+    <tspan x="10px" y="2368px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup completions zsh cargo &gt; ~/.zfunc/_cargo</tspan>
 </tspan>
     <tspan x="10px" y="2386px">
 </tspan>
