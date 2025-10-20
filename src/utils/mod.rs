@@ -14,7 +14,7 @@ use retry::{OperationResult, retry};
 use tracing::{debug, info, warn};
 use url::Url;
 
-use crate::errors::*;
+use crate::errors::RustupError;
 use crate::process::Process;
 
 #[cfg(not(windows))]

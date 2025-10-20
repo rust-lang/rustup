@@ -635,7 +635,7 @@ impl Update {
             .components_to_install
             .iter()
             .filter(|c| {
-                use crate::dist::manifest::*;
+                use crate::dist::manifest::{Package, TargetedPackage};
                 let pkg: Option<&Package> =
                     new_manifest.get_package(c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =

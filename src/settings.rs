@@ -10,7 +10,7 @@ use tracing::info;
 
 use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::{AutoInstallMode, Profile};
-use crate::errors::*;
+use crate::errors::RustupError;
 use crate::utils;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

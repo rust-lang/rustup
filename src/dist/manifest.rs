@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     dist::{Profile, TargetTriple, ToolchainDesc, config::Config},
-    errors::*,
+    errors::RustupError,
     toolchain::DistributableToolchain,
 };
 
@@ -249,7 +249,7 @@ impl Hash for Component {
 }
 
 mod component_target {
-    use super::*;
+    use super::{Result, TargetTriple};
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S: Serializer>(

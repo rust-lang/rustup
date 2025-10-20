@@ -28,7 +28,7 @@ mod test_support {
         sync::{Arc, Mutex, MutexGuard},
     };
 
-    use super::*;
+    use super::{BufRead, Read, Stdin, StdinLock, io};
 
     // ----------------------- test support for stdin ------------------
 

@@ -152,6 +152,7 @@ unused_qualifications = "warn"
 # `dbg!()` and `todo!()` clearly shouldn't make it to production:
 dbg_macro = "warn"
 todo = "warn"
+wildcard_imports = "warn"
 
 [lib]
 name = "rustup"
