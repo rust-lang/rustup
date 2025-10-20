@@ -55,7 +55,7 @@ use crate::{
     DUP_TOOLS, TOOLS,
     cli::{
         common::{self, Confirm, PackageUpdate, ignorable_error, report_error},
-        errors::*,
+        errors::CliError,
         markdown::md,
     },
     config::Cfg,

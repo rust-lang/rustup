@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use super::manifest::Component;
-use crate::errors::*;
+use crate::errors::RustupError;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Config {

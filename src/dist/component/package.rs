@@ -14,11 +14,11 @@ use tar::EntryType;
 use tracing::{error, trace, warn};
 
 use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
-use crate::dist::component::components::*;
-use crate::dist::component::transaction::*;
+use crate::dist::component::components::{ComponentPart, ComponentPartKind, Components};
+use crate::dist::component::transaction::Transaction;
 use crate::dist::download::DownloadCfg;
 use crate::dist::temp;
-use crate::errors::*;
+use crate::errors::RustupError;
 use crate::utils;
 use crate::utils::units::Size;
 

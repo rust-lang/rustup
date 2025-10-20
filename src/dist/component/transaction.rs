@@ -17,7 +17,7 @@ use tracing::{error, info};
 
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::errors::*;
+use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
 

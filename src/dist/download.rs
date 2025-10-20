@@ -14,7 +14,7 @@ use url::Url;
 use crate::config::Cfg;
 use crate::dist::temp;
 use crate::download::{download_file, download_file_with_resume};
-use crate::errors::*;
+use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
 

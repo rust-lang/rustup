@@ -16,7 +16,7 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::HRESULT;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
-use super::super::errors::*;
+use super::super::errors::CliError;
 use super::common;
 use super::{InstallOpts, install_bins, report_error};
 use crate::cli::markdown::md;
@@ -460,7 +460,7 @@ pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
 
 fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
     use std::ptr;
-    use windows_sys::Win32::Foundation::*;
+    use windows_sys::Win32::Foundation::{LPARAM, WPARAM};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
     };

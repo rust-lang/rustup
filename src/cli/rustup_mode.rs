@@ -27,7 +27,13 @@ use crate::{
     cli::{
         common::{self, PackageUpdate, update_console_filter},
         errors::CliError,
-        help::*,
+        help::{
+            completions_help, default_help, doc_help, install_help,
+            maybe_resolvable_toolchain_arg_help, official_toolchain_arg_help, override_help,
+            override_unset_help, resolvable_local_toolchain_arg_help,
+            resolvable_toolchain_arg_help, run_help, rustup_help, show_active_toolchain_help,
+            show_help, toolchain_help, toolchain_link_help, topic_arg_help, update_help,
+        },
         self_update::{self, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
