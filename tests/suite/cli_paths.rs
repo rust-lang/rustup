@@ -267,6 +267,49 @@ error: could not amend shell profile[..]
     }
 
     #[tokio::test]
+    async fn uninstall_doesnt_modify_rcs_with_no_modify_path() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let rcs = [
+            ".bashrc",
+            ".bash_profile",
+            ".bash_login",
+            ".profile",
+            // This requires zsh to be installed, so we test it on macOS only.
+            #[cfg(target_os = "macos")]
+            ".zshenv",
+        ]
+        .map(|rc| cx.config.homedir.join(rc));
+
+        for rc in &rcs {
+            raw::write_file(rc, FAKE_RC).unwrap();
+        }
+
+        let expected = FAKE_RC.to_owned() + &source(cx.config.cargodir.display(), POSIX_SH);
+
+        cx.config.expect(&INIT_NONE).await.is_ok();
+        // sanity check
+        for rc in &rcs {
+            let new_rc = fs::read_to_string(rc).unwrap();
+            assert_eq!(
+                new_rc, expected,
+                "Rc file {rc:?} does not contain a source after rustup-init",
+            );
+        }
+
+        cx.config
+            .expect(&["rustup", "self", "uninstall", "-y", "--no-modify-path"])
+            .await
+            .is_ok();
+        for rc in &rcs {
+            let new_rc = fs::read_to_string(rc).unwrap();
+            assert_eq!(
+                new_rc, expected,
+                "Rc file {rc:?} does not contain a source after uninstall",
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn install_adds_sources_while_removing_legacy_paths() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let zdotdir = tempfile::Builder::new()
@@ -420,6 +463,30 @@ mod windows {
             .await
             .is_ok();
         assert!(!get_path_().contains(&cfg_path));
+    }
+
+    #[tokio::test]
+    async fn uninstall_doesnt_affect_path_with_no_modify_path() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let cfg_path = cx.config.cargodir.join("bin").display().to_string();
+        let get_path_ = || {
+            HSTRING::try_from(get_path().unwrap().unwrap())
+                .unwrap()
+                .to_string()
+        };
+
+        cx.config.expect(&INIT_NONE).await.is_ok();
+        cx.config
+            .expect(&["rustup", "self", "uninstall", "-y", "--no-modify-path"])
+            .await
+            .is_ok();
+        assert!(
+            get_path_().contains(cfg_path.trim_matches('"')),
+            "`{}` not in `{}`",
+            cfg_path,
+            get_path_()
+        );
     }
 
     #[tokio::test]
