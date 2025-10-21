@@ -11,9 +11,9 @@ use std::{
 };
 
 use anstream::ColorChoice;
-use anstyle::Style;
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
+use clap_cargo::style::{CONTEXT, HEADER};
 use clap_complete::Shell;
 use console::style;
 use futures_util::stream::StreamExt;
@@ -1089,15 +1089,13 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    let bold = Style::new().bold();
-
     // Print host triple
     {
         let t = cfg.process.stdout();
         let mut t = t.lock();
         writeln!(
             t,
-            "{bold}Default host: {bold:#}{}",
+            "{HEADER}Default host: {HEADER:#}{}",
             cfg.get_default_host_triple()?
         )?;
     }
@@ -1108,7 +1106,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         let mut t = t.lock();
         writeln!(
             t,
-            "{bold}rustup home:  {bold:#}{}",
+            "{HEADER}rustup home:  {HEADER:#}{}",
             cfg.rustup_dir.display()
         )?;
         writeln!(t)?;
@@ -1163,7 +1161,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
                 (false, false) => "",
             };
 
-            writeln!(t.lock(), "{toolchain_name}{status_str}")?;
+            writeln!(t.lock(), "{toolchain_name}{CONTEXT}{status_str}{CONTEXT:#}")?;
 
             if verbose {
                 let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
@@ -1216,11 +1214,10 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     }
 
     fn print_header(t: &mut ColorableTerminal, text: &str) -> Result<(), Error> {
-        let bold = Style::new().bold();
         let divider = "-".repeat(text.len());
         let mut term_lock = t.lock();
-        writeln!(term_lock, "{bold}{text}{bold:#}")?;
-        writeln!(term_lock, "{bold}{divider}{bold:#}")?;
+        writeln!(term_lock, "{HEADER}{text}{HEADER:#}")?;
+        writeln!(term_lock, "{HEADER}{divider}{HEADER:#}")?;
         Ok(())
     }
 
