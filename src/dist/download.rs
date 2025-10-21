@@ -194,7 +194,7 @@ impl<'a> DownloadCfg<'a> {
         let progress = ProgressBar::hidden();
         progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>12.bold}  [{bar:30}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -260,7 +260,7 @@ impl DownloadStatus {
         *retry_time = None;
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>12.bold}  [{bar:30}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -269,7 +269,7 @@ impl DownloadStatus {
 
     pub(crate) fn finished(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  pending installation")
+            ProgressStyle::with_template("{msg:>12.bold}  pending installation {total_bytes:>10}")
                 .unwrap(),
         );
         self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
@@ -293,7 +293,7 @@ impl DownloadStatus {
     pub(crate) fn installing(&self) {
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  installing {spinner:.green}",
+                "{msg:>12.bold}  installing {spinner:.green} {total_bytes:>18}",
             )
             .unwrap()
             .tick_chars(r"|/-\ "),
@@ -303,7 +303,7 @@ impl DownloadStatus {
 
     pub(crate) fn installed(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  installed").unwrap(),
+            ProgressStyle::with_template("{msg:>12.bold}  installed {total_bytes:>21}").unwrap(),
         );
         self.progress.finish();
     }
