@@ -744,17 +744,7 @@ impl<'a> ComponentBinary<'a> {
         let short_pkg_name = component.short_name_in_manifest();
         let short_name = component.short_name(new_manifest);
 
-        match &component.target {
-            Some(t) if t != &manifestation.target_triple => {
-                info!("installing component {short_name}");
-            }
-            _ => {
-                info!(
-                    "installing component {short_name} for target {}",
-                    manifestation.target_triple
-                )
-            }
-        }
+        self.status.installing();
 
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
         let package = match self.binary.compression {
@@ -769,11 +759,13 @@ impl<'a> ComponentBinary<'a> {
             return Err(RustupError::CorruptComponent(short_name).into());
         }
 
-        package.install(
+        let tx = package.install(
             &manifestation.installation,
             &pkg_name,
             Some(short_pkg_name),
             tx,
-        )
+        );
+        self.status.installed();
+        tx
     }
 }

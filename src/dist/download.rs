@@ -269,10 +269,10 @@ impl DownloadStatus {
 
     pub(crate) fn finished(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
+            ProgressStyle::with_template("{msg:>12.bold}  pending installation")
                 .unwrap(),
         );
-        self.progress.finish();
+        self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
     }
 
     pub(crate) fn failed(&self) {
@@ -285,8 +285,27 @@ impl DownloadStatus {
 
     pub(crate) fn retrying(&self) {
         *self.retry_time.lock().unwrap() = Some(Instant::now());
-        self.progress
-            .set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
+        self.progress.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  retrying download...").unwrap(),
+        );
+    }
+
+    pub(crate) fn installing(&self) {
+        self.progress.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  installing {spinner:.green}",
+            )
+            .unwrap()
+            .tick_chars(r"|/-\ "),
+        );
+        self.progress.enable_steady_tick(Duration::from_millis(100));
+    }
+
+    pub(crate) fn installed(&self) {
+        self.progress.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  installed").unwrap(),
+        );
+        self.progress.finish();
     }
 }
 
