@@ -118,6 +118,13 @@ pub(crate) fn toolchain_help() -> String {
     )
 }
 
+pub(crate) fn toolchain_install_help() -> String {
+    format!(
+        r"{HEADER}Discussion:{HEADER:#}
+{TOOLCHAIN_INSTALL_HINT}"
+    )
+}
+
 pub(crate) fn toolchain_link_help() -> String {
     format!(
         r"{HEADER}Discussion:{HEADER:#}
@@ -362,3 +369,13 @@ pub(crate) fn topic_arg_help() -> &'static str {
 }
 
 const SUBHEADER: Style = Style::new().bold();
+
+const TOOLCHAIN_INSTALL_HINT: &str =
+    "    Some environment variables allow you to customize certain parameters
+    in toolchain installation, including:
+
+    - `RUSTUP_CONCURRENT_DOWNLOADS`: the number of concurrent downloads.
+    - `RUSTUP_DOWNLOAD_TIMEOUT`: the download timeout in seconds.
+
+    See <https://rust-lang.github.io/rustup/devel/environment-variables.html>
+    for more info.";
