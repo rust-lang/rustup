@@ -32,7 +32,8 @@ use crate::{
             maybe_resolvable_toolchain_arg_help, official_toolchain_arg_help, override_help,
             override_unset_help, resolvable_local_toolchain_arg_help,
             resolvable_toolchain_arg_help, run_help, rustup_help, show_active_toolchain_help,
-            show_help, toolchain_help, toolchain_link_help, topic_arg_help, update_help,
+            show_help, toolchain_help, toolchain_install_help, toolchain_link_help, topic_arg_help,
+            update_help,
         },
         self_update::{self, SelfUpdateMode, check_rustup_update},
         topical_doc,
@@ -331,7 +332,7 @@ enum ToolchainSubcmd {
     },
 
     /// Install or update the given toolchains, or by default the active toolchain
-    #[command(aliases = ["update", "add"] )]
+    #[command(aliases = ["update", "add"], after_help = toolchain_install_help())]
     Install {
         #[command(flatten)]
         opts: UpdateOpts,
