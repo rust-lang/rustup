@@ -194,7 +194,7 @@ impl<'a> DownloadCfg<'a> {
         let progress = ProgressBar::hidden();
         progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>12.bold}  [{bar:30}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -260,7 +260,7 @@ impl DownloadStatus {
         *retry_time = None;
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:40}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>12.bold}  [{bar:30}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -269,10 +269,10 @@ impl DownloadStatus {
 
     pub(crate) fn finished(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  downloaded {total_bytes} in {elapsed}")
+            ProgressStyle::with_template("{msg:>12.bold}  pending installation {total_bytes:>10}")
                 .unwrap(),
         );
-        self.progress.finish();
+        self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
     }
 
     pub(crate) fn failed(&self) {
@@ -285,8 +285,27 @@ impl DownloadStatus {
 
     pub(crate) fn retrying(&self) {
         *self.retry_time.lock().unwrap() = Some(Instant::now());
-        self.progress
-            .set_style(ProgressStyle::with_template("{msg:>12.bold}  retrying download").unwrap());
+        self.progress.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  retrying download...").unwrap(),
+        );
+    }
+
+    pub(crate) fn installing(&self) {
+        self.progress.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  installing {spinner:.green} {total_bytes:>18}",
+            )
+            .unwrap()
+            .tick_chars(r"|/-\ "),
+        );
+        self.progress.enable_steady_tick(Duration::from_millis(100));
+    }
+
+    pub(crate) fn installed(&self) {
+        self.progress.set_style(
+            ProgressStyle::with_template("{msg:>12.bold}  installed {total_bytes:>21}").unwrap(),
+        );
+        self.progress.finish();
     }
 }
 
