@@ -52,35 +52,35 @@
 </tspan>
     <tspan x="10px" y="298px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="316px"><tspan>    With no toolchain specified, the `update` command updates each of</tspan>
+    <tspan x="10px" y="316px"><tspan>  With no toolchain specified, the `update` command updates each of</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>    the installed toolchains from the official release channels, then</tspan>
+    <tspan x="10px" y="334px"><tspan>  the installed toolchains from the official release channels, then</tspan>
 </tspan>
-    <tspan x="10px" y="352px"><tspan>    updates rustup itself.</tspan>
+    <tspan x="10px" y="352px"><tspan>  updates rustup itself.</tspan>
 </tspan>
     <tspan x="10px" y="370px">
 </tspan>
-    <tspan x="10px" y="388px"><tspan>    If given a toolchain argument then `update` updates that</tspan>
+    <tspan x="10px" y="388px"><tspan>  If given a toolchain argument then `update` updates that</tspan>
 </tspan>
-    <tspan x="10px" y="406px"><tspan>    toolchain, the same as `rustup toolchain install`.</tspan>
+    <tspan x="10px" y="406px"><tspan>  toolchain, the same as `rustup toolchain install`.</tspan>
 </tspan>
     <tspan x="10px" y="424px">
 </tspan>
-    <tspan x="10px" y="442px"><tspan>    Some environment variables allow you to customize certain parameters</tspan>
+    <tspan x="10px" y="442px"><tspan>  Some environment variables allow you to customize certain parameters</tspan>
 </tspan>
-    <tspan x="10px" y="460px"><tspan>    in toolchain installation, including:</tspan>
+    <tspan x="10px" y="460px"><tspan>  in toolchain installation, including:</tspan>
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>    - `RUSTUP_CONCURRENT_DOWNLOADS`: the number of concurrent downloads.</tspan>
+    <tspan x="10px" y="496px"><tspan>  - `RUSTUP_CONCURRENT_DOWNLOADS`: the number of concurrent downloads.</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan>    - `RUSTUP_DOWNLOAD_TIMEOUT`: the download timeout in seconds.</tspan>
+    <tspan x="10px" y="514px"><tspan>  - `RUSTUP_DOWNLOAD_TIMEOUT`: the download timeout in seconds.</tspan>
 </tspan>
     <tspan x="10px" y="532px">
 </tspan>
-    <tspan x="10px" y="550px"><tspan>    See &lt;https://rust-lang.github.io/rustup/devel/environment-variables.html&gt;</tspan>
+    <tspan x="10px" y="550px"><tspan>  See &lt;https://rust-lang.github.io/rustup/devel/environment-variables.html&gt;</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>    for more info.</tspan>
+    <tspan x="10px" y="568px"><tspan>  for more info.</tspan>
 </tspan>
     <tspan x="10px" y="586px">
 </tspan>

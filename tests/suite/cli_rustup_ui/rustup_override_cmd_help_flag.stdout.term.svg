@@ -48,43 +48,43 @@
 </tspan>
     <tspan x="10px" y="262px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan>    Overrides configure Rustup to use a specific toolchain when</tspan>
+    <tspan x="10px" y="280px"><tspan>  Overrides configure Rustup to use a specific toolchain when</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>    running in a specific directory.</tspan>
+    <tspan x="10px" y="298px"><tspan>  running in a specific directory.</tspan>
 </tspan>
     <tspan x="10px" y="316px">
 </tspan>
-    <tspan x="10px" y="334px"><tspan>    Directories can be assigned their own Rust toolchain with `rustup</tspan>
+    <tspan x="10px" y="334px"><tspan>  Directories can be assigned their own Rust toolchain with `rustup</tspan>
 </tspan>
-    <tspan x="10px" y="352px"><tspan>    override`. When a directory has an override then any time `rustc`</tspan>
+    <tspan x="10px" y="352px"><tspan>  override`. When a directory has an override then any time `rustc`</tspan>
 </tspan>
-    <tspan x="10px" y="370px"><tspan>    or `cargo` is run inside that directory, or one of its child</tspan>
+    <tspan x="10px" y="370px"><tspan>  or `cargo` is run inside that directory, or one of its child</tspan>
 </tspan>
-    <tspan x="10px" y="388px"><tspan>    directories, the override toolchain will be invoked.</tspan>
+    <tspan x="10px" y="388px"><tspan>  directories, the override toolchain will be invoked.</tspan>
 </tspan>
     <tspan x="10px" y="406px">
 </tspan>
-    <tspan x="10px" y="424px"><tspan>    To pin to a specific nightly:</tspan>
+    <tspan x="10px" y="424px"><tspan>  To pin to a specific nightly:</tspan>
 </tspan>
     <tspan x="10px" y="442px">
 </tspan>
-    <tspan x="10px" y="460px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup override set nightly-2014-12-18</tspan>
+    <tspan x="10px" y="460px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup override set nightly-2014-12-18</tspan>
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>    Or a specific stable release:</tspan>
+    <tspan x="10px" y="496px"><tspan>  Or a specific stable release:</tspan>
 </tspan>
     <tspan x="10px" y="514px">
 </tspan>
-    <tspan x="10px" y="532px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup override set 1.0.0</tspan>
+    <tspan x="10px" y="532px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup override set 1.0.0</tspan>
 </tspan>
     <tspan x="10px" y="550px">
 </tspan>
-    <tspan x="10px" y="568px"><tspan>    To see the active toolchain use `rustup show`. To remove the</tspan>
+    <tspan x="10px" y="568px"><tspan>  To see the active toolchain use `rustup show`. To remove the</tspan>
 </tspan>
-    <tspan x="10px" y="586px"><tspan>    override and use the default toolchain again, `rustup override</tspan>
+    <tspan x="10px" y="586px"><tspan>  override and use the default toolchain again, `rustup override</tspan>
 </tspan>
-    <tspan x="10px" y="604px"><tspan>    unset`.</tspan>
+    <tspan x="10px" y="604px"><tspan>  unset`.</tspan>
 </tspan>
     <tspan x="10px" y="622px">
 </tspan>

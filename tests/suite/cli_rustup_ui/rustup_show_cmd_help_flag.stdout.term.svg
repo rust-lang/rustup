@@ -50,19 +50,19 @@
 </tspan>
     <tspan x="10px" y="280px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>    Shows the name of the active toolchain and the version of `rustc`.</tspan>
+    <tspan x="10px" y="298px"><tspan>  Shows the name of the active toolchain and the version of `rustc`.</tspan>
 </tspan>
     <tspan x="10px" y="316px">
 </tspan>
-    <tspan x="10px" y="334px"><tspan>    If the active toolchain has installed support for additional</tspan>
+    <tspan x="10px" y="334px"><tspan>  If the active toolchain has installed support for additional</tspan>
 </tspan>
-    <tspan x="10px" y="352px"><tspan>    compilation targets, then they are listed as well.</tspan>
+    <tspan x="10px" y="352px"><tspan>  compilation targets, then they are listed as well.</tspan>
 </tspan>
     <tspan x="10px" y="370px">
 </tspan>
-    <tspan x="10px" y="388px"><tspan>    If there are multiple toolchains installed then all installed</tspan>
+    <tspan x="10px" y="388px"><tspan>  If there are multiple toolchains installed then all installed</tspan>
 </tspan>
-    <tspan x="10px" y="406px"><tspan>    toolchains are listed as well.</tspan>
+    <tspan x="10px" y="406px"><tspan>  toolchains are listed as well.</tspan>
 </tspan>
     <tspan x="10px" y="424px">
 </tspan>
