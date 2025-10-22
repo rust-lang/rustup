@@ -64,21 +64,21 @@
 </tspan>
     <tspan x="10px" y="406px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="424px"><tspan>    Some environment variables allow you to customize certain parameters</tspan>
+    <tspan x="10px" y="424px"><tspan>  Some environment variables allow you to customize certain parameters</tspan>
 </tspan>
-    <tspan x="10px" y="442px"><tspan>    in toolchain installation, including:</tspan>
+    <tspan x="10px" y="442px"><tspan>  in toolchain installation, including:</tspan>
 </tspan>
     <tspan x="10px" y="460px">
 </tspan>
-    <tspan x="10px" y="478px"><tspan>    - `RUSTUP_CONCURRENT_DOWNLOADS`: the number of concurrent downloads.</tspan>
+    <tspan x="10px" y="478px"><tspan>  - `RUSTUP_CONCURRENT_DOWNLOADS`: the number of concurrent downloads.</tspan>
 </tspan>
-    <tspan x="10px" y="496px"><tspan>    - `RUSTUP_DOWNLOAD_TIMEOUT`: the download timeout in seconds.</tspan>
+    <tspan x="10px" y="496px"><tspan>  - `RUSTUP_DOWNLOAD_TIMEOUT`: the download timeout in seconds.</tspan>
 </tspan>
     <tspan x="10px" y="514px">
 </tspan>
-    <tspan x="10px" y="532px"><tspan>    See &lt;https://rust-lang.github.io/rustup/devel/environment-variables.html&gt;</tspan>
+    <tspan x="10px" y="532px"><tspan>  See &lt;https://rust-lang.github.io/rustup/devel/environment-variables.html&gt;</tspan>
 </tspan>
-    <tspan x="10px" y="550px"><tspan>    for more info.</tspan>
+    <tspan x="10px" y="550px"><tspan>  for more info.</tspan>
 </tspan>
     <tspan x="10px" y="568px">
 </tspan>

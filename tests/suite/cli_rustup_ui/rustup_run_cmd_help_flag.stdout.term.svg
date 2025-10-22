@@ -48,31 +48,31 @@
 </tspan>
     <tspan x="10px" y="262px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan>    Configures an environment to use the given toolchain and then runs</tspan>
+    <tspan x="10px" y="280px"><tspan>  Configures an environment to use the given toolchain and then runs</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>    the specified program. The command may be any program, not just</tspan>
+    <tspan x="10px" y="298px"><tspan>  the specified program. The command may be any program, not just</tspan>
 </tspan>
-    <tspan x="10px" y="316px"><tspan>    rustc or cargo. This can be used for testing arbitrary toolchains</tspan>
+    <tspan x="10px" y="316px"><tspan>  rustc or cargo. This can be used for testing arbitrary toolchains</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>    without setting an override.</tspan>
+    <tspan x="10px" y="334px"><tspan>  without setting an override.</tspan>
 </tspan>
     <tspan x="10px" y="352px">
 </tspan>
-    <tspan x="10px" y="370px"><tspan>    Commands explicitly proxied by `rustup` (such as `rustc` and</tspan>
+    <tspan x="10px" y="370px"><tspan>  Commands explicitly proxied by `rustup` (such as `rustc` and</tspan>
 </tspan>
-    <tspan x="10px" y="388px"><tspan>    `cargo`) also have a shorthand for this available. The toolchain</tspan>
+    <tspan x="10px" y="388px"><tspan>  `cargo`) also have a shorthand for this available. The toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="406px"><tspan>    can be set by using `+toolchain` as the first argument. These are</tspan>
+    <tspan x="10px" y="406px"><tspan>  can be set by using `+toolchain` as the first argument. These are</tspan>
 </tspan>
-    <tspan x="10px" y="424px"><tspan>    equivalent:</tspan>
+    <tspan x="10px" y="424px"><tspan>  equivalent:</tspan>
 </tspan>
     <tspan x="10px" y="442px">
 </tspan>
-    <tspan x="10px" y="460px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ cargo +nightly build</tspan>
+    <tspan x="10px" y="460px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ cargo +nightly build</tspan>
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup run nightly cargo build</tspan>
+    <tspan x="10px" y="496px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup run nightly cargo build</tspan>
 </tspan>
     <tspan x="10px" y="514px">
 </tspan>

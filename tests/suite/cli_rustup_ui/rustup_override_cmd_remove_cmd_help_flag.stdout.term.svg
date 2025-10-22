@@ -40,15 +40,15 @@
 </tspan>
     <tspan x="10px" y="190px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="208px"><tspan>    If `--path` argument is present, removes the override toolchain</tspan>
+    <tspan x="10px" y="208px"><tspan>  If `--path` argument is present, removes the override toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan>    for the specified directory. If `--nonexistent` argument is</tspan>
+    <tspan x="10px" y="226px"><tspan>  for the specified directory. If `--nonexistent` argument is</tspan>
 </tspan>
-    <tspan x="10px" y="244px"><tspan>    present, removes the override toolchain for all nonexistent</tspan>
+    <tspan x="10px" y="244px"><tspan>  present, removes the override toolchain for all nonexistent</tspan>
 </tspan>
-    <tspan x="10px" y="262px"><tspan>    directories. Otherwise, removes the override toolchain for the</tspan>
+    <tspan x="10px" y="262px"><tspan>  directories. Otherwise, removes the override toolchain for the</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan>    current directory.</tspan>
+    <tspan x="10px" y="280px"><tspan>  current directory.</tspan>
 </tspan>
     <tspan x="10px" y="298px">
 </tspan>

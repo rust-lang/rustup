@@ -88,21 +88,21 @@
 </tspan>
     <tspan x="10px" y="622px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="640px"><tspan>    Rustup installs The Rust Programming Language from the official</tspan>
+    <tspan x="10px" y="640px"><tspan>  Rustup installs The Rust Programming Language from the official</tspan>
 </tspan>
-    <tspan x="10px" y="658px"><tspan>    release channels, enabling you to easily switch between stable,</tspan>
+    <tspan x="10px" y="658px"><tspan>  release channels, enabling you to easily switch between stable,</tspan>
 </tspan>
-    <tspan x="10px" y="676px"><tspan>    beta, and nightly compilers and keep them updated. It makes</tspan>
+    <tspan x="10px" y="676px"><tspan>  beta, and nightly compilers and keep them updated. It makes</tspan>
 </tspan>
-    <tspan x="10px" y="694px"><tspan>    cross-compiling simpler with binary builds of the standard library</tspan>
+    <tspan x="10px" y="694px"><tspan>  cross-compiling simpler with binary builds of the standard library</tspan>
 </tspan>
-    <tspan x="10px" y="712px"><tspan>    for common platforms.</tspan>
+    <tspan x="10px" y="712px"><tspan>  for common platforms.</tspan>
 </tspan>
     <tspan x="10px" y="730px">
 </tspan>
-    <tspan x="10px" y="748px"><tspan>    If you are new to Rust consider running `rustup doc --book` to</tspan>
+    <tspan x="10px" y="748px"><tspan>  If you are new to Rust consider running `rustup doc --book` to</tspan>
 </tspan>
-    <tspan x="10px" y="766px"><tspan>    learn Rust.</tspan>
+    <tspan x="10px" y="766px"><tspan>  learn Rust.</tspan>
 </tspan>
     <tspan x="10px" y="784px">
 </tspan>

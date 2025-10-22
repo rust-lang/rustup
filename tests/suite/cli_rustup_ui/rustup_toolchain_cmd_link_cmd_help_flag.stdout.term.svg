@@ -44,43 +44,43 @@
 </tspan>
     <tspan x="10px" y="226px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="244px"><tspan>    'toolchain' is the custom name to be assigned to the new toolchain.</tspan>
+    <tspan x="10px" y="244px"><tspan>  'toolchain' is the custom name to be assigned to the new toolchain.</tspan>
 </tspan>
-    <tspan x="10px" y="262px"><tspan>    Any name is permitted as long as:</tspan>
+    <tspan x="10px" y="262px"><tspan>  Any name is permitted as long as:</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan>    - it does not include '/' or '/' except as the last character</tspan>
+    <tspan x="10px" y="280px"><tspan>  - it does not include '/' or '/' except as the last character</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>    - it is not equal to 'none'</tspan>
+    <tspan x="10px" y="298px"><tspan>  - it is not equal to 'none'</tspan>
 </tspan>
-    <tspan x="10px" y="316px"><tspan>    - it does not fully match an initialsubstring of a standard release channel.</tspan>
+    <tspan x="10px" y="316px"><tspan>  - it does not fully match an initialsubstring of a standard release channel.</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>    For example, you can use the names 'latest' or '2017-04-01' but you cannot</tspan>
+    <tspan x="10px" y="334px"><tspan>  For example, you can use the names 'latest' or '2017-04-01' but you cannot</tspan>
 </tspan>
-    <tspan x="10px" y="352px"><tspan>    use 'stable' or 'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.</tspan>
+    <tspan x="10px" y="352px"><tspan>  use 'stable' or 'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.</tspan>
 </tspan>
     <tspan x="10px" y="370px">
 </tspan>
-    <tspan x="10px" y="388px"><tspan>    'path' specifies the directory where the binaries and libraries for</tspan>
+    <tspan x="10px" y="388px"><tspan>  'path' specifies the directory where the binaries and libraries for</tspan>
 </tspan>
-    <tspan x="10px" y="406px"><tspan>    the custom toolchain can be found. For example, when used for</tspan>
+    <tspan x="10px" y="406px"><tspan>  the custom toolchain can be found. For example, when used for</tspan>
 </tspan>
-    <tspan x="10px" y="424px"><tspan>    development of Rust itself, toolchains can be linked directly out of</tspan>
+    <tspan x="10px" y="424px"><tspan>  development of Rust itself, toolchains can be linked directly out of</tspan>
 </tspan>
-    <tspan x="10px" y="442px"><tspan>    the build directory. After building, you can test out different</tspan>
+    <tspan x="10px" y="442px"><tspan>  the build directory. After building, you can test out different</tspan>
 </tspan>
-    <tspan x="10px" y="460px"><tspan>    compiler versions as follows:</tspan>
+    <tspan x="10px" y="460px"><tspan>  compiler versions as follows:</tspan>
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1</tspan>
+    <tspan x="10px" y="496px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan>        </tspan><tspan class="fg-bright-cyan bold">$ rustup override set latest-stage1</tspan>
+    <tspan x="10px" y="514px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup override set latest-stage1</tspan>
 </tspan>
     <tspan x="10px" y="532px">
 </tspan>
-    <tspan x="10px" y="550px"><tspan>    If you now compile a crate in the current directory, the custom</tspan>
+    <tspan x="10px" y="550px"><tspan>  If you now compile a crate in the current directory, the custom</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>    toolchain 'latest-stage1' will be used.</tspan>
+    <tspan x="10px" y="568px"><tspan>  toolchain 'latest-stage1' will be used.</tspan>
 </tspan>
     <tspan x="10px" y="586px">
 </tspan>
