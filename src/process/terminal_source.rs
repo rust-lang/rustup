@@ -59,6 +59,10 @@ impl ColorableTerminal {
             StreamSelector::Stdout => TerminalInner::Stdout(AutoStream::new(io::stdout(), choice)),
             StreamSelector::Stderr => TerminalInner::Stderr(AutoStream::new(io::stderr(), choice)),
             #[cfg(feature = "test")]
+            StreamSelector::TestWriter(w) if choice == ColorChoice::Always => {
+                TerminalInner::StyledTestWriter(w)
+            }
+            #[cfg(feature = "test")]
             StreamSelector::TestWriter(w) => TerminalInner::TestWriter(StripStream::new(w)),
         };
         let width = process
@@ -83,6 +87,10 @@ impl ColorableTerminal {
                 s.as_inner().lock(),
                 self.color_choice,
             )),
+            #[cfg(feature = "test")]
+            TerminalInner::StyledTestWriter(w) => {
+                ColorableTerminalLocked::StyledTestWriter(Box::new(w.clone()))
+            }
             #[cfg(feature = "test")]
             TerminalInner::TestWriter(w) => ColorableTerminalLocked::TestWriter(StripStream::new(
                 Box::new(w.as_inner().clone()),
@@ -189,6 +197,8 @@ pub enum ColorableTerminalLocked {
     Stdout(AutoStream<io::StdoutLock<'static>>),
     Stderr(AutoStream<io::StderrLock<'static>>),
     #[cfg(feature = "test")]
+    StyledTestWriter(Box<dyn Write>),
+    #[cfg(feature = "test")]
     TestWriter(StripStream<Box<dyn Write>>),
 }
 
@@ -197,6 +207,8 @@ impl ColorableTerminalLocked {
         match self {
             Self::Stdout(s) => s,
             Self::Stderr(s) => s,
+            #[cfg(feature = "test")]
+            Self::StyledTestWriter(w) => w,
             #[cfg(feature = "test")]
             Self::TestWriter(w) => w,
         }
@@ -229,6 +241,8 @@ impl Write for ColorableTerminalLocked {
 enum TerminalInner {
     Stdout(AutoStream<io::Stdout>),
     Stderr(AutoStream<io::Stderr>),
+    #[cfg(feature = "test")]
+    StyledTestWriter(TestWriter),
     #[cfg(feature = "test")]
     TestWriter(StripStream<TestWriter>),
 }
