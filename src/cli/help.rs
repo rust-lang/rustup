@@ -58,9 +58,7 @@ pub(crate) fn update_help() -> String {
 pub(crate) fn install_help() -> String {
     format!(
         r"{HEADER}Discussion:{HEADER:#}
-    Installs a specific rust toolchain.
-
-    The 'install' command is an alias for 'rustup update <toolchain>'."
+    The 'install' command is an alias for 'rustup toolchain install'."
     )
 }
 
