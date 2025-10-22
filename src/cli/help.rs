@@ -49,7 +49,9 @@ pub(crate) fn update_help() -> String {
     updates rustup itself.
 
     If given a toolchain argument then `update` updates that
-    toolchain, the same as `rustup toolchain install`."
+    toolchain, the same as `rustup toolchain install`.
+
+{TOOLCHAIN_INSTALL_HINT}"
     )
 }
 
