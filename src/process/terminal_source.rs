@@ -59,7 +59,7 @@ impl ColorableTerminal {
             StreamSelector::Stdout => TerminalInner::Stdout(AutoStream::new(io::stdout(), choice)),
             StreamSelector::Stderr => TerminalInner::Stderr(AutoStream::new(io::stderr(), choice)),
             #[cfg(feature = "test")]
-            StreamSelector::TestWriter(w) => TerminalInner::TestWriter(w),
+            StreamSelector::TestWriter(w) => TerminalInner::TestWriter(StripStream::new(w)),
         };
         let width = process
             .var("RUSTUP_TERM_WIDTH")
@@ -84,9 +84,9 @@ impl ColorableTerminal {
                 self.color_choice,
             )),
             #[cfg(feature = "test")]
-            TerminalInner::TestWriter(w) => {
-                ColorableTerminalLocked::TestWriter(StripStream::new(Box::new(w.clone())))
-            }
+            TerminalInner::TestWriter(w) => ColorableTerminalLocked::TestWriter(StripStream::new(
+                Box::new(w.as_inner().clone()),
+            )),
         }
     }
 
@@ -230,7 +230,7 @@ enum TerminalInner {
     Stdout(AutoStream<io::Stdout>),
     Stderr(AutoStream<io::Stderr>),
     #[cfg(feature = "test")]
-    TestWriter(TestWriter),
+    TestWriter(StripStream<TestWriter>),
 }
 
 /// Select what stream to make a terminal on
