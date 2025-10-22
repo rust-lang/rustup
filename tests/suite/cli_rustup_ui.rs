@@ -1,6 +1,7 @@
 use std::fs::create_dir_all;
 use std::path::Path;
 
+use rustup::test::{CliTestContext, Scenario};
 use snapbox::Data;
 use snapbox::cmd::{Command, cargo_bin};
 
@@ -238,6 +239,26 @@ fn rustup_set_cmd_profile_cmd_help_flag() {
         "rustup_set_cmd_profile_cmd_help_flag",
         &["set", "profile", "--help"],
     );
+}
+
+#[tokio::test]
+async fn rustup_show_toolchain() {
+    let name = "rustup_show_toolchain";
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "show"], [("RUSTUP_TERM_COLOR", "always")])
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr("")
+        .is_ok();
 }
 
 #[test]
