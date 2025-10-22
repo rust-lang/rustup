@@ -244,6 +244,8 @@ error: could not amend shell profile[..]
             ".bash_profile",
             ".bash_login",
             ".profile",
+            // This requires zsh to be installed, so we test it on macOS only.
+            #[cfg(target_os = "macos")]
             ".zshenv",
         ]
         .iter()
