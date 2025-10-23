@@ -251,7 +251,7 @@ pub(super) fn list_items(
     let bold = Style::new().bold();
     for (name, installed) in items {
         if installed && !installed_only && !quiet {
-            writeln!(t, "{bold}{name} (installed){bold:#}")?;
+            writeln!(t, "{bold}{name}{bold:#} {CONTEXT}(installed){CONTEXT:#}")?;
         } else if installed || !installed_only {
             writeln!(t, "{name}")?;
         }
