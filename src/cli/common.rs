@@ -307,6 +307,13 @@ pub(crate) async fn list_toolchains(
             return Ok(());
         }
 
+        let status_str = match (is_default, is_active) {
+            (true, true) => " (active, default)",
+            (true, false) => " (default)",
+            (false, true) => " (active)",
+            (false, false) => "",
+        };
+
         let toolchain_path = cfg.toolchains_dir.join(toolchain);
         let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
         let toolchain_path = if verbose {
@@ -317,12 +324,6 @@ pub(crate) async fn list_toolchains(
             }
         } else {
             String::new()
-        };
-        let status_str = match (is_default, is_active) {
-            (true, true) => " (active, default)",
-            (true, false) => " (default)",
-            (false, true) => " (active)",
-            (false, false) => "",
         };
 
         writeln!(
