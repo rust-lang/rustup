@@ -1,0 +1,32 @@
+<svg width="740px" height="110px" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .fg { fill: #AAAAAA }
+    .bg { fill: #000000 }
+    .container {
+      padding: 0 10px;
+      line-height: 18px;
+    }
+    .bold { font-weight: bold; }
+    tspan {
+      font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+      white-space: pre;
+      line-height: 18px;
+    }
+  </style>
+
+  <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
+
+  <text xml:space="preserve" class="container fg">
+    <tspan x="10px" y="28px"><tspan class="bold">info:</tspan><tspan> syncing channel updates for nightly-[HOST_TRIPLE]</tspan>
+</tspan>
+    <tspan x="10px" y="46px"><tspan class="bold">info:</tspan><tspan> latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)</tspan>
+</tspan>
+    <tspan x="10px" y="64px"><tspan class="bold">info:</tspan><tspan> downloading component(s)</tspan>
+</tspan>
+    <tspan x="10px" y="82px"><tspan class="bold">info:</tspan><tspan> default toolchain set to nightly-[HOST_TRIPLE]</tspan>
+</tspan>
+    <tspan x="10px" y="100px">
+</tspan>
+  </text>
+
+</svg>

@@ -153,6 +153,27 @@ fn rustup_component_cmd_remove_cmd_help_flag() {
     );
 }
 
+#[tokio::test]
+async fn rustup_default() {
+    let name = "rustup_default";
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "default", "nightly"],
+            [("RUSTUP_TERM_COLOR", "always")],
+        )
+        .await
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stderr.term.svg")),
+            None,
+        ))
+        .is_ok();
+}
+
 #[test]
 fn rustup_default_cmd_help_flag() {
     test_help("rustup_default_cmd_help_flag", &["default", "--help"]);
@@ -403,6 +424,56 @@ fn rustup_toolchain_cmd_uninstall_cmd_help_flag() {
 #[test]
 fn rustup_up_cmd_help_flag() {
     test_help("rustup_up_cmd_help_flag", &["up", "--help"]);
+}
+
+#[tokio::test]
+async fn rustup_update_no_change() {
+    let name = "rustup_update_no_change";
+    let cx = CliTestContext::new(Scenario::ArchivesV2_2015_01_01).await;
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "update"], [("RUSTUP_TERM_COLOR", "always")])
+        .await
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stderr.term.svg")),
+            None,
+        ))
+        .is_ok();
+}
+
+#[tokio::test]
+async fn rustup_update_updated() {
+    let name = "rustup_update_updated";
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    cx.config
+        .expect_with_env(["rustup", "update"], [("RUSTUP_TERM_COLOR", "always")])
+        .await
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stderr.term.svg")),
+            None,
+        ))
+        .is_ok();
 }
 
 #[test]
