@@ -11,11 +11,11 @@ use std::{
 };
 
 use anstream::ColorChoice;
+use anstyle::{AnsiColor, Style};
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
 use clap_cargo::style::{CONTEXT, HEADER};
 use clap_complete::Shell;
-use console::style;
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
@@ -819,6 +819,30 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         Some(_) | None => channels_len,
     };
 
+    let bold = if use_colors {
+        Style::new().bold()
+    } else {
+        Style::new()
+    };
+
+    let error = if use_colors {
+        AnsiColor::Red.on_default().bold()
+    } else {
+        Style::new()
+    };
+
+    let good = if use_colors {
+        AnsiColor::Green.on_default().bold()
+    } else {
+        Style::new()
+    };
+
+    let warn = if use_colors {
+        AnsiColor::Yellow.on_default().bold()
+    } else {
+        Style::new()
+    };
+
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
     if channels_len > 0 {
@@ -842,40 +866,25 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
                 let dist_version = distributable.show_dist_version().await?;
                 let mut update_a = false;
 
-                let mut styled_name = style(format!("{name} - "));
-                if use_colors {
-                    styled_name = styled_name.bold();
-                }
+                let styled_name = format!("{bold}{name} - {bold:#}");
                 let message = match (current_version, dist_version) {
                     (None, None) => {
-                        let mut m = style("Cannot identify installed or update versions");
-                        if use_colors {
-                            m = m.red().bold();
-                        }
-                        format!("{styled_name}{m}")
+                        let m = "Cannot identify installed or update versions";
+                        format!("{styled_name}{error}{m}{error:#}")
                     }
                     (Some(cv), None) => {
-                        let mut m = style("Up to date");
-                        if use_colors {
-                            m = m.green().bold();
-                        }
-                        format!("{styled_name}{m} : {cv}")
+                        let m = "Up to date";
+                        format!("{styled_name}{good}{m}{good:#} : {cv}")
                     }
                     (Some(cv), Some(dv)) => {
-                        let mut m = style("Update available");
-                        if use_colors {
-                            m = m.yellow().bold();
-                        }
+                        let m = "Update available";
                         update_a = true;
-                        format!("{styled_name}{m} : {cv} -> {dv}")
+                        format!("{styled_name}{warn}{m}{warn:#} : {cv} -> {dv}")
                     }
                     (None, Some(dv)) => {
-                        let mut m = style("Update available");
-                        if use_colors {
-                            m = m.yellow().bold();
-                        }
+                        let m = "Update available";
                         update_a = true;
-                        format!("{styled_name}{m} : (Unknown version) -> {dv}")
+                        format!("{styled_name}{warn}{m}{warn:#} : (Unknown version) -> {dv}")
                     }
                 };
                 pb.set_style(ProgressStyle::with_template(message.as_str()).unwrap());
