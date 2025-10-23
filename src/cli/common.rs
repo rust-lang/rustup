@@ -327,10 +327,7 @@ pub(crate) async fn list_toolchains(
 
         writeln!(
             cfg.process.stdout().lock(),
-            "{}{}{}",
-            &toolchain,
-            status_str,
-            toolchain_path
+            "{toolchain}{status_str}{toolchain_path}",
         )?;
         Ok(())
     }
