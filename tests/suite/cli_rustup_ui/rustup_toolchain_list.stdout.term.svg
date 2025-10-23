@@ -2,10 +2,12 @@
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-blue { fill: #5555FF }
     .container {
       padding: 0 10px;
       line-height: 18px;
     }
+    .bold { font-weight: bold; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -18,7 +20,7 @@
   <text xml:space="preserve" class="container fg">
     <tspan x="10px" y="28px"><tspan>beta-2015-01-01-[HOST_TRIPLE]</tspan>
 </tspan>
-    <tspan x="10px" y="46px"><tspan>nightly-[HOST_TRIPLE] (active, default)</tspan>
+    <tspan x="10px" y="46px"><tspan>nightly-[HOST_TRIPLE]</tspan><tspan class="fg-bright-blue bold"> (active, default)</tspan>
 </tspan>
     <tspan x="10px" y="64px">
 </tspan>
