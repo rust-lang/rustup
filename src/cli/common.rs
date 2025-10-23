@@ -146,11 +146,11 @@ fn show_channel_updates(
     updates: Vec<(PackageUpdate, Result<UpdateStatus>)>,
 ) -> Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
-        let (banner, color) = match &result {
-            Ok(UpdateStatus::Installed) => ("installed", Some(AnsiColor::Green)),
-            Ok(UpdateStatus::Updated(_)) => ("updated", Some(AnsiColor::Green)),
-            Ok(UpdateStatus::Unchanged) => ("unchanged", None),
-            Err(_) => ("update failed", Some(AnsiColor::Red)),
+        let (banner, style) = match &result {
+            Ok(UpdateStatus::Installed) => ("installed", AnsiColor::Green.on_default().bold()),
+            Ok(UpdateStatus::Updated(_)) => ("updated", AnsiColor::Green.on_default().bold()),
+            Ok(UpdateStatus::Unchanged) => ("unchanged", Style::new().bold()),
+            Err(_) => ("update failed", AnsiColor::Red.on_default().bold()),
         };
 
         let (previous_version, version) = match &pkg {
@@ -185,7 +185,7 @@ fn show_channel_updates(
 
         let width = pkg.to_string().len() + 1 + banner.len();
 
-        Ok((pkg, banner, width, color, version, previous_version))
+        Ok((pkg, banner, width, style, version, previous_version))
     });
 
     let t = cfg.process.stdout();
@@ -196,14 +196,9 @@ fn show_channel_updates(
         .iter()
         .fold(0, |a, &(_, _, width, _, _, _)| cmp::max(a, width));
 
-    for (pkg, banner, width, color, version, previous_version) in data {
+    for (pkg, banner, width, style, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
-        let style = match color {
-            Some(color) => color.on_default(),
-            None => Style::new(),
-        }
-        .bold();
         let _ = write!(t, "  {padding}{style}{pkg} {banner}{style:#} - {version}");
         if let Some(previous_version) = previous_version {
             let _ = write!(t, " (from {previous_version})");
