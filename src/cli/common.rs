@@ -9,7 +9,7 @@ use std::{cmp, env};
 
 use anstyle::Style;
 use anyhow::{Context, Result, anyhow};
-use clap_cargo::style::{ERROR, UPDATE_ADDED, UPDATE_UNCHANGED, UPDATE_UPGRADED};
+use clap_cargo::style::{CONTEXT, ERROR, UPDATE_ADDED, UPDATE_UNCHANGED, UPDATE_UPGRADED};
 use git_testament::{git_testament, render_testament};
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -328,7 +328,7 @@ pub(crate) async fn list_toolchains(
 
         writeln!(
             cfg.process.stdout().lock(),
-            "{toolchain}{status_str}{toolchain_path}",
+            "{toolchain}{CONTEXT}{status_str}{CONTEXT:#}{toolchain_path}",
         )?;
         Ok(())
     }
