@@ -137,6 +137,29 @@ fn rustup_component_cmd_add_cmd_help_flag() {
     );
 }
 
+#[tokio::test]
+async fn rustup_component_list() {
+    let name = "rustup_component_list";
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(
+            ["rustup", "component", "list"],
+            [("RUSTUP_TERM_COLOR", "always")],
+        )
+        .await
+        .sort_stdout(true)
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr("")
+        .is_ok();
+}
+
 #[test]
 fn rustup_component_cmd_list_cmd_help_flag() {
     test_help(
