@@ -115,6 +115,8 @@ pub struct Config {
 pub struct Assert {
     pub output: SanitizedOutput,
     redactions: Redactions,
+    sort_stdout: bool,
+    sort_stderr: bool,
 }
 
 impl Assert {
@@ -133,7 +135,12 @@ impl Assert {
                 ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
             ])
             .expect("invalid redactions detected");
-        Self { output, redactions }
+        Self {
+            output,
+            redactions,
+            sort_stdout: false,
+            sort_stderr: false,
+        }
     }
 
     /// Extends the redaction rules used in the current assertion with new values.
@@ -157,6 +164,18 @@ impl Assert {
         self
     }
 
+    /// Sort stdout lines to gloss over platform-specific sort orders
+    pub fn sort_stdout(&mut self, yes: bool) -> &mut Self {
+        self.sort_stdout = yes;
+        self
+    }
+
+    /// Sort stderr lines to gloss over platform-specific sort orders
+    pub fn sort_stderr(&mut self, yes: bool) -> &mut Self {
+        self.sort_stderr = yes;
+        self
+    }
+
     /// Performs the redaction based on the existing rules.
     pub fn redact(&self, input: &str) -> String {
         self.redactions.redact(input)
@@ -176,7 +195,12 @@ impl Assert {
 
     /// Asserts that the command exited with the given `expected` stdout pattern.
     pub fn with_stdout(&self, expected: impl IntoData) -> &Self {
-        let stdout = self.redact(&self.output.stdout);
+        let mut stdout = self.redact(&self.output.stdout);
+        if self.sort_stdout {
+            let mut lines = stdout.lines().collect::<Vec<_>>();
+            lines.sort();
+            stdout = lines.join("\n");
+        }
         assert_data_eq!(&stdout, expected);
         self
     }
@@ -192,7 +216,12 @@ impl Assert {
 
     /// Asserts that the command exited with the given `expected` stderr pattern.
     pub fn with_stderr(&self, expected: impl IntoData) -> &Self {
-        let stderr = self.redact(&self.output.stderr);
+        let mut stderr = self.redact(&self.output.stderr);
+        if self.sort_stderr {
+            let mut lines = stderr.lines().collect::<Vec<_>>();
+            lines.sort();
+            stderr = lines.join("\n");
+        }
         assert_data_eq!(&stderr, expected);
         self
     }
