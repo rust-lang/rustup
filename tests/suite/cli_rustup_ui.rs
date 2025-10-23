@@ -67,6 +67,50 @@ fn rustup_only_options() {
     test_error("rustup_only_options", &["-q"]);
 }
 
+#[tokio::test]
+async fn rustup_check_updates_none() {
+    let name = "rustup_check_updates_none";
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "add", "stable", "beta", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "check"], [("RUSTUP_TERM_COLOR", "always")])
+        .await
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr("")
+        .is_err();
+}
+
+#[tokio::test]
+async fn rustup_check_updates_some() {
+    let name = "rustup_check_updates_some";
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable", "beta", "nightly"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    cx.config
+        .expect_with_env(["rustup", "check"], [("RUSTUP_TERM_COLOR", "always")])
+        .await
+        .with_stdout(Data::read_from(
+            Path::new(&format!("tests/suite/cli_rustup_ui/{name}.stdout.term.svg")),
+            None,
+        ))
+        .with_stderr("")
+        .is_ok();
+}
+
 #[test]
 fn rustup_check_cmd_help_flag() {
     test_help("rustup_check_cmd_help_flag", &["check", "--help"]);
