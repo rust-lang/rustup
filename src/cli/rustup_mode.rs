@@ -11,10 +11,10 @@ use std::{
 };
 
 use anstream::ColorChoice;
-use anstyle::{AnsiColor, Style};
+use anstyle::Style;
 use anyhow::{Context, Error, Result, anyhow};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
-use clap_cargo::style::{CONTEXT, HEADER};
+use clap_cargo::style::{CONTEXT, ERROR, GOOD, HEADER, TRANSIENT, WARN};
 use clap_complete::Shell;
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -825,23 +825,13 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         Style::new()
     };
 
-    let error = if use_colors {
-        AnsiColor::Red.on_default().bold()
-    } else {
-        Style::new()
-    };
+    let transient = if use_colors { TRANSIENT } else { Style::new() };
 
-    let good = if use_colors {
-        AnsiColor::Green.on_default().bold()
-    } else {
-        Style::new()
-    };
+    let error = if use_colors { ERROR } else { Style::new() };
 
-    let warn = if use_colors {
-        AnsiColor::Yellow.on_default().bold()
-    } else {
-        Style::new()
-    };
+    let good = if use_colors { GOOD } else { Style::new() };
+
+    let warn = if use_colors { WARN } else { Style::new() };
 
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
@@ -852,7 +842,9 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
             let msg = format!("{bold}{name} - {bold:#}");
             let status = "Checking...";
-            let template = format!("{{msg}}{status} {{spinner:.green}}");
+            let template = format!(
+                "{{msg}}{transient}{status}{transient:#} {transient}{{spinner}}{transient:#}"
+            );
             let pb = multi_progress_bars.add(ProgressBar::new(1));
             pb.set_style(
                 ProgressStyle::with_template(template.as_str())
