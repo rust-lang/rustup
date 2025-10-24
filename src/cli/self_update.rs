@@ -979,12 +979,15 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     Ok(())
 }
 
+/// Whether the self-update functionality is enabled during compilation.
+pub(crate) const CFG_SELF_UPDATE: bool = !cfg!(feature = "no-self-update");
+
 pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
     process: &Process,
 ) -> Result<utils::ExitCode> {
-    if cfg!(feature = "no-self-update") {
+    if !CFG_SELF_UPDATE {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
         return Ok(utils::ExitCode(1));
@@ -1169,10 +1172,10 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     use SelfUpdatePermission::*;
-    let update_permitted = if cfg!(feature = "no-self-update") {
-        HardFail
-    } else {
+    let update_permitted = if CFG_SELF_UPDATE {
         self_update_permitted(true)?
+    } else {
+        HardFail
     };
     match update_permitted {
         HardFail => {

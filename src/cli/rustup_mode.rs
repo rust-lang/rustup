@@ -35,7 +35,7 @@ use crate::{
             show_help, toolchain_help, toolchain_install_help, toolchain_link_help, topic_arg_help,
             update_help,
         },
-        self_update::{self, SelfUpdateMode, check_rustup_update},
+        self_update::{self, CFG_SELF_UPDATE, SelfUpdateMode, check_rustup_update},
         topical_doc,
     },
     command, component_for_bin,
@@ -916,9 +916,8 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
     // Check for update only if rustup does **not** have the no-self-update feature,
     // and auto-self-update is configured to **enable**
     // and has **no** no-self-update parameter.
-    let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
-        && !opts.no_self_update;
+    let self_update =
+        CFG_SELF_UPDATE && self_update_mode == SelfUpdateMode::Enable && !opts.no_self_update;
 
     if self_update && check_rustup_update(&DownloadCfg::new(cfg)).await? {
         update_available = true;
@@ -941,9 +940,8 @@ async fn update(
     // Update only if rustup does **not** have the no-self-update feature,
     // and auto-self-update is configured to **enable**
     // and has **no** no-self-update parameter.
-    let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
-        && !opts.no_self_update;
+    let self_update =
+        CFG_SELF_UPDATE && self_update_mode == SelfUpdateMode::Enable && !opts.no_self_update;
     let force_non_host = opts.force_non_host;
     cfg.profile_override = opts.profile;
 
@@ -1023,11 +1021,11 @@ async fn update(
         cfg.tmp_cx.clean();
     }
 
-    if !cfg!(feature = "no-self-update") && self_update_mode == SelfUpdateMode::CheckOnly {
+    if CFG_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
         check_rustup_update(&dl_cfg).await?;
     }
 
-    if cfg!(feature = "no-self-update") {
+    if !CFG_SELF_UPDATE {
         info!("self-update is disabled for this build of rustup");
         info!("any updates to rustup will need to be fetched with your system package manager")
     }
@@ -1828,7 +1826,7 @@ fn set_auto_self_update(
     cfg: &mut Cfg<'_>,
     auto_self_update_mode: SelfUpdateMode,
 ) -> Result<ExitCode> {
-    if cfg!(feature = "no-self-update") {
+    if !CFG_SELF_UPDATE {
         let mut args = cfg.process.args_os();
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
