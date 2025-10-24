@@ -1021,13 +1021,15 @@ async fn update(
         cfg.tmp_cx.clean();
     }
 
-    if CFG_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update(&dl_cfg).await?;
-    }
-
-    if !CFG_SELF_UPDATE {
-        info!("self-update is disabled for this build of rustup");
-        info!("any updates to rustup will need to be fetched with your system package manager")
+    match self_update_mode {
+        _ if !CFG_SELF_UPDATE => {
+            info!("self-update is disabled for this build of rustup");
+            info!("any updates to rustup will need to be fetched with your system package manager");
+        }
+        SelfUpdateMode::CheckOnly => {
+            check_rustup_update(&dl_cfg).await?;
+        }
+        _ => (),
     }
 
     Ok(exit_code)
