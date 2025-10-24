@@ -40,11 +40,12 @@ use std::process::Command;
 use std::str::FromStr;
 use std::{fmt, fs};
 
-use anstyle::{AnsiColor, Style};
+use anstyle::Style;
 use anyhow::{Context, Result, anyhow};
 use cfg_if::cfg_if;
 use clap::ValueEnum;
 use clap::builder::PossibleValue;
+use clap_cargo::style::{GOOD, WARN};
 use itertools::Itertools;
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
@@ -1398,8 +1399,8 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> Result<bool
     let available_version = get_available_rustup_version(dl_cfg).await?;
 
     let bold = Style::new().bold();
-    let yellow = AnsiColor::Yellow.on_default().bold();
-    let green = AnsiColor::Green.on_default().bold();
+    let yellow = WARN;
+    let green = GOOD;
 
     write!(t, "{bold}rustup - {bold:#}")?;
 
