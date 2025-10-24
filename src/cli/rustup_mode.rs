@@ -850,13 +850,16 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
             MultiProgress::with_draw_target(cfg.process.progress_draw_target());
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
+            let msg = format!("{bold}{name} - {bold:#}");
+            let status = "Checking...";
+            let template = format!("{{msg}}{status} {{spinner:.green}}");
             let pb = multi_progress_bars.add(ProgressBar::new(1));
             pb.set_style(
-                ProgressStyle::with_template("{msg:.bold} - Checking... {spinner:.green}")
+                ProgressStyle::with_template(template.as_str())
                     .unwrap()
                     .tick_chars(r"|/-\ "),
             );
-            pb.set_message(format!("{name}"));
+            pb.set_message(msg.clone());
             pb.enable_steady_tick(Duration::from_millis(100));
 
             let sem = semaphore.clone();
@@ -866,30 +869,29 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
                 let dist_version = distributable.show_dist_version().await?;
                 let mut update_a = false;
 
-                let styled_name = format!("{bold}{name} - {bold:#}");
-                let message = match (current_version, dist_version) {
+                let template = match (current_version, dist_version) {
                     (None, None) => {
-                        let m = "Cannot identify installed or update versions";
-                        format!("{styled_name}{error}{m}{error:#}")
+                        let status = "Cannot identify installed or update versions";
+                        format!("{msg}{error}{status}{error:#}")
                     }
                     (Some(cv), None) => {
-                        let m = "up to date";
-                        format!("{styled_name}{good}{m}{good:#}: {cv}")
+                        let status = "up to date";
+                        format!("{msg}{good}{status}{good:#}: {cv}")
                     }
                     (Some(cv), Some(dv)) => {
-                        let m = "update available";
+                        let status = "update available";
                         update_a = true;
-                        format!("{styled_name}{warn}{m}{warn:#}: {cv} -> {dv}")
+                        format!("{msg}{warn}{status}{warn:#}: {cv} -> {dv}")
                     }
                     (None, Some(dv)) => {
-                        let m = "update available";
+                        let status = "update available";
                         update_a = true;
-                        format!("{styled_name}{warn}{m}{warn:#}: (unknown version) -> {dv}")
+                        format!("{msg}{warn}{status}{warn:#}: (Unknown version) -> {dv}")
                     }
                 };
-                pb.set_style(ProgressStyle::with_template(message.as_str()).unwrap());
+                pb.set_style(ProgressStyle::with_template(template.as_str()).unwrap());
                 pb.finish();
-                Ok::<(bool, String), Error>((update_a, message))
+                Ok::<(bool, String), Error>((update_a, template))
             }
         });
 
