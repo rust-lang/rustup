@@ -1738,6 +1738,32 @@ info: it's active because: overridden by '[TOOLCHAIN_FILE]'
 }
 
 #[tokio::test]
+async fn toolchain_install_no_change_with_no_update() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    cx.config
+        .expect(["rustup", "install", "--no-update", "stable"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+
+  stable-[HOST_TRIPLE] unchanged - 1.0.0 (hash-stable-1.0.0)
+
+
+"#]])
+        .with_stderr(snapbox::str![[""]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn toolchain_update_is_like_update() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
