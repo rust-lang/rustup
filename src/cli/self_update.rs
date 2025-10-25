@@ -1125,8 +1125,34 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
     Ok(SelfUpdatePermission::Permit)
 }
 
-/// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<ExitCode> {
+/// Optionally performs a self-update: check policy, download, apply and exit.
+///
+/// Whether the self-update is executed is based on both compile-time and runtime
+/// configurations, where the priority is as follows:
+/// no-self-update feature > self update mode > CLI flag
+///
+/// i.e. update only if rustup does **not** have the no-self-update feature,
+/// and self update mode is configured to **enable**
+/// and has **no** `--no-self-update` CLI flag.
+pub(crate) async fn self_update(
+    mode: SelfUpdateMode,
+    should_self_update: bool,
+    dl_cfg: &DownloadCfg<'_>,
+) -> Result<ExitCode> {
+    if cfg!(feature = "no-self-update") {
+        info!("self-update is disabled for this build of rustup");
+        info!("any updates to rustup will need to be fetched with your system package manager");
+        return Ok(ExitCode(0));
+    }
+    match mode {
+        SelfUpdateMode::Enable if should_self_update => (),
+        SelfUpdateMode::CheckOnly => {
+            check_rustup_update(dl_cfg).await?;
+            return Ok(ExitCode(0));
+        }
+        _ => return Ok(ExitCode(0)),
+    }
+
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             error!("Unable to self-update.  STOP");

@@ -946,13 +946,7 @@ async fn update(
 
     common::warn_if_host_is_emulated(cfg.process);
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
-    // Priority: no-self-update feature > self_update_mode > no-self-update args.
-    // Update only if rustup does **not** have the no-self-update feature,
-    // and auto-self-update is configured to **enable**
-    // and has **no** no-self-update parameter.
-    let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
-        && !opts.no_self_update;
+    let should_self_update = !opts.no_self_update;
     let force_non_host = opts.force_non_host;
     cfg.profile_override = opts.profile;
 
@@ -1014,31 +1008,20 @@ async fn update(
                 cfg.set_default(Some(&desc.into()))?;
             }
         }
-        if self_update {
-            exit_code &= self_update::self_update(&dl_cfg).await?;
-        }
+        exit_code &=
+            self_update::self_update(self_update_mode, should_self_update, &dl_cfg).await?;
     } else if ensure_active_toolchain {
         let (toolchain, source) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {}", source.to_reason());
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
-        if self_update {
-            exit_code &= self_update::self_update(&dl_cfg).await?;
-        }
+        exit_code &=
+            self_update::self_update(self_update_mode, should_self_update, &dl_cfg).await?;
 
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         cfg.tmp_cx.clean();
-    }
-
-    if !cfg!(feature = "no-self-update") && self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update(&dl_cfg).await?;
-    }
-
-    if cfg!(feature = "no-self-update") {
-        info!("self-update is disabled for this build of rustup");
-        info!("any updates to rustup will need to be fetched with your system package manager")
     }
 
     Ok(exit_code)
