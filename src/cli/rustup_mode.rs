@@ -1035,6 +1035,7 @@ async fn update(
         let (toolchain, source) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {}", source.to_reason());
+        exit_code &= self_update().await?;
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
         exit_code &= self_update().await?;
