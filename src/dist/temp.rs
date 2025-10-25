@@ -72,6 +72,7 @@ impl Drop for File {
     }
 }
 
+#[derive(Clone)]
 pub struct Context {
     root_directory: PathBuf,
     pub dist_server: String,

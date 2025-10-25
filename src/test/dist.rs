@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use url::Url;
 
@@ -54,15 +54,19 @@ impl DistContext {
         })
     }
 
-    pub fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage)> {
+    pub fn start(&self) -> anyhow::Result<(Transaction, Components, DirectoryPackage)> {
         let tx = self.transaction();
         let components = Components::open(self.prefix.clone())?;
         let pkg = DirectoryPackage::new(self.pkg_dir.path().to_owned(), true)?;
         Ok((tx, components, pkg))
     }
 
-    pub fn transaction(&self) -> Transaction<'_> {
-        Transaction::new(self.prefix.clone(), &self.cx, &self.tp.process)
+    pub fn transaction(&self) -> Transaction {
+        Transaction::new(
+            self.prefix.clone(),
+            Arc::new(self.cx.clone()),
+            Arc::new(self.tp.process.clone()),
+        )
     }
 }
 

@@ -2,6 +2,7 @@ use std::fmt::{self, Debug, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
@@ -238,7 +239,7 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub tmp_cx: temp::Context,
+    pub tmp_cx: Arc<temp::Context>,
     pub toolchain_override: Option<ResolvableToolchainName>,
     env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
@@ -299,7 +300,10 @@ impl<'a> Cfg<'a> {
         };
 
         let dist_root_server = dist_root_server(process)?;
-        let tmp_cx = temp::Context::new(rustup_dir.join("tmp"), dist_root_server.as_str());
+        let tmp_cx = Arc::new(temp::Context::new(
+            rustup_dir.join("tmp"),
+            dist_root_server.as_str(),
+        ));
         let dist_root = dist_root_server + "/dist";
 
         let cfg = Self {

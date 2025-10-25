@@ -9,8 +9,11 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use anyhow::{Context, Result, anyhow};
 use tracing::{error, info};
@@ -34,16 +37,16 @@ use crate::utils;
 ///
 /// All operations that create files will fail if the destination
 /// already exists.
-pub struct Transaction<'a> {
+pub struct Transaction {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem>,
-    tmp_cx: &'a temp::Context,
+    tmp_cx: Arc<temp::Context>,
     committed: bool,
-    process: &'a Process,
+    process: Arc<Process>,
 }
 
-impl<'a> Transaction<'a> {
-    pub fn new(prefix: InstallPrefix, tmp_cx: &'a temp::Context, process: &'a Process) -> Self {
+impl Transaction {
+    pub fn new(prefix: InstallPrefix, tmp_cx: Arc<temp::Context>, process: Arc<Process>) -> Self {
         Transaction {
             prefix,
             changes: Vec::new(),
@@ -92,8 +95,13 @@ impl<'a> Transaction<'a> {
     /// Remove a file from a relative path to the install prefix.
     pub fn remove_file(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item =
-            ChangedItem::remove_file(&self.prefix, component, relpath, self.tmp_cx, self.process)?;
+        let item = ChangedItem::remove_file(
+            &self.prefix,
+            component,
+            relpath,
+            self.tmp_cx.clone(),
+            &self.process,
+        )?;
         self.change(item);
         Ok(())
     }
@@ -102,8 +110,13 @@ impl<'a> Transaction<'a> {
     /// install prefix.
     pub fn remove_dir(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item =
-            ChangedItem::remove_dir(&self.prefix, component, relpath, self.tmp_cx, self.process)?;
+        let item = ChangedItem::remove_dir(
+            &self.prefix,
+            component,
+            relpath,
+            self.tmp_cx.clone(),
+            &self.process,
+        )?;
         self.change(item);
         Ok(())
     }
@@ -129,7 +142,7 @@ impl<'a> Transaction<'a> {
     /// This is used for arbitrarily manipulating a file.
     pub fn modify_file(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::modify_file(&self.prefix, relpath, self.tmp_cx)?;
+        let item = ChangedItem::modify_file(&self.prefix, relpath, self.tmp_cx.clone())?;
         self.change(item);
         Ok(())
     }
@@ -142,7 +155,7 @@ impl<'a> Transaction<'a> {
         src: &Path,
     ) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::move_file(&self.prefix, component, relpath, src, self.process)?;
+        let item = ChangedItem::move_file(&self.prefix, component, relpath, src, &self.process)?;
         self.change(item);
         Ok(())
     }
@@ -150,26 +163,26 @@ impl<'a> Transaction<'a> {
     /// Recursively move a directory to a relative path of the install prefix.
     pub(crate) fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::move_dir(&self.prefix, component, relpath, src, self.process)?;
+        let item = ChangedItem::move_dir(&self.prefix, component, relpath, src, &self.process)?;
         self.change(item);
         Ok(())
     }
 
-    pub(crate) fn temp(&self) -> &'a temp::Context {
-        self.tmp_cx
+    pub(crate) fn temp(&self) -> Arc<temp::Context> {
+        self.tmp_cx.clone()
     }
 }
 
 /// If a Transaction is dropped without being committed, the changes
 /// are automatically rolled back.
-impl Drop for Transaction<'_> {
+impl Drop for Transaction {
     fn drop(&mut self) {
         if !self.committed {
             info!("rolling back changes");
             for item in self.changes.iter().rev() {
                 // ok_ntfy!(self.notify_handler,
                 //          Notification::NonFatalError,
-                match item.roll_back(&self.prefix, self.process) {
+                match item.roll_back(&self.prefix, &self.process) {
                     Ok(()) => {}
                     Err(e) => error!("{e}"),
                 }
@@ -186,9 +199,9 @@ impl Drop for Transaction<'_> {
 enum ChangedItem {
     AddedFile(PathBuf),
     AddedDir(PathBuf),
-    RemovedFile(PathBuf, temp::File),
-    RemovedDir(PathBuf, temp::Dir),
-    ModifiedFile(PathBuf, Option<temp::File>),
+    RemovedFile(PathBuf, Arc<temp::File>),
+    RemovedDir(PathBuf, Arc<temp::Dir>),
+    ModifiedFile(PathBuf, Option<Arc<temp::File>>),
 }
 
 impl ChangedItem {
@@ -215,6 +228,7 @@ impl ChangedItem {
         }
         Ok(())
     }
+
     fn dest_abs_path(prefix: &InstallPrefix, component: &str, relpath: &Path) -> Result<PathBuf> {
         let abs_path = prefix.abs_path(relpath);
         if utils::path_exists(&abs_path) {
@@ -229,12 +243,14 @@ impl ChangedItem {
             Ok(abs_path)
         }
     }
+
     fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
         let file = File::create(&abs_path)
             .with_context(|| format!("error creating file '{}'", abs_path.display()))?;
         Ok((ChangedItem::AddedFile(relpath), file))
     }
+
     fn copy_file(
         prefix: &InstallPrefix,
         component: &str,
@@ -245,6 +261,7 @@ impl ChangedItem {
         utils::copy_file(src, &abs_path)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
+
     fn copy_dir(
         prefix: &InstallPrefix,
         component: &str,
@@ -255,11 +272,12 @@ impl ChangedItem {
         utils::copy_dir(src, &abs_path)?;
         Ok(ChangedItem::AddedDir(relpath))
     }
+
     fn remove_file(
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        tmp_cx: &temp::Context,
+        tmp_cx: Arc<temp::Context>,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
@@ -272,14 +290,15 @@ impl ChangedItem {
             .into())
         } else {
             utils::rename("component", &abs_path, &backup, process)?;
-            Ok(ChangedItem::RemovedFile(relpath, backup))
+            Ok(ChangedItem::RemovedFile(relpath, Arc::new(backup)))
         }
     }
+
     fn remove_dir(
         prefix: &InstallPrefix,
         component: &str,
         relpath: PathBuf,
-        tmp_cx: &temp::Context,
+        tmp_cx: Arc<temp::Context>,
         process: &Process,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
@@ -292,20 +311,21 @@ impl ChangedItem {
             .into())
         } else {
             utils::rename("component", &abs_path, &backup.join("bk"), process)?;
-            Ok(ChangedItem::RemovedDir(relpath, backup))
+            Ok(ChangedItem::RemovedDir(relpath, Arc::new(backup)))
         }
     }
+
     fn modify_file(
         prefix: &InstallPrefix,
         relpath: PathBuf,
-        tmp_cx: &temp::Context,
+        tmp_cx: Arc<temp::Context>,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
 
         if utils::is_file(&abs_path) {
             let backup = tmp_cx.new_file()?;
             utils::copy_file(&abs_path, &backup)?;
-            Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
+            Ok(ChangedItem::ModifiedFile(relpath, Some(Arc::new(backup))))
         } else {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p)?;
@@ -313,6 +333,7 @@ impl ChangedItem {
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }
     }
+
     fn move_file(
         prefix: &InstallPrefix,
         component: &str,
@@ -324,6 +345,7 @@ impl ChangedItem {
         utils::rename("component", src, &abs_path, process)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
+
     fn move_dir(
         prefix: &InstallPrefix,
         component: &str,
