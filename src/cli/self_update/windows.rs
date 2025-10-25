@@ -278,7 +278,7 @@ pub(crate) async fn try_install_msvc(
         &visual_studio,
         None,
         None,
-        dl_cfg.process,
+        &dl_cfg.process,
     )
     .await?;
 
