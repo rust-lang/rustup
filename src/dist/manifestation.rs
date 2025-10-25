@@ -7,9 +7,9 @@ mod tests;
 use std::path::Path;
 
 use anyhow::{Context, Error, Result, anyhow, bail};
-use futures_util::stream::StreamExt;
+use futures_util::stream::{FuturesUnordered, StreamExt};
 use std::sync::Arc;
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::Semaphore;
 use tracing::{info, warn};
 use url::Url;
 
@@ -228,67 +228,49 @@ impl Manifestation {
             // The `mpsc` channel was used as we need to send many messages from one producer (download's thread) to one consumer (install's thread)
             // This is recommended in the official docs: https://docs.rs/tokio/latest/tokio/sync/index.html#mpsc-channel
             let total_components = components.len();
-            let (download_tx, mut download_rx) =
-                mpsc::channel::<Result<(ComponentBinary, File)>>(total_components);
 
-            #[allow(clippy::too_many_arguments)]
-            fn component_stream(
+            fn create_download_futures(
                 components: Vec<ComponentBinary>,
                 semaphore: Arc<Semaphore>,
-                download_tx: mpsc::Sender<Result<(ComponentBinary, File)>>,
                 altered: bool,
                 dist_server: &str,
                 download_cfg: &DownloadCfg,
                 max_retries: usize,
                 new_manifest: &Manifest,
-            ) -> impl futures_util::Stream<Item = impl Future<Output = Result<String>>>
+            ) -> FuturesUnordered<impl Future<Output = Result<(ComponentBinary, File, String)>>>
             {
-                tokio_stream::iter(components).map(move |bin| {
+                let futures = FuturesUnordered::new();
+                for bin in components {
                     let sem = semaphore.clone();
-                    let download_tx = download_tx.clone();
-                    async move {
+                    let dist_server = dist_server.to_string();
+                    let download_cfg = download_cfg.clone();
+                    let new_manifest = new_manifest.clone();
+
+                    let future = async move {
                         let _permit = sem.acquire().await.unwrap();
                         let url = if altered {
                             utils::parse_url(
-                                &bin.binary.url.replace(DEFAULT_DIST_SERVER, dist_server),
+                                &bin.binary.url.replace(DEFAULT_DIST_SERVER, &dist_server),
                             )?
                         } else {
                             utils::parse_url(&bin.binary.url)?
                         };
 
                         let installer_file = bin
-                            .download(&url, download_cfg, max_retries, new_manifest)
+                            .download(&url, &download_cfg, max_retries, &new_manifest)
                             .await?;
                         let hash = bin.binary.hash.clone();
-                        let _ = download_tx.send(Ok((bin, installer_file))).await;
-                        Ok(hash)
-                    }
-                })
-            }
-
-            async fn download_handle(
-                mut stream: impl futures_util::Stream<Item = Result<String>> + Unpin,
-                download_tx: mpsc::Sender<Result<(ComponentBinary, File)>>,
-            ) -> Vec<String> {
-                let mut hashes = Vec::new();
-                while let Some(result) = stream.next().await {
-                    match result {
-                        Ok(hash) => {
-                            hashes.push(hash);
-                        }
-                        Err(e) => {
-                            let _ = download_tx.send(Err(e)).await;
-                        }
-                    }
+                        Ok((bin, installer_file, hash))
+                    };
+                    futures.push(future);
                 }
-                hashes
+                futures
             }
 
             let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-            let component_stream = component_stream(
+            let mut download_stream = create_download_futures(
                 components,
                 semaphore,
-                download_tx.clone(),
                 altered,
                 tmp_cx.dist_server.as_str(),
                 &download_cfg,
@@ -296,42 +278,32 @@ impl Manifestation {
                 &new_manifest,
             );
 
-            let stream = component_stream.buffered(components_len);
-            let download_handle = download_handle(stream, download_tx.clone());
-            let install_handle = {
-                let new_manifest = new_manifest.clone();
-                let download_cfg = download_cfg.clone();
-                async move {
-                    let mut current_tx = tx;
-                    let mut counter = 0;
-                    while counter < total_components
-                        && let Some(message) = download_rx.recv().await
-                    {
-                        let (component_bin, installer_file) = message?;
-                        current_tx = tokio::task::spawn_blocking({
-                            let this = self.clone();
-                            let new_manifest = new_manifest.clone();
-                            let download_cfg = download_cfg.clone();
-                            move || {
-                                component_bin.install(
-                                    installer_file,
-                                    current_tx,
-                                    &new_manifest,
-                                    &this,
-                                    &download_cfg,
-                                )
-                            }
-                        })
-                        .await??;
-                        counter += 1;
-                    }
-                    Ok::<_, Error>(current_tx)
-                }
-            };
+            let mut counter = 0;
+            while counter < total_components {
+                if let Some(result) = download_stream.next().await {
+                    let (component_bin, installer_file, hash) = result?;
+                    things_downloaded.push(hash);
 
-            let (download_results, install_result) = tokio::join!(download_handle, install_handle);
-            things_downloaded = download_results;
-            tx = install_result?;
+                    tx = tokio::task::spawn_blocking({
+                        let this = self.clone();
+                        let new_manifest = new_manifest.clone();
+                        let download_cfg = download_cfg.clone();
+                        move || {
+                            component_bin.install(
+                                installer_file,
+                                tx,
+                                &new_manifest,
+                                &this,
+                                &download_cfg,
+                            )
+                        }
+                    })
+                    .await??;
+                    counter += 1;
+                } else {
+                    break;
+                }
+            }
         }
 
         // Install new distribution manifest
