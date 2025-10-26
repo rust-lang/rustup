@@ -28,13 +28,13 @@ pub(crate) const VERSION_FILE: &str = "rust-installer-version";
 
 pub trait Package: fmt::Debug {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
-    fn install<'a>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>>;
+        tx: Transaction,
+    ) -> Result<Transaction>;
     fn components(&self) -> Vec<String>;
 }
 
@@ -78,13 +78,13 @@ impl Package for DirectoryPackage {
                 false
             }
     }
-    fn install<'a>(
+    fn install(
         &self,
         target: &Components,
         name: &str,
         short_name: Option<&str>,
-        tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         let actual_name = if self.components.contains(name) {
             name
         } else if let Some(n) = short_name {
@@ -139,7 +139,7 @@ impl Package for DirectoryPackage {
 pub(crate) struct TarPackage(DirectoryPackage, temp::Dir);
 
 impl TarPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg) -> Result<Self> {
         let temp_dir = dl_cfg.tmp_cx.new_directory()?;
         let mut archive = tar::Archive::new(stream);
         // The rust-installer packages unpack to a directory called
@@ -159,7 +159,7 @@ impl TarPackage {
 fn unpack_ram(
     io_chunk_size: usize,
     effective_max_ram: Option<usize>,
-    dl_cfg: &DownloadCfg<'_>,
+    dl_cfg: &DownloadCfg,
 ) -> usize {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
     let minimum_ram = io_chunk_size * 2;
@@ -285,7 +285,7 @@ enum DirStatus {
 fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
-    dl_cfg: &DownloadCfg<'_>,
+    dl_cfg: &DownloadCfg,
 ) -> Result<()> {
     let entries = archive.entries()?;
     let effective_max_ram = match effective_limits::memory_limit() {
@@ -296,7 +296,7 @@ fn unpack_without_first_dir<R: Read>(
         }
     };
     let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, dl_cfg);
-    let mut io_executor: Box<dyn Executor> = get_executor(unpack_ram, dl_cfg.process)?;
+    let mut io_executor: Box<dyn Executor> = get_executor(unpack_ram, &dl_cfg.process)?;
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
@@ -530,13 +530,13 @@ impl Package for TarPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
@@ -548,7 +548,7 @@ impl Package for TarPackage {
 pub(crate) struct TarGzPackage(TarPackage);
 
 impl TarGzPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg) -> Result<Self> {
         let stream = flate2::read::GzDecoder::new(stream);
         Ok(TarGzPackage(TarPackage::new(stream, dl_cfg)?))
     }
@@ -558,13 +558,13 @@ impl Package for TarGzPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
@@ -576,7 +576,7 @@ impl Package for TarGzPackage {
 pub(crate) struct TarXzPackage(TarPackage);
 
 impl TarXzPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
         Ok(TarXzPackage(TarPackage::new(stream, dl_cfg)?))
     }
@@ -586,13 +586,13 @@ impl Package for TarXzPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
@@ -604,7 +604,7 @@ impl Package for TarXzPackage {
 pub(crate) struct TarZStdPackage(TarPackage);
 
 impl TarZStdPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
+    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg) -> Result<Self> {
         let stream = zstd::stream::read::Decoder::new(stream)?;
         Ok(TarZStdPackage(TarPackage::new(stream, dl_cfg)?))
     }
@@ -614,13 +614,13 @@ impl Package for TarZStdPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }
-    fn install<'b>(
+    fn install(
         &self,
         target: &Components,
         component: &str,
         short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         self.0.install(target, component, short_name, tx)
     }
     fn components(&self) -> Vec<String> {
