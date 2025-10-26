@@ -50,7 +50,6 @@ use same_file::Handle;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, trace, warn};
 
-use crate::dist::download::DownloadCfg;
 use crate::{
     DUP_TOOLS, TOOLS,
     cli::{
@@ -59,7 +58,7 @@ use crate::{
         markdown::md,
     },
     config::Cfg,
-    dist::{PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
+    dist::{PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, download::DownloadCfg},
     download::download_file,
     errors::RustupError,
     install::UpdateStatus,
@@ -68,7 +67,7 @@ use crate::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
     },
-    utils,
+    utils::{self, ExitCode},
 };
 
 #[cfg(unix)]
@@ -523,9 +522,9 @@ pub(crate) async fn install(
     no_prompt: bool,
     mut opts: InstallOpts<'_>,
     cfg: &mut Cfg<'_>,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     #[cfg_attr(not(unix), allow(unused_mut))]
-    let mut exit_code = utils::ExitCode(0);
+    let mut exit_code = ExitCode(0);
 
     opts.validate(cfg.process).map_err(|e| {
         anyhow!(
@@ -565,7 +564,7 @@ pub(crate) async fn install(
             match common::confirm_advanced(customized_install, cfg.process)? {
                 Confirm::No => {
                     info!("aborting installation");
-                    return Ok(utils::ExitCode(0));
+                    return Ok(ExitCode(0));
                 }
                 Confirm::Yes => {
                     break;
@@ -591,7 +590,7 @@ pub(crate) async fn install(
             windows::ensure_prompt(cfg.process)?;
         }
 
-        return Ok(utils::ExitCode(1));
+        return Ok(ExitCode(1));
     }
 
     let cargo_home = canonical_cargo_home(cfg.process)?;
@@ -983,11 +982,11 @@ pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
     process: &Process,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     if cfg!(feature = "no-self-update") {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
-        return Ok(utils::ExitCode(1));
+        return Ok(ExitCode(1));
     }
 
     let cargo_home = process.cargo_home()?;
@@ -1009,7 +1008,7 @@ pub(crate) fn uninstall(
         md(&mut process.stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false, process)? {
             info!("aborting uninstallation");
-            return Ok(utils::ExitCode(0));
+            return Ok(ExitCode(0));
         }
     }
 
@@ -1086,7 +1085,7 @@ pub(crate) fn uninstall(
 
     info!("rustup is uninstalled");
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1127,14 +1126,14 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 }
 
 /// Performs all of a self-update: check policy, download, apply and exit.
-pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<utils::ExitCode> {
+pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<ExitCode> {
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             error!("Unable to self-update.  STOP");
-            return Ok(utils::ExitCode(1));
+            return Ok(ExitCode(1));
         }
         #[cfg(not(windows))]
-        SelfUpdatePermission::Skip => return Ok(utils::ExitCode(0)),
+        SelfUpdatePermission::Skip => return Ok(ExitCode(0)),
         SelfUpdatePermission::Permit => {}
     }
 
@@ -1147,7 +1146,7 @@ pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<utils::ExitC
         install_proxies(dl_cfg.process)?;
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 /// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
@@ -1165,7 +1164,7 @@ pub(crate) async fn self_update(dl_cfg: &DownloadCfg<'_>) -> Result<utils::ExitC
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
-pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     use SelfUpdatePermission::*;
@@ -1179,12 +1178,12 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
             // TODO: Detect which package manager and be more useful.
             error!("self-update is disabled for this build of rustup");
             error!("you should probably use your system package manager to update rustup");
-            return Ok(utils::ExitCode(1));
+            return Ok(ExitCode(1));
         }
         #[cfg(not(windows))]
         Skip => {
             info!("Skipping self-update at this time");
-            return Ok(utils::ExitCode(0));
+            return Ok(ExitCode(0));
         }
         Permit => {}
     }
@@ -1193,7 +1192,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
         Some(setup_path) => {
             let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
                 error!("failed to get rustup version");
-                return Ok(utils::ExitCode(1));
+                return Ok(ExitCode(1));
             };
 
             let _ = common::show_channel_update(
@@ -1214,7 +1213,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
         }
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode(0))
 }
 
 fn get_and_parse_new_rustup_version(path: &Path) -> Option<String> {
