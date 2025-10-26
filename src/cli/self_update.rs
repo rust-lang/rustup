@@ -280,6 +280,56 @@ impl SelfUpdateMode {
             Self::CheckOnly => "check-only",
         }
     }
+
+    /// Optionally performs a self-update: check policy, download, apply and exit.
+    ///
+    /// Whether the self-update is executed is based on both compile-time and runtime
+    /// configurations, where the priority is as follows:
+    /// no-self-update feature > self update mode > CLI flag
+    ///
+    /// i.e. update only if rustup does **not** have the no-self-update feature,
+    /// and self update mode is configured to **enable**
+    /// and has **no** `--no-self-update` CLI flag.
+    pub(crate) async fn update(
+        &self,
+        should_self_update: bool,
+        dl_cfg: &DownloadCfg<'_>,
+    ) -> Result<ExitCode> {
+        if cfg!(feature = "no-self-update") {
+            info!("self-update is disabled for this build of rustup");
+            info!("any updates to rustup will need to be fetched with your system package manager");
+            return Ok(ExitCode(0));
+        }
+        match self {
+            Self::Enable if should_self_update => (),
+            Self::CheckOnly => {
+                check_rustup_update(dl_cfg).await?;
+                return Ok(ExitCode(0));
+            }
+            _ => return Ok(ExitCode(0)),
+        }
+
+        match self_update_permitted(false)? {
+            SelfUpdatePermission::HardFail => {
+                error!("Unable to self-update.  STOP");
+                return Ok(ExitCode(1));
+            }
+            #[cfg(not(windows))]
+            SelfUpdatePermission::Skip => return Ok(ExitCode(0)),
+            SelfUpdatePermission::Permit => {}
+        }
+
+        let setup_path = prepare_update(dl_cfg).await?;
+
+        if let Some(setup_path) = &setup_path {
+            return run_update(setup_path);
+        } else {
+            // Try again in case we emitted "tool `{}` is already installed" last time.
+            install_proxies(dl_cfg.process)?;
+        }
+
+        Ok(ExitCode(0))
+    }
 }
 
 impl ValueEnum for SelfUpdateMode {
@@ -1123,56 +1173,6 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
         }
     }
     Ok(SelfUpdatePermission::Permit)
-}
-
-/// Optionally performs a self-update: check policy, download, apply and exit.
-///
-/// Whether the self-update is executed is based on both compile-time and runtime
-/// configurations, where the priority is as follows:
-/// no-self-update feature > self update mode > CLI flag
-///
-/// i.e. update only if rustup does **not** have the no-self-update feature,
-/// and self update mode is configured to **enable**
-/// and has **no** `--no-self-update` CLI flag.
-pub(crate) async fn self_update(
-    mode: SelfUpdateMode,
-    should_self_update: bool,
-    dl_cfg: &DownloadCfg<'_>,
-) -> Result<ExitCode> {
-    if cfg!(feature = "no-self-update") {
-        info!("self-update is disabled for this build of rustup");
-        info!("any updates to rustup will need to be fetched with your system package manager");
-        return Ok(ExitCode(0));
-    }
-    match mode {
-        SelfUpdateMode::Enable if should_self_update => (),
-        SelfUpdateMode::CheckOnly => {
-            check_rustup_update(dl_cfg).await?;
-            return Ok(ExitCode(0));
-        }
-        _ => return Ok(ExitCode(0)),
-    }
-
-    match self_update_permitted(false)? {
-        SelfUpdatePermission::HardFail => {
-            error!("Unable to self-update.  STOP");
-            return Ok(ExitCode(1));
-        }
-        #[cfg(not(windows))]
-        SelfUpdatePermission::Skip => return Ok(ExitCode(0)),
-        SelfUpdatePermission::Permit => {}
-    }
-
-    let setup_path = prepare_update(dl_cfg).await?;
-
-    if let Some(setup_path) = &setup_path {
-        return run_update(setup_path);
-    } else {
-        // Try again in case we emitted "tool `{}` is already installed" last time.
-        install_proxies(dl_cfg.process)?;
-    }
-
-    Ok(ExitCode(0))
 }
 
 /// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
