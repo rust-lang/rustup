@@ -873,18 +873,18 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
                         format!("{styled_name}{error}{m}{error:#}")
                     }
                     (Some(cv), None) => {
-                        let m = "Up to date";
-                        format!("{styled_name}{good}{m}{good:#} : {cv}")
+                        let m = "up to date";
+                        format!("{styled_name}{good}{m}{good:#}: {cv}")
                     }
                     (Some(cv), Some(dv)) => {
-                        let m = "Update available";
+                        let m = "update available";
                         update_a = true;
-                        format!("{styled_name}{warn}{m}{warn:#} : {cv} -> {dv}")
+                        format!("{styled_name}{warn}{m}{warn:#}: {cv} -> {dv}")
                     }
                     (None, Some(dv)) => {
-                        let m = "Update available";
+                        let m = "update available";
                         update_a = true;
-                        format!("{styled_name}{warn}{m}{warn:#} : (Unknown version) -> {dv}")
+                        format!("{styled_name}{warn}{m}{warn:#}: (unknown version) -> {dv}")
                     }
                 };
                 pb.set_style(ProgressStyle::with_template(message.as_str()).unwrap());

@@ -18,11 +18,11 @@
   <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
 
   <text xml:space="preserve" class="container fg">
-    <tspan x="10px" y="28px"><tspan class="bold">stable-[HOST_TRIPLE] - </tspan><tspan class="fg-green bold">Up to date</tspan><tspan> : 1.1.0 (hash-stable-1.1.0)</tspan>
+    <tspan x="10px" y="28px"><tspan class="bold">stable-[HOST_TRIPLE] - </tspan><tspan class="fg-green bold">up to date</tspan><tspan>: 1.1.0 (hash-stable-1.1.0)</tspan>
 </tspan>
-    <tspan x="10px" y="46px"><tspan class="bold">beta-[HOST_TRIPLE] - </tspan><tspan class="fg-green bold">Up to date</tspan><tspan> : 1.2.0 (hash-beta-1.2.0)</tspan>
+    <tspan x="10px" y="46px"><tspan class="bold">beta-[HOST_TRIPLE] - </tspan><tspan class="fg-green bold">up to date</tspan><tspan>: 1.2.0 (hash-beta-1.2.0)</tspan>
 </tspan>
-    <tspan x="10px" y="64px"><tspan class="bold">nightly-[HOST_TRIPLE] - </tspan><tspan class="fg-green bold">Up to date</tspan><tspan> : 1.3.0 (hash-nightly-2)</tspan>
+    <tspan x="10px" y="64px"><tspan class="bold">nightly-[HOST_TRIPLE] - </tspan><tspan class="fg-green bold">up to date</tspan><tspan>: 1.3.0 (hash-nightly-2)</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
