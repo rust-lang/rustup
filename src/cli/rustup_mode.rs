@@ -1008,16 +1008,14 @@ async fn update(
                 cfg.set_default(Some(&desc.into()))?;
             }
         }
-        exit_code &=
-            self_update::self_update(self_update_mode, should_self_update, &dl_cfg).await?;
+        exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
     } else if ensure_active_toolchain {
         let (toolchain, source) = cfg.ensure_active_toolchain(force_non_host, true).await?;
         info!("the active toolchain `{toolchain}` has been installed");
         info!("it's active because: {}", source.to_reason());
     } else {
         exit_code &= common::update_all_channels(cfg, opts.force).await?;
-        exit_code &=
-            self_update::self_update(self_update_mode, should_self_update, &dl_cfg).await?;
+        exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
 
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
