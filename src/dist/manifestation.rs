@@ -11,7 +11,6 @@ use futures_util::stream::StreamExt;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
-use url::Url;
 
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
 use crate::dist::config::Config;
@@ -151,8 +150,6 @@ impl Manifestation {
             }
         }
 
-        let altered = tmp_cx.dist_server != DEFAULT_DIST_SERVER;
-
         // Download component packages and validate hashes
         let mut things_to_install = Vec::new();
         let mut things_downloaded = Vec::new();
@@ -188,17 +185,7 @@ impl Manifestation {
             let sem = semaphore.clone();
             async move {
                 let _permit = sem.acquire().await.unwrap();
-                let url = if altered {
-                    utils::parse_url(
-                        &bin.binary
-                            .url
-                            .replace(DEFAULT_DIST_SERVER, tmp_cx.dist_server.as_str()),
-                    )?
-                } else {
-                    utils::parse_url(&bin.binary.url)?
-                };
-
-                bin.download(&url, download_cfg, max_retries, new_manifest)
+                bin.download(download_cfg, max_retries, new_manifest)
                     .await
                     .map(|downloaded| (bin, downloaded))
             }
@@ -697,16 +684,16 @@ struct ComponentBinary<'a> {
 impl<'a> ComponentBinary<'a> {
     async fn download(
         &self,
-        url: &Url,
         download_cfg: &DownloadCfg<'_>,
         max_retries: usize,
         new_manifest: &Manifest,
     ) -> Result<File> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
+        let url = download_cfg.url(&self.binary.url)?;
         let downloaded_file = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
-            || download_cfg.download(url, &self.binary.hash, &self.status),
+            || download_cfg.download(&url, &self.binary.hash, &self.status),
             |e: &anyhow::Error| {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {

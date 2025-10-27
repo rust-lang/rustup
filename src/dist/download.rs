@@ -12,6 +12,7 @@ use tracing::{debug, warn};
 use url::Url;
 
 use crate::config::Cfg;
+use crate::dist::DEFAULT_DIST_SERVER;
 use crate::dist::temp;
 use crate::download::{download_file, download_file_with_resume};
 use crate::errors::RustupError;
@@ -205,6 +206,15 @@ impl<'a> DownloadCfg<'a> {
         DownloadStatus {
             progress,
             retry_time: Mutex::new(None),
+        }
+    }
+
+    pub(crate) fn url(&self, url: &str) -> Result<Url> {
+        match &*self.tmp_cx.dist_server {
+            server if server != DEFAULT_DIST_SERVER => utils::parse_url(
+                &url.replace(DEFAULT_DIST_SERVER, self.tmp_cx.dist_server.as_str()),
+            ),
+            _ => utils::parse_url(url),
         }
     }
 }
