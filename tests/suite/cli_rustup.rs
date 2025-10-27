@@ -35,7 +35,7 @@ async fn rustup_stable() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
-info: downloading component[..]
+info: removing previous version of component cargo
 ...
 info: cleaning up downloads & tmp directories
 
@@ -131,15 +131,15 @@ async fn rustup_all_channels() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
-info: downloading component[..]
+info: removing previous version of component cargo
 ...
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
-info: downloading component[..]
+info: removing previous version of component cargo
 ...
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
+info: removing previous version of component cargo
 ...
 info: cleaning up downloads & tmp directories
 
@@ -208,12 +208,12 @@ async fn rustup_some_channels_up_to_date() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
-info: downloading component[..]
+info: removing previous version of component cargo
 ...
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
+info: removing previous version of component cargo
 ...
 info: cleaning up downloads & tmp directories
 

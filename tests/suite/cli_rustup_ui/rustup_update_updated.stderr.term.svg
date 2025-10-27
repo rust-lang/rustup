@@ -21,15 +21,15 @@
 </tspan>
     <tspan x="10px" y="46px"><tspan class="bold">info:</tspan><tspan> latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)</tspan>
 </tspan>
-    <tspan x="10px" y="64px"><tspan class="bold">info:</tspan><tspan> downloading component(s)</tspan>
+    <tspan x="10px" y="64px"><tspan class="bold">info:</tspan><tspan> removing previous version of component cargo</tspan>
 </tspan>
-    <tspan x="10px" y="82px"><tspan class="bold">info:</tspan><tspan> removing previous version of component cargo</tspan>
+    <tspan x="10px" y="82px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rust-docs</tspan>
 </tspan>
-    <tspan x="10px" y="100px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rust-docs</tspan>
+    <tspan x="10px" y="100px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rust-std</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rust-std</tspan>
+    <tspan x="10px" y="118px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rustc</tspan>
 </tspan>
-    <tspan x="10px" y="136px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rustc</tspan>
+    <tspan x="10px" y="136px"><tspan class="bold">info:</tspan><tspan> downloading component(s)</tspan>
 </tspan>
     <tspan x="10px" y="154px"><tspan class="bold">info:</tspan><tspan> cleaning up downloads &amp; tmp directories</tspan>
 </tspan>

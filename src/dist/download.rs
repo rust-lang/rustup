@@ -117,7 +117,7 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
-    pub(crate) fn clean(&self, hashes: &[String]) -> Result<()> {
+    pub(crate) fn clean(&self, hashes: &[impl AsRef<Path>]) -> Result<()> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
             if self.download_dir.join(&used_file).exists() {

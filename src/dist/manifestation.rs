@@ -7,9 +7,7 @@ mod tests;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow, bail};
-use futures_util::stream::StreamExt;
-use std::sync::Arc;
-use tokio::sync::Semaphore;
+use futures_util::stream::{FuturesUnordered, StreamExt};
 use tracing::{info, warn};
 
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
@@ -151,8 +149,6 @@ impl Manifestation {
         }
 
         // Download component packages and validate hashes
-        let mut things_to_install = Vec::new();
-        let mut things_downloaded = Vec::new();
         let components = update
             .components_urls_and_hashes(new_manifest)
             .map(|res| {
@@ -166,7 +162,6 @@ impl Manifestation {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let components_len = components.len();
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
         let concurrent_downloads = download_cfg
             .process
@@ -180,27 +175,6 @@ impl Manifestation {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
-
-        info!("downloading component(s)");
-        let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-        let component_stream = tokio_stream::iter(components.into_iter()).map(|bin| {
-            let sem = semaphore.clone();
-            async move {
-                let _permit = sem.acquire().await.unwrap();
-                bin.download(max_retries).await
-            }
-        });
-        if components_len > 0 {
-            let results = component_stream
-                .buffered(components_len)
-                .collect::<Vec<_>>()
-                .await;
-            for result in results {
-                let (bin, downloaded_file) = result?;
-                things_downloaded.push(bin.binary.hash.clone());
-                things_to_install.push((bin, downloaded_file));
-            }
-        }
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.process);
@@ -240,15 +214,34 @@ impl Manifestation {
             tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
         }
 
-        // Install components
-        for (component_bin, installer_file) in things_to_install {
-            tx = component_bin.install(installer_file, tx, self)?;
+        info!("downloading component(s)");
+        let mut downloads = FuturesUnordered::new();
+        let mut component_iter = components.iter();
+        let mut cleanup_downloads = vec![];
+        loop {
+            if downloads.is_empty() && component_iter.len() == 0 {
+                break;
+            }
+
+            let installable = downloads.next().await.transpose()?;
+            while component_iter.len() > 0 && downloads.len() < concurrent_downloads {
+                if let Some(bin) = component_iter.next() {
+                    downloads.push(bin.download(max_retries));
+                }
+            }
+
+            if let Some((bin, downloaded)) = installable {
+                cleanup_downloads.push(&bin.binary.hash);
+                tx = bin.install(downloaded, tx, self)?;
+            }
         }
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify()?;
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
+        download_cfg.clean(&cleanup_downloads)?;
+        drop(downloads);
 
         // Write configuration.
         //
@@ -268,8 +261,6 @@ impl Manifestation {
 
         // End transaction
         tx.commit();
-
-        download_cfg.clean(&things_downloaded)?;
 
         Ok(UpdateStatus::Changed)
     }
@@ -684,7 +675,7 @@ struct ComponentBinary<'a> {
 }
 
 impl<'a> ComponentBinary<'a> {
-    async fn download(self, max_retries: usize) -> Result<(Self, File)> {
+    async fn download(&self, max_retries: usize) -> Result<(&Self, File)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = self.download_cfg.url(&self.binary.url)?;
