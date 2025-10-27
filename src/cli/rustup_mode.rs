@@ -819,19 +819,11 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         Some(_) | None => channels_len,
     };
 
-    let bold = if use_colors {
-        Style::new().bold()
+    let (bold, transient, error, good, warn) = if use_colors {
+        (Style::new().bold(), TRANSIENT, ERROR, GOOD, WARN)
     } else {
-        Style::new()
+        Default::default()
     };
-
-    let transient = if use_colors { TRANSIENT } else { Style::new() };
-
-    let error = if use_colors { ERROR } else { Style::new() };
-
-    let good = if use_colors { GOOD } else { Style::new() };
-
-    let warn = if use_colors { WARN } else { Style::new() };
 
     // Ensure that `.buffered()` is never called with 0 as this will cause a hang.
     // See: https://github.com/rust-lang/futures-rs/pull/1194#discussion_r209501774
