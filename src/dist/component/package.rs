@@ -36,7 +36,11 @@ pub struct DirectoryPackage {
 
 impl DirectoryPackage {
     pub fn new(path: PathBuf, copy: bool) -> Result<Self> {
-        validate_installer_version(&path)?;
+        let file = utils::read_file("installer version", &path.join(VERSION_FILE))?;
+        let v = file.trim();
+        if v != INSTALLER_VERSION {
+            return Err(anyhow!(format!("unsupported installer version: {v}")));
+        }
 
         let content = utils::read_file("package components", &path.join("components"))?;
         let components = content.lines().map(ToOwned::to_owned).collect();
@@ -46,19 +50,7 @@ impl DirectoryPackage {
             copy,
         })
     }
-}
 
-fn validate_installer_version(path: &Path) -> Result<()> {
-    let file = utils::read_file("installer version", &path.join(VERSION_FILE))?;
-    let v = file.trim();
-    if v == INSTALLER_VERSION {
-        Ok(())
-    } else {
-        Err(anyhow!(format!("unsupported installer version: {v}")))
-    }
-}
-
-impl DirectoryPackage {
     pub fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.components.contains(component)
             || if let Some(n) = short_name {
