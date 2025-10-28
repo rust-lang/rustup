@@ -1,9 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 
-use rustup::dist::component::Components;
-use rustup::dist::component::Transaction;
-use rustup::dist::component::{DirectoryPackage, Package};
+use rustup::dist::component::{Components, DirectoryPackage, Transaction};
 use rustup::dist::prefix::InstallPrefix;
 use rustup::test::{DistContext, MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup::utils;
