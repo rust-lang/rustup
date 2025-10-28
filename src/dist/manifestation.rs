@@ -185,9 +185,7 @@ impl Manifestation {
             let sem = semaphore.clone();
             async move {
                 let _permit = sem.acquire().await.unwrap();
-                bin.download(download_cfg, max_retries, new_manifest)
-                    .await
-                    .map(|downloaded| (bin, downloaded))
+                bin.download(download_cfg, max_retries, new_manifest).await
             }
         });
         if components_len > 0 {
@@ -683,11 +681,11 @@ struct ComponentBinary<'a> {
 
 impl<'a> ComponentBinary<'a> {
     async fn download(
-        &self,
+        self,
         download_cfg: &DownloadCfg<'_>,
         max_retries: usize,
         new_manifest: &Manifest,
-    ) -> Result<File> {
+    ) -> Result<(Self, File)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = download_cfg.url(&self.binary.url)?;
@@ -709,7 +707,7 @@ impl<'a> ComponentBinary<'a> {
         .await
         .with_context(|| RustupError::ComponentDownloadFailed(self.component.name(new_manifest)))?;
 
-        Ok(downloaded_file)
+        Ok((self, downloaded_file))
     }
 
     fn install<'t>(
