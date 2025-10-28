@@ -1402,18 +1402,18 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> Result<bool
     let warn = WARN;
     let good = GOOD;
 
-    let msg = format!("{bold}rustup - {bold:#}");
+    let msg = format!("{bold}rustup{bold:#}");
 
     Ok(if current_version != available_version {
         let status = "Update available";
         writeln!(
             t,
-            "{msg}{warn}{status}{warn:#} : {current_version} -> {available_version}"
+            "{warn}{status}{warn:#} {msg} {current_version} -> {available_version}"
         )?;
         true
     } else {
-        let status = "Up to date";
-        writeln!(t, "{msg}{good}{status}{good:#} : {current_version}")?;
+        let status = "      Up to date";
+        writeln!(t, "{good}{status}{good:#} {msg} {current_version}")?;
         false
     })
 }
