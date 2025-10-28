@@ -28,14 +28,14 @@ pub(crate) const INSTALLER_VERSION: &str = "3";
 pub(crate) const VERSION_FILE: &str = "rust-installer-version";
 
 #[derive(Debug)]
-pub struct DirectoryPackage {
-    path: PathBuf,
+pub struct DirectoryPackage<P> {
+    path: P,
     components: HashSet<String>,
     copy: bool,
 }
 
-impl DirectoryPackage {
-    pub fn new(path: PathBuf, copy: bool) -> Result<Self> {
+impl<P: Deref<Target = Path>> DirectoryPackage<P> {
+    pub fn new(path: P, copy: bool) -> Result<Self> {
         let file = utils::read_file("installer version", &path.join(VERSION_FILE))?;
         let v = file.trim();
         if v != INSTALLER_VERSION {
@@ -117,8 +117,7 @@ impl DirectoryPackage {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)] // temp::Dir is held for drop.
-pub(crate) struct TarPackage(DirectoryPackage, temp::Dir);
+pub(crate) struct TarPackage(DirectoryPackage<temp::Dir>);
 
 impl TarPackage {
     pub(crate) fn compressed<R: Read>(
@@ -142,15 +141,12 @@ impl TarPackage {
         unpack_without_first_dir(&mut archive, &temp_dir, dl_cfg)
             .context("failed to extract package")?;
 
-        Ok(TarPackage(
-            DirectoryPackage::new(temp_dir.to_owned(), false)?,
-            temp_dir,
-        ))
+        Ok(TarPackage(DirectoryPackage::new(temp_dir, false)?))
     }
 }
 
 impl Deref for TarPackage {
-    type Target = DirectoryPackage;
+    type Target = DirectoryPackage<temp::Dir>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

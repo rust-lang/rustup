@@ -54,10 +54,10 @@ impl DistContext {
         })
     }
 
-    pub fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage)> {
+    pub fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage<&Path>)> {
         let tx = self.transaction();
         let components = Components::open(self.prefix.clone())?;
-        let pkg = DirectoryPackage::new(self.pkg_dir.path().to_owned(), true)?;
+        let pkg = DirectoryPackage::new(self.pkg_dir.path(), true)?;
         Ok((tx, components, pkg))
     }
 
