@@ -34,6 +34,34 @@ pub struct DirectoryPackage<P> {
     copy: bool,
 }
 
+impl DirectoryPackage<temp::Dir> {
+    pub(crate) fn compressed<R: Read>(
+        stream: R,
+        kind: CompressionKind,
+        dl_cfg: &DownloadCfg<'_>,
+    ) -> Result<Self> {
+        match kind {
+            CompressionKind::GZip => Self::from_tar(flate2::read::GzDecoder::new(stream), dl_cfg),
+            CompressionKind::ZStd => {
+                Self::from_tar(zstd::stream::read::Decoder::new(stream)?, dl_cfg)
+            }
+            CompressionKind::XZ => Self::from_tar(xz2::read::XzDecoder::new(stream), dl_cfg),
+        }
+    }
+
+    fn from_tar(stream: impl Read, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
+        let temp_dir = dl_cfg.tmp_cx.new_directory()?;
+        let mut archive = tar::Archive::new(stream);
+        // The rust-installer packages unpack to a directory called
+        // $pkgname-$version-$target. Skip that directory when
+        // unpacking.
+        unpack_without_first_dir(&mut archive, &temp_dir, dl_cfg)
+            .context("failed to extract package")?;
+
+        Self::new(temp_dir, false)
+    }
+}
+
 impl<P: Deref<Target = Path>> DirectoryPackage<P> {
     pub fn new(path: P, copy: bool) -> Result<Self> {
         let file = utils::read_file("installer version", &path.join(VERSION_FILE))?;
@@ -113,43 +141,6 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
 
     pub(crate) fn components(&self) -> Vec<String> {
         self.components.iter().cloned().collect()
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct TarPackage(DirectoryPackage<temp::Dir>);
-
-impl TarPackage {
-    pub(crate) fn compressed<R: Read>(
-        stream: R,
-        kind: CompressionKind,
-        dl_cfg: &DownloadCfg<'_>,
-    ) -> Result<Self> {
-        match kind {
-            CompressionKind::GZip => Self::new(flate2::read::GzDecoder::new(stream), dl_cfg),
-            CompressionKind::ZStd => Self::new(zstd::stream::read::Decoder::new(stream)?, dl_cfg),
-            CompressionKind::XZ => Self::new(xz2::read::XzDecoder::new(stream), dl_cfg),
-        }
-    }
-
-    fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
-        let temp_dir = dl_cfg.tmp_cx.new_directory()?;
-        let mut archive = tar::Archive::new(stream);
-        // The rust-installer packages unpack to a directory called
-        // $pkgname-$version-$target. Skip that directory when
-        // unpacking.
-        unpack_without_first_dir(&mut archive, &temp_dir, dl_cfg)
-            .context("failed to extract package")?;
-
-        Ok(TarPackage(DirectoryPackage::new(temp_dir, false)?))
-    }
-}
-
-impl Deref for TarPackage {
-    type Target = DirectoryPackage<temp::Dir>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
