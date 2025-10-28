@@ -3,9 +3,9 @@
 //! prefix, represented by a `Components` instance.
 
 use std::collections::{HashMap, HashSet};
-use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -17,6 +17,7 @@ use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind
 use crate::dist::component::components::{ComponentPart, ComponentPartKind, Components};
 use crate::dist::component::transaction::Transaction;
 use crate::dist::download::DownloadCfg;
+use crate::dist::manifest::CompressionKind;
 use crate::dist::temp;
 use crate::errors::RustupError;
 use crate::utils;
@@ -25,18 +26,6 @@ use crate::utils::units::Size;
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";
 pub(crate) const VERSION_FILE: &str = "rust-installer-version";
-
-pub trait Package: fmt::Debug {
-    fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
-    fn install<'a>(
-        &self,
-        target: &Components,
-        component: &str,
-        short_name: Option<&str>,
-        tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>>;
-    fn components(&self) -> Vec<String>;
-}
 
 #[derive(Debug)]
 pub struct DirectoryPackage {
@@ -69,8 +58,8 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     }
 }
 
-impl Package for DirectoryPackage {
-    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
+impl DirectoryPackage {
+    pub fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.components.contains(component)
             || if let Some(n) = short_name {
                 self.components.contains(n)
@@ -78,7 +67,8 @@ impl Package for DirectoryPackage {
                 false
             }
     }
-    fn install<'a>(
+
+    pub fn install<'a>(
         &self,
         target: &Components,
         name: &str,
@@ -129,7 +119,7 @@ impl Package for DirectoryPackage {
         Ok(tx)
     }
 
-    fn components(&self) -> Vec<String> {
+    pub(crate) fn components(&self) -> Vec<String> {
         self.components.iter().cloned().collect()
     }
 }
@@ -139,7 +129,19 @@ impl Package for DirectoryPackage {
 pub(crate) struct TarPackage(DirectoryPackage, temp::Dir);
 
 impl TarPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
+    pub(crate) fn compressed<R: Read>(
+        stream: R,
+        kind: CompressionKind,
+        dl_cfg: &DownloadCfg<'_>,
+    ) -> Result<Self> {
+        match kind {
+            CompressionKind::GZip => Self::new(flate2::read::GzDecoder::new(stream), dl_cfg),
+            CompressionKind::ZStd => Self::new(zstd::stream::read::Decoder::new(stream)?, dl_cfg),
+            CompressionKind::XZ => Self::new(xz2::read::XzDecoder::new(stream), dl_cfg),
+        }
+    }
+
+    fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
         let temp_dir = dl_cfg.tmp_cx.new_directory()?;
         let mut archive = tar::Archive::new(stream);
         // The rust-installer packages unpack to a directory called
@@ -152,6 +154,14 @@ impl TarPackage {
             DirectoryPackage::new(temp_dir.to_owned(), false)?,
             temp_dir,
         ))
+    }
+}
+
+impl Deref for TarPackage {
+    type Target = DirectoryPackage;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -524,106 +534,4 @@ fn unpack_without_first_dir<R: Read>(
     }
 
     Ok(())
-}
-
-impl Package for TarPackage {
-    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
-        self.0.contains(component, short_name)
-    }
-    fn install<'b>(
-        &self,
-        target: &Components,
-        component: &str,
-        short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
-        self.0.install(target, component, short_name, tx)
-    }
-    fn components(&self) -> Vec<String> {
-        self.0.components()
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct TarGzPackage(TarPackage);
-
-impl TarGzPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
-        let stream = flate2::read::GzDecoder::new(stream);
-        Ok(TarGzPackage(TarPackage::new(stream, dl_cfg)?))
-    }
-}
-
-impl Package for TarGzPackage {
-    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
-        self.0.contains(component, short_name)
-    }
-    fn install<'b>(
-        &self,
-        target: &Components,
-        component: &str,
-        short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
-        self.0.install(target, component, short_name, tx)
-    }
-    fn components(&self) -> Vec<String> {
-        self.0.components()
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct TarXzPackage(TarPackage);
-
-impl TarXzPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
-        let stream = xz2::read::XzDecoder::new(stream);
-        Ok(TarXzPackage(TarPackage::new(stream, dl_cfg)?))
-    }
-}
-
-impl Package for TarXzPackage {
-    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
-        self.0.contains(component, short_name)
-    }
-    fn install<'b>(
-        &self,
-        target: &Components,
-        component: &str,
-        short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
-        self.0.install(target, component, short_name, tx)
-    }
-    fn components(&self) -> Vec<String> {
-        self.0.components()
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct TarZStdPackage(TarPackage);
-
-impl TarZStdPackage {
-    pub(crate) fn new<R: Read>(stream: R, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
-        let stream = zstd::stream::read::Decoder::new(stream)?;
-        Ok(TarZStdPackage(TarPackage::new(stream, dl_cfg)?))
-    }
-}
-
-impl Package for TarZStdPackage {
-    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
-        self.0.contains(component, short_name)
-    }
-    fn install<'b>(
-        &self,
-        target: &Components,
-        component: &str,
-        short_name: Option<&str>,
-        tx: Transaction<'b>,
-    ) -> Result<Transaction<'b>> {
-        self.0.install(target, component, short_name, tx)
-    }
-    fn components(&self) -> Vec<String> {
-        self.0.components()
-    }
 }

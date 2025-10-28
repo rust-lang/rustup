@@ -13,9 +13,7 @@ use tokio::sync::Semaphore;
 use tracing::{info, warn};
 use url::Url;
 
-use crate::dist::component::{
-    Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
-};
+use crate::dist::component::{Components, TarPackage, Transaction};
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, DownloadStatus, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
@@ -432,7 +430,7 @@ impl Manifestation {
 
         // Install all the components in the installer
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
-        let package: &dyn Package = &TarGzPackage::new(reader, dl_cfg)?;
+        let package = TarPackage::compressed(reader, CompressionKind::GZip, dl_cfg)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
         }
@@ -747,11 +745,7 @@ impl<'a> ComponentBinary<'a> {
         self.status.installing();
 
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
-        let package = match self.binary.compression {
-            CompressionKind::GZip => &TarGzPackage::new(reader, download_cfg)? as &dyn Package,
-            CompressionKind::XZ => &TarXzPackage::new(reader, download_cfg)?,
-            CompressionKind::ZStd => &TarZStdPackage::new(reader, download_cfg)?,
-        };
+        let package = TarPackage::compressed(reader, self.binary.compression, download_cfg)?;
 
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.
