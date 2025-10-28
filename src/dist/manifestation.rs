@@ -160,6 +160,8 @@ impl Manifestation {
                     component,
                     binary,
                     status: download_cfg.status_for(component.short_name(new_manifest)),
+                    manifest: new_manifest,
+                    download_cfg,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -185,7 +187,7 @@ impl Manifestation {
             let sem = semaphore.clone();
             async move {
                 let _permit = sem.acquire().await.unwrap();
-                bin.download(download_cfg, max_retries, new_manifest).await
+                bin.download(max_retries).await
             }
         });
         if components_len > 0 {
@@ -240,7 +242,7 @@ impl Manifestation {
 
         // Install components
         for (component_bin, installer_file) in things_to_install {
-            tx = component_bin.install(installer_file, tx, new_manifest, self, download_cfg)?;
+            tx = component_bin.install(installer_file, tx, self)?;
         }
 
         // Install new distribution manifest
@@ -677,21 +679,21 @@ struct ComponentBinary<'a> {
     component: &'a Component,
     binary: &'a HashedBinary,
     status: DownloadStatus,
+    manifest: &'a Manifest,
+    download_cfg: &'a DownloadCfg<'a>,
 }
 
 impl<'a> ComponentBinary<'a> {
-    async fn download(
-        self,
-        download_cfg: &DownloadCfg<'_>,
-        max_retries: usize,
-        new_manifest: &Manifest,
-    ) -> Result<(Self, File)> {
+    async fn download(self, max_retries: usize) -> Result<(Self, File)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
-        let url = download_cfg.url(&self.binary.url)?;
+        let url = self.download_cfg.url(&self.binary.url)?;
         let downloaded_file = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
-            || download_cfg.download(&url, &self.binary.hash, &self.status),
+            || {
+                self.download_cfg
+                    .download(&url, &self.binary.hash, &self.status)
+            },
             |e: &anyhow::Error| {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {
@@ -705,7 +707,9 @@ impl<'a> ComponentBinary<'a> {
             },
         )
         .await
-        .with_context(|| RustupError::ComponentDownloadFailed(self.component.name(new_manifest)))?;
+        .with_context(|| {
+            RustupError::ComponentDownloadFailed(self.component.name(self.manifest))
+        })?;
 
         Ok((self, downloaded_file))
     }
@@ -714,9 +718,7 @@ impl<'a> ComponentBinary<'a> {
         &self,
         installer_file: File,
         tx: Transaction<'t>,
-        new_manifest: &Manifest,
         manifestation: &Manifestation,
-        download_cfg: &DownloadCfg<'_>,
     ) -> Result<Transaction<'t>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
@@ -725,12 +727,13 @@ impl<'a> ComponentBinary<'a> {
         let component = self.component;
         let pkg_name = component.name_in_manifest();
         let short_pkg_name = component.short_name_in_manifest();
-        let short_name = component.short_name(new_manifest);
+        let short_name = component.short_name(self.manifest);
 
         self.status.installing();
 
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
-        let package = DirectoryPackage::compressed(reader, self.binary.compression, download_cfg)?;
+        let package =
+            DirectoryPackage::compressed(reader, self.binary.compression, self.download_cfg)?;
 
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.
