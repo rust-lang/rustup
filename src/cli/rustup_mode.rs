@@ -832,10 +832,10 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
             MultiProgress::with_draw_target(cfg.process.progress_draw_target());
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
-            let msg = format!("{bold}{name} - {bold:#}");
-            let status = "Checking...";
+            let msg = format!("{bold}{name}{bold:#}");
+            let status = "        Checking";
             let template = format!(
-                "{{msg}}{transient}{status}{transient:#} {transient}{{spinner}}{transient:#}"
+                "{transient}{status}{transient:#} {{msg}} {transient}{{spinner}}{transient:#}"
             );
             let pb = multi_progress_bars.add(ProgressBar::new(1));
             pb.set_style(
@@ -855,22 +855,23 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
 
                 let template = match (current_version, dist_version) {
                     (None, None) => {
-                        let status = "Cannot identify installed or update versions";
-                        format!("{msg}{error}{status}{error:#}")
+                        let status = "       Error for";
+                        let details = "cannot identify installed or update versions";
+                        format!("{status} {msg}: {error}{details}{error:#}")
                     }
                     (Some(cv), None) => {
-                        let status = "up to date";
-                        format!("{msg}{good}{status}{good:#}: {cv}")
+                        let status = "      Up to date";
+                        format!("{good}{status}{good:#} {msg} {cv}")
                     }
                     (Some(cv), Some(dv)) => {
-                        let status = "update available";
+                        let status = "Update available";
                         update_a = true;
-                        format!("{msg}{warn}{status}{warn:#}: {cv} -> {dv}")
+                        format!("{warn}{status}{warn:#} {msg} {cv} -> {dv}")
                     }
                     (None, Some(dv)) => {
-                        let status = "update available";
+                        let status = "Update available";
                         update_a = true;
-                        format!("{msg}{warn}{status}{warn:#}: (Unknown version) -> {dv}")
+                        format!("{warn}{status}{warn:#} {msg} (Unknown version) -> {dv}")
                     }
                 };
                 pb.set_style(ProgressStyle::with_template(template.as_str()).unwrap());
