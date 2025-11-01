@@ -53,16 +53,12 @@ impl AsRef<[u8]> for PoolReference {
     }
 }
 
+#[derive(Default)]
 enum Task {
     Request(CompletedIo),
     // Used to synchronise in the join method.
+    #[default]
     Sentinel,
-}
-
-impl Default for Task {
-    fn default() -> Self {
-        Self::Sentinel
-    }
 }
 
 struct Pool {
