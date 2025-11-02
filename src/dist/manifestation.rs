@@ -407,7 +407,7 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
+        let reader = utils::buffered(&installer_file)?;
         let package = DirectoryPackage::compressed(reader, CompressionKind::GZip, dl_cfg)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
@@ -722,7 +722,7 @@ impl<'a> ComponentBinary<'a> {
 
         self.status.installing();
 
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
+        let reader = utils::buffered(&installer_file)?;
         let package =
             DirectoryPackage::compressed(reader, self.binary.compression, self.download_cfg)?;
 
