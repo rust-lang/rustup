@@ -720,9 +720,7 @@ impl<'a> ComponentBinary<'a> {
         let short_pkg_name = component.short_name_in_manifest();
         let short_name = component.short_name(self.manifest);
 
-        self.status.installing();
-
-        let reader = utils::buffered(&installer_file)?;
+        let reader = self.status.unpack(utils::buffered(&installer_file)?);
         let package =
             DirectoryPackage::compressed(reader, self.binary.compression, self.download_cfg)?;
 
@@ -732,6 +730,7 @@ impl<'a> ComponentBinary<'a> {
             return Err(RustupError::CorruptComponent(short_name).into());
         }
 
+        self.status.installing();
         let tx = package.install(
             &manifestation.installation,
             &pkg_name,
