@@ -399,7 +399,7 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
+        let reader = utils::buffered(&installer_file)?;
         let temp_dir = dl_cfg.tmp_cx.new_directory()?;
         let io_executor = get_executor(
             unpack_ram(IO_CHUNK_SIZE, dl_cfg.process.unpack_ram()?),
@@ -687,7 +687,7 @@ impl<'a> ComponentBinary<'a> {
 
         self.status.installing();
 
-        let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
+        let reader = utils::buffered(&installer_file)?;
         let temp_dir = self.download_cfg.tmp_cx.new_directory()?;
         let io_executor = get_executor(
             unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),

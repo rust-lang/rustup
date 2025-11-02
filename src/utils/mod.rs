@@ -8,7 +8,7 @@ use std::ops::{BitAnd, BitAndAssign};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use retry::delay::{Fibonacci, jitter};
 use retry::{OperationResult, retry};
 use tracing::{debug, info, warn};
@@ -441,40 +441,13 @@ pub(crate) fn delete_dir_contents_following_links(dir_path: &Path) {
     }
 }
 
-pub(crate) struct FileReaderWithProgress {
-    fh: BufReader<File>,
-    nbytes: u64,
-}
-
-impl FileReaderWithProgress {
-    pub(crate) fn new_file(path: &Path) -> Result<Self> {
-        let fh = match File::open(path) {
-            Ok(fh) => fh,
-            Err(_) => {
-                bail!(RustupError::ReadingFile {
-                    name: "downloaded",
-                    path: path.to_path_buf(),
-                })
-            }
-        };
-
-        // Inform the tracker of the file size
-        Ok(FileReaderWithProgress {
-            fh: BufReader::with_capacity(8 * 1024 * 1024, fh),
-            nbytes: 0,
-        })
-    }
-}
-
-impl io::Read for FileReaderWithProgress {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match self.fh.read(buf) {
-            Ok(nbytes) => {
-                self.nbytes += nbytes as u64;
-                Ok(nbytes)
-            }
-            Err(e) => Err(e),
-        }
+pub(crate) fn buffered(path: &Path) -> Result<BufReader<File>, anyhow::Error> {
+    match File::open(path) {
+        Ok(fh) => Ok(BufReader::with_capacity(8 * 1024 * 1024, fh)),
+        Err(_) => Err(anyhow!(RustupError::ReadingFile {
+            name: "downloaded",
+            path: path.to_path_buf(),
+        })),
     }
 }
 
