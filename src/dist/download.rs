@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow};
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressBarIter, ProgressDrawTarget, ProgressStyle};
 use sha2::{Digest, Sha256};
 use tracing::{debug, info, warn};
 use url::Url;
@@ -388,6 +388,18 @@ impl DownloadStatus {
         self.progress.set_style(
             ProgressStyle::with_template("{msg:>12.bold}  retrying download...").unwrap(),
         );
+    }
+
+    pub(crate) fn unpack<T: Read>(&self, inner: T) -> ProgressBarIter<T> {
+        self.progress.reset();
+        self.progress.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  unpacking [{bar:20}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+            )
+            .unwrap()
+            .progress_chars("## ")
+        );
+        self.progress.wrap_read(inner)
     }
 
     pub(crate) fn installing(&self) {
