@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::fs;
+use std::io::Read;
 use std::ops;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -410,8 +411,7 @@ impl DownloadStatus {
 
 fn file_hash(path: &Path) -> Result<String> {
     let mut hasher = Sha256::new();
-    let mut downloaded = utils::FileReaderWithProgress::new_file(path)?;
-    use std::io::Read;
+    let mut downloaded = utils::buffered(path)?;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {
         if n == 0 {
