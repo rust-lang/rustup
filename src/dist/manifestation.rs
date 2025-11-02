@@ -685,14 +685,12 @@ impl<'a> ComponentBinary<'a> {
         let short_pkg_name = self.component.short_name_in_manifest();
         let short_name = self.manifest.short_name(&self.component);
 
-        self.status.installing();
-
-        let reader = utils::buffered(&installer_file)?;
         let temp_dir = self.download_cfg.tmp_cx.new_directory()?;
         let io_executor = get_executor(
             unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),
             self.download_cfg.process.io_thread_count()?,
         );
+        let reader = self.status.unpack(utils::buffered(&installer_file)?);
         let package =
             DirectoryPackage::compressed(reader, self.binary.compression, temp_dir, io_executor)?;
 
@@ -702,6 +700,7 @@ impl<'a> ComponentBinary<'a> {
             return Err(RustupError::CorruptComponent(short_name.to_owned()).into());
         }
 
+        self.status.installing();
         let tx = package.install(
             &manifestation.installation,
             &pkg_name,
