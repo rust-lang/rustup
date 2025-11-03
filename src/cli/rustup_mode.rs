@@ -1221,8 +1221,8 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode>
                     "{} ({})",
                     toolchain.name(),
                     match source {
-                        ActiveSource::Default => &"default" as &dyn fmt::Display,
-                        _ => &source.to_reason(),
+                        ActiveSource::Default => Cow::Borrowed("default"),
+                        _ => Cow::Owned(source.to_reason()),
                     }
                 )?;
             }
