@@ -2,14 +2,14 @@ use std::fs::create_dir_all;
 use std::path::Path;
 
 use snapbox::Data;
-use snapbox::cmd::{Command, cargo_bin};
+use snapbox::cmd::Command;
 
 #[track_caller]
 fn test_help(name: &str, args: &[&str]) {
     let home = Path::new(env!("CARGO_TARGET_TMPDIR")).join("home-ro");
     create_dir_all(&home).unwrap();
 
-    let rustup_init = cargo_bin!("rustup-init");
+    let rustup_init = snapbox::cmd::cargo_bin!("rustup-init");
     Command::new(rustup_init)
         .env("RUSTUP_TERM_COLOR", "always")
         // once installed rustup asserts the presence of ~/.rustup/settings.toml if
