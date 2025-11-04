@@ -808,7 +808,9 @@ impl<'a> Cfg<'a> {
                     info!("using existing install for {toolchain}");
                 }
                 let status = if !distributable.components_exist(&components, &targets)? {
-                    distributable.update(&components, &targets, profile).await?
+                    distributable
+                        .update(&components, &targets, profile, true, false)
+                        .await?
                 } else {
                     UpdateStatus::Unchanged
                 };

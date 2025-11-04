@@ -966,7 +966,8 @@ async fn update(
             let profile = cfg.get_profile()?;
             let status = match DistributableToolchain::new(cfg, desc.clone()) {
                 Ok(mut d) => {
-                    d.update_extra(&components, &targets, profile, force, allow_downgrade)
+                    let profile = cfg.get_profile()?;
+                    d.update(&components, &targets, profile, force, allow_downgrade)
                         .await?
                 }
                 Err(RustupError::ToolchainNotInstalled { .. }) => {
