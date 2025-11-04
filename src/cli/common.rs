@@ -219,7 +219,7 @@ pub(crate) async fn update_all_channels(
     let mut toolchains = Vec::new();
     for (desc, mut distributable) in cfg.list_channels()? {
         let result = distributable
-            .update_extra(&[], &[], profile, force_update, false)
+            .update(&[], &[], profile, force_update, false)
             .await;
 
         if let Err(e) = &result {

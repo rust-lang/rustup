@@ -1005,7 +1005,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
             // For now, we error.
             let mut toolchain = DistributableToolchain::new(cfg, desc.clone())?;
             toolchain
-                .update(components, targets, cfg.get_profile()?)
+                .update(components, targets, cfg.get_profile()?, true, false)
                 .await?
         } else {
             DistributableToolchain::install(

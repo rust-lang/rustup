@@ -350,20 +350,9 @@ impl<'a> DistributableToolchain<'a> {
         InstallPrefix::from(self.toolchain.path().to_owned()).guess_v1_manifest()
     }
 
-    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub(crate) async fn update(
-        &mut self,
-        components: &[&str],
-        targets: &[&str],
-        profile: Profile,
-    ) -> anyhow::Result<UpdateStatus> {
-        self.update_extra(components, targets, profile, true, false)
-            .await
-    }
-
     /// Update a toolchain with control over the channel behaviour
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub(crate) async fn update_extra(
+    pub(crate) async fn update(
         &mut self,
         components: &[&str],
         targets: &[&str],
