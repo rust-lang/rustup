@@ -519,12 +519,13 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
-        let dist_root = &self.toolchain.cfg.dist_root_url;
-        let update_hash = self.toolchain.cfg.get_hash_file(&self.desc, false)?;
-        let download_cfg = DownloadCfg::new(self.toolchain.cfg);
-
-        match crate::dist::dl_v2_manifest(dist_root, &download_cfg, Some(&update_hash), &self.desc)
-            .await?
+        match crate::dist::dl_v2_manifest(
+            &DownloadCfg::new(self.toolchain.cfg),
+            Some(&self.toolchain.cfg.get_hash_file(&self.desc, false)?),
+            &self.desc,
+            self.toolchain.cfg,
+        )
+        .await?
         {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),

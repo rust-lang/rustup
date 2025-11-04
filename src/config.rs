@@ -944,7 +944,7 @@ impl<'a> Cfg<'a> {
 
 /// The root path of the release server, without the `/dist` suffix.
 /// By default, it points to [`dist::DEFAULT_DIST_SERVER`].
-pub(crate) fn dist_root_server(process: &Process) -> Result<String> {
+fn dist_root_server(process: &Process) -> Result<String> {
     if let Some(s) = process.var_opt("RUSTUP_DIST_SERVER")? {
         trace!("`RUSTUP_DIST_SERVER` has been set to `{s}`");
         return Ok(s);
