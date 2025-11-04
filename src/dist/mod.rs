@@ -1,7 +1,13 @@
 //! Installation from a Rust distribution server
 
 use std::{
-    collections::HashSet, env, fmt, io::Write, ops::Deref, path::Path, str::FromStr, sync::LazyLock,
+    collections::HashSet,
+    env, fmt,
+    io::Write,
+    ops::Deref,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::LazyLock,
 };
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -871,23 +877,48 @@ impl fmt::Display for Profile {
 }
 
 pub(crate) struct DistOptions<'a> {
-    pub(crate) cfg: &'a Cfg<'a>,
-    pub(crate) toolchain: &'a ToolchainDesc,
-    pub(crate) profile: Profile,
-    pub(crate) update_hash: &'a Path,
-    pub(crate) dl_cfg: DownloadCfg<'a>,
+    pub(super) cfg: &'a Cfg<'a>,
+    pub(super) toolchain: &'a ToolchainDesc,
+    profile: Profile,
+    pub(super) update_hash: PathBuf,
+    dl_cfg: DownloadCfg<'a>,
     /// --force bool is whether to force an update/install
-    pub(crate) force: bool,
+    force: bool,
     /// --allow-downgrade
-    pub(crate) allow_downgrade: bool,
+    pub(super) allow_downgrade: bool,
     /// toolchain already exists
-    pub(crate) exists: bool,
+    pub(super) exists: bool,
     /// currently installed date and version
-    pub(crate) old_date_version: Option<(String, String)>,
+    pub(super) old_date_version: Option<(String, String)>,
     /// Extra components to install from dist
-    pub(crate) components: &'a [&'a str],
+    components: &'a [&'a str],
     /// Extra targets to install from dist
-    pub(crate) targets: &'a [&'a str],
+    targets: &'a [&'a str],
+}
+
+impl<'a> DistOptions<'a> {
+    pub(super) fn new(
+        components: &'a [&'a str],
+        targets: &'a [&'a str],
+        toolchain: &'a ToolchainDesc,
+        profile: Profile,
+        force: bool,
+        cfg: &'a Cfg<'_>,
+    ) -> Result<Self> {
+        Ok(Self {
+            cfg,
+            toolchain,
+            profile,
+            update_hash: cfg.get_hash_file(toolchain, true)?,
+            dl_cfg: DownloadCfg::new(cfg),
+            force,
+            allow_downgrade: false,
+            exists: false,
+            old_date_version: None,
+            components,
+            targets,
+        })
+    }
 }
 
 // Installs or updates a toolchain from a dist server. If an initial
@@ -902,12 +933,12 @@ pub(crate) async fn update_from_dist(
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-    if fresh_install && Path::exists(opts.update_hash) {
+    if fresh_install && opts.update_hash.exists() {
         warn!(
             "removing stray hash file in order to continue: {}",
             opts.update_hash.display()
         );
-        std::fs::remove_file(opts.update_hash)?;
+        std::fs::remove_file(&opts.update_hash)?;
     }
 
     let mut fetched = String::new();
@@ -960,7 +991,7 @@ pub(crate) async fn update_from_dist(
     let res = loop {
         let result = try_update_from_dist_(
             &opts.dl_cfg,
-            opts.update_hash,
+            &opts.update_hash,
             &toolchain,
             match opts.exists {
                 false => Some(opts.profile),
