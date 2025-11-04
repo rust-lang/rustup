@@ -43,22 +43,8 @@ impl<'a> DistributableToolchain<'a> {
         profile: Profile,
         force: bool,
     ) -> anyhow::Result<(UpdateStatus, Self)> {
-        let hash_path = cfg.get_hash_file(toolchain, true)?;
-        let status = InstallMethod::Dist(DistOptions {
-            cfg,
-            toolchain,
-            profile,
-            update_hash: &hash_path,
-            dl_cfg: DownloadCfg::new(cfg),
-            force,
-            allow_downgrade: false,
-            exists: false,
-            old_date_version: None,
-            components,
-            targets,
-        })
-        .install()
-        .await?;
+        let options = DistOptions::new(components, targets, toolchain, profile, force, cfg)?;
+        let status = InstallMethod::Dist(options).install().await?;
         Ok((status, Self::new(cfg, toolchain.clone())?))
     }
 
@@ -385,7 +371,18 @@ impl<'a> DistributableToolchain<'a> {
         force: bool,
         allow_downgrade: bool,
     ) -> anyhow::Result<UpdateStatus> {
-        let old_date_version =
+        let mut options = DistOptions::new(
+            components,
+            targets,
+            &self.desc,
+            profile,
+            force,
+            self.toolchain.cfg,
+        )?;
+
+        options.allow_downgrade = allow_downgrade;
+        options.exists = true;
+        options.old_date_version =
             // Ignore a missing manifest: we can't report the old version
             // correctly, and it probably indicates an incomplete install, so do
             // not report an old rustc version either.
@@ -400,23 +397,7 @@ impl<'a> DistributableToolchain<'a> {
                 })
                 .ok();
 
-        let cfg = self.toolchain.cfg;
-        let hash_path = cfg.get_hash_file(&self.desc, true)?;
-        InstallMethod::Dist(DistOptions {
-            cfg,
-            toolchain: &self.desc,
-            profile,
-            update_hash: &hash_path,
-            dl_cfg: DownloadCfg::new(cfg),
-            force,
-            allow_downgrade,
-            exists: true,
-            old_date_version,
-            components,
-            targets,
-        })
-        .install()
-        .await
+        InstallMethod::Dist(options).install().await
     }
 
     pub fn recursion_error(&self, binary_lossy: String) -> Result<Infallible, anyhow::Error> {
