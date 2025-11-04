@@ -880,7 +880,7 @@ pub(crate) struct DistOptions<'a> {
     pub(crate) cfg: &'a Cfg<'a>,
     pub(crate) toolchain: &'a ToolchainDesc,
     pub(crate) profile: Profile,
-    pub(crate) update_hash: Option<&'a Path>,
+    pub(crate) update_hash: &'a Path,
     pub(crate) dl_cfg: DownloadCfg<'a>,
     /// --force bool is whether to force an update/install
     pub(crate) force: bool,
@@ -907,15 +907,13 @@ pub(crate) async fn update_from_dist(
     opts: &DistOptions<'_>,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
-    if let Some(hash) = opts.update_hash {
-        // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-        if fresh_install && Path::exists(hash) {
-            warn!(
-                "removing stray hash file in order to continue: {}",
-                hash.display()
-            );
-            std::fs::remove_file(hash)?;
-        }
+    // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
+    if fresh_install && Path::exists(opts.update_hash) {
+        warn!(
+            "removing stray hash file in order to continue: {}",
+            opts.update_hash.display()
+        );
+        std::fs::remove_file(opts.update_hash)?;
     }
 
     let mut fetched = String::new();
@@ -1068,7 +1066,7 @@ pub(crate) async fn update_from_dist(
 #[allow(clippy::too_many_arguments)]
 async fn try_update_from_dist_(
     download: &DownloadCfg<'_>,
-    update_hash: Option<&Path>,
+    update_hash: &Path,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
     prefix: &InstallPrefix,
@@ -1090,7 +1088,7 @@ async fn try_update_from_dist_(
         // So if components or targets is not empty, we skip passing `update_hash` so that
         // we essentially degenerate to `rustup component add` / `rustup target add`
         if components.is_empty() && targets.is_empty() {
-            update_hash
+            Some(update_hash)
         } else {
             None
         },

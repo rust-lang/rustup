@@ -107,10 +107,7 @@ impl InstallMethod<'_> {
                 let maybe_new_hash = dist::update_from_dist(prefix, opts).await?;
 
                 if let Some(hash) = maybe_new_hash {
-                    if let Some(hash_file) = opts.update_hash {
-                        utils::write_file("update hash", hash_file, &hash)?;
-                    }
-
+                    utils::write_file("update hash", opts.update_hash, &hash)?;
                     Ok(true)
                 } else {
                     Ok(false)
