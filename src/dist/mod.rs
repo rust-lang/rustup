@@ -13,13 +13,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, warn};
 
-use crate::{
-    config::{Cfg, dist_root_server},
-    errors::RustupError,
-    process::Process,
-    toolchain::ToolchainName,
-    utils,
-};
+use crate::{config::Cfg, errors::RustupError, process::Process, toolchain::ToolchainName, utils};
 
 pub mod component;
 pub(crate) mod config;
@@ -977,7 +971,7 @@ pub(crate) async fn update_from_dist(
             opts.components,
             opts.targets,
             &mut fetched,
-            &opts.cfg.dist_root_url,
+            opts.cfg,
         )
         .await;
 
@@ -1074,7 +1068,7 @@ async fn try_update_from_dist_(
     components: &[&str],
     targets: &[&str],
     fetched: &mut String,
-    dist_root: &str,
+    cfg: &Cfg<'_>,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
@@ -1082,7 +1076,6 @@ async fn try_update_from_dist_(
     // TODO: Add a notification about which manifest version is going to be used
     info!("syncing channel updates for {toolchain_str}");
     match dl_v2_manifest(
-        dist_root,
         download,
         // Even if manifest has not changed, we must continue to install requested components.
         // So if components or targets is not empty, we skip passing `update_hash` so that
@@ -1093,6 +1086,7 @@ async fn try_update_from_dist_(
             None
         },
         toolchain,
+        cfg,
     )
     .await
     {
@@ -1190,7 +1184,7 @@ async fn try_update_from_dist_(
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = match dl_v1_manifest(dist_root, download, toolchain).await {
+    let manifest = match dl_v1_manifest(&cfg.dist_root_url, download, toolchain).await {
         Ok(m) => m,
         Err(err) => match err.downcast_ref::<RustupError>() {
             Some(RustupError::ChecksumFailed { .. }) => return Err(err),
@@ -1227,12 +1221,12 @@ async fn try_update_from_dist_(
 }
 
 pub(crate) async fn dl_v2_manifest(
-    dist_root: &str,
     download: &DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
+    cfg: &Cfg<'_>,
 ) -> Result<Option<(ManifestV2, String)>> {
-    let manifest_url = toolchain.manifest_v2_url(dist_root, download.process);
+    let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, download.process);
     match download
         .download_and_check(&manifest_url, update_hash, None, ".toml")
         .await
@@ -1258,15 +1252,15 @@ pub(crate) async fn dl_v2_manifest(
                 // Manifest checksum mismatched.
                 warn!("{err}");
 
-                let server = dist_root_server(download.process)?;
-                if server == DEFAULT_DIST_SERVER {
+                if cfg.dist_root_url.starts_with(DEFAULT_DIST_SERVER) {
                     info!(
                         "this is likely due to an ongoing update of the official release server, please try again later"
                     );
                     info!("see <https://github.com/rust-lang/rustup/issues/3390> for more details");
                 } else {
                     info!(
-                        "this might indicate an issue with the third-party release server '{server}'"
+                        "this might indicate an issue with the third-party release server '{}'",
+                        cfg.dist_root_url
                     );
                     info!("see <https://github.com/rust-lang/rustup/issues/3885> for more details");
                 }
