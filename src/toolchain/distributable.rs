@@ -34,6 +34,34 @@ pub(crate) struct DistributableToolchain<'a> {
 }
 
 impl<'a> DistributableToolchain<'a> {
+    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
+    pub(crate) async fn install(
+        cfg: &'a Cfg<'a>,
+        toolchain: &ToolchainDesc,
+        components: &[&str],
+        targets: &[&str],
+        profile: Profile,
+        force: bool,
+    ) -> anyhow::Result<(UpdateStatus, Self)> {
+        let hash_path = cfg.get_hash_file(toolchain, true)?;
+        let status = InstallMethod::Dist(DistOptions {
+            cfg,
+            toolchain,
+            profile,
+            update_hash: &hash_path,
+            dl_cfg: DownloadCfg::new(cfg),
+            force,
+            allow_downgrade: false,
+            exists: false,
+            old_date_version: None,
+            components,
+            targets,
+        })
+        .install()
+        .await?;
+        Ok((status, Self::new(cfg, toolchain.clone())?))
+    }
+
     pub(crate) async fn from_partial(
         toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
         cfg: &'a Cfg<'a>,
@@ -334,34 +362,6 @@ impl<'a> DistributableToolchain<'a> {
     /// Guess whether this is a V1 or V2 manifest distribution.
     pub(crate) fn guess_v1_manifest(&self) -> bool {
         InstallPrefix::from(self.toolchain.path().to_owned()).guess_v1_manifest()
-    }
-
-    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub(crate) async fn install(
-        cfg: &'a Cfg<'a>,
-        toolchain: &ToolchainDesc,
-        components: &[&str],
-        targets: &[&str],
-        profile: Profile,
-        force: bool,
-    ) -> anyhow::Result<(UpdateStatus, DistributableToolchain<'a>)> {
-        let hash_path = cfg.get_hash_file(toolchain, true)?;
-        let status = InstallMethod::Dist(DistOptions {
-            cfg,
-            toolchain,
-            profile,
-            update_hash: &hash_path,
-            dl_cfg: DownloadCfg::new(cfg),
-            force,
-            allow_downgrade: false,
-            exists: false,
-            old_date_version: None,
-            components,
-            targets,
-        })
-        .install()
-        .await?;
-        Ok((status, Self::new(cfg, toolchain.clone())?))
     }
 
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
