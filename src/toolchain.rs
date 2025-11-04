@@ -23,7 +23,7 @@ use crate::{
     RustupError,
     config::{ActiveSource, Cfg, InstalledPath},
     dist::{
-        PartialToolchainDesc, TargetTriple,
+        DistOptions, PartialToolchainDesc, TargetTriple,
         component::{Component, Components},
         prefix::InstallPrefix,
     },
@@ -61,12 +61,8 @@ impl<'a> Toolchain<'a> {
                 name: ToolchainName::Official(desc),
                 ..
             }) if install_if_missing => {
-                Ok(
-                    DistributableToolchain::install(cfg, &desc, &[], &[], cfg.get_profile()?, true)
-                        .await?
-                        .1
-                        .toolchain,
-                )
+                let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
+                Ok(DistributableToolchain::install(options).await?.1.toolchain)
             }
             Err(e) => Err(e.into()),
         }

@@ -41,7 +41,7 @@ use crate::{
     command, component_for_bin,
     config::{ActiveSource, Cfg},
     dist::{
-        AutoInstallMode, PartialToolchainDesc, Profile, TargetTriple,
+        AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus},
     },
@@ -960,27 +960,23 @@ async fn update(
 
             let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
             let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
+            let dist_opts = DistOptions::new(
+                &components,
+                &targets,
+                &desc,
+                cfg.get_profile()?,
+                opts.force,
+                cfg,
+            )?;
 
-            let force = opts.force;
-            let allow_downgrade = opts.allow_downgrade;
-            let profile = cfg.get_profile()?;
             let status = match DistributableToolchain::new(cfg, desc.clone()) {
-                Ok(mut d) => {
-                    let profile = cfg.get_profile()?;
-                    d.update(&components, &targets, profile, force, allow_downgrade)
+                Ok(d) => {
+                    InstallMethod::Dist(dist_opts.for_update(&d, opts.allow_downgrade))
+                        .install()
                         .await?
                 }
                 Err(RustupError::ToolchainNotInstalled { .. }) => {
-                    DistributableToolchain::install(
-                        cfg,
-                        &desc,
-                        &components,
-                        &targets,
-                        profile,
-                        force,
-                    )
-                    .await?
-                    .0
+                    DistributableToolchain::install(dist_opts).await?.0
                 }
                 Err(e) => Err(e)?,
             };
@@ -1520,10 +1516,8 @@ async fn override_add(
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
-                let status =
-                    DistributableToolchain::install(cfg, desc, &[], &[], cfg.get_profile()?, false)
-                        .await?
-                        .0;
+                let options = DistOptions::new(&[], &[], desc, cfg.get_profile()?, false, cfg)?;
+                let status = DistributableToolchain::install(options).await?.0;
                 writeln!(cfg.process.stdout().lock())?;
                 common::show_channel_update(
                     cfg,

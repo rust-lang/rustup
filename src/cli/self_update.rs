@@ -59,10 +59,13 @@ use crate::{
         markdown::md,
     },
     config::Cfg,
-    dist::{PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, download::DownloadCfg},
+    dist::{
+        DistOptions, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
+        download::DownloadCfg,
+    },
     download::download_file,
     errors::RustupError,
-    install::UpdateStatus,
+    install::{InstallMethod, UpdateStatus},
     process::Process,
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
@@ -996,6 +999,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     let (components, targets) = (opts.components, opts.targets);
     let toolchain = opts.install(cfg)?;
     if let Some(desc) = &toolchain {
+        let options = DistOptions::new(components, targets, desc, cfg.get_profile()?, true, cfg)?;
         let status = if Toolchain::exists(cfg, &desc.into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
             // If we have a partial install we might not be able to read content here. We could:
@@ -1003,21 +1007,12 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
             // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
             // - delete the partial install and start over
             // For now, we error.
-            let mut toolchain = DistributableToolchain::new(cfg, desc.clone())?;
-            toolchain
-                .update(components, targets, cfg.get_profile()?, true, false)
+            let toolchain = DistributableToolchain::new(cfg, desc.clone())?;
+            InstallMethod::Dist(options.for_update(&toolchain, false))
+                .install()
                 .await?
         } else {
-            DistributableToolchain::install(
-                cfg,
-                desc,
-                components,
-                targets,
-                cfg.get_profile()?,
-                true,
-            )
-            .await?
-            .0
+            DistributableToolchain::install(options).await?.0
         };
 
         check_proxy_sanity(cfg.process, components, desc)?;
