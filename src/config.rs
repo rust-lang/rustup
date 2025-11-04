@@ -6,7 +6,6 @@ use std::str::FromStr;
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
-use tokio_stream::StreamExt;
 use tracing::{debug, error, info, trace, warn};
 
 use crate::dist::AutoInstallMode;
@@ -897,22 +896,23 @@ impl<'a> Cfg<'a> {
         &self,
         force_update: bool,
     ) -> Result<Vec<(ToolchainDesc, Result<UpdateStatus>)>> {
-        let channels = self.list_channels()?;
-        let channels = channels.into_iter();
         let profile = self.get_profile()?;
 
         // Update toolchains and collect the results
-        let channels = tokio_stream::iter(channels).then(|(desc, mut distributable)| async move {
-            let st = distributable
+        let mut channels = Vec::new();
+        for (desc, mut distributable) in self.list_channels()? {
+            let result = distributable
                 .update_extra(&[], &[], profile, force_update, false)
                 .await;
-            if let Err(e) = &st {
+
+            if let Err(e) = &result {
                 error!("{e}");
             }
-            (desc, st)
-        });
 
-        Ok(channels.collect().await)
+            channels.push((desc, result));
+        }
+
+        Ok(channels)
     }
 
     pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
