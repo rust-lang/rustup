@@ -901,7 +901,7 @@ pub(crate) struct DistOptions<'a> {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-#[tracing::instrument(level = "trace", err(level = "trace"), skip_all, fields(profile=format!("{:?}", opts.profile), prefix=prefix.path().to_string_lossy().to_string()))]
+#[tracing::instrument(level = "trace", err(level = "trace"), skip_all, fields(profile = ?opts.profile, prefix = %prefix.path().display()))]
 pub(crate) async fn update_from_dist(
     prefix: &InstallPrefix,
     opts: &DistOptions<'_>,
