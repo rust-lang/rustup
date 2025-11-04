@@ -19,7 +19,13 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, warn};
 
-use crate::{config::Cfg, errors::RustupError, process::Process, toolchain::ToolchainName, utils};
+use crate::{
+    config::Cfg,
+    errors::RustupError,
+    process::Process,
+    toolchain::{DistributableToolchain, ToolchainName},
+    utils,
+};
 
 pub mod component;
 pub(crate) mod config;
@@ -876,14 +882,14 @@ impl fmt::Display for Profile {
     }
 }
 
-pub(crate) struct DistOptions<'a> {
-    pub(super) cfg: &'a Cfg<'a>,
+pub(crate) struct DistOptions<'cfg, 'a> {
+    pub(super) cfg: &'cfg Cfg<'cfg>,
     pub(super) toolchain: &'a ToolchainDesc,
     profile: Profile,
     pub(super) update_hash: PathBuf,
-    dl_cfg: DownloadCfg<'a>,
+    dl_cfg: DownloadCfg<'cfg>,
     /// --force bool is whether to force an update/install
-    force: bool,
+    pub(super) force: bool,
     /// --allow-downgrade
     pub(super) allow_downgrade: bool,
     /// toolchain already exists
@@ -896,14 +902,14 @@ pub(crate) struct DistOptions<'a> {
     targets: &'a [&'a str],
 }
 
-impl<'a> DistOptions<'a> {
+impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     pub(super) fn new(
         components: &'a [&'a str],
         targets: &'a [&'a str],
         toolchain: &'a ToolchainDesc,
         profile: Profile,
         force: bool,
-        cfg: &'a Cfg<'_>,
+        cfg: &'cfg Cfg<'cfg>,
     ) -> Result<Self> {
         Ok(Self {
             cfg,
@@ -919,6 +925,31 @@ impl<'a> DistOptions<'a> {
             targets,
         })
     }
+
+    pub(super) fn for_update(
+        mut self,
+        toolchain: &'a DistributableToolchain<'cfg>,
+        allow_downgrade: bool,
+    ) -> Self {
+        self.allow_downgrade = allow_downgrade;
+        self.exists = true;
+        self.old_date_version =
+            // Ignore a missing manifest: we can't report the old version
+            // correctly, and it probably indicates an incomplete install, so do
+            // not report an old rustc version either.
+            toolchain.get_manifest()
+                .map(|m| {
+                    (
+                        m.date,
+                        // should rustc_version be a free function on a trait?
+                        // note that prev_version can be junk if the rustc component is missing ...
+                        toolchain.toolchain.rustc_version(),
+                    )
+                })
+                .ok();
+
+        self
+    }
 }
 
 // Installs or updates a toolchain from a dist server. If an initial
@@ -929,7 +960,7 @@ impl<'a> DistOptions<'a> {
 #[tracing::instrument(level = "trace", err(level = "trace"), skip_all, fields(profile = ?opts.profile, prefix = %prefix.path().display()))]
 pub(crate) async fn update_from_dist(
     prefix: &InstallPrefix,
-    opts: &DistOptions<'_>,
+    opts: &DistOptions<'_, '_>,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file

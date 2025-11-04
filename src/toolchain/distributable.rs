@@ -11,7 +11,7 @@ use crate::{
     RustupError, component_for_bin,
     config::{ActiveSource, Cfg},
     dist::{
-        DistOptions, PartialToolchainDesc, Profile, ToolchainDesc,
+        DistOptions, PartialToolchainDesc, ToolchainDesc,
         config::Config,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, Manifest},
@@ -29,21 +29,16 @@ use super::{
 /// An official toolchain installed on the local disk
 #[derive(Debug)]
 pub(crate) struct DistributableToolchain<'a> {
-    pub(super) toolchain: Toolchain<'a>,
+    pub(crate) toolchain: Toolchain<'a>,
     desc: ToolchainDesc,
 }
 
 impl<'a> DistributableToolchain<'a> {
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn install(
-        cfg: &'a Cfg<'a>,
-        toolchain: &ToolchainDesc,
-        components: &[&str],
-        targets: &[&str],
-        profile: Profile,
-        force: bool,
+        options: DistOptions<'a, '_>,
     ) -> anyhow::Result<(UpdateStatus, Self)> {
-        let options = DistOptions::new(components, targets, toolchain, profile, force, cfg)?;
+        let (cfg, toolchain) = (options.cfg, options.toolchain);
         let status = InstallMethod::Dist(options).install().await?;
         Ok((status, Self::new(cfg, toolchain.clone())?))
     }
@@ -348,45 +343,6 @@ impl<'a> DistributableToolchain<'a> {
     /// Guess whether this is a V1 or V2 manifest distribution.
     pub(crate) fn guess_v1_manifest(&self) -> bool {
         InstallPrefix::from(self.toolchain.path().to_owned()).guess_v1_manifest()
-    }
-
-    /// Update a toolchain with control over the channel behaviour
-    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub(crate) async fn update(
-        &mut self,
-        components: &[&str],
-        targets: &[&str],
-        profile: Profile,
-        force: bool,
-        allow_downgrade: bool,
-    ) -> anyhow::Result<UpdateStatus> {
-        let mut options = DistOptions::new(
-            components,
-            targets,
-            &self.desc,
-            profile,
-            force,
-            self.toolchain.cfg,
-        )?;
-
-        options.allow_downgrade = allow_downgrade;
-        options.exists = true;
-        options.old_date_version =
-            // Ignore a missing manifest: we can't report the old version
-            // correctly, and it probably indicates an incomplete install, so do
-            // not report an old rustc version either.
-            self.get_manifest()
-                .map(|m| {
-                    (
-                        m.date,
-                        // should rustc_version be a free function on a trait?
-                        // note that prev_version can be junk if the rustc component is missing ...
-                        self.toolchain.rustc_version(),
-                    )
-                })
-                .ok();
-
-        InstallMethod::Dist(options).install().await
     }
 
     pub fn recursion_error(&self, binary_lossy: String) -> Result<Infallible, anyhow::Error> {

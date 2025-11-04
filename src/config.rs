@@ -8,13 +8,15 @@ use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tracing::{debug, error, info, trace, warn};
 
-use crate::dist::AutoInstallMode;
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
-    dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc, temp},
+    dist::{
+        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
+        ToolchainDesc, temp,
+    },
     errors::RustupError,
     fallback_settings::FallbackSettings,
-    install::UpdateStatus,
+    install::{InstallMethod, UpdateStatus},
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
@@ -787,29 +789,30 @@ impl<'a> Cfg<'a> {
         }
         let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
         let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
-        let profile = match profile {
-            Some(profile) => profile,
-            None => self.get_profile()?,
-        };
+        let mut options = DistOptions::new(
+            &components,
+            &targets,
+            toolchain,
+            match profile {
+                Some(p) => p,
+                None => self.get_profile()?,
+            },
+            false,
+            self,
+        )?;
+
         let (status, toolchain) = match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled { .. }) => {
-                DistributableToolchain::install(
-                    self,
-                    toolchain,
-                    &components,
-                    &targets,
-                    profile,
-                    false,
-                )
-                .await?
+                DistributableToolchain::install(options).await?
             }
-            Ok(mut distributable) => {
+            Ok(distributable) => {
                 if verbose {
                     info!("using existing install for {toolchain}");
                 }
                 let status = if !distributable.components_exist(&components, &targets)? {
-                    distributable
-                        .update(&components, &targets, profile, true, false)
+                    options.force = true;
+                    InstallMethod::Dist(options.for_update(&distributable, false))
+                        .install()
                         .await?
                 } else {
                     UpdateStatus::Unchanged

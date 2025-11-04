@@ -20,21 +20,21 @@ pub(crate) enum UpdateStatus {
     Unchanged,
 }
 
-pub(crate) enum InstallMethod<'a> {
+pub(crate) enum InstallMethod<'cfg, 'a> {
     Copy {
         src: &'a Path,
         dest: &'a CustomToolchainName,
-        cfg: &'a Cfg<'a>,
+        cfg: &'cfg Cfg<'cfg>,
     },
     Link {
         src: &'a Path,
         dest: &'a CustomToolchainName,
-        cfg: &'a Cfg<'a>,
+        cfg: &'cfg Cfg<'cfg>,
     },
-    Dist(DistOptions<'a>),
+    Dist(DistOptions<'cfg, 'a>),
 }
 
-impl InstallMethod<'_> {
+impl InstallMethod<'_, '_> {
     // Install a toolchain
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn install(self) -> Result<UpdateStatus> {

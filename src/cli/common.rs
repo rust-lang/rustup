@@ -16,9 +16,9 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     config::Cfg,
-    dist::{TargetTriple, ToolchainDesc},
+    dist::{DistOptions, TargetTriple, ToolchainDesc},
     errors::RustupError,
-    install::UpdateStatus,
+    install::{InstallMethod, UpdateStatus},
     process::Process,
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
     utils,
@@ -217,10 +217,10 @@ pub(crate) async fn update_all_channels(
 ) -> Result<utils::ExitCode> {
     let profile = cfg.get_profile()?;
     let mut toolchains = Vec::new();
-    for (desc, mut distributable) in cfg.list_channels()? {
-        let result = distributable
-            .update(&[], &[], profile, force_update, false)
-            .await;
+    for (desc, distributable) in cfg.list_channels()? {
+        let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
+            .for_update(&distributable, false);
+        let result = InstallMethod::Dist(options).install().await;
 
         if let Err(e) = &result {
             error!("{e}");
