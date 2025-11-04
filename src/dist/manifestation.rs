@@ -361,7 +361,7 @@ impl Manifestation {
     pub(crate) async fn update_v1(
         &self,
         new_manifest: &[String],
-        update_hash: Option<&Path>,
+        update_hash: &Path,
         dl_cfg: &DownloadCfg<'_>,
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
@@ -387,7 +387,7 @@ impl Manifestation {
 
         let status = dl_cfg.status_for("rust");
         let dl = dl_cfg
-            .download_and_check(&url, update_hash, Some(&status), ".tar.gz")
+            .download_and_check(&url, Some(update_hash), Some(&status), ".tar.gz")
             .await?;
         if dl.is_none() {
             return Ok(None);

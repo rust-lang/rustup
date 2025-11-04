@@ -1,6 +1,6 @@
 #[cfg(windows)]
 use std::fs;
-use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, path::Path, process::Command};
+use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, process::Command};
 
 #[cfg(windows)]
 use anyhow::Context;
@@ -346,13 +346,11 @@ impl<'a> DistributableToolchain<'a> {
         force: bool,
     ) -> anyhow::Result<(UpdateStatus, DistributableToolchain<'a>)> {
         let hash_path = cfg.get_hash_file(toolchain, true)?;
-        let update_hash = Some(&hash_path as &Path);
-
         let status = InstallMethod::Dist(DistOptions {
             cfg,
             toolchain,
             profile,
-            update_hash,
+            update_hash: &hash_path,
             dl_cfg: DownloadCfg::new(cfg),
             force,
             allow_downgrade: false,
@@ -404,13 +402,11 @@ impl<'a> DistributableToolchain<'a> {
 
         let cfg = self.toolchain.cfg;
         let hash_path = cfg.get_hash_file(&self.desc, true)?;
-        let update_hash = Some(&hash_path as &Path);
-
         InstallMethod::Dist(DistOptions {
             cfg,
             toolchain: &self.desc,
             profile,
-            update_hash,
+            update_hash: &hash_path,
             dl_cfg: DownloadCfg::new(cfg),
             force,
             allow_downgrade,
