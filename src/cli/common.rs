@@ -215,7 +215,20 @@ pub(crate) async fn update_all_channels(
     cfg: &Cfg<'_>,
     force_update: bool,
 ) -> Result<utils::ExitCode> {
-    let toolchains = cfg.update_all_channels(force_update).await?;
+    let profile = cfg.get_profile()?;
+    let mut toolchains = Vec::new();
+    for (desc, mut distributable) in cfg.list_channels()? {
+        let result = distributable
+            .update_extra(&[], &[], profile, force_update, false)
+            .await;
+
+        if let Err(e) = &result {
+            error!("{e}");
+        }
+
+        toolchains.push((desc, result));
+    }
+
     let has_update_error = toolchains.iter().any(|(_, r)| r.is_err());
     let exit_code = utils::ExitCode(if has_update_error { 1 } else { 0 });
 

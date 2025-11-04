@@ -892,29 +892,6 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) async fn update_all_channels(
-        &self,
-        force_update: bool,
-    ) -> Result<Vec<(ToolchainDesc, Result<UpdateStatus>)>> {
-        let profile = self.get_profile()?;
-
-        // Update toolchains and collect the results
-        let mut channels = Vec::new();
-        for (desc, mut distributable) in self.list_channels()? {
-            let result = distributable
-                .update_extra(&[], &[], profile, force_update, false)
-                .await;
-
-            if let Err(e) = &result {
-                error!("{e}");
-            }
-
-            channels.push((desc, result));
-        }
-
-        Ok(channels)
-    }
-
     pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
