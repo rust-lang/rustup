@@ -950,173 +950,170 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
         self
     }
-}
 
-// Installs or updates a toolchain from a dist server. If an initial
-// install then it will be installed with the default components. If
-// an upgrade then all the existing components will be upgraded.
-//
-// Returns the manifest's hash if anything changed.
-#[tracing::instrument(level = "trace", err(level = "trace"), skip_all, fields(profile = ?opts.profile, prefix = %prefix.path().display()))]
-pub(crate) async fn update_from_dist(
-    prefix: &InstallPrefix,
-    opts: &DistOptions<'_, '_>,
-) -> Result<Option<String>> {
-    let fresh_install = !prefix.path().exists();
-    // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-    if fresh_install && opts.update_hash.exists() {
-        warn!(
-            "removing stray hash file in order to continue: {}",
-            opts.update_hash.display()
-        );
-        std::fs::remove_file(&opts.update_hash)?;
-    }
-
-    let mut fetched = String::new();
-    let mut first_err = None;
-    let backtrack = opts.toolchain.channel == Channel::Nightly && opts.toolchain.date.is_none();
-    // We want to limit backtracking if we do not already have a toolchain
-    let mut backtrack_limit: Option<i32> = if opts.toolchain.date.is_some() {
-        None
-    } else {
-        // We limit the backtracking to 21 days by default (half a release cycle).
-        // The limit of 21 days is an arbitrary selection, so we let the user override it.
-        const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
-        let provided = opts
-            .dl_cfg
-            .process
-            .var("RUSTUP_BACKTRACK_LIMIT")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(BACKTRACK_LIMIT_DEFAULT);
-        Some(if provided < 1 { 1 } else { provided })
-    };
-
-    // In case there is no allow-downgrade option set
-    // we never want to backtrack further back than the nightly that's already installed.
+    // Installs or updates a toolchain from a dist server. If an initial
+    // install then it will be installed with the default components. If
+    // an upgrade then all the existing components will be upgraded.
     //
-    // If no nightly is installed, it makes no sense to backtrack beyond the first ever manifest,
-    // which is 2014-12-20 according to
-    // https://static.rust-lang.org/cargo-dist/index.html.
-    //
-    // We could arguably use the date of the first rustup release here, but that would break a
-    // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
-    let first_manifest = date_from_manifest_date("2014-12-20").unwrap();
-    let old_manifest = opts
-        .old_date_version
-        .as_ref()
-        .and_then(|(d, _)| date_from_manifest_date(d))
-        .unwrap_or(first_manifest);
-    let last_manifest = if opts.allow_downgrade {
-        first_manifest
-    } else {
-        old_manifest
-    };
+    // Returns the manifest's hash if anything changed.
+    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all, fields(profile = ?self.profile, prefix = %prefix.path().display()))]
+    pub(crate) async fn install_into(&self, prefix: &InstallPrefix) -> Result<Option<String>> {
+        let fresh_install = !prefix.path().exists();
+        // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
+        if fresh_install && self.update_hash.exists() {
+            warn!(
+                "removing stray hash file in order to continue: {}",
+                self.update_hash.display()
+            );
+            std::fs::remove_file(&self.update_hash)?;
+        }
 
-    let current_manifest = {
-        let manifestation = Manifestation::open(prefix.clone(), opts.toolchain.target.clone())?;
-        manifestation.load_manifest()?
-    };
-
-    let mut toolchain = opts.toolchain.clone();
-    let res = loop {
-        let result = try_update_from_dist_(
-            &opts.dl_cfg,
-            &opts.update_hash,
-            &toolchain,
-            match opts.exists {
-                false => Some(opts.profile),
-                true => None,
-            },
-            prefix,
-            opts.force,
-            opts.components,
-            opts.targets,
-            &mut fetched,
-            opts.cfg,
-        )
-        .await;
-
-        let e = match result {
-            Ok(v) => break Ok(v),
-            Err(e) if !backtrack => break Err(e),
-            Err(e) => e,
+        let mut fetched = String::new();
+        let mut first_err = None;
+        let backtrack = self.toolchain.channel == Channel::Nightly && self.toolchain.date.is_none();
+        // We want to limit backtracking if we do not already have a toolchain
+        let mut backtrack_limit: Option<i32> = if self.toolchain.date.is_some() {
+            None
+        } else {
+            // We limit the backtracking to 21 days by default (half a release cycle).
+            // The limit of 21 days is an arbitrary selection, so we let the user override it.
+            const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
+            let provided = self
+                .dl_cfg
+                .process
+                .var("RUSTUP_BACKTRACK_LIMIT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(BACKTRACK_LIMIT_DEFAULT);
+            Some(if provided < 1 { 1 } else { provided })
         };
 
-        let cause = e.downcast_ref::<DistError>();
-        match cause {
-            Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
-                let plural = if components.len() > 1 { "s" } else { "" };
-                let manifest = current_manifest.as_ref().unwrap_or(manifest);
-                let components = components
-                    .iter()
-                    .map(
-                        |component| match component.target.as_ref() == Some(&toolchain.target) {
-                            true => component.short_name(manifest),
-                            false => component.name(manifest),
-                        },
-                    )
-                    .join(", ");
-                info!("skipping nightly with missing component{plural}: {components}");
+        // In case there is no allow-downgrade option set
+        // we never want to backtrack further back than the nightly that's already installed.
+        //
+        // If no nightly is installed, it makes no sense to backtrack beyond the first ever manifest,
+        // which is 2014-12-20 according to
+        // https://static.rust-lang.org/cargo-dist/index.html.
+        //
+        // We could arguably use the date of the first rustup release here, but that would break a
+        // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
+        let first_manifest = date_from_manifest_date("2014-12-20").unwrap();
+        let old_manifest = self
+            .old_date_version
+            .as_ref()
+            .and_then(|(d, _)| date_from_manifest_date(d))
+            .unwrap_or(first_manifest);
+        let last_manifest = if self.allow_downgrade {
+            first_manifest
+        } else {
+            old_manifest
+        };
 
-                if first_err.is_none() {
-                    first_err = Some(e);
+        let current_manifest = {
+            let manifestation = Manifestation::open(prefix.clone(), self.toolchain.target.clone())?;
+            manifestation.load_manifest()?
+        };
+
+        let mut toolchain = self.toolchain.clone();
+        let res = loop {
+            let result = try_update_from_dist_(
+                &self.dl_cfg,
+                &self.update_hash,
+                &toolchain,
+                match self.exists {
+                    false => Some(self.profile),
+                    true => None,
+                },
+                prefix,
+                self.force,
+                self.components,
+                self.targets,
+                &mut fetched,
+                self.cfg,
+            )
+            .await;
+
+            let e = match result {
+                Ok(v) => break Ok(v),
+                Err(e) if !backtrack => break Err(e),
+                Err(e) => e,
+            };
+
+            let cause = e.downcast_ref::<DistError>();
+            match cause {
+                Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
+                    let plural = if components.len() > 1 { "s" } else { "" };
+                    let manifest = current_manifest.as_ref().unwrap_or(manifest);
+                    let components = components
+                        .iter()
+                        .map(|component| {
+                            match component.target.as_ref() == Some(&toolchain.target) {
+                                true => component.short_name(manifest),
+                                false => component.name(manifest),
+                            }
+                        })
+                        .join(", ");
+                    info!("skipping nightly with missing component{plural}: {components}");
+
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                    // We decrement the backtrack count only on unavailable component errors
+                    // so that the limit only applies to nightlies that were indeed available,
+                    // and ignores missing ones.
+                    backtrack_limit = backtrack_limit.map(|n| n - 1);
                 }
-                // We decrement the backtrack count only on unavailable component errors
-                // so that the limit only applies to nightlies that were indeed available,
-                // and ignores missing ones.
-                backtrack_limit = backtrack_limit.map(|n| n - 1);
+
+                Some(DistError::MissingReleaseForToolchain(..)) => {
+                    // no need to even print anything for missing nightlies,
+                    // since we don't really "skip" them
+                }
+                _ => {
+                    // All other errors break the loop
+                    break Err(e);
+                }
+            };
+
+            if let Some(backtrack_limit) = backtrack_limit
+                && backtrack_limit < 1
+            {
+                // This unwrap is safe because we can only hit this if we've
+                // had a chance to set first_err
+                break Err(first_err.unwrap());
             }
 
-            Some(DistError::MissingReleaseForToolchain(..)) => {
-                // no need to even print anything for missing nightlies,
-                // since we don't really "skip" them
+            // The user asked to update their nightly, but the latest nightly does not have all
+            // the components that the user currently has installed. Let's try the previous
+            // nightlies in reverse chronological order until we find a nightly that does,
+            // starting at one date earlier than the current manifest's date.
+            let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
+            let try_next = date_from_manifest_date(toolchain_date)
+                .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
+                .pred_opt()
+                .unwrap();
+
+            if try_next < last_manifest {
+                // Wouldn't be an update if we go further back than the user's current nightly.
+                if let Some(e) = first_err {
+                    break Err(e);
+                } else {
+                    // In this case, all newer nightlies are missing, which means there are no
+                    // updates, so the user is already at the latest nightly.
+                    break Ok(None);
+                }
             }
-            _ => {
-                // All other errors break the loop
-                break Err(e);
-            }
+
+            toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
         };
 
-        if let Some(backtrack_limit) = backtrack_limit
-            && backtrack_limit < 1
-        {
-            // This unwrap is safe because we can only hit this if we've
-            // had a chance to set first_err
-            break Err(first_err.unwrap());
+        // Don't leave behind an empty / broken installation directory
+        if res.is_err() && fresh_install {
+            // FIXME Ignoring cascading errors
+            let _ = utils::remove_dir("toolchain", prefix.path());
         }
 
-        // The user asked to update their nightly, but the latest nightly does not have all
-        // the components that the user currently has installed. Let's try the previous
-        // nightlies in reverse chronological order until we find a nightly that does,
-        // starting at one date earlier than the current manifest's date.
-        let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
-        let try_next = date_from_manifest_date(toolchain_date)
-            .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
-            .pred_opt()
-            .unwrap();
-
-        if try_next < last_manifest {
-            // Wouldn't be an update if we go further back than the user's current nightly.
-            if let Some(e) = first_err {
-                break Err(e);
-            } else {
-                // In this case, all newer nightlies are missing, which means there are no
-                // updates, so the user is already at the latest nightly.
-                break Ok(None);
-            }
-        }
-
-        toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
-    };
-
-    // Don't leave behind an empty / broken installation directory
-    if res.is_err() && fresh_install {
-        // FIXME Ignoring cascading errors
-        let _ = utils::remove_dir("toolchain", prefix.path());
+        res
     }
-
-    res
 }
 
 #[allow(clippy::too_many_arguments)]

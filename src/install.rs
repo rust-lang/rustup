@@ -7,7 +7,7 @@ use tracing::debug;
 
 use crate::{
     config::Cfg,
-    dist::{self, DistOptions, prefix::InstallPrefix},
+    dist::{DistOptions, prefix::InstallPrefix},
     errors::RustupError,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
@@ -104,7 +104,7 @@ impl InstallMethod<'_, '_> {
             }
             InstallMethod::Dist(opts) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = dist::update_from_dist(prefix, opts).await?;
+                let maybe_new_hash = opts.install_into(prefix).await?;
 
                 if let Some(hash) = maybe_new_hash {
                     utils::write_file("update hash", &opts.update_hash, &hash)?;
