@@ -1555,7 +1555,7 @@ jobs:
         uses: taiki-e/install-action@v2
         env:
           # renovate: datasource=crate depName=mdbook
-          MDBOOK_VERSION: "0.4.43"
+          MDBOOK_VERSION: "0.5.1"
         with:
           tool: mdbook@${{ env.MDBOOK_VERSION }}
       - name: Build user-guide (stable)
