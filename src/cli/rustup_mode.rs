@@ -386,6 +386,10 @@ struct UpdateOpts {
     #[arg(long)]
     no_self_update: bool,
 
+    /// Don't try to update the installed toolchain
+    #[arg(long)]
+    no_update: bool,
+
     /// Force an update, even if some components are missing
     #[arg(long)]
     force: bool,
@@ -971,9 +975,13 @@ async fn update(
 
             let status = match DistributableToolchain::new(cfg, desc.clone()) {
                 Ok(d) => {
-                    InstallMethod::Dist(dist_opts.for_update(&d, opts.allow_downgrade))
-                        .install()
-                        .await?
+                    if !opts.no_update {
+                        InstallMethod::Dist(dist_opts.for_update(&d, opts.allow_downgrade))
+                            .install()
+                            .await?
+                    } else {
+                        UpdateStatus::Unchanged
+                    }
                 }
                 Err(RustupError::ToolchainNotInstalled { .. }) => {
                     DistributableToolchain::install(dist_opts).await?.0
