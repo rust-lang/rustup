@@ -8,12 +8,12 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, anyhow};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use sha2::{Digest, Sha256};
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::config::Cfg;
-use crate::dist::DEFAULT_DIST_SERVER;
-use crate::dist::temp;
+use crate::dist::manifest::Manifest;
+use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
 use crate::download::{download_file, download_file_with_resume};
 use crate::errors::RustupError;
 use crate::process::Process;
@@ -134,6 +134,88 @@ impl<'a> DownloadCfg<'a> {
         download_file(&hash_url, &hash_file, None, None, self.process).await?;
 
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
+    }
+
+    pub(crate) async fn dl_v2_manifest(
+        &self,
+        update_hash: Option<&Path>,
+        toolchain: &ToolchainDesc,
+        cfg: &Cfg<'_>,
+    ) -> Result<Option<(Manifest, String)>> {
+        let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, self.process);
+        match self
+            .download_and_check(&manifest_url, update_hash, None, ".toml")
+            .await
+        {
+            Ok(manifest_dl) => {
+                // Downloaded ok!
+                let Some((manifest_file, manifest_hash)) = manifest_dl else {
+                    return Ok(None);
+                };
+                let manifest_str = utils::read_file("manifest", &manifest_file)?;
+                let manifest =
+                    Manifest::parse(&manifest_str).with_context(|| RustupError::ParsingFile {
+                        name: "manifest",
+                        path: manifest_file.to_path_buf(),
+                    })?;
+
+                Ok(Some((manifest, manifest_hash)))
+            }
+            Err(any) => {
+                if let Some(err @ RustupError::ChecksumFailed { .. }) =
+                    any.downcast_ref::<RustupError>()
+                {
+                    // Manifest checksum mismatched.
+                    warn!("{err}");
+
+                    if cfg.dist_root_url.starts_with(DEFAULT_DIST_SERVER) {
+                        info!(
+                            "this is likely due to an ongoing update of the official release server, please try again later"
+                        );
+                        info!(
+                            "see <https://github.com/rust-lang/rustup/issues/3390> for more details"
+                        );
+                    } else {
+                        info!(
+                            "this might indicate an issue with the third-party release server '{}'",
+                            cfg.dist_root_url
+                        );
+                        info!(
+                            "see <https://github.com/rust-lang/rustup/issues/3885> for more details"
+                        );
+                    }
+                }
+                Err(any)
+            }
+        }
+    }
+
+    pub(super) async fn dl_v1_manifest(
+        &self,
+        dist_root: &str,
+        toolchain: &ToolchainDesc,
+    ) -> Result<Vec<String>> {
+        let root_url = toolchain.package_dir(dist_root);
+
+        if let Channel::Version(ver) = &toolchain.channel {
+            // This is an explicit version. In v1 there was no manifest,
+            // you just know the file to download, so synthesize one.
+            let installer_name = format!("{}/rust-{}-{}.tar.gz", root_url, ver, toolchain.target);
+            return Ok(vec![installer_name]);
+        }
+
+        let manifest_url = toolchain.manifest_v1_url(dist_root, self.process);
+        let manifest_dl = self
+            .download_and_check(&manifest_url, None, None, "")
+            .await?;
+        let (manifest_file, _) = manifest_dl.unwrap();
+        let manifest_str = utils::read_file("manifest", &manifest_file)?;
+        let urls = manifest_str
+            .lines()
+            .map(|s| format!("{root_url}/{s}"))
+            .collect();
+
+        Ok(urls)
     }
 
     /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.

@@ -1134,20 +1134,20 @@ async fn try_update_from_dist_(
 
     // TODO: Add a notification about which manifest version is going to be used
     info!("syncing channel updates for {toolchain_str}");
-    match dl_v2_manifest(
-        download,
-        // Even if manifest has not changed, we must continue to install requested components.
-        // So if components or targets is not empty, we skip passing `update_hash` so that
-        // we essentially degenerate to `rustup component add` / `rustup target add`
-        if components.is_empty() && targets.is_empty() {
-            Some(update_hash)
-        } else {
-            None
-        },
-        toolchain,
-        cfg,
-    )
-    .await
+    match download
+        .dl_v2_manifest(
+            // Even if manifest has not changed, we must continue to install requested components.
+            // So if components or targets is not empty, we skip passing `update_hash` so that
+            // we essentially degenerate to `rustup component add` / `rustup target add`
+            if components.is_empty() && targets.is_empty() {
+                Some(update_hash)
+            } else {
+                None
+            },
+            toolchain,
+            cfg,
+        )
+        .await
     {
         Ok(Some((m, hash))) => {
             match m.get_rust_version() {
@@ -1243,7 +1243,7 @@ async fn try_update_from_dist_(
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = match dl_v1_manifest(&cfg.dist_root_url, download, toolchain).await {
+    let manifest = match download.dl_v1_manifest(&cfg.dist_root_url, toolchain).await {
         Ok(m) => m,
         Err(err) => match err.downcast_ref::<RustupError>() {
             Some(RustupError::ChecksumFailed { .. }) => return Err(err),
@@ -1277,84 +1277,6 @@ async fn try_update_from_dist_(
     }
 
     result
-}
-
-pub(crate) async fn dl_v2_manifest(
-    download: &DownloadCfg<'_>,
-    update_hash: Option<&Path>,
-    toolchain: &ToolchainDesc,
-    cfg: &Cfg<'_>,
-) -> Result<Option<(ManifestV2, String)>> {
-    let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, download.process);
-    match download
-        .download_and_check(&manifest_url, update_hash, None, ".toml")
-        .await
-    {
-        Ok(manifest_dl) => {
-            // Downloaded ok!
-            let Some((manifest_file, manifest_hash)) = manifest_dl else {
-                return Ok(None);
-            };
-            let manifest_str = utils::read_file("manifest", &manifest_file)?;
-            let manifest =
-                ManifestV2::parse(&manifest_str).with_context(|| RustupError::ParsingFile {
-                    name: "manifest",
-                    path: manifest_file.to_path_buf(),
-                })?;
-
-            Ok(Some((manifest, manifest_hash)))
-        }
-        Err(any) => {
-            if let Some(err @ RustupError::ChecksumFailed { .. }) =
-                any.downcast_ref::<RustupError>()
-            {
-                // Manifest checksum mismatched.
-                warn!("{err}");
-
-                if cfg.dist_root_url.starts_with(DEFAULT_DIST_SERVER) {
-                    info!(
-                        "this is likely due to an ongoing update of the official release server, please try again later"
-                    );
-                    info!("see <https://github.com/rust-lang/rustup/issues/3390> for more details");
-                } else {
-                    info!(
-                        "this might indicate an issue with the third-party release server '{}'",
-                        cfg.dist_root_url
-                    );
-                    info!("see <https://github.com/rust-lang/rustup/issues/3885> for more details");
-                }
-            }
-            Err(any)
-        }
-    }
-}
-
-async fn dl_v1_manifest(
-    dist_root: &str,
-    download: &DownloadCfg<'_>,
-    toolchain: &ToolchainDesc,
-) -> Result<Vec<String>> {
-    let root_url = toolchain.package_dir(dist_root);
-
-    if let Channel::Version(ver) = &toolchain.channel {
-        // This is an explicit version. In v1 there was no manifest,
-        // you just know the file to download, so synthesize one.
-        let installer_name = format!("{}/rust-{}-{}.tar.gz", root_url, ver, toolchain.target);
-        return Ok(vec![installer_name]);
-    }
-
-    let manifest_url = toolchain.manifest_v1_url(dist_root, download.process);
-    let manifest_dl = download
-        .download_and_check(&manifest_url, None, None, "")
-        .await?;
-    let (manifest_file, _) = manifest_dl.unwrap();
-    let manifest_str = utils::read_file("manifest", &manifest_file)?;
-    let urls = manifest_str
-        .lines()
-        .map(|s| format!("{root_url}/{s}"))
-        .collect();
-
-    Ok(urls)
 }
 
 fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {
