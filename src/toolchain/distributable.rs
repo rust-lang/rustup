@@ -445,13 +445,13 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
-        match crate::dist::dl_v2_manifest(
-            &DownloadCfg::new(self.toolchain.cfg),
-            Some(&self.toolchain.cfg.get_hash_file(&self.desc, false)?),
-            &self.desc,
-            self.toolchain.cfg,
-        )
-        .await?
+        match DownloadCfg::new(self.toolchain.cfg)
+            .dl_v2_manifest(
+                Some(&self.toolchain.cfg.get_hash_file(&self.desc, false)?),
+                &self.desc,
+                self.toolchain.cfg,
+            )
+            .await?
         {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
