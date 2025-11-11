@@ -83,8 +83,8 @@ fn package_bad_version() {
     assert!(DirectoryPackage::new(tempdir.path().to_owned(), true).is_err());
 }
 
-#[test]
-fn basic_install() {
+#[tokio::test]
+async fn basic_install() {
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "mycomponent".to_string(),
@@ -98,7 +98,10 @@ fn basic_install() {
 
     let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
-    let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent", None, tx)
+        .await
+        .unwrap();
     tx.commit();
 
     assert!(utils::path_exists(cx.inst_dir.path().join("bin/foo")));
@@ -113,8 +116,8 @@ fn basic_install() {
     assert!(components.find("mycomponent").unwrap().is_some());
 }
 
-#[test]
-fn multiple_component_install() {
+#[tokio::test]
+async fn multiple_component_install() {
     let mock = MockInstallerBuilder {
         components: vec![
             MockComponentBuilder {
@@ -130,8 +133,14 @@ fn multiple_component_install() {
 
     let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
-    let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
-    let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent", None, tx)
+        .await
+        .unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent2", None, tx)
+        .await
+        .unwrap();
     tx.commit();
 
     assert!(utils::path_exists(cx.inst_dir.path().join("bin/foo")));
@@ -141,8 +150,8 @@ fn multiple_component_install() {
     assert!(components.find("mycomponent2").unwrap().is_some());
 }
 
-#[test]
-fn uninstall() {
+#[tokio::test]
+async fn uninstall() {
     let mock = MockInstallerBuilder {
         components: vec![
             MockComponentBuilder {
@@ -162,8 +171,14 @@ fn uninstall() {
 
     let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
-    let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
-    let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent", None, tx)
+        .await
+        .unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent2", None, tx)
+        .await
+        .unwrap();
     tx.commit();
 
     // Now uninstall
@@ -193,8 +208,8 @@ fn uninstall_best_effort() {
     //unimplemented!()
 }
 
-#[test]
-fn component_bad_version() {
+#[tokio::test]
+async fn component_bad_version() {
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "mycomponent".to_string(),
@@ -204,7 +219,10 @@ fn component_bad_version() {
 
     let cx = DistContext::new(Some(mock)).unwrap();
     let (tx, components, pkg) = cx.start().unwrap();
-    let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent", None, tx)
+        .await
+        .unwrap();
     tx.commit();
 
     // Write a bogus version to the component manifest directory
@@ -224,8 +242,8 @@ fn component_bad_version() {
 }
 
 // Installing to a prefix that doesn't exist creates it automatically
-#[test]
-fn install_to_prefix_that_does_not_exist() {
+#[tokio::test]
+async fn install_to_prefix_that_does_not_exist() {
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "mycomponent".to_string(),
@@ -237,7 +255,10 @@ fn install_to_prefix_that_does_not_exist() {
     let does_not_exist = cx.inst_dir.path().join("does_not_exist");
     cx.prefix = InstallPrefix::from(does_not_exist.clone());
     let (tx, components, pkg) = cx.start().unwrap();
-    let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
+    let tx = pkg
+        .install(&components, "mycomponent", None, tx)
+        .await
+        .unwrap();
     tx.commit();
 
     // The directory that does not exist

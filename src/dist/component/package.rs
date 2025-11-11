@@ -88,7 +88,7 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
             }
     }
 
-    pub fn install<'a>(
+    pub async fn install<'a>(
         &self,
         target: &Components,
         name: &str,
