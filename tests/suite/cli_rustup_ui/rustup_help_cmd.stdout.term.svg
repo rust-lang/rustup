@@ -1,4 +1,4 @@
-<svg width="776px" height="794px" xmlns="http://www.w3.org/2000/svg">
+<svg width="776px" height="830px" xmlns="http://www.w3.org/2000/svg">
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
@@ -34,77 +34,81 @@
 </tspan>
     <tspan x="10px" y="136px"><tspan class="fg-bright-green bold">Commands:</tspan>
 </tspan>
-    <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">toolchain</tspan><tspan>    Install, uninstall, or list toolchains</tspan>
+    <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">install</tspan><tspan>      Install or update the given toolchains, or by default the active toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="172px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">default</tspan><tspan>      Set the default toolchain</tspan>
+    <tspan x="10px" y="172px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">uninstall</tspan><tspan>    Uninstall the given toolchains</tspan>
 </tspan>
-    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">show</tspan><tspan>         Show the active and installed toolchains or profiles</tspan>
+    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">toolchain</tspan><tspan>    Install, uninstall, or list toolchains</tspan>
 </tspan>
-    <tspan x="10px" y="208px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">update</tspan><tspan>       Update Rust toolchains and rustup</tspan>
+    <tspan x="10px" y="208px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">default</tspan><tspan>      Set the default toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">check</tspan><tspan>        Check for updates to Rust toolchains and rustup</tspan>
+    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">show</tspan><tspan>         Show the active and installed toolchains or profiles</tspan>
 </tspan>
-    <tspan x="10px" y="244px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">target</tspan><tspan>       Modify a toolchain's supported targets</tspan>
+    <tspan x="10px" y="244px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">update</tspan><tspan>       Update Rust toolchains and rustup</tspan>
 </tspan>
-    <tspan x="10px" y="262px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">component</tspan><tspan>    Modify a toolchain's installed components</tspan>
+    <tspan x="10px" y="262px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">check</tspan><tspan>        Check for updates to Rust toolchains and rustup</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">override</tspan><tspan>     Modify toolchain overrides for directories</tspan>
+    <tspan x="10px" y="280px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">target</tspan><tspan>       Modify a toolchain's supported targets</tspan>
 </tspan>
-    <tspan x="10px" y="298px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">run</tspan><tspan>          Run a command with an environment configured for a given toolchain</tspan>
+    <tspan x="10px" y="298px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">component</tspan><tspan>    Modify a toolchain's installed components</tspan>
 </tspan>
-    <tspan x="10px" y="316px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">which</tspan><tspan>        Display which binary will be run for a given command</tspan>
+    <tspan x="10px" y="316px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">override</tspan><tspan>     Modify toolchain overrides for directories</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">doc</tspan><tspan>          Open the documentation for the current toolchain</tspan>
+    <tspan x="10px" y="334px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">run</tspan><tspan>          Run a command with an environment configured for a given toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="352px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">man</tspan><tspan>          View the man page for a given command</tspan>
+    <tspan x="10px" y="352px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">which</tspan><tspan>        Display which binary will be run for a given command</tspan>
 </tspan>
-    <tspan x="10px" y="370px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">self</tspan><tspan>         Modify the rustup installation</tspan>
+    <tspan x="10px" y="370px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">doc</tspan><tspan>          Open the documentation for the current toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="388px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">set</tspan><tspan>          Alter rustup settings</tspan>
+    <tspan x="10px" y="388px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">man</tspan><tspan>          View the man page for a given command</tspan>
 </tspan>
-    <tspan x="10px" y="406px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">completions</tspan><tspan>  Generate tab-completion scripts for your shell</tspan>
+    <tspan x="10px" y="406px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">self</tspan><tspan>         Modify the rustup installation</tspan>
 </tspan>
-    <tspan x="10px" y="424px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">help</tspan><tspan>         Print this message or the help of the given subcommand(s)</tspan>
+    <tspan x="10px" y="424px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">set</tspan><tspan>          Alter rustup settings</tspan>
 </tspan>
-    <tspan x="10px" y="442px">
+    <tspan x="10px" y="442px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">completions</tspan><tspan>  Generate tab-completion scripts for your shell</tspan>
 </tspan>
-    <tspan x="10px" y="460px"><tspan class="fg-bright-green bold">Arguments:</tspan>
+    <tspan x="10px" y="460px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">help</tspan><tspan>         Print this message or the help of the given subcommand(s)</tspan>
 </tspan>
-    <tspan x="10px" y="478px"><tspan>  </tspan><tspan class="fg-cyan">[+toolchain]</tspan><tspan>  Release channel (e.g. +stable) or custom toolchain to set override</tspan>
+    <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px">
+    <tspan x="10px" y="496px"><tspan class="fg-bright-green bold">Arguments:</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan class="fg-bright-green bold">Options:</tspan>
+    <tspan x="10px" y="514px"><tspan>  </tspan><tspan class="fg-cyan">[+toolchain]</tspan><tspan>  Release channel (e.g. +stable) or custom toolchain to set override</tspan>
 </tspan>
-    <tspan x="10px" y="532px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-v</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--verbose</tspan><tspan>  Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset</tspan>
+    <tspan x="10px" y="532px">
 </tspan>
-    <tspan x="10px" y="550px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-q</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--quiet</tspan><tspan>    Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset</tspan>
+    <tspan x="10px" y="550px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>     Print help</tspan>
+    <tspan x="10px" y="568px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-v</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--verbose</tspan><tspan>  Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset</tspan>
 </tspan>
-    <tspan x="10px" y="586px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-V</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--version</tspan><tspan>  Print version</tspan>
+    <tspan x="10px" y="586px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-q</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--quiet</tspan><tspan>    Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset</tspan>
 </tspan>
-    <tspan x="10px" y="604px">
+    <tspan x="10px" y="604px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>     Print help</tspan>
 </tspan>
-    <tspan x="10px" y="622px"><tspan class="fg-bright-green bold">Discussion:</tspan>
+    <tspan x="10px" y="622px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-V</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--version</tspan><tspan>  Print version</tspan>
 </tspan>
-    <tspan x="10px" y="640px"><tspan>  Rustup installs The Rust Programming Language from the official</tspan>
+    <tspan x="10px" y="640px">
 </tspan>
-    <tspan x="10px" y="658px"><tspan>  release channels, enabling you to easily switch between stable,</tspan>
+    <tspan x="10px" y="658px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="676px"><tspan>  beta, and nightly compilers and keep them updated. It makes</tspan>
+    <tspan x="10px" y="676px"><tspan>  Rustup installs The Rust Programming Language from the official</tspan>
 </tspan>
-    <tspan x="10px" y="694px"><tspan>  cross-compiling simpler with binary builds of the standard library</tspan>
+    <tspan x="10px" y="694px"><tspan>  release channels, enabling you to easily switch between stable,</tspan>
 </tspan>
-    <tspan x="10px" y="712px"><tspan>  for common platforms.</tspan>
+    <tspan x="10px" y="712px"><tspan>  beta, and nightly compilers and keep them updated. It makes</tspan>
 </tspan>
-    <tspan x="10px" y="730px">
+    <tspan x="10px" y="730px"><tspan>  cross-compiling simpler with binary builds of the standard library</tspan>
 </tspan>
-    <tspan x="10px" y="748px"><tspan>  If you are new to Rust consider running `rustup doc --book` to</tspan>
+    <tspan x="10px" y="748px"><tspan>  for common platforms.</tspan>
 </tspan>
-    <tspan x="10px" y="766px"><tspan>  learn Rust.</tspan>
+    <tspan x="10px" y="766px">
 </tspan>
-    <tspan x="10px" y="784px">
+    <tspan x="10px" y="784px"><tspan>  If you are new to Rust consider running `rustup doc --book` to</tspan>
+</tspan>
+    <tspan x="10px" y="802px"><tspan>  learn Rust.</tspan>
+</tspan>
+    <tspan x="10px" y="820px">
 </tspan>
   </text>
 
