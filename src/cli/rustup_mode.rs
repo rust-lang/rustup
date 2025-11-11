@@ -123,14 +123,14 @@ fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolcha
 #[command(name = "rustup", bin_name = "rustup[EXE]")]
 enum RustupSubcmd {
     /// Install or update the given toolchains, or by default the active toolchain
-    #[command(hide = true, after_help = install_help(), aliases = ["add"])]
+    #[command(after_help = install_help(), aliases = ["add"])]
     Install {
         #[command(flatten)]
         opts: UpdateOpts,
     },
 
     /// Uninstall the given toolchains
-    #[command(hide = true, aliases = ["remove", "rm", "delete", "del"])]
+    #[command(aliases = ["remove", "rm", "delete", "del"])]
     Uninstall {
         #[command(flatten)]
         opts: UninstallOpts,
