@@ -56,6 +56,7 @@ struct ToolchainSection {
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
     profile: Option<String>,
+    skip_std: Option<bool>,
 }
 
 impl ToolchainSection {
@@ -64,6 +65,7 @@ impl ToolchainSection {
             && self.components.is_none()
             && self.targets.is_none()
             && self.path.is_none()
+            && self.skip_std.is_none()
     }
 }
 
@@ -137,6 +139,7 @@ enum OverrideCfg {
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
+        skip_std: bool,
     },
 }
 
@@ -180,6 +183,7 @@ impl OverrideCfg {
             ToolchainName::Official(desc) => {
                 let components = file.toolchain.components.unwrap_or_default();
                 let targets = file.toolchain.targets.unwrap_or_default();
+
                 Self::Official {
                     toolchain: desc,
                     components,
@@ -190,6 +194,7 @@ impl OverrideCfg {
                         .as_deref()
                         .map(Profile::from_str)
                         .transpose()?,
+                    skip_std: file.toolchain.skip_std.unwrap_or(false),
                 }
             }
             ToolchainName::Custom(name) => Self::Custom(name),
@@ -213,6 +218,7 @@ impl From<ToolchainName> for OverrideCfg {
                 components: vec![],
                 targets: vec![],
                 profile: None,
+                skip_std: false,
             },
             ToolchainName::Custom(name) => Self::Custom(name),
         }
@@ -737,6 +743,7 @@ impl<'a> Cfg<'a> {
                 components,
                 targets,
                 profile,
+                skip_std,
             } = override_config
             {
                 self.ensure_installed(
@@ -746,6 +753,7 @@ impl<'a> Cfg<'a> {
                     profile,
                     force_non_host,
                     verbose,
+                    skip_std,
                 )
                 .await?;
             } else {
@@ -755,7 +763,7 @@ impl<'a> Cfg<'a> {
         } else if let Some(toolchain) = self.get_default()? {
             let source = ActiveSource::Default;
             if let ToolchainName::Official(desc) = &toolchain {
-                self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
+                self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose, false)
                     .await?;
             } else {
                 Toolchain::with_source(self, toolchain.clone().into(), &source)?;
@@ -768,6 +776,7 @@ impl<'a> Cfg<'a> {
 
     // Returns a Toolchain matching the given ToolchainDesc, installing it and
     // the given components and targets if they aren't already installed.
+    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn ensure_installed(
         &self,
@@ -777,6 +786,7 @@ impl<'a> Cfg<'a> {
         profile: Option<Profile>,
         force_non_host: bool,
         verbose: bool,
+        skip_std: bool,
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
         common::check_non_host_toolchain(
             toolchain.to_string(),
@@ -800,6 +810,7 @@ impl<'a> Cfg<'a> {
             false,
             self,
         )?;
+        options.skip_std = skip_std;
 
         let (status, toolchain) = match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled { .. }) => {
@@ -1030,6 +1041,7 @@ mod tests {
                     components: None,
                     targets: None,
                     profile: None,
+                    skip_std: None,
                 }
             }
         );
@@ -1057,6 +1069,7 @@ profile = "default"
                         "thumbv2-none-eabi".into()
                     ]),
                     profile: Some("default".into()),
+                    skip_std: None,
                 }
             }
         );
@@ -1078,6 +1091,7 @@ channel = "nightly-2020-07-10"
                     components: None,
                     targets: None,
                     profile: None,
+                    skip_std: None,
                 }
             }
         );
@@ -1099,6 +1113,7 @@ path = "foobar"
                     components: None,
                     targets: None,
                     profile: None,
+                    skip_std: None,
                 }
             }
         );
@@ -1121,6 +1136,7 @@ components = []
                     components: Some(vec![]),
                     targets: None,
                     profile: None,
+                    skip_std: None,
                 }
             }
         );
@@ -1143,6 +1159,7 @@ targets = []
                     components: None,
                     targets: Some(vec![]),
                     profile: None,
+                    skip_std: None,
                 }
             }
         );
@@ -1164,6 +1181,7 @@ components = [ "rustfmt" ]
                     components: Some(vec!["rustfmt".into()]),
                     targets: None,
                     profile: None,
+                    skip_std: None,
                 }
             }
         );
@@ -1215,5 +1233,28 @@ channel = nightly
             result.unwrap_err().downcast::<OverrideFileConfigError>(),
             Ok(OverrideFileConfigError::Parsing)
         ));
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_with_skip_std() {
+        let contents = r#"[toolchain]
+channel = "nightly-2020-07-10"
+skip_std = true
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                    skip_std: Some(true),
+                }
+            }
+        );
     }
 }

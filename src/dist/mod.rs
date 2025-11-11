@@ -900,6 +900,8 @@ pub(crate) struct DistOptions<'cfg, 'a> {
     components: &'a [&'a str],
     /// Extra targets to install from dist
     targets: &'a [&'a str],
+    /// Flag to skip installation of rust-std
+    pub(super) skip_std: bool,
 }
 
 impl<'cfg, 'a> DistOptions<'cfg, 'a> {
@@ -923,6 +925,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             old_date_version: None,
             components,
             targets,
+            skip_std: false,
         })
     }
 
@@ -1030,6 +1033,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                 self.targets,
                 &mut fetched,
                 self.cfg,
+                self.skip_std,
             )
             .await;
 
@@ -1128,6 +1132,7 @@ async fn try_update_from_dist_(
     targets: &[&str],
     fetched: &mut String,
     cfg: &Cfg<'_>,
+    skip_std: bool,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
@@ -1162,6 +1167,10 @@ async fn try_update_from_dist_(
 
             let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
 
+            if skip_std {
+                all_components.retain(|c| !c.short_name_in_manifest().starts_with("rust-std"));
+            }
+
             let rust_package = m.get_package("rust")?;
             let rust_target_package = rust_package.get_target(Some(&toolchain.target.clone()))?;
 
@@ -1185,9 +1194,15 @@ async fn try_update_from_dist_(
                 all_components.insert(component);
             }
 
-            for &target in targets {
-                let triple = TargetTriple::new(target);
-                all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
+            if !skip_std {
+                for &target in targets {
+                    let triple = TargetTriple::new(target);
+                    all_components.insert(Component::new(
+                        "rust-std".to_string(),
+                        Some(triple),
+                        false,
+                    ));
+                }
             }
 
             let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
