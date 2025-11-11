@@ -8,6 +8,7 @@ use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
@@ -108,7 +109,15 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
         let manifest = utils::read_file("package manifest", &root.join("manifest.in"))?;
         let mut builder = target.add(name, tx);
 
+        let yield_timeout = Duration::from_millis(50);
+        let mut last_yield = Instant::now();
         for l in manifest.lines() {
+            if Instant::now().duration_since(last_yield) > yield_timeout {
+                // Yield to the async runtime to keep things moving
+                tokio::task::yield_now().await;
+                last_yield = Instant::now();
+            }
+
             let part = ComponentPart::decode(l)
                 .ok_or_else(|| RustupError::CorruptComponent(name.to_owned()))?;
 
