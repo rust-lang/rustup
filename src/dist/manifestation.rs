@@ -232,7 +232,7 @@ impl Manifestation {
 
             if let Some((bin, downloaded)) = installable {
                 cleanup_downloads.push(&bin.binary.hash);
-                tx = bin.install(downloaded, tx, self)?;
+                tx = bin.install(downloaded, tx, self).await?;
             }
         }
 
@@ -410,7 +410,9 @@ impl Manifestation {
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
         let package = DirectoryPackage::compressed(reader, CompressionKind::GZip, dl_cfg)?;
         for component in package.components() {
-            tx = package.install(&self.installation, &component, None, tx)?;
+            tx = package
+                .install(&self.installation, &component, None, tx)
+                .await?;
         }
 
         // End transaction
@@ -705,7 +707,7 @@ impl<'a> ComponentBinary<'a> {
         Ok((self, downloaded_file))
     }
 
-    fn install<'t>(
+    async fn install<'t>(
         &self,
         installer_file: File,
         tx: Transaction<'t>,
@@ -732,12 +734,14 @@ impl<'a> ComponentBinary<'a> {
             return Err(RustupError::CorruptComponent(short_name).into());
         }
 
-        let tx = package.install(
-            &manifestation.installation,
-            &pkg_name,
-            Some(short_pkg_name),
-            tx,
-        );
+        let tx = package
+            .install(
+                &manifestation.installation,
+                &pkg_name,
+                Some(short_pkg_name),
+                tx,
+            )
+            .await;
         self.status.installed();
         tx
     }
