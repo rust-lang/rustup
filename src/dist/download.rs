@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 use std::fs;
+use std::io::Read;
 use std::ops;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow};
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressBarIter, ProgressDrawTarget, ProgressStyle};
 use sha2::{Digest, Sha256};
 use tracing::{debug, info, warn};
 use url::Url;
@@ -382,6 +383,18 @@ impl DownloadStatus {
         );
     }
 
+    pub(crate) fn unpack<T: Read>(&self, inner: T) -> ProgressBarIter<T> {
+        self.progress.reset();
+        self.progress.set_style(
+            ProgressStyle::with_template(
+                "{msg:>12.bold}  unpacking  {spinner:.green} {total_bytes:>18}",
+            )
+            .unwrap()
+            .tick_chars(r"|/-\ "),
+        );
+        self.progress.wrap_read(inner)
+    }
+
     pub(crate) fn installing(&self) {
         self.progress.set_style(
             ProgressStyle::with_template(
@@ -403,8 +416,7 @@ impl DownloadStatus {
 
 fn file_hash(path: &Path) -> Result<String> {
     let mut hasher = Sha256::new();
-    let mut downloaded = utils::FileReaderWithProgress::new_file(path)?;
-    use std::io::Read;
+    let mut downloaded = utils::buffered(path)?;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {
         if n == 0 {
