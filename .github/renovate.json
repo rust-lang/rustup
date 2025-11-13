@@ -16,8 +16,8 @@
     "rangeStrategy": "update-lockfile",
     "minimumReleaseAge": "3 days",
     "github-actions": {
-        "fileMatch": [
-            "^ci\\/.*/[^/]+\\.ya?ml$"
+        "managerFilePatterns": [
+            "/^ci\\/.*/[^/]+\\.ya?ml$/"
         ]
     },
     "packageRules": [
