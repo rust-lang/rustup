@@ -105,7 +105,7 @@ impl Manifestation {
         changes: Changes,
         force_update: bool,
         download_cfg: &DownloadCfg<'_>,
-        toolchain_str: &str,
+        toolchain_str: String,
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
@@ -123,7 +123,7 @@ impl Manifestation {
         }
 
         // Validate that the requested components are available
-        if let Err(e) = update.unavailable_components(&new_manifest, toolchain_str) {
+        if let Err(e) = update.unavailable_components(&new_manifest, &toolchain_str) {
             if !force_update {
                 return Err(e);
             }
