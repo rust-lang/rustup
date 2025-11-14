@@ -149,15 +149,32 @@ impl Manifestation {
 
         // Download component packages and validate hashes
         let components = update
-            .components_urls_and_hashes(&new_manifest)
-            .map(|res| {
-                res.map(|(component, binary)| ComponentBinary {
-                    component,
-                    binary,
-                    status: download_cfg.status_for(component.short_name(&new_manifest)),
-                    manifest: &new_manifest,
-                    download_cfg,
-                })
+            .components_to_install
+            .into_iter()
+            .filter_map(|component| {
+                let package = match new_manifest.get_package(component.short_name_in_manifest()) {
+                    Ok(p) => p,
+                    Err(e) => return Some(Err(e)),
+                };
+
+                let target_package = match package.get_target(component.target.as_ref()) {
+                    Ok(tp) => tp,
+                    Err(e) => return Some(Err(e)),
+                };
+
+                match target_package.bins.is_empty() {
+                    // This package is not available, no files to download.
+                    true => None,
+                    // We prefer the first format in the list, since the parsing of the
+                    // manifest leaves us with the files/hash pairs in preference order.
+                    false => Some(Ok(ComponentBinary {
+                        status: download_cfg.status_for(component.short_name(&new_manifest)),
+                        component,
+                        binary: &target_package.bins[0],
+                        manifest: &new_manifest,
+                        download_cfg,
+                    })),
+                }
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -612,36 +629,10 @@ impl Update {
         self.components_to_install.retain(|c| !to_drop.contains(c));
         self.final_component_list.retain(|c| !to_drop.contains(c));
     }
-
-    /// Map components to urls and hashes
-    fn components_urls_and_hashes<'a>(
-        &'a self,
-        new_manifest: &'a Manifest,
-    ) -> impl Iterator<Item = Result<(&'a Component, &'a HashedBinary)>> + 'a {
-        self.components_to_install.iter().filter_map(|component| {
-            let package = match new_manifest.get_package(component.short_name_in_manifest()) {
-                Ok(p) => p,
-                Err(e) => return Some(Err(e)),
-            };
-
-            let target_package = match package.get_target(component.target.as_ref()) {
-                Ok(tp) => tp,
-                Err(e) => return Some(Err(e)),
-            };
-
-            match target_package.bins.is_empty() {
-                // This package is not available, no files to download.
-                true => None,
-                // We prefer the first format in the list, since the parsing of the
-                // manifest leaves us with the files/hash pairs in preference order.
-                false => Some(Ok((component, &target_package.bins[0]))),
-            }
-        })
-    }
 }
 
 struct ComponentBinary<'a> {
-    component: &'a Component,
+    component: Component,
     binary: &'a HashedBinary,
     status: DownloadStatus,
     manifest: &'a Manifest,
@@ -689,10 +680,9 @@ impl<'a> ComponentBinary<'a> {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
-        let component = self.component;
-        let pkg_name = component.name_in_manifest();
-        let short_pkg_name = component.short_name_in_manifest();
-        let short_name = component.short_name(self.manifest);
+        let pkg_name = self.component.name_in_manifest();
+        let short_pkg_name = self.component.short_name_in_manifest();
+        let short_name = self.component.short_name(self.manifest);
 
         self.status.installing();
 
