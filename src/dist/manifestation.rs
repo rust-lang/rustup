@@ -10,6 +10,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use tracing::{info, warn};
 
+use crate::diskio::{IO_CHUNK_SIZE, get_executor, unpack_ram};
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, DownloadStatus, File};
@@ -423,7 +424,13 @@ impl Manifestation {
 
         // Install all the components in the installer
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
-        let package = DirectoryPackage::compressed(reader, CompressionKind::GZip, dl_cfg)?;
+        let temp_dir = dl_cfg.tmp_cx.new_directory()?;
+        let io_executor = get_executor(
+            unpack_ram(IO_CHUNK_SIZE, dl_cfg.process.unpack_ram()?),
+            dl_cfg.process.io_thread_count()?,
+        );
+        let package =
+            DirectoryPackage::compressed(reader, CompressionKind::GZip, temp_dir, io_executor)?;
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
         }
@@ -687,8 +694,13 @@ impl<'a> ComponentBinary<'a> {
         self.status.installing();
 
         let reader = utils::FileReaderWithProgress::new_file(&installer_file)?;
+        let temp_dir = self.download_cfg.tmp_cx.new_directory()?;
+        let io_executor = get_executor(
+            unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),
+            self.download_cfg.process.io_thread_count()?,
+        );
         let package =
-            DirectoryPackage::compressed(reader, self.binary.compression, self.download_cfg)?;
+            DirectoryPackage::compressed(reader, self.binary.compression, temp_dir, io_executor)?;
 
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.

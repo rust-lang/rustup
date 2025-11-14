@@ -12,12 +12,9 @@ use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
 use tracing::warn;
 
-use crate::diskio::{
-    CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor, unpack_ram,
-};
+use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind};
 use crate::dist::component::components::{ComponentPart, ComponentPartKind, Components};
 use crate::dist::component::transaction::Transaction;
-use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::CompressionKind;
 use crate::dist::temp;
 use crate::errors::RustupError;
@@ -38,33 +35,36 @@ impl DirectoryPackage<temp::Dir> {
     pub(crate) fn compressed<R: Read>(
         stream: R,
         kind: CompressionKind,
-        dl_cfg: &DownloadCfg<'_>,
+        temp_dir: temp::Dir,
+        io_executor: Box<dyn Executor>,
     ) -> Result<Self> {
         match kind {
-            CompressionKind::GZip => Self::from_tar(flate2::read::GzDecoder::new(stream), dl_cfg),
-            CompressionKind::ZStd => {
-                Self::from_tar(zstd::stream::read::Decoder::new(stream)?, dl_cfg)
+            CompressionKind::GZip => {
+                Self::from_tar(flate2::read::GzDecoder::new(stream), temp_dir, io_executor)
             }
-            CompressionKind::XZ => Self::from_tar(xz2::read::XzDecoder::new(stream), dl_cfg),
+            CompressionKind::ZStd => Self::from_tar(
+                zstd::stream::read::Decoder::new(stream)?,
+                temp_dir,
+                io_executor,
+            ),
+            CompressionKind::XZ => {
+                Self::from_tar(xz2::read::XzDecoder::new(stream), temp_dir, io_executor)
+            }
         }
     }
 
-    fn from_tar(stream: impl Read, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
-        let temp_dir = dl_cfg.tmp_cx.new_directory()?;
+    fn from_tar(
+        stream: impl Read,
+        temp_dir: temp::Dir,
+        io_executor: Box<dyn Executor>,
+    ) -> Result<Self> {
         let mut archive = tar::Archive::new(stream);
 
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(
-            &mut archive,
-            &temp_dir,
-            get_executor(
-                unpack_ram(IO_CHUNK_SIZE, dl_cfg.process.unpack_ram()?),
-                dl_cfg.process.io_thread_count()?,
-            ),
-        )
-        .context("failed to extract package")?;
+        unpack_without_first_dir(&mut archive, &temp_dir, io_executor)
+            .context("failed to extract package")?;
 
         Self::new(temp_dir, false)
     }
