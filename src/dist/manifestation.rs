@@ -116,7 +116,7 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::build_update(self, new_manifest, &changes, &config)?;
+        let mut update = Update::new(self, new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -452,7 +452,7 @@ struct Update {
 impl Update {
     /// Returns components to uninstall, install, and the list of all
     /// components that will be up to date after the update.
-    fn build_update(
+    fn new(
         manifestation: &Manifestation,
         new_manifest: &Manifest,
         changes: &Changes,
