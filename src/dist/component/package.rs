@@ -439,13 +439,11 @@ fn unpack_without_first_dir<R: Read>(
                 None => {
                     // Tar has item before containing directory
                     // Complain about this so we can see if these exist.
-                    use std::io::Write as _;
-                    writeln!(
-                        dl_cfg.process.stderr().lock(),
-                        "Unexpected: missing parent '{}' for '{}'",
+                    warn!(
+                        "unexpected: missing parent '{}' for '{}'",
                         parent.display(),
                         entry.path()?.display()
-                    )?;
+                    );
                     directories.insert(parent.to_owned(), DirStatus::Pending(vec![item]));
                     item = Item::make_dir(parent.to_owned(), 0o755);
                     // Check the parent's parent
