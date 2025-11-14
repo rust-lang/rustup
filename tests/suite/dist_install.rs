@@ -167,9 +167,13 @@ fn uninstall() {
     tx.commit();
 
     // Now uninstall
-    let mut tx = Transaction::new(cx.prefix.clone(), &cx.cx, &cx.tp.process);
+    let mut tx = Transaction::new(
+        cx.prefix.clone(),
+        &cx.cx,
+        cx.tp.process.permit_copy_rename(),
+    );
     for component in components.list().unwrap() {
-        tx = component.uninstall(tx, &cx.tp.process).unwrap();
+        tx = component.uninstall(tx).unwrap();
     }
     tx.commit();
 

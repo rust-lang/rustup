@@ -89,6 +89,13 @@ impl Process {
         })
     }
 
+    pub(crate) fn unpack_ram(&self) -> Result<Option<usize>, env::VarError> {
+        Ok(match self.var_opt("RUSTUP_UNPACK_RAM")? {
+            Some(budget) => usize::from_str(&budget).ok(),
+            None => None,
+        })
+    }
+
     pub fn var_opt(&self, key: &str) -> Result<Option<String>, env::VarError> {
         match self.var(key) {
             Ok(val) => Ok(Some(val)),
@@ -110,6 +117,20 @@ impl Process {
         match value.is_empty() {
             false => Ok(value),
             true => Err(env::VarError::NotPresent),
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub fn permit_copy_rename(&self) -> bool {
+        false
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn permit_copy_rename(&self) -> bool {
+        match self {
+            Process::OsProcess(_) => env::var_os("RUSTUP_PERMIT_COPY_RENAME").is_some(),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => p.vars.contains_key("RUSTUP_PERMIT_COPY_RENAME"),
         }
     }
 

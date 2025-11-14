@@ -15,7 +15,6 @@ use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::errors::RustupError;
-use crate::process::Process;
 
 #[cfg(not(windows))]
 pub(crate) use crate::utils::raw::find_cmd;
@@ -387,7 +386,7 @@ pub fn rename(
     src: &Path,
     dest: &Path,
     #[allow(unused_variables)] // Only used on Linux
-    process: &Process,
+    permit_copy_rename: bool,
 ) -> Result<()> {
     // https://github.com/rust-lang/rustup/issues/1870
     // 21 fib steps from 1 sums to ~28 seconds, hopefully more than enough
@@ -410,9 +409,7 @@ pub fn rename(
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]
-                _ if process.var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
-                    && Some(EXDEV) == e.raw_os_error() =>
-                {
+                _ if permit_copy_rename && Some(EXDEV) == e.raw_os_error() => {
                     match copy_and_delete(name, src, dest) {
                         Ok(()) => OperationResult::Ok(()),
                         Err(_) => OperationResult::Err(e),

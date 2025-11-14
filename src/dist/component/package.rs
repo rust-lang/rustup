@@ -7,21 +7,18 @@ use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
-use tracing::{error, trace, warn};
+use tracing::warn;
 
-use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
+use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind};
 use crate::dist::component::components::{ComponentPart, ComponentPartKind, Components};
 use crate::dist::component::transaction::Transaction;
-use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::CompressionKind;
 use crate::dist::temp;
 use crate::errors::RustupError;
 use crate::utils;
-use crate::utils::units::Size;
 
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";
@@ -38,24 +35,35 @@ impl DirectoryPackage<temp::Dir> {
     pub(crate) fn compressed<R: Read>(
         stream: R,
         kind: CompressionKind,
-        dl_cfg: &DownloadCfg<'_>,
+        temp_dir: temp::Dir,
+        io_executor: Box<dyn Executor>,
     ) -> Result<Self> {
         match kind {
-            CompressionKind::GZip => Self::from_tar(flate2::read::GzDecoder::new(stream), dl_cfg),
-            CompressionKind::ZStd => {
-                Self::from_tar(zstd::stream::read::Decoder::new(stream)?, dl_cfg)
+            CompressionKind::GZip => {
+                Self::from_tar(flate2::read::GzDecoder::new(stream), temp_dir, io_executor)
             }
-            CompressionKind::XZ => Self::from_tar(xz2::read::XzDecoder::new(stream), dl_cfg),
+            CompressionKind::ZStd => Self::from_tar(
+                zstd::stream::read::Decoder::new(stream)?,
+                temp_dir,
+                io_executor,
+            ),
+            CompressionKind::XZ => {
+                Self::from_tar(xz2::read::XzDecoder::new(stream), temp_dir, io_executor)
+            }
         }
     }
 
-    fn from_tar(stream: impl Read, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
-        let temp_dir = dl_cfg.tmp_cx.new_directory()?;
+    fn from_tar(
+        stream: impl Read,
+        temp_dir: temp::Dir,
+        io_executor: Box<dyn Executor>,
+    ) -> Result<Self> {
         let mut archive = tar::Archive::new(stream);
+
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(&mut archive, &temp_dir, dl_cfg)
+        unpack_without_first_dir(&mut archive, &temp_dir, io_executor)
             .context("failed to extract package")?;
 
         Self::new(temp_dir, false)
@@ -144,64 +152,6 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
     }
 }
 
-// Probably this should live in diskio but ¯\_(ツ)_/¯
-fn unpack_ram(
-    io_chunk_size: usize,
-    effective_max_ram: Option<usize>,
-    dl_cfg: &DownloadCfg<'_>,
-) -> usize {
-    const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
-    let minimum_ram = io_chunk_size * 2;
-    let default_max_unpack_ram = if let Some(effective_max_ram) = effective_max_ram {
-        if effective_max_ram > minimum_ram + RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS {
-            effective_max_ram - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
-        } else {
-            minimum_ram
-        }
-    } else {
-        // Rustup does not know how much RAM the machine has: use the minimum
-        minimum_ram
-    };
-    let unpack_ram = match dl_cfg
-        .process
-        .var("RUSTUP_UNPACK_RAM")
-        .ok()
-        .and_then(|budget_str| budget_str.parse::<usize>().ok())
-    {
-        Some(budget) => {
-            if budget < minimum_ram {
-                warn!(
-                    "Ignoring RUSTUP_UNPACK_RAM ({}) less than minimum of {}.",
-                    budget, minimum_ram
-                );
-                minimum_ram
-            } else if budget > default_max_unpack_ram {
-                warn!(
-                    "Ignoring RUSTUP_UNPACK_RAM ({}) greater than detected available RAM of {}.",
-                    budget, default_max_unpack_ram
-                );
-                default_max_unpack_ram
-            } else {
-                budget
-            }
-        }
-        None => {
-            if RAM_NOTICE_SHOWN.set(()).is_ok() {
-                trace!(size = %Size::new(default_max_unpack_ram), "unpacking components in memory");
-            }
-            default_max_unpack_ram
-        }
-    };
-
-    if minimum_ram > unpack_ram {
-        panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
-    } else {
-        unpack_ram
-    }
-}
-
-static RAM_NOTICE_SHOWN: OnceLock<()> = OnceLock::new();
-
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())
 fn filter_result(op: &mut CompletedIo) -> io::Result<()> {
@@ -274,19 +224,9 @@ enum DirStatus {
 fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
-    dl_cfg: &DownloadCfg<'_>,
+    mut io_executor: Box<dyn Executor>,
 ) -> Result<()> {
     let entries = archive.entries()?;
-    let effective_max_ram = match effective_limits::memory_limit() {
-        Ok(ram) => Some(ram as usize),
-        Err(error) => {
-            error!("can't determine memory limit: {error}");
-            None
-        }
-    };
-    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, dl_cfg);
-    let mut io_executor: Box<dyn Executor> = get_executor(unpack_ram, dl_cfg.process)?;
-
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
     directories.insert(path.to_owned(), DirStatus::Exists);
@@ -444,13 +384,11 @@ fn unpack_without_first_dir<R: Read>(
                 None => {
                     // Tar has item before containing directory
                     // Complain about this so we can see if these exist.
-                    use std::io::Write as _;
-                    writeln!(
-                        dl_cfg.process.stderr().lock(),
-                        "Unexpected: missing parent '{}' for '{}'",
+                    warn!(
+                        "unexpected: missing parent '{}' for '{}'",
                         parent.display(),
                         entry.path()?.display()
-                    )?;
+                    );
                     directories.insert(parent.to_owned(), DirStatus::Pending(vec![item]));
                     item = Item::make_dir(parent.to_owned(), 0o755);
                     // Check the parent's parent

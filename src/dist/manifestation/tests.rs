@@ -483,6 +483,7 @@ impl TestContext {
             tmp_cx: &self.tmp_cx,
             download_dir: &self.download_dir,
             tracker: DownloadTracker::new(false, &self.tp.process),
+            permit_copy_rename: self.tp.process.permit_copy_rename(),
             process: &self.tp.process,
         };
 
@@ -509,11 +510,11 @@ impl TestContext {
 
         manifestation
             .update(
-                &manifest,
+                manifest,
                 changes,
                 force,
                 &dl_cfg,
-                &self.toolchain.manifest_name(),
+                self.toolchain.manifest_name(),
                 true,
             )
             .await
@@ -524,7 +525,11 @@ impl TestContext {
         let manifestation = Manifestation::open(self.prefix.clone(), trip)?;
         let manifest = manifestation.load_manifest()?.unwrap();
 
-        manifestation.uninstall(&manifest, &self.tmp_cx, &self.tp.process)?;
+        manifestation.uninstall(
+            &manifest,
+            &self.tmp_cx,
+            self.tp.process.permit_copy_rename(),
+        )?;
 
         Ok(())
     }

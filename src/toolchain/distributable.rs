@@ -122,11 +122,11 @@ impl<'a> DistributableToolchain<'a> {
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
             .update(
-                &manifest,
+                manifest,
                 changes,
                 false,
                 &download_cfg,
-                &self.desc.manifest_name(),
+                self.desc.manifest_name(),
                 false,
             )
             .await?;
@@ -432,11 +432,11 @@ impl<'a> DistributableToolchain<'a> {
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
             .update(
-                &manifest,
+                manifest,
                 changes,
                 false,
                 &download_cfg,
-                &self.desc.manifest_name(),
+                self.desc.manifest_name(),
                 false,
             )
             .await?;

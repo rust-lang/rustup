@@ -62,7 +62,11 @@ impl DistContext {
     }
 
     pub fn transaction(&self) -> Transaction<'_> {
-        Transaction::new(self.prefix.clone(), &self.cx, &self.tp.process)
+        Transaction::new(
+            self.prefix.clone(),
+            &self.cx,
+            self.tp.process.permit_copy_rename(),
+        )
     }
 }
 
