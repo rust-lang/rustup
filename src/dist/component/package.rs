@@ -59,8 +59,10 @@ impl DirectoryPackage<temp::Dir> {
         unpack_without_first_dir(
             &mut archive,
             &temp_dir,
-            dl_cfg.process.unpack_ram()?,
-            dl_cfg.process.io_thread_count()?,
+            get_executor(
+                unpack_ram(IO_CHUNK_SIZE, dl_cfg.process.unpack_ram()?),
+                dl_cfg.process.io_thread_count()?,
+            ),
         )
         .context("failed to extract package")?;
 
@@ -275,13 +277,9 @@ enum DirStatus {
 fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
-    unpack_ram_budget: Option<usize>,
-    io_thread_count: usize,
+    mut io_executor: Box<dyn Executor>,
 ) -> Result<()> {
     let entries = archive.entries()?;
-    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, unpack_ram_budget);
-    let mut io_executor = get_executor(unpack_ram, io_thread_count);
-
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
     directories.insert(path.to_owned(), DirStatus::Exists);
