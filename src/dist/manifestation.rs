@@ -155,7 +155,7 @@ impl Manifestation {
                 res.map(|(component, binary)| ComponentBinary {
                     component,
                     binary,
-                    status: download_cfg.status_for(new_manifest.short_name(component)),
+                    status: download_cfg.status_for(new_manifest.short_name(component).to_owned()),
                     manifest: new_manifest,
                     download_cfg,
                 })
@@ -729,7 +729,7 @@ impl<'a> ComponentBinary<'a> {
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.
         if !package.contains(&pkg_name, Some(short_pkg_name)) {
-            return Err(RustupError::CorruptComponent(short_name).into());
+            return Err(RustupError::CorruptComponent(short_name.to_owned()).into());
         }
 
         let tx = package.install(
