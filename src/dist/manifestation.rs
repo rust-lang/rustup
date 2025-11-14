@@ -13,7 +13,7 @@ use tracing::{info, warn};
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, DownloadStatus, File};
-use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest, TargetedPackage};
+use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest};
 use crate::dist::prefix::InstallPrefix;
 #[cfg(test)]
 use crate::dist::temp;
@@ -488,12 +488,55 @@ impl Update {
         // Find the final list of components we want to be left with when
         // we're done: required components, added components, and existing
         // installed components.
-        result.build_final_component_list(
-            &starting_list,
-            rust_target_package,
-            new_manifest,
-            changes,
-        );
+
+        // Add requested components
+        for component in &changes.explicit_add_components {
+            result.final_component_list.push(component.clone());
+        }
+
+        // Add components that are already installed
+        for existing_component in &starting_list {
+            let removed = changes.remove_components.contains(existing_component);
+
+            if !removed {
+                // If there is a rename in the (new) manifest, then we uninstall the component with the
+                // old name and install a component with the new name
+                if let Some(renamed_component) = new_manifest.rename_component(existing_component) {
+                    let is_already_included =
+                        result.final_component_list.contains(&renamed_component);
+                    if !is_already_included {
+                        result.final_component_list.push(renamed_component);
+                    }
+                } else {
+                    let is_already_included =
+                        result.final_component_list.contains(existing_component);
+                    if !is_already_included {
+                        let component_is_present =
+                            rust_target_package.components.contains(existing_component);
+
+                        if component_is_present {
+                            result.final_component_list.push(existing_component.clone());
+                        } else {
+                            // Component not available, check if this is a case of
+                            // where rustup brokenly installed `rust-src` during
+                            // the 1.20.x series
+                            if existing_component.contained_within(&rust_target_package.components)
+                            {
+                                // It is the case, so we need to create a fresh wildcard
+                                // component using the package name and add it to the final
+                                // component list
+                                let wildcarded = existing_component.wildcard();
+                                if !result.final_component_list.contains(&wildcarded) {
+                                    result.final_component_list.push(wildcarded);
+                                }
+                            } else {
+                                result.missing_components.push(existing_component.clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // If this is a full upgrade then the list of components to
         // uninstall is all that are currently installed, and those
@@ -539,64 +582,6 @@ impl Update {
         }
 
         Ok(result)
-    }
-
-    /// Build the list of components we'll have installed at the end
-    fn build_final_component_list(
-        &mut self,
-        starting_list: &[Component],
-        rust_target_package: &TargetedPackage,
-        new_manifest: &Manifest,
-        changes: &Changes,
-    ) {
-        // Add requested components
-        for component in &changes.explicit_add_components {
-            self.final_component_list.push(component.clone());
-        }
-
-        // Add components that are already installed
-        for existing_component in starting_list {
-            let removed = changes.remove_components.contains(existing_component);
-
-            if !removed {
-                // If there is a rename in the (new) manifest, then we uninstall the component with the
-                // old name and install a component with the new name
-                if let Some(renamed_component) = new_manifest.rename_component(existing_component) {
-                    let is_already_included =
-                        self.final_component_list.contains(&renamed_component);
-                    if !is_already_included {
-                        self.final_component_list.push(renamed_component);
-                    }
-                } else {
-                    let is_already_included =
-                        self.final_component_list.contains(existing_component);
-                    if !is_already_included {
-                        let component_is_present =
-                            rust_target_package.components.contains(existing_component);
-
-                        if component_is_present {
-                            self.final_component_list.push(existing_component.clone());
-                        } else {
-                            // Component not available, check if this is a case of
-                            // where rustup brokenly installed `rust-src` during
-                            // the 1.20.x series
-                            if existing_component.contained_within(&rust_target_package.components)
-                            {
-                                // It is the case, so we need to create a fresh wildcard
-                                // component using the package name and add it to the final
-                                // component list
-                                let wildcarded = existing_component.wildcard();
-                                if !self.final_component_list.contains(&wildcarded) {
-                                    self.final_component_list.push(wildcarded);
-                                }
-                            } else {
-                                self.missing_components.push(existing_component.clone());
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     fn nothing_changes(&self) -> bool {
