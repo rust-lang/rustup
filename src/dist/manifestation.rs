@@ -200,7 +200,7 @@ impl Manifestation {
         tx = self.maybe_handle_v2_upgrade(&config, tx)?;
 
         // Uninstall components
-        for component in &update.components_to_uninstall {
+        for component in update.components_to_uninstall {
             match (implicit_modify, &component.target) {
                 (true, Some(t)) if t != &self.target_triple => {
                     info!(
@@ -232,7 +232,7 @@ impl Manifestation {
 
         info!("downloading component(s)");
         let mut downloads = FuturesUnordered::new();
-        let mut component_iter = components.iter();
+        let mut component_iter = components.into_iter();
         let mut cleanup_downloads = vec![];
         loop {
             if downloads.is_empty() && component_iter.len() == 0 {
@@ -303,7 +303,7 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx)?;
+            tx = self.uninstall_component(component, manifest, tx)?;
         }
         tx.commit();
 
@@ -312,7 +312,7 @@ impl Manifestation {
 
     fn uninstall_component<'a>(
         &self,
-        component: &Component,
+        component: Component,
         manifest: &Manifest,
         mut tx: Transaction<'a>,
     ) -> Result<Transaction<'a>> {
@@ -640,7 +640,7 @@ struct ComponentBinary<'a> {
 }
 
 impl<'a> ComponentBinary<'a> {
-    async fn download(&self, max_retries: usize) -> Result<(&Self, File)> {
+    async fn download(self, max_retries: usize) -> Result<(Self, File)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = self.download_cfg.url(&self.binary.url)?;
@@ -671,7 +671,7 @@ impl<'a> ComponentBinary<'a> {
     }
 
     fn install<'t>(
-        &self,
+        self,
         installer_file: File,
         tx: Transaction<'t>,
         manifestation: &Manifestation,
