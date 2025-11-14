@@ -7,13 +7,14 @@ use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
-use tracing::{error, trace, warn};
+use tracing::warn;
 
-use crate::diskio::{CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor};
+use crate::diskio::{
+    CompletedIo, Executor, FileBuffer, IO_CHUNK_SIZE, Item, Kind, get_executor, unpack_ram,
+};
 use crate::dist::component::components::{ComponentPart, ComponentPartKind, Components};
 use crate::dist::component::transaction::Transaction;
 use crate::dist::download::DownloadCfg;
@@ -21,7 +22,6 @@ use crate::dist::manifest::CompressionKind;
 use crate::dist::temp;
 use crate::errors::RustupError;
 use crate::utils;
-use crate::utils::units::Size;
 
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";
@@ -151,59 +151,6 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
         self.components.iter().cloned().collect()
     }
 }
-
-// Probably this should live in diskio but ¯\_(ツ)_/¯
-fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
-    const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
-    let minimum_ram = io_chunk_size * 2;
-
-    let default_max_unpack_ram = match effective_limits::memory_limit() {
-        Ok(effective)
-            if effective as usize > minimum_ram + RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS =>
-        {
-            effective as usize - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
-        }
-        Ok(_) => minimum_ram,
-        Err(error) => {
-            error!("can't determine memory limit: {error}");
-            minimum_ram
-        }
-    };
-
-    let unpack_ram = match budget {
-        Some(budget) => {
-            if budget < minimum_ram {
-                warn!(
-                    "Ignoring RUSTUP_UNPACK_RAM ({}) less than minimum of {}.",
-                    budget, minimum_ram
-                );
-                minimum_ram
-            } else if budget > default_max_unpack_ram {
-                warn!(
-                    "Ignoring RUSTUP_UNPACK_RAM ({}) greater than detected available RAM of {}.",
-                    budget, default_max_unpack_ram
-                );
-                default_max_unpack_ram
-            } else {
-                budget
-            }
-        }
-        None => {
-            if RAM_NOTICE_SHOWN.set(()).is_ok() {
-                trace!(size = %Size::new(default_max_unpack_ram), "unpacking components in memory");
-            }
-            default_max_unpack_ram
-        }
-    };
-
-    if minimum_ram > unpack_ram {
-        panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
-    } else {
-        unpack_ram
-    }
-}
-
-static RAM_NOTICE_SHOWN: OnceLock<()> = OnceLock::new();
 
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())
