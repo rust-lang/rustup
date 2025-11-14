@@ -67,14 +67,14 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
             let _ = writeln!(
                 buf,
                 "component {} is unavailable for download for channel '{}'",
-                c.description(manifest),
+                manifest.description(c),
                 toolchain,
             );
         }
         cs => {
             let cs_str = cs
                 .iter()
-                .map(|c| c.description(manifest))
+                .map(|c| manifest.description(c))
                 .collect::<Vec<_>>()
                 .join(", ");
             let _ = write!(
@@ -1048,8 +1048,8 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                         .iter()
                         .map(|component| {
                             match component.target.as_ref() == Some(&toolchain.target) {
-                                true => component.short_name(manifest),
-                                false => component.name(manifest),
+                                true => manifest.short_name(component),
+                                false => manifest.name(component),
                             }
                         })
                         .join(", ");

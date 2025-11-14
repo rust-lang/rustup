@@ -135,12 +135,12 @@ impl Manifestation {
                     match &component.target {
                         Some(t) if t != &self.target_triple => warn!(
                             "skipping unavailable component {} for target {}",
-                            component.short_name(&new_manifest),
+                            new_manifest.short_name(component),
                             t
                         ),
                         _ => warn!(
                             "skipping unavailable component {}",
-                            component.short_name(&new_manifest)
+                            new_manifest.short_name(component)
                         ),
                     }
                 }
@@ -182,25 +182,25 @@ impl Manifestation {
                 (true, Some(t)) if t != &self.target_triple => {
                     info!(
                         "removing previous version of component {} for target {}",
-                        component.short_name(&new_manifest),
+                        new_manifest.short_name(&component),
                         t
                     );
                 }
                 (false, Some(t)) if t != &self.target_triple => {
                     info!(
                         "removing component {} for target {}",
-                        component.short_name(&new_manifest),
+                        new_manifest.short_name(&component),
                         t
                     );
                 }
                 (true, _) => {
                     info!(
                         "removing previous version of component {}",
-                        component.short_name(&new_manifest),
+                        new_manifest.short_name(&component),
                     );
                 }
                 (false, _) => {
-                    info!("removing component {}", component.short_name(&new_manifest));
+                    info!("removing component {}", new_manifest.short_name(&component));
                 }
             }
 
@@ -306,7 +306,7 @@ impl Manifestation {
         } else {
             warn!(
                 "component {} not found during uninstall",
-                component.short_name(manifest),
+                manifest.short_name(&component),
             );
         }
 
@@ -556,12 +556,12 @@ impl Update {
                     match &component.target {
                         Some(t) if t != &manifestation.target_triple => info!(
                             "component {} for target {} is up to date",
-                            component.short_name(new_manifest),
+                            new_manifest.short_name(component),
                             t,
                         ),
                         _ => info!(
                             "component {} is up to date",
-                            component.short_name(new_manifest)
+                            new_manifest.short_name(component)
                         ),
                     }
                 }
@@ -634,7 +634,7 @@ impl<'a> ComponentBinary<'a> {
                 Ok(None) => return None,
                 Err(e) => return Some(Err(e)),
             },
-            status: download_cfg.status_for(component.short_name(manifest)),
+            status: download_cfg.status_for(manifest.short_name(&component)),
             component,
             manifest,
             download_cfg,
@@ -665,7 +665,7 @@ impl<'a> ComponentBinary<'a> {
         )
         .await
         .with_context(|| {
-            RustupError::ComponentDownloadFailed(self.component.name(self.manifest))
+            RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
         })?;
 
         Ok((self, downloaded_file))
@@ -683,7 +683,7 @@ impl<'a> ComponentBinary<'a> {
         // component name plus the target triple.
         let pkg_name = self.component.name_in_manifest();
         let short_pkg_name = self.component.short_name_in_manifest();
-        let short_name = self.component.short_name(self.manifest);
+        let short_name = self.manifest.short_name(&self.component);
 
         self.status.installing();
 

@@ -107,7 +107,7 @@ impl<'a> DistributableToolchain<'a> {
                 }
                 return Err(RustupError::UnknownComponent {
                     desc,
-                    component: component.description(&manifest),
+                    component: manifest.description(&component),
                     suggestion,
                 }
                 .into());
@@ -169,7 +169,7 @@ impl<'a> DistributableToolchain<'a> {
         // check if all the components we want are installed
         let wanted_components = components.iter().all(|name| {
             installed_components.iter().any(|status| {
-                let cname = status.component.short_name(&manifest);
+                let cname = manifest.short_name(&status.component);
                 let cname = cname.as_str();
                 let cnameim = status.component.short_name_in_manifest();
                 let cnameim = cnameim.as_str();
@@ -259,8 +259,8 @@ impl<'a> DistributableToolchain<'a> {
                 .map(|c| {
                     (
                         damerau_levenshtein(
-                            &c.component.name(manifest)[..],
-                            &component.name(manifest)[..],
+                            &manifest.name(&c.component)[..],
+                            &manifest.name(component)[..],
                         ),
                         c,
                     )
@@ -275,7 +275,7 @@ impl<'a> DistributableToolchain<'a> {
                     (
                         damerau_levenshtein(
                             &c.component.name_in_manifest()[..],
-                            &component.name(manifest)[..],
+                            &manifest.name(component)[..],
                         ),
                         c,
                     )
@@ -284,7 +284,7 @@ impl<'a> DistributableToolchain<'a> {
                 .expect("There should be always at least one component");
 
             let mut closest_distance = short_name_distance;
-            let mut closest_match = short_name_distance.1.component.short_name(manifest);
+            let mut closest_match = manifest.short_name(&short_name_distance.1.component);
 
             // Find closer suggestion
             if short_name_distance.0 > long_name_distance.0 {
@@ -304,8 +304,8 @@ impl<'a> DistributableToolchain<'a> {
                 }
             } else {
                 // Check if only targets differ
-                if closest_distance.1.component.short_name(manifest)
-                    == component.short_name(manifest)
+                if manifest.short_name(&closest_distance.1.component)
+                    == manifest.short_name(component)
                 {
                     closest_match = short_name_distance.1.component.target();
                 }
@@ -355,9 +355,9 @@ impl<'a> DistributableToolchain<'a> {
         if let Some(component_name) = component_for_bin(&binary_lossy) {
             let component_status = component_statuses
                 .iter()
-                .find(|cs| cs.component.short_name(&manifest) == component_name)
+                .find(|cs| manifest.short_name(&cs.component) == component_name)
                 .ok_or_else(|| anyhow!("component {component_name} should be in the manifest"))?;
-            let short_name = component_status.component.short_name(&manifest);
+            let short_name = manifest.short_name(&component_status.component);
             if !component_status.available {
                 Err(anyhow!(
                     "the '{short_name}' component which provides the command '{binary_lossy}' is not available for the '{desc}' toolchain"
@@ -417,7 +417,7 @@ impl<'a> DistributableToolchain<'a> {
                 }
                 return Err(RustupError::UnknownComponent {
                     desc: self.desc.clone(),
-                    component: component.description(&manifest),
+                    component: manifest.description(&component),
                     suggestion,
                 }
                 .into());

@@ -198,7 +198,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             let _ = writeln!(
                 buf,
                 "component {} is unavailable for download for channel '{}'",
-                c.description(manifest),
+                manifest.description(c),
                 toolchain,
             );
 
@@ -217,12 +217,12 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
 
             let cs_str = if same_target {
                 cs.iter()
-                    .map(|c| format!("'{}'", c.short_name(manifest)))
+                    .map(|c| format!("'{}'", manifest.short_name(c)))
                     .collect::<Vec<_>>()
                     .join(", ")
             } else {
                 cs.iter()
-                    .map(|c| c.description(manifest))
+                    .map(|c| manifest.description(c))
                     .collect::<Vec<_>>()
                     .join(", ")
             };
