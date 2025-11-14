@@ -50,6 +50,34 @@ pub struct Manifest {
     pub profiles: HashMap<Profile, Vec<String>>,
 }
 
+impl Manifest {
+    pub(crate) fn name(&self, component: &Component) -> String {
+        let pkg = self.short_name(component);
+        if let Some(t) = &component.target {
+            format!("{pkg}-{t}")
+        } else {
+            pkg
+        }
+    }
+
+    pub(crate) fn description(&self, component: &Component) -> String {
+        let pkg = self.short_name(component);
+        if let Some(t) = &component.target {
+            format!("'{pkg}' for target '{t}'")
+        } else {
+            format!("'{pkg}'")
+        }
+    }
+
+    pub(crate) fn short_name(&self, component: &Component) -> String {
+        if let Some(from) = self.reverse_renames.get(&component.pkg) {
+            from.to_owned()
+        } else {
+            component.pkg.clone()
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Renamed {
     pub to: String,
@@ -354,10 +382,10 @@ impl Manifest {
         for c in tpkg.components.iter() {
             let cpkg = self
                 .get_package(&c.pkg)
-                .with_context(|| RustupError::MissingPackageForComponent(c.short_name(self)))?;
+                .with_context(|| RustupError::MissingPackageForComponent(self.short_name(c)))?;
             let _ctpkg = cpkg
                 .get_target(c.target.as_ref())
-                .with_context(|| RustupError::MissingPackageForComponent(c.short_name(self)))?;
+                .with_context(|| RustupError::MissingPackageForComponent(self.short_name(c)))?;
         }
         Ok(())
     }
@@ -431,7 +459,7 @@ impl Manifest {
                 .unwrap_or_else(|_| {
                     panic!(
                         "manifest should contain component {}",
-                        &component.short_name(self)
+                        &self.short_name(component)
                     )
                 });
             let component_target_pkg = component_pkg
@@ -441,7 +469,7 @@ impl Manifest {
 
             res.push(ComponentStatus {
                 component: component.clone(),
-                name: component.name(self),
+                name: self.name(component),
                 installed,
                 available: component_target_pkg.available(),
             });
@@ -509,7 +537,7 @@ impl Component {
         let manifest = distributable.get_manifest()?;
         for component_status in distributable.components()? {
             let component = component_status.component;
-            if name == component.name_in_manifest() || name == component.name(&manifest) {
+            if name == component.name_in_manifest() || name == manifest.name(&component) {
                 return Ok(component);
             }
         }
@@ -529,29 +557,6 @@ impl Component {
         }
     }
 
-    pub(crate) fn name(&self, manifest: &Manifest) -> String {
-        let pkg = self.short_name(manifest);
-        if let Some(t) = &self.target {
-            format!("{pkg}-{t}")
-        } else {
-            pkg
-        }
-    }
-    pub(crate) fn short_name(&self, manifest: &Manifest) -> String {
-        if let Some(from) = manifest.reverse_renames.get(&self.pkg) {
-            from.to_owned()
-        } else {
-            self.pkg.clone()
-        }
-    }
-    pub(crate) fn description(&self, manifest: &Manifest) -> String {
-        let pkg = self.short_name(manifest);
-        if let Some(t) = &self.target {
-            format!("'{pkg}' for target '{t}'")
-        } else {
-            format!("'{pkg}'")
-        }
-    }
     pub fn short_name_in_manifest(&self) -> &String {
         &self.pkg
     }
