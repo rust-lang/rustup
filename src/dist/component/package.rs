@@ -4,10 +4,10 @@
 
 use std::collections::{HashMap, HashSet};
 use std::io::{self, ErrorKind as IOErrorKind, Read};
-use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::{env, mem};
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
@@ -149,7 +149,7 @@ fn unpack_ram(
     io_chunk_size: usize,
     effective_max_ram: Option<usize>,
     dl_cfg: &DownloadCfg<'_>,
-) -> usize {
+) -> Result<usize, env::VarError> {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
     let minimum_ram = io_chunk_size * 2;
     let default_max_unpack_ram = if let Some(effective_max_ram) = effective_max_ram {
@@ -162,12 +162,7 @@ fn unpack_ram(
         // Rustup does not know how much RAM the machine has: use the minimum
         minimum_ram
     };
-    let unpack_ram = match dl_cfg
-        .process
-        .var("RUSTUP_UNPACK_RAM")
-        .ok()
-        .and_then(|budget_str| budget_str.parse::<usize>().ok())
-    {
+    let unpack_ram = match dl_cfg.process.unpack_ram()? {
         Some(budget) => {
             if budget < minimum_ram {
                 warn!(
@@ -196,7 +191,7 @@ fn unpack_ram(
     if minimum_ram > unpack_ram {
         panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
     } else {
-        unpack_ram
+        Ok(unpack_ram)
     }
 }
 
@@ -284,7 +279,7 @@ fn unpack_without_first_dir<R: Read>(
             None
         }
     };
-    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, dl_cfg);
+    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, dl_cfg)?;
     let mut io_executor = get_executor(unpack_ram, dl_cfg.process.io_thread_count()?);
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();

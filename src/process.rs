@@ -89,6 +89,13 @@ impl Process {
         })
     }
 
+    pub(crate) fn unpack_ram(&self) -> Result<Option<usize>, env::VarError> {
+        Ok(match self.var_opt("RUSTUP_UNPACK_RAM")? {
+            Some(budget) => usize::from_str(&budget).ok(),
+            None => None,
+        })
+    }
+
     pub fn var_opt(&self, key: &str) -> Result<Option<String>, env::VarError> {
         match self.var(key) {
             Ok(val) => Ok(Some(val)),
