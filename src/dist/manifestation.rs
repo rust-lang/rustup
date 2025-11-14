@@ -496,45 +496,42 @@ impl Update {
 
         // Add components that are already installed
         for existing_component in &starting_list {
-            let removed = changes.remove_components.contains(existing_component);
+            if changes.remove_components.contains(existing_component) {
+                continue;
+            }
 
-            if !removed {
-                // If there is a rename in the (new) manifest, then we uninstall the component with the
-                // old name and install a component with the new name
-                if let Some(renamed_component) = new_manifest.rename_component(existing_component) {
-                    let is_already_included =
-                        result.final_component_list.contains(&renamed_component);
-                    if !is_already_included {
-                        result.final_component_list.push(renamed_component);
-                    }
-                } else {
-                    let is_already_included =
-                        result.final_component_list.contains(existing_component);
-                    if !is_already_included {
-                        let component_is_present =
-                            rust_target_package.components.contains(existing_component);
-
-                        if component_is_present {
-                            result.final_component_list.push(existing_component.clone());
-                        } else {
-                            // Component not available, check if this is a case of
-                            // where rustup brokenly installed `rust-src` during
-                            // the 1.20.x series
-                            if existing_component.contained_within(&rust_target_package.components)
-                            {
-                                // It is the case, so we need to create a fresh wildcard
-                                // component using the package name and add it to the final
-                                // component list
-                                let wildcarded = existing_component.wildcard();
-                                if !result.final_component_list.contains(&wildcarded) {
-                                    result.final_component_list.push(wildcarded);
-                                }
-                            } else {
-                                result.missing_components.push(existing_component.clone());
-                            }
-                        }
-                    }
+            // If there is a rename in the (new) manifest, then we uninstall the component with the
+            // old name and install a component with the new name
+            if let Some(renamed_component) = new_manifest.rename_component(existing_component) {
+                if !result.final_component_list.contains(&renamed_component) {
+                    result.final_component_list.push(renamed_component);
                 }
+                continue;
+            }
+
+            if result.final_component_list.contains(existing_component) {
+                continue;
+            }
+
+            if rust_target_package.components.contains(existing_component) {
+                result.final_component_list.push(existing_component.clone());
+                continue;
+            }
+
+            // Component not available, check if this is a case of
+            // where rustup brokenly installed `rust-src` during
+            // the 1.20.x series
+            if !existing_component.contained_within(&rust_target_package.components) {
+                result.missing_components.push(existing_component.clone());
+                continue;
+            }
+
+            // It is the case, so we need to create a fresh wildcard
+            // component using the package name and add it to the final
+            // component list
+            let wildcarded = existing_component.wildcard();
+            if !result.final_component_list.contains(&wildcarded) {
+                result.final_component_list.push(wildcarded);
             }
         }
 
