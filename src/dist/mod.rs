@@ -1202,7 +1202,7 @@ async fn try_update_from_dist_(
 
             return match manifestation
                 .update(
-                    &m,
+                    m,
                     changes,
                     force_update,
                     download,

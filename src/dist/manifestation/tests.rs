@@ -510,7 +510,7 @@ impl TestContext {
 
         manifestation
             .update(
-                &manifest,
+                manifest,
                 changes,
                 force,
                 &dl_cfg,
