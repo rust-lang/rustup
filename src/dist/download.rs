@@ -25,6 +25,7 @@ pub struct DownloadCfg<'a> {
     pub tmp_cx: &'a temp::Context,
     pub download_dir: &'a PathBuf,
     pub(super) tracker: DownloadTracker,
+    pub(super) permit_copy_rename: bool,
     pub process: &'a Process,
 }
 
@@ -35,6 +36,7 @@ impl<'a> DownloadCfg<'a> {
             tmp_cx: &cfg.tmp_cx,
             download_dir: &cfg.download_dir,
             tracker: DownloadTracker::new(!cfg.quiet, cfg.process),
+            permit_copy_rename: cfg.process.permit_copy_rename(),
             process: cfg.process,
         }
     }
@@ -112,7 +114,12 @@ impl<'a> DownloadCfg<'a> {
             }
         } else {
             debug!(url = url.as_ref(), "checksum passed");
-            utils::rename("downloaded", &partial_file_path, &target_file, self.process)?;
+            utils::rename(
+                "downloaded",
+                &partial_file_path,
+                &target_file,
+                self.permit_copy_rename,
+            )?;
             Ok(File { path: target_file })
         }
     }

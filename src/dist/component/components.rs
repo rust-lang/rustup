@@ -15,7 +15,6 @@ use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
 use crate::dist::component::transaction::Transaction;
 use crate::dist::prefix::InstallPrefix;
 use crate::errors::RustupError;
-use crate::process::Process;
 use crate::utils;
 
 const COMPONENTS_FILE: &str = "components";
@@ -255,18 +254,14 @@ impl Component {
         }
         Ok(result)
     }
-    pub fn uninstall<'a>(
-        &self,
-        mut tx: Transaction<'a>,
-        process: &Process,
-    ) -> Result<Transaction<'a>> {
+    pub fn uninstall<'a>(&self, mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
         // Update components file
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
         let temp = tx.temp().new_file()?;
         utils::filter_file("components", &abs_path, &temp, |l| l != self.name)?;
         tx.modify_file(path)?;
-        utils::rename("components", &temp, &abs_path, process)?;
+        utils::rename("components", &temp, &abs_path, tx.permit_copy_rename)?;
 
         // TODO: If this is the last component remove the components file
         // and the version file.
