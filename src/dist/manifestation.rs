@@ -101,7 +101,7 @@ impl Manifestation {
     /// https://github.com/rust-lang/rustup/issues/988 for the details.
     pub async fn update(
         &self,
-        new_manifest: &Manifest,
+        new_manifest: Manifest,
         changes: Changes,
         force_update: bool,
         download_cfg: &DownloadCfg<'_>,
@@ -116,14 +116,14 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::new(self, new_manifest, &changes, &config)?;
+        let mut update = Update::new(self, &new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
         }
 
         // Validate that the requested components are available
-        if let Err(e) = update.unavailable_components(new_manifest, toolchain_str) {
+        if let Err(e) = update.unavailable_components(&new_manifest, toolchain_str) {
             if !force_update {
                 return Err(e);
             }
@@ -134,12 +134,12 @@ impl Manifestation {
                     match &component.target {
                         Some(t) if t != &self.target_triple => warn!(
                             "skipping unavailable component {} for target {}",
-                            component.short_name(new_manifest),
+                            component.short_name(&new_manifest),
                             t
                         ),
                         _ => warn!(
                             "skipping unavailable component {}",
-                            component.short_name(new_manifest)
+                            component.short_name(&new_manifest)
                         ),
                     }
                 }
@@ -149,13 +149,13 @@ impl Manifestation {
 
         // Download component packages and validate hashes
         let components = update
-            .components_urls_and_hashes(new_manifest)
+            .components_urls_and_hashes(&new_manifest)
             .map(|res| {
                 res.map(|(component, binary)| ComponentBinary {
                     component,
                     binary,
-                    status: download_cfg.status_for(component.short_name(new_manifest)),
-                    manifest: new_manifest,
+                    status: download_cfg.status_for(component.short_name(&new_manifest)),
+                    manifest: &new_manifest,
                     download_cfg,
                 })
             })
@@ -188,29 +188,29 @@ impl Manifestation {
                 (true, Some(t)) if t != &self.target_triple => {
                     info!(
                         "removing previous version of component {} for target {}",
-                        component.short_name(new_manifest),
+                        component.short_name(&new_manifest),
                         t
                     );
                 }
                 (false, Some(t)) if t != &self.target_triple => {
                     info!(
                         "removing component {} for target {}",
-                        component.short_name(new_manifest),
+                        component.short_name(&new_manifest),
                         t
                     );
                 }
                 (true, _) => {
                     info!(
                         "removing previous version of component {}",
-                        component.short_name(new_manifest),
+                        component.short_name(&new_manifest),
                     );
                 }
                 (false, _) => {
-                    info!("removing component {}", component.short_name(new_manifest));
+                    info!("removing component {}", component.short_name(&new_manifest));
                 }
             }
 
-            tx = self.uninstall_component(component, new_manifest, tx)?;
+            tx = self.uninstall_component(component, &new_manifest, tx)?;
         }
 
         info!("downloading component(s)");
