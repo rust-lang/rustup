@@ -51,20 +51,24 @@
 //    loss or errors in this model.
 // f) data gathering: record (name, bytes, start, duration)
 //    write to disk afterwards as a csv file?
-pub(crate) mod immediate;
-#[cfg(test)]
-mod test;
-pub(crate) mod threaded;
-use threaded::PoolReference;
-
 use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
+use tracing::{error, trace, warn};
+
+use crate::utils::units::Size;
+
+pub(crate) mod immediate;
+#[cfg(test)]
+mod test;
+pub(crate) mod threaded;
+use threaded::PoolReference;
 
 /// Carries the implementation specific data for complete file transfers into the executor.
 #[derive(Debug)]
@@ -449,3 +453,55 @@ pub(crate) fn get_executor<'a>(
         n => Box::new(threaded::Threaded::new(n, ram_budget)),
     }
 }
+
+pub(crate) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
+    const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
+    let minimum_ram = io_chunk_size * 2;
+
+    let default_max_unpack_ram = match effective_limits::memory_limit() {
+        Ok(effective)
+            if effective as usize > minimum_ram + RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS =>
+        {
+            effective as usize - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
+        }
+        Ok(_) => minimum_ram,
+        Err(error) => {
+            error!("can't determine memory limit: {error}");
+            minimum_ram
+        }
+    };
+
+    let unpack_ram = match budget {
+        Some(budget) => {
+            if budget < minimum_ram {
+                warn!(
+                    "Ignoring RUSTUP_UNPACK_RAM ({}) less than minimum of {}.",
+                    budget, minimum_ram
+                );
+                minimum_ram
+            } else if budget > default_max_unpack_ram {
+                warn!(
+                    "Ignoring RUSTUP_UNPACK_RAM ({}) greater than detected available RAM of {}.",
+                    budget, default_max_unpack_ram
+                );
+                default_max_unpack_ram
+            } else {
+                budget
+            }
+        }
+        None => {
+            if RAM_NOTICE_SHOWN.set(()).is_ok() {
+                trace!(size = %Size::new(default_max_unpack_ram), "unpacking components in memory");
+            }
+            default_max_unpack_ram
+        }
+    };
+
+    if minimum_ram > unpack_ram {
+        panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
+    } else {
+        unpack_ram
+    }
+}
+
+static RAM_NOTICE_SHOWN: OnceLock<()> = OnceLock::new();
