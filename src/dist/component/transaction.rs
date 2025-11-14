@@ -18,7 +18,6 @@ use tracing::{error, info};
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::RustupError;
-use crate::process::Process;
 use crate::utils;
 
 /// A Transaction tracks changes to the file system, allowing them to
@@ -39,17 +38,17 @@ pub struct Transaction<'a> {
     changes: Vec<ChangedItem>,
     tmp_cx: &'a temp::Context,
     committed: bool,
-    process: &'a Process,
+    pub(super) permit_copy_rename: bool,
 }
 
 impl<'a> Transaction<'a> {
-    pub fn new(prefix: InstallPrefix, tmp_cx: &'a temp::Context, process: &'a Process) -> Self {
+    pub fn new(prefix: InstallPrefix, tmp_cx: &'a temp::Context, permit_copy_rename: bool) -> Self {
         Transaction {
             prefix,
             changes: Vec::new(),
             tmp_cx,
             committed: false,
-            process,
+            permit_copy_rename,
         }
     }
 
@@ -93,7 +92,7 @@ impl<'a> Transaction<'a> {
     pub fn remove_file(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
         let item =
-            ChangedItem::remove_file(&self.prefix, component, relpath, self.tmp_cx, self.process)?;
+            ChangedItem::remove_file(&self.prefix, component, relpath, self.tmp_cx, self.permit_copy_rename)?;
         self.change(item);
         Ok(())
     }
@@ -103,7 +102,7 @@ impl<'a> Transaction<'a> {
     pub fn remove_dir(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
         let item =
-            ChangedItem::remove_dir(&self.prefix, component, relpath, self.tmp_cx, self.process)?;
+            ChangedItem::remove_dir(&self.prefix, component, relpath, self.tmp_cx, self.permit_copy_rename)?;
         self.change(item);
         Ok(())
     }
@@ -142,7 +141,7 @@ impl<'a> Transaction<'a> {
         src: &Path,
     ) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::move_file(&self.prefix, component, relpath, src, self.process)?;
+        let item = ChangedItem::move_file(&self.prefix, component, relpath, src, self.permit_copy_rename)?;
         self.change(item);
         Ok(())
     }
@@ -150,7 +149,7 @@ impl<'a> Transaction<'a> {
     /// Recursively move a directory to a relative path of the install prefix.
     pub(crate) fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::move_dir(&self.prefix, component, relpath, src, self.process)?;
+        let item = ChangedItem::move_dir(&self.prefix, component, relpath, src, self.permit_copy_rename)?;
         self.change(item);
         Ok(())
     }
@@ -169,7 +168,7 @@ impl Drop for Transaction<'_> {
             for item in self.changes.iter().rev() {
                 // ok_ntfy!(self.notify_handler,
                 //          Notification::NonFatalError,
-                match item.roll_back(&self.prefix, self.process) {
+                match item.roll_back(&self.prefix, self.permit_copy_rename) {
                     Ok(()) => {}
                     Err(e) => error!("{e}"),
                 }
@@ -192,19 +191,19 @@ enum ChangedItem {
 }
 
 impl ChangedItem {
-    fn roll_back(&self, prefix: &InstallPrefix, process: &Process) -> Result<()> {
+    fn roll_back(&self, prefix: &InstallPrefix, permit_copy_rename: bool) -> Result<()> {
         use self::ChangedItem::*;
         match self {
             AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
             AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path))?,
             RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
-                utils::rename("component", tmp, &prefix.abs_path(path), process)?
+                utils::rename("component", tmp, &prefix.abs_path(path), permit_copy_rename)?
             }
             RemovedDir(path, tmp) => utils::rename(
                 "component",
                 &tmp.join("bk"),
                 &prefix.abs_path(path),
-                process,
+                permit_copy_rename,
             )?,
             ModifiedFile(path, None) => {
                 let abs_path = prefix.abs_path(path);
@@ -260,7 +259,7 @@ impl ChangedItem {
         component: &str,
         relpath: PathBuf,
         tmp_cx: &temp::Context,
-        process: &Process,
+        permit_copy_rename: bool,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = tmp_cx.new_file()?;
@@ -271,7 +270,7 @@ impl ChangedItem {
             }
             .into())
         } else {
-            utils::rename("component", &abs_path, &backup, process)?;
+            utils::rename("component", &abs_path, &backup, permit_copy_rename)?;
             Ok(ChangedItem::RemovedFile(relpath, backup))
         }
     }
@@ -280,7 +279,7 @@ impl ChangedItem {
         component: &str,
         relpath: PathBuf,
         tmp_cx: &temp::Context,
-        process: &Process,
+        permit_copy_rename: bool,
     ) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = tmp_cx.new_directory()?;
@@ -291,7 +290,12 @@ impl ChangedItem {
             }
             .into())
         } else {
-            utils::rename("component", &abs_path, &backup.join("bk"), process)?;
+            utils::rename(
+                "component",
+                &abs_path,
+                &backup.join("bk"),
+                permit_copy_rename,
+            )?;
             Ok(ChangedItem::RemovedDir(relpath, backup))
         }
     }
@@ -318,10 +322,10 @@ impl ChangedItem {
         component: &str,
         relpath: PathBuf,
         src: &Path,
-        process: &Process,
+        permit_copy_rename: bool,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename("component", src, &abs_path, process)?;
+        utils::rename("component", src, &abs_path, permit_copy_rename)?;
         Ok(ChangedItem::AddedFile(relpath))
     }
     fn move_dir(
@@ -329,10 +333,10 @@ impl ChangedItem {
         component: &str,
         relpath: PathBuf,
         src: &Path,
-        process: &Process,
+        permit_copy_rename: bool,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename("component", src, &abs_path, process)?;
+        utils::rename("component", src, &abs_path, permit_copy_rename)?;
         Ok(ChangedItem::AddedDir(relpath))
     }
 }

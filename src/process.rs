@@ -113,6 +113,20 @@ impl Process {
         }
     }
 
+    #[cfg(not(target_os = "linux"))]
+    pub fn permit_copy_rename(&self) -> bool {
+        false
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn permit_copy_rename(&self) -> bool {
+        match self {
+            Process::OsProcess(_) => env::var_os("RUSTUP_PERMIT_COPY_RENAME").is_some(),
+            #[cfg(feature = "test")]
+            Process::TestProcess(p) => p.vars.contains_key("RUSTUP_PERMIT_COPY_RENAME"),
+        }
+    }
+
     pub(crate) fn var_os(&self, key: &str) -> Option<OsString> {
         let value = match self {
             Process::OsProcess(_) => env::var_os(key)?,

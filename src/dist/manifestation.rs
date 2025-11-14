@@ -19,7 +19,6 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
-use crate::process::Process;
 use crate::utils;
 
 pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
@@ -177,11 +176,11 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.process);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.permit_copy_rename);
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
-        tx = self.maybe_handle_v2_upgrade(&config, tx, download_cfg.process)?;
+        tx = self.maybe_handle_v2_upgrade(&config, tx)?;
 
         // Uninstall components
         for component in &update.components_to_uninstall {
@@ -211,7 +210,7 @@ impl Manifestation {
                 }
             }
 
-            tx = self.uninstall_component(component, new_manifest, tx, download_cfg.process)?;
+            tx = self.uninstall_component(component, new_manifest, tx)?;
         }
 
         info!("downloading component(s)");
@@ -270,11 +269,11 @@ impl Manifestation {
         &self,
         manifest: &Manifest,
         tmp_cx: &temp::Context,
-        process: &Process,
+        permit_copy_rename: bool,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
 
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, process);
+        let mut tx = Transaction::new(prefix.clone(), tmp_cx, permit_copy_rename);
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
@@ -287,7 +286,7 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx, process)?;
+            tx = self.uninstall_component(&component, manifest, tx)?;
         }
         tx.commit();
 
@@ -299,7 +298,6 @@ impl Manifestation {
         component: &Component,
         manifest: &Manifest,
         mut tx: Transaction<'a>,
-        process: &Process,
     ) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
@@ -308,9 +306,9 @@ impl Manifestation {
         let name = component.name_in_manifest();
         let short_name = component.short_name_in_manifest();
         if let Some(c) = self.installation.find(&name)? {
-            tx = c.uninstall(tx, process)?;
+            tx = c.uninstall(tx)?;
         } else if let Some(c) = self.installation.find(short_name)? {
-            tx = c.uninstall(tx, process)?;
+            tx = c.uninstall(tx)?;
         } else {
             warn!(
                 "component {} not found during uninstall",
@@ -398,12 +396,12 @@ impl Manifestation {
         info!("installing component rust");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx, dl_cfg.process);
+        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx, dl_cfg.permit_copy_rename);
 
         // Uninstall components
         let components = self.installation.list()?;
         for component in components {
-            tx = component.uninstall(tx, dl_cfg.process)?;
+            tx = component.uninstall(tx)?;
         }
 
         // Install all the components in the installer
@@ -427,7 +425,6 @@ impl Manifestation {
         &self,
         config: &Option<Config>,
         mut tx: Transaction<'a>,
-        process: &Process,
     ) -> Result<Transaction<'a>> {
         let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
@@ -437,7 +434,7 @@ impl Manifestation {
         }
 
         for component in installed_components {
-            tx = component.uninstall(tx, process)?;
+            tx = component.uninstall(tx)?;
         }
 
         Ok(tx)
