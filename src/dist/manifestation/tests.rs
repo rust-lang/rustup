@@ -658,7 +658,7 @@ async fn unavailable_component() {
             assert_eq!(toolchain, "nightly");
             let descriptions = components
                 .iter()
-                .map(|c| c.description(&manifest))
+                .map(|c| manifest.description(c))
                 .collect::<Vec<_>>();
             assert_eq!(descriptions, ["'bonus' for target 'x86_64-apple-darwin'"])
         }
@@ -703,7 +703,7 @@ async fn unavailable_component_from_profile() {
             assert_eq!(toolchain, "nightly");
             let descriptions = components
                 .iter()
-                .map(|c| c.description(&manifest))
+                .map(|c| manifest.description(&c))
                 .collect::<Vec<_>>();
             assert_eq!(descriptions, ["'rustc' for target 'x86_64-apple-darwin'"])
         }
@@ -757,7 +757,7 @@ async fn removed_component() {
             assert_eq!(toolchain, "nightly");
             let descriptions = components
                 .iter()
-                .map(|c| c.description(&manifest))
+                .map(|c| manifest.description(c))
                 .collect::<Vec<_>>();
             assert_eq!(descriptions, ["'bonus' for target 'x86_64-apple-darwin'"])
         }
@@ -821,7 +821,7 @@ async fn unavailable_components_is_target() {
             assert_eq!(toolchain, "nightly");
             let descriptions = components
                 .iter()
-                .map(|c| c.description(&manifest))
+                .map(|c| manifest.description(c))
                 .collect::<Vec<_>>();
             assert_eq!(
                 descriptions,
@@ -886,7 +886,7 @@ async fn unavailable_components_with_same_target() {
             assert_eq!(toolchain, "nightly");
             let descriptions = components
                 .iter()
-                .map(|c| c.description(&manifest))
+                .map(|c| manifest.description(c))
                 .collect::<Vec<_>>();
             assert_eq!(
                 descriptions,
