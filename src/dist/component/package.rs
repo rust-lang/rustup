@@ -151,23 +151,23 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
 }
 
 // Probably this should live in diskio but ¯\_(ツ)_/¯
-fn unpack_ram(
-    io_chunk_size: usize,
-    effective_max_ram: Option<usize>,
-    budget: Option<usize>,
-) -> usize {
+fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
     let minimum_ram = io_chunk_size * 2;
-    let default_max_unpack_ram = if let Some(effective_max_ram) = effective_max_ram {
-        if effective_max_ram > minimum_ram + RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS {
-            effective_max_ram - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
-        } else {
+
+    let default_max_unpack_ram = match effective_limits::memory_limit() {
+        Ok(effective)
+            if effective as usize > minimum_ram + RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS =>
+        {
+            effective as usize - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
+        }
+        Ok(_) => minimum_ram,
+        Err(error) => {
+            error!("can't determine memory limit: {error}");
             minimum_ram
         }
-    } else {
-        // Rustup does not know how much RAM the machine has: use the minimum
-        minimum_ram
     };
+
     let unpack_ram = match budget {
         Some(budget) => {
             if budget < minimum_ram {
@@ -279,14 +279,7 @@ fn unpack_without_first_dir<R: Read>(
     io_thread_count: usize,
 ) -> Result<()> {
     let entries = archive.entries()?;
-    let effective_max_ram = match effective_limits::memory_limit() {
-        Ok(ram) => Some(ram as usize),
-        Err(error) => {
-            error!("can't determine memory limit: {error}");
-            None
-        }
-    };
-    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, unpack_ram_budget);
+    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, unpack_ram_budget);
     let mut io_executor = get_executor(unpack_ram, io_thread_count);
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
