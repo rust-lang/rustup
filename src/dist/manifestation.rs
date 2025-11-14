@@ -441,7 +441,7 @@ impl Manifestation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Update {
     components_to_uninstall: Vec<Component>,
     components_to_install: Vec<Component>,
@@ -478,12 +478,7 @@ impl Update {
             starting_list.append(&mut profile_components);
         }
 
-        let mut result = Self {
-            components_to_uninstall: vec![],
-            components_to_install: vec![],
-            final_component_list: vec![],
-            missing_components: vec![],
-        };
+        let mut result = Self::default();
 
         // Find the final list of components we want to be left with when
         // we're done: required components, added components, and existing
