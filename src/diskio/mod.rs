@@ -66,8 +66,6 @@ use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
 
-use crate::process::Process;
-
 /// Carries the implementation specific data for complete file transfers into the executor.
 #[derive(Debug)]
 pub(crate) enum FileBuffer {
@@ -443,11 +441,11 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 /// Get the executor for disk IO.
 pub(crate) fn get_executor<'a>(
     ram_budget: usize,
-    process: &Process,
-) -> Result<Box<dyn Executor + 'a>> {
+    io_thread_count: usize,
+) -> Box<dyn Executor + 'a> {
     // If this gets lots of use, consider exposing via the config file.
-    Ok(match process.io_thread_count()? {
+    match io_thread_count {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
         n => Box::new(threaded::Threaded::new(n, ram_budget)),
-    })
+    }
 }
