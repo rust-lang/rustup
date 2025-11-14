@@ -514,7 +514,7 @@ impl TestContext {
                 changes,
                 force,
                 &dl_cfg,
-                &self.toolchain.manifest_name(),
+                self.toolchain.manifest_name(),
                 true,
             )
             .await

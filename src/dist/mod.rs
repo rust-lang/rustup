@@ -1206,7 +1206,7 @@ async fn try_update_from_dist_(
                     changes,
                     force_update,
                     download,
-                    &toolchain.manifest_name(),
+                    toolchain.manifest_name(),
                     true,
                 )
                 .await
