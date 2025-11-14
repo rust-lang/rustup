@@ -1048,7 +1048,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                         .iter()
                         .map(|component| {
                             match component.target.as_ref() == Some(&toolchain.target) {
-                                true => manifest.short_name(component),
+                                true => manifest.short_name(component).to_owned(),
                                 false => manifest.name(component),
                             }
                         })

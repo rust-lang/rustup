@@ -56,7 +56,7 @@ impl Manifest {
         if let Some(t) = &component.target {
             format!("{pkg}-{t}")
         } else {
-            pkg
+            pkg.to_owned()
         }
     }
 
@@ -69,11 +69,11 @@ impl Manifest {
         }
     }
 
-    pub(crate) fn short_name(&self, component: &Component) -> String {
+    pub(crate) fn short_name<'a>(&'a self, component: &'a Component) -> &'a str {
         if let Some(from) = self.reverse_renames.get(&component.pkg) {
-            from.to_owned()
+            from
         } else {
-            component.pkg.clone()
+            &component.pkg
         }
     }
 }
@@ -380,12 +380,12 @@ impl Manifest {
 
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
         for c in tpkg.components.iter() {
-            let cpkg = self
-                .get_package(&c.pkg)
-                .with_context(|| RustupError::MissingPackageForComponent(self.short_name(c)))?;
-            let _ctpkg = cpkg
-                .get_target(c.target.as_ref())
-                .with_context(|| RustupError::MissingPackageForComponent(self.short_name(c)))?;
+            let cpkg = self.get_package(&c.pkg).with_context(|| {
+                RustupError::MissingPackageForComponent(self.short_name(c).to_owned())
+            })?;
+            let _ctpkg = cpkg.get_target(c.target.as_ref()).with_context(|| {
+                RustupError::MissingPackageForComponent(self.short_name(c).to_owned())
+            })?;
         }
         Ok(())
     }

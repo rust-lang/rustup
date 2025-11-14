@@ -634,7 +634,7 @@ impl<'a> ComponentBinary<'a> {
                 Ok(None) => return None,
                 Err(e) => return Some(Err(e)),
             },
-            status: download_cfg.status_for(manifest.short_name(&component)),
+            status: download_cfg.status_for(manifest.short_name(&component).to_owned()),
             component,
             manifest,
             download_cfg,
@@ -699,7 +699,7 @@ impl<'a> ComponentBinary<'a> {
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.
         if !package.contains(&pkg_name, Some(short_pkg_name)) {
-            return Err(RustupError::CorruptComponent(short_name).into());
+            return Err(RustupError::CorruptComponent(short_name.to_owned()).into());
         }
 
         let tx = package.install(
