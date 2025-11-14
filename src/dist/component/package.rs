@@ -4,10 +4,10 @@
 
 use std::collections::{HashMap, HashSet};
 use std::io::{self, ErrorKind as IOErrorKind, Read};
+use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
-use std::{env, mem};
 
 use anyhow::{Context, Result, anyhow, bail};
 use tar::EntryType;
@@ -52,11 +52,17 @@ impl DirectoryPackage<temp::Dir> {
     fn from_tar(stream: impl Read, dl_cfg: &DownloadCfg<'_>) -> Result<Self> {
         let temp_dir = dl_cfg.tmp_cx.new_directory()?;
         let mut archive = tar::Archive::new(stream);
+
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(&mut archive, &temp_dir, dl_cfg)
-            .context("failed to extract package")?;
+        unpack_without_first_dir(
+            &mut archive,
+            &temp_dir,
+            dl_cfg.process.unpack_ram()?,
+            dl_cfg.process.io_thread_count()?,
+        )
+        .context("failed to extract package")?;
 
         Self::new(temp_dir, false)
     }
@@ -148,8 +154,8 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
 fn unpack_ram(
     io_chunk_size: usize,
     effective_max_ram: Option<usize>,
-    dl_cfg: &DownloadCfg<'_>,
-) -> Result<usize, env::VarError> {
+    budget: Option<usize>,
+) -> usize {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
     let minimum_ram = io_chunk_size * 2;
     let default_max_unpack_ram = if let Some(effective_max_ram) = effective_max_ram {
@@ -162,7 +168,7 @@ fn unpack_ram(
         // Rustup does not know how much RAM the machine has: use the minimum
         minimum_ram
     };
-    let unpack_ram = match dl_cfg.process.unpack_ram()? {
+    let unpack_ram = match budget {
         Some(budget) => {
             if budget < minimum_ram {
                 warn!(
@@ -191,7 +197,7 @@ fn unpack_ram(
     if minimum_ram > unpack_ram {
         panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
     } else {
-        Ok(unpack_ram)
+        unpack_ram
     }
 }
 
@@ -269,7 +275,8 @@ enum DirStatus {
 fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
-    dl_cfg: &DownloadCfg<'_>,
+    unpack_ram_budget: Option<usize>,
+    io_thread_count: usize,
 ) -> Result<()> {
     let entries = archive.entries()?;
     let effective_max_ram = match effective_limits::memory_limit() {
@@ -279,8 +286,8 @@ fn unpack_without_first_dir<R: Read>(
             None
         }
     };
-    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, dl_cfg)?;
-    let mut io_executor = get_executor(unpack_ram, dl_cfg.process.io_thread_count()?);
+    let unpack_ram = unpack_ram(IO_CHUNK_SIZE, effective_max_ram, unpack_ram_budget);
+    let mut io_executor = get_executor(unpack_ram, io_thread_count);
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
