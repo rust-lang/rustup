@@ -58,17 +58,13 @@ impl<'a> Transaction<'a> {
         self.committed = true;
     }
 
-    fn change(&mut self, item: ChangedItem) {
-        self.changes.push(item);
-    }
-
     /// Add a file at a relative path to the install prefix. Returns a
     /// `File` that may be used to subsequently write the
     /// contents.
     pub fn add_file(&mut self, component: &str, relpath: PathBuf) -> Result<File> {
         assert!(relpath.is_relative());
         let (item, file) = ChangedItem::add_file(&self.prefix, component, relpath)?;
-        self.change(item);
+        self.changes.push(item);
         Ok(file)
     }
 
@@ -77,7 +73,7 @@ impl<'a> Transaction<'a> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::copy_file(src, &abs_path)?;
-        self.change(ChangedItem::AddedFile(relpath));
+        self.changes.push(ChangedItem::AddedFile(relpath));
         Ok(())
     }
 
@@ -86,7 +82,7 @@ impl<'a> Transaction<'a> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::copy_dir(src, &abs_path)?;
-        self.change(ChangedItem::AddedDir(relpath));
+        self.changes.push(ChangedItem::AddedDir(relpath));
         Ok(())
     }
 
@@ -104,7 +100,7 @@ impl<'a> Transaction<'a> {
         }
 
         utils::rename("component", &abs_path, &backup, self.permit_copy_rename)?;
-        self.change(ChangedItem::RemovedFile(relpath, backup));
+        self.changes.push(ChangedItem::RemovedFile(relpath, backup));
         Ok(())
     }
 
@@ -128,7 +124,7 @@ impl<'a> Transaction<'a> {
             &backup.join("bk"),
             self.permit_copy_rename,
         )?;
-        self.change(ChangedItem::RemovedDir(relpath, backup));
+        self.changes.push(ChangedItem::RemovedDir(relpath, backup));
         Ok(())
     }
 
@@ -137,13 +133,13 @@ impl<'a> Transaction<'a> {
     pub fn write_file(&mut self, component: &str, relpath: PathBuf, content: String) -> Result<()> {
         assert!(relpath.is_relative());
         let (item, mut file) = ChangedItem::add_file(&self.prefix, component, relpath.clone())?;
-        self.change(item);
         utils::write_str(
             "component",
             &mut file,
             &self.prefix.abs_path(&relpath),
             &content,
         )?;
+        self.changes.push(item);
         Ok(())
     }
 
@@ -165,7 +161,8 @@ impl<'a> Transaction<'a> {
             None
         };
 
-        self.change(ChangedItem::ModifiedFile(relpath, backup));
+        self.changes
+            .push(ChangedItem::ModifiedFile(relpath, backup));
         Ok(())
     }
 
@@ -179,7 +176,7 @@ impl<'a> Transaction<'a> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::rename("component", src, &abs_path, self.permit_copy_rename)?;
-        self.change(ChangedItem::AddedFile(relpath));
+        self.changes.push(ChangedItem::AddedFile(relpath));
         Ok(())
     }
 
@@ -188,7 +185,7 @@ impl<'a> Transaction<'a> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::rename("component", src, &abs_path, self.permit_copy_rename)?;
-        self.change(ChangedItem::AddedDir(relpath));
+        self.changes.push(ChangedItem::AddedDir(relpath));
         Ok(())
     }
 
