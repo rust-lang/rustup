@@ -170,7 +170,6 @@ impl<'a> DistributableToolchain<'a> {
         let wanted_components = components.iter().all(|name| {
             installed_components.iter().any(|status| {
                 let cname = manifest.short_name(&status.component);
-                let cname = cname.as_str();
                 let cnameim = status.component.short_name_in_manifest();
                 let cnameim = cnameim.as_str();
                 (cname == *name || cnameim == *name) && status.installed
@@ -284,7 +283,9 @@ impl<'a> DistributableToolchain<'a> {
                 .expect("There should be always at least one component");
 
             let mut closest_distance = short_name_distance;
-            let mut closest_match = manifest.short_name(&short_name_distance.1.component);
+            let mut closest_match = manifest
+                .short_name(&short_name_distance.1.component)
+                .to_owned();
 
             // Find closer suggestion
             if short_name_distance.0 > long_name_distance.0 {
