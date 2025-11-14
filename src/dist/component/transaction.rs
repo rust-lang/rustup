@@ -75,25 +75,36 @@ impl<'a> Transaction<'a> {
     /// Copy a file to a relative path of the install prefix.
     pub fn copy_file(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::copy_file(&self.prefix, component, relpath, src)?;
-        self.change(item);
+        let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
+        utils::copy_file(src, &abs_path)?;
+        self.change(ChangedItem::AddedFile(relpath));
         Ok(())
     }
 
     /// Recursively copy a directory to a relative path of the install prefix.
     pub fn copy_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::copy_dir(&self.prefix, component, relpath, src)?;
-        self.change(item);
+        let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
+        utils::copy_dir(src, &abs_path)?;
+        self.change(ChangedItem::AddedDir(relpath));
         Ok(())
     }
 
     /// Remove a file from a relative path to the install prefix.
     pub fn remove_file(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item =
-            ChangedItem::remove_file(&self.prefix, component, relpath, self.tmp_cx, self.permit_copy_rename)?;
-        self.change(item);
+        let abs_path = self.prefix.abs_path(&relpath);
+        let backup = self.tmp_cx.new_file()?;
+        if !utils::path_exists(&abs_path) {
+            return Err(RustupError::ComponentMissingFile {
+                name: component.to_owned(),
+                path: relpath,
+            }
+            .into());
+        }
+
+        utils::rename("component", &abs_path, &backup, self.permit_copy_rename)?;
+        self.change(ChangedItem::RemovedFile(relpath, backup));
         Ok(())
     }
 
@@ -101,9 +112,23 @@ impl<'a> Transaction<'a> {
     /// install prefix.
     pub fn remove_dir(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item =
-            ChangedItem::remove_dir(&self.prefix, component, relpath, self.tmp_cx, self.permit_copy_rename)?;
-        self.change(item);
+        let abs_path = self.prefix.abs_path(&relpath);
+        let backup = self.tmp_cx.new_directory()?;
+        if !utils::path_exists(&abs_path) {
+            return Err(RustupError::ComponentMissingDir {
+                name: component.to_owned(),
+                path: relpath,
+            }
+            .into());
+        }
+
+        utils::rename(
+            "component",
+            &abs_path,
+            &backup.join("bk"),
+            self.permit_copy_rename,
+        )?;
+        self.change(ChangedItem::RemovedDir(relpath, backup));
         Ok(())
     }
 
@@ -128,8 +153,19 @@ impl<'a> Transaction<'a> {
     /// This is used for arbitrarily manipulating a file.
     pub fn modify_file(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::modify_file(&self.prefix, relpath, self.tmp_cx)?;
-        self.change(item);
+        let abs_path = self.prefix.abs_path(&relpath);
+        let backup = if utils::is_file(&abs_path) {
+            let backup = self.tmp_cx.new_file()?;
+            utils::copy_file(&abs_path, &backup)?;
+            Some(backup)
+        } else {
+            if let Some(p) = abs_path.parent() {
+                utils::ensure_dir_exists("component", p)?;
+            }
+            None
+        };
+
+        self.change(ChangedItem::ModifiedFile(relpath, backup));
         Ok(())
     }
 
@@ -141,16 +177,18 @@ impl<'a> Transaction<'a> {
         src: &Path,
     ) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::move_file(&self.prefix, component, relpath, src, self.permit_copy_rename)?;
-        self.change(item);
+        let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
+        utils::rename("component", src, &abs_path, self.permit_copy_rename)?;
+        self.change(ChangedItem::AddedFile(relpath));
         Ok(())
     }
 
     /// Recursively move a directory to a relative path of the install prefix.
     pub(crate) fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::move_dir(&self.prefix, component, relpath, src, self.permit_copy_rename)?;
-        self.change(item);
+        let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
+        utils::rename("component", src, &abs_path, self.permit_copy_rename)?;
+        self.change(ChangedItem::AddedDir(relpath));
         Ok(())
     }
 
@@ -233,110 +271,5 @@ impl ChangedItem {
         let file = File::create(&abs_path)
             .with_context(|| format!("error creating file '{}'", abs_path.display()))?;
         Ok((ChangedItem::AddedFile(relpath), file))
-    }
-    fn copy_file(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: PathBuf,
-        src: &Path,
-    ) -> Result<Self> {
-        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::copy_file(src, &abs_path)?;
-        Ok(ChangedItem::AddedFile(relpath))
-    }
-    fn copy_dir(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: PathBuf,
-        src: &Path,
-    ) -> Result<Self> {
-        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::copy_dir(src, &abs_path)?;
-        Ok(ChangedItem::AddedDir(relpath))
-    }
-    fn remove_file(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: PathBuf,
-        tmp_cx: &temp::Context,
-        permit_copy_rename: bool,
-    ) -> Result<Self> {
-        let abs_path = prefix.abs_path(&relpath);
-        let backup = tmp_cx.new_file()?;
-        if !utils::path_exists(&abs_path) {
-            Err(RustupError::ComponentMissingFile {
-                name: component.to_owned(),
-                path: relpath,
-            }
-            .into())
-        } else {
-            utils::rename("component", &abs_path, &backup, permit_copy_rename)?;
-            Ok(ChangedItem::RemovedFile(relpath, backup))
-        }
-    }
-    fn remove_dir(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: PathBuf,
-        tmp_cx: &temp::Context,
-        permit_copy_rename: bool,
-    ) -> Result<Self> {
-        let abs_path = prefix.abs_path(&relpath);
-        let backup = tmp_cx.new_directory()?;
-        if !utils::path_exists(&abs_path) {
-            Err(RustupError::ComponentMissingDir {
-                name: component.to_owned(),
-                path: relpath,
-            }
-            .into())
-        } else {
-            utils::rename(
-                "component",
-                &abs_path,
-                &backup.join("bk"),
-                permit_copy_rename,
-            )?;
-            Ok(ChangedItem::RemovedDir(relpath, backup))
-        }
-    }
-    fn modify_file(
-        prefix: &InstallPrefix,
-        relpath: PathBuf,
-        tmp_cx: &temp::Context,
-    ) -> Result<Self> {
-        let abs_path = prefix.abs_path(&relpath);
-
-        if utils::is_file(&abs_path) {
-            let backup = tmp_cx.new_file()?;
-            utils::copy_file(&abs_path, &backup)?;
-            Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
-        } else {
-            if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p)?;
-            }
-            Ok(ChangedItem::ModifiedFile(relpath, None))
-        }
-    }
-    fn move_file(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: PathBuf,
-        src: &Path,
-        permit_copy_rename: bool,
-    ) -> Result<Self> {
-        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename("component", src, &abs_path, permit_copy_rename)?;
-        Ok(ChangedItem::AddedFile(relpath))
-    }
-    fn move_dir(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: PathBuf,
-        src: &Path,
-        permit_copy_rename: bool,
-    ) -> Result<Self> {
-        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::rename("component", src, &abs_path, permit_copy_rename)?;
-        Ok(ChangedItem::AddedDir(relpath))
     }
 }
