@@ -152,31 +152,7 @@ impl Manifestation {
         let components = update
             .components_to_install
             .into_iter()
-            .filter_map(|component| {
-                let package = match new_manifest.get_package(component.short_name_in_manifest()) {
-                    Ok(p) => p,
-                    Err(e) => return Some(Err(e)),
-                };
-
-                let target_package = match package.get_target(component.target.as_ref()) {
-                    Ok(tp) => tp,
-                    Err(e) => return Some(Err(e)),
-                };
-
-                match target_package.bins.is_empty() {
-                    // This package is not available, no files to download.
-                    true => None,
-                    // We prefer the first format in the list, since the parsing of the
-                    // manifest leaves us with the files/hash pairs in preference order.
-                    false => Some(Ok(ComponentBinary {
-                        status: download_cfg.status_for(component.short_name(&new_manifest)),
-                        component,
-                        binary: &target_package.bins[0],
-                        manifest: &new_manifest,
-                        download_cfg,
-                    })),
-                }
-            })
+            .filter_map(|component| ComponentBinary::new(component, &new_manifest, download_cfg))
             .collect::<Result<Vec<_>>>()?;
 
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
@@ -647,6 +623,24 @@ struct ComponentBinary<'a> {
 }
 
 impl<'a> ComponentBinary<'a> {
+    fn new(
+        component: Component,
+        manifest: &'a Manifest,
+        download_cfg: &'a DownloadCfg<'a>,
+    ) -> Option<Result<Self>> {
+        Some(Ok(ComponentBinary {
+            binary: match manifest.binary(&component) {
+                Ok(Some(b)) => b,
+                Ok(None) => return None,
+                Err(e) => return Some(Err(e)),
+            },
+            status: download_cfg.status_for(component.short_name(manifest)),
+            component,
+            manifest,
+            download_cfg,
+        }))
+    }
+
     async fn download(self, max_retries: usize) -> Result<(Self, File)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 

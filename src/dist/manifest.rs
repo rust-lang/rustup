@@ -287,6 +287,14 @@ impl Manifest {
         Ok(toml::to_string(&self)?)
     }
 
+    pub(super) fn binary(&self, component: &Component) -> Result<Option<&HashedBinary>> {
+        let package = self.get_package(component.short_name_in_manifest())?;
+        let target_package = package.get_target(component.target.as_ref())?;
+        // We prefer the first format in the list, since the parsing of the
+        // manifest leaves us with the files/hash pairs in preference order.
+        Ok(target_package.bins.first())
+    }
+
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages
             .get(name)
