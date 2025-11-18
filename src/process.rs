@@ -205,12 +205,18 @@ impl Process {
             #[cfg(feature = "test")]
             Process::TestProcess(_) => return ProgressDrawTarget::hidden(),
         }
-        let t = self.stdout();
-        match self.var("RUSTUP_TERM_PROGRESS_WHEN") {
-            Ok(s) if s.eq_ignore_ascii_case("always") => ProgressDrawTarget::term_like(Box::new(t)),
-            Ok(s) if s.eq_ignore_ascii_case("never") => ProgressDrawTarget::hidden(),
-            _ if t.is_a_tty() => ProgressDrawTarget::term_like(Box::new(t)),
-            _ => ProgressDrawTarget::hidden(),
+
+        let term = self.stdout();
+        let term = match self.var("RUSTUP_TERM_PROGRESS_WHEN") {
+            Ok(s) if s.eq_ignore_ascii_case("always") => Some(term),
+            Ok(s) if s.eq_ignore_ascii_case("never") => None,
+            _ if term.is_a_tty() => Some(term),
+            _ => None,
+        };
+
+        match term {
+            Some(t) => ProgressDrawTarget::term_like(Box::new(t)),
+            None => ProgressDrawTarget::hidden(),
         }
     }
 
