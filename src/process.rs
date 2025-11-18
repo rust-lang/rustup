@@ -215,7 +215,7 @@ impl Process {
         };
 
         match term {
-            Some(t) => ProgressDrawTarget::term_like(Box::new(t)),
+            Some(t) => ProgressDrawTarget::term_like_with_hz(Box::new(t), 20),
             None => ProgressDrawTarget::hidden(),
         }
     }
