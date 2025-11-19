@@ -5,6 +5,8 @@
 mod tests;
 
 use std::path::Path;
+#[cfg(test)]
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::{FuturesUnordered, StreamExt};
@@ -171,7 +173,7 @@ impl Manifestation {
         // Begin transaction
         let mut tx = Transaction::new(
             prefix.clone(),
-            &download_cfg.tmp_cx,
+            download_cfg.tmp_cx.clone(),
             download_cfg.permit_copy_rename,
         );
 
@@ -265,7 +267,7 @@ impl Manifestation {
     pub(crate) fn uninstall(
         &self,
         manifest: &Manifest,
-        tmp_cx: &temp::Context,
+        tmp_cx: Arc<temp::Context>,
         permit_copy_rename: bool,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
@@ -290,12 +292,12 @@ impl Manifestation {
         Ok(())
     }
 
-    fn uninstall_component<'a>(
+    fn uninstall_component(
         &self,
         component: Component,
         manifest: &Manifest,
-        mut tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        mut tx: Transaction,
+    ) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -393,7 +395,7 @@ impl Manifestation {
         info!("installing component rust");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, &dl_cfg.tmp_cx, dl_cfg.permit_copy_rename);
+        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx.clone(), dl_cfg.permit_copy_rename);
 
         // Uninstall components
         let components = self.installation.list()?;
@@ -424,11 +426,11 @@ impl Manifestation {
     // doesn't have a configuration or manifest-derived list of
     // component/target pairs. Uninstall it using the installer's
     // component list before upgrading.
-    fn maybe_handle_v2_upgrade<'a>(
+    fn maybe_handle_v2_upgrade(
         &self,
         config: &Option<Config>,
-        mut tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        mut tx: Transaction,
+    ) -> Result<Transaction> {
         let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
@@ -674,12 +676,12 @@ impl<'a> ComponentBinary<'a> {
         Ok((self, downloaded_file))
     }
 
-    fn install<'t>(
+    fn install(
         self,
         installer_file: File,
-        tx: Transaction<'t>,
+        tx: Transaction,
         manifestation: &Manifestation,
-    ) -> Result<Transaction<'t>> {
+    ) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the

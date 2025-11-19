@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use url::Url;
 
@@ -29,7 +29,7 @@ pub struct DistContext {
     pub inst_dir: tempfile::TempDir,
     pub prefix: InstallPrefix,
     _tmp_dir: tempfile::TempDir,
-    pub cx: temp::Context,
+    pub cx: Arc<temp::Context>,
     pub tp: TestProcess,
 }
 
@@ -48,23 +48,26 @@ impl DistContext {
             pkg_dir,
             inst_dir,
             prefix,
-            cx: temp::Context::new(tmp_dir.path().to_owned(), DEFAULT_DIST_SERVER),
+            cx: Arc::new(temp::Context::new(
+                tmp_dir.path().to_owned(),
+                DEFAULT_DIST_SERVER,
+            )),
             tp: TestProcess::default(),
             _tmp_dir: tmp_dir,
         })
     }
 
-    pub fn start(&self) -> anyhow::Result<(Transaction<'_>, Components, DirectoryPackage<&Path>)> {
+    pub fn start(&self) -> anyhow::Result<(Transaction, Components, DirectoryPackage<&Path>)> {
         let tx = self.transaction();
         let components = Components::open(self.prefix.clone())?;
         let pkg = DirectoryPackage::new(self.pkg_dir.path(), true)?;
         Ok((tx, components, pkg))
     }
 
-    pub fn transaction(&self) -> Transaction<'_> {
+    pub fn transaction(&self) -> Transaction {
         Transaction::new(
             self.prefix.clone(),
-            &self.cx,
+            self.cx.clone(),
             self.tp.process.permit_copy_rename(),
         )
     }
