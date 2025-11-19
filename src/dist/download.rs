@@ -285,7 +285,7 @@ impl<'a> DownloadCfg<'a> {
         let progress = ProgressBar::hidden();
         progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:30}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>13.bold} downloading [{bar:15}] {total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -360,7 +360,7 @@ impl DownloadStatus {
         *retry_time = None;
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  [{bar:30}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>13.bold} downloading [{bar:15}] {total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -369,7 +369,7 @@ impl DownloadStatus {
 
     pub(crate) fn finished(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  pending installation {total_bytes:>10}")
+            ProgressStyle::with_template("{msg:>13.bold} pending installation {total_bytes:>18}")
                 .unwrap(),
         );
         self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
@@ -377,8 +377,7 @@ impl DownloadStatus {
 
     pub(crate) fn failed(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  download failed after {elapsed}")
-                .unwrap(),
+            ProgressStyle::with_template("{msg:>13.bold} download failed after {elapsed}").unwrap(),
         );
         self.progress.finish();
     }
@@ -386,7 +385,7 @@ impl DownloadStatus {
     pub(crate) fn retrying(&self) {
         *self.retry_time.lock().unwrap() = Some(Instant::now());
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  retrying download...").unwrap(),
+            ProgressStyle::with_template("{msg:>13.bold} retrying download...").unwrap(),
         );
     }
 
@@ -394,10 +393,10 @@ impl DownloadStatus {
         self.progress.reset();
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  unpacking [{bar:20}] {bytes}/{total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>13.bold} unpacking   [{bar:15}] {total_bytes} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
-            .progress_chars("## ")
+            .progress_chars("## "),
         );
         self.progress.wrap_read(inner)
     }
@@ -405,7 +404,7 @@ impl DownloadStatus {
     pub(crate) fn installing(&self) {
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>12.bold}  installing {spinner:.green} {total_bytes:>18}",
+                "{msg:>13.bold} installing {spinner:.green} {total_bytes:>26}",
             )
             .unwrap()
             .tick_chars(r"|/-\ "),
@@ -415,7 +414,7 @@ impl DownloadStatus {
 
     pub(crate) fn installed(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>12.bold}  installed {total_bytes:>21}").unwrap(),
+            ProgressStyle::with_template("{msg:>13.bold} installed {total_bytes:>29}").unwrap(),
         );
         self.progress.finish();
     }
