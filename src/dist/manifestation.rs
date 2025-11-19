@@ -103,7 +103,7 @@ impl Manifestation {
     /// It is *not* safe to run two updates concurrently. See
     /// https://github.com/rust-lang/rustup/issues/988 for the details.
     pub async fn update(
-        &self,
+        self,
         new_manifest: Manifest,
         changes: Changes,
         force_update: bool,
@@ -118,7 +118,7 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::new(self, &new_manifest, &changes, &config)?;
+        let mut update = Update::new(&self, &new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -230,7 +230,7 @@ impl Manifestation {
 
             if let Some((bin, downloaded)) = installable {
                 cleanup_downloads.push(&bin.binary.hash);
-                tx = bin.install(downloaded, tx, self)?;
+                tx = bin.install(downloaded, tx, &self)?;
             }
         }
 
