@@ -5,20 +5,18 @@
 mod tests;
 
 use std::path::Path;
-#[cfg(test)]
 use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use tracing::{info, warn};
 
-use crate::diskio::{IO_CHUNK_SIZE, get_executor, unpack_ram};
+use crate::diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram};
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, DownloadStatus, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest};
 use crate::dist::prefix::InstallPrefix;
-#[cfg(test)]
 use crate::dist::temp;
 use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
@@ -216,6 +214,7 @@ impl Manifestation {
         let mut downloads = FuturesUnordered::new();
         let mut component_iter = components.into_iter();
         let mut cleanup_downloads = vec![];
+        let manifestation = Arc::new(self);
         loop {
             if downloads.is_empty() && component_iter.len() == 0 {
                 break;
@@ -228,9 +227,9 @@ impl Manifestation {
                 }
             }
 
-            if let Some((bin, downloaded)) = installable {
-                cleanup_downloads.push(&bin.binary.hash);
-                tx = bin.install(downloaded, tx, &self)?;
+            if let Some((installable, hash)) = installable {
+                cleanup_downloads.push(hash);
+                tx = installable.install(tx, manifestation.clone())?;
             }
         }
 
@@ -646,11 +645,11 @@ impl<'a> ComponentBinary<'a> {
         }))
     }
 
-    async fn download(self, max_retries: usize) -> Result<(Self, File)> {
+    async fn download(self, max_retries: usize) -> Result<(ComponentInstall, &'a str)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = self.download_cfg.url(&self.binary.url)?;
-        let downloaded_file = RetryIf::spawn(
+        let installer = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
             || {
                 self.download_cfg
@@ -673,36 +672,53 @@ impl<'a> ComponentBinary<'a> {
             RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
         })?;
 
-        Ok((self, downloaded_file))
-    }
+        let install = ComponentInstall {
+            status: self.status,
+            compression: self.binary.compression,
+            installer,
+            short_name: self.manifest.short_name(&self.component).to_owned(),
+            component: self.component,
+            temp_dir: self.download_cfg.tmp_cx.new_directory()?,
+            io_executor: get_executor(
+                unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),
+                self.download_cfg.process.io_thread_count()?,
+            ),
+        };
 
-    fn install(
-        self,
-        installer_file: File,
-        tx: Transaction,
-        manifestation: &Manifestation,
-    ) -> Result<Transaction> {
+        Ok((install, &self.binary.hash))
+    }
+}
+
+struct ComponentInstall {
+    component: Component,
+    status: DownloadStatus,
+    compression: CompressionKind,
+    installer: File,
+    short_name: String,
+    temp_dir: temp::Dir,
+    io_executor: Box<dyn Executor>,
+}
+
+impl ComponentInstall {
+    fn install(self, tx: Transaction, manifestation: Arc<Manifestation>) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
         let pkg_name = self.component.name_in_manifest();
         let short_pkg_name = self.component.short_name_in_manifest();
-        let short_name = self.manifest.short_name(&self.component);
-
-        let temp_dir = self.download_cfg.tmp_cx.new_directory()?;
-        let io_executor = get_executor(
-            unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),
-            self.download_cfg.process.io_thread_count()?,
-        );
-        let reader = self.status.unpack(utils::buffered(&installer_file)?);
-        let package =
-            DirectoryPackage::compressed(reader, self.binary.compression, temp_dir, io_executor)?;
+        let reader = self.status.unpack(utils::buffered(&self.installer)?);
+        let package = DirectoryPackage::compressed(
+            reader,
+            self.compression,
+            self.temp_dir,
+            self.io_executor,
+        )?;
 
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.
         if !package.contains(&pkg_name, Some(short_pkg_name)) {
-            return Err(RustupError::CorruptComponent(short_name.to_owned()).into());
+            return Err(RustupError::CorruptComponent(self.short_name).into());
         }
 
         self.status.installing();
