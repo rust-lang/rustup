@@ -1012,7 +1012,7 @@ async fn update(
 
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
-        cfg.tmp_cx.clean();
+        dl_cfg.tmp_cx.clean();
     }
 
     Ok(exit_code)

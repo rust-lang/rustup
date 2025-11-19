@@ -410,7 +410,7 @@ struct TestContext {
     prefix: InstallPrefix,
     download_dir: PathBuf,
     tp: TestProcess,
-    tmp_cx: temp::Context,
+    tmp_cx: Arc<temp::Context>,
     _tempdirs: Vec<tempfile::TempDir>,
 }
 
@@ -450,10 +450,7 @@ impl TestContext {
         );
 
         let prefix_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-
         let work_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-        let tmp_cx = temp::Context::new(work_tempdir.path().to_owned(), DEFAULT_DIST_SERVER);
-
         let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
         let prefix = InstallPrefix::from(prefix_tempdir.path());
         let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], env, "");
@@ -464,7 +461,10 @@ impl TestContext {
             download_dir: prefix.path().join("downloads"),
             prefix,
             tp,
-            tmp_cx,
+            tmp_cx: Arc::new(temp::Context::new(
+                work_tempdir.path().to_owned(),
+                DEFAULT_DIST_SERVER,
+            )),
             _tempdirs: vec![prefix_tempdir, work_tempdir],
         }
     }
@@ -480,7 +480,7 @@ impl TestContext {
         force: bool,
     ) -> Result<UpdateStatus> {
         let dl_cfg = DownloadCfg {
-            tmp_cx: &self.tmp_cx,
+            tmp_cx: self.tmp_cx.clone(),
             download_dir: &self.download_dir,
             tracker: DownloadTracker::new(false, &self.tp.process),
             permit_copy_rename: self.tp.process.permit_copy_rename(),

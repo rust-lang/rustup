@@ -110,7 +110,6 @@ impl Manifestation {
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
-        let tmp_cx = download_cfg.tmp_cx;
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
@@ -170,7 +169,11 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.permit_copy_rename);
+        let mut tx = Transaction::new(
+            prefix.clone(),
+            &download_cfg.tmp_cx,
+            download_cfg.permit_copy_rename,
+        );
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
@@ -390,7 +393,7 @@ impl Manifestation {
         info!("installing component rust");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx, dl_cfg.permit_copy_rename);
+        let mut tx = Transaction::new(prefix, &dl_cfg.tmp_cx, dl_cfg.permit_copy_rename);
 
         // Uninstall components
         let components = self.installation.list()?;
