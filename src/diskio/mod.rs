@@ -290,7 +290,7 @@ impl IncrementalFileState {
 /// Trait object for performing IO. At this point the overhead
 /// of trait invocation is not a bottleneck, but if it becomes
 /// one we could consider an enum variant based approach instead.
-pub(crate) trait Executor {
+pub(crate) trait Executor: Send {
     /// Perform a single operation.
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
