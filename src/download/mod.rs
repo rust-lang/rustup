@@ -78,12 +78,13 @@ impl LockedFile {
 
     /// Creates the file if it does not exit, does not lock.
     #[cfg(not(unix))]
-    pub(crate) fn create(path: impl Into<Path>) -> Result<Self, io::Error> {
+    pub(crate) fn create(path: impl Into<PathBuf>) -> Result<Self, io::Error> {
         let path = path.into();
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
+            .truncate(true)
             .open(&path)?;
         Ok(Self { path, file })
     }
@@ -318,9 +319,9 @@ const CURL_USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"), " (c
 
 #[cfg(feature = "reqwest-native-tls")]
 const REQWEST_DEFAULT_TLS_USER_AGENT: &str = concat!(
-    "rustup/",
-    env!("CARGO_PKG_VERSION"),
-    " (reqwest; default-tls)"
+"rustup/",
+env!("CARGO_PKG_VERSION"),
+" (reqwest; default-tls)"
 );
 
 #[cfg(feature = "reqwest-rustls-tls")]
@@ -438,7 +439,7 @@ impl Backend {
                 None => Ok(()),
             }
         })
-        .await?;
+            .await?;
 
         file.borrow_mut()
             .sync_data()
