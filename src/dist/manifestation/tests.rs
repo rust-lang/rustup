@@ -527,7 +527,7 @@ impl TestContext {
 
         manifestation.uninstall(
             &manifest,
-            &self.tmp_cx,
+            self.tmp_cx.clone(),
             self.tp.process.permit_copy_rename(),
         )?;
 

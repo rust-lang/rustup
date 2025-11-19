@@ -169,7 +169,7 @@ fn uninstall() {
     // Now uninstall
     let mut tx = Transaction::new(
         cx.prefix.clone(),
-        &cx.cx,
+        cx.cx.clone(),
         cx.tp.process.permit_copy_rename(),
     );
     for component in components.list().unwrap() {

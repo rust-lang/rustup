@@ -96,13 +96,13 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
             }
     }
 
-    pub fn install<'a>(
+    pub fn install(
         &self,
         target: &Components,
         name: &str,
         short_name: Option<&str>,
-        tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        tx: Transaction,
+    ) -> Result<Transaction> {
         let actual_name = if self.components.contains(name) {
             name
         } else if let Some(n) = short_name {

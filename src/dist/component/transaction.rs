@@ -11,6 +11,7 @@
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow};
 use tracing::{error, info};
@@ -33,16 +34,20 @@ use crate::utils;
 ///
 /// All operations that create files will fail if the destination
 /// already exists.
-pub struct Transaction<'a> {
+pub struct Transaction {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem>,
-    tmp_cx: &'a temp::Context,
+    tmp_cx: Arc<temp::Context>,
     committed: bool,
     pub(super) permit_copy_rename: bool,
 }
 
-impl<'a> Transaction<'a> {
-    pub fn new(prefix: InstallPrefix, tmp_cx: &'a temp::Context, permit_copy_rename: bool) -> Self {
+impl Transaction {
+    pub fn new(
+        prefix: InstallPrefix,
+        tmp_cx: Arc<temp::Context>,
+        permit_copy_rename: bool,
+    ) -> Self {
         Transaction {
             prefix,
             changes: Vec::new(),
@@ -189,14 +194,14 @@ impl<'a> Transaction<'a> {
         Ok(())
     }
 
-    pub(crate) fn temp(&self) -> &'a temp::Context {
-        self.tmp_cx
+    pub(crate) fn temp(&self) -> &temp::Context {
+        &self.tmp_cx
     }
 }
 
 /// If a Transaction is dropped without being committed, the changes
 /// are automatically rolled back.
-impl Drop for Transaction<'_> {
+impl Drop for Transaction {
     fn drop(&mut self) {
         if !self.committed {
             info!("rolling back changes");
