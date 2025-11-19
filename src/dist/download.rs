@@ -3,7 +3,7 @@ use std::fs;
 use std::io::Read;
 use std::ops;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow};
@@ -23,7 +23,7 @@ use crate::utils;
 const UPDATE_HASH_LEN: usize = 20;
 
 pub struct DownloadCfg<'a> {
-    pub tmp_cx: &'a temp::Context,
+    pub tmp_cx: Arc<temp::Context>,
     pub download_dir: &'a PathBuf,
     pub(super) tracker: DownloadTracker,
     pub(super) permit_copy_rename: bool,
@@ -34,7 +34,10 @@ impl<'a> DownloadCfg<'a> {
     /// construct a download configuration
     pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
         DownloadCfg {
-            tmp_cx: &cfg.tmp_cx,
+            tmp_cx: Arc::new(temp::Context::new(
+                cfg.rustup_dir.join("tmp"),
+                cfg.dist_root_server.as_str(),
+            )),
             download_dir: &cfg.download_dir,
             tracker: DownloadTracker::new(!cfg.quiet, cfg.process),
             permit_copy_rename: cfg.process.permit_copy_rename(),

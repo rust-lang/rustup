@@ -12,7 +12,7 @@ use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
         self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
-        ToolchainDesc, temp,
+        ToolchainDesc,
     },
     errors::RustupError,
     fallback_settings::FallbackSettings,
@@ -239,9 +239,9 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub tmp_cx: temp::Context,
     pub toolchain_override: Option<ResolvableToolchainName>,
     env_override: Option<LocalToolchainName>,
+    pub(crate) dist_root_server: String,
     pub dist_root_url: String,
     pub quiet: bool,
     pub current_dir: PathBuf,
@@ -300,8 +300,7 @@ impl<'a> Cfg<'a> {
         };
 
         let dist_root_server = dist_root_server(process)?;
-        let tmp_cx = temp::Context::new(rustup_dir.join("tmp"), dist_root_server.as_str());
-        let dist_root = dist_root_server + "/dist";
+        let dist_root = dist_root_server.clone() + "/dist";
 
         let cfg = Self {
             profile_override: None,
@@ -311,9 +310,9 @@ impl<'a> Cfg<'a> {
             toolchains_dir,
             update_hash_dir,
             download_dir,
-            tmp_cx,
             toolchain_override: None,
             env_override,
+            dist_root_server,
             dist_root_url: dist_root,
             quiet,
             current_dir,
@@ -954,9 +953,9 @@ impl Debug for Cfg<'_> {
             toolchains_dir,
             update_hash_dir,
             download_dir,
-            tmp_cx,
             toolchain_override,
             env_override,
+            dist_root_server,
             dist_root_url,
             quiet,
             current_dir,
@@ -971,9 +970,9 @@ impl Debug for Cfg<'_> {
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
             .field("download_dir", download_dir)
-            .field("tmp_cx", tmp_cx)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
+            .field("dist_root_server", dist_root_server)
             .field("dist_root_url", dist_root_url)
             .field("quiet", quiet)
             .field("current_dir", current_dir)
