@@ -15,7 +15,7 @@ use url::Url;
 use crate::config::Cfg;
 use crate::dist::manifest::Manifest;
 use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
-use crate::download::{download_file, download_file_with_resume};
+use crate::download::{LockedFile, download_file, download_file_with_resume};
 use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
@@ -55,6 +55,18 @@ impl<'a> DownloadCfg<'a> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
 
+        let file_name = target_file
+            .file_name()
+            .map(|s| s.to_str().unwrap_or("_"))
+            .unwrap_or("_")
+            .to_owned();
+        let locked_file = target_file.with_file_name(file_name.clone() + ".lock");
+
+        let _locked_file = LockedFile::create(&locked_file)
+            .with_context(|| RustupError::CreateLockedFile(locked_file.clone()))?
+            .lock()
+            .with_context(|| RustupError::LockedFile(locked_file.clone()))?;
+
         if target_file.exists() {
             let cached_result = file_hash(&target_file)?;
             if hash == cached_result {
@@ -67,14 +79,7 @@ impl<'a> DownloadCfg<'a> {
             }
         }
 
-        let partial_file_path = target_file.with_file_name(
-            target_file
-                .file_name()
-                .map(|s| s.to_str().unwrap_or("_"))
-                .unwrap_or("_")
-                .to_owned()
-                + ".partial",
-        );
+        let partial_file_path = target_file.with_file_name(file_name + ".partial");
 
         let partial_file_existed = partial_file_path.exists();
 
