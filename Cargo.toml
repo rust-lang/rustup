@@ -49,6 +49,7 @@ chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help", "string"] }
 clap-cargo = "0.18.3"
 clap_complete = "4"
+clap_complete_nushell = "4.5"
 console = "0.16"
 curl = { version = "0.4.44", optional = true }
 effective-limits = "0.5.5"
