@@ -1877,9 +1877,7 @@ fn output_completion_script(
                 Shell::Zsh => "/share/zsh/site-functions/_cargo",
                 _ => {
                     return Err(anyhow!(
-                        "{} does not currently support completions for {}",
-                        command,
-                        shell
+                        "{command} does not currently support completions for {shell}",
                     ));
                 }
             };
