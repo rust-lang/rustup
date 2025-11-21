@@ -1868,13 +1868,12 @@ fn output_completion_script(
             );
         }
         CompletionCommand::Cargo => {
-            if let Shell::Zsh = shell {
-                writeln!(process.stdout().lock(), "#compdef cargo")?;
-            }
-
             let script = match shell {
                 Shell::Bash => "/etc/bash_completion.d/cargo",
-                Shell::Zsh => "/share/zsh/site-functions/_cargo",
+                Shell::Zsh => {
+                    writeln!(process.stdout().lock(), "#compdef cargo")?;
+                    "/share/zsh/site-functions/_cargo"
+                }
                 _ => {
                     return Err(anyhow!(
                         "{command} does not currently support completions for {shell}",
