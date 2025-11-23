@@ -8,7 +8,7 @@ jobs: # skip-main skip-stable
     if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'schedule' }} # skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-main
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         fetch-depth: 0

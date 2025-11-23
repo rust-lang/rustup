@@ -21,7 +21,7 @@ jobs: # skip-all
             target: x86_64-pc-windows-msvc
     steps:
       - name: Clone repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
       - name: Install Protoc
