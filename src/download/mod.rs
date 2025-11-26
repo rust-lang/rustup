@@ -47,7 +47,7 @@ impl LockedFile {
             return Ok(Self { path, file });
         }
 
-        // Otherwise, create a temporary file with 777 permissions, to handle races between
+        // Otherwise, create a temporary file with 666 permissions, to handle races between
         // processes running under different UIDs (e.g., in Docker containers). We must set
         // permissions _after_ creating the file, to override the `umask`.
         let file = if let Some(parent) = path.parent() {
@@ -57,7 +57,7 @@ impl LockedFile {
         };
         if let Err(err) = file
             .as_file()
-            .set_permissions(std::fs::Permissions::from_mode(0o777))
+            .set_permissions(std::fs::Permissions::from_mode(0o666))
         {
             warn!("failed to set permissions on temporary file: {err}");
         }
