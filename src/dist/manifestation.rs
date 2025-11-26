@@ -4,19 +4,25 @@
 #[cfg(test)]
 mod tests;
 
+use std::collections::VecDeque;
 use std::path::Path;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll, ready};
+use std::vec;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context as _, Result, anyhow, bail};
+use futures_util::Stream;
 use futures_util::stream::{FuturesUnordered, StreamExt};
+use tokio::task::{JoinHandle, spawn_blocking};
 use tracing::{info, warn};
 
-use crate::diskio::{IO_CHUNK_SIZE, get_executor, unpack_ram};
+use crate::diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram};
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
 use crate::dist::config::Config;
 use crate::dist::download::{DownloadCfg, DownloadStatus, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest};
 use crate::dist::prefix::InstallPrefix;
-#[cfg(test)]
 use crate::dist::temp;
 use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
 use crate::errors::RustupError;
@@ -101,7 +107,7 @@ impl Manifestation {
     /// It is *not* safe to run two updates concurrently. See
     /// https://github.com/rust-lang/rustup/issues/988 for the details.
     pub async fn update(
-        &self,
+        self,
         new_manifest: Manifest,
         changes: Changes,
         force_update: bool,
@@ -110,14 +116,13 @@ impl Manifestation {
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
-        let tmp_cx = download_cfg.tmp_cx;
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let mut update = Update::new(self, &new_manifest, &changes, &config)?;
+        let mut update = Update::new(&self, &new_manifest, &changes, &config)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -170,7 +175,11 @@ impl Manifestation {
             .unwrap_or(DEFAULT_MAX_RETRIES);
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, download_cfg.permit_copy_rename);
+        let mut tx = Transaction::new(
+            prefix.clone(),
+            download_cfg.tmp_cx.clone(),
+            download_cfg.permit_copy_rename,
+        );
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
@@ -208,33 +217,44 @@ impl Manifestation {
         }
 
         info!("downloading component(s)");
-        let mut downloads = FuturesUnordered::new();
-        let mut component_iter = components.into_iter();
-        let mut cleanup_downloads = vec![];
-        loop {
-            if downloads.is_empty() && component_iter.len() == 0 {
-                break;
-            }
-
-            let installable = downloads.next().await.transpose()?;
-            while component_iter.len() > 0 && downloads.len() < concurrent_downloads {
-                if let Some(bin) = component_iter.next() {
-                    downloads.push(bin.download(max_retries));
+        let mut tx = if !components.is_empty() {
+            let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));
+            let mut transaction = Some(tx);
+            let tx = loop {
+                // Refill downloads when there's capacity
+                // Must live outside of `InstallEvents` because we can't write the type of future
+                while stream.components.len() > 0 && stream.downloads.len() < concurrent_downloads {
+                    if let Some(bin) = stream.components.next() {
+                        stream.downloads.push(bin.download(max_retries));
+                    }
                 }
-            }
 
-            if let Some((bin, downloaded)) = installable {
-                cleanup_downloads.push(&bin.binary.hash);
-                tx = bin.install(downloaded, tx, self)?;
-            }
-        }
+                // Trigger another installation if no other installation is in progress, as evidenced
+                // by whether `transaction` is `Some` (not held by another installation task).
+                stream.try_install(&mut transaction);
+                match stream.next().await {
+                    // Completed an installation, yielding the transaction back
+                    Some(Ok(tx)) => match stream.is_done() {
+                        true => break tx,
+                        false => transaction = Some(tx),
+                    },
+                    Some(Err(e)) => return Err(e),
+                    // A download completed, so we can trigger another one
+                    None => {}
+                }
+            };
+
+            download_cfg.clean(&stream.cleanup_downloads)?;
+            drop(stream);
+            tx
+        } else {
+            tx
+        };
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify()?;
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
-        download_cfg.clean(&cleanup_downloads)?;
-        drop(downloads);
 
         // Write configuration.
         //
@@ -262,7 +282,7 @@ impl Manifestation {
     pub(crate) fn uninstall(
         &self,
         manifest: &Manifest,
-        tmp_cx: &temp::Context,
+        tmp_cx: Arc<temp::Context>,
         permit_copy_rename: bool,
     ) -> Result<()> {
         let prefix = self.installation.prefix();
@@ -287,12 +307,12 @@ impl Manifestation {
         Ok(())
     }
 
-    fn uninstall_component<'a>(
+    fn uninstall_component(
         &self,
         component: Component,
         manifest: &Manifest,
-        mut tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        mut tx: Transaction,
+    ) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -390,7 +410,7 @@ impl Manifestation {
         info!("installing component rust");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx, dl_cfg.permit_copy_rename);
+        let mut tx = Transaction::new(prefix, dl_cfg.tmp_cx.clone(), dl_cfg.permit_copy_rename);
 
         // Uninstall components
         let components = self.installation.list()?;
@@ -421,11 +441,11 @@ impl Manifestation {
     // doesn't have a configuration or manifest-derived list of
     // component/target pairs. Uninstall it using the installer's
     // component list before upgrading.
-    fn maybe_handle_v2_upgrade<'a>(
+    fn maybe_handle_v2_upgrade(
         &self,
         config: &Option<Config>,
-        mut tx: Transaction<'a>,
-    ) -> Result<Transaction<'a>> {
+        mut tx: Transaction,
+    ) -> Result<Transaction> {
         let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
@@ -438,6 +458,89 @@ impl Manifestation {
         }
 
         Ok(tx)
+    }
+}
+
+struct InstallEvents<'a, F> {
+    manifestation: Arc<Manifestation>,
+    components: vec::IntoIter<ComponentBinary<'a>>,
+    cleanup_downloads: Vec<&'a str>,
+    install_queue: VecDeque<ComponentInstall>,
+    installing: Option<JoinHandle<Result<Transaction>>>,
+    downloads: FuturesUnordered<F>,
+}
+
+impl<'a, F> InstallEvents<'a, F> {
+    fn new(
+        components: vec::IntoIter<ComponentBinary<'a>>,
+        manifestation: Arc<Manifestation>,
+    ) -> Self {
+        Self {
+            manifestation,
+            cleanup_downloads: Vec::with_capacity(components.len()),
+            components,
+            install_queue: VecDeque::new(),
+            installing: None,
+            downloads: FuturesUnordered::new(),
+        }
+    }
+
+    fn try_install(&mut self, tx: &mut Option<Transaction>) {
+        let Some(installable) = self.install_queue.pop_front() else {
+            return;
+        };
+
+        if let Some(tx) = tx.take() {
+            let manifestation = self.manifestation.clone();
+            self.installing = Some(spawn_blocking(|| installable.install(tx, manifestation)));
+        } else {
+            self.install_queue.push_front(installable);
+        }
+    }
+
+    fn is_done(&self) -> bool {
+        self.components.len() == 0 && self.downloads.is_empty() && self.install_queue.is_empty()
+    }
+}
+
+impl<'a, F: Future<Output = Result<(ComponentInstall, &'a str)>>> Stream for InstallEvents<'a, F> {
+    type Item = Result<Transaction>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut this = self.as_mut();
+
+        // First, see if any of the downloads is complete; if so, yield `None`
+        // to the caller so it can trigger another download.
+        match Pin::new(&mut this.downloads).poll_next(cx) {
+            Poll::Ready(Some(Ok((installable, hash)))) => {
+                this.cleanup_downloads.push(hash);
+                this.install_queue.push_back(installable);
+                return Poll::Ready(None);
+            }
+            Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e))),
+            Poll::Ready(None) | Poll::Pending => {}
+        }
+
+        let Some(handle) = &mut this.installing else {
+            return match self.install_queue.is_empty() {
+                // Nothing to do, yield control to the runtime
+                true => Poll::Pending,
+                // Can try to start the next installation
+                false => Poll::Ready(None),
+            };
+        };
+
+        match ready!(Pin::new(handle).poll(cx)) {
+            Ok(Ok(tx)) => {
+                // Current `handle` must not be polled again
+                this.installing = None;
+                Poll::Ready(Some(Ok(tx)))
+            }
+            Ok(Err(e)) => Poll::Ready(Some(Err(e))),
+            Err(e) => Poll::Ready(Some(Err(anyhow!(
+                "internal error during installation: {e}"
+            )))),
+        }
     }
 }
 
@@ -641,11 +744,11 @@ impl<'a> ComponentBinary<'a> {
         }))
     }
 
-    async fn download(self, max_retries: usize) -> Result<(Self, File)> {
+    async fn download(self, max_retries: usize) -> Result<(ComponentInstall, &'a str)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = self.download_cfg.url(&self.binary.url)?;
-        let downloaded_file = RetryIf::spawn(
+        let installer = RetryIf::spawn(
             FixedInterval::from_millis(0).take(max_retries),
             || {
                 self.download_cfg
@@ -668,36 +771,53 @@ impl<'a> ComponentBinary<'a> {
             RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
         })?;
 
-        Ok((self, downloaded_file))
-    }
+        let install = ComponentInstall {
+            status: self.status,
+            compression: self.binary.compression,
+            installer,
+            short_name: self.manifest.short_name(&self.component).to_owned(),
+            component: self.component,
+            temp_dir: self.download_cfg.tmp_cx.new_directory()?,
+            io_executor: get_executor(
+                unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),
+                self.download_cfg.process.io_thread_count()?,
+            ),
+        };
 
-    fn install<'t>(
-        self,
-        installer_file: File,
-        tx: Transaction<'t>,
-        manifestation: &Manifestation,
-    ) -> Result<Transaction<'t>> {
+        Ok((install, &self.binary.hash))
+    }
+}
+
+struct ComponentInstall {
+    component: Component,
+    status: DownloadStatus,
+    compression: CompressionKind,
+    installer: File,
+    short_name: String,
+    temp_dir: temp::Dir,
+    io_executor: Box<dyn Executor>,
+}
+
+impl ComponentInstall {
+    fn install(self, tx: Transaction, manifestation: Arc<Manifestation>) -> Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
         let pkg_name = self.component.name_in_manifest();
         let short_pkg_name = self.component.short_name_in_manifest();
-        let short_name = self.manifest.short_name(&self.component);
-
-        let temp_dir = self.download_cfg.tmp_cx.new_directory()?;
-        let io_executor = get_executor(
-            unpack_ram(IO_CHUNK_SIZE, self.download_cfg.process.unpack_ram()?),
-            self.download_cfg.process.io_thread_count()?,
-        );
-        let reader = self.status.unpack(utils::buffered(&installer_file)?);
-        let package =
-            DirectoryPackage::compressed(reader, self.binary.compression, temp_dir, io_executor)?;
+        let reader = self.status.unpack(utils::buffered(&self.installer)?);
+        let package = DirectoryPackage::compressed(
+            reader,
+            self.compression,
+            self.temp_dir,
+            self.io_executor,
+        )?;
 
         // If the package doesn't contain the component that the
         // manifest says it does then somebody must be playing a joke on us.
         if !package.contains(&pkg_name, Some(short_pkg_name)) {
-            return Err(RustupError::CorruptComponent(short_name.to_owned()).into());
+            return Err(RustupError::CorruptComponent(self.short_name).into());
         }
 
         self.status.installing();

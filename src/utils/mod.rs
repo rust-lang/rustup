@@ -435,7 +435,7 @@ pub(crate) fn delete_dir_contents_following_links(dir_path: &Path) {
 
     match raw::open_dir_following_links(dir_path).and_then(|mut p| p.remove_dir_contents(None)) {
         Err(e) if e.kind() != io::ErrorKind::NotFound => {
-            panic!("Unable to clean up {}: {:?}", dir_path.display(), e);
+            warn!("unable to clean up {}: {e}", dir_path.display());
         }
         _ => {}
     }
