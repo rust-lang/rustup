@@ -100,3 +100,5 @@ For `zsh`, you must then add the following line in your `~/.zshrc` before
 ```zsh
 fpath+=~/.zfunc
 ```
+
+For Xonsh you can reuse Fish completer by installation [xontrib-fish-completer](https://github.com/xonsh/xontrib-fish-completer).
