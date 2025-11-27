@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
