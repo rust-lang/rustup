@@ -450,8 +450,7 @@ struct Xonsh;
 
 impl UnixShell for Xonsh {
     fn does_exist(&self, process: &Process) -> bool {
-        process.var("XONSHRC").is_ok()
-            || utils::find_cmd(&["xonsh"], process).is_some()
+        process.var("XONSHRC").is_ok() || utils::find_cmd(&["xonsh"], process).is_some()
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
