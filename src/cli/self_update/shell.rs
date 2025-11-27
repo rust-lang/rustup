@@ -502,7 +502,6 @@ impl UnixShell for Xonsh {
     }
 }
 
-
 pub(crate) fn legacy_paths(process: &Process) -> impl Iterator<Item = PathBuf> + '_ {
     let zprofiles = Zsh::zdotdir(process)
         .into_iter()
