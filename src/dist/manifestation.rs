@@ -216,8 +216,8 @@ impl Manifestation {
             tx = self.uninstall_component(component, &new_manifest, tx)?;
         }
 
-        info!("downloading component(s)");
         let mut tx = if !components.is_empty() {
+            info!("downloading component(s)");
             let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));
             let mut transaction = Some(tx);
             let tx = loop {
