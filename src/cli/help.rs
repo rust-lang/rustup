@@ -261,6 +261,10 @@ pub(crate) fn completions_help() -> String {
   This installs the completion script. You may have to log out and
   log back in to your shell session for the changes to take effect.
 
+  {SUBHEADER}Xonsh:{SUBHEADER:#}
+
+  In Xonsh you can reuse Fish completion by installing `xontrib-fish-completer`.
+
   {SUBHEADER}Zsh:{SUBHEADER:#}
 
   ZSH completions are commonly stored in any directory listed in
