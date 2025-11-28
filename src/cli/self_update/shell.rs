@@ -475,14 +475,9 @@ impl UnixShell for Xonsh {
     }
 
     fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
-        for f in self.rcfiles(process) {
-            if f.is_file() {
-                return vec![f];
-            }
-        }
-
-        match process.home_dir() {
-            Some(home) => vec![home.join(".xonshrc")],
+        // The first rcfile in XDG_CONFIG_HOME takes precedence.
+        match self.rcfiles(process).into_iter().next() {
+            Some(path) => vec![path],
             None => vec![],
         }
     }
@@ -499,6 +494,10 @@ impl UnixShell for Xonsh {
             r#"source "{}/env.xsh""#,
             self.cargo_home_str(process)?
         ))
+    }
+
+    fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
+        cargo_home_str_with_home("$HOME", process)
     }
 }
 
