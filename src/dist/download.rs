@@ -288,7 +288,7 @@ impl<'a> DownloadCfg<'a> {
         let progress = ProgressBar::hidden();
         progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>13.bold} downloading [{bar:15}] {total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>13.bold} downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -363,7 +363,7 @@ impl DownloadStatus {
         *retry_time = None;
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>13.bold} downloading [{bar:15}] {total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>13.bold} downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -372,7 +372,7 @@ impl DownloadStatus {
 
     pub(crate) fn finished(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>13.bold} pending installation {total_bytes:>18}")
+            ProgressStyle::with_template("{msg:>13.bold} pending installation {total_bytes:>20}")
                 .unwrap(),
         );
         self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
@@ -396,7 +396,7 @@ impl DownloadStatus {
         self.progress.reset();
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>13.bold} unpacking   [{bar:15}] {total_bytes} ({bytes_per_sec}, ETA: {eta})",
+                "{msg:>13.bold} unpacking   [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
             .unwrap()
             .progress_chars("## "),
@@ -407,7 +407,7 @@ impl DownloadStatus {
     pub(crate) fn installing(&self) {
         self.progress.set_style(
             ProgressStyle::with_template(
-                "{msg:>13.bold} installing {spinner:.green} {total_bytes:>26}",
+                "{msg:>13.bold} installing {spinner:.green} {total_bytes:>28}",
             )
             .unwrap()
             .tick_chars(r"|/-\ "),
@@ -417,7 +417,7 @@ impl DownloadStatus {
 
     pub(crate) fn installed(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template("{msg:>13.bold} installed {total_bytes:>29}").unwrap(),
+            ProgressStyle::with_template("{msg:>13.bold} installed {total_bytes:>31}").unwrap(),
         );
         self.progress.finish();
     }
