@@ -216,11 +216,11 @@ impl Manifestation {
             tx = self.uninstall_component(component, &new_manifest, tx)?;
         }
 
-        let mut tx = if !components.is_empty() {
+        if !components.is_empty() {
             info!("downloading component(s)");
             let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));
             let mut transaction = Some(tx);
-            let tx = loop {
+            tx = loop {
                 // Refill downloads when there's capacity
                 // Must live outside of `InstallEvents` because we can't write the type of future
                 while stream.components.len() > 0 && stream.downloads.len() < concurrent_downloads {
@@ -246,10 +246,7 @@ impl Manifestation {
 
             download_cfg.clean(&stream.cleanup_downloads)?;
             drop(stream);
-            tx
-        } else {
-            tx
-        };
+        }
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify()?;
