@@ -313,9 +313,6 @@ impl<'a> DownloadCfg<'a> {
 }
 
 /// Tracks download progress and displays information about it to a terminal.
-///
-/// *not* safe for tracking concurrent downloads yet - it is basically undefined
-/// what will happen.
 pub(crate) struct DownloadTracker {
     /// MultiProgress bar for the downloads.
     multi_progress_bars: MultiProgress,
