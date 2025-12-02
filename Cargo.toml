@@ -140,6 +140,9 @@ http-body-util = "0.1.0"
 hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.1", features = ["tokio"] }
 proptest = "1.1.0"
+rustls-webpki = { version = "0.103.3" }
+tokio-rustls = "0.26.4"
+webpki-root-certs = "1"
 
 [build-dependencies]
 platforms = "3.4"

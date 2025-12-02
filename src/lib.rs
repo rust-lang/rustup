@@ -70,6 +70,8 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
 
 #[macro_use]
 pub mod cli;
+#[cfg(feature = "reqwest-rustls-tls")]
+mod anchors;
 mod command;
 mod config;
 mod diskio;
