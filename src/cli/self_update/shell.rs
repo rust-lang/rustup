@@ -69,6 +69,7 @@ fn enumerate_shells() -> Vec<Shell> {
         Box::new(Nu),
         Box::new(Tcsh),
         Box::new(Pwsh),
+        Box::new(Xonsh),
     ]
 }
 
@@ -442,6 +443,61 @@ impl UnixShell for Pwsh {
 
     fn source_string(&self, process: &Process) -> Result<String> {
         Ok(format!(r#". "{}/env.ps1""#, self.cargo_home_str(process)?))
+    }
+}
+
+struct Xonsh;
+
+impl UnixShell for Xonsh {
+    fn does_exist(&self, process: &Process) -> bool {
+        process.var("XONSHRC").is_ok() || utils::find_cmd(&["xonsh"], process).is_some()
+    }
+
+    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+        let mut paths = vec![];
+
+        if let Ok(p) = process.var("XDG_CONFIG_HOME") {
+            let mut p = PathBuf::from(p);
+            p.extend(["xonsh", "rc.xsh"]);
+            paths.push(p);
+        }
+
+        if let Some(mut p) = process.home_dir() {
+            p.extend([".config", "xonsh", "rc.xsh"]);
+            paths.push(p);
+        }
+
+        if let Some(home) = process.home_dir() {
+            paths.push(home.join(".xonshrc"));
+        }
+
+        paths
+    }
+
+    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+        // The first rcfile in XDG_CONFIG_HOME takes precedence.
+        match self.rcfiles(process).into_iter().next() {
+            Some(path) => vec![path],
+            None => vec![],
+        }
+    }
+
+    fn env_script(&self) -> ShellScript {
+        ShellScript {
+            name: "env.xsh",
+            content: include_str!("env.xsh"),
+        }
+    }
+
+    fn source_string(&self, process: &Process) -> Result<String> {
+        Ok(format!(
+            r#"source "{}/env.xsh""#,
+            self.cargo_home_str(process)?
+        ))
+    }
+
+    fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
+        cargo_home_str_with_home("$HOME", process)
     }
 }
 
