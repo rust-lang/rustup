@@ -1004,6 +1004,7 @@ Thanks go to:
 [pr#2707]: https://github.com/rust-lang/rustup/pull/2707
 [pr#2678]: https://github.com/rust-lang/rustup/pull/2678
 [pr#2695]: https://github.com/rust-lang/rustup/pull/2695
+[pr#2672]: https://github.com/rust-lang/rustup/pull/2672
 [pr#2670]: https://github.com/rust-lang/rustup/pull/2670
 [pr#2684]: https://github.com/rust-lang/rustup/pull/2684
 [pr#2676]: https://github.com/rust-lang/rustup/pull/2676
