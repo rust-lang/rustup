@@ -70,18 +70,15 @@ async fn store_static_roots() -> anyhow::Result<()> {
             .unwrap();
 
         code.push_str(&format!("    // Root for host: {host}\n"));
-        code.push_str("    CertificateDer::from_slice(&[\n");
-        for chunk in root_cert.chunks(15) {
+        code.push_str("    CertificateDer::from_slice(\n        b\"\\\n");
+        for chunk in root_cert.chunks(20) {
             code.push_str("        ");
-            for (i, byte) in chunk.iter().enumerate() {
-                if i > 0 {
-                    code.push(' ');
-                }
-                code.push_str(&format!("0x{:02x},", byte));
+            for byte in chunk {
+                code.push_str(&format!("\\x{:02x}", byte));
             }
-            code.push('\n');
+            code.push_str("\\\n");
         }
-        code.push_str("    ]),\n");
+        code.push_str("        \",\n    ),\n");
     }
     code.push_str("];\n");
 
