@@ -22,20 +22,19 @@ use webpki::{EndEntityCert, anchor_from_trusted_cert};
 use webpki_root_certs::TLS_SERVER_ROOT_CERTS;
 
 #[tokio::test]
-async fn store_static_roots() {
+async fn store_static_roots() -> anyhow::Result<()> {
     let provider = Arc::new(aws_lc_rs::default_provider());
     let mut root_store = RootCertStore::empty();
     let mut roots = Vec::with_capacity(TLS_SERVER_ROOT_CERTS.len());
     for cert_der in TLS_SERVER_ROOT_CERTS {
-        let ta = anchor_from_trusted_cert(cert_der).unwrap();
+        let ta = anchor_from_trusted_cert(cert_der)?;
         roots.push((cert_der, ta.clone()));
         root_store.roots.push(ta);
     }
 
     let root_store = Arc::new(root_store);
     let inner = WebPkiServerVerifier::builder_with_provider(root_store.clone(), provider.clone())
-        .build()
-        .unwrap();
+        .build()?;
 
     let verifier = Arc::new(TrackRootVerifier {
         root: Mutex::default(),
@@ -46,8 +45,7 @@ async fn store_static_roots() {
 
     let config = Arc::new(
         rustls::ClientConfig::builder_with_provider(provider)
-            .with_safe_default_protocol_versions()
-            .unwrap()
+            .with_safe_default_protocol_versions()?
             .dangerous()
             .with_custom_certificate_verifier(verifier.clone())
             .with_no_client_auth(),
@@ -60,11 +58,10 @@ async fn store_static_roots() {
     for &host in HOSTS {
         connector
             .connect(
-                ServerName::try_from(host).unwrap(),
-                TcpStream::connect((host, 443)).await.unwrap(),
+                ServerName::try_from(host)?,
+                TcpStream::connect((host, 443)).await?,
             )
-            .await
-            .unwrap();
+            .await?;
 
         let root = verifier.root.lock().unwrap().take().unwrap();
         let root_cert = roots
@@ -88,11 +85,13 @@ async fn store_static_roots() {
     }
     code.push_str("];\n");
 
-    let old = fs::read_to_string(PATH).unwrap();
+    let old = fs::read_to_string(PATH)?;
     if old != code {
-        fs::write(PATH, &code).unwrap();
+        fs::write(PATH, &code)?;
         panic!("anchors.rs is outdated; updated it");
     }
+
+    Ok(())
 }
 
 const PATH: &str = "src/anchors.rs";
