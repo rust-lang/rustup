@@ -33,7 +33,7 @@ RUSTUP_QUIET=no
 # NOTICE: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat <<EOF
-rustup-init 1.28.2 (d1f31992a 2025-04-28)
+rustup-init 1.29.0 (2eaaa4bb0 2025-12-11)
 
 The installer for rustup
 
