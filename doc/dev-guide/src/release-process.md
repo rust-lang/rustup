@@ -35,8 +35,14 @@ or an official [r]elease:
       If all looks well, make a commit.
    2. Update `CHANGELOG.md` accordingly if necessary.
 2. [b/r] After merging the PR made in step 1, in a separate PR:
-   1. Update the commit shasum in `rustup-init.sh` to match the latest commit
-      on `main`.
+   1. Update `rustup-init.sh` so that:
+      - The version number matches `$VER_NUM`.
+      - The commit shasum matches the latest commit on `main`.
+   2. Update the test snapshot of `rustup-init.sh --help`.
+      At the moment of writing, this is done by running:
+      ```console
+      $ SNAPSHOTS=overwrite cargo test --features=test -- cli_rustup_init_ui
+      ```
 3. [b/r] After merging the PR made in step 2, sync `main` to `stable` using
    `--ff-only`:
    - `git fetch origin main:main`
