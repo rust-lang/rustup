@@ -304,49 +304,46 @@ impl FromStr for ParsedToolchainDesc {
                     "stable",
                     // Allow from 1.0.0 through to 9.999.99 with optional patch version
                     // and optional beta tag
-                    r"[0-9]{1}\.[0-9]{1,3}(?:\.[0-9]{1,2})?(?:-beta(?:\.[0-9]{1,2})?)?",
+                    r"[0-9]{1}\.(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]?))?(?:-beta(?:\.[0-9]{1,2})?)?",
                 ]
                 .join("|")
             ))
             .unwrap()
         });
 
-        let d = TOOLCHAIN_CHANNEL_RE.captures(desc).map(|c| {
-            fn fn_map(s: &str) -> Option<String> {
-                if s.is_empty() {
-                    None
-                } else {
-                    Some(s.to_owned())
-                }
+        let d = TOOLCHAIN_CHANNEL_RE
+            .captures(desc)
+            .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_string()))?;
+
+        fn fn_map(s: &str) -> Option<String> {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_owned())
             }
-
-            // These versions don't have v2 manifests, but they don't have point releases either,
-            // so to make the two-part version numbers work for these versions, specially turn
-            // them into their corresponding ".0" version.
-            let channel = match c.get(1).unwrap().as_str() {
-                "1.0" => "1.0.0",
-                "1.1" => "1.1.0",
-                "1.2" => "1.2.0",
-                "1.3" => "1.3.0",
-                "1.4" => "1.4.0",
-                "1.5" => "1.5.0",
-                "1.6" => "1.6.0",
-                "1.7" => "1.7.0",
-                "1.8" => "1.8.0",
-                other => other,
-            };
-
-            Self {
-                channel: Channel::from_str(channel).unwrap(),
-                date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
-                target: c.get(3).map(|s| s.as_str()).and_then(fn_map),
-            }
-        });
-
-        match d {
-            Some(d) => Ok(d),
-            None => Err(RustupError::InvalidToolchainName(desc.to_string()).into()),
         }
+
+        // These versions don't have v2 manifests, but they don't have point releases either,
+        // so to make the two-part version numbers work for these versions, specially turn
+        // them into their corresponding ".0" version.
+        let channel = match d.get(1).unwrap().as_str() {
+            "1.0" => "1.0.0",
+            "1.1" => "1.1.0",
+            "1.2" => "1.2.0",
+            "1.3" => "1.3.0",
+            "1.4" => "1.4.0",
+            "1.5" => "1.5.0",
+            "1.6" => "1.6.0",
+            "1.7" => "1.7.0",
+            "1.8" => "1.8.0",
+            other => other,
+        };
+
+        Ok(Self {
+            channel: Channel::from_str(channel)?,
+            date: d.get(2).map(|s| s.as_str()).and_then(fn_map),
+            target: d.get(3).map(|s| s.as_str()).and_then(fn_map),
+        })
     }
 }
 
@@ -1358,7 +1355,15 @@ mod tests {
             assert_eq!(parsed.unwrap(), expected, "input: `{input}`");
         }
 
-        let failure_cases = vec!["anything", "00.0000.000", "3", "", "--", "0.0.0-"];
+        let failure_cases = vec![
+            "anything",
+            "00.0000.000",
+            "3",
+            "",
+            "--",
+            "0.0.0-",
+            "1.90.01",
+        ];
 
         for input in failure_cases {
             let parsed = input.parse::<ParsedToolchainDesc>();
