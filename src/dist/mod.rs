@@ -304,7 +304,7 @@ impl FromStr for ParsedToolchainDesc {
                     "stable",
                     // Allow from 1.0.0 through to 9.999.99 with optional patch version
                     // and optional beta tag
-                    r"[0-9]{1}\.[0-9]{1,3}(?:\.[0-9]{1,2})?(?:-beta(?:\.[0-9]{1,2})?)?",
+                    r"[0-9]{1}\.(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]?))?(?:-beta(?:\.[0-9]{1,2})?)?",
                 ]
                 .join("|")
             ))
@@ -1358,7 +1358,15 @@ mod tests {
             assert_eq!(parsed.unwrap(), expected, "input: `{input}`");
         }
 
-        let failure_cases = vec!["anything", "00.0000.000", "3", "", "--", "0.0.0-"];
+        let failure_cases = vec![
+            "anything",
+            "00.0000.000",
+            "3",
+            "",
+            "--",
+            "0.0.0-",
+            "1.90.01",
+        ];
 
         for input in failure_cases {
             let parsed = input.parse::<ParsedToolchainDesc>();
