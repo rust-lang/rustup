@@ -333,11 +333,7 @@ impl FromStr for ParsedToolchainDesc {
 
         fn non_empty_string(s: Option<Match<'_>>) -> Option<String> {
             let s = s?.as_str();
-            if s.is_empty() {
-                None
-            } else {
-                Some(s.to_owned())
-            }
+            (!s.is_empty()).then(|| s.to_owned())
         }
 
         Ok(Self {
