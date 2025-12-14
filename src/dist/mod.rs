@@ -331,7 +331,7 @@ impl FromStr for ParsedToolchainDesc {
             other => other,
         };
 
-        fn fn_map(s: &str) -> Option<String> {
+        fn non_empty_string(s: &str) -> Option<String> {
             if s.is_empty() {
                 None
             } else {
@@ -341,8 +341,8 @@ impl FromStr for ParsedToolchainDesc {
 
         Ok(Self {
             channel: Channel::from_str(channel)?,
-            date: d.get(2).map(|s| s.as_str()).and_then(fn_map),
-            target: d.get(3).map(|s| s.as_str()).and_then(fn_map),
+            date: d.get(2).map(|s| s.as_str()).and_then(non_empty_string),
+            target: d.get(3).map(|s| s.as_str()).and_then(non_empty_string),
         })
     }
 }
