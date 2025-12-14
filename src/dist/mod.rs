@@ -14,7 +14,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use chrono::NaiveDate;
 use clap::{ValueEnum, builder::PossibleValue};
 use itertools::Itertools;
-use regex::Regex;
+use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, warn};
@@ -331,7 +331,8 @@ impl FromStr for ParsedToolchainDesc {
             other => other,
         };
 
-        fn non_empty_string(s: &str) -> Option<String> {
+        fn non_empty_string(s: Option<Match<'_>>) -> Option<String> {
+            let s = s?.as_str();
             if s.is_empty() {
                 None
             } else {
@@ -341,8 +342,8 @@ impl FromStr for ParsedToolchainDesc {
 
         Ok(Self {
             channel: Channel::from_str(channel)?,
-            date: d.get(2).map(|s| s.as_str()).and_then(non_empty_string),
-            target: d.get(3).map(|s| s.as_str()).and_then(non_empty_string),
+            date: non_empty_string(d.get(2)),
+            target: non_empty_string(d.get(3)),
         })
     }
 }
