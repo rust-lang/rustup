@@ -315,14 +315,6 @@ impl FromStr for ParsedToolchainDesc {
             .captures(desc)
             .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_string()))?;
 
-        fn fn_map(s: &str) -> Option<String> {
-            if s.is_empty() {
-                None
-            } else {
-                Some(s.to_owned())
-            }
-        }
-
         // These versions don't have v2 manifests, but they don't have point releases either,
         // so to make the two-part version numbers work for these versions, specially turn
         // them into their corresponding ".0" version.
@@ -338,6 +330,14 @@ impl FromStr for ParsedToolchainDesc {
             "1.8" => "1.8.0",
             other => other,
         };
+
+        fn fn_map(s: &str) -> Option<String> {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_owned())
+            }
+        }
 
         Ok(Self {
             channel: Channel::from_str(channel)?,
