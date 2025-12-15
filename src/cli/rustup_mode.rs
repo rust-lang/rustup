@@ -1648,6 +1648,7 @@ docs_data![
         "proc_macro/index.html"
     ),
     (reference, "The Rust Reference", "reference/index.html"),
+    (releases, "Rust Release Notes", "releases.html"),
     (
         rust_by_example,
         "A collection of runnable examples that illustrate various Rust concepts and standard libraries",
