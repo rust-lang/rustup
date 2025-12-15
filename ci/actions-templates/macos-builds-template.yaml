@@ -90,7 +90,7 @@ jobs: # skip-x86_64 skip-aarch64
           fi
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rustup-init-${{ matrix.target }}
           path: |

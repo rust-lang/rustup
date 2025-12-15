@@ -157,7 +157,7 @@ jobs: # skip-main skip-pr skip-stable
             "${DOCKER}" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
