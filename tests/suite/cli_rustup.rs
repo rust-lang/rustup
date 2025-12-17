@@ -2223,6 +2223,25 @@ error:[..] relative path toolchain '[..]/toolchains/nightly-[HOST_TRIPLE]'
 }
 
 #[tokio::test]
+async fn run_with_plus_prefix_fails_with_helpful_message() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "run", "+stable", "cargo", "check"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error:[..] invalid toolchain name '+stable'; valid toolchain names do not start with '+'
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
 async fn plus_override_abspath_is_supported() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

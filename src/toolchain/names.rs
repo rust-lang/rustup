@@ -67,6 +67,8 @@ pub enum InvalidName {
     ToolchainPath(String),
     #[error("invalid toolchain name '{0}'")]
     ToolchainName(String),
+    #[error("invalid toolchain name '+{0}'; valid toolchain names do not start with '+'")]
+    PlusPrefix(String),
 }
 
 macro_rules! from_variant {
@@ -117,6 +119,9 @@ macro_rules! try_from_str {
 
 /// Common validate rules for all sorts of toolchain names
 fn validate(candidate: &str) -> Result<&str, InvalidName> {
+    if let Some(without_plus) = candidate.strip_prefix('+') {
+        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
+    }
     let normalized_name = candidate.trim_end_matches('/');
     if normalized_name.is_empty() {
         Err(InvalidName::ToolchainName(candidate.into()))
@@ -501,8 +506,9 @@ mod tests {
 
     prop_compose! {
         fn arb_custom_name()
-            (s in r"[^\\/]+") -> String {
+            (s in r"[^\\/+][^\\/]*") -> String {
                 // perhaps need to filter 'none' and partial toolchains - but they won't typically be generated anyway.
+                // Also filter '+' prefix as that's reserved for +toolchain syntax.
                 s
         }
     }
