@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, io::Write};
 use platforms::Platform;
 
 #[test]
-fn gen_known_triples() {
+fn gen_known_tuples() {
     let out_path = "src/dist/triple/known.rs";
     let existing = std::fs::read_to_string(out_path).unwrap();
 
