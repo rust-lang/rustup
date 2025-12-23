@@ -492,7 +492,7 @@ pub(crate) fn ignorable_error(
 }
 
 /// Returns an error for a toolchain if both conditions are met:
-/// - The toolchain has an incompatible target triple,
+/// - The toolchain has an incompatible target tuple,
 ///   i.e. it might not be able to run on the host system.
 /// - The `force_non_host` flag is set to `false`.
 pub(crate) fn check_non_host_toolchain(

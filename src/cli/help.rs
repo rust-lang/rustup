@@ -96,13 +96,13 @@ pub(crate) fn toolchain_help() -> String {
   archive date, as in `nightly-2014-12-18`, in which case the
   toolchain is downloaded from the archive for that date.
 
-  The host may be specified as a target triple. This is most useful
+  The host may be specified as a target tuple. This is most useful
   for installing a 32-bit compiler on a 64-bit platform, or for
   installing the [MSVC-based toolchain] on Windows. For example:
 
     {LITERAL}$ rustup toolchain install stable-x86_64-pc-windows-msvc{LITERAL:#}
 
-  For convenience, omitted elements of the target triple will be
+  For convenience, omitted elements of the target tuple will be
   inferred, so the above could be written:
 
     {LITERAL}$ rustup toolchain install stable-msvc{LITERAL:#}

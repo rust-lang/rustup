@@ -16,9 +16,9 @@ fn main() {
     println!("cargo::rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TRIPLE");
     println!("cargo::rerun-if-env-changed=TARGET");
     match from_build() {
-        Ok(triple) => eprintln!("Computed build based on target triple: {triple:#?}"),
+        Ok(triple) => eprintln!("Computed build based on target tuple: {triple:#?}"),
         Err(s) => {
-            eprintln!("Unable to parse target '{s}' as a known target triple");
+            eprintln!("Unable to parse target '{s}' as a known target tuple");
             eprintln!(
                 "If you are attempting to bootstrap a new target, you might need to update `platforms` to a newer version"
             );

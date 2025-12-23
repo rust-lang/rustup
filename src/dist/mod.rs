@@ -145,9 +145,9 @@ struct ParsedToolchainDesc {
 }
 
 /// A toolchain descriptor from rustup's perspective. These contain
-/// 'partial target triples', which allow toolchain names like
-/// 'stable-msvc' to work. Partial target triples though are parsed
-/// from a hardcoded set of known triples, whereas target triples
+/// 'partial target tuples', which allow toolchain names like
+/// 'stable-msvc' to work. Partial target tuples though are parsed
+/// from a hardcoded set of known triples, whereas target tuples
 /// are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
@@ -569,9 +569,9 @@ impl TargetTriple {
         }
         // Otherwise we need to parse things
         let partial_self = PartialTargetTriple::new(&self.0)
-            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", self.0)))?;
+            .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", self.0)))?;
         let partial_other = PartialTargetTriple::new(&other.0)
-            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", other.0)))?;
+            .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", other.0)))?;
         // First obvious check is OS, if that doesn't match there's no chance
         let ret = if partial_self.os != partial_other.os {
             false
