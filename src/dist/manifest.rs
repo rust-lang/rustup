@@ -436,7 +436,7 @@ impl Manifest {
         config: &Config,
     ) -> Result<Vec<ComponentStatus>> {
         // Return all optional components of the "rust" package for the
-        // toolchain's target triple.
+        // toolchain's target tuple.
         let mut res = Vec::new();
 
         let rust_pkg = self

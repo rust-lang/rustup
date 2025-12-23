@@ -643,7 +643,7 @@ impl<'a> Cfg<'a> {
                         // the base name in the error to help users)
                         let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
                         if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
-                            return Err(anyhow!(format!("target triple in channel name '{name}'")));
+                            return Err(anyhow!(format!("target tuple in channel name '{name}'")));
                         }
                     }
 

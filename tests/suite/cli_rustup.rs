@@ -3419,7 +3419,7 @@ async fn file_override_with_target_info() {
         .remove_redactions(["[HOST_TRIPLE]"])
         .with_stderr(snapbox::str![[r#"
 ...
-error: target triple in channel name 'nightly-x86_64-unknown-linux-gnu'
+error: target tuple in channel name 'nightly-x86_64-unknown-linux-gnu'
 ...
 "#]])
         .is_err();

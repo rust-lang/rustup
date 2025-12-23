@@ -557,7 +557,7 @@ pub(crate) struct MockPackage {
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub(crate) struct MockTargetedPackage {
-    // Target triple
+    // Target tuple
     pub target: String,
     // Whether the file actually exists (could be due to build failure)
     pub available: bool,

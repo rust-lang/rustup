@@ -313,7 +313,7 @@ impl Manifestation {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
-        // component name plus the target triple.
+        // component name plus the target tuple.
         let name = component.name_in_manifest();
         let short_name = component.short_name_in_manifest();
         if let Some(c) = self.installation.find(&name)? {
@@ -800,7 +800,7 @@ impl ComponentInstall {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
-        // component name plus the target triple.
+        // component name plus the target tuple.
         let pkg_name = self.component.name_in_manifest();
         let short_pkg_name = self.component.short_name_in_manifest();
         let reader = self.status.unpack(utils::buffered(&self.installer)?);
