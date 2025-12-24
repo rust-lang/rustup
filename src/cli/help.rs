@@ -11,7 +11,18 @@ pub(crate) fn rustup_help() -> String {
   for common platforms.
 
   If you are new to Rust consider running `rustup doc --book` to
-  learn Rust."
+  learn Rust.
+
+{HEADER}Common commands:{HEADER:#}
+
+  Update Rust toolchains and rustup
+
+    {LITERAL}$ rustup update{LITERAL:#}
+    
+  Install the current stable release of Rust for your host platform
+
+    {LITERAL}$ rustup toolchain install stable{LITERAL:#}
+  "
     )
 }
 
