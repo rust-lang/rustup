@@ -1663,6 +1663,11 @@ docs_data![
         "rustc/index.html"
     ),
     (
+        rustc_docs,
+        "The API documentation for the Rust compiler and other toolchain components",
+        "rustc-docs/index.html"
+    ),
+    (
         rustdoc,
         "Documentation generator for Rust projects",
         "rustdoc/index.html"
