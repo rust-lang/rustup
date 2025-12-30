@@ -15,9 +15,6 @@ jobs: # skip-main skip-pr skip-stable
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
@@ -102,8 +99,8 @@ jobs: # skip-main skip-pr skip-stable
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -131,8 +128,6 @@ jobs: # skip-main skip-pr skip-stable
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
-        env:
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"

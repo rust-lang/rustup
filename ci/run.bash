@@ -46,7 +46,7 @@ fi
 target_cargo() {
     cmd="$1"
     shift
-    cargo "${cmd}" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${FEATURES[@]}" "$@"
+    cargo "${cmd}" --locked --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
 target_cargo build

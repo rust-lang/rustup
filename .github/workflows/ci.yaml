@@ -31,9 +31,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
@@ -108,8 +105,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using win.rustup.rs
         env:
           RUSTUP_ARCH: ${{ matrix.rustup_arch || 'x86_64' }}
@@ -129,7 +126,6 @@ jobs:
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Run cargo check
         if: matrix.mode != 'release'
@@ -203,9 +199,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
@@ -280,8 +273,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using win.rustup.rs
         env:
           RUSTUP_ARCH: ${{ matrix.rustup_arch || 'x86_64' }}
@@ -301,7 +294,6 @@ jobs:
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Run cargo check
         if: matrix.mode != 'release'
@@ -375,9 +367,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-pc-windows-msvc
           - i686-pc-windows-msvc # skip-pr skip-main
@@ -458,8 +447,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using win.rustup.rs
         env:
           RUSTUP_ARCH: ${{ matrix.rustup_arch || 'x86_64' }}
@@ -479,7 +468,6 @@ jobs:
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Run cargo check
         if: matrix.mode != 'release'
@@ -550,9 +538,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
@@ -610,8 +595,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -639,8 +624,6 @@ jobs:
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
-        env:
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
@@ -717,9 +700,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
@@ -779,8 +759,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -808,8 +788,6 @@ jobs:
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
-        env:
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
@@ -886,9 +864,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
@@ -973,8 +948,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -1002,8 +977,6 @@ jobs:
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
-        env:
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
@@ -1079,9 +1052,6 @@ jobs:
       contents: read
     strategy:
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - x86_64-apple-darwin # skip-aarch64
     steps:
@@ -1125,8 +1095,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -1140,8 +1110,6 @@ jobs:
         run: |
           rustup target install "$TARGET"
       - name: Run a full build and test
-        env:
-          BUILD_PROFILE: ${{ matrix.mode }}
         shell: arch -x86_64 bash -e {0} # skip-aarch64
         run: bash ci/run.bash
       - name: Dump dynamic link targets
@@ -1211,9 +1179,6 @@ jobs:
       contents: read
     strategy:
       matrix:
-        mode:
-          - dev
-          - release
         target:
           - aarch64-apple-darwin # skip-x86_64
     steps:
@@ -1257,8 +1222,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -1272,8 +1237,6 @@ jobs:
         run: |
           rustup target install "$TARGET"
       - name: Run a full build and test
-        env:
-          BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Dump dynamic link targets
         if: matrix.mode == 'release'
