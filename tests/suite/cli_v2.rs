@@ -196,7 +196,7 @@ async fn default_existing_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: using existing install for nightly-[HOST_TRIPLE]
+info: using existing install for nightly-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -248,8 +248,8 @@ async fn list_toolchains() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-beta-2015-01-01-[HOST_TRIPLE]
-nightly-[HOST_TRIPLE] (active, default)
+beta-2015-01-01-[HOST_TUPLE]
+nightly-[HOST_TUPLE] (active, default)
 
 "#]])
         .is_ok();
@@ -257,8 +257,8 @@ nightly-[HOST_TRIPLE] (active, default)
         .expect(["rustup", "toolchain", "list", "-v"])
         .await
         .with_stdout(snapbox::str![[r#"
-beta-2015-01-01-[HOST_TRIPLE] [..]/toolchains/beta-2015-01-01-[HOST_TRIPLE]
-nightly-[HOST_TRIPLE] (active, default) [..]/toolchains/nightly-[HOST_TRIPLE]
+beta-2015-01-01-[HOST_TUPLE] [..]/toolchains/beta-2015-01-01-[HOST_TUPLE]
+nightly-[HOST_TUPLE] (active, default) [..]/toolchains/nightly-[HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -280,7 +280,7 @@ async fn list_toolchains_with_bogus_file() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 
 "#]])
         .is_ok();
@@ -353,7 +353,7 @@ warn: removing the active toolchain; a toolchain override will be required for r
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (default)
+nightly-[HOST_TUPLE] (default)
 
 "#]])
         .is_ok();
@@ -397,7 +397,7 @@ info: toolchain dev uninstalled
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: toolchain nightly-[HOST_TRIPLE] uninstalled
+info: toolchain nightly-[HOST_TUPLE] uninstalled
 ...
 "#]])
         .is_ok();
@@ -422,8 +422,8 @@ async fn add_remove_multiple_toolchains() {
             .expect(["rustup", "toolchain", "list"])
             .await
             .with_stdout(snapbox::str![[r#"
-beta-[HOST_TRIPLE] (active, default)
-nightly-[HOST_TRIPLE]
+beta-[HOST_TUPLE] (active, default)
+nightly-[HOST_TUPLE]
 
 "#]])
             .is_ok();
@@ -485,7 +485,7 @@ async fn remove_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for beta-[HOST_TRIPLE]
+info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
@@ -496,10 +496,10 @@ info: downloading component[..]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -518,7 +518,7 @@ async fn file_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for beta-[HOST_TRIPLE]
+info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading component[..]
 ...
@@ -529,10 +529,10 @@ info: downloading component[..]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -548,7 +548,7 @@ async fn plus_override_toolchain_err_handling() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'beta-[HOST_TRIPLE]' is not installed
+error: toolchain 'beta-[HOST_TUPLE]' is not installed
 ...
 "#]])
         .is_err();
@@ -653,7 +653,7 @@ async fn bad_sha_on_installer() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component download failed for cargo-[HOST_TRIPLE]: checksum failed for '[..]', expected: '[..]', calculated: '[..]'
+error: component download failed for cargo-[HOST_TUPLE]: checksum failed for '[..]', expected: '[..]', calculated: '[..]'
 ...
 "#]])
         .is_err();
@@ -1043,7 +1043,7 @@ async fn no_update_on_channel_when_date_has_not_changed() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] unchanged - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] unchanged - 1.3.0 (hash-nightly-2)
 
 
 "#]]);
@@ -1196,7 +1196,7 @@ async fn list_targets_no_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 ...
 "#]])
         .is_err();
@@ -1214,7 +1214,7 @@ async fn set_auto_install_disable() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 ...
 "#]])
         .is_err();
@@ -1226,7 +1226,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 ...
 "#]])
         .is_err();
@@ -1251,7 +1251,7 @@ async fn list_targets_v1_toolchain() {
         .expect(["rustup", "target", "list", "--toolchain=nightly"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not support components (v1 manifest)
+error: toolchain 'nightly-[HOST_TUPLE]' does not support components (v1 manifest)
 
 "#]])
         .is_err();
@@ -1284,7 +1284,7 @@ async fn list_targets_custom_toolchain() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[HOST_TRIPLE]
+[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -1292,7 +1292,7 @@ async fn list_targets_custom_toolchain() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[HOST_TRIPLE] (installed)
+[HOST_TUPLE] (installed)
 
 "#]]);
 }
@@ -1337,7 +1337,7 @@ async fn list_installed_targets() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[HOST_TRIPLE]
+[HOST_TUPLE]
 
 "#]]);
 }
@@ -1507,7 +1507,7 @@ async fn add_target_no_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 ...
 "#]])
         .is_err();
@@ -1525,7 +1525,7 @@ async fn add_target_bogus() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' does not support target 'bogus'
+error: toolchain 'nightly-[HOST_TUPLE]' does not support target 'bogus'
 note: you can see a list of supported targets with `rustc --print=target-list`
 note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html
 
@@ -1545,7 +1545,7 @@ async fn add_target_unavailable() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' has no prebuilt artifacts available for target 'mipsel-sony-psp'
+error: toolchain 'nightly-[HOST_TUPLE]' has no prebuilt artifacts available for target 'mipsel-sony-psp'
 note: this may happen to a low-tier target as per https://doc.rust-lang.org/nightly/rustc/platform-support.html
 note: you can find instructions on that page to build the target support from source
 
@@ -1570,7 +1570,7 @@ async fn add_target_v1_toolchain() {
         ])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not support components (v1 manifest)
+error: toolchain 'nightly-[HOST_TUPLE]' does not support components (v1 manifest)
 
 "#]])
         .is_err();
@@ -1702,12 +1702,12 @@ async fn remove_target_not_installed() {
         .expect(["rustup", "target", "remove", CROSS_ARCH1])
         .await
         .extend_redactions([
-            ("[HOST_TRIPLE]", this_host_tuple().to_string()),
+            ("[HOST_TUPLE]", this_host_tuple().to_string()),
             ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
         ])
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' does not have target '[CROSS_ARCH_I]' installed
+error: toolchain 'nightly-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]' installed
 ...
 "#]])
         .is_err();
@@ -1730,7 +1730,7 @@ async fn remove_target_no_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 ...
 "#]])
         .is_err();
@@ -1748,7 +1748,7 @@ async fn remove_target_bogus() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' does not have target 'bogus' installed
+error: toolchain 'nightly-[HOST_TUPLE]' does not have target 'bogus' installed
 ...
 "#]])
         .is_err();
@@ -1771,7 +1771,7 @@ async fn remove_target_v1_toolchain() {
         ])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not support components (v1 manifest)
+error: toolchain 'nightly-[HOST_TUPLE]' does not support components (v1 manifest)
 
 "#]])
         .is_err();
@@ -1819,12 +1819,12 @@ async fn remove_target_again() {
         .expect(["rustup", "target", "remove", CROSS_ARCH1])
         .await
         .extend_redactions([
-            ("[HOST_TRIPLE]", this_host_tuple().to_string()),
+            ("[HOST_TUPLE]", this_host_tuple().to_string()),
             ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
         ])
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' does not have target '[CROSS_ARCH_I]' installed
+error: toolchain 'nightly-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]' installed
 ...
 "#]])
         .is_err();
@@ -1914,7 +1914,7 @@ async fn warn_about_and_remove_stray_hash() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: removing stray hash file in order to continue: [..]/update-hashes/nightly-[HOST_TRIPLE]
+warn: removing stray hash file in order to continue: [..]/update-hashes/nightly-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -1952,7 +1952,7 @@ async fn update_unavailable_std() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rust-std' for target '[HOST_TUPLE]' is unavailable for download for channel 'nightly'
 ...
 "#]])
         .is_err();
@@ -1971,7 +1971,7 @@ async fn add_missing_component() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TUPLE]' is unavailable for download for channel 'nightly'
 note: sometimes not all components are available in any given nightly
 ...
 "#]])
@@ -1994,6 +1994,7 @@ async fn add_toolchain_with_missing_component() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
+<<<<<<< HEAD
 error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
 note: sometimes not all components are available in any given nightly
 help: if you don't need these components, you could try a minimal installation with:
@@ -2004,6 +2005,15 @@ help: after determining the correct date, install it with a command such as:
 help:     rustup toolchain install nightly-2018-12-27
 help: then you can use the toolchain with commands such as:
 help:     cargo +nightly-2018-12-27 build
+||||||| parent of 22a67fbb (rename HOST_TRIPLE to HOST_TUPLE)
+error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+Sometimes not all components are available in any given nightly.
+If you don't need these components, you could try a minimal installation with:
+=======
+error: component 'rust-std' for target '[HOST_TUPLE]' is unavailable for download for channel 'nightly'
+Sometimes not all components are available in any given nightly.
+If you don't need these components, you could try a minimal installation with:
+>>>>>>> 22a67fbb (rename HOST_TRIPLE to HOST_TUPLE)
 
 "#]])
         .is_err();
@@ -2068,7 +2078,7 @@ async fn update_removed_component_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'stable'
+error: component 'rls' for target '[HOST_TUPLE]' is unavailable for download for channel 'stable'
 One or many components listed above might have been permanently removed from newer versions
 of the official Rust distribution due to deprecation.
 ...
@@ -2112,7 +2122,7 @@ async fn update_unavailable_force() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TUPLE]' is unavailable for download for channel 'nightly'
 ...
 "#]])
         .is_err();
@@ -2133,7 +2143,7 @@ async fn add_component_suggest_best_match() {
         .expect(["rustup", "component", "add", "rsl"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for target '[HOST_TRIPLE]'; did you mean 'rls'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not contain component 'rsl' for target '[HOST_TUPLE]'; did you mean 'rls'?
 
 "#]])
         .is_err();
@@ -2141,7 +2151,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for ta
         .expect(["rustup", "component", "add", "rsl-preview"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview' for target '[HOST_TRIPLE]'; did you mean 'rls-preview'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not contain component 'rsl-preview' for target '[HOST_TUPLE]'; did you mean 'rls-preview'?
 
 "#]])
         .is_err();
@@ -2149,7 +2159,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview
         .expect(["rustup", "component", "add", "rustd"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rustd' for target '[HOST_TRIPLE]'; did you mean 'rustc'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not contain component 'rustd' for target '[HOST_TUPLE]'; did you mean 'rustc'?
 
 "#]])
         .is_err();
@@ -2180,7 +2190,7 @@ async fn remove_component_suggest_best_match() {
         .expect(["rustup", "component", "remove", "rsl"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for target '[HOST_TRIPLE]'; did you mean 'rls'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not contain component 'rsl' for target '[HOST_TUPLE]'; did you mean 'rls'?
 
 "#]])
         .is_err();
@@ -2192,7 +2202,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for ta
         .expect(["rustup", "component", "add", "rsl-preview"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview' for target '[HOST_TRIPLE]'; did you mean 'rls-preview'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not contain component 'rsl-preview' for target '[HOST_TUPLE]'; did you mean 'rls-preview'?
 
 "#]])
         .is_err();
@@ -2200,7 +2210,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview
         .expect(["rustup", "component", "remove", "rustd"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rustd' for target '[HOST_TRIPLE]'; did you mean 'rustc'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not contain component 'rustd' for target '[HOST_TUPLE]'; did you mean 'rustc'?
 
 "#]])
         .is_err();
@@ -2218,7 +2228,7 @@ async fn add_target_suggest_best_match() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' does not support target '[CROSS_ARCH_I]a'; did you mean '[CROSS_ARCH_I]'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not support target '[CROSS_ARCH_I]a'; did you mean '[CROSS_ARCH_I]'?
 ...
 "#]])
         .is_err();
@@ -2249,7 +2259,7 @@ async fn remove_target_suggest_best_match() {
         .expect(["rustup", "target", "remove", &format!("{CROSS_ARCH1}a")[..]])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not have target '[CROSS_ARCH_I]a' installed; did you mean '[CROSS_ARCH_I]'?
+error: toolchain 'nightly-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]a' installed; did you mean '[CROSS_ARCH_I]'?
 
 
 "#]])
@@ -2307,7 +2317,7 @@ rust-src (installed)
             .await
             .with_stdout(snapbox::str![[r#"
 ...
-rust-analysis-[HOST_TRIPLE] (installed)
+rust-analysis-[HOST_TUPLE] (installed)
 ...
 "#]])
             .is_ok();
@@ -2374,7 +2384,7 @@ async fn install_with_component_and_target() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE] (installed)
+rls-[HOST_TUPLE] (installed)
 ...
 "#]])
         .is_ok();
@@ -2429,7 +2439,7 @@ async fn test_complete_profile_skips_missing_when_forced() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TUPLE]' is unavailable for download for channel 'nightly'
 ...
 "#]])
         .is_err();
@@ -2450,9 +2460,9 @@ warn: skipping unavailable component rls
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-cargo-[HOST_TRIPLE] (installed)
+cargo-[HOST_TUPLE] (installed)
 ...
-rust-docs-[HOST_TRIPLE] (installed)
+rust-docs-[HOST_TUPLE] (installed)
 ...
 "#]])
         .is_ok();
@@ -2478,7 +2488,7 @@ async fn run_with_install_flag_against_unavailable_component() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 warn: skipping unavailable component rust-std
 info: downloading component[..]
@@ -2490,9 +2500,9 @@ info: downloading component[..]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -2522,7 +2532,7 @@ async fn install_allow_downgrade() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TUPLE]' is unavailable for download for channel 'nightly'
 ...
 "#]])
         .is_err();

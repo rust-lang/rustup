@@ -74,7 +74,7 @@ these changes will be reverted.
 Current installation options:
 
 
-   default host triple: [HOST_TRIPLE]
+   default host triple: [HOST_TUPLE]
      default toolchain: stable (default)
                profile: default
   modify PATH variable: no
@@ -84,7 +84,7 @@ Current installation options:
 3) Cancel installation
 >
 
-  stable-[HOST_TRIPLE] installed - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] installed - 1.1.0 (hash-stable-1.1.0)
 
 
 Rust is installed now. Great!
@@ -141,7 +141,7 @@ async fn installer_shows_default_host_tuple() {
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n").with_stdout(snapbox::str![
         [r#"
 ...
-Default host triple? [[HOST_TRIPLE]]
+Default host triple? [[HOST_TUPLE]]
 ...
 "#]
     ]);
@@ -320,7 +320,7 @@ async fn with_non_default_toolchain_still_prompts() {
 ...
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 ...
 "#]])
         .is_ok();
@@ -347,7 +347,7 @@ async fn with_non_release_channel_non_default_toolchain() {
 ...
 installed toolchains
 --------------------
-nightly-2015-01-02-[HOST_TRIPLE] (active, default)
+nightly-2015-01-02-[HOST_TUPLE] (active, default)
 ...
 "#]])
         .is_ok();
@@ -370,7 +370,7 @@ async fn set_nightly_toolchain() {
 ...
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 ...
 "#]])
         .is_ok();
@@ -408,7 +408,7 @@ async fn set_nightly_toolchain_and_unset() {
 ...
 installed toolchains
 --------------------
-beta-[HOST_TRIPLE] (active, default)
+beta-[HOST_TUPLE] (active, default)
 ...
 "#]])
         .is_ok();
@@ -448,7 +448,7 @@ rust-src (installed)
             .await
             .with_stdout(snapbox::str![[r#"
 ...
-rust-analysis-[HOST_TRIPLE] (installed)
+rust-analysis-[HOST_TUPLE] (installed)
 ...
 "#]])
             .is_ok();
@@ -513,7 +513,7 @@ async fn installing_when_already_installed_updates_toolchain() {
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n").with_stdout(snapbox::str![
         [r#"
 ...
-[..]stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+[..]stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
 ...
 "#]
     ]);
@@ -620,7 +620,7 @@ async fn install_non_installable_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installable
+error: toolchain 'nightly-[HOST_TUPLE]' is not installable
 ...
 "#]])
         .is_err();

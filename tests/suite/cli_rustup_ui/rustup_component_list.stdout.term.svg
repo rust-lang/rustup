@@ -18,17 +18,17 @@
   <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
 
   <text xml:space="preserve" class="container fg">
-    <tspan x="10px" y="28px"><tspan class="bold">cargo-[HOST_TRIPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
+    <tspan x="10px" y="28px"><tspan class="bold">cargo-[HOST_TUPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
 </tspan>
-    <tspan x="10px" y="46px"><tspan class="bold">rust-docs-[HOST_TRIPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
+    <tspan x="10px" y="46px"><tspan class="bold">rust-docs-[HOST_TUPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
 </tspan>
-    <tspan x="10px" y="64px"><tspan class="bold">rust-std-[HOST_TRIPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
+    <tspan x="10px" y="64px"><tspan class="bold">rust-std-[HOST_TUPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
 </tspan>
-    <tspan x="10px" y="82px"><tspan class="bold">rustc-[HOST_TRIPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
+    <tspan x="10px" y="82px"><tspan class="bold">rustc-[HOST_TUPLE]</tspan><tspan> </tspan><tspan class="fg-bright-blue bold">(installed)</tspan>
 </tspan>
-    <tspan x="10px" y="100px"><tspan>rls-[HOST_TRIPLE]</tspan>
+    <tspan x="10px" y="100px"><tspan>rls-[HOST_TUPLE]</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>rust-analysis-[HOST_TRIPLE]</tspan>
+    <tspan x="10px" y="118px"><tspan>rust-analysis-[HOST_TUPLE]</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>rust-src</tspan>
 </tspan>

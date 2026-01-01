@@ -1285,7 +1285,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     // This ensures that we update to a version that's appropriate for users
     // and also works around if the website messed up the detection.
     // If someone really wants to use another version, they still can enforce
-    // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
+    // that using the environment variable RUSTUP_OVERRIDE_HOST_TUPLE.
     #[cfg(windows)]
     let triple = TargetTuple::from_host(dl_cfg.process).unwrap_or(triple);
 

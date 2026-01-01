@@ -20,7 +20,7 @@
   <text xml:space="preserve" class="container fg">
     <tspan x="10px" y="28px">
 </tspan>
-    <tspan x="10px" y="46px"><tspan>  </tspan><tspan class="fg-bright-green bold">nightly-[HOST_TRIPLE] installed</tspan><tspan> - 1.3.0 (hash-nightly-2)</tspan>
+    <tspan x="10px" y="46px"><tspan>  </tspan><tspan class="fg-bright-green bold">nightly-[HOST_TUPLE] installed</tspan><tspan> - 1.3.0 (hash-nightly-2)</tspan>
 </tspan>
     <tspan x="10px" y="64px">
 </tspan>

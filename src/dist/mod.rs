@@ -544,7 +544,7 @@ impl TargetTuple {
             host_triple.map(TargetTuple::new)
         }
 
-        if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+        if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TUPLE") {
             Some(Self(triple))
         } else {
             inner()
