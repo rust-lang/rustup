@@ -4,7 +4,7 @@ use std::env::consts::EXE_SUFFIX;
 use std::io::Write;
 use std::process::Stdio;
 
-use rustup::test::{Assert, CliTestContext, Config, SanitizedOutput, Scenario, this_host_triple};
+use rustup::test::{Assert, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple};
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, USER_PATH};
 use rustup::utils::raw;
@@ -640,7 +640,7 @@ async fn install_warns_about_existing_settings_file() {
             r#"default_toolchain = "{}"
 profile = "default"
 version = "12""#,
-            this_host_triple()
+            this_host_tuple()
         ),
     )
     .unwrap();

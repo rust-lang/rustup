@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::clitools::mock_bin;
-use super::{this_host_triple, topical_doc_data};
+use super::{this_host_tuple, topical_doc_data};
 
 // Mock of the on-disk structure of rust-installer installers
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -42,7 +42,7 @@ impl MockInstallerBuilder {
     pub(super) fn rustc(target: &str, version: &str, version_hash_: &str) -> Self {
         // For cross-host rustc's modify the version_hash so they can be identified from
         // test cases.
-        let this_host = this_host_triple();
+        let this_host = this_host_tuple();
         let version_hash = if this_host != target {
             format!("xxxx-{}", &version_hash_[5..])
         } else {

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use rustup::dist::TargetTuple;
 use rustup::dist::manifest::Manifest;
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_triple,
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_tuple,
 };
 
 #[tokio::test]
@@ -392,7 +392,7 @@ info: toolchain dev uninstalled
             "rustup",
             "toolchain",
             "remove",
-            &format!("nightly-{}/", this_host_triple()),
+            &format!("nightly-{}/", this_host_tuple()),
         ])
         .await
         .with_stderr(snapbox::str![[r#"
@@ -601,7 +601,7 @@ async fn bad_manifest() {
 
     let path = [
         "toolchains",
-        &format!("nightly-{}", this_host_triple()),
+        &format!("nightly-{}", this_host_tuple()),
         "lib",
         "rustlib",
         "multirust-channel-manifest.toml",
@@ -1268,7 +1268,7 @@ async fn list_targets_custom_toolchain() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()));
+        .join(format!("stable-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -1355,7 +1355,7 @@ async fn add_target1() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
@@ -1374,7 +1374,7 @@ async fn add_target2() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(cx.config.rustupdir.has(path));
@@ -1393,13 +1393,13 @@ async fn add_all_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(cx.config.rustupdir.has(path));
@@ -1636,7 +1636,7 @@ info: component rust-std for target [CROSS_ARCH_I] is up to date
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
@@ -1645,7 +1645,7 @@ info: component rust-std for target [CROSS_ARCH_I] is up to date
 #[tokio::test]
 async fn add_target_host() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     cx.config
         .expect(["rustup", "default", "nightly"])
         .await
@@ -1673,19 +1673,19 @@ async fn remove_target() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}",
-        this_host_triple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
@@ -1702,7 +1702,7 @@ async fn remove_target_not_installed() {
         .expect(["rustup", "target", "remove", CROSS_ARCH1])
         .await
         .extend_redactions([
-            ("[HOST_TRIPLE]", this_host_triple().to_string()),
+            ("[HOST_TRIPLE]", this_host_tuple().to_string()),
             ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
         ])
         .with_stderr(snapbox::str![[r#"
@@ -1819,7 +1819,7 @@ async fn remove_target_again() {
         .expect(["rustup", "target", "remove", CROSS_ARCH1])
         .await
         .extend_redactions([
-            ("[HOST_TRIPLE]", this_host_triple().to_string()),
+            ("[HOST_TRIPLE]", this_host_tuple().to_string()),
             ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
         ])
         .with_stderr(snapbox::str![[r#"
@@ -1833,7 +1833,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not have target '[CROSS_ARCH_I]' i
 #[tokio::test]
 async fn remove_target_host() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let host = this_host_triple();
+    let host = this_host_tuple();
     cx.config
         .expect(["rustup", "default", "nightly"])
         .await
@@ -1862,7 +1862,7 @@ warn: removing the default host target; proc-macros and build scripts might no l
 #[tokio::test]
 async fn remove_target_last() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let host = this_host_triple();
+    let host = this_host_tuple();
     cx.config
         .expect(["rustup", "default", "nightly"])
         .await
@@ -1887,7 +1887,7 @@ async fn remove_target_missing_update_hash() {
         .await
         .is_ok();
 
-    let file_name = format!("nightly-{}", this_host_triple());
+    let file_name = format!("nightly-{}", this_host_tuple());
     fs::remove_file(cx.config.rustupdir.join("update-hashes").join(file_name)).unwrap();
 
     cx.config
@@ -1902,7 +1902,7 @@ async fn warn_about_and_remove_stray_hash() {
     let mut cx = CliTestContext::new(Scenario::None).await;
     let mut hash_path = cx.config.rustupdir.join("update-hashes");
     fs::create_dir_all(&hash_path).expect("Unable to make the update-hashes directory");
-    hash_path.push(format!("nightly-{}", this_host_triple()));
+    hash_path.push(format!("nightly-{}", this_host_tuple()));
     let mut file = fs::File::create(&hash_path).expect("Unable to open update-hash file");
     file.write_all(b"LEGITHASH")
         .expect("Unable to write update-hash");
@@ -1946,7 +1946,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: String) {
 #[tokio::test]
 async fn update_unavailable_std() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    make_component_unavailable(&cx.config, "rust-std", this_host_triple());
+    make_component_unavailable(&cx.config, "rust-std", this_host_tuple());
     cx.config
         .expect(["rustup", "update", "nightly"])
         .await
@@ -1961,7 +1961,7 @@ error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for downlo
 #[tokio::test]
 async fn add_missing_component() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    make_component_unavailable(&cx.config, "rls-preview", this_host_triple());
+    make_component_unavailable(&cx.config, "rls-preview", this_host_tuple());
     cx.config
         .expect(["rustup", "toolchain", "add", "nightly"])
         .await
@@ -1988,7 +1988,7 @@ note: sometimes not all components are available in any given nightly
 #[tokio::test]
 async fn add_toolchain_with_missing_component() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    make_component_unavailable(&cx.config, "rust-std", this_host_triple());
+    make_component_unavailable(&cx.config, "rust-std", this_host_tuple());
     cx.config
         .expect(["rustup", "toolchain", "add", "nightly"])
         .await
@@ -2090,7 +2090,7 @@ of the official Rust distribution due to deprecation.
 #[tokio::test]
 async fn update_unavailable_force() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     cx.config
         .expect(["rustup", "update", "nightly"])
         .await
@@ -2461,7 +2461,7 @@ rust-docs-[HOST_TRIPLE] (installed)
 #[tokio::test]
 async fn run_with_install_flag_against_unavailable_component() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     make_component_unavailable(&cx.config, "rust-std", trip);
     cx.config
         .expect([

@@ -14,7 +14,7 @@ use retry::{
 };
 use rustup::test::{
     CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash, output_release_file,
-    this_host_triple,
+    this_host_tuple,
 };
 #[cfg(windows)]
 use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
@@ -490,7 +490,7 @@ async fn update_download_404() {
         .await
         .is_ok();
 
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     let dist_dir = cx.path().join(format!("archive/{TEST_VERSION}/{trip}"));
     let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
 

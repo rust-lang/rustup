@@ -11,7 +11,7 @@ use url::Url;
 
 use super::clitools::hard_link;
 use super::mock::MockInstallerBuilder;
-use super::{CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, create_hash, this_host_triple};
+use super::{CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, create_hash, this_host_tuple};
 use crate::dist::{
     DEFAULT_DIST_SERVER, Profile, TargetTuple,
     component::{Components, DirectoryPackage, Transaction},
@@ -189,7 +189,7 @@ impl Release {
 
         if self.channel == "stable" {
             // Same for v1 manifests. These are just the installers.
-            let host_triple = this_host_triple();
+            let host_triple = this_host_tuple();
 
             hard_link(
                 path.join(format!(
@@ -295,7 +295,7 @@ impl MockChannel {
         let host_triple = if swap_tuples {
             MULTI_ARCH1.to_owned()
         } else {
-            this_host_triple()
+            this_host_tuple()
         };
         let std = MockInstallerBuilder::std(&host_triple);
         let rustc = MockInstallerBuilder::rustc(&host_triple, version, version_hash);
@@ -466,7 +466,7 @@ impl MockChannel {
         version: &str,
         version_hash: &str,
     ) -> Self {
-        let host_triple = this_host_triple();
+        let host_triple = this_host_tuple();
 
         let packages = [
             "cargo",
