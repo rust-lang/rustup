@@ -187,20 +187,20 @@ pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option
     }
 
     use cc::windows_registry;
-    let host_triple = if let Some(trip) = opts.default_host_tuple.as_ref() {
+    let host_tuple = if let Some(trip) = opts.default_host_tuple.as_ref() {
         trip.to_owned()
     } else {
         TargetTuple::from_host_or_build(process).to_string()
     };
-    let installing_msvc = host_triple.contains("msvc");
-    let have_msvc = windows_registry::find_tool(&host_triple, "cl.exe").is_some();
+    let installing_msvc = host_tuple.contains("msvc");
+    let have_msvc = windows_registry::find_tool(&host_tuple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
         // Visual Studio build tools are required.
         // If the user does not have Visual Studio installed and their host
         // machine is i686 or x86_64 then it's OK to try an auto install.
         // Otherwise a manual install will be required.
         let has_any_vs = windows_registry::find_vs_version().is_ok();
-        let is_x86 = host_triple.contains("i686") || host_triple.contains("x86_64");
+        let is_x86 = host_tuple.contains("i686") || host_tuple.contains("x86_64");
         if is_x86 && !has_any_vs {
             Some(VsInstallPlan::Automatic)
         } else {
