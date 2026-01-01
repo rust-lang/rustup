@@ -65,16 +65,16 @@ async fn install_bins_to_cargo_home() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-  stable-[HOST_TRIPLE] installed - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] installed - 1.1.0 (hash-stable-1.1.0)
 ...
 "#]])
         .with_stderr(snapbox::str![[r#"
 ...
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
-info: default toolchain set to stable-[HOST_TRIPLE]
+info: default toolchain set to stable-[HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -110,16 +110,16 @@ async fn proxies_are_relative_symlinks() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-  stable-[HOST_TRIPLE] installed - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] installed - 1.1.0 (hash-stable-1.1.0)
 ...
 "#]])
         .with_stderr(snapbox::str![[r#"
 ...
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: downloading component[..]
 ...
-info: default toolchain set to stable-[HOST_TRIPLE]
+info: default toolchain set to stable-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -687,12 +687,12 @@ async fn rustup_self_update_exact() {
         .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
         .with_stdout(snapbox::str![[r#"
 
-  stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
 info: cleaning up downloads & tmp directories
@@ -857,7 +857,7 @@ async fn reinstall_specifying_toolchain() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-  stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
 ...
 "#]])
         .is_ok();
@@ -880,7 +880,7 @@ async fn reinstall_specifying_component() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-  stable-[HOST_TRIPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
 ...
 "#]])
         .is_ok();
@@ -899,7 +899,7 @@ async fn reinstall_specifying_different_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: default toolchain set to nightly-[HOST_TRIPLE]
+info: default toolchain set to nightly-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -955,8 +955,8 @@ async fn install_sets_up_stable_unless_there_is_already_a_default() {
         .expect(["rustup", "run", "stable", "rustc", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'stable-[HOST_TRIPLE]' is not installed
-help: run `rustup toolchain install stable-[HOST_TRIPLE]` to install it
+error: toolchain 'stable-[HOST_TUPLE]' is not installed
+help: run `rustup toolchain install stable-[HOST_TUPLE]` to install it
 
 "#]])
         .is_err();
@@ -1007,7 +1007,7 @@ async fn rls_proxy_set_up_after_install() {
         .expect(["rls", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TRIPLE]'.
+error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TUPLE]'.
 help: run `rustup component add rls` to install it
 
 "#]])
@@ -1128,7 +1128,7 @@ async fn install_with_components_and_targets() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE] (installed)
+rls-[HOST_TUPLE] (installed)
 ...
 "#]])
         .is_ok();

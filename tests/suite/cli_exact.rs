@@ -15,16 +15,16 @@ async fn update_once() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] installed - 1.3.0 (hash-nightly-2)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to nightly-[HOST_TRIPLE]
+info: default toolchain set to nightly-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -32,10 +32,10 @@ info: default toolchain set to nightly-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -61,13 +61,13 @@ async fn update_once_and_check_self_update() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] installed - 1.3.0 (hash-nightly-2)
 
 rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
@@ -77,10 +77,10 @@ info: downloading component[..]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -105,12 +105,12 @@ async fn update_once_and_self_update() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] installed - 1.3.0 (hash-nightly-2)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
@@ -123,10 +123,10 @@ info: downloading self-update (new version: [TEST_VERSION])
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -148,12 +148,12 @@ async fn update_again() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] unchanged - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] unchanged - 1.3.0 (hash-nightly-2)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -162,12 +162,12 @@ info: syncing channel updates for nightly-[HOST_TRIPLE]
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] unchanged - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] unchanged - 1.3.0 (hash-nightly-2)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 
 "#]]);
 }
@@ -184,9 +184,9 @@ async fn check_updates_none() {
         .await
         .is_err()
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - up to date: 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - up to date: 1.3.0 (hash-nightly-2)
+stable-[HOST_TUPLE] - up to date: 1.1.0 (hash-stable-1.1.0)
+beta-[HOST_TUPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
+nightly-[HOST_TUPLE] - up to date: 1.3.0 (hash-nightly-2)
 
 "#]]);
 }
@@ -209,9 +209,9 @@ async fn check_updates_some() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
+stable-[HOST_TUPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+beta-[HOST_TUPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
+nightly-[HOST_TUPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 
 "#]]);
 }
@@ -276,9 +276,9 @@ async fn check_updates_with_update() {
             .await
             .is_err()
             .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - up to date: 1.0.0 (hash-stable-1.0.0)
-beta-[HOST_TRIPLE] - up to date: 1.1.0 (hash-beta-1.1.0)
-nightly-[HOST_TRIPLE] - up to date: 1.2.0 (hash-nightly-1)
+stable-[HOST_TUPLE] - up to date: 1.0.0 (hash-stable-1.0.0)
+beta-[HOST_TUPLE] - up to date: 1.1.0 (hash-beta-1.1.0)
+nightly-[HOST_TUPLE] - up to date: 1.2.0 (hash-nightly-1)
 
 "#]]);
     }
@@ -289,9 +289,9 @@ nightly-[HOST_TRIPLE] - up to date: 1.2.0 (hash-nightly-1)
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
+stable-[HOST_TUPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+beta-[HOST_TUPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
+nightly-[HOST_TUPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 
 "#]]);
     cx.config.expect(["rustup", "update", "beta"]).await.is_ok();
@@ -300,9 +300,9 @@ nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
+stable-[HOST_TUPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+beta-[HOST_TUPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
+nightly-[HOST_TUPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 
 "#]]);
 }
@@ -316,16 +316,16 @@ async fn default() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] installed - 1.3.0 (hash-nightly-2)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to nightly-[HOST_TRIPLE]
+info: default toolchain set to nightly-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -333,10 +333,10 @@ info: default toolchain set to nightly-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -355,7 +355,7 @@ async fn override_again() {
         .is_ok()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-info: override toolchain for [CWD] set to nightly-[HOST_TRIPLE]
+info: override toolchain for [CWD] set to nightly-[HOST_TUPLE]
 
 "#]]);
 }
@@ -527,7 +527,7 @@ async fn list_overrides() {
         .extend_redactions([("[CWD]", cwd_formatted)])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[CWD]	nightly-[HOST_TRIPLE]
+[CWD]	nightly-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]]);
@@ -564,7 +564,7 @@ async fn list_overrides_with_nonexistent() {
         .extend_redactions([("[PATH]", path_formatted + " (not a directory)")])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[PATH]	nightly-[HOST_TRIPLE]
+[PATH]	nightly-[HOST_TUPLE]
 
 
 "#]])
@@ -584,7 +584,7 @@ async fn update_no_manifest() {
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-2016-01-01-[HOST_TRIPLE]
+info: syncing channel updates for nightly-2016-01-01-[HOST_TUPLE]
 error: no release found for 'nightly-2016-01-01'
 
 "#]]);
@@ -778,8 +778,8 @@ async fn show_suggestion_for_missing_toolchain() {
         .await
         .is_err()
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
-help: run `rustup toolchain install nightly-[HOST_TRIPLE]` to install it
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
+help: run `rustup toolchain install nightly-[HOST_TUPLE]` to install it
 
 "#]]);
 }
@@ -805,7 +805,7 @@ components = [ "rust-src" ]
         .await
         .is_err()
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'stable-[HOST_TRIPLE]' is not installed
+error: toolchain 'stable-[HOST_TUPLE]' is not installed
 help: run `rustup toolchain install` to install it
 
 "#]]);
@@ -862,15 +862,15 @@ async fn install_unreleased_component() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] unchanged - 1.37.0 (hash-nightly-1)
+  nightly-[HOST_TUPLE] unchanged - 1.37.0 (hash-nightly-1)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2019-09-13 for version 1.37.0 (hash-nightly-2)
 info: skipping nightly with missing component: rust-std-[MULTI_ARCH_I]
-info: syncing channel updates for nightly-2019-09-12-[HOST_TRIPLE]
+info: syncing channel updates for nightly-2019-09-12-[HOST_TUPLE]
 
 "#]]);
 
@@ -882,18 +882,18 @@ info: syncing channel updates for nightly-2019-09-12-[HOST_TRIPLE]
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] unchanged - 1.37.0 (hash-nightly-1)
+  nightly-[HOST_TUPLE] unchanged - 1.37.0 (hash-nightly-1)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2019-09-14 for version 1.37.0 (hash-nightly-3)
 info: skipping nightly with missing component: rls
-info: syncing channel updates for nightly-2019-09-13-[HOST_TRIPLE]
+info: syncing channel updates for nightly-2019-09-13-[HOST_TUPLE]
 info: latest update on 2019-09-13 for version 1.37.0 (hash-nightly-2)
 info: skipping nightly with missing component: rust-std-[MULTI_ARCH_I]
-info: syncing channel updates for nightly-2019-09-12-[HOST_TRIPLE]
+info: syncing channel updates for nightly-2019-09-12-[HOST_TUPLE]
 
 "#]]);
 }

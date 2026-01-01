@@ -103,7 +103,7 @@ pub struct Config {
 /// [`assert_data_eq`]'s documentation for more info) with a list of
 /// rustup-specific values, including:
 /// - `[CURRENT_VERSION]`: The current rustup version.
-/// - `[HOST_TRIPLE]`: The return value of [`this_host_tuple()`].
+/// - `[HOST_TUPLE]`: The return value of [`this_host_tuple()`].
 /// - `[CROSS_ARCH_I]`: The value of [`CROSS_ARCH1`].
 /// - `[CROSS_ARCH_II]`: The value of [`CROSS_ARCH2`].
 /// - `[MULTI_ARCH_I]`: The value of [`MULTI_ARCH1`].
@@ -129,7 +129,7 @@ impl Assert {
                     "[CURRENT_VERSION]",
                     Cow::Borrowed(env!("CARGO_PKG_VERSION")),
                 ),
-                ("[HOST_TRIPLE]", Cow::Owned(this_host_tuple())),
+                ("[HOST_TUPLE]", Cow::Owned(this_host_tuple())),
                 ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
                 ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
                 ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
@@ -275,6 +275,8 @@ impl Config {
             format!("file://{}", distdir.to_string_lossy()),
         );
         cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
+        cmd.env("RUSTUP_OVERRIDE_HOST_TUPLE", this_host_tuple());
+        // Kept for compatibility
         cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_tuple());
 
         // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
