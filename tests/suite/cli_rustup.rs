@@ -1597,13 +1597,13 @@ Default host: [HOST_TUPLE]
 
 // #846
 #[tokio::test]
-async fn set_default_host_invalid_triple() {
+async fn set_default_host_invalid_tuple() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect(["rustup", "set", "default-host", "foo"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: Provided host 'foo' couldn't be converted to partial triple
+error: Provided host 'foo' couldn't be converted to partial tuple
 
 "#]])
         .is_err();
@@ -1611,7 +1611,7 @@ error: Provided host 'foo' couldn't be converted to partial triple
 
 // #745
 #[tokio::test]
-async fn set_default_host_invalid_triple_valid_partial() {
+async fn set_default_host_invalid_tuple_valid_partial() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect(["rustup", "set", "default-host", "x86_64-msvc"])
@@ -1919,7 +1919,7 @@ async fn add_component() {
 }
 
 #[tokio::test]
-async fn add_component_by_target_triple() {
+async fn add_component_by_target_tuple() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "stable"])
@@ -1942,7 +1942,7 @@ async fn add_component_by_target_triple() {
 }
 
 #[tokio::test]
-async fn add_component_by_target_triple_renamed_from() {
+async fn add_component_by_target_tuple_renamed_from() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "nightly"])
@@ -1969,7 +1969,7 @@ rls-[HOST_TUPLE]
 }
 
 #[tokio::test]
-async fn add_component_by_target_triple_renamed_to() {
+async fn add_component_by_target_tuple_renamed_to() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "nightly"])
@@ -2063,15 +2063,15 @@ async fn remove_component() {
 }
 
 #[tokio::test]
-async fn remove_component_by_target_triple() {
-    let component_with_triple = format!("rust-std-{CROSS_ARCH1}");
+async fn remove_component_by_target_tuple() {
+    let component_with_tuple = format!("rust-std-{CROSS_ARCH1}");
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(&["rustup", "default", "stable"])
         .await
         .is_ok();
     cx.config
-        .expect(&["rustup", "component", "add", &component_with_triple])
+        .expect(&["rustup", "component", "add", &component_with_tuple])
         .await
         .is_ok();
     let path = PathBuf::from(format!(
@@ -2080,7 +2080,7 @@ async fn remove_component_by_target_triple() {
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
-        .expect(&["rustup", "component", "remove", &component_with_triple])
+        .expect(&["rustup", "component", "remove", &component_with_tuple])
         .await
         .is_ok();
     assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
@@ -2094,8 +2094,8 @@ async fn add_remove_multiple_components() {
         format!("lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib"),
         format!("lib/rustlib/{CROSS_ARCH2}/lib/libstd.rlib"),
     ];
-    let component_with_triple1 = format!("rust-std-{CROSS_ARCH1}");
-    let component_with_triple2 = format!("rust-std-{CROSS_ARCH2}");
+    let component_with_tuple1 = format!("rust-std-{CROSS_ARCH1}");
+    let component_with_tuple2 = format!("rust-std-{CROSS_ARCH2}");
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -2109,8 +2109,8 @@ async fn add_remove_multiple_components() {
             "add",
             "rust-src",
             "rust-analysis",
-            &component_with_triple1,
-            &component_with_triple2,
+            &component_with_tuple1,
+            &component_with_tuple2,
         ])
         .await
         .is_ok();
@@ -2125,17 +2125,13 @@ async fn add_remove_multiple_components() {
             "remove",
             "rust-src",
             "rust-analysis",
-            &component_with_triple1,
-            &component_with_triple2,
+            &component_with_tuple1,
+            &component_with_tuple2,
         ])
         .await
         .is_ok();
     for file in &files {
-        let path = PathBuf::from(format!(
-            "toolchains/nightly-{}/{}",
-            this_host_tuple(),
-            file
-        ));
+        let path = PathBuf::from(format!("toolchains/nightly-{}/{}", this_host_tuple(), file));
         assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
     }
 }
