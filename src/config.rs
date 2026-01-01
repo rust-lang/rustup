@@ -11,7 +11,7 @@ use tracing::{debug, info, trace, warn};
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
+        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
         ToolchainDesc,
     },
     errors::RustupError,
@@ -779,7 +779,7 @@ impl<'a> Cfg<'a> {
     ) -> Result<(UpdateStatus, Toolchain<'_>)> {
         common::check_non_host_toolchain(
             toolchain.to_string(),
-            &TargetTriple::from_host_or_build(self.process),
+            &TargetTuple::from_host_or_build(self.process),
             &toolchain.target,
             force_non_host,
         )?;
@@ -901,7 +901,7 @@ impl<'a> Cfg<'a> {
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
         PartialToolchainDesc::from_str("stable")?
-            .resolve(&TargetTriple::new(host_triple.clone()))?;
+            .resolve(&TargetTuple::new(host_triple.clone()))?;
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple);
             Ok(())
@@ -909,7 +909,7 @@ impl<'a> Cfg<'a> {
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) fn get_default_host_triple(&self) -> Result<TargetTriple> {
+    pub(crate) fn get_default_host_triple(&self) -> Result<TargetTuple> {
         self.settings_file
             .with(|s| Ok(get_default_host_triple(s, self.process)))
     }
@@ -980,11 +980,11 @@ impl Debug for Cfg<'_> {
     }
 }
 
-fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTriple {
+fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTuple {
     s.default_host_triple
         .as_ref()
-        .map(TargetTriple::new)
-        .unwrap_or_else(|| TargetTriple::from_host_or_build(process))
+        .map(TargetTuple::new)
+        .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
 }
 
 fn no_toolchain_error(process: &Process) -> anyhow::Error {

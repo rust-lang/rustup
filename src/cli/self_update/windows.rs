@@ -21,7 +21,7 @@ use super::common;
 use super::{InstallOpts, install_bins, report_error};
 use crate::cli::markdown::md;
 use crate::config::Cfg;
-use crate::dist::TargetTriple;
+use crate::dist::TargetTuple;
 use crate::dist::download::DownloadCfg;
 use crate::download::download_file;
 use crate::process::{ColorableTerminal, Process};
@@ -190,7 +190,7 @@ pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option
     let host_triple = if let Some(trip) = opts.default_host_triple.as_ref() {
         trip.to_owned()
     } else {
-        TargetTriple::from_host_or_build(process).to_string()
+        TargetTuple::from_host_or_build(process).to_string()
     };
     let installing_msvc = host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&host_triple, "cl.exe").is_some();

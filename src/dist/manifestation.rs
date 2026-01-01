@@ -24,7 +24,7 @@ use crate::dist::download::{DownloadCfg, DownloadStatus, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest};
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
+use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTuple};
 use crate::errors::RustupError;
 use crate::utils;
 
@@ -34,7 +34,7 @@ pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
-    target_triple: TargetTriple,
+    target_triple: TargetTuple,
 }
 
 #[derive(Debug)]
@@ -79,7 +79,7 @@ impl Manifestation {
     /// it will be created as needed. If there's an existing install
     /// then the rust-install installation format will be verified. A
     /// bad installer version is the only reason this will fail.
-    pub fn open(prefix: InstallPrefix, triple: TargetTriple) -> Result<Self> {
+    pub fn open(prefix: InstallPrefix, triple: TargetTuple) -> Result<Self> {
         // TODO: validate the triple with the existing install as well
         // as the metadata format of the existing install
         Ok(Self {

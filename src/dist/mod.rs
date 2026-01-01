@@ -166,7 +166,7 @@ pub struct PartialToolchainDesc {
 pub struct ToolchainDesc {
     pub channel: Channel,
     pub date: Option<String>,
-    pub target: TargetTriple,
+    pub target: TargetTuple,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
@@ -254,7 +254,7 @@ impl FromStr for PartialVersion {
 
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
-pub struct TargetTriple(String);
+pub struct TargetTuple(String);
 
 // Linux hosts don't indicate clib in uname, however binaries only
 // run on boxes with the same clib, as expected.
@@ -344,7 +344,7 @@ impl FromStr for ParsedToolchainDesc {
     }
 }
 
-impl Deref for TargetTriple {
+impl Deref for TargetTuple {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -374,7 +374,7 @@ fn is_32bit_userspace() -> bool {
     inner().unwrap_or(cfg!(target_pointer_width = "32"))
 }
 
-impl TargetTriple {
+impl TargetTuple {
     pub fn new(name: impl Into<String>) -> Self {
         Self(name.into())
     }
@@ -411,7 +411,7 @@ impl TargetTriple {
 
     pub(crate) fn from_host(process: &Process) -> Option<Self> {
         #[cfg(windows)]
-        fn inner() -> Option<TargetTriple> {
+        fn inner() -> Option<TargetTuple> {
             use std::mem;
 
             /// Get the host architecture using `IsWow64Process2`. This function
@@ -483,11 +483,11 @@ impl TargetTriple {
             // Default to msvc
             let arch = arch_primary().or_else(arch_fallback)?;
             let msvc_triple = format!("{arch}-pc-windows-msvc");
-            Some(TargetTriple(msvc_triple))
+            Some(TargetTuple(msvc_triple))
         }
 
         #[cfg(not(windows))]
-        fn inner() -> Option<TargetTriple> {
+        fn inner() -> Option<TargetTuple> {
             use std::ffi::CStr;
             use std::mem;
 
@@ -548,7 +548,7 @@ impl TargetTriple {
                 _ => None,
             };
 
-            host_triple.map(TargetTriple::new)
+            host_triple.map(TargetTuple::new)
         }
 
         if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
@@ -562,7 +562,7 @@ impl TargetTriple {
         Self::from_host(process).unwrap_or_else(Self::from_build)
     }
 
-    pub(crate) fn can_run(&self, other: &TargetTriple) -> Result<bool> {
+    pub(crate) fn can_run(&self, other: &TargetTuple) -> Result<bool> {
         // Most trivial shortcut of all
         if self == other {
             return Ok(true);
@@ -609,7 +609,7 @@ impl FromStr for PartialToolchainDesc {
 
 impl PartialToolchainDesc {
     /// Create a toolchain desc using input_host to fill in missing fields
-    pub(crate) fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
+    pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
         let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
                 "Provided host '{}' couldn't be converted to partial triple",
@@ -649,7 +649,7 @@ impl PartialToolchainDesc {
         Ok(ToolchainDesc {
             channel: self.channel,
             date: self.date,
-            target: TargetTriple(trip),
+            target: TargetTuple(trip),
         })
     }
 
@@ -670,7 +670,7 @@ impl FromStr for ToolchainDesc {
         Ok(Self {
             channel: parsed.channel,
             date: parsed.date,
-            target: TargetTriple(parsed.target.unwrap()),
+            target: TargetTuple(parsed.target.unwrap()),
         })
     }
 }
@@ -830,7 +830,7 @@ impl fmt::Display for AutoInstallMode {
     }
 }
 
-impl fmt::Display for TargetTriple {
+impl fmt::Display for TargetTuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
@@ -1180,7 +1180,7 @@ async fn try_update_from_dist_(
             }
 
             for &target in targets {
-                let triple = TargetTriple::new(target);
+                let triple = TargetTuple::new(target);
                 all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
             }
 
@@ -1494,11 +1494,11 @@ mod tests {
 
         for &(host, compatible, incompatible) in CASES {
             println!("host={host}");
-            let host = TargetTriple::new(host);
+            let host = TargetTuple::new(host);
             assert!(host.can_run(&host).unwrap(), "host wasn't self-compatible");
             for &other in compatible.iter() {
                 println!("compatible with {other}");
-                let other = TargetTriple::new(other);
+                let other = TargetTuple::new(other);
                 assert!(
                     host.can_run(&other).unwrap(),
                     "host and other were unexpectedly incompatible"
@@ -1506,7 +1506,7 @@ mod tests {
             }
             for &other in incompatible.iter() {
                 println!("incompatible with {other}");
-                let other = TargetTriple::new(other);
+                let other = TargetTuple::new(other);
                 assert!(
                     !host.can_run(&other).unwrap(),
                     "host and other were unexpectedly compatible"

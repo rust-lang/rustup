@@ -12,7 +12,7 @@ use url::Url;
 
 use crate::{
     dist::{
-        Channel, TargetTriple, ToolchainDesc,
+        Channel, TargetTuple, ToolchainDesc,
         manifest::{Component, Manifest},
     },
     toolchain::{PathBasedToolchainName, ToolchainName},
@@ -98,7 +98,7 @@ pub enum RustupError {
     )]
     ToolchainIncompatible {
         toolchain: String,
-        target_triple: TargetTriple,
+        target_triple: TargetTuple,
     },
     #[error("toolchain '{0}' is not installable")]
     ToolchainNotInstallable(String),
@@ -147,14 +147,14 @@ pub enum RustupError {
     suggest_message(.suggestion))]
     UnknownTarget {
         desc: ToolchainDesc,
-        target: TargetTriple,
+        target: TargetTuple,
         suggestion: Option<String>,
     },
     #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
     suggest_message(.suggestion))]
     TargetNotInstalled {
         desc: ToolchainDesc,
-        target: TargetTriple,
+        target: TargetTuple,
         suggestion: Option<String>,
     },
     #[error(
