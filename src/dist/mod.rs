@@ -498,7 +498,7 @@ impl TargetTuple {
             };
 
             #[cfg(not(target_os = "android"))]
-            let host_triple = match (sysname, machine) {
+            let host_tuple = match (sysname, machine) {
                 (b"Linux", b"x86_64") => Some(TRIPLE_X86_64_UNKNOWN_LINUX),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
@@ -531,7 +531,7 @@ impl TargetTuple {
             };
 
             #[cfg(target_os = "android")]
-            let host_triple = match (sysname, machine) {
+            let host_tuple = match (sysname, machine) {
                 (_, b"arm") => Some("arm-linux-androideabi"),
                 (_, b"armv7l") => Some("armv7-linux-androideabi"),
                 (_, b"armv8l") => Some("armv7-linux-androideabi"),
@@ -541,7 +541,7 @@ impl TargetTuple {
                 _ => None,
             };
 
-            host_triple.map(TargetTuple::new)
+            host_tuple.map(TargetTuple::new)
         }
 
         if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TUPLE") {
@@ -1442,7 +1442,7 @@ mod tests {
     }
 
     #[test]
-    fn compatible_host_triples() {
+    fn compatible_host_tuples() {
         static CASES: &[(&str, &[&str], &[&str])] = &[
             (
                 // 64bit linux

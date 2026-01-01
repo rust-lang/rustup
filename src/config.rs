@@ -289,8 +289,7 @@ impl<'a> Cfg<'a> {
         let download_dir = rustup_dir.join("downloads");
 
         // Figure out get_default_host_tuple before Config is populated
-        let default_host_tuple =
-            settings_file.with(|s| Ok(get_default_host_tuple(s, process)))?;
+        let default_host_tuple = settings_file.with(|s| Ok(get_default_host_tuple(s, process)))?;
         // Environment override
         let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
             Some(tc) => {
@@ -896,14 +895,13 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) fn set_default_host_tuple(&self, host_triple: String) -> Result<()> {
-        // Ensure that the provided host_triple is capable of resolving
+    pub(crate) fn set_default_host_tuple(&self, host_tuple: String) -> Result<()> {
+        // Ensure that the provided host_tuple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
-        // if the supplied triple is insufficient / bad.
-        PartialToolchainDesc::from_str("stable")?
-            .resolve(&TargetTuple::new(host_triple.clone()))?;
+        // if the supplied tuple is insufficient / bad.
+        PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
-            s.default_host_tuple = Some(host_triple);
+            s.default_host_tuple = Some(host_tuple);
             Ok(())
         })
     }

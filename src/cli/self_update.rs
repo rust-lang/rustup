@@ -235,7 +235,7 @@ impl InstallOpts<'_> {
     fn validate(&self, process: &Process) -> Result<()> {
         common::warn_if_host_is_emulated(process);
 
-        let host_triple = self
+        let host_tuple = self
             .default_host_tuple
             .as_ref()
             .map(TargetTuple::new)
@@ -246,7 +246,7 @@ impl InstallOpts<'_> {
             }
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
-        let resolved = partial_channel.resolve(&host_triple)?;
+        let resolved = partial_channel.resolve(&host_tuple)?;
         trace!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     }
