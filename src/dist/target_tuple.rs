@@ -5,13 +5,13 @@ use regex::Regex;
 pub mod known;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PartialTargetTriple {
+pub struct PartialTargetTuple {
     pub arch: Option<String>,
     pub os: Option<String>,
     pub env: Option<String>,
 }
 
-impl PartialTargetTriple {
+impl PartialTargetTuple {
     pub(crate) fn new(name: &str) -> Option<Self> {
         if name.is_empty() {
             return Some(Self {
@@ -74,13 +74,13 @@ mod test {
         ];
 
         for (input, (arch, os, env)) in success_cases {
-            let partial_target_triple = PartialTargetTriple::new(input);
+            let partial_target_triple = PartialTargetTuple::new(input);
             assert!(
                 partial_target_triple.is_some(),
                 "expected `{input}` to create some partial target tuple; got None"
             );
 
-            let expected = PartialTargetTriple {
+            let expected = PartialTargetTuple {
                 arch: arch.map(String::from),
                 os: os.map(String::from),
                 env: env.map(String::from),
@@ -104,7 +104,7 @@ mod test {
         ];
 
         for input in failure_cases {
-            let partial_target_triple = PartialTargetTriple::new(input);
+            let partial_target_triple = PartialTargetTuple::new(input);
             assert!(
                 partial_target_triple.is_none(),
                 "expected `{input}` to be `None`, was: `{partial_target_triple:?}`"

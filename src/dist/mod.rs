@@ -146,7 +146,7 @@ struct ParsedToolchainDesc {
 pub struct PartialToolchainDesc {
     pub channel: Channel,
     pub date: Option<String>,
-    pub target: PartialTargetTriple,
+    pub target: PartialTargetTuple,
 }
 
 /// Fully-resolved toolchain descriptors. These always have full target
@@ -561,9 +561,9 @@ impl TargetTuple {
             return Ok(true);
         }
         // Otherwise we need to parse things
-        let partial_self = PartialTargetTriple::new(&self.0)
+        let partial_self = PartialTargetTuple::new(&self.0)
             .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", self.0)))?;
-        let partial_other = PartialTargetTriple::new(&other.0)
+        let partial_other = PartialTargetTuple::new(&other.0)
             .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", other.0)))?;
         // First obvious check is OS, if that doesn't match there's no chance
         let ret = if partial_self.os != partial_other.os {
@@ -588,7 +588,7 @@ impl FromStr for PartialToolchainDesc {
     type Err = anyhow::Error;
     fn from_str(name: &str) -> Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
-        let target = PartialTargetTriple::new(parsed.target.as_deref().unwrap_or(""));
+        let target = PartialTargetTuple::new(parsed.target.as_deref().unwrap_or(""));
 
         target
             .map(|target| Self {
@@ -603,7 +603,7 @@ impl FromStr for PartialToolchainDesc {
 impl PartialToolchainDesc {
     /// Create a toolchain desc using input_host to fill in missing fields
     pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
-        let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
+        let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
                 "Provided host '{}' couldn't be converted to partial triple",
                 input_host.0
