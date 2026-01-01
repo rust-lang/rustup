@@ -252,35 +252,35 @@ pub struct TargetTuple(String);
 // Linux hosts don't indicate clib in uname, however binaries only
 // run on boxes with the same clib, as expected.
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
+const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
+const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
+const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
+const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
+const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
+const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
+const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
+const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
 // Hence we could distinguish between the variants with compile-time cfg()
 // attributes alone.
 #[cfg(all(not(windows), target_endian = "big"))]
-static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
+static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
 #[cfg(all(not(windows), target_endian = "little"))]
-static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
+static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
 
 #[cfg(all(not(windows), target_endian = "big"))]
-static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
+static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
 #[cfg(all(not(windows), target_endian = "little"))]
-static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
+static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl FromStr for ParsedToolchainDesc {
     type Err = anyhow::Error;
@@ -373,7 +373,7 @@ impl TargetTuple {
     }
 
     pub(crate) fn from_build() -> Self {
-        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
+        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TUPLE") {
             Self::new(triple)
         } else {
             Self::new(env!("TARGET"))
@@ -499,20 +499,20 @@ impl TargetTuple {
 
             #[cfg(not(target_os = "android"))]
             let host_tuple = match (sysname, machine) {
-                (b"Linux", b"x86_64") => Some(TRIPLE_X86_64_UNKNOWN_LINUX),
+                (b"Linux", b"x86_64") => Some(TUPLE_X86_64_UNKNOWN_LINUX),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
-                (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
-                (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
+                (b"Linux", b"mips") => Some(TUPLE_MIPS_UNKNOWN_LINUX_GNU),
+                (b"Linux", b"mips64") => Some(TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
                 (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"aarch64") => Some(if is_32bit_userspace() {
                     "armv7-unknown-linux-gnueabihf"
                 } else {
-                    TRIPLE_AARCH64_UNKNOWN_LINUX
+                    TUPLE_AARCH64_UNKNOWN_LINUX
                 }),
-                (b"Linux", b"loongarch64") => Some(TRIPLE_LOONGARCH64_UNKNOWN_LINUX),
-                (b"Linux", b"ppc64le") => Some(TRIPLE_POWERPC64LE_UNKNOWN_LINUX),
+                (b"Linux", b"loongarch64") => Some(TUPLE_LOONGARCH64_UNKNOWN_LINUX),
+                (b"Linux", b"ppc64le") => Some(TUPLE_POWERPC64LE_UNKNOWN_LINUX),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
