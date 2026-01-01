@@ -7,7 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use itertools::Itertools;
 use rustup::test::Assert;
-use rustup::test::{CliTestContext, MULTI_ARCH1, Scenario, this_host_triple};
+use rustup::test::{CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple};
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
 
@@ -229,7 +229,7 @@ async fn multi_host_smoke_test() {
     // We cannot run this test if the current host triple is equal to the
     // multi-arch triple, but this should never be the case.  Check that just
     // to be sure.
-    assert_ne!(this_host_triple(), MULTI_ARCH1);
+    assert_ne!(this_host_tuple(), MULTI_ARCH1);
 
     let cx = CliTestContext::new(Scenario::MultiHost).await;
     let toolchain = format!("nightly-{MULTI_ARCH1}");
@@ -630,7 +630,7 @@ async fn toolchains_are_resolved_early() {
         .await
         .is_ok();
 
-    let full_toolchain = format!("nightly-{}", this_host_triple());
+    let full_toolchain = format!("nightly-{}", this_host_tuple());
     cx.config
         .expect(["rustup", "default", &full_toolchain])
         .await
@@ -1692,7 +1692,7 @@ async fn rust_analyzer_proxy_falls_back_external() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()))
+        .join(format!("stable-{}", this_host_tuple()))
         .join("bin");
     for dir in [exedir, bindir] {
         fs::rename(dir.join(&rls), dir.join(&ra)).unwrap();

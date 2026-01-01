@@ -2,7 +2,7 @@
 //! is exactly as expected.
 
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
 };
 use rustup::utils::raw;
 
@@ -659,7 +659,7 @@ help: run 'rustup default stable' to download the latest stable release of Rust 
 #[tokio::test]
 async fn list_targets() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     let mut sorted = [
         format!("{} (installed)", &*trip),
         format!("{CROSS_ARCH1} (installed)"),
@@ -690,7 +690,7 @@ async fn list_targets() {
 #[tokio::test]
 async fn list_targets_quiet() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     let mut sorted = [trip, CROSS_ARCH1.to_string(), CROSS_ARCH2.to_string()];
     sorted.sort();
 
@@ -717,7 +717,7 @@ async fn list_targets_quiet() {
 #[tokio::test]
 async fn list_installed_targets() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     let mut sorted = [trip, CROSS_ARCH1.to_string(), CROSS_ARCH2.to_string()];
     sorted.sort();
 

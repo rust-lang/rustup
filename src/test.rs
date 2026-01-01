@@ -134,9 +134,9 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
 /// context.
 ///
 /// IF it becomes very hard to workaround that, then we can either make a second
-/// this_host_triple that doesn't make its own process or use
+/// this_host_tuple that doesn't make its own process or use
 /// TargetTuple::from_host() from within the process context as needed.
-pub fn this_host_triple() -> String {
+pub fn this_host_tuple() -> String {
     if cfg!(target_os = "windows") {
         // For windows, this host may be different to the target: we may be
         // building with i686 toolchain, but on an x86_64 host, so run the
@@ -197,7 +197,7 @@ pub fn this_host_triple() -> String {
 #[macro_export]
 macro_rules! for_host {
     ($s:tt $($arg:tt)*) => {
-        &format!($s, $crate::test::this_host_triple() $($arg)*)
+        &format!($s, $crate::test::this_host_tuple() $($arg)*)
     };
 }
 
