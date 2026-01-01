@@ -635,7 +635,7 @@ impl<'a> Cfg<'a> {
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
                     if let ResolvableToolchainName::Official(name) = &toolchain_name
-                        && name.has_triple()
+                        && name.has_tuple()
                     {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
                         // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide

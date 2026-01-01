@@ -646,7 +646,7 @@ impl PartialToolchainDesc {
         })
     }
 
-    pub(crate) fn has_triple(&self) -> bool {
+    pub(crate) fn has_tuple(&self) -> bool {
         self.target.arch.is_some() || self.target.os.is_some() || self.target.env.is_some()
     }
 }

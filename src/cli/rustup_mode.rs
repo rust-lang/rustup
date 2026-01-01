@@ -954,7 +954,7 @@ async fn update(
     if !names.is_empty() {
         for name in names {
             // This needs another pass to fix it all up
-            if name.has_triple() {
+            if name.has_tuple() {
                 let host_arch = TargetTuple::from_host_or_build(cfg.process);
                 let target_triple = name.clone().resolve(&host_arch)?.target;
                 common::check_non_host_toolchain(
