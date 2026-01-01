@@ -22,7 +22,7 @@ impl PartialTargetTuple {
         }
 
         // Prepending `-` makes this next regex easier since
-        // we can count  on all triple components being
+        // we can count  on all tuple components being
         // delineated by it.
         let name = format!("-{name}");
         static RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -58,7 +58,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_partial_target_triple_new() {
+    fn test_partial_target_tuple_new() {
         let success_cases = vec![
             ("", (None, None, None)),
             ("i386", (Some("i386"), None, None)),
@@ -74,9 +74,9 @@ mod test {
         ];
 
         for (input, (arch, os, env)) in success_cases {
-            let partial_target_triple = PartialTargetTuple::new(input);
+            let partial_target_tuple = PartialTargetTuple::new(input);
             assert!(
-                partial_target_triple.is_some(),
+                partial_target_tuple.is_some(),
                 "expected `{input}` to create some partial target tuple; got None"
             );
 
@@ -86,7 +86,7 @@ mod test {
                 env: env.map(String::from),
             };
 
-            assert_eq!(partial_target_triple.unwrap(), expected, "input: `{input}`");
+            assert_eq!(partial_target_tuple.unwrap(), expected, "input: `{input}`");
         }
 
         let failure_cases = vec![
@@ -104,10 +104,10 @@ mod test {
         ];
 
         for input in failure_cases {
-            let partial_target_triple = PartialTargetTuple::new(input);
+            let partial_target_tuple = PartialTargetTuple::new(input);
             assert!(
-                partial_target_triple.is_none(),
-                "expected `{input}` to be `None`, was: `{partial_target_triple:?}`"
+                partial_target_tuple.is_none(),
+                "expected `{input}` to be `None`, was: `{partial_target_tuple:?}`"
             );
         }
     }
