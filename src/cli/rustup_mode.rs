@@ -742,9 +742,9 @@ pub async fn main(
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
-            SetSubcmd::DefaultHost { host_tuple } => cfg
-                .set_default_host_tuple(host_tuple)
-                .map(|_| ExitCode(0)),
+            SetSubcmd::DefaultHost { host_tuple } => {
+                cfg.set_default_host_tuple(host_tuple).map(|_| ExitCode(0))
+            }
             SetSubcmd::Profile { profile_name } => {
                 cfg.set_profile(profile_name).map(|_| ExitCode(0))
             }
