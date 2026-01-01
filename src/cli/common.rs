@@ -498,15 +498,15 @@ pub(crate) fn ignorable_error(
 pub(crate) fn check_non_host_toolchain(
     toolchain: String,
     host_arch: &TargetTuple,
-    target_triple: &TargetTuple,
+    target_tuple: &TargetTuple,
     force_non_host: bool,
 ) -> Result<()> {
-    if force_non_host || host_arch.can_run(target_triple)? {
+    if force_non_host || host_arch.can_run(target_tuple)? {
         return Ok(());
     }
     Err(RustupError::ToolchainIncompatible {
         toolchain,
-        target_triple: target_triple.clone(),
+        target_tuple: target_tuple.clone(),
     }
     .into())
 }

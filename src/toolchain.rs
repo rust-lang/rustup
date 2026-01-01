@@ -595,7 +595,7 @@ impl<'a> Toolchain<'a> {
             .filter_map(|c| {
                 c.name()
                     .strip_prefix("rust-std-")
-                    .map(|triple| TargetTuple::new(triple.to_string()))
+                    .map(|tuple| TargetTuple::new(tuple.to_string()))
             })
             .collect())
     }

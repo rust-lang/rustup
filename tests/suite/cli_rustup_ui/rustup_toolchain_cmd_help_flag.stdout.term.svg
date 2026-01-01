@@ -80,7 +80,7 @@
 </tspan>
     <tspan x="10px" y="550px"><tspan>    </tspan><tspan class="fg-cyan">&lt;date&gt;          = YYYY-MM-DD</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>    </tspan><tspan class="fg-cyan">&lt;host&gt;          = &lt;target-triple&gt;</tspan>
+    <tspan x="10px" y="568px"><tspan>    </tspan><tspan class="fg-cyan">&lt;host&gt;          = &lt;target-tuple&gt;</tspan>
 </tspan>
     <tspan x="10px" y="586px">
 </tspan>

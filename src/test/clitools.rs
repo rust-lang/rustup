@@ -864,7 +864,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
     hard_link(&rustup_path, rls_path).unwrap();
     hard_link(&rustup_path, rust_lldb_path).unwrap();
 
-    // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
+    // Make sure the host tuple matches the build tuple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
     config

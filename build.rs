@@ -3,20 +3,21 @@ use std::env;
 use platforms::Platform;
 
 fn from_build() -> Result<String, String> {
-    let triple =
+    let tuple =
         env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE").unwrap_or_else(|_| env::var("TARGET").unwrap());
-    if Platform::ALL.iter().any(|p| p.target_triple == triple) {
-        Ok(triple)
+    if Platform::ALL.iter().any(|p| p.target_triple == tuple) {
+        Ok(tuple)
     } else {
-        Err(triple)
+        Err(tuple)
     }
 }
 
 fn main() {
+    println!("cargo::rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TUPLE");
     println!("cargo::rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TRIPLE");
     println!("cargo::rerun-if-env-changed=TARGET");
     match from_build() {
-        Ok(triple) => eprintln!("Computed build based on target tuple: {triple:#?}"),
+        Ok(tuple) => eprintln!("Computed build based on target tuple: {tuple:#?}"),
         Err(s) => {
             eprintln!("Unable to parse target '{s}' as a known target tuple");
             eprintln!(

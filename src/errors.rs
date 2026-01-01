@@ -93,12 +93,12 @@ pub enum RustupError {
     RunningCommand { name: OsString },
     #[error(
         "toolchain '{toolchain}' may not be able to run on this system\n\
-        note: to build software for that platform, try `rustup target add {target_triple}` instead\n\
+        note: to build software for that platform, try `rustup target add {target_tuple}` instead\n\
         note: add the `--force-non-host` flag to install the toolchain anyway"
     )]
     ToolchainIncompatible {
         toolchain: String,
-        target_triple: TargetTuple,
+        target_tuple: TargetTuple,
     },
     #[error("toolchain '{0}' is not installable")]
     ToolchainNotInstallable(String),
