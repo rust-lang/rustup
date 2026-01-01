@@ -289,10 +289,10 @@ impl MockChannel {
         version_hash: &str,
         rls: RlsStatus,
         multi_arch: bool,
-        swap_triples: bool,
+        swap_tuples: bool,
     ) -> Self {
         // Build the mock installers
-        let host_triple = if swap_triples {
+        let host_triple = if swap_tuples {
             MULTI_ARCH1.to_owned()
         } else {
             this_host_triple()
