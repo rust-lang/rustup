@@ -136,7 +136,7 @@ Rust is installed now. Great!
 }
 
 #[tokio::test]
-async fn installer_shows_default_host_triple() {
+async fn installer_shows_default_host_tuple() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n").with_stdout(snapbox::str![
         [r#"

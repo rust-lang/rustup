@@ -99,7 +99,7 @@ use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path}
 pub(crate) use windows::{run_update, self_replace};
 
 pub(crate) struct InstallOpts<'a> {
-    pub default_host_triple: Option<String>,
+    pub default_host_tuple: Option<String>,
     pub default_toolchain: Option<MaybeOfficialToolchainName>,
     pub profile: Profile,
     pub no_modify_path: bool,
@@ -111,7 +111,7 @@ pub(crate) struct InstallOpts<'a> {
 impl InstallOpts<'_> {
     fn install(self, cfg: &mut Cfg<'_>) -> Result<Option<ToolchainDesc>> {
         let Self {
-            default_host_triple,
+            default_host_tuple,
             default_toolchain,
             profile,
             no_modify_path: _no_modify_path,
@@ -122,12 +122,12 @@ impl InstallOpts<'_> {
 
         cfg.set_profile(profile)?;
 
-        if let Some(default_host_triple) = &default_host_triple {
+        if let Some(default_host_tuple) = &default_host_tuple {
             // Set host triple now as it will affect resolution of toolchain_str
-            info!("setting default host triple to {}", default_host_triple);
-            cfg.set_default_host_triple(default_host_triple.to_owned())?;
+            info!("setting default host triple to {}", default_host_tuple);
+            cfg.set_default_host_tuple(default_host_tuple.to_owned())?;
         } else {
-            info!("default host triple is {}", cfg.get_default_host_triple()?);
+            info!("default host triple is {}", cfg.get_default_host_tuple()?);
         }
 
         let user_specified_something = default_toolchain.is_some()
@@ -167,7 +167,7 @@ impl InstallOpts<'_> {
                         MaybeOfficialToolchainName::None => unreachable!(),
                         MaybeOfficialToolchainName::Some(n) => n,
                     };
-                    Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
+                    Some(toolchain_name.resolve(&cfg.get_default_host_tuple()?)?)
                 }
                 None => match cfg.get_default()? {
                     // Default is installable
@@ -177,7 +177,7 @@ impl InstallOpts<'_> {
                     None => Some(
                         "stable"
                             .parse::<PartialToolchainDesc>()?
-                            .resolve(&cfg.get_default_host_triple()?)?,
+                            .resolve(&cfg.get_default_host_tuple()?)?,
                     ),
                 },
             })
@@ -198,10 +198,10 @@ impl InstallOpts<'_> {
 
         writeln!(process.stdout().lock())?;
 
-        self.default_host_triple = Some(common::question_str(
+        self.default_host_tuple = Some(common::question_str(
             "Default host triple?",
             &self
-                .default_host_triple
+                .default_host_tuple
                 .take()
                 .unwrap_or_else(|| TargetTuple::from_host_or_build(process).to_string()),
             process,
@@ -236,7 +236,7 @@ impl InstallOpts<'_> {
         common::warn_if_host_is_emulated(process);
 
         let host_triple = self
-            .default_host_triple
+            .default_host_tuple
             .as_ref()
             .map(TargetTuple::new)
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process));
@@ -800,7 +800,7 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
 - `             `profile: `{}`
 - modify PATH variable: `{}`
 ",
-        opts.default_host_triple
+        opts.default_host_tuple
             .as_ref()
             .map(TargetTuple::new)
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process)),
@@ -1444,7 +1444,7 @@ mod tests {
                 Cfg::from_env(tp.process.current_dir().unwrap(), false, &tp.process).unwrap();
 
             let opts = InstallOpts {
-                default_host_triple: None,
+                default_host_tuple: None,
                 default_toolchain: None,   // No toolchain specified
                 profile: Profile::Default, // default profile
                 no_modify_path: false,
@@ -1457,7 +1457,7 @@ mod tests {
                 "stable"
                     .parse::<PartialToolchainDesc>()
                     .unwrap()
-                    .resolve(&cfg.get_default_host_triple().unwrap())
+                    .resolve(&cfg.get_default_host_tuple().unwrap())
                     .unwrap(),
                 opts.install(&mut cfg)
                     .unwrap() // result

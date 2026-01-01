@@ -82,7 +82,8 @@ impl SettingsFile {
 pub struct Settings {
     pub version: MetadataVersion,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_host_triple: Option<String>,
+    #[serde(alias = "default_host_triple")]
+    pub default_host_tuple: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_toolchain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

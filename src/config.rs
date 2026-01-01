@@ -144,7 +144,7 @@ impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
             (Some(name), None) => {
-                ResolvableToolchainName::try_from(name)?.resolve(&cfg.get_default_host_triple()?)?
+                ResolvableToolchainName::try_from(name)?.resolve(&cfg.get_default_host_tuple()?)?
             }
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
@@ -288,13 +288,13 @@ impl<'a> Cfg<'a> {
         let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
 
-        // Figure out get_default_host_triple before Config is populated
-        let default_host_triple =
-            settings_file.with(|s| Ok(get_default_host_triple(s, process)))?;
+        // Figure out get_default_host_tuple before Config is populated
+        let default_host_tuple =
+            settings_file.with(|s| Ok(get_default_host_tuple(s, process)))?;
         // Environment override
         let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
             Some(tc) => {
-                Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host_triple)?)
+                Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host_tuple)?)
             }
             None => None,
         };
@@ -323,7 +323,7 @@ impl<'a> Cfg<'a> {
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
         ResolvableToolchainName::try_from("stable")?.resolve(
-            &cfg.get_default_host_triple()
+            &cfg.get_default_host_tuple()
                 .context("Unable parse configuration")?,
         )?;
 
@@ -483,7 +483,7 @@ impl<'a> Cfg<'a> {
             .map(|(desc, source)| {
                 anyhow::Ok((
                     LocalToolchainName::Named(ToolchainName::Official(
-                        desc.resolve(&self.get_default_host_triple()?)?,
+                        desc.resolve(&self.get_default_host_tuple()?)?,
                     )),
                     source,
                 ))
@@ -529,7 +529,7 @@ impl<'a> Cfg<'a> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
-                let override_config = name.resolve(&self.get_default_host_triple()?)?.into();
+                let override_config = name.resolve(&self.get_default_host_tuple()?)?.into();
                 Some((override_config, ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
@@ -574,7 +574,7 @@ impl<'a> Cfg<'a> {
                 // have an unresolved name. I'm just preserving pre-existing
                 // behaviour by choosing ResolvableToolchainName here.
                 let toolchain_name = ResolvableToolchainName::try_from(name)?
-                    .resolve(&get_default_host_triple(settings, self.process))?;
+                    .resolve(&get_default_host_tuple(settings, self.process))?;
                 let override_cfg = toolchain_name.into();
                 return Ok(Some((override_cfg, source)));
             }
@@ -632,7 +632,7 @@ impl<'a> Cfg<'a> {
                                 toolchain_file.display()
                             )
                         })?;
-                    let default_host_triple = get_default_host_triple(settings, self.process);
+                    let default_host_tuple = get_default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
                     if let ResolvableToolchainName::Official(name) = &toolchain_name
@@ -648,7 +648,7 @@ impl<'a> Cfg<'a> {
                     }
 
                     // XXX: this awkwardness deals with settings file being locked already
-                    let toolchain_name = toolchain_name.resolve(&default_host_triple)?;
+                    let toolchain_name = toolchain_name.resolve(&default_host_tuple)?;
                     if !Toolchain::exists(self, &(&toolchain_name).into())?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
@@ -839,7 +839,7 @@ impl<'a> Cfg<'a> {
         toolchain_maybe_str
             .map(ResolvableToolchainName::try_from)
             .transpose()?
-            .map(|t| t.resolve(&self.get_default_host_triple()?))
+            .map(|t| t.resolve(&self.get_default_host_tuple()?))
             .transpose()
     }
 
@@ -896,22 +896,22 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
+    pub(crate) fn set_default_host_tuple(&self, host_triple: String) -> Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
         PartialToolchainDesc::from_str("stable")?
             .resolve(&TargetTuple::new(host_triple.clone()))?;
         self.settings_file.with_mut(|s| {
-            s.default_host_triple = Some(host_triple);
+            s.default_host_tuple = Some(host_triple);
             Ok(())
         })
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) fn get_default_host_triple(&self) -> Result<TargetTuple> {
+    pub(crate) fn get_default_host_tuple(&self) -> Result<TargetTuple> {
         self.settings_file
-            .with(|s| Ok(get_default_host_triple(s, self.process)))
+            .with(|s| Ok(get_default_host_tuple(s, self.process)))
     }
 
     /// The path on disk of any concrete toolchain
@@ -980,8 +980,8 @@ impl Debug for Cfg<'_> {
     }
 }
 
-fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTuple {
-    s.default_host_triple
+fn get_default_host_tuple(s: &Settings, process: &Process) -> TargetTuple {
+    s.default_host_tuple
         .as_ref()
         .map(TargetTuple::new)
         .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
