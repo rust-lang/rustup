@@ -50,7 +50,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::dist::{PartialToolchainDesc, TargetTriple, ToolchainDesc};
+use crate::dist::{PartialToolchainDesc, TargetTuple, ToolchainDesc};
 
 /// Errors related to toolchains
 #[derive(Error, Debug)]
@@ -139,7 +139,7 @@ pub(crate) enum ResolvableToolchainName {
 
 impl ResolvableToolchainName {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(&self, host: &TargetTriple) -> Result<ToolchainName, anyhow::Error> {
+    pub fn resolve(&self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
         match self.clone() {
             ResolvableToolchainName::Custom(c) => Ok(ToolchainName::Custom(c)),
             ResolvableToolchainName::Official(desc) => {
@@ -296,7 +296,7 @@ pub(crate) enum ResolvableLocalToolchainName {
 
 impl ResolvableLocalToolchainName {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(&self, host: &TargetTriple) -> Result<LocalToolchainName, anyhow::Error> {
+    pub fn resolve(&self, host: &TargetTuple) -> Result<LocalToolchainName, anyhow::Error> {
         match self.clone() {
             ResolvableLocalToolchainName::Named(t) => {
                 Ok(LocalToolchainName::Named(t.resolve(host)?))

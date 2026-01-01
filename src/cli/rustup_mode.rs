@@ -41,7 +41,7 @@ use crate::{
     command, component_for_bin,
     config::{ActiveSource, Cfg},
     dist::{
-        AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
+        AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus},
     },
@@ -955,7 +955,7 @@ async fn update(
         for name in names {
             // This needs another pass to fix it all up
             if name.has_triple() {
-                let host_arch = TargetTriple::from_host_or_build(cfg.process);
+                let host_arch = TargetTuple::from_host_or_build(cfg.process);
                 let target_triple = name.clone().resolve(&host_arch)?.target;
                 common::check_non_host_toolchain(
                     name.to_string(),
@@ -1326,7 +1326,7 @@ async fn target_add(
     for target in targets {
         let new_component = Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new(target)),
+            Some(TargetTuple::new(target)),
             false,
         );
         distributable.add_component(new_component).await?;
@@ -1347,7 +1347,7 @@ async fn target_remove(
     .await?;
 
     for target in targets {
-        let target = TargetTriple::new(target);
+        let target = TargetTuple::new(target);
         let default_target = cfg.get_default_host_triple()?;
         if target == default_target {
             warn!(
@@ -1432,9 +1432,9 @@ async fn component_add(
 fn get_target(
     target: Option<String>,
     distributable: &DistributableToolchain<'_>,
-) -> Option<TargetTriple> {
+) -> Option<TargetTuple> {
     target
-        .map(TargetTriple::new)
+        .map(TargetTuple::new)
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 

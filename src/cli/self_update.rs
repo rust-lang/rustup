@@ -60,7 +60,7 @@ use crate::{
     },
     config::Cfg,
     dist::{
-        DistOptions, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
+        DistOptions, PartialToolchainDesc, Profile, TargetTuple, ToolchainDesc,
         download::DownloadCfg,
     },
     download::download_file,
@@ -203,7 +203,7 @@ impl InstallOpts<'_> {
             &self
                 .default_host_triple
                 .take()
-                .unwrap_or_else(|| TargetTriple::from_host_or_build(process).to_string()),
+                .unwrap_or_else(|| TargetTuple::from_host_or_build(process).to_string()),
             process,
         )?);
 
@@ -238,8 +238,8 @@ impl InstallOpts<'_> {
         let host_triple = self
             .default_host_triple
             .as_ref()
-            .map(TargetTriple::new)
-            .unwrap_or_else(|| TargetTriple::from_host_or_build(process));
+            .map(TargetTuple::new)
+            .unwrap_or_else(|| TargetTuple::from_host_or_build(process));
         let partial_channel = match &self.default_toolchain {
             None | Some(MaybeOfficialToolchainName::None) => {
                 ResolvableToolchainName::try_from("stable")?
@@ -586,7 +586,7 @@ pub(crate) async fn install(
             "Pre-checks for host and toolchain failed: {e}\n\
             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
             Valid host triples look something like: {}",
-            TargetTriple::from_host_or_build(cfg.process)
+            TargetTuple::from_host_or_build(cfg.process)
         )
     })?;
 
@@ -802,8 +802,8 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
 ",
         opts.default_host_triple
             .as_ref()
-            .map(TargetTriple::new)
-            .unwrap_or_else(|| TargetTriple::from_host_or_build(process)),
+            .map(TargetTuple::new)
+            .unwrap_or_else(|| TargetTuple::from_host_or_build(process)),
         opts.default_toolchain
             .as_ref()
             .map(ToString::to_string)
@@ -1278,7 +1278,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     }
 
     // Get build triple
-    let triple = TargetTriple::from_build();
+    let triple = TargetTuple::from_build();
 
     // For windows x86 builds seem slow when used with windows defender.
     // The website defaulted to i686-windows-gnu builds for a long time.
@@ -1287,7 +1287,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     // If someone really wants to use another version, they still can enforce
     // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
     #[cfg(windows)]
-    let triple = TargetTriple::from_host(dl_cfg.process).unwrap_or(triple);
+    let triple = TargetTuple::from_host(dl_cfg.process).unwrap_or(triple);
 
     // Get update root.
     let update_root = update_root(dl_cfg.process);

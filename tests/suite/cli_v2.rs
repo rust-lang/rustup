@@ -5,7 +5,7 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use rustup::dist::TargetTriple;
+use rustup::dist::TargetTuple;
 use rustup::dist::manifest::Manifest;
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_triple,
@@ -1930,7 +1930,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: String) {
     let mut manifest = Manifest::parse(&manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
-        let target = TargetTriple::new(target);
+        let target = TargetTuple::new(target);
         let target_pkg = std_pkg.targets.get_mut(&target).unwrap();
         target_pkg.bins = Vec::new();
     }

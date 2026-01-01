@@ -13,7 +13,7 @@ use super::clitools::hard_link;
 use super::mock::MockInstallerBuilder;
 use super::{CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, create_hash, this_host_triple};
 use crate::dist::{
-    DEFAULT_DIST_SERVER, Profile, TargetTriple,
+    DEFAULT_DIST_SERVER, Profile, TargetTuple,
     component::{Components, DirectoryPackage, Transaction},
     manifest::{
         Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package,
@@ -836,12 +836,12 @@ impl MockDistServer {
                 for component in &target.components {
                     tpkg.components.push(Component {
                         pkg: component.name.to_owned(),
-                        target: Some(TargetTriple::new(&component.target)),
+                        target: Some(TargetTuple::new(&component.target)),
                         is_extension: component.is_extension,
                     });
                 }
 
-                targets.insert(TargetTriple::new(&target.target), tpkg);
+                targets.insert(TargetTuple::new(&target.target), tpkg);
             }
 
             manifest.packages.insert(
