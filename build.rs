@@ -3,8 +3,19 @@ use std::env;
 use platforms::Platform;
 
 fn from_build() -> Result<String, String> {
-    let tuple =
-        env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE").unwrap_or_else(|_| env::var("TARGET").unwrap());
+    let tuple = {
+        if let Ok(tuple) = env::var("RUSTUP_OVERRIDE_BUILD_TUPLE") {
+            tuple
+        } else if let Ok(tuple) = env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
+            tuple
+        } else if let Ok(tuple) = env::var("TARGET") {
+            tuple
+        } else {
+            panic!(
+                "Unable to get target tuple from environment; Be sure that TARGET env var is set, or its overrides"
+            )
+        }
+    };
     if Platform::ALL.iter().any(|p| p.target_triple == tuple) {
         Ok(tuple)
     } else {
