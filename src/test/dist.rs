@@ -189,24 +189,24 @@ impl Release {
 
         if self.channel == "stable" {
             // Same for v1 manifests. These are just the installers.
-            let host_triple = this_host_tuple();
+            let host_tuple = this_host_tuple();
 
             hard_link(
                 path.join(format!(
                     "dist/{}/rust-stable-{}.tar.gz",
-                    self.date, host_triple
+                    self.date, host_tuple
                 )),
-                path.join(format!("dist/rust-{}-{}.tar.gz", self.version, host_triple)),
+                path.join(format!("dist/rust-{}-{}.tar.gz", self.version, host_tuple)),
             )
             .unwrap();
             hard_link(
                 path.join(format!(
                     "dist/{}/rust-stable-{}.tar.gz.sha256",
-                    self.date, host_triple
+                    self.date, host_tuple
                 )),
                 path.join(format!(
                     "dist/rust-{}-{}.tar.gz.sha256",
-                    self.version, host_triple
+                    self.version, host_tuple
                 )),
             )
             .unwrap();
@@ -292,46 +292,46 @@ impl MockChannel {
         swap_tuples: bool,
     ) -> Self {
         // Build the mock installers
-        let host_triple = if swap_tuples {
+        let host_tuple = if swap_tuples {
             MULTI_ARCH1.to_owned()
         } else {
             this_host_tuple()
         };
-        let std = MockInstallerBuilder::std(&host_triple);
-        let rustc = MockInstallerBuilder::rustc(&host_triple, version, version_hash);
+        let std = MockInstallerBuilder::std(&host_tuple);
+        let rustc = MockInstallerBuilder::rustc(&host_tuple, version, version_hash);
         let cargo = MockInstallerBuilder::cargo(version, version_hash);
         let rust_docs = MockInstallerBuilder::rust_doc();
         let rust = MockInstallerBuilder::combined(&[&std, &rustc, &cargo, &rust_docs]);
         let cross_std1 = MockInstallerBuilder::cross_std(CROSS_ARCH1, date);
         let cross_std2 = MockInstallerBuilder::cross_std(CROSS_ARCH2, date);
         let rust_src = MockInstallerBuilder::rust_src();
-        let rust_analysis = MockInstallerBuilder::rust_analysis(&host_triple);
+        let rust_analysis = MockInstallerBuilder::rust_analysis(&host_tuple);
 
         // Convert the mock installers to mock package definitions for the
         // mock dist server
         let mut all = MockChannelContent::default();
         all.std.extend(vec![
-            (std, host_triple.clone()),
+            (std, host_tuple.clone()),
             (cross_std1, CROSS_ARCH1.to_string()),
             (cross_std2, CROSS_ARCH2.to_string()),
         ]);
-        all.rustc.push((rustc, host_triple.clone()));
-        all.cargo.push((cargo, host_triple.clone()));
+        all.rustc.push((rustc, host_tuple.clone()));
+        all.cargo.push((cargo, host_tuple.clone()));
 
         if rls != RlsStatus::Unavailable {
             let rls = MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
-            all.rls.push((rls, host_triple.clone()));
+            all.rls.push((rls, host_tuple.clone()));
         } else {
             all.rls.push((
                 MockInstallerBuilder { components: vec![] },
-                host_triple.clone(),
+                host_tuple.clone(),
             ));
         }
 
-        all.docs.push((rust_docs, host_triple.clone()));
+        all.docs.push((rust_docs, host_tuple.clone()));
         all.src.push((rust_src, "*".to_string()));
         all.analysis.push((rust_analysis, "*".to_string()));
-        all.combined.push((rust, host_triple));
+        all.combined.push((rust, host_tuple));
 
         if multi_arch {
             let std = MockInstallerBuilder::std(MULTI_ARCH1);
@@ -340,21 +340,21 @@ impl MockChannel {
             let rust_docs = MockInstallerBuilder::rust_doc();
             let rust = MockInstallerBuilder::combined(&[&std, &rustc, &cargo, &rust_docs]);
 
-            let triple = MULTI_ARCH1.to_string();
-            all.std.push((std, triple.clone()));
-            all.rustc.push((rustc, triple.clone()));
-            all.cargo.push((cargo, triple.clone()));
+            let tuple = MULTI_ARCH1.to_string();
+            all.std.push((std, tuple.clone()));
+            all.rustc.push((rustc, tuple.clone()));
+            all.cargo.push((cargo, tuple.clone()));
 
             if rls != RlsStatus::Unavailable {
                 let rls = MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
-                all.rls.push((rls, triple.clone()));
+                all.rls.push((rls, tuple.clone()));
             } else {
                 all.rls
-                    .push((MockInstallerBuilder { components: vec![] }, triple.clone()));
+                    .push((MockInstallerBuilder { components: vec![] }, tuple.clone()));
             }
 
-            all.docs.push((rust_docs, triple.to_string()));
-            all.combined.push((rust, triple));
+            all.docs.push((rust_docs, tuple.to_string()));
+            all.combined.push((rust, tuple));
         }
 
         let all_std_archs: Vec<String> = all.std.iter().map(|(_, arch)| arch).cloned().collect();
@@ -365,8 +365,8 @@ impl MockChannel {
             let target_pkgs =
                 target_pkgs
                     .into_iter()
-                    .map(|(installer, triple)| MockTargetedPackage {
-                        target: triple,
+                    .map(|(installer, tuple)| MockTargetedPackage {
+                        target: tuple,
                         available: !installer.components.is_empty(),
                         components: vec![],
                         installer,
@@ -466,7 +466,7 @@ impl MockChannel {
         version: &str,
         version_hash: &str,
     ) -> Self {
-        let host_triple = this_host_tuple();
+        let host_tuple = this_host_tuple();
 
         let packages = [
             "cargo",
@@ -483,7 +483,7 @@ impl MockChannel {
                 name,
                 version: format!("{version} ({version_hash})"),
                 targets: vec![MockTargetedPackage {
-                    target: host_triple.clone(),
+                    target: host_tuple.clone(),
                     available: false,
                     components: vec![],
                     installer: MockInstallerBuilder { components: vec![] },
@@ -549,7 +549,7 @@ impl RlsStatus {
 // A single rust-installer package
 #[derive(Debug, Hash, Eq, PartialEq)]
 pub(crate) struct MockPackage {
-    // rust, rustc, rust-std-$triple, rust-doc, etc.
+    // rust, rustc, rust-std-$tuple, rust-doc, etc.
     pub name: &'static str,
     pub version: String,
     pub targets: Vec<MockTargetedPackage>,
