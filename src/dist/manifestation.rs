@@ -79,12 +79,12 @@ impl Manifestation {
     /// it will be created as needed. If there's an existing install
     /// then the rust-install installation format will be verified. A
     /// bad installer version is the only reason this will fail.
-    pub fn open(prefix: InstallPrefix, triple: TargetTuple) -> Result<Self> {
-        // TODO: validate the triple with the existing install as well
+    pub fn open(prefix: InstallPrefix, tuple: TargetTuple) -> Result<Self> {
+        // TODO: validate the tuple with the existing install as well
         // as the metadata format of the existing install
         Ok(Self {
             installation: Components::open(prefix)?,
-            target_tuple: triple,
+            target_tuple: tuple,
         })
     }
 
