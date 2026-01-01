@@ -1,3 +1,5 @@
+//! `tuple` is short for _target tuple_, also known as _target triple_ elsewhere
+
 use std::sync::LazyLock;
 
 use regex::Regex;
