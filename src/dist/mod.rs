@@ -44,8 +44,8 @@ use prefix::InstallPrefix;
 
 pub mod temp;
 
-pub(crate) mod triple;
-pub(crate) use triple::*;
+pub(crate) mod target_tuple;
+pub(crate) use target_tuple::*;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 

@@ -4,7 +4,7 @@ use platforms::Platform;
 
 #[test]
 fn gen_known_tuples() {
-    let out_path = "src/dist/triple/known.rs";
+    let out_path = "src/dist/target_tuple/known.rs";
     let existing = std::fs::read_to_string(out_path).unwrap();
 
     let (mut archs, mut oses, mut envs) = (BTreeSet::new(), BTreeSet::new(), BTreeSet::new());
