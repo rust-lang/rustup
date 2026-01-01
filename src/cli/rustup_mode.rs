@@ -743,7 +743,7 @@ pub async fn main(
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
             SetSubcmd::DefaultHost { host_triple } => cfg
-                .set_default_host_triple(host_triple)
+                .set_default_host_tuple(host_triple)
                 .map(|_| ExitCode(0)),
             SetSubcmd::Profile { profile_name } => {
                 cfg.set_profile(profile_name).map(|_| ExitCode(0))
@@ -778,7 +778,7 @@ async fn default_(
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
-                let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+                let desc = toolchain.resolve(&cfg.get_default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
@@ -964,7 +964,7 @@ async fn update(
                     force_non_host,
                 )?;
             }
-            let desc = name.resolve(&cfg.get_default_host_triple()?)?;
+            let desc = name.resolve(&cfg.get_default_host_tuple()?)?;
 
             let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
             let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
@@ -1027,7 +1027,7 @@ async fn run(
     command: Vec<String>,
     install: bool,
 ) -> Result<ExitStatus> {
-    let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+    let toolchain = toolchain.resolve(&cfg.get_default_host_tuple()?)?;
     let toolchain = Toolchain::from_local(toolchain, install, cfg).await?;
     let cmd = toolchain.command(&command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
@@ -1041,7 +1041,7 @@ async fn which(
     let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg.get_default_host_triple()?)?.into(),
+                name.resolve(&cfg.get_default_host_tuple()?)?.into(),
                 ActiveSource::CommandLine, // From --toolchain option
             )),
             None => None,
@@ -1082,7 +1082,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         writeln!(
             t,
             "{HEADER}Default host: {HEADER:#}{}",
-            cfg.get_default_host_triple()?
+            cfg.get_default_host_tuple()?
         )?;
     }
 
@@ -1348,7 +1348,7 @@ async fn target_remove(
 
     for target in targets {
         let target = TargetTuple::new(target);
-        let default_target = cfg.get_default_host_triple()?;
+        let default_target = cfg.get_default_host_tuple()?;
         if target == default_target {
             warn!(
                 "removing the default host target; proc-macros and build scripts might no longer build"
@@ -1493,7 +1493,7 @@ async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<Exit
         .map(|(it, _)| it);
 
     for toolchain_name in &opts.toolchain {
-        let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
+        let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_tuple()?)?;
 
         if active_toolchain
             .as_ref()
@@ -1522,7 +1522,7 @@ async fn override_add(
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
 ) -> Result<ExitCode> {
-    let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+    let toolchain_name = toolchain.resolve(&cfg.get_default_host_tuple()?)?;
     match Toolchain::new(cfg, (&toolchain_name).into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {

@@ -187,7 +187,7 @@ pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option
     }
 
     use cc::windows_registry;
-    let host_triple = if let Some(trip) = opts.default_host_triple.as_ref() {
+    let host_triple = if let Some(trip) = opts.default_host_tuple.as_ref() {
         trip.to_owned()
     } else {
         TargetTuple::from_host_or_build(process).to_string()

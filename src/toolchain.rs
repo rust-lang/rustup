@@ -371,12 +371,12 @@ impl<'a> Toolchain<'a> {
             return Ok(None);
         }
 
-        let default_host_triple = self.cfg.get_default_host_triple()?;
+        let default_host_tuple = self.cfg.get_default_host_tuple()?;
         // XXX: This could actually consider all installed distributable
         // toolchains in principle.
         for fallback in ["nightly", "beta", "stable"] {
             let resolved =
-                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
+                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_tuple)?;
             if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
                 let cmd = fallback.create_fallback_command("cargo", self)?;
                 return Ok(Some(cmd));

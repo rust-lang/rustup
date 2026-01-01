@@ -36,7 +36,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
     let (toolchain, source) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg.get_default_host_triple()?)?,
+                name.resolve(&cfg.get_default_host_tuple()?)?,
                 ActiveSource::CommandLine,
             )),
             None => None,

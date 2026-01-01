@@ -82,7 +82,8 @@ impl SettingsFile {
 pub struct Settings {
     pub version: MetadataVersion,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_host_triple: Option<String>,
+    #[serde(alias = "default_host_triple")]
+    pub default_host_tuple: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_toolchain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -218,9 +219,49 @@ mod tests {
         assert_eq!(settings.profile, Some(Profile::Default));
     }
 
+    #[test]
+    fn serialize_host_tuple() {
+        let settings = Settings {
+            default_host_tuple: Some("riscv64a23-unknown-linux-gnu".into()),
+            ..Default::default()
+        };
+        let toml = settings.stringify().unwrap();
+        assert_eq!(toml, WITH_NEW_DEFAULT_HOST_NAME);
+    }
+
+    #[test]
+    fn deserialize_host_tuple_old_name() {
+        let settings = Settings::parse(WITH_OLD_DEFAULT_HOST_NAME).unwrap();
+        assert_eq!(
+            settings.default_host_tuple,
+            Some("riscv64a23-unknown-linux-gnu".into()),
+        );
+    }
+
+    #[test]
+    fn deserialize_host_tuple() {
+        let settings = Settings::parse(WITH_NEW_DEFAULT_HOST_NAME).unwrap();
+        assert_eq!(
+            settings.default_host_tuple,
+            Some("riscv64a23-unknown-linux-gnu".into()),
+        );
+    }
+
     const BASIC: &str = r#"version = "12"
 default_toolchain = "stable-aarch64-apple-darwin"
 profile = "default"
+
+[overrides]
+"#;
+
+    const WITH_OLD_DEFAULT_HOST_NAME: &str = r#"version = "12"
+default_host_triple = "riscv64a23-unknown-linux-gnu"
+
+[overrides]
+"#;
+
+    const WITH_NEW_DEFAULT_HOST_NAME: &str = r#"version = "12"
+default_host_tuple = "riscv64a23-unknown-linux-gnu"
 
 [overrides]
 "#;
