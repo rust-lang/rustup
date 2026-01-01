@@ -123,11 +123,11 @@ impl InstallOpts<'_> {
         cfg.set_profile(profile)?;
 
         if let Some(default_host_tuple) = &default_host_tuple {
-            // Set host triple now as it will affect resolution of toolchain_str
-            info!("setting default host triple to {}", default_host_tuple);
+            // Set host tuple now as it will affect resolution of toolchain_str
+            info!("setting default host tuple to {}", default_host_tuple);
             cfg.set_default_host_tuple(default_host_tuple.to_owned())?;
         } else {
-            info!("default host triple is {}", cfg.get_default_host_tuple()?);
+            info!("default host tuple is {}", cfg.get_default_host_tuple()?);
         }
 
         let user_specified_something = default_toolchain.is_some()
@@ -199,7 +199,7 @@ impl InstallOpts<'_> {
         writeln!(process.stdout().lock())?;
 
         self.default_host_tuple = Some(common::question_str(
-            "Default host triple?",
+            "Default host tuple?",
             &self
                 .default_host_tuple
                 .take()
@@ -585,7 +585,7 @@ pub(crate) async fn install(
         anyhow!(
             "Pre-checks for host and toolchain failed: {e}\n\
             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
-            Valid host triples look something like: {}",
+            Valid host tuples look something like: {}",
             TargetTuple::from_host_or_build(cfg.process)
         )
     })?;
@@ -745,7 +745,7 @@ fn check_existence_of_settings_file(process: &Process) -> Result<()> {
         warn!("It looks like you have an existing rustup settings file at:");
         warn!("{}", settings_file_path.display());
         warn!("Rustup will install the default toolchain as specified in the settings file,");
-        warn!("instead of the one inferred from the default host triple.");
+        warn!("instead of the one inferred from the default host tuple.");
     }
     Ok(())
 }
@@ -795,7 +795,7 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
     format!(
         r"Current installation options:
 
-- ` `default host triple: `{}`
+- ` `default host tuple: `{}`
 - `   `default toolchain: `{}`
 - `             `profile: `{}`
 - modify PATH variable: `{}`
@@ -1277,8 +1277,8 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
         utils::remove_file("setup", &setup_path)?;
     }
 
-    // Get build triple
-    let triple = TargetTuple::from_build();
+    // Get build tuple
+    let tuple = TargetTuple::from_build();
 
     // For windows x86 builds seem slow when used with windows defender.
     // The website defaulted to i686-windows-gnu builds for a long time.
@@ -1287,7 +1287,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     // If someone really wants to use another version, they still can enforce
     // that using the environment variable RUSTUP_OVERRIDE_HOST_TUPLE.
     #[cfg(windows)]
-    let triple = TargetTuple::from_host(dl_cfg.process).unwrap_or(triple);
+    let tuple = TargetTuple::from_host(dl_cfg.process).unwrap_or(tuple);
 
     // Get update root.
     let update_root = update_root(dl_cfg.process);
@@ -1311,7 +1311,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     }
 
     // Get download URL
-    let url = format!("{update_root}/archive/{available_version}/{triple}/rustup-init{EXE_SUFFIX}");
+    let url = format!("{update_root}/archive/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}");
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
@@ -1466,7 +1466,7 @@ mod tests {
             assert_eq!(
                 for_host!(
                     r"info: profile set to default
-info: default host triple is {0}
+info: default host tuple is {0}
 "
                 ),
                 &String::from_utf8(tp.stderr()).unwrap()

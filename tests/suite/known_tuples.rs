@@ -8,7 +8,7 @@ fn gen_known_tuples() {
     let existing = std::fs::read_to_string(out_path).unwrap();
 
     let (mut archs, mut oses, mut envs) = (BTreeSet::new(), BTreeSet::new(), BTreeSet::new());
-    for (arch, os, env) in Platform::ALL.iter().map(|p| parse_triple(p.target_triple)) {
+    for (arch, os, env) in Platform::ALL.iter().map(|p| parse_tuple(p.target_triple)) {
         archs.insert(arch);
         oses.insert(os);
         if !env.is_empty() {
@@ -50,12 +50,12 @@ fn gen_known_tuples() {
     }
 }
 
-/// Parses the given triple into 3 parts (target architecture, OS and environment).
+/// Parses the given tuple into 3 parts (target architecture, OS and environment).
 ///
 /// # Discussion
 ///
 /// The current model of target tuples in Rustup requires some non-code knowledge to correctly generate the list.
-/// For example, the parsing results of two 2-dash triples can be different:
+/// For example, the parsing results of two 2-dash tuples can be different:
 ///
 /// ```jsonc
 /// { arch: aarch64, os: linux, env: android }
@@ -79,18 +79,18 @@ fn gen_known_tuples() {
 /// // for `x-y-z-w`
 /// { arch: x, os: y-z, env: w }
 /// ```
-fn parse_triple(triple: &str) -> (&str, &str, &str) {
-    match triple.split('-').collect::<Vec<_>>()[..] {
+fn parse_tuple(tuple: &str) -> (&str, &str, &str) {
+    match tuple.split('-').collect::<Vec<_>>()[..] {
         [arch, os] => (arch, os, ""),
         [arch, os @ ("none" | "linux"), env] => (arch, os, env),
-        [arch, _, _] => (arch, &triple[(arch.len() + 1)..], ""),
+        [arch, _, _] => (arch, &tuple[(arch.len() + 1)..], ""),
         [arch, _, _, env] => (
             arch,
-            &triple[(arch.len() + 1)..(triple.len() - env.len() - 1)],
+            &tuple[(arch.len() + 1)..(tuple.len() - env.len() - 1)],
             env,
         ),
         _ => panic!(
-            "Internal error while parsing target tuple `{triple}`, please file an issue at https://github.com/rust-lang/rustup/issues"
+            "Internal error while parsing target tuple `{tuple}`, please file an issue at https://github.com/rust-lang/rustup/issues"
         ),
     }
 }

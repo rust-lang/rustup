@@ -562,7 +562,7 @@ enum SelfSubcmd {
 #[derive(Debug, Subcommand)]
 #[command(arg_required_else_help = true, subcommand_required = true)]
 enum SetSubcmd {
-    /// The triple used to identify toolchains when not specified
+    /// The tuple used to identify toolchains when not specified
     DefaultHost { host_tuple: String },
 
     /// The default components installed with a toolchain
@@ -956,11 +956,11 @@ async fn update(
             // This needs another pass to fix it all up
             if name.has_tuple() {
                 let host_arch = TargetTuple::from_host_or_build(cfg.process);
-                let target_triple = name.clone().resolve(&host_arch)?.target;
+                let target_tuple = name.clone().resolve(&host_arch)?.target;
                 common::check_non_host_toolchain(
                     name.to_string(),
                     &host_arch,
-                    &target_triple,
+                    &target_tuple,
                     force_non_host,
                 )?;
             }
@@ -1075,7 +1075,7 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    // Print host triple
+    // Print host tuple
     {
         let t = cfg.process.stdout();
         let mut t = t.lock();

@@ -19,7 +19,7 @@ Standard release channel toolchain names have the following form:
 <versioned>     = <major.minor>|<major.minor.patch>
 <prerelease>    = beta[.<number>]
 <date>          = YYYY-MM-DD
-<host>          = <target-triple>
+<host>          = <target-tuple>
 ```
 
 'channel' is a named release channel, a major and minor version number such as

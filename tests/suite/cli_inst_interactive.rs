@@ -74,7 +74,7 @@ these changes will be reverted.
 Current installation options:
 
 
-   default host triple: [HOST_TUPLE]
+   default host tuple: [HOST_TUPLE]
      default toolchain: stable (default)
                profile: default
   modify PATH variable: no
@@ -141,7 +141,7 @@ async fn installer_shows_default_host_tuple() {
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n").with_stdout(snapbox::str![
         [r#"
 ...
-Default host triple? [[HOST_TUPLE]]
+Default host tuple? [[HOST_TUPLE]]
 ...
 "#]
     ]);

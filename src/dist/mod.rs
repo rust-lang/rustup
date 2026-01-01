@@ -140,7 +140,7 @@ struct ParsedToolchainDesc {
 /// A toolchain descriptor from rustup's perspective. These contain
 /// 'partial target tuples', which allow toolchain names like
 /// 'stable-msvc' to work. Partial target tuples though are parsed
-/// from a hardcoded set of known triples, whereas target tuples
+/// from a hardcoded set of known tuples, whereas target tuples
 /// are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
@@ -150,7 +150,7 @@ pub struct PartialToolchainDesc {
 }
 
 /// Fully-resolved toolchain descriptors. These always have full target
-/// triples attached to them and are used for canonical identification,
+/// tuples attached to them and are used for canonical identification,
 /// such as naming their installation directory.
 ///
 /// As strings they look like stable-x86_64-pc-windows-msvc or
@@ -373,8 +373,8 @@ impl TargetTuple {
     }
 
     pub(crate) fn from_build() -> Self {
-        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TUPLE") {
-            Self::new(triple)
+        if let Some(tuple) = option_env!("RUSTUP_OVERRIDE_BUILD_TUPLE") {
+            Self::new(tuple)
         } else {
             Self::new(env!("TARGET"))
         }
@@ -475,8 +475,8 @@ impl TargetTuple {
 
             // Default to msvc
             let arch = arch_primary().or_else(arch_fallback)?;
-            let msvc_triple = format!("{arch}-pc-windows-msvc");
-            Some(TargetTuple(msvc_triple))
+            let msvc_tuple = format!("{arch}-pc-windows-msvc");
+            Some(TargetTuple(msvc_tuple))
         }
 
         #[cfg(not(windows))]
@@ -544,8 +544,8 @@ impl TargetTuple {
             host_tuple.map(TargetTuple::new)
         }
 
-        if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TUPLE") {
-            Some(Self(triple))
+        if let Ok(tuple) = process.var("RUSTUP_OVERRIDE_HOST_TUPLE") {
+            Some(Self(tuple))
         } else {
             inner()
         }
@@ -605,7 +605,7 @@ impl PartialToolchainDesc {
     pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
         let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
-                "Provided host '{}' couldn't be converted to partial triple",
+                "Provided host '{}' couldn't be converted to partial tuple",
                 input_host.0
             ))
         })?;
@@ -1173,8 +1173,8 @@ async fn try_update_from_dist_(
             }
 
             for &target in targets {
-                let triple = TargetTuple::new(target);
-                all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
+                let tuple = TargetTuple::new(target);
+                all_components.insert(Component::new("rust-std".to_string(), Some(tuple), false));
             }
 
             let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();

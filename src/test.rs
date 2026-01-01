@@ -123,13 +123,13 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
         .keep())
 }
 
-/// What is this host's target tuple - seems very redundant with from_host_or_build()
+/// What is this host's tuple - seems very redundant with from_host_or_build()
 /// ... perhaps this is so that the test data we have is only exercised on known
 /// target tuples?
 ///
 /// NOTE: This *cannot* be called within a process context as it creates
 /// its own context on Windows hosts. This is partly by chance but also partly
-/// deliberate: If you need the host triple, or to call for_host(), you can do
+/// deliberate: If you need the host tuple, or to call for_host(), you can do
 /// so outside of calls to run() or unit test code that runs in a process
 /// context.
 ///
@@ -193,7 +193,7 @@ pub fn this_host_tuple() -> String {
     }
 }
 
-// Format a string with this host triple.
+// Format a string with this host tuple.
 #[macro_export]
 macro_rules! for_host {
     ($s:tt $($arg:tt)*) => {

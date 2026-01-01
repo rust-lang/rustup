@@ -102,7 +102,7 @@ which is a `brew`-managed `rust` toolchain installation.
 ## Manual installation
 
 You can manually download `rustup-init` for a given target from
-`https://static.rust-lang.org/rustup/dist/{target-triple}/rustup-init[.exe]`[^msys2] [^msvc].
+`https://static.rust-lang.org/rustup/dist/{target-tuple}/rustup-init[.exe]`[^msys2] [^msvc].
 
 <details>
 <summary>Direct links</summary>
@@ -185,7 +185,7 @@ You can manually download `rustup-init` for a given target from
 </details>
 
 To get a previous version, use
-`https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`.
+`https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-tuple}/rustup-init[.exe]`.
 
 SHA-256 checksums are also available by appending `.sha256` to the link.
 

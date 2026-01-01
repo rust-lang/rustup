@@ -6,7 +6,7 @@
 //!
 //! `MaybeOfficialToolchainName` represents a toolchain passed to rustup-init:
 //! 'none' to select no toolchain to install, and otherwise a partial toolchain
-//! description - channel and optional triple and optional date.
+//! description - channel and optional tuple and optional date.
 //!
 //! `ResolvableToolchainName` represents a toolchain name from a user. Either a
 //! partial toolchain description or a single path component that is not 'none'.
@@ -15,7 +15,7 @@
 //! for both custom and official names.
 //!
 //! `ToolchainName` is the result of resolving `ResolvableToolchainName` with a
-//! host triple, or parsing an installed toolchain name directly.
+//! host tuple, or parsing an installed toolchain name directly.
 //!
 //! `ResolvableLocalToolchainName` represents the values permittable in
 //! `RUSTUP_TOOLCHAIN`: resolved or not resolved official names, custom names,
@@ -488,13 +488,13 @@ mod tests {
     };
 
     fn partial_toolchain_desc_re() -> String {
-        let triple_re = format!(
+        let tuple_re = format!(
             r"(-({}))?(?:-({}))?(?:-({}))?",
             LIST_ARCHS.join("|"),
             LIST_OSES.join("|"),
             LIST_ENVS.join("|")
         );
-        r"(nightly|beta|stable|[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?)(-([0-9]{4}-[0-9]{2}-[0-9]{2}))?".to_owned() + &triple_re
+        r"(nightly|beta|stable|[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?)(-([0-9]{4}-[0-9]{2}-[0-9]{2}))?".to_owned() + &tuple_re
     }
 
     prop_compose! {

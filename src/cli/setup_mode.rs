@@ -39,7 +39,7 @@ struct RustupInit {
     #[arg(short = 'y')]
     no_prompt: bool,
 
-    /// Choose a default host triple
+    /// Choose a default host tuple
     #[arg(long)]
     default_host: Option<String>,
 
