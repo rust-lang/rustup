@@ -20,7 +20,7 @@
   <text xml:space="preserve" class="container fg">
     <tspan x="10px" y="28px">
 </tspan>
-    <tspan x="10px" y="46px"><tspan>  </tspan><tspan class="fg-bright-green bold">stable-[HOST_TRIPLE] updated</tspan><tspan> - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))</tspan>
+    <tspan x="10px" y="46px"><tspan>  </tspan><tspan class="fg-bright-green bold">stable-[HOST_TUPLE] updated</tspan><tspan> - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))</tspan>
 </tspan>
     <tspan x="10px" y="64px">
 </tspan>

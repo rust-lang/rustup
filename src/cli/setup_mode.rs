@@ -39,7 +39,7 @@ struct RustupInit {
     #[arg(short = 'y')]
     no_prompt: bool,
 
-    /// Choose a default host triple
+    /// Choose a default host tuple
     #[arg(long)]
     default_host: Option<String>,
 
@@ -121,7 +121,7 @@ pub async fn main(
     update_console_filter(process, &console_filter, quiet, verbose);
 
     let opts = InstallOpts {
-        default_host_triple: default_host,
+        default_host_tuple: default_host,
         default_toolchain,
         profile,
         no_modify_path,

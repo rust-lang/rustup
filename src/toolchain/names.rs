@@ -6,7 +6,7 @@
 //!
 //! `MaybeOfficialToolchainName` represents a toolchain passed to rustup-init:
 //! 'none' to select no toolchain to install, and otherwise a partial toolchain
-//! description - channel and optional triple and optional date.
+//! description - channel and optional tuple and optional date.
 //!
 //! `ResolvableToolchainName` represents a toolchain name from a user. Either a
 //! partial toolchain description or a single path component that is not 'none'.
@@ -15,7 +15,7 @@
 //! for both custom and official names.
 //!
 //! `ToolchainName` is the result of resolving `ResolvableToolchainName` with a
-//! host triple, or parsing an installed toolchain name directly.
+//! host tuple, or parsing an installed toolchain name directly.
 //!
 //! `ResolvableLocalToolchainName` represents the values permittable in
 //! `RUSTUP_TOOLCHAIN`: resolved or not resolved official names, custom names,
@@ -50,7 +50,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::dist::{PartialToolchainDesc, TargetTriple, ToolchainDesc};
+use crate::dist::{PartialToolchainDesc, TargetTuple, ToolchainDesc};
 
 /// Errors related to toolchains
 #[derive(Error, Debug)]
@@ -139,7 +139,7 @@ pub(crate) enum ResolvableToolchainName {
 
 impl ResolvableToolchainName {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(&self, host: &TargetTriple) -> Result<ToolchainName, anyhow::Error> {
+    pub fn resolve(&self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
         match self.clone() {
             ResolvableToolchainName::Custom(c) => Ok(ToolchainName::Custom(c)),
             ResolvableToolchainName::Official(desc) => {
@@ -296,7 +296,7 @@ pub(crate) enum ResolvableLocalToolchainName {
 
 impl ResolvableLocalToolchainName {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(&self, host: &TargetTriple) -> Result<LocalToolchainName, anyhow::Error> {
+    pub fn resolve(&self, host: &TargetTuple) -> Result<LocalToolchainName, anyhow::Error> {
         match self.clone() {
             ResolvableLocalToolchainName::Named(t) => {
                 Ok(LocalToolchainName::Named(t.resolve(host)?))
@@ -482,19 +482,19 @@ mod tests {
     use crate::{
         dist::{
             PartialToolchainDesc,
-            triple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
+            target_tuple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
         },
         toolchain::names::{CustomToolchainName, ResolvableToolchainName, ToolchainName},
     };
 
     fn partial_toolchain_desc_re() -> String {
-        let triple_re = format!(
+        let tuple_re = format!(
             r"(-({}))?(?:-({}))?(?:-({}))?",
             LIST_ARCHS.join("|"),
             LIST_OSES.join("|"),
             LIST_ENVS.join("|")
         );
-        r"(nightly|beta|stable|[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?)(-([0-9]{4}-[0-9]{2}-[0-9]{2}))?".to_owned() + &triple_re
+        r"(nightly|beta|stable|[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?)(-([0-9]{4}-[0-9]{2}-[0-9]{2}))?".to_owned() + &tuple_re
     }
 
     prop_compose! {

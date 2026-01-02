@@ -24,7 +24,7 @@ use crate::dist::download::{DownloadCfg, DownloadStatus, File};
 use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest};
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
+use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTuple};
 use crate::errors::RustupError;
 use crate::utils;
 
@@ -34,7 +34,7 @@ pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
-    target_triple: TargetTriple,
+    target_tuple: TargetTuple,
 }
 
 #[derive(Debug)]
@@ -79,12 +79,12 @@ impl Manifestation {
     /// it will be created as needed. If there's an existing install
     /// then the rust-install installation format will be verified. A
     /// bad installer version is the only reason this will fail.
-    pub fn open(prefix: InstallPrefix, triple: TargetTriple) -> Result<Self> {
-        // TODO: validate the triple with the existing install as well
+    pub fn open(prefix: InstallPrefix, tuple: TargetTuple) -> Result<Self> {
+        // TODO: validate the tuple with the existing install as well
         // as the metadata format of the existing install
         Ok(Self {
             installation: Components::open(prefix)?,
-            target_triple: triple,
+            target_tuple: tuple,
         })
     }
 
@@ -138,7 +138,7 @@ impl Manifestation {
             {
                 for component in &components {
                     match &component.target {
-                        Some(t) if t != &self.target_triple => warn!(
+                        Some(t) if t != &self.target_tuple => warn!(
                             "skipping unavailable component {} for target {}",
                             new_manifest.short_name(component),
                             t
@@ -188,14 +188,14 @@ impl Manifestation {
         // Uninstall components
         for component in update.components_to_uninstall {
             match (implicit_modify, &component.target) {
-                (true, Some(t)) if t != &self.target_triple => {
+                (true, Some(t)) if t != &self.target_tuple => {
                     info!(
                         "removing previous version of component {} for target {}",
                         new_manifest.short_name(&component),
                         t
                     );
                 }
-                (false, Some(t)) if t != &self.target_triple => {
+                (false, Some(t)) if t != &self.target_tuple => {
                     info!(
                         "removing component {} for target {}",
                         new_manifest.short_name(&component),
@@ -382,11 +382,11 @@ impl Manifestation {
 
         let url = new_manifest
             .iter()
-            .find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
+            .find(|u| u.contains(&format!("{}{}", self.target_tuple, ".tar.gz")));
         if url.is_none() {
             return Err(anyhow!(
                 "binary package was not provided for '{}'",
-                self.target_triple,
+                self.target_tuple,
             ));
         }
         // Only replace once. The cost is inexpensive.
@@ -560,7 +560,7 @@ impl Update {
     ) -> Result<Self> {
         // The package to install.
         let rust_package = new_manifest.get_package("rust")?;
-        let rust_target_package = rust_package.get_target(Some(&manifestation.target_triple))?;
+        let rust_target_package = rust_package.get_target(Some(&manifestation.target_tuple))?;
 
         changes.check_invariants(config)?;
 
@@ -574,7 +574,7 @@ impl Update {
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
         if looks_like_v1 {
             let mut profile_components = new_manifest
-                .get_profile_components(Profile::Default, &manifestation.target_triple)?;
+                .get_profile_components(Profile::Default, &manifestation.target_tuple)?;
             starting_list.append(&mut profile_components);
         }
 
@@ -654,7 +654,7 @@ impl Update {
                     result.components_to_install.push(component.clone());
                 } else if changes.explicit_add_components.contains(component) {
                     match &component.target {
-                        Some(t) if t != &manifestation.target_triple => info!(
+                        Some(t) if t != &manifestation.target_tuple => info!(
                             "component {} for target {} is up to date",
                             new_manifest.short_name(component),
                             t,

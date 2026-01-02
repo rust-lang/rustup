@@ -23,7 +23,7 @@ use crate::{
     RustupError,
     config::{ActiveSource, Cfg, InstalledPath},
     dist::{
-        DistOptions, PartialToolchainDesc, TargetTriple,
+        DistOptions, PartialToolchainDesc, TargetTuple,
         component::{Component, Components},
         prefix::InstallPrefix,
     },
@@ -371,12 +371,12 @@ impl<'a> Toolchain<'a> {
             return Ok(None);
         }
 
-        let default_host_triple = self.cfg.get_default_host_triple()?;
+        let default_host_tuple = self.cfg.get_default_host_tuple()?;
         // XXX: This could actually consider all installed distributable
         // toolchains in principle.
         for fallback in ["nightly", "beta", "stable"] {
             let resolved =
-                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
+                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_tuple)?;
             if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
                 let cmd = fallback.create_fallback_command("cargo", self)?;
                 return Ok(Some(cmd));
@@ -588,14 +588,14 @@ impl<'a> Toolchain<'a> {
     }
 
     /// Get the list of installed targets for any toolchain
-    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTuple>> {
         Ok(self
             .installed_components()?
             .into_iter()
             .filter_map(|c| {
                 c.name()
                     .strip_prefix("rust-std-")
-                    .map(|triple| TargetTriple::new(triple.to_string()))
+                    .map(|tuple| TargetTuple::new(tuple.to_string()))
             })
             .collect())
     }

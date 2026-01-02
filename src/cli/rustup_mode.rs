@@ -41,7 +41,7 @@ use crate::{
     command, component_for_bin,
     config::{ActiveSource, Cfg},
     dist::{
-        AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
+        AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus},
     },
@@ -562,8 +562,8 @@ enum SelfSubcmd {
 #[derive(Debug, Subcommand)]
 #[command(arg_required_else_help = true, subcommand_required = true)]
 enum SetSubcmd {
-    /// The triple used to identify toolchains when not specified
-    DefaultHost { host_triple: String },
+    /// The tuple used to identify toolchains when not specified
+    DefaultHost { host_tuple: String },
 
     /// The default components installed with a toolchain
     Profile {
@@ -742,9 +742,9 @@ pub async fn main(
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
-            SetSubcmd::DefaultHost { host_triple } => cfg
-                .set_default_host_triple(host_triple)
-                .map(|_| ExitCode(0)),
+            SetSubcmd::DefaultHost { host_tuple } => {
+                cfg.set_default_host_tuple(host_tuple).map(|_| ExitCode(0))
+            }
             SetSubcmd::Profile { profile_name } => {
                 cfg.set_profile(profile_name).map(|_| ExitCode(0))
             }
@@ -778,7 +778,7 @@ async fn default_(
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
-                let desc = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+                let desc = toolchain.resolve(&cfg.get_default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
@@ -951,17 +951,17 @@ async fn update(
     if !names.is_empty() {
         for name in names {
             // This needs another pass to fix it all up
-            if name.has_triple() {
-                let host_arch = TargetTriple::from_host_or_build(cfg.process);
-                let target_triple = name.clone().resolve(&host_arch)?.target;
+            if name.has_tuple() {
+                let host_arch = TargetTuple::from_host_or_build(cfg.process);
+                let target_tuple = name.clone().resolve(&host_arch)?.target;
                 common::check_non_host_toolchain(
                     name.to_string(),
                     &host_arch,
-                    &target_triple,
+                    &target_tuple,
                     force_non_host,
                 )?;
             }
-            let desc = name.resolve(&cfg.get_default_host_triple()?)?;
+            let desc = name.resolve(&cfg.get_default_host_tuple()?)?;
 
             let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
             let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
@@ -1024,7 +1024,7 @@ async fn run(
     command: Vec<String>,
     install: bool,
 ) -> Result<ExitStatus> {
-    let toolchain = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+    let toolchain = toolchain.resolve(&cfg.get_default_host_tuple()?)?;
     let toolchain = Toolchain::from_local(toolchain, install, cfg).await?;
     let cmd = toolchain.command(&command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
@@ -1038,7 +1038,7 @@ async fn which(
     let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg.get_default_host_triple()?)?.into(),
+                name.resolve(&cfg.get_default_host_tuple()?)?.into(),
                 ActiveSource::CommandLine, // From --toolchain option
             )),
             None => None,
@@ -1072,14 +1072,14 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    // Print host triple
+    // Print host tuple
     {
         let t = cfg.process.stdout();
         let mut t = t.lock();
         writeln!(
             t,
             "{HEADER}Default host: {HEADER:#}{}",
-            cfg.get_default_host_triple()?
+            cfg.get_default_host_tuple()?
         )?;
     }
 
@@ -1323,7 +1323,7 @@ async fn target_add(
     for target in targets {
         let new_component = Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new(target)),
+            Some(TargetTuple::new(target)),
             false,
         );
         distributable.add_component(new_component).await?;
@@ -1344,8 +1344,8 @@ async fn target_remove(
     .await?;
 
     for target in targets {
-        let target = TargetTriple::new(target);
-        let default_target = cfg.get_default_host_triple()?;
+        let target = TargetTuple::new(target);
+        let default_target = cfg.get_default_host_tuple()?;
         if target == default_target {
             warn!(
                 "removing the default host target; proc-macros and build scripts might no longer build"
@@ -1429,9 +1429,9 @@ async fn component_add(
 fn get_target(
     target: Option<String>,
     distributable: &DistributableToolchain<'_>,
-) -> Option<TargetTriple> {
+) -> Option<TargetTuple> {
     target
-        .map(TargetTriple::new)
+        .map(TargetTuple::new)
         .or_else(|| Some(distributable.desc().target.clone()))
 }
 
@@ -1490,7 +1490,7 @@ async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<Exit
         .map(|(it, _)| it);
 
     for toolchain_name in &opts.toolchain {
-        let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_triple()?)?;
+        let toolchain_name = toolchain_name.resolve(&cfg.get_default_host_tuple()?)?;
 
         if active_toolchain
             .as_ref()
@@ -1519,7 +1519,7 @@ async fn override_add(
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
 ) -> Result<ExitCode> {
-    let toolchain_name = toolchain.resolve(&cfg.get_default_host_triple()?)?;
+    let toolchain_name = toolchain.resolve(&cfg.get_default_host_tuple()?)?;
     match Toolchain::new(cfg, (&toolchain_name).into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {

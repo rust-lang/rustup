@@ -20,7 +20,7 @@ use std::process::Command;
 use anyhow::Result;
 use sha2::{Digest, Sha256};
 
-use crate::dist::TargetTriple;
+use crate::dist::TargetTuple;
 use crate::process::TestProcess;
 
 #[cfg(windows)]
@@ -123,26 +123,26 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
         .keep())
 }
 
-/// What is this host's triple - seems very redundant with from_host_or_build()
+/// What is this host's target tuple - seems very redundant with from_host_or_build()
 /// ... perhaps this is so that the test data we have is only exercised on known
-/// triples?
+/// target tuples?
 ///
 /// NOTE: This *cannot* be called within a process context as it creates
 /// its own context on Windows hosts. This is partly by chance but also partly
-/// deliberate: If you need the host triple, or to call for_host(), you can do
+/// deliberate: If you need the host tuple, or to call for_host(), you can do
 /// so outside of calls to run() or unit test code that runs in a process
 /// context.
 ///
 /// IF it becomes very hard to workaround that, then we can either make a second
-/// this_host_triple that doesn't make its own process or use
-/// TargetTriple::from_host() from within the process context as needed.
-pub fn this_host_triple() -> String {
+/// this_host_tuple that doesn't make its own process or use
+/// TargetTuple::from_host() from within the process context as needed.
+pub fn this_host_tuple() -> String {
     if cfg!(target_os = "windows") {
         // For windows, this host may be different to the target: we may be
         // building with i686 toolchain, but on an x86_64 host, so run the
         // actual detection logic and trust it.
         let tp = TestProcess::default();
-        return TargetTriple::from_host(&tp.process).unwrap().to_string();
+        return TargetTuple::from_host(&tp.process).unwrap().to_string();
     }
     let arch = if cfg!(target_arch = "x86") {
         "i686"
@@ -193,11 +193,11 @@ pub fn this_host_triple() -> String {
     }
 }
 
-// Format a string with this host triple.
+// Format a string with this host tuple.
 #[macro_export]
 macro_rules! for_host {
     ($s:tt $($arg:tt)*) => {
-        &format!($s, $crate::test::this_host_triple() $($arg)*)
+        &format!($s, $crate::test::this_host_tuple() $($arg)*)
     };
 }
 
