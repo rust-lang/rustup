@@ -88,7 +88,7 @@ pub(crate) fn toolchain_help() -> String {
     {PLACEHOLDER}<versioned>     = <major.minor>|<major.minor.patch>{PLACEHOLDER:#}
     {PLACEHOLDER}<prerelease>    = beta[.<number>]{PLACEHOLDER:#}
     {PLACEHOLDER}<date>          = YYYY-MM-DD{PLACEHOLDER:#}
-    {PLACEHOLDER}<host>          = <target-triple>{PLACEHOLDER:#}
+    {PLACEHOLDER}<host>          = <target-tuple>{PLACEHOLDER:#}
 
   'channel' is a named release channel, a major and minor version
   number such as `1.42`, or a fully specified version number, such

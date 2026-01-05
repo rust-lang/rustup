@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
+    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
     topical_doc_data,
 };
 use rustup::utils::raw;
@@ -28,12 +28,12 @@ async fn rustup_stable() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-  stable-[HOST_TRIPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
+  stable-[HOST_TUPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: removing previous version of component cargo
 ...
@@ -46,10 +46,10 @@ info: cleaning up downloads & tmp directories
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -72,7 +72,7 @@ async fn rustup_stable_quiet() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-  stable-[HOST_TRIPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
+  stable-[HOST_TUPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
 
 
 "#]])
@@ -92,12 +92,12 @@ async fn rustup_stable_no_change() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-  stable-[HOST_TRIPLE] unchanged - 1.0.0 (hash-stable-1.0.0)
+  stable-[HOST_TUPLE] unchanged - 1.0.0 (hash-stable-1.0.0)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: cleaning up downloads & tmp directories
 
 "#]])
@@ -122,22 +122,22 @@ async fn rustup_all_channels() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-   stable-[HOST_TRIPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
-     beta-[HOST_TRIPLE] updated - 1.2.0 (hash-beta-1.2.0) (from 1.1.0 (hash-beta-1.1.0))
-  nightly-[HOST_TRIPLE] updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
+   stable-[HOST_TUPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
+     beta-[HOST_TUPLE] updated - 1.2.0 (hash-beta-1.2.0) (from 1.1.0 (hash-beta-1.1.0))
+  nightly-[HOST_TUPLE] updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: removing previous version of component cargo
 ...
-info: syncing channel updates for beta-[HOST_TRIPLE]
+info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: removing previous version of component cargo
 ...
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: removing previous version of component cargo
 ...
@@ -150,10 +150,10 @@ info: cleaning up downloads & tmp directories
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -161,10 +161,10 @@ rustc-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -172,10 +172,10 @@ rustc-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -199,19 +199,19 @@ async fn rustup_some_channels_up_to_date() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-   stable-[HOST_TRIPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
-   beta-[HOST_TRIPLE] unchanged - 1.2.0 (hash-beta-1.2.0)
-  nightly-[HOST_TRIPLE] updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
+   stable-[HOST_TUPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
+   beta-[HOST_TUPLE] unchanged - 1.2.0 (hash-beta-1.2.0)
+  nightly-[HOST_TUPLE] updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
+info: syncing channel updates for stable-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: removing previous version of component cargo
 ...
-info: syncing channel updates for beta-[HOST_TRIPLE]
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for beta-[HOST_TUPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: removing previous version of component cargo
 ...
@@ -224,10 +224,10 @@ info: cleaning up downloads & tmp directories
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -235,10 +235,10 @@ rustc-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
     cx.config
@@ -246,10 +246,10 @@ rustc-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -277,16 +277,16 @@ async fn default() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] installed - 1.3.0 (hash-nightly-2)
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to nightly-[HOST_TRIPLE]
+info: default toolchain set to nightly-[HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -295,10 +295,10 @@ info: default toolchain set to nightly-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -322,9 +322,9 @@ async fn default_override() {
         .expect(["rustup", "default", "stable"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: using existing install for stable-[HOST_TRIPLE]
-info: default toolchain set to stable-[HOST_TRIPLE]
-info: note that the toolchain 'nightly-[HOST_TRIPLE]' is currently in use (directory override for '[..]')
+info: using existing install for stable-[HOST_TUPLE]
+info: default toolchain set to stable-[HOST_TUPLE]
+info: note that the toolchain 'nightly-[HOST_TUPLE]' is currently in use (directory override for '[..]')
 
 "#]])
         .is_ok();
@@ -338,7 +338,7 @@ async fn rustup_zstd() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-[..]dist/2015-01-01/rust-std-nightly-[HOST_TRIPLE].tar.zst[..]
+[..]dist/2015-01-01/rust-std-nightly-[HOST_TUPLE].tar.zst[..]
 ...
 "#]])
         .is_ok();
@@ -349,7 +349,7 @@ async fn add_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -368,7 +368,7 @@ async fn remove_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -400,13 +400,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(cx.config.rustupdir.has(path));
@@ -417,13 +417,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(!cx.config.rustupdir.has(path));
@@ -459,7 +459,7 @@ async fn list_installed_targets() {
         .expect(["rustup", "target", "list", "--installed"])
         .await
         .with_stdout(snapbox::str![[r#"
-[HOST_TRIPLE]
+[HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -470,7 +470,7 @@ async fn add_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -496,7 +496,7 @@ async fn remove_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -731,7 +731,7 @@ async fn show_toolchain_none() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -758,19 +758,19 @@ async fn show_toolchain_default() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: it's the default toolchain
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -795,7 +795,7 @@ async fn show_no_default() {
 ...
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE]
+nightly-[HOST_TUPLE]
 
 active toolchain
 ----------------
@@ -823,14 +823,14 @@ async fn show_no_default_active() {
 ...
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active)
+nightly-[HOST_TUPLE] (active)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: overridden by +toolchain on the command line
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -852,20 +852,20 @@ async fn show_multiple_toolchains() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-stable-[HOST_TRIPLE]
-nightly-[HOST_TRIPLE] (active, default)
+stable-[HOST_TUPLE]
+nightly-[HOST_TUPLE] (active, default)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: it's the default toolchain
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -893,7 +893,7 @@ async fn show_multiple_targets() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -947,7 +947,7 @@ async fn show_multiple_toolchains_and_targets() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -979,7 +979,7 @@ async fn list_default_toolchain() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -997,7 +997,7 @@ async fn list_default_toolchain_quiet() {
         .expect(["rustup", "toolchain", "list", "--quiet"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE]
+nightly-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1019,7 +1019,7 @@ async fn list_no_default_toolchain() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE]
+nightly-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1037,7 +1037,7 @@ async fn list_no_default_override_toolchain() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (active)
+nightly-[HOST_TUPLE] (active)
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1060,7 +1060,7 @@ async fn list_default_and_override_toolchain() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 
 "#]])
         .with_stderr(snapbox::str![[""]]);
@@ -1078,19 +1078,19 @@ async fn show_toolchain_override() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active)
+nightly-[HOST_TUPLE] (active)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: directory override for '[..]'
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1119,20 +1119,20 @@ async fn show_toolchain_toolchain_file_override() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-stable-[HOST_TRIPLE] (default)
-nightly-[HOST_TRIPLE] (active)
+stable-[HOST_TUPLE] (default)
+nightly-[HOST_TUPLE] (active)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: overridden by '[..]'
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1169,21 +1169,21 @@ async fn show_toolchain_version_nested_file_override() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-stable-[HOST_TRIPLE] (default)
-beta-[HOST_TRIPLE]
-nightly-[HOST_TRIPLE] (active)
+stable-[HOST_TUPLE] (default)
+beta-[HOST_TUPLE]
+nightly-[HOST_TUPLE] (active)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: overridden by '[..]'
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1213,13 +1213,13 @@ async fn show_toolchain_toolchain_file_override_not_installed() {
             ("[TOOLCHAIN_FILE]", &toolchain_file),
         ])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 help: run `rustup toolchain install` to install it
 
 "#]])
@@ -1242,7 +1242,7 @@ async fn show_toolchain_override_not_installed() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1250,10 +1250,10 @@ installed toolchains
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: directory override for '[..]'
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -1262,10 +1262,10 @@ installed targets:
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -1294,7 +1294,7 @@ async fn override_set_unset_with_path() {
         .await
         .extend_redactions([("[CWD]", cwd_str.to_string())])
         .with_stdout(snapbox::str![[r#"
-[CWD]	nightly-[HOST_TRIPLE]
+[CWD]	nightly-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1332,19 +1332,19 @@ async fn show_toolchain_env() {
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: overridden by environment variable RUSTUP_TOOLCHAIN
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]]);
 }
@@ -1358,7 +1358,7 @@ async fn show_toolchain_env_not_installed() {
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1366,10 +1366,10 @@ installed toolchains
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: overridden by environment variable RUSTUP_TOOLCHAIN
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]]);
 }
@@ -1385,7 +1385,7 @@ async fn show_active_toolchain() {
         .expect(&["rustup", "show", "active-toolchain"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (default)
+nightly-[HOST_TUPLE] (default)
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1415,27 +1415,27 @@ async fn show_with_verbose() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-nightly-[HOST_TRIPLE] (active, default)
+nightly-[HOST_TUPLE] (active, default)
   1.3.0 (hash-nightly-2)
-  path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TRIPLE]
+  path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TUPLE]
 
-nightly-2015-01-01-[HOST_TRIPLE]
+nightly-2015-01-01-[HOST_TUPLE]
   1.2.0 (hash-nightly-1)
-  path: [RUSTUP_DIR]/toolchains/nightly-2015-01-01-[HOST_TRIPLE]
+  path: [RUSTUP_DIR]/toolchains/nightly-2015-01-01-[HOST_TUPLE]
 
 active toolchain
 ----------------
-name: nightly-[HOST_TRIPLE]
+name: nightly-[HOST_TUPLE]
 active because: it's the default toolchain
 compiler: 1.3.0 (hash-nightly-2)
-path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TRIPLE]
+path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TUPLE]
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1454,10 +1454,10 @@ async fn show_active_toolchain_with_verbose() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE]
+nightly-[HOST_TUPLE]
 active because: it's the default toolchain
 compiler: 1.3.0 (hash-nightly-2)
-path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TRIPLE]
+path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1483,7 +1483,7 @@ async fn show_active_toolchain_with_override() {
         .expect(["rustup", "show", "active-toolchain"])
         .await
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] (directory override for '[..]')
+stable-[HOST_TUPLE] (directory override for '[..]')
 
 "#]])
         .is_ok();
@@ -1509,10 +1509,10 @@ async fn show_active_toolchain_with_override_verbose() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE]
+stable-[HOST_TUPLE]
 active because: directory override for '[..]'
 compiler: 1.1.0 (hash-stable-1.1.0)
-path: [RUSTUP_DIR]/toolchains/stable-[HOST_TRIPLE]
+path: [RUSTUP_DIR]/toolchains/stable-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1581,7 +1581,7 @@ default
 async fn set_default_host() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
-        .expect(["rustup", "set", "default-host", &this_host_triple()])
+        .expect(["rustup", "set", "default-host", &this_host_tuple()])
         .await
         .is_ok();
     cx.config
@@ -1589,7 +1589,7 @@ async fn set_default_host() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -1597,13 +1597,13 @@ Default host: [HOST_TRIPLE]
 
 // #846
 #[tokio::test]
-async fn set_default_host_invalid_triple() {
+async fn set_default_host_invalid_tuple() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect(["rustup", "set", "default-host", "foo"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: Provided host 'foo' couldn't be converted to partial triple
+error: Provided host 'foo' couldn't be converted to partial tuple
 
 "#]])
         .is_err();
@@ -1611,7 +1611,7 @@ error: Provided host 'foo' couldn't be converted to partial triple
 
 // #745
 #[tokio::test]
-async fn set_default_host_invalid_triple_valid_partial() {
+async fn set_default_host_invalid_tuple_valid_partial() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect(["rustup", "set", "default-host", "x86_64-msvc"])
@@ -1647,7 +1647,7 @@ async fn update_doesnt_update_non_tracking_channels() {
         .is_ok()
         .without_stderr(&format!(
             "syncing channel updates for 'nightly-2015-01-01-{}'",
-            this_host_triple(),
+            this_host_tuple(),
         ));
 }
 
@@ -1706,11 +1706,11 @@ channel = "nightly"
         .await
         .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file)])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
+info: the active toolchain `nightly-[HOST_TUPLE]` has been installed
 info: it's active because: overridden by '[TOOLCHAIN_FILE]'
 
 "#]])
@@ -1720,7 +1720,7 @@ info: it's active because: overridden by '[TOOLCHAIN_FILE]'
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-rustc-[HOST_TRIPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 
@@ -1729,8 +1729,8 @@ rustc-[HOST_TRIPLE]
         .await
         .extend_redactions([("[TOOLCHAIN_FILE]", &toolchain_file)])
         .with_stderr(snapbox::str![[r#"
-info: using existing install for nightly-[HOST_TRIPLE]
-info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
+info: using existing install for nightly-[HOST_TUPLE]
+info: the active toolchain `nightly-[HOST_TUPLE]` has been installed
 info: it's active because: overridden by '[TOOLCHAIN_FILE]'
 
 "#]])
@@ -1755,7 +1755,7 @@ async fn toolchain_install_no_change_with_no_update() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-  stable-[HOST_TRIPLE] unchanged - 1.0.0 (hash-stable-1.0.0)
+  stable-[HOST_TUPLE] unchanged - 1.0.0 (hash-stable-1.0.0)
 
 
 "#]])
@@ -1866,13 +1866,13 @@ async fn add_component() {
         .is_ok();
     let path = format!(
         "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
-        this_host_triple()
+        this_host_tuple()
     );
     assert!(cx.config.rustupdir.has(path));
 }
 
 #[tokio::test]
-async fn add_component_by_target_triple() {
+async fn add_component_by_target_tuple() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "stable"])
@@ -1889,13 +1889,13 @@ async fn add_component_by_target_triple() {
         .is_ok();
     let path = format!(
         "toolchains/stable-{}/lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib",
-        this_host_triple()
+        this_host_tuple()
     );
     assert!(cx.config.rustupdir.has(path));
 }
 
 #[tokio::test]
-async fn add_component_by_target_triple_renamed_from() {
+async fn add_component_by_target_tuple_renamed_from() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "nightly"])
@@ -1906,7 +1906,7 @@ async fn add_component_by_target_triple_renamed_from() {
             "rustup",
             "component",
             "add",
-            &format!("rls-{}", this_host_triple()),
+            &format!("rls-{}", this_host_tuple()),
         ])
         .await
         .is_ok();
@@ -1915,14 +1915,14 @@ async fn add_component_by_target_triple_renamed_from() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE]
+rls-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
 }
 
 #[tokio::test]
-async fn add_component_by_target_triple_renamed_to() {
+async fn add_component_by_target_tuple_renamed_to() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "nightly"])
@@ -1933,7 +1933,7 @@ async fn add_component_by_target_triple_renamed_to() {
             "rustup",
             "component",
             "add",
-            &format!("rls-preview-{}", this_host_triple()),
+            &format!("rls-preview-{}", this_host_tuple()),
         ])
         .await
         .is_ok();
@@ -1942,7 +1942,7 @@ async fn add_component_by_target_triple_renamed_to() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE]
+rls-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -1964,7 +1964,7 @@ async fn fail_invalid_component_name() {
         ])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'stable-[HOST_TRIPLE]' does not contain component 'dummy-[CROSS_ARCH_I]' for target '[HOST_TRIPLE]'
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'dummy-[CROSS_ARCH_I]' for target '[HOST_TUPLE]'
 
 "#]])
         .is_err();
@@ -1986,7 +1986,7 @@ async fn fail_invalid_component_target() {
     .await
     .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'stable-[HOST_TRIPLE]' does not contain component 'rust-std-invalid-target' for target '[HOST_TRIPLE]'
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rust-std-invalid-target' for target '[HOST_TUPLE]'
 ...
 "#]])
     .is_err();
@@ -2005,7 +2005,7 @@ async fn remove_component() {
         .is_ok();
     let path = PathBuf::from(format!(
         "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
-        this_host_triple(),
+        this_host_tuple(),
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
@@ -2016,24 +2016,24 @@ async fn remove_component() {
 }
 
 #[tokio::test]
-async fn remove_component_by_target_triple() {
-    let component_with_triple = format!("rust-std-{CROSS_ARCH1}");
+async fn remove_component_by_target_tuple() {
+    let component_with_tuple = format!("rust-std-{CROSS_ARCH1}");
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(&["rustup", "default", "stable"])
         .await
         .is_ok();
     cx.config
-        .expect(&["rustup", "component", "add", &component_with_triple])
+        .expect(&["rustup", "component", "add", &component_with_tuple])
         .await
         .is_ok();
     let path = PathBuf::from(format!(
         "toolchains/stable-{}/lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib",
-        this_host_triple()
+        this_host_tuple()
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
-        .expect(&["rustup", "component", "remove", &component_with_triple])
+        .expect(&["rustup", "component", "remove", &component_with_tuple])
         .await
         .is_ok();
     assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
@@ -2043,12 +2043,12 @@ async fn remove_component_by_target_triple() {
 async fn add_remove_multiple_components() {
     let files = [
         "lib/rustlib/src/rust-src/foo.rs".to_owned(),
-        format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple()),
+        format!("lib/rustlib/{}/analysis/libfoo.json", this_host_tuple()),
         format!("lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib"),
         format!("lib/rustlib/{CROSS_ARCH2}/lib/libstd.rlib"),
     ];
-    let component_with_triple1 = format!("rust-std-{CROSS_ARCH1}");
-    let component_with_triple2 = format!("rust-std-{CROSS_ARCH2}");
+    let component_with_tuple1 = format!("rust-std-{CROSS_ARCH1}");
+    let component_with_tuple2 = format!("rust-std-{CROSS_ARCH2}");
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -2062,13 +2062,13 @@ async fn add_remove_multiple_components() {
             "add",
             "rust-src",
             "rust-analysis",
-            &component_with_triple1,
-            &component_with_triple2,
+            &component_with_tuple1,
+            &component_with_tuple2,
         ])
         .await
         .is_ok();
     for file in &files {
-        let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
+        let path = format!("toolchains/nightly-{}/{}", this_host_tuple(), file);
         assert!(cx.config.rustupdir.has(&path));
     }
     cx.config
@@ -2078,17 +2078,13 @@ async fn add_remove_multiple_components() {
             "remove",
             "rust-src",
             "rust-analysis",
-            &component_with_triple1,
-            &component_with_triple2,
+            &component_with_tuple1,
+            &component_with_tuple2,
         ])
         .await
         .is_ok();
     for file in &files {
-        let path = PathBuf::from(format!(
-            "toolchains/nightly-{}/{}",
-            this_host_triple(),
-            file
-        ));
+        let path = PathBuf::from(format!("toolchains/nightly-{}/{}", this_host_tuple(), file));
         assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
     }
 }
@@ -2144,7 +2140,7 @@ async fn env_override_path() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
 
     cx.config
         .expect_with_env(
@@ -2174,7 +2170,7 @@ async fn plus_override_relpath_is_not_supported() {
     let toolchain_path = Path::new("..")
         .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustc",
@@ -2183,7 +2179,7 @@ async fn plus_override_relpath_is_not_supported() {
         ])
         .await
         .with_stderr(snapbox::str![[r#"
-error: relative path toolchain '[..]/toolchains/nightly-[HOST_TRIPLE]'
+error: relative path toolchain '[..]/toolchains/nightly-[HOST_TUPLE]'
 
 "#]])
         .is_err();
@@ -2204,7 +2200,7 @@ async fn run_with_relpath_is_not_supported() {
     let toolchain_path = Path::new("..")
         .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -2216,7 +2212,7 @@ async fn run_with_relpath_is_not_supported() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error:[..] relative path toolchain '[..]/toolchains/nightly-[HOST_TRIPLE]'
+error:[..] relative path toolchain '[..]/toolchains/nightly-[HOST_TUPLE]'
 ...
 "#]])
         .is_err();
@@ -2257,7 +2253,7 @@ async fn plus_override_abspath_is_supported() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
+        .join(format!("nightly-{}", this_host_tuple()))
         .canonicalize()
         .unwrap();
     cx.config
@@ -2286,7 +2282,7 @@ async fn run_with_abspath_is_supported() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
+        .join(format!("nightly-{}", this_host_tuple()))
         .canonicalize()
         .unwrap();
     cx.config
@@ -2317,7 +2313,7 @@ async fn file_override_path() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(
         &toolchain_file,
@@ -2339,7 +2335,7 @@ async fn file_override_path() {
         .expect(["rustup", "show", "active-toolchain"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/nightly-[HOST_TRIPLE] (overridden by '[..]/rust-toolchain.toml')
+[..]/toolchains/nightly-[HOST_TUPLE] (overridden by '[..]/rust-toolchain.toml')
 
 "#]])
         .is_ok();
@@ -2361,7 +2357,7 @@ async fn proxy_override_path() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(
         &toolchain_file,
@@ -2395,7 +2391,7 @@ async fn file_override_path_relative_not_supported() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
 
     // Find shared prefix so we can determine a relative path
@@ -2435,7 +2431,7 @@ async fn file_override_path_relative_not_supported() {
         .expect(["rustc", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: relative path toolchain '[..]/toolchains/nightly-[HOST_TRIPLE]'
+error: relative path toolchain '[..]/toolchains/nightly-[HOST_TUPLE]'
 
 "#]])
         .is_err();
@@ -2835,10 +2831,10 @@ async fn file_override_toml_format_specify_profile() {
     cx.config
         .expect(&["rustup", "component", "list"])
         .await
-        // The `rust-docs-[HOST_TRIPLE]` component is installed.
+        // The `rust-docs-[HOST_TUPLE]` component is installed.
         .with_stdout(snapbox::str![[r#"
 ...
-rust-docs-[HOST_TRIPLE] (installed)
+rust-docs-[HOST_TUPLE] (installed)
 ...
 "#]])
         .is_ok();
@@ -2861,10 +2857,10 @@ channel = "nightly"
     cx.config
         .expect(&["rustup", "component", "list"])
         .await
-        // The `rust-docs-[HOST_TRIPLE]` component is not installed.
+        // The `rust-docs-[HOST_TUPLE]` component is not installed.
         .with_stdout(snapbox::str![[r#"
 ...
-rust-docs-[HOST_TRIPLE]
+rust-docs-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -2901,7 +2897,7 @@ channel = "nightly"
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rust-docs-[HOST_TRIPLE]
+rust-docs-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -2959,7 +2955,7 @@ async fn close_file_override_beats_far_directory_override() {
 #[tokio::test]
 async fn override_order() {
     let cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    let host = this_host_triple();
+    let host = this_host_tuple();
     // give each override type a different toolchain
     let default_tc = &format!("beta-2015-01-01-{host}");
     let env_tc = &format!("stable-2015-01-01-{host}");
@@ -3378,7 +3374,7 @@ async fn valid_override_settings() {
         .expect(&["rustup", "default", "nightly"])
         .await
         .is_ok();
-    let nightly_with_host = format!("nightly-{}", this_host_triple());
+    let nightly_with_host = format!("nightly-{}", this_host_tuple());
     raw::write_file(&toolchain_file, "nightly").unwrap();
     cx.config.expect(&["rustc", "--version"]).await.is_ok();
     // Special case: same version as is installed is permitted.
@@ -3416,7 +3412,7 @@ async fn file_override_with_target_info() {
     cx.config
         .expect(["rustc", "--version"])
         .await
-        .remove_redactions(["[HOST_TRIPLE]"])
+        .remove_redactions(["[HOST_TUPLE]"])
         .with_stderr(snapbox::str![[r#"
 ...
 error: target tuple in channel name 'nightly-x86_64-unknown-linux-gnu'
@@ -3441,7 +3437,7 @@ async fn docs_with_path() {
         .expect(["rustup", "doc", "--path"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/stable-[HOST_TRIPLE]/share/doc/rust/html/index.html
+[..]/toolchains/stable-[HOST_TUPLE]/share/doc/rust/html/index.html
 
 "#]])
         .is_ok();
@@ -3450,7 +3446,7 @@ async fn docs_with_path() {
         .expect(["rustup", "doc", "--path", "--toolchain", "nightly"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/nightly-[HOST_TRIPLE]/share/doc/rust/html/index.html
+[..]/toolchains/nightly-[HOST_TUPLE]/share/doc/rust/html/index.html
 
 "#]])
         .is_ok();
@@ -3477,7 +3473,7 @@ async fn docs_topical_with_path() {
             .extend_redactions([("[PATH]", path)])
             .is_ok()
             .with_stdout(snapbox::str![[r#"
-[..]/toolchains/stable-[HOST_TRIPLE]/[PATH]
+[..]/toolchains/stable-[HOST_TUPLE]/[PATH]
 
 "#]])
             .with_stderr(snapbox::str![""]);
@@ -3499,8 +3495,8 @@ async fn docs_missing() {
         .expect(["rustup", "doc"])
         .await
         .with_stderr(snapbox::str![[r#"
-info: `rust-docs` not installed in toolchain `nightly-[HOST_TRIPLE]`
-help: run `rustup component add --toolchain nightly-[HOST_TRIPLE] rust-docs` to install it
+info: `rust-docs` not installed in toolchain `nightly-[HOST_TUPLE]`
+help: run `rustup component add --toolchain nightly-[HOST_TUPLE] rust-docs` to install it
 error: unable to view documentation which is not installed
 
 "#]])
@@ -3655,7 +3651,7 @@ async fn check_host_goes_away() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: target '[HOST_TRIPLE]' not found in channel[..]
+error: target '[HOST_TUPLE]' not found in channel[..]
 ...
 "#]])
         .is_err();
@@ -3680,7 +3676,7 @@ error: no default toolchain is configured
     let mock_settings_file = cx.config.current_dir().join("mock_fallback_settings.toml");
     raw::write_file(
         &mock_settings_file,
-        &format!("default_toolchain = 'nightly-{}'", this_host_triple()),
+        &format!("default_toolchain = 'nightly-{}'", this_host_tuple()),
     )
     .unwrap();
 
@@ -3694,7 +3690,7 @@ error: no default toolchain is configured
         )
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE] (default)
+nightly-[HOST_TUPLE] (default)
 
 "#]])
         .is_ok();
@@ -3737,13 +3733,13 @@ note: add the `--force-non-host` flag to install the toolchain anyway
 #[tokio::test]
 async fn dont_warn_on_partial_build() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let arch = this_host_triple().split_once('-').unwrap().0.to_owned();
+    let arch = this_host_tuple().split_once('-').unwrap().0.to_owned();
     cx.config
         .expect(["rustup", "toolchain", "install", &format!("nightly-{arch}")])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 ...
 "#]])
         .is_ok()
@@ -3844,11 +3840,11 @@ async fn custom_toolchain_with_components_toolchains_profile_does_not_err() {
         ])
         .await
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for nightly-[HOST_TRIPLE]
+info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading component[..]
 ...
-info: default toolchain set to nightly-[HOST_TRIPLE]
+info: default toolchain set to nightly-[HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -3857,15 +3853,15 @@ info: default toolchain set to nightly-[HOST_TRIPLE]
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 
     // link the toolchain
     let toolchains = cx.config.rustupdir.join("toolchains");
     raw::symlink_dir(
-        &toolchains.join(format!("nightly-{}", this_host_triple())),
+        &toolchains.join(format!("nightly-{}", this_host_tuple())),
         &toolchains.join("my-custom"),
     )
     .expect("failed to symlink");
@@ -3923,7 +3919,7 @@ async fn show_custom_toolchain() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()));
+        .join(format!("stable-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -3939,12 +3935,12 @@ async fn show_custom_toolchain() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-stable-[HOST_TRIPLE] (default)
+stable-[HOST_TUPLE] (default)
 stuff (active)
 
 active toolchain
@@ -3952,7 +3948,7 @@ active toolchain
 name: stuff
 active because: overridden by +toolchain on the command line
 installed targets:
-  [HOST_TRIPLE]
+  [HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -3970,7 +3966,7 @@ async fn show_custom_toolchain_without_components_file() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()));
+        .join(format!("stable-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -3989,12 +3985,12 @@ async fn show_custom_toolchain_without_components_file() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TRIPLE]
+Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-stable-[HOST_TRIPLE] (default)
+stable-[HOST_TUPLE] (default)
 stuff (active)
 
 active toolchain

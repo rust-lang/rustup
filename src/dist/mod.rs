@@ -44,8 +44,8 @@ use prefix::InstallPrefix;
 
 pub mod temp;
 
-pub(crate) mod triple;
-pub(crate) use triple::*;
+pub(crate) mod target_tuple;
+pub(crate) use target_tuple::*;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
@@ -147,17 +147,17 @@ struct ParsedToolchainDesc {
 /// A toolchain descriptor from rustup's perspective. These contain
 /// 'partial target tuples', which allow toolchain names like
 /// 'stable-msvc' to work. Partial target tuples though are parsed
-/// from a hardcoded set of known triples, whereas target tuples
+/// from a hardcoded set of known tuples, whereas target tuples
 /// are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
     pub channel: Channel,
     pub date: Option<String>,
-    pub target: PartialTargetTriple,
+    pub target: PartialTargetTuple,
 }
 
 /// Fully-resolved toolchain descriptors. These always have full target
-/// triples attached to them and are used for canonical identification,
+/// tuples attached to them and are used for canonical identification,
 /// such as naming their installation directory.
 ///
 /// As strings they look like stable-x86_64-pc-windows-msvc or
@@ -166,7 +166,7 @@ pub struct PartialToolchainDesc {
 pub struct ToolchainDesc {
     pub channel: Channel,
     pub date: Option<String>,
-    pub target: TargetTriple,
+    pub target: TargetTuple,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
@@ -254,40 +254,40 @@ impl FromStr for PartialVersion {
 
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
-pub struct TargetTriple(String);
+pub struct TargetTuple(String);
 
 // Linux hosts don't indicate clib in uname, however binaries only
 // run on boxes with the same clib, as expected.
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
+const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
+const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
+const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
+const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
+const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
+const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
-const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
+const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
-const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
+const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
 // Hence we could distinguish between the variants with compile-time cfg()
 // attributes alone.
 #[cfg(all(not(windows), target_endian = "big"))]
-static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
+static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
 #[cfg(all(not(windows), target_endian = "little"))]
-static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
+static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
 
 #[cfg(all(not(windows), target_endian = "big"))]
-static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
+static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
 #[cfg(all(not(windows), target_endian = "little"))]
-static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
+static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl FromStr for ParsedToolchainDesc {
     type Err = anyhow::Error;
@@ -344,7 +344,7 @@ impl FromStr for ParsedToolchainDesc {
     }
 }
 
-impl Deref for TargetTriple {
+impl Deref for TargetTuple {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -374,14 +374,14 @@ fn is_32bit_userspace() -> bool {
     inner().unwrap_or(cfg!(target_pointer_width = "32"))
 }
 
-impl TargetTriple {
+impl TargetTuple {
     pub fn new(name: impl Into<String>) -> Self {
         Self(name.into())
     }
 
     pub(crate) fn from_build() -> Self {
-        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-            Self::new(triple)
+        if let Some(tuple) = option_env!("RUSTUP_OVERRIDE_BUILD_TUPLE") {
+            Self::new(tuple)
         } else {
             Self::new(env!("TARGET"))
         }
@@ -411,7 +411,7 @@ impl TargetTriple {
 
     pub(crate) fn from_host(process: &Process) -> Option<Self> {
         #[cfg(windows)]
-        fn inner() -> Option<TargetTriple> {
+        fn inner() -> Option<TargetTuple> {
             use std::mem;
 
             /// Get the host architecture using `IsWow64Process2`. This function
@@ -482,12 +482,12 @@ impl TargetTriple {
 
             // Default to msvc
             let arch = arch_primary().or_else(arch_fallback)?;
-            let msvc_triple = format!("{arch}-pc-windows-msvc");
-            Some(TargetTriple(msvc_triple))
+            let msvc_tuple = format!("{arch}-pc-windows-msvc");
+            Some(TargetTuple(msvc_tuple))
         }
 
         #[cfg(not(windows))]
-        fn inner() -> Option<TargetTriple> {
+        fn inner() -> Option<TargetTuple> {
             use std::ffi::CStr;
             use std::mem;
 
@@ -505,21 +505,21 @@ impl TargetTriple {
             };
 
             #[cfg(not(target_os = "android"))]
-            let host_triple = match (sysname, machine) {
-                (b"Linux", b"x86_64") => Some(TRIPLE_X86_64_UNKNOWN_LINUX),
+            let host_tuple = match (sysname, machine) {
+                (b"Linux", b"x86_64") => Some(TUPLE_X86_64_UNKNOWN_LINUX),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
-                (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
-                (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
+                (b"Linux", b"mips") => Some(TUPLE_MIPS_UNKNOWN_LINUX_GNU),
+                (b"Linux", b"mips64") => Some(TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
                 (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"aarch64") => Some(if is_32bit_userspace() {
                     "armv7-unknown-linux-gnueabihf"
                 } else {
-                    TRIPLE_AARCH64_UNKNOWN_LINUX
+                    TUPLE_AARCH64_UNKNOWN_LINUX
                 }),
-                (b"Linux", b"loongarch64") => Some(TRIPLE_LOONGARCH64_UNKNOWN_LINUX),
-                (b"Linux", b"ppc64le") => Some(TRIPLE_POWERPC64LE_UNKNOWN_LINUX),
+                (b"Linux", b"loongarch64") => Some(TUPLE_LOONGARCH64_UNKNOWN_LINUX),
+                (b"Linux", b"ppc64le") => Some(TUPLE_POWERPC64LE_UNKNOWN_LINUX),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
@@ -538,7 +538,7 @@ impl TargetTriple {
             };
 
             #[cfg(target_os = "android")]
-            let host_triple = match (sysname, machine) {
+            let host_tuple = match (sysname, machine) {
                 (_, b"arm") => Some("arm-linux-androideabi"),
                 (_, b"armv7l") => Some("armv7-linux-androideabi"),
                 (_, b"armv8l") => Some("armv7-linux-androideabi"),
@@ -548,11 +548,11 @@ impl TargetTriple {
                 _ => None,
             };
 
-            host_triple.map(TargetTriple::new)
+            host_tuple.map(TargetTuple::new)
         }
 
-        if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
-            Some(Self(triple))
+        if let Ok(tuple) = process.var("RUSTUP_OVERRIDE_HOST_TUPLE") {
+            Some(Self(tuple))
         } else {
             inner()
         }
@@ -562,15 +562,15 @@ impl TargetTriple {
         Self::from_host(process).unwrap_or_else(Self::from_build)
     }
 
-    pub(crate) fn can_run(&self, other: &TargetTriple) -> Result<bool> {
+    pub(crate) fn can_run(&self, other: &TargetTuple) -> Result<bool> {
         // Most trivial shortcut of all
         if self == other {
             return Ok(true);
         }
         // Otherwise we need to parse things
-        let partial_self = PartialTargetTriple::new(&self.0)
+        let partial_self = PartialTargetTuple::new(&self.0)
             .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", self.0)))?;
-        let partial_other = PartialTargetTriple::new(&other.0)
+        let partial_other = PartialTargetTuple::new(&other.0)
             .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", other.0)))?;
         // First obvious check is OS, if that doesn't match there's no chance
         let ret = if partial_self.os != partial_other.os {
@@ -595,7 +595,7 @@ impl FromStr for PartialToolchainDesc {
     type Err = anyhow::Error;
     fn from_str(name: &str) -> Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
-        let target = PartialTargetTriple::new(parsed.target.as_deref().unwrap_or(""));
+        let target = PartialTargetTuple::new(parsed.target.as_deref().unwrap_or(""));
 
         target
             .map(|target| Self {
@@ -609,10 +609,10 @@ impl FromStr for PartialToolchainDesc {
 
 impl PartialToolchainDesc {
     /// Create a toolchain desc using input_host to fill in missing fields
-    pub(crate) fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
-        let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
+    pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
+        let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
-                "Provided host '{}' couldn't be converted to partial triple",
+                "Provided host '{}' couldn't be converted to partial tuple",
                 input_host.0
             ))
         })?;
@@ -649,11 +649,11 @@ impl PartialToolchainDesc {
         Ok(ToolchainDesc {
             channel: self.channel,
             date: self.date,
-            target: TargetTriple(trip),
+            target: TargetTuple(trip),
         })
     }
 
-    pub(crate) fn has_triple(&self) -> bool {
+    pub(crate) fn has_tuple(&self) -> bool {
         self.target.arch.is_some() || self.target.os.is_some() || self.target.env.is_some()
     }
 }
@@ -670,7 +670,7 @@ impl FromStr for ToolchainDesc {
         Ok(Self {
             channel: parsed.channel,
             date: parsed.date,
-            target: TargetTriple(parsed.target.unwrap()),
+            target: TargetTuple(parsed.target.unwrap()),
         })
     }
 }
@@ -830,7 +830,7 @@ impl fmt::Display for AutoInstallMode {
     }
 }
 
-impl fmt::Display for TargetTriple {
+impl fmt::Display for TargetTuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
@@ -1180,8 +1180,8 @@ async fn try_update_from_dist_(
             }
 
             for &target in targets {
-                let triple = TargetTriple::new(target);
-                all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
+                let tuple = TargetTuple::new(target);
+                all_components.insert(Component::new("rust-std".to_string(), Some(tuple), false));
             }
 
             let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
@@ -1449,7 +1449,7 @@ mod tests {
     }
 
     #[test]
-    fn compatible_host_triples() {
+    fn compatible_host_tuples() {
         static CASES: &[(&str, &[&str], &[&str])] = &[
             (
                 // 64bit linux
@@ -1494,11 +1494,11 @@ mod tests {
 
         for &(host, compatible, incompatible) in CASES {
             println!("host={host}");
-            let host = TargetTriple::new(host);
+            let host = TargetTuple::new(host);
             assert!(host.can_run(&host).unwrap(), "host wasn't self-compatible");
             for &other in compatible.iter() {
                 println!("compatible with {other}");
-                let other = TargetTriple::new(other);
+                let other = TargetTuple::new(other);
                 assert!(
                     host.can_run(&other).unwrap(),
                     "host and other were unexpectedly incompatible"
@@ -1506,7 +1506,7 @@ mod tests {
             }
             for &other in incompatible.iter() {
                 println!("incompatible with {other}");
-                let other = TargetTriple::new(other);
+                let other = TargetTuple::new(other);
                 assert!(
                     !host.can_run(&other).unwrap(),
                     "host and other were unexpectedly compatible"

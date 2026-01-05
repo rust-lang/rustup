@@ -28,7 +28,7 @@ use crate::process;
 use crate::test as rustup_test;
 use crate::test::const_dist_dir;
 use crate::test::tempdir_in_with_prefix;
-use crate::test::this_host_triple;
+use crate::test::this_host_tuple;
 use crate::utils;
 
 use super::{
@@ -103,7 +103,7 @@ pub struct Config {
 /// [`assert_data_eq`]'s documentation for more info) with a list of
 /// rustup-specific values, including:
 /// - `[CURRENT_VERSION]`: The current rustup version.
-/// - `[HOST_TRIPLE]`: The return value of [`this_host_triple()`].
+/// - `[HOST_TUPLE]`: The return value of [`this_host_tuple()`].
 /// - `[CROSS_ARCH_I]`: The value of [`CROSS_ARCH1`].
 /// - `[CROSS_ARCH_II]`: The value of [`CROSS_ARCH2`].
 /// - `[MULTI_ARCH_I]`: The value of [`MULTI_ARCH1`].
@@ -129,7 +129,7 @@ impl Assert {
                     "[CURRENT_VERSION]",
                     Cow::Borrowed(env!("CARGO_PKG_VERSION")),
                 ),
-                ("[HOST_TRIPLE]", Cow::Owned(this_host_triple())),
+                ("[HOST_TUPLE]", Cow::Owned(this_host_tuple())),
                 ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
                 ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
                 ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
@@ -275,7 +275,9 @@ impl Config {
             format!("file://{}", distdir.to_string_lossy()),
         );
         cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
-        cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
+        cmd.env("RUSTUP_OVERRIDE_HOST_TUPLE", this_host_tuple());
+        // Kept for compatibility
+        cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_tuple());
 
         // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
         cmd.env("HOME", self.homedir.to_string_lossy().to_string());
@@ -862,11 +864,11 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
     hard_link(&rustup_path, rls_path).unwrap();
     hard_link(&rustup_path, rust_lldb_path).unwrap();
 
-    // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
+    // Make sure the host tuple matches the build tuple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
     config
-        .run("rustup", ["set", "default-host", &this_host_triple()], &[])
+        .run("rustup", ["set", "default-host", &this_host_tuple()], &[])
         .await;
 
     // Set the auto update mode to disable, as most tests do not want to update rustup itself during the test.
@@ -900,7 +902,7 @@ impl SelfUpdateTestContext {
         let root_url = create_local_update_server(self_dist, &cx.config.exedir, version);
         cx.config.rustup_update_root = Some(root_url);
 
-        let trip = this_host_triple();
+        let trip = this_host_tuple();
         let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
         let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
         let dist_tmp = dist_dir.join("rustup-init-tmp");
@@ -969,7 +971,7 @@ impl CliTestContext {
         let self_dist = self_dist_tmp.path();
 
         let root_url = create_local_update_server(self_dist, &self.config.exedir, version);
-        let trip = this_host_triple();
+        let trip = this_host_tuple();
         let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
         let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
         let dist_tmp = dist_dir.join("rustup-init-tmp");
@@ -1056,7 +1058,7 @@ impl Drop for DistDirGuard<'_> {
 }
 
 fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) -> String {
-    let trip = this_host_triple();
+    let trip = this_host_tuple();
     let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
     let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
     let rustup_bin = exedir.join(format!("rustup-init{EXE_SUFFIX}"));

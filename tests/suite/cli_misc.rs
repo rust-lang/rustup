@@ -7,7 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use itertools::Itertools;
 use rustup::test::Assert;
-use rustup::test::{CliTestContext, MULTI_ARCH1, Scenario, this_host_triple};
+use rustup::test::{CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple};
 use rustup::utils;
 use rustup::utils::raw::symlink_dir;
 
@@ -144,7 +144,7 @@ async fn update_all_no_update_whitespace() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] installed - 1.3.0 (hash-nightly-2)
 
 
 "#]]);
@@ -226,10 +226,10 @@ async fn subcommand_required_for_self() {
 
 #[tokio::test]
 async fn multi_host_smoke_test() {
-    // We cannot run this test if the current host triple is equal to the
-    // multi-arch triple, but this should never be the case.  Check that just
+    // We cannot run this test if the current host tuple is equal to the
+    // multi-arch tuple, but this should never be the case.  Check that just
     // to be sure.
-    assert_ne!(this_host_triple(), MULTI_ARCH1);
+    assert_ne!(this_host_tuple(), MULTI_ARCH1);
 
     let cx = CliTestContext::new(Scenario::MultiHost).await;
     let toolchain = format!("nightly-{MULTI_ARCH1}");
@@ -584,8 +584,8 @@ async fn rustup_run_not_installed() {
         .expect(["rustup", "run", "nightly", "rustc", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installed
-help: run `rustup toolchain install nightly-[HOST_TRIPLE]` to install it
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
+help: run `rustup toolchain install nightly-[HOST_TUPLE]` to install it
 
 "#]])
         .is_err();
@@ -614,10 +614,10 @@ async fn rustup_run_install() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-cargo-[HOST_TRIPLE]
-rust-docs-[HOST_TRIPLE]
-rust-std-[HOST_TRIPLE]
-rustc-[HOST_TRIPLE]
+cargo-[HOST_TUPLE]
+rust-docs-[HOST_TUPLE]
+rust-std-[HOST_TUPLE]
+rustc-[HOST_TUPLE]
 
 "#]]);
 }
@@ -630,13 +630,13 @@ async fn toolchains_are_resolved_early() {
         .await
         .is_ok();
 
-    let full_toolchain = format!("nightly-{}", this_host_triple());
+    let full_toolchain = format!("nightly-{}", this_host_tuple());
     cx.config
         .expect(["rustup", "default", &full_toolchain])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: using existing install for nightly-[HOST_TRIPLE]
+info: using existing install for nightly-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -684,7 +684,7 @@ async fn run_rls_when_not_available_in_toolchain() {
         .expect(["rls", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: the 'rls' component which provides the command 'rls[EXE]' is not available for the 'nightly-[HOST_TRIPLE]' toolchain
+error: the 'rls' component which provides the command 'rls[EXE]' is not available for the 'nightly-[HOST_TUPLE]' toolchain
 
 "#]])
         .is_err();
@@ -710,7 +710,7 @@ async fn run_rls_when_not_installed() {
         .expect(["rls", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TRIPLE]'.
+error: 'rls[EXE]' is not installed for the toolchain 'stable-[HOST_TUPLE]'.
 help: run `rustup component add rls` to install it
 
 "#]])
@@ -732,8 +732,8 @@ async fn run_rls_when_not_installed_for_nightly() {
         .expect(["rls", "+nightly", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TRIPLE]'.
-help: run `rustup component add --toolchain nightly-[HOST_TRIPLE] rls` to install it
+error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TUPLE]'.
+help: run `rustup component add --toolchain nightly-[HOST_TUPLE] rls` to install it
 
 "#]])
         .is_err();
@@ -751,7 +751,7 @@ async fn run_rust_lldb_when_not_in_toolchain() {
         .expect(["rust-lldb", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: the 'rust-lldb[EXE]' binary, normally provided by the 'rustc' component, is not applicable to the 'nightly-[HOST_TRIPLE]' toolchain
+error: the 'rust-lldb[EXE]' binary, normally provided by the 'rustc' component, is not applicable to the 'nightly-[HOST_TUPLE]' toolchain
 
 "#]])
         .is_err();
@@ -838,7 +838,7 @@ async fn rename_rls_list() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE] (installed)
+rls-[HOST_TUPLE] (installed)
 ...
 "#]])
         .is_ok();
@@ -865,7 +865,7 @@ async fn rename_rls_preview_list() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE] (installed)
+rls-[HOST_TUPLE] (installed)
 ...
 "#]])
         .is_ok();
@@ -897,7 +897,7 @@ async fn rename_rls_remove() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TRIPLE]'.
+error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TUPLE]'.
 ...
 "#]])
         .is_err();
@@ -916,7 +916,7 @@ error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TRIPLE]'.
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TRIPLE]'.
+error: 'rls[EXE]' is not installed for the toolchain 'nightly-[HOST_TUPLE]'.
 ...
 "#]])
         .is_err();
@@ -1091,7 +1091,7 @@ async fn install_unavailable_platform() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installable
+error: toolchain 'nightly-[HOST_TUPLE]' is not installable
 ...
 "#]])
         .is_err();
@@ -1101,7 +1101,7 @@ error: toolchain 'nightly-[HOST_TRIPLE]' is not installable
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain 'nightly-[HOST_TRIPLE]' is not installable
+error: toolchain 'nightly-[HOST_TUPLE]' is not installable
 ...
 "#]])
         .is_err();
@@ -1384,7 +1384,7 @@ async fn which_asking_uninstalled_toolchain() {
         .expect(["rustup", "which", "--toolchain=nightly", "rustc"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/nightly-[HOST_TRIPLE]/bin/rustc[EXE]
+[..]/toolchains/nightly-[HOST_TUPLE]/bin/rustc[EXE]
 
 "#]])
         .is_ok();
@@ -1466,7 +1466,7 @@ async fn override_by_toolchain_on_the_command_line() {
         .expect(["rustup", "+stable", "which", "rustc"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/stable-[HOST_TRIPLE]/bin/rustc[EXE]
+[..]/toolchains/stable-[HOST_TUPLE]/bin/rustc[EXE]
 
 "#]])
         .is_ok();
@@ -1474,7 +1474,7 @@ async fn override_by_toolchain_on_the_command_line() {
         .expect(["rustup", "+nightly", "which", "rustc"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/nightly-[HOST_TRIPLE]/bin/rustc[EXE]
+[..]/toolchains/nightly-[HOST_TUPLE]/bin/rustc[EXE]
 
 "#]])
         .is_ok();
@@ -1487,7 +1487,7 @@ async fn override_by_toolchain_on_the_command_line() {
         .expect(["rustup", "+stable", "which", "rustc"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/stable-[HOST_TRIPLE]/bin/rustc[EXE]
+[..]/toolchains/stable-[HOST_TUPLE]/bin/rustc[EXE]
 
 "#]])
         .is_ok();
@@ -1495,7 +1495,7 @@ async fn override_by_toolchain_on_the_command_line() {
         .expect(["rustup", "+nightly", "which", "rustc"])
         .await
         .with_stdout(snapbox::str![[r#"
-[..]/toolchains/nightly-[HOST_TRIPLE]/bin/rustc[EXE]
+[..]/toolchains/nightly-[HOST_TUPLE]/bin/rustc[EXE]
 
 "#]])
         .is_ok();
@@ -1528,7 +1528,7 @@ info: profile set to minimal
         .expect(["rustup", "default"])
         .await
         .with_stdout(snapbox::str![[r#"
-nightly-[HOST_TRIPLE][..]
+nightly-[HOST_TUPLE][..]
 
 "#]])
         .is_ok();
@@ -1603,9 +1603,9 @@ async fn toolchain_install_multi_components_comma() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-rls-[HOST_TRIPLE][..]
+rls-[HOST_TUPLE][..]
 ...
-rust-docs-[HOST_TRIPLE][..]
+rust-docs-[HOST_TUPLE][..]
 ...
 "#]])
         .is_ok();
@@ -1692,7 +1692,7 @@ async fn rust_analyzer_proxy_falls_back_external() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()))
+        .join(format!("stable-{}", this_host_tuple()))
         .join("bin");
     for dir in [exedir, bindir] {
         fs::rename(dir.join(&rls), dir.join(&ra)).unwrap();

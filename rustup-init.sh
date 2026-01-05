@@ -47,7 +47,7 @@ Options:
   -y
           Disable confirmation prompt
       --default-host <DEFAULT_HOST>
-          Choose a default host triple
+          Choose a default host tuple
       --default-toolchain <DEFAULT_TOOLCHAIN>
           Choose a default toolchain to install. Use 'none' to not install any toolchains at all
       --profile <PROFILE>
