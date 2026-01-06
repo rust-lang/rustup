@@ -21,7 +21,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     config::Cfg,
-    errors::RustupError,
+    errors::{NIGHTLY_COMPONENT_NOTE, RustupError},
     process::Process,
     toolchain::{DistributableToolchain, ToolchainName},
     utils,
@@ -87,22 +87,15 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
     if toolchain.starts_with("nightly") {
         let _ = write!(
             buf,
-            "\
-Sometimes not all components are available in any given nightly.
-If you don't need these components, you could try a minimal installation with:
-
-    rustup toolchain add {toolchain} --profile minimal
-
-If you require these components, please install and use the latest successfully built version,
-which you can find at <https://rust-lang.github.io/rustup-components-history>.
-
-After determining the correct date, install it with a command such as:
-
-    rustup toolchain install nightly-2018-12-27
-
-Then you can use the toolchain with commands such as:
-
-    cargo +nightly-2018-12-27 build"
+            "\n{NIGHTLY_COMPONENT_NOTE}\n\
+        help: if you don't need these components, you could try a minimal installation with:\n\
+        help:     rustup toolchain add {toolchain} --profile minimal\n\
+        help: if you require these components, please install and use the latest successfully built version,\n\
+        help: which you can find at <https://rust-lang.github.io/rustup-components-history>\n\
+        help: after determining the correct date, install it with a command such as:\n\
+        help:     rustup toolchain install nightly-2018-12-27\n\
+        help: then you can use the toolchain with commands such as:\n\
+        help:     cargo +nightly-2018-12-27 build"
         );
     } else if ["beta", "stable"].iter().any(|&p| toolchain.starts_with(p)) {
         let _ = write!(

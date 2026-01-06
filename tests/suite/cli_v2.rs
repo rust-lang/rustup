@@ -1972,7 +1972,7 @@ async fn add_missing_component() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-(sometimes not all components are available in any given nightly)
+note: sometimes not all components are available in any given nightly
 ...
 "#]])
         .is_err();
@@ -1995,21 +1995,16 @@ async fn add_missing_component_toolchain() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-Sometimes not all components are available in any given nightly.
-If you don't need these components, you could try a minimal installation with:
 
-    rustup toolchain add nightly --profile minimal
-
-If you require these components, please install and use the latest successfully built version,
-which you can find at <https://rust-lang.github.io/rustup-components-history>.
-
-After determining the correct date, install it with a command such as:
-
-    rustup toolchain install nightly-2018-12-27
-
-Then you can use the toolchain with commands such as:
-
-    cargo +nightly-2018-12-27 build
+note: sometimes not all components are available in any given nightly
+help: if you don't need these components, you could try a minimal installation with:
+help:     rustup toolchain add nightly --profile minimal
+help: if you require these components, please install and use the latest successfully built version,
+help: which you can find at <https://rust-lang.github.io/rustup-components-history>
+help: after determining the correct date, install it with a command such as:
+help:     rustup toolchain install nightly-2018-12-27
+help: then you can use the toolchain with commands such as:
+help:     cargo +nightly-2018-12-27 build
 ...
 "#]])
         .is_err();
