@@ -253,12 +253,29 @@ pub(crate) fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
     for entry in src.read_dir()? {
         let entry = entry?;
         let kind = entry.file_type()?;
-        let src = entry.path();
-        let dest = dest.join(entry.file_name());
-        if kind.is_dir() {
-            copy_dir(&src, &dest)?;
+        let src_path = entry.path();
+        let dest_path = dest.join(entry.file_name());
+
+        // Check for symlinks first, before is_dir() which follows symlinks
+        if kind.is_symlink() {
+            let link_target = fs::read_link(&src_path)?;
+            #[cfg(unix)]
+            {
+                std::os::unix::fs::symlink(&link_target, &dest_path)?;
+            }
+            #[cfg(windows)]
+            {
+                // On Windows, we need to know if it's a file or directory symlink
+                if src_path.is_dir() {
+                    std::os::windows::fs::symlink_dir(&link_target, &dest_path)?;
+                } else {
+                    std::os::windows::fs::symlink_file(&link_target, &dest_path)?;
+                }
+            }
+        } else if kind.is_dir() {
+            copy_dir(&src_path, &dest_path)?;
         } else {
-            fs::copy(&src, &dest)?;
+            fs::copy(&src_path, &dest_path)?;
         }
     }
     Ok(())
