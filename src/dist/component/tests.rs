@@ -567,3 +567,53 @@ fn copy_dir_preserves_symlinks() {
         "Dir symlink target should be preserved"
     );
 }
+
+#[test]
+#[cfg(unix)]
+fn copy_file_preserves_symlinks() {
+    // copy_file must preserve symlink targets, not create new symlinks to source
+    use std::os::unix::fs::symlink;
+
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
+
+    let src_dir = cx.pkg_dir.path();
+    let real_file = src_dir.join("real_file.txt");
+    utils::write_file("", &real_file, "content").unwrap();
+
+    let link_file = src_dir.join("link.txt");
+    symlink("real_file.txt", &link_file).unwrap();
+
+    assert!(
+        fs::symlink_metadata(&link_file)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(
+        fs::read_link(&link_file).unwrap().to_str().unwrap(),
+        "real_file.txt"
+    );
+
+    tx.copy_file(
+        "test-component",
+        PathBuf::from("copied_link.txt"),
+        &link_file,
+    )
+    .unwrap();
+    tx.commit();
+
+    let dest_link = cx.prefix.path().join("copied_link.txt");
+    assert!(
+        fs::symlink_metadata(&dest_link)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Copied file should be a symlink"
+    );
+    assert_eq!(
+        fs::read_link(&dest_link).unwrap().to_str().unwrap(),
+        "real_file.txt",
+        "Symlink target should be preserved, not point to original source"
+    );
+}
