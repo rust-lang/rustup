@@ -77,7 +77,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
                 .map(|c| manifest.description(c))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let _ = write!(
+            let _ = writeln!(
                 buf,
                 "some components are unavailable for download for channel '{toolchain}': {cs_str}"
             );
@@ -87,7 +87,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
     if toolchain.starts_with("nightly") {
         let _ = write!(
             buf,
-            "\n{NIGHTLY_COMPONENT_NOTE}\n\
+            "{NIGHTLY_COMPONENT_NOTE}\n\
         help: if you don't need these components, you could try a minimal installation with:\n\
         help:     rustup toolchain add {toolchain} --profile minimal\n\
         help: if you require these components, please install and use the latest successfully built version,\n\

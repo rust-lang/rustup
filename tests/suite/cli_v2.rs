@@ -1995,7 +1995,6 @@ async fn add_missing_component_toolchain() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-
 note: sometimes not all components are available in any given nightly
 help: if you don't need these components, you could try a minimal installation with:
 help:     rustup toolchain add nightly --profile minimal
@@ -2005,7 +2004,7 @@ help: after determining the correct date, install it with a command such as:
 help:     rustup toolchain install nightly-2018-12-27
 help: then you can use the toolchain with commands such as:
 help:     cargo +nightly-2018-12-27 build
-...
+
 "#]])
         .is_err();
 }
