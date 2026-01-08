@@ -232,7 +232,12 @@ pub(crate) fn copy_file(src: &Path, dest: &Path) -> Result<()> {
         path: PathBuf::from(src),
     })?;
     if metadata.file_type().is_symlink() {
-        symlink_file(src, dest).map(|_| ())
+        // Read the symlink target and create a new symlink with the same target
+        let link_target = fs::read_link(src).with_context(|| RustupError::ReadingFile {
+            name: "symlink target for",
+            path: PathBuf::from(src),
+        })?;
+        symlink_file(&link_target, dest).map(|_| ())
     } else {
         fs::copy(src, dest)
             .with_context(|| {
