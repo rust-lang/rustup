@@ -34,6 +34,10 @@
   environment variable) which requires authentication such as basic username:password
   credentials or a bearer token.
 
+- `RUSTUP_PROXY_AUTHORIZATION_HEADER` (default: none). This is like the `RUSTUP_AUTHORIZATION_HEADER` except
+  this will add a `Proxy-Authorization` HTTP header. This is for authenticating to forward
+  proxies (via the `HTTP_PROXY` or `HTTPS_PROXY`) environment variables.
+
 - `RUSTUP_IO_THREADS` *unstable* (default: reported cpu count, max 8). Sets the
   number of threads to perform close IO in. Set to `1` to force
   single-threaded IO for troubleshooting, or an arbitrary number to override

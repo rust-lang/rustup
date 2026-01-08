@@ -1,7 +1,7 @@
 // This is for starting a simple proxy that requires basic auth. The only valid credentials will be 'test:123?45>6'. The
 // docker command to run is the following (assuming the current working directory is the top-level source directory for rustup).
 //
-// $ docker run --detach --name ferron-rustup-dist-server 8080:8080 --volume "$(pwd):/mnt/cwd" ferronserver/ferron:2 ferron --config /mnt/cwd/tests/test-dist-server-resources/ferron-rustup-dist-server.kdl
+// $ docker run --detach --name ferron-rustup-dist-server --publish 8080:8080 --volume "$(pwd):/mnt/cwd" ferronserver/ferron:2 ferron --config /mnt/cwd/tests/test-dist-server-resources/ferron-rustup-dist-server.kdl
 //
 // For powershell users, the equivalent command is the following.
 //
@@ -24,15 +24,14 @@
 //
 // $ docker stop ferron-rustup-dist-server && docker rm ferron-rustup-dist-server
 
-* {
+:8080 {
   log_date_format "%d/%b/%Y:%H:%M:%S %z"
   log_format "{client_ip} - {auth_user} [{timestamp}] \"{method} {path_and_query} {version}\" {status_code} {content_length} \"{header:Referer}\" \"{header:User-Agent}\""
-}
-
-:8080 {
-  log "/mnt/cwd/tests/test-dist-server-resources/logs/access.log"
-  error_log "/mnt/cwd/tests/test-dist-server-resources/logs/error.log"
-  status 401 regex=".*" users="test"
+  log "/mnt/cwd/tests/test-dist-server-resources/logs/dist-server-access.log"
+  error_log "/mnt/cwd/tests/test-dist-server-resources/logs/dist-server-error.log"
+  status 401 users="test"
   user "test" "$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08"
   proxy "https://static.rust-lang.org/"
+  proxy_request_header_remove "Authorization"
+  proxy_request_header_remove "Proxy-Authorization"
 }

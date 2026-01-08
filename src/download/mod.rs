@@ -456,6 +456,30 @@ mod curl {
 
     use super::{DownloadError, Event, Process};
 
+    macro_rules! add_header_for_curl_easy_handle {
+        ($handle:ident, $process:ident, $env_var:literal, $header_name:literal) => {
+            if let Some(rustup_header_value) = $process.var_opt($env_var).map_err(|error| {
+                anyhow::anyhow!(
+                    "Internal error getting `{}` environment variable: {}",
+                    $env_var,
+                    anyhow::format_err!(error)
+                )
+            })? {
+                let mut list = List::new();
+                list.append(format!("{}: {}", $header_name, rustup_header_value).as_str())
+                    .map_err(|_| {
+                        // The error could contain sensitive data so give a generic error instead.
+                        anyhow::anyhow!("Failed to add `{}` HTTP header.", $header_name)
+                    })?;
+                $handle.http_headers(list).map_err(|_| {
+                    // The error could contain sensitive data so give a generic error instead.
+                    anyhow::anyhow!("Failed to add headers to curl easy handle.")
+                })?;
+                debug!("Added `{}` header.", $header_name);
+            }
+        };
+    }
+
     pub(super) fn download(
         url: &Url,
         resume_from: u64,
@@ -475,20 +499,18 @@ mod curl {
             handle.url(url.as_ref())?;
             handle.follow_location(true)?;
             handle.useragent(super::CURL_USER_AGENT)?;
-            if let Some(rustup_authorization_header_value) = process.var_opt("RUSTUP_AUTHORIZATION_HEADER").map_err(|error| {
-                anyhow::anyhow!("Internal error getting `RUSTUP_AUTHORIZATION_HEADER` environment variable: {}", anyhow::format_err!(error))
-            })? {
-                let mut list = List::new();
-                list.append(format!("Authorization: {rustup_authorization_header_value}").as_str()).map_err(|_| {
-                    // The error could contain sensitive data so give a generic error instead.
-                    anyhow::anyhow!("Failed to add `Authorization` HTTP header.")
-                })?;
-                handle.http_headers(list).map_err(|_| {
-                    // The error could contain sensitive data so give a generic error instead.
-                    anyhow::anyhow!("Failed to add headers to curl handle.")
-                })?;
-                debug!("Added `Authorization` header.");
-            }
+            add_header_for_curl_easy_handle!(
+                handle,
+                process,
+                "RUSTUP_AUTHORIZATION_HEADER",
+                "Authorization"
+            );
+            add_header_for_curl_easy_handle!(
+                handle,
+                process,
+                "RUSTUP_PROXY_AUTHORIZATION_HEADER",
+                "Proxy-Authorization"
+            );
 
             if resume_from > 0 {
                 handle.resume_from(resume_from)?;
@@ -595,6 +617,32 @@ mod reqwest_be {
 
     use super::{DownloadError, Event, Process, debug};
 
+    macro_rules! add_header_for_client_builder {
+        ($client_builder:ident, $process:ident, $env_var:literal, $header_name:path) => {
+            if let Some(rustup_header_value) = $process.var_opt($env_var).map_err(|_| {
+                // The error could contain sensitive data so give a generic error instead.
+                DownloadError::Message(format!(
+                    "Internal error getting `{}` environment variable",
+                    $env_var
+                ))
+            })? {
+                let mut headers = header::HeaderMap::new();
+                let mut auth_value =
+                    header::HeaderValue::from_str(&rustup_header_value).map_err(|_| {
+                        // The error could contain sensitive data so give a generic error instead.
+                        DownloadError::Message(format!(
+                            "The `{}` environment variable set to an invalid HTTP header value.",
+                            $env_var
+                        ))
+                    })?;
+                auth_value.set_sensitive(true);
+                headers.insert($header_name, auth_value);
+                $client_builder = $client_builder.default_headers(headers);
+                debug!("Added `{}` header.", $header_name);
+            }
+        };
+    }
+
     pub(super) async fn download(
         url: &Url,
         resume_from: u64,
@@ -636,26 +684,18 @@ mod reqwest_be {
             .pool_max_idle_per_host(0)
             .gzip(false)
             .proxy(Proxy::custom(env_proxy));
-        if let Some(rustup_authorization_header_value) = process
-            .var_opt("RUSTUP_AUTHORIZATION_HEADER")
-            .map_err(|_| {
-                // The error could contain sensitive data so give a generic error instead.
-                DownloadError::Message(
-                    "Internal error getting `RUSTUP_AUTHORIZATION_HEADER` environment variable"
-                        .to_string(),
-                )
-            })?
-        {
-            let mut headers = header::HeaderMap::new();
-            let mut auth_value = header::HeaderValue::from_str(&rustup_authorization_header_value).map_err(|_| {
-                // The error could contain sensitive data so give a generic error instead.
-                DownloadError::Message("The `RUSTUP_AUTHORIZATION_HEADER` environment variable set to an invalid HTTP header value.".to_string())
-            })?;
-            auth_value.set_sensitive(true);
-            headers.insert(header::AUTHORIZATION, auth_value);
-            client_builder = client_builder.default_headers(headers);
-            debug!("Added `Authorization` header.");
-        }
+        add_header_for_client_builder!(
+            client_builder,
+            process,
+            "RUSTUP_AUTHORIZATION_HEADER",
+            header::AUTHORIZATION
+        );
+        add_header_for_client_builder!(
+            client_builder,
+            process,
+            "RUSTUP_PROXY_AUTHORIZATION_HEADER",
+            header::PROXY_AUTHORIZATION
+        );
         Ok(client_builder)
     }
 
