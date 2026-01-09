@@ -1,0 +1,64 @@
+// This is for starting a simple test distribution server that requires basic auth. The only valid credentials will be 'test:123?45>6'. The
+// docker command to run is the following (assuming the current working directory is the top-level source directory for rustup).
+//
+// First, create a test network.
+//
+// $ docker network create rustup-test-network
+//
+// Now create the test distribution server.
+//
+// $ docker run --detach --name rustup-test-dist-server --net rustup-test-network --publish 8080:8080 --volume "$(pwd):/mnt/cwd" ferronserver/ferron:2 ferron --config /mnt/cwd/tests/test-dist-server-resources/rustup-test-dist-server.kdl
+//
+// For powershell users, the equivalent command is the following.
+//
+// > docker run --detach --name rustup-test-dist-server --net rustup-test-network --publish 8080:8080 --volume "$(Get-Location):/mnt/cwd" ferronserver/ferron:2 ferron --config /mnt/cwd/tests/test-dist-server-resources/rustup-test-dist-server.kdl
+//
+// Once the server is started, have rustup use it by setting the necessary environment variables.
+//
+// $ export RUSTUP_DIST_SERVER="http://localhost:8080"
+// $ export RUSTUP_UPDATE_ROOT="${RUSTUP_DIST_SERVER}/rustup"
+// $ export RUSTUP_AUTHORIZATION_HEADER="Basic $(printf 'test:123?45>6' | base64)"
+//
+// In powershell, the equivalent commmands are...
+//
+// > $env:RUSTUP_DIST_SERVER = "http://localhost:8080"
+// > $env:RUSTUP_UPDATE_ROOT = "${env:RUSTUP_DIST_SERVER}/rustup"
+// > $env:RUSTUP_AUTHORIZATION_HEADER = "Basic $([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('test:123?45>6')))"
+//
+// The 'RUSTUP_LOG' environment variable should also be set so you can see what server is being used for web requests. Once
+// testing is done, the server can be stopped using the following command.
+//
+// $ docker stop rustup-test-dist-server && docker rm rustup-test-dist-server
+//
+// For testing support to set the `Proxy-Authorization` header, ensure the test distribution server is running using the same docker command
+// as before. Then set these environment variables.
+//
+// $ export ALL_PROXY="http://127.0.0.1:9080"
+// $ export RUSTUP_DIST_SERVER="http://rustup-test-dist-server:8080"
+// $ export RUSTUP_UPDATE_ROOT="${RUSTUP_DIST_SERVER}/rustup"
+//
+// In powershell, equivalent commands are...
+//
+// > $env:ALL_PROXY = "http://127.0.0.1:9080"
+// > $env:RUSTUP_DIST_SERVER = "http://rustup-test-dist-server:8080"
+// > $env:RUSTUP_UPDATE_ROOT = "${env:RUSTUP_DIST_SERVER}/rustup"
+//
+// Finally, start the test forward proxy as follows.
+//
+// $ docker run --detach --name rustup-test-forward-proxy --net rustup-test-network --interactive --tty --publish 9080:9080 mitmproxy/mitmproxy mitmdump --mode regular@0.0.0.0:9080 --proxyauth 'test:123?45>6'
+//
+// To stop and remove the test forward proxy container, run the following.
+//
+// $ docker stop rustup-test-forward-proxy && docker rm rustup-test-forward-proxy
+
+:8080 {
+  log_date_format "%d/%b/%Y:%H:%M:%S %z"
+  log_format "{client_ip} - {auth_user} [{timestamp}] \"{method} {path_and_query} {version}\" {status_code} {content_length} \"{header:Referer}\" \"{header:User-Agent}\""
+  log "/mnt/cwd/tests/test-dist-server-resources/logs/dist-server-access.log"
+  error_log "/mnt/cwd/tests/test-dist-server-resources/logs/dist-server-error.log"
+  status 401 users="test"
+  user "test" "$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08"
+  proxy "https://static.rust-lang.org/"
+  proxy_request_header_remove "Authorization"
+  proxy_request_header_remove "Proxy-Authorization"
+}
