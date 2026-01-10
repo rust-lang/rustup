@@ -34,12 +34,14 @@
 // as before. Then set these environment variables.
 //
 // $ export ALL_PROXY="http://127.0.0.1:9080"
+// $ export RUSTUP_PROXY_AUTHORIZATION_HEADER="Basic $(printf 'test:123?45>6' | base64)"
 // $ export RUSTUP_DIST_SERVER="http://rustup-test-dist-server:8080"
 // $ export RUSTUP_UPDATE_ROOT="${RUSTUP_DIST_SERVER}/rustup"
 //
 // In powershell, equivalent commands are...
 //
 // > $env:ALL_PROXY = "http://127.0.0.1:9080"
+// > $env:RUSTUP_PROXY_AUTHORIZATION_HEADER = "Basic $([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes('test:123?45>6')))"
 // > $env:RUSTUP_DIST_SERVER = "http://rustup-test-dist-server:8080"
 // > $env:RUSTUP_UPDATE_ROOT = "${env:RUSTUP_DIST_SERVER}/rustup"
 //
