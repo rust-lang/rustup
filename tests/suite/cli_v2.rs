@@ -1986,7 +1986,7 @@ note: sometimes not all components are available in any given nightly
 }
 
 #[tokio::test]
-async fn add_missing_component_toolchain() {
+async fn add_toolchain_with_missing_component() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     make_component_unavailable(&cx.config, "rust-std", this_host_triple());
     cx.config
@@ -1995,7 +1995,6 @@ async fn add_missing_component_toolchain() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-
 note: sometimes not all components are available in any given nightly
 help: if you don't need these components, you could try a minimal installation with:
 help:     rustup toolchain add nightly --profile minimal
@@ -2005,7 +2004,33 @@ help: after determining the correct date, install it with a command such as:
 help:     rustup toolchain install nightly-2018-12-27
 help: then you can use the toolchain with commands such as:
 help:     cargo +nightly-2018-12-27 build
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn add_toolchain_with_missing_components() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    for comp in &["rust-std", "cargo"] {
+        make_component_unavailable(&cx.config, comp, this_host_triple());
+    }
+    cx.config
+        .expect(["rustup", "toolchain", "add", "nightly"])
+        .await
+        .with_stderr(snapbox::str![[r#"
 ...
+error: some components are unavailable for download for channel 'nightly': 'cargo' for target '[HOST_TRIPLE]', 'rust-std' for target '[HOST_TRIPLE]'
+note: sometimes not all components are available in any given nightly
+help: if you don't need these components, you could try a minimal installation with:
+help:     rustup toolchain add nightly --profile minimal
+help: if you require these components, please install and use the latest successfully built version,
+help: which you can find at <https://rust-lang.github.io/rustup-components-history>
+help: after determining the correct date, install it with a command such as:
+help:     rustup toolchain install nightly-2018-12-27
+help: then you can use the toolchain with commands such as:
+help:     cargo +nightly-2018-12-27 build
+
 "#]])
         .is_err();
 }
