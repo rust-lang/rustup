@@ -9,18 +9,24 @@ If you don't have Visual Studio already installed then the [rustup-init.exe](htt
 
 ## Manual install
 
-If you only want to install the bare essentials you could install only the Build Tools and the required components.
+You could also install only the Visual Studio Build Tools and the required components.
 
-First you need to get the VisualStudio Installer to download the components:
+You can dowload the official Microsoft Visual Studio Installer via winget:
 ```Batchfile
-winget install --id Microsoft.VisualStudio.BuildTools
+winget install Microsoft.VisualStudio.BuildTools --interactive --custom "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100"
 ```
-Then you need to install the individual components. Either via a simple cmd command (opens the GUI): 
-```Batchfile
-"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vs_installer.exe" modify --productId Microsoft.VisualStudio.Product.BuildTools --channelId VisualStudio.18.Release --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --passive
-```
-Or via the Visual Studio Installer GUI by selecting the individual components yourself:
+The installer will start by linking to the [Build Tools license][vs licences] and will install the "Visual Studio Installer".
+
+![Accept the license](images/step1.png)
+![Installing the installer](images/step2.png)
+
+Then you need to install the individual components:
 * MSVC Build Tools for x64/x86 (Latest)
 * Windows 11 SDK (10.0.26100.XXXX)
 
+If you used the winget-install method above, the 2 components are already selected and ready for "Install".
+If not, you can find them under "Individual Components" if you "Modify" your existing Visual Studio setup.
+
 Once finished, you can continue on to installing Rust and the installer should detect MSVC.
+
+[vs licences]: https://visualstudio.microsoft.com/license-terms/vs2026-ga-diagnostic-buildtools/
