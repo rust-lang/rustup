@@ -260,11 +260,12 @@ pub(crate) async fn try_install_msvc(
     opts: &InstallOpts<'_>,
     cfg: &Cfg<'_>,
 ) -> Result<ContinueInstall> {
-
     info!("running the Visual Studio Installer\n");
     info!("Follow the Installation and Close the Window to continue with rustup!\n");
 
-    let mut vsi_args = String::from("--focusedUi --addProductLang En-us --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64");
+    let mut vsi_args = String::from(
+        "--focusedUi --addProductLang En-us --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+    );
     // It's possible an earlier or later version of the Windows SDK has been
     // installed separately from Visual Studio so installing it can be skipped.
     if !has_windows_sdk_libs(cfg.process) {
@@ -276,7 +277,7 @@ pub(crate) async fn try_install_msvc(
     let mut cmd = Command::new("winget");
     cmd.arg("install")
         .args(["--id", "Microsoft.VisualStudio.BuildTools"])
-        // Simple force update the Installer 
+        // Simple force update the Installer
         .arg("--force")
         // Overide winget silent mode
         .arg("--interactive")

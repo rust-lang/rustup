@@ -14,7 +14,7 @@ If you chose the automatic install this winget command will run in the backgroun
 winget install --id Microsoft.VisualStudio.BuildTools --force --interactive  --custom "--focusedUi --addProductLang En-us --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100"
 ```
 
-But you could [download the Microsoft Build Tools for Visual Studio][vs download] Installer yourself and do the same steps manual.
+But you could [download the Microsoft Build Tools for Visual Studio][vs download] Installer yourself and do the same steps manually.
 
 The installer will start by linking to the [Build Tools license][vs licences] and will install the "Visual Studio Installer", a tool to manage Visual Studio components.
 
