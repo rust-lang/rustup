@@ -26,6 +26,9 @@ mod curl {
     use super::{scrub_env, serve_file, tmp_dir, write_file};
     use crate::download::{Backend, Event};
 
+    #[cfg(feature = "test")]
+    use crate::process::TestProcess;
+
     #[tokio::test]
     async fn partially_downloaded_file_gets_resumed_from_byte_offset() {
         let tmpdir = tmp_dir();
@@ -43,6 +46,7 @@ mod curl {
                 true,
                 None,
                 Duration::from_secs(180),
+                &TestProcess::default().process,
             )
             .await
             .expect("Test download failed");
@@ -91,6 +95,7 @@ mod curl {
                     Ok(())
                 }),
                 Duration::from_secs(180),
+                &TestProcess::default().process,
             )
             .await
             .expect("Test download failed");
@@ -119,6 +124,9 @@ mod reqwest {
 
     use super::{scrub_env, serve_file, tmp_dir, write_file};
     use crate::download::{Backend, Event, TlsBackend};
+
+    #[cfg(feature = "test")]
+    use crate::process::TestProcess;
 
     // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
     #[tokio::test]
@@ -199,6 +207,7 @@ mod reqwest {
                 true,
                 None,
                 Duration::from_secs(180),
+                &TestProcess::default().process,
             )
             .await
             .expect("Test download failed");
@@ -247,6 +256,7 @@ mod reqwest {
                     Ok(())
                 }),
                 Duration::from_secs(180),
+                &TestProcess::default().process,
             )
             .await
             .expect("Test download failed");
