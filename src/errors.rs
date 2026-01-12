@@ -27,6 +27,10 @@ pub struct OperationError(pub anyhow::Error);
 pub enum RustupError {
     #[error("partially downloaded file may have been damaged and was removed, please try again")]
     BrokenPartialFile,
+    #[error("failed to create '{0}' as lockfile")]
+    CreateLockedFile(PathBuf),
+    #[error("failed to lock '{0}'")]
+    LockedFile(PathBuf),
     #[error("component download failed for {0}")]
     ComponentDownloadFailed(String),
     #[error("failure removing component '{name}', directory does not exist: '{}'", .path.display())]
