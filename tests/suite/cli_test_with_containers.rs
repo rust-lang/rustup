@@ -43,11 +43,11 @@ mod tests {
         async fn start_containers(&mut self) {
             self.dist_server_container_context.run().await.unwrap();
             self.forward_proxy_container_context.run().await.unwrap();
-            self.counter = self.counter + 1;
+            self.counter += 1;
         }
 
         async fn stop_containers(&mut self) {
-            self.counter = self.counter - 1;
+            self.counter -= 1;
             if self.counter == 0 {
                 self.dist_server_container_context
                     .cleanup_container()
