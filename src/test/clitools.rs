@@ -12,7 +12,7 @@ use std::{
     mem,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     time::Instant,
@@ -1355,6 +1355,9 @@ impl TestContainerContext {
                     .unwrap();
                     let mut command = Command::new(&self.docker_program);
                     let exit_status = command
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
                         .args([
                             "run",
                             "--detach",
@@ -1389,6 +1392,9 @@ impl TestContainerContext {
                 TestContainer::ForwardProxy => {
                     let mut command = Command::new(&self.docker_program);
                     let exit_status = command
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
                         .args([
                             "run",
                             "--detach",
@@ -1430,7 +1436,9 @@ impl TestContainerContext {
         let _guard = (*CONTAINER_NETWORK_CREATE_LOCK).lock().await;
         let mut command = Command::new(&self.docker_program);
         let output = command
-            .stdout(std::process::Stdio::piped())
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
             .args([
                 "network",
                 "ls",
@@ -1444,6 +1452,9 @@ impl TestContainerContext {
         if output.stdout.is_empty() {
             let mut command = Command::new(&self.docker_program);
             let exit_status = command
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
                 .args(["network", "create", DEFAULT_RUSTUP_TEST_NETWORK_NAME])
                 .spawn()
                 .unwrap()
@@ -1466,7 +1477,9 @@ impl TestContainerContext {
     fn is_running(&self) -> bool {
         let mut command = Command::new(&self.docker_program);
         let output = command
-            .stdout(std::process::Stdio::piped())
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
             .args([
                 "ps",
                 "--format",
@@ -1484,6 +1497,9 @@ impl TestContainerContext {
             if self.is_running() {
                 let mut command = Command::new(&self.docker_program);
                 let exit_status = command
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
                     .args(["stop", format!("{}", self.container).as_str()])
                     .spawn()
                     .unwrap()
@@ -1499,6 +1515,9 @@ impl TestContainerContext {
                 } else {
                     let mut command = Command::new(&self.docker_program);
                     let exit_status = command
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
                         .args(["rm", format!("{}", self.container).as_str()])
                         .spawn()
                         .unwrap()
