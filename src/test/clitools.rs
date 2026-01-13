@@ -1256,8 +1256,15 @@ where
 
 const DEFAULT_RUSTUP_TEST_NETWORK_NAME: &str = "rustup-test-network";
 
-const RUSTUP_TEST_DIST_SERVER_CONFIG: &str =
-    include_str!("../../tests/resources/rustup-test-dist-server.kdl");
+// This is the simplest ferron config that will send all output to stderr and serve the rustup test distribution files
+// and require basic authentication. The only valid credentials are 'test:123?45>6'.
+const RUSTUP_TEST_DIST_SERVER_CONFIG: &str = ":8080 {\n\
+  log \"/dev/stderr\"\n\
+  error_log \"/dev/stderr\"\n\
+  status 401 users=\"test\"\n\
+  user \"test\" \"$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08\"\n\
+  root \"/mnt/rustup-test-temp-dir\"\n\
+}";
 
 // This is used for ensuring one thread ensures the test network is created.
 static DOCKER_NETWORK_CREATE_LOCK: LazyLock<RwLock<()>> = LazyLock::new(|| RwLock::new(()));
@@ -1343,20 +1350,13 @@ impl TestContainerContext {
                         .path()
                         .to_string_lossy()
                         .into_owned();
-                    let re = regex::Regex::new(r"(?sm)\n// BEGIN VARIABLE CONFIG SECTION\n.*\n// END VARIABLE CONFIG SECTION\n").unwrap();
-                    let config = re
-                        .replace_all(
-                            RUSTUP_TEST_DIST_SERVER_CONFIG,
-                            "\n  root \"/mnt/rustup-test-temp-dir\"\n",
-                        )
-                        .to_string();
                     tokio::fs::write(
                         cli_test_context
                             .config
                             .test_dist_dir
                             .path()
                             .join("rustup-test-dist-server.kdl"),
-                        config,
+                        RUSTUP_TEST_DIST_SERVER_CONFIG,
                     )
                     .await
                     .unwrap();
