@@ -1267,10 +1267,8 @@ const RUSTUP_TEST_DIST_SERVER_CONFIG: &str = ":8080 {\n\
 }";
 
 // This is used for ensuring one thread ensures the test network is created.
-static DOCKER_NETWORK_CREATE_LOCK: LazyLock<RwLock<()>> = LazyLock::new(|| RwLock::new(()));
-
-static DEFAULT_RUSTUP_TEST_DOCKER_PROGRAM: LazyLock<String> =
-    LazyLock::new(|| format!("docker{EXE_SUFFIX}"));
+static CONTAINER_NETWORK_CREATE_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(()));
 
 #[derive(Debug)]
 pub enum TestContainer {
@@ -1295,7 +1293,7 @@ pub struct TestContainerContext {
     container: TestContainer,
     docker_program: std::ffi::OsString,
     leave_container_running: bool,
-    cli_test_context: tokio::sync::Mutex<Option<CliTestContext>>,
+    cli_test_context: CliTestContext,
 }
 
 impl Drop for TestContainerContext {
@@ -1305,16 +1303,26 @@ impl Drop for TestContainerContext {
 }
 
 impl TestContainerContext {
-    pub fn new(process: &process::Process, container: TestContainer) -> Self {
+    pub async fn new(process: &process::Process, container: TestContainer) -> Self {
+        let default_docker_program = format!("docker{EXE_SUFFIX}");
         let docker_program = process
             .var_os("RUSTUP_TEST_DOCKER_PROGRAM")
-            .unwrap_or((*DEFAULT_RUSTUP_TEST_DOCKER_PROGRAM).as_str().into());
+            .unwrap_or(default_docker_program.into());
         let leave_container_running = process
             .var_opt("RUSTUP_TEST_LEAVE_CONTAINERS_RUNNING")
             .unwrap()
             .map(|var| var.eq("true"))
             .unwrap_or_default();
-        let cli_test_context = tokio::sync::Mutex::new(None);
+        let cli_test_context = match container {
+            TestContainer::DistServer => {
+                let mut cli_test_context = CliTestContext::new(Scenario::SimpleV2).await;
+                if leave_container_running {
+                    cli_test_context.config.test_dist_dir.disable_cleanup(true);
+                }
+                cli_test_context
+            }
+            TestContainer::ForwardProxy => CliTestContext::new(Scenario::None).await,
+        };
         Self {
             container,
             docker_program,
@@ -1323,35 +1331,20 @@ impl TestContainerContext {
         }
     }
 
-    async fn ensure_initialized(&mut self) {
-        let mut cli_test_context_guard = self.cli_test_context.lock().await;
-        if cli_test_context_guard.is_none() {
-            let test_version = "2.0.0";
-            let mut cli_test_context = CliTestContext::new(Scenario::SimpleV2).await;
-            let _dist_guard = cli_test_context.with_update_server(test_version);
-            if self.leave_container_running {
-                cli_test_context.config.test_dist_dir.disable_cleanup(true);
-            }
-            cli_test_context_guard.replace(cli_test_context);
-        }
-    }
-
     pub async fn run(&mut self) -> anyhow::Result<()> {
         if !self.is_running() {
-            self.ensure_network_created().unwrap();
-            self.ensure_initialized().await;
-            let cli_test_context_guard = self.cli_test_context.lock().await;
-            let cli_test_context = cli_test_context_guard.as_ref().unwrap();
+            self.ensure_network_created().await.unwrap();
             match self.container {
                 TestContainer::DistServer => {
-                    let temp_dir_string = cli_test_context
+                    let temp_dir_string = self
+                        .cli_test_context
                         .config
                         .test_dist_dir
                         .path()
                         .to_string_lossy()
                         .into_owned();
                     tokio::fs::write(
-                        cli_test_context
+                        self.cli_test_context
                             .config
                             .test_dist_dir
                             .path()
@@ -1433,8 +1426,8 @@ impl TestContainerContext {
         }
     }
 
-    fn ensure_network_created(&self) -> anyhow::Result<()> {
-        let _guard = (*DOCKER_NETWORK_CREATE_LOCK).write().unwrap();
+    async fn ensure_network_created(&self) -> anyhow::Result<()> {
+        let _guard = (*CONTAINER_NETWORK_CREATE_LOCK).lock().await;
         let mut command = Command::new(&self.docker_program);
         let output = command
             .stdout(std::process::Stdio::piped())
@@ -1486,7 +1479,7 @@ impl TestContainerContext {
         !output.stdout.is_empty()
     }
 
-    fn cleanup_container(&self) -> anyhow::Result<()> {
+    pub fn cleanup_container(&self) -> anyhow::Result<()> {
         if !self.leave_container_running {
             if self.is_running() {
                 let mut command = Command::new(&self.docker_program);

@@ -3,61 +3,96 @@ mod tests {
     use std::{
         env::consts::EXE_SUFFIX,
         process::{Command, Stdio},
-        sync::{Arc, LazyLock, Mutex},
     };
 
     use rustup::{
         process::Process,
         test::{CliTestContext, Scenario, TestContainer, TestContainerContext},
     };
+    use tokio::sync::{Mutex, OnceCell};
 
     // TODO: Figure out how to programmatically determine the published ports in running containers and then
     // use that to set the 'RUSTUP_DIST_SERVER' and 'ALL_PROXY' environment variables.
     const RUSTUP_TEST_DIST_SERVER: &str = "http://localhost:8080";
     const RUSTUP_TEST_FORWARD_PROXY: &str = "http://localhost:9080";
 
-    static RUSTUP_TEST_DIST_SERVER_CONTAINER_CONTEXT: LazyLock<Arc<Mutex<TestContainerContext>>> =
-        LazyLock::new(|| {
-            let process = Process::os();
-            Arc::new(Mutex::new(TestContainerContext::new(
-                &process,
-                TestContainer::DistServer,
-            )))
-        });
-    static RUSTUP_TEST_FORWARD_PROXY_CONTAINER_CONTEXT: LazyLock<Arc<Mutex<TestContainerContext>>> =
-        LazyLock::new(|| {
-            let process = Process::os();
-            Arc::new(Mutex::new(TestContainerContext::new(
-                &process,
-                TestContainer::ForwardProxy,
-            )))
-        });
+    struct TestContainerContexts {
+        dist_server_container_context: TestContainerContext,
+        forward_proxy_container_context: TestContainerContext,
+        counter: usize,
+    }
 
-    async fn start_containers() {
-        let mut test_dist_server_container_context_guard =
-            (*RUSTUP_TEST_DIST_SERVER_CONTAINER_CONTEXT).lock().unwrap();
-        test_dist_server_container_context_guard
-            .run()
-            .await
-            .unwrap();
-        let mut test_forward_proxy_container_context_guard =
-            (*RUSTUP_TEST_FORWARD_PROXY_CONTAINER_CONTEXT)
+    impl TestContainerContexts {
+        async fn new() -> Self {
+            let process = Process::os();
+            Self {
+                dist_server_container_context: TestContainerContext::new(
+                    &process,
+                    TestContainer::DistServer,
+                )
+                .await,
+                forward_proxy_container_context: TestContainerContext::new(
+                    &process,
+                    TestContainer::ForwardProxy,
+                )
+                .await,
+                counter: 0,
+            }
+        }
+
+        async fn start_containers(&mut self) {
+            self.dist_server_container_context.run().await.unwrap();
+            self.forward_proxy_container_context.run().await.unwrap();
+            self.counter = self.counter + 1;
+        }
+
+        async fn stop_containers(&mut self) {
+            self.counter = self.counter - 1;
+            if self.counter == 0 {
+                self.dist_server_container_context
+                    .cleanup_container()
+                    .unwrap();
+                self.forward_proxy_container_context
+                    .cleanup_container()
+                    .unwrap();
+            }
+        }
+    }
+
+    static TEST_CONTAINER_CONTEXTS_ONCE: OnceCell<Mutex<TestContainerContexts>> =
+        OnceCell::const_new();
+
+    macro_rules! start_containers {
+        () => {{
+            let mut test_container_contexts_guard = TEST_CONTAINER_CONTEXTS_ONCE
+                .get_or_init(|| async { Mutex::new(TestContainerContexts::new().await) })
+                .await
                 .lock()
-                .unwrap();
-        test_forward_proxy_container_context_guard
-            .run()
-            .await
-            .unwrap();
+                .await;
+            test_container_contexts_guard.start_containers().await;
+        }};
+    }
+
+    macro_rules! stop_containers {
+        () => {{
+            let mut test_container_contexts_guard = TEST_CONTAINER_CONTEXTS_ONCE
+                .get_or_init(|| async { Mutex::new(TestContainerContexts::new().await) })
+                .await
+                .lock()
+                .await;
+            test_container_contexts_guard.stop_containers().await;
+        }};
     }
 
     #[tokio::test]
     async fn test_start_containers() {
-        start_containers().await;
+        start_containers!();
+        stop_containers!();
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_missing_creds() {
-        start_containers().await;
+        start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -85,11 +120,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
+        stop_containers!();
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_incorrect_creds() {
-        start_containers().await;
+        start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -119,11 +155,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
+        stop_containers!();
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth() {
-        start_containers().await;
+        start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -153,11 +190,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(exit_status.success());
+        stop_containers!();
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_missing_creds() {
-        start_containers().await;
+        start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -189,11 +227,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
+        stop_containers!();
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_incorrect_creds() {
-        start_containers().await;
+        start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -229,11 +268,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
+        stop_containers!();
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth() {
-        start_containers().await;
+        start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -269,5 +309,6 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(exit_status.success());
+        stop_containers!();
     }
 }
