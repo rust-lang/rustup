@@ -103,7 +103,7 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .args(&["-y", "--no-modify-path"])
+            .args(["-y", "--no-modify-path"])
             .env(
                 "RUSTUP_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
@@ -137,7 +137,7 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .args(&["-y", "--no-modify-path"])
+            .args(["-y", "--no-modify-path"])
             .env(
                 "RUSTUP_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
@@ -172,7 +172,7 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .args(&["-y", "--no-modify-path"])
+            .args(["-y", "--no-modify-path"])
             .env(
                 "RUSTUP_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
@@ -208,7 +208,7 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .args(&["-y", "--no-modify-path"])
+            .args(["-y", "--no-modify-path"])
             .env(
                 "RUSTUP_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
@@ -245,7 +245,7 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .args(&["-y", "--no-modify-path"])
+            .args(["-y", "--no-modify-path"])
             .env(
                 "RUSTUP_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
@@ -286,7 +286,7 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .args(&["-y", "--no-modify-path"])
+            .args(["-y", "--no-modify-path"])
             .env(
                 "RUSTUP_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
