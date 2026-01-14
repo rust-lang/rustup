@@ -1817,6 +1817,53 @@ no active toolchain
 }
 
 #[tokio::test]
+async fn uninstall_multiple_toolchains_sequentially() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::SimpleV2);
+        cx.config
+            .expect(["rustup", "toolchain", "install", "stable"])
+            .await
+            .is_ok();
+        cx.config
+            .expect(["rustup", "toolchain", "install", "beta"])
+            .await
+            .is_ok();
+        cx.config
+            .expect(["rustup", "toolchain", "install", "nightly"])
+            .await
+            .is_ok();
+    }
+
+    cx.config
+        .expect(["rustup", "default", "none"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect([
+            "rustup",
+            "toolchain",
+            "uninstall",
+            "stable",
+            "beta",
+            "nightly",
+        ])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "toolchain", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+no installed toolchains
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn proxy_toolchain_shorthand() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
