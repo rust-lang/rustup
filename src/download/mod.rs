@@ -228,6 +228,19 @@ async fn download_file_(
     res
 }
 
+#[cfg(any(
+    feature = "curl-backend",
+    feature = "reqwest-rustls-tls",
+    feature = "reqwest-native-tls"
+))]
+const RUSTUP_AUTHORIZATION_HEADER_ENV_VAR: &str = "RUSTUP_AUTHORIZATION_HEADER";
+#[cfg(any(
+    feature = "curl-backend",
+    feature = "reqwest-rustls-tls",
+    feature = "reqwest-native-tls"
+))]
+const RUSTUP_PROXY_AUTHORIZATION_HEADER_ENV_VAR: &str = "RUSTUP_PROXY_AUTHORIZATION_HEADER";
+
 /// User agent header value for HTTP request.
 /// See: https://github.com/rust-lang/rustup/issues/2860.
 #[cfg(feature = "curl-backend")]
@@ -454,10 +467,13 @@ mod curl {
     use tracing::debug;
     use url::Url;
 
-    use super::{DownloadError, Event, Process};
+    use super::{
+        DownloadError, Event, Process, RUSTUP_AUTHORIZATION_HEADER_ENV_VAR,
+        RUSTUP_PROXY_AUTHORIZATION_HEADER_ENV_VAR,
+    };
 
     macro_rules! add_header_for_curl_easy_handle {
-        ($handle:ident, $process:ident, $env_var:literal, $header_name:literal) => {
+        ($handle:ident, $process:ident, $env_var:ident, $header_name:literal, $header_list:ident) => {
             if let Some(rustup_header_value) = $process.var_opt($env_var).map_err(|error| {
                 anyhow::anyhow!(
                     "Internal error getting `{}` environment variable: {}",
@@ -465,17 +481,13 @@ mod curl {
                     anyhow::format_err!(error)
                 )
             })? {
-                let mut list = List::new();
+                let list = $header_list.get_or_insert(List::new());
                 list.append(format!("{}: {}", $header_name, rustup_header_value).as_str())
                     .map_err(|_| {
                         // The error could contain sensitive data so give a generic error instead.
                         anyhow::anyhow!("Failed to add `{}` HTTP header.", $header_name)
                     })?;
-                $handle.http_headers(list).map_err(|_| {
-                    // The error could contain sensitive data so give a generic error instead.
-                    anyhow::anyhow!("Failed to add headers to curl easy handle.")
-                })?;
-                debug!("Added `{}` header.", $header_name);
+                debug!("Adding `{}` header.", $header_name);
             }
         };
     }
@@ -499,18 +511,27 @@ mod curl {
             handle.url(url.as_ref())?;
             handle.follow_location(true)?;
             handle.useragent(super::CURL_USER_AGENT)?;
+            let mut header_list: Option<List> = None;
             add_header_for_curl_easy_handle!(
                 handle,
                 process,
-                "RUSTUP_AUTHORIZATION_HEADER",
-                "Authorization"
+                RUSTUP_AUTHORIZATION_HEADER_ENV_VAR,
+                "Authorization",
+                header_list
             );
             add_header_for_curl_easy_handle!(
                 handle,
                 process,
-                "RUSTUP_PROXY_AUTHORIZATION_HEADER",
-                "Proxy-Authorization"
+                RUSTUP_PROXY_AUTHORIZATION_HEADER_ENV_VAR,
+                "Proxy-Authorization",
+                header_list
             );
+            if let Some(list) = header_list {
+                handle.http_headers(list).map_err(|_| {
+                    // The error could contain sensitive data so give a generic error instead.
+                    anyhow::anyhow!("Failed to add headers to curl easy handle.")
+                })?;
+            }
 
             if resume_from > 0 {
                 handle.resume_from(resume_from)?;
@@ -615,10 +636,13 @@ mod reqwest_be {
     use tokio_stream::StreamExt;
     use url::Url;
 
-    use super::{DownloadError, Event, Process, debug};
+    use super::{
+        DownloadError, Event, Process, RUSTUP_AUTHORIZATION_HEADER_ENV_VAR,
+        RUSTUP_PROXY_AUTHORIZATION_HEADER_ENV_VAR, debug,
+    };
 
     macro_rules! add_header_for_client_builder {
-        ($client_builder:ident, $process:ident, $env_var:literal, $header_name:path) => {
+        ($client_builder:ident, $process:ident, $env_var:ident, $header_name:path) => {
             if let Some(rustup_header_value) = $process.var_opt($env_var).map_err(|_| {
                 // The error could contain sensitive data so give a generic error instead.
                 DownloadError::Message(format!(
@@ -687,13 +711,13 @@ mod reqwest_be {
         add_header_for_client_builder!(
             client_builder,
             process,
-            "RUSTUP_AUTHORIZATION_HEADER",
+            RUSTUP_AUTHORIZATION_HEADER_ENV_VAR,
             header::AUTHORIZATION
         );
         add_header_for_client_builder!(
             client_builder,
             process,
-            "RUSTUP_PROXY_AUTHORIZATION_HEADER",
+            RUSTUP_PROXY_AUTHORIZATION_HEADER_ENV_VAR,
             header::PROXY_AUTHORIZATION
         );
         Ok(client_builder)
