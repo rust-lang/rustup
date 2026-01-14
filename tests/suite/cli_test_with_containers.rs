@@ -19,7 +19,6 @@ mod tests {
     struct TestContainerContexts {
         dist_server_container_context: TestContainerContext,
         forward_proxy_container_context: TestContainerContext,
-        counter: usize,
     }
 
     impl TestContainerContexts {
@@ -36,26 +35,21 @@ mod tests {
                     TestContainer::ForwardProxy,
                 )
                 .await,
-                counter: 0,
             }
         }
 
         async fn start_containers(&mut self) {
             self.dist_server_container_context.run().await.unwrap();
             self.forward_proxy_container_context.run().await.unwrap();
-            self.counter += 1;
         }
 
         async fn stop_containers(&mut self) {
-            self.counter -= 1;
-            if self.counter == 0 {
-                self.dist_server_container_context
-                    .cleanup_container()
-                    .unwrap();
-                self.forward_proxy_container_context
-                    .cleanup_container()
-                    .unwrap();
-            }
+            self.dist_server_container_context
+                .cleanup_container()
+                .unwrap();
+            self.forward_proxy_container_context
+                .cleanup_container()
+                .unwrap();
         }
     }
 
@@ -70,29 +64,25 @@ mod tests {
                 .lock()
                 .await;
             test_container_contexts_guard.start_containers().await;
+            test_container_contexts_guard
         }};
     }
 
     macro_rules! stop_containers {
-        () => {{
-            let mut test_container_contexts_guard = TEST_CONTAINER_CONTEXTS_ONCE
-                .get_or_init(|| async { Mutex::new(TestContainerContexts::new().await) })
-                .await
-                .lock()
-                .await;
-            test_container_contexts_guard.stop_containers().await;
+        ($guard:ident) => {{
+            $guard.stop_containers().await;
         }};
     }
 
     #[tokio::test]
     async fn test_start_containers() {
-        start_containers!();
-        stop_containers!();
+        let mut guard = start_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_missing_creds() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -120,12 +110,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_incorrect_creds() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -155,12 +145,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -190,12 +180,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_missing_creds() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -227,12 +217,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_incorrect_creds() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -268,12 +258,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -309,12 +299,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_missing_creds_with_curl() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -343,12 +333,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_incorrect_creds_with_curl() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -379,12 +369,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_dist_server_require_basic_auth_with_curl() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -415,12 +405,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_missing_creds_with_curl() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -453,12 +443,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_incorrect_creds_with_curl() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -495,12 +485,12 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 
     #[tokio::test]
     async fn test_forward_proxy_require_basic_auth_with_curl() {
-        start_containers!();
+        let mut guard = start_containers!();
         let cli_test_context = CliTestContext::new(Scenario::None).await;
         let rustup_init_path = cli_test_context
             .config
@@ -537,6 +527,6 @@ mod tests {
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(exit_status.success());
-        stop_containers!();
+        stop_containers!(guard);
     }
 }
