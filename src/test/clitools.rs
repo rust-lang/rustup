@@ -1369,7 +1369,7 @@ impl TestContainerContext {
                             "8080:8080",
                             "--volume",
                             format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
-                            "ferronserver/ferron:2-debian",
+                            "ferronserver/ferron:2",
                             "ferron",
                             "--config",
                             "/mnt/rustup-test-temp-dir/rustup-test-dist-server.kdl",
