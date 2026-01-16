@@ -487,8 +487,8 @@ async fn remove_override_toolchain_err_handling() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
-info: downloading component[..]
-...
+info: downloading 4 components
+
 "#]])
         .is_ok();
     cx.config
@@ -520,8 +520,8 @@ async fn file_override_toolchain_err_handling() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
-info: downloading component[..]
-...
+info: downloading 4 components
+
 "#]])
         .is_ok();
     cx.config
@@ -2481,8 +2481,8 @@ async fn run_with_install_flag_against_unavailable_component() {
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 warn: skipping unavailable component rust-std
-info: downloading component[..]
-...
+info: downloading 3 components
+
 "#]])
         .is_ok();
     cx.config

@@ -217,7 +217,15 @@ impl Manifestation {
         }
 
         if !components.is_empty() {
-            info!("downloading component(s)");
+            if components.len() > 2 {
+                info!("downloading {} components", components.len());
+            } else {
+                info!(
+                    "downloading component {}",
+                    components[0].manifest.short_name(&components[0].component),
+                );
+            };
+
             let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));
             let mut transaction = Some(tx);
             tx = loop {

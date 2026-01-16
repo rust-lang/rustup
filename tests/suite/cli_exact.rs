@@ -22,8 +22,7 @@ async fn update_once() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading 4 components
 info: default toolchain set to nightly-[HOST_TRIPLE]
 
 "#]]);
@@ -69,8 +68,8 @@ rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading 4 components
+
 "#]]);
     cx.config
         .expect(["rustup", "+nightly", "component", "list", "--installed"])
@@ -112,8 +111,7 @@ async fn update_once_and_self_update() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading 4 components
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
 
@@ -323,8 +321,7 @@ async fn default() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading 4 components
 info: default toolchain set to nightly-[HOST_TRIPLE]
 
 "#]]);
