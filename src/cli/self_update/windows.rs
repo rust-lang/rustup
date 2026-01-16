@@ -706,7 +706,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
     // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file(&rustup_path, &gc_exe)?;
+    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
     // Make the sub-process opened by gc exe inherit its attribute.
