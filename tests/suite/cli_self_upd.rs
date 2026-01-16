@@ -72,8 +72,7 @@ async fn install_bins_to_cargo_home() {
 ...
 info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
-info: downloading component[..]
-...
+info: downloading 4 components
 info: default toolchain set to stable-[HOST_TRIPLE]
 
 "#]])
@@ -117,8 +116,7 @@ async fn proxies_are_relative_symlinks() {
 ...
 info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
-info: downloading component[..]
-...
+info: downloading 4 components
 info: default toolchain set to stable-[HOST_TRIPLE]
 ...
 "#]])

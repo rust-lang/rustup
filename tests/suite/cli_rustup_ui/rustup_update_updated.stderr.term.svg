@@ -29,7 +29,7 @@
 </tspan>
     <tspan x="10px" y="118px"><tspan class="bold">info:</tspan><tspan> removing previous version of component rustc</tspan>
 </tspan>
-    <tspan x="10px" y="136px"><tspan class="bold">info:</tspan><tspan> downloading component(s)</tspan>
+    <tspan x="10px" y="136px"><tspan class="bold">info:</tspan><tspan> downloading 4 components</tspan>
 </tspan>
     <tspan x="10px" y="154px"><tspan class="bold">info:</tspan><tspan> cleaning up downloads &amp; tmp directories</tspan>
 </tspan>
