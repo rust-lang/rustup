@@ -1,4 +1,4 @@
-<svg width="776px" height="830px" xmlns="http://www.w3.org/2000/svg">
+<svg width="776px" height="1010px" xmlns="http://www.w3.org/2000/svg">
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
@@ -109,6 +109,26 @@
     <tspan x="10px" y="802px"><tspan>  learn Rust.</tspan>
 </tspan>
     <tspan x="10px" y="820px">
+</tspan>
+    <tspan x="10px" y="838px"><tspan class="fg-bright-green bold">Common commands:</tspan>
+</tspan>
+    <tspan x="10px" y="856px">
+</tspan>
+    <tspan x="10px" y="874px"><tspan>  Update Rust toolchains and rustup</tspan>
+</tspan>
+    <tspan x="10px" y="892px">
+</tspan>
+    <tspan x="10px" y="910px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup update</tspan>
+</tspan>
+    <tspan x="10px" y="928px"><tspan>    </tspan>
+</tspan>
+    <tspan x="10px" y="946px"><tspan>  Install the current stable release of Rust for your host platform</tspan>
+</tspan>
+    <tspan x="10px" y="964px">
+</tspan>
+    <tspan x="10px" y="982px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable</tspan>
+</tspan>
+    <tspan x="10px" y="1000px">
 </tspan>
   </text>
 
