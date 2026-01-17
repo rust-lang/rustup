@@ -323,7 +323,7 @@ async fn default_override() {
         .with_stderr(snapbox::str![[r#"
 info: using existing install for stable-[HOST_TRIPLE]
 info: default toolchain set to stable-[HOST_TRIPLE]
-info: note that the toolchain 'nightly-[HOST_TRIPLE]' is currently in use (directory override for '[..]')
+warn: note that the toolchain 'nightly-[HOST_TRIPLE]' is currently in use (directory override for '[..]')
 
 "#]])
         .is_ok();
