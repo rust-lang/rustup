@@ -1266,6 +1266,15 @@ const RUSTUP_TEST_DIST_SERVER_CONFIG: &str = ":8080 {\n\
   root \"/mnt/rustup-test-temp-dir\"\n\
 }";
 
+// This config starts the forward proxy. The only valid credentials are 'test:123?45>6'.
+const RUSTUP_TEST_FORWARD_PROXY_CONFIG: &str = ":9080 {\n\
+  log \"/dev/stderr\"\n\
+  error_log \"/dev/stderr\"\n\
+  user \"test\" \"$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08\"\n\
+  forward_proxy_auth users=\"test\" brute_protection=#false\n\
+  forward_proxy\n\
+}";
+
 // This is used for ensuring one thread ensures the test network is created.
 static CONTAINER_NETWORK_CREATE_LOCK: LazyLock<tokio::sync::Mutex<()>> =
     LazyLock::new(|| tokio::sync::Mutex::new(()));
@@ -1313,16 +1322,13 @@ impl TestContainerContext {
             .unwrap()
             .map(|var| var.eq("true"))
             .unwrap_or_default();
-        let cli_test_context = match container {
-            TestContainer::DistServer => {
-                let mut cli_test_context = CliTestContext::new(Scenario::SimpleV2).await;
-                if leave_container_running {
-                    cli_test_context.config.test_dist_dir.disable_cleanup(true);
-                }
-                cli_test_context
-            }
-            TestContainer::ForwardProxy => CliTestContext::new(Scenario::None).await,
+        let mut cli_test_context = match container {
+            TestContainer::DistServer => CliTestContext::new(Scenario::SimpleV2).await,
+            TestContainer::ForwardProxy => CliTestContext::new(Scenario::Empty).await,
         };
+        if leave_container_running {
+            cli_test_context.config.test_dist_dir.disable_cleanup(true);
+        }
         Self {
             container,
             docker_program,
@@ -1390,6 +1396,23 @@ impl TestContainerContext {
                     }
                 }
                 TestContainer::ForwardProxy => {
+                    let temp_dir_string = self
+                        .cli_test_context
+                        .config
+                        .test_dist_dir
+                        .path()
+                        .to_string_lossy()
+                        .into_owned();
+                    tokio::fs::write(
+                        self.cli_test_context
+                            .config
+                            .test_dist_dir
+                            .path()
+                            .join("rustup-test-forward-proxy.kdl"),
+                        RUSTUP_TEST_FORWARD_PROXY_CONFIG,
+                    )
+                    .await
+                    .unwrap();
                     let mut command = Command::new(&self.docker_program);
                     let exit_status = command
                         .stdin(Stdio::null())
@@ -1404,12 +1427,12 @@ impl TestContainerContext {
                             DEFAULT_RUSTUP_TEST_NETWORK_NAME,
                             "--publish",
                             "9080:9080",
-                            "mitmproxy/mitmproxy",
-                            "mitmdump",
-                            "--mode",
-                            "regular@0.0.0.0:9080",
-                            "--proxyauth",
-                            "test:123?45>6",
+                            "--volume",
+                            format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
+                            "ferronserver/ferron:2",
+                            "ferron",
+                            "--config",
+                            "/mnt/rustup-test-temp-dir/rustup-test-forward-proxy.kdl",
                         ])
                         .spawn()
                         .unwrap()
