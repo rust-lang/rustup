@@ -1261,7 +1261,7 @@ const DEFAULT_RUSTUP_TEST_NETWORK_NAME: &str = "rustup-test-network";
 const RUSTUP_TEST_DIST_SERVER_CONFIG: &str = ":8080 {\n\
   log \"/dev/stderr\"\n\
   error_log \"/dev/stderr\"\n\
-  status 401 users=\"test\"\n\
+  status 401 users=\"test\" brute_protection=#false\n\
   user \"test\" \"$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08\"\n\
   root \"/mnt/rustup-test-temp-dir\"\n\
 }";
