@@ -29,10 +29,6 @@ $env:RUSTUP_TEST_LEAVE_CONTAINERS_RUNNING = "true"
 cargo test --features test-with-containers -- suite::cli_test_with_containers::tests::test_start_containers
 ```
 
-Note however the automated tests should not be ran while the `RUSTUP_TEST_LEAVE_CONTAINERS_RUNNING` environment
-variable is set to true. Otherwise, the many deliberate use of missing or incorrect credentials will trigger the
-test distribution server to stop accepting requests for some time.
-
 Use the docker command to determine what host port is being used for each of the containers. For example...
 
 ```sh
