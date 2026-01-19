@@ -6,6 +6,7 @@ mod cli_rustup;
 mod cli_rustup_init_ui;
 mod cli_rustup_ui;
 mod cli_self_upd;
+mod cli_test_with_containers;
 mod cli_v1;
 mod cli_v2;
 mod dist_install;
