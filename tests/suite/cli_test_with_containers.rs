@@ -11,11 +11,6 @@ mod tests {
     };
     use tokio::sync::{Mutex, OnceCell};
 
-    // TODO: Figure out how to programmatically determine the published ports in running containers and then
-    // use that to set the 'RUSTUP_DIST_SERVER' and 'ALL_PROXY' environment variables.
-    const RUSTUP_TEST_DIST_SERVER: &str = "http://localhost:8080";
-    const RUSTUP_TEST_FORWARD_PROXY: &str = "http://localhost:9080";
-
     struct TestContainerContexts {
         dist_server_container_context: TestContainerContext,
         forward_proxy_container_context: TestContainerContext,
@@ -84,6 +79,36 @@ mod tests {
         }};
     }
 
+    async fn rustup_test_dist_server() -> anyhow::Result<String> {
+        let guard = TEST_CONTAINER_CONTEXTS_ONCE
+            .get_or_init(|| async { Mutex::new(TestContainerContexts::new().await) })
+            .await
+            .lock()
+            .await;
+        if let Some(host_port) = guard.dist_server_container_context.host_port() {
+            Ok(format!("http://localhost:{host_port}"))
+        } else {
+            Err(anyhow::anyhow!(
+                "Unable to determine test distribution server container host port."
+            ))
+        }
+    }
+
+    async fn rustup_test_forward_proxy() -> anyhow::Result<String> {
+        let guard = TEST_CONTAINER_CONTEXTS_ONCE
+            .get_or_init(|| async { Mutex::new(TestContainerContexts::new().await) })
+            .await
+            .lock()
+            .await;
+        if let Some(host_port) = guard.forward_proxy_container_context.host_port() {
+            Ok(format!("http://localhost:{host_port}"))
+        } else {
+            Err(anyhow::anyhow!(
+                "Unable to determine test forward proxy container host port."
+            ))
+        }
+    }
+
     #[tokio::test]
     async fn test_start_containers() {
         start_containers!();
@@ -98,6 +123,7 @@ mod tests {
             .config
             .exedir
             .join(format!("rustup-init{EXE_SUFFIX}"));
+        let rustup_dist_server = rustup_test_dist_server().await.unwrap();
         let mut command = Command::new(rustup_init_path);
         command
             .stdin(Stdio::null())
@@ -112,10 +138,10 @@ mod tests {
                 "CARGO_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
             )
-            .env("RUSTUP_DIST_SERVER", RUSTUP_TEST_DIST_SERVER)
+            .env("RUSTUP_DIST_SERVER", &rustup_dist_server)
             .env(
                 "RUSTUP_UPDATE_ROOT",
-                format!("{RUSTUP_TEST_DIST_SERVER}/rustup").as_str(),
+                format!("{rustup_dist_server}/rustup").as_str(),
             );
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
@@ -131,6 +157,7 @@ mod tests {
             .config
             .exedir
             .join(format!("rustup-init{EXE_SUFFIX}"));
+        let rustup_dist_server = rustup_test_dist_server().await.unwrap();
         let mut command = Command::new(rustup_init_path);
         // Basic creds derived from 'test:123?45>67'.
         command
@@ -146,10 +173,10 @@ mod tests {
                 "CARGO_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
             )
-            .env("RUSTUP_DIST_SERVER", RUSTUP_TEST_DIST_SERVER)
+            .env("RUSTUP_DIST_SERVER", &rustup_dist_server)
             .env(
                 "RUSTUP_UPDATE_ROOT",
-                format!("{RUSTUP_TEST_DIST_SERVER}/rustup").as_str(),
+                format!("{rustup_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Njc=");
         let mut child = command.spawn().unwrap();
@@ -166,6 +193,7 @@ mod tests {
             .config
             .exedir
             .join(format!("rustup-init{EXE_SUFFIX}"));
+        let rustup_dist_server = rustup_test_dist_server().await.unwrap();
         let mut command = Command::new(rustup_init_path);
         // Basic creds derived from 'test:123?45>6'.
         command
@@ -181,10 +209,10 @@ mod tests {
                 "CARGO_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
             )
-            .env("RUSTUP_DIST_SERVER", RUSTUP_TEST_DIST_SERVER)
+            .env("RUSTUP_DIST_SERVER", &rustup_dist_server)
             .env(
                 "RUSTUP_UPDATE_ROOT",
-                format!("{RUSTUP_TEST_DIST_SERVER}/rustup").as_str(),
+                format!("{rustup_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==");
         let mut child = command.spawn().unwrap();
@@ -223,7 +251,10 @@ mod tests {
                 format!("{rust_test_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
-            .env("ALL_PROXY", RUSTUP_TEST_FORWARD_PROXY);
+            .env(
+                "ALL_PROXY",
+                rustup_test_forward_proxy().await.unwrap().as_str(),
+            );
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
         assert!(!exit_status.success());
@@ -260,7 +291,10 @@ mod tests {
                 format!("{rust_test_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
-            .env("ALL_PROXY", RUSTUP_TEST_FORWARD_PROXY)
+            .env(
+                "ALL_PROXY",
+                rustup_test_forward_proxy().await.unwrap().as_str(),
+            )
             .env(
                 "RUSTUP_PROXY_AUTHORIZATION_HEADER",
                 "Basic dGVzdDoxMjM/NDU+Njc=",
@@ -301,7 +335,10 @@ mod tests {
                 format!("{rust_test_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
-            .env("ALL_PROXY", RUSTUP_TEST_FORWARD_PROXY)
+            .env(
+                "ALL_PROXY",
+                rustup_test_forward_proxy().await.unwrap().as_str(),
+            )
             .env(
                 "RUSTUP_PROXY_AUTHORIZATION_HEADER",
                 "Basic dGVzdDoxMjM/NDU+Ng==",
@@ -320,6 +357,7 @@ mod tests {
             .config
             .exedir
             .join(format!("rustup-init{EXE_SUFFIX}"));
+        let rustup_dist_server = rustup_test_dist_server().await.unwrap();
         let mut command = Command::new(rustup_init_path);
         command
             .stdin(Stdio::null())
@@ -334,10 +372,10 @@ mod tests {
                 "CARGO_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
             )
-            .env("RUSTUP_DIST_SERVER", RUSTUP_TEST_DIST_SERVER)
+            .env("RUSTUP_DIST_SERVER", &rustup_dist_server)
             .env(
                 "RUSTUP_UPDATE_ROOT",
-                format!("{RUSTUP_TEST_DIST_SERVER}/rustup").as_str(),
+                format!("{rustup_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_USE_CURL", "1");
         let mut child = command.spawn().unwrap();
@@ -354,6 +392,7 @@ mod tests {
             .config
             .exedir
             .join(format!("rustup-init{EXE_SUFFIX}"));
+        let rustup_dist_server = rustup_test_dist_server().await.unwrap();
         let mut command = Command::new(rustup_init_path);
         // Basic creds derived from 'test:123?45>67'.
         command
@@ -369,10 +408,10 @@ mod tests {
                 "CARGO_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
             )
-            .env("RUSTUP_DIST_SERVER", RUSTUP_TEST_DIST_SERVER)
+            .env("RUSTUP_DIST_SERVER", &rustup_dist_server)
             .env(
                 "RUSTUP_UPDATE_ROOT",
-                format!("{RUSTUP_TEST_DIST_SERVER}/rustup").as_str(),
+                format!("{rustup_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Njc=")
             .env("RUSTUP_USE_CURL", "1");
@@ -390,6 +429,7 @@ mod tests {
             .config
             .exedir
             .join(format!("rustup-init{EXE_SUFFIX}"));
+        let rustup_dist_server = rustup_test_dist_server().await.unwrap();
         let mut command = Command::new(rustup_init_path);
         // Basic creds derived from 'test:123?45>6'.
         command
@@ -405,10 +445,10 @@ mod tests {
                 "CARGO_HOME",
                 cli_test_context.config.rustupdir.to_string().as_str(),
             )
-            .env("RUSTUP_DIST_SERVER", RUSTUP_TEST_DIST_SERVER)
+            .env("RUSTUP_DIST_SERVER", &rustup_dist_server)
             .env(
                 "RUSTUP_UPDATE_ROOT",
-                format!("{RUSTUP_TEST_DIST_SERVER}/rustup").as_str(),
+                format!("{rustup_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
             .env("RUSTUP_USE_CURL", "1");
@@ -448,7 +488,10 @@ mod tests {
                 format!("{rust_test_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
-            .env("ALL_PROXY", RUSTUP_TEST_FORWARD_PROXY)
+            .env(
+                "ALL_PROXY",
+                rustup_test_forward_proxy().await.unwrap().as_str(),
+            )
             .env("RUSTUP_USE_CURL", "1");
         let mut child = command.spawn().unwrap();
         let exit_status = child.wait().unwrap();
@@ -486,7 +529,10 @@ mod tests {
                 format!("{rust_test_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
-            .env("ALL_PROXY", RUSTUP_TEST_FORWARD_PROXY)
+            .env(
+                "ALL_PROXY",
+                rustup_test_forward_proxy().await.unwrap().as_str(),
+            )
             .env(
                 "RUSTUP_PROXY_AUTHORIZATION_HEADER",
                 "Basic dGVzdDoxMjM/NDU+Njc=",
@@ -528,7 +574,10 @@ mod tests {
                 format!("{rust_test_dist_server}/rustup").as_str(),
             )
             .env("RUSTUP_AUTHORIZATION_HEADER", "Basic dGVzdDoxMjM/NDU+Ng==")
-            .env("ALL_PROXY", RUSTUP_TEST_FORWARD_PROXY)
+            .env(
+                "ALL_PROXY",
+                rustup_test_forward_proxy().await.unwrap().as_str(),
+            )
             .env(
                 "RUSTUP_PROXY_AUTHORIZATION_HEADER",
                 "Basic dGVzdDoxMjM/NDU+Ng==",

@@ -1303,6 +1303,7 @@ pub struct TestContainerContext {
     docker_program: std::ffi::OsString,
     leave_container_running: bool,
     cli_test_context: CliTestContext,
+    host_port: Option<u16>,
 }
 
 impl Drop for TestContainerContext {
@@ -1334,10 +1335,15 @@ impl TestContainerContext {
             docker_program,
             leave_container_running,
             cli_test_context,
+            host_port: None,
         }
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
+        let container_port: u16 = match self.container {
+            TestContainer::DistServer => 8080,
+            TestContainer::ForwardProxy => 9080,
+        };
         if !self.is_running() {
             self.ensure_network_created().await.unwrap();
             match self.container {
@@ -1372,7 +1378,7 @@ impl TestContainerContext {
                             "--net",
                             DEFAULT_RUSTUP_TEST_NETWORK_NAME,
                             "--publish",
-                            "8080:8080",
+                            format!("{container_port}").as_str(),
                             "--volume",
                             format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
                             "docker.io/ferronserver/ferron:2",
@@ -1426,7 +1432,7 @@ impl TestContainerContext {
                             "--net",
                             DEFAULT_RUSTUP_TEST_NETWORK_NAME,
                             "--publish",
-                            "9080:9080",
+                            format!("{container_port}").as_str(),
                             "--volume",
                             format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
                             "docker.io/ferronserver/ferron:2",
@@ -1452,7 +1458,31 @@ impl TestContainerContext {
             }
         } else {
             Ok(())
-        }
+        }?;
+        // Determine which host port is being used for the published container port.
+        let mut command = Command::new(&self.docker_program);
+        let output = command
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .args([
+                "inspect",
+                "--format",
+                format!("{{{{(index (index .NetworkSettings.Ports \"{container_port}/tcp\") 0).HostPort}}}}").as_str(),
+                format!("{}", self.container).as_str(),
+            ])
+            .output()
+            .unwrap();
+        let host_port_string = String::from_utf8_lossy(output.stdout.as_ref())
+            .trim()
+            .to_owned();
+        let host_port = host_port_string.parse::<u16>().unwrap();
+        self.host_port = Some(host_port);
+        Ok(())
+    }
+
+    pub fn host_port(&self) -> &Option<u16> {
+        &self.host_port
     }
 
     async fn ensure_network_created(&self) -> anyhow::Result<()> {
