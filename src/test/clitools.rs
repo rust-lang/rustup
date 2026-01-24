@@ -1375,7 +1375,7 @@ impl TestContainerContext {
                             "8080:8080",
                             "--volume",
                             format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
-                            "ferronserver/ferron:2",
+                            "docker.io/ferronserver/ferron:2",
                             "ferron",
                             "--config",
                             "/mnt/rustup-test-temp-dir/rustup-test-dist-server.kdl",
@@ -1429,7 +1429,7 @@ impl TestContainerContext {
                             "9080:9080",
                             "--volume",
                             format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
-                            "ferronserver/ferron:2",
+                            "docker.io/ferronserver/ferron:2",
                             "ferron",
                             "--config",
                             "/mnt/rustup-test-temp-dir/rustup-test-forward-proxy.kdl",
@@ -1466,7 +1466,7 @@ impl TestContainerContext {
                 "network",
                 "ls",
                 "--format",
-                "json",
+                "{{.Name}}",
                 "--filter",
                 format!("name={DEFAULT_RUSTUP_TEST_NETWORK_NAME}").as_str(),
             ])
@@ -1506,7 +1506,7 @@ impl TestContainerContext {
             .args([
                 "ps",
                 "--format",
-                "json",
+                "{{.ID}}",
                 "--filter",
                 format!("name={}", self.container).as_str(),
             ])
