@@ -33,7 +33,7 @@ RUSTUP_QUIET=no
 # NOTICE: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat <<EOF
-rustup-init 1.28.2 (d1f31992a 2025-04-28)
+rustup-init 1.29.0 (2eaaa4bb0 2025-12-11)
 
 The installer for rustup
 
@@ -79,6 +79,13 @@ main() {
     get_architecture || return 1
     local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
+
+    local _default_host_override=""
+    case "$_arch" in
+        *windows*)
+            _default_host_override="--default-host=$_arch"
+            ;;
+    esac
 
     local _ext=""
     case "$_arch" in
@@ -177,9 +184,9 @@ main() {
             exit 1;
         fi
 
-        ignore "$_file" "$@" < /dev/tty
+        ignore "$_file" ${_default_host_override:+"$_default_host_override"} "$@" < /dev/tty
     else
-        ignore "$_file" "$@"
+        ignore "$_file" ${_default_host_override:+"$_default_host_override"} "$@"
     fi
 
     local _retval=$?

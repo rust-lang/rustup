@@ -1,4 +1,4 @@
-<svg width="835px" height="776px" xmlns="http://www.w3.org/2000/svg">
+<svg width="835px" height="830px" xmlns="http://www.w3.org/2000/svg">
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
@@ -68,41 +68,47 @@
 </tspan>
     <tspan x="10px" y="442px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--reference</tspan><tspan>              The Rust Reference</tspan>
 </tspan>
-    <tspan x="10px" y="460px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rust-by-example</tspan><tspan>        A collection of runnable examples that illustrate various Rust</tspan>
+    <tspan x="10px" y="460px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--releases</tspan><tspan>               Rust Release Notes</tspan>
 </tspan>
-    <tspan x="10px" y="478px"><tspan>                               concepts and standard libraries</tspan>
+    <tspan x="10px" y="478px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rust-by-example</tspan><tspan>        A collection of runnable examples that illustrate various Rust</tspan>
 </tspan>
-    <tspan x="10px" y="496px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rustc</tspan><tspan>                  The compiler for the Rust programming language</tspan>
+    <tspan x="10px" y="496px"><tspan>                               concepts and standard libraries</tspan>
 </tspan>
-    <tspan x="10px" y="514px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rustdoc</tspan><tspan>                Documentation generator for Rust projects</tspan>
+    <tspan x="10px" y="514px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rustc</tspan><tspan>                  The compiler for the Rust programming language</tspan>
 </tspan>
-    <tspan x="10px" y="532px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--std</tspan><tspan>                    Standard library API documentation</tspan>
+    <tspan x="10px" y="532px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rustc-docs</tspan><tspan>             The API documentation for the Rust compiler and other toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="550px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--style-guide</tspan><tspan>            The Rust Style Guide</tspan>
+    <tspan x="10px" y="550px"><tspan>                               components</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--test</tspan><tspan>                   Support code for rustc's built in unit-test and micro-benchmarking</tspan>
+    <tspan x="10px" y="568px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--rustdoc</tspan><tspan>                Documentation generator for Rust projects</tspan>
 </tspan>
-    <tspan x="10px" y="586px"><tspan>                               framework</tspan>
+    <tspan x="10px" y="586px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--std</tspan><tspan>                    Standard library API documentation</tspan>
 </tspan>
-    <tspan x="10px" y="604px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--unstable-book</tspan><tspan>          The Unstable Book</tspan>
+    <tspan x="10px" y="604px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--style-guide</tspan><tspan>            The Rust Style Guide</tspan>
 </tspan>
-    <tspan x="10px" y="622px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>                   Print help</tspan>
+    <tspan x="10px" y="622px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--test</tspan><tspan>                   Support code for rustc's built in unit-test and micro-benchmarking</tspan>
 </tspan>
-    <tspan x="10px" y="640px">
+    <tspan x="10px" y="640px"><tspan>                               framework</tspan>
 </tspan>
-    <tspan x="10px" y="658px"><tspan class="fg-bright-green bold">Discussion:</tspan>
+    <tspan x="10px" y="658px"><tspan>      </tspan><tspan class="fg-bright-cyan bold">--unstable-book</tspan><tspan>          The Unstable Book</tspan>
 </tspan>
-    <tspan x="10px" y="676px"><tspan>  Opens the documentation for the currently active toolchain with</tspan>
+    <tspan x="10px" y="676px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>                   Print help</tspan>
 </tspan>
-    <tspan x="10px" y="694px"><tspan>  the default browser.</tspan>
+    <tspan x="10px" y="694px">
 </tspan>
-    <tspan x="10px" y="712px">
+    <tspan x="10px" y="712px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="730px"><tspan>  By default, it opens the documentation index. Use the various</tspan>
+    <tspan x="10px" y="730px"><tspan>  Opens the documentation for the currently active toolchain with</tspan>
 </tspan>
-    <tspan x="10px" y="748px"><tspan>  flags to open specific pieces of documentation.</tspan>
+    <tspan x="10px" y="748px"><tspan>  the default browser.</tspan>
 </tspan>
     <tspan x="10px" y="766px">
+</tspan>
+    <tspan x="10px" y="784px"><tspan>  By default, it opens the documentation index. Use the various</tspan>
+</tspan>
+    <tspan x="10px" y="802px"><tspan>  flags to open specific pieces of documentation.</tspan>
+</tspan>
+    <tspan x="10px" y="820px">
 </tspan>
   </text>
 

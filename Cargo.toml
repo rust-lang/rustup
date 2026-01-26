@@ -1,6 +1,6 @@
 [package]
 name = "rustup"
-version = "1.28.2"
+version = "1.29.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Manage multiple rust installations with ease"
@@ -18,7 +18,7 @@ vendored-openssl = ['openssl/vendored']
 
 reqwest-native-tls = ["reqwest/native-tls", "dep:reqwest", "dep:env_proxy"]
 reqwest-rustls-tls = [
-  "reqwest/rustls-tls-manual-roots-no-provider",
+  "reqwest/rustls-no-provider",
   "dep:env_proxy",
   "dep:reqwest",
   "dep:rustls",
@@ -75,7 +75,7 @@ rand = "0.9"
 rayon = "1.10.0"
 regex = "1"
 remove_dir_all = { version = "1.0.0", features = ["parallel"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "gzip", "http2", "socks", "stream"], optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "gzip", "http2", "socks", "stream"], optional = true }
 retry = { version = "2", default-features = false, features = ["random"] }
 rs_tracing = { version = "1.1", features = ["rs_tracing"] }
 rustls = { version = "0.23", optional = true, default-features = false, features = ["logging", "aws_lc_rs", "tls12"] }
@@ -140,6 +140,9 @@ http-body-util = "0.1.0"
 hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.1", features = ["tokio"] }
 proptest = "1.1.0"
+rustls-webpki = { version = "0.103.3" }
+tokio-rustls = "0.26.4"
+webpki-root-certs = "1"
 
 [build-dependencies]
 platforms = "3.4"

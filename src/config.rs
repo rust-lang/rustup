@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
@@ -643,7 +643,7 @@ impl<'a> Cfg<'a> {
                         // the base name in the error to help users)
                         let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
                         if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
-                            return Err(anyhow!(format!("target triple in channel name '{name}'")));
+                            return Err(anyhow!(format!("target tuple in channel name '{name}'")));
                         }
                     }
 

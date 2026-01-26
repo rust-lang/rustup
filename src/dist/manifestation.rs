@@ -216,11 +216,19 @@ impl Manifestation {
             tx = self.uninstall_component(component, &new_manifest, tx)?;
         }
 
-        info!("downloading component(s)");
-        let mut tx = if !components.is_empty() {
+        if !components.is_empty() {
+            if components.len() > 2 {
+                info!("downloading {} components", components.len());
+            } else {
+                info!(
+                    "downloading component {}",
+                    components[0].manifest.short_name(&components[0].component),
+                );
+            };
+
             let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));
             let mut transaction = Some(tx);
-            let tx = loop {
+            tx = loop {
                 // Refill downloads when there's capacity
                 // Must live outside of `InstallEvents` because we can't write the type of future
                 while stream.components.len() > 0 && stream.downloads.len() < concurrent_downloads {
@@ -246,10 +254,7 @@ impl Manifestation {
 
             download_cfg.clean(&stream.cleanup_downloads)?;
             drop(stream);
-            tx
-        } else {
-            tx
-        };
+        }
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify()?;
@@ -316,7 +321,7 @@ impl Manifestation {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
-        // component name plus the target triple.
+        // component name plus the target tuple.
         let name = component.name_in_manifest();
         let short_name = component.short_name_in_manifest();
         if let Some(c) = self.installation.find(&name)? {
@@ -803,7 +808,7 @@ impl ComponentInstall {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
-        // component name plus the target triple.
+        // component name plus the target tuple.
         let pkg_name = self.component.name_in_manifest();
         let short_pkg_name = self.component.short_name_in_manifest();
         let reader = self.status.unpack(utils::buffered(&self.installer)?);

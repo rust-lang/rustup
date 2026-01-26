@@ -16,10 +16,10 @@ When targeting the GNU ABI, no additional software is strictly required for basi
 However, many library crates will not be able to compile until the full [MSYS2] with MinGW has been installed.
 
 By default `rustup` on Windows configures Rust to target the MSVC ABI, that is
-a target triple of either `i686-pc-windows-msvc`, `x86_64-pc-windows-msvc`, or `aarch64-pc-windows-msvc`
+a target tuple of either `i686-pc-windows-msvc`, `x86_64-pc-windows-msvc`, or `aarch64-pc-windows-msvc`
 depending on the CPU architecture of the host Windows OS. The toolchains that
 `rustup` chooses to install, unless told otherwise through the [toolchain
-specification], will be compiled to run on that target triple host and will
+specification], will be compiled to run on that target tuple host and will
 target that triple by default.
 
 You can change this behavior with `rustup set default-host` or during

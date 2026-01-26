@@ -914,10 +914,13 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Check for update only if rustup does **not** have the no-self-update feature,
-    // and auto-self-update is configured to **enable**
+    // and auto-self-update is configured to **enable** or **check-only**
     // and has **no** no-self-update parameter.
     let self_update = !cfg!(feature = "no-self-update")
-        && self_update_mode == SelfUpdateMode::Enable
+        && matches!(
+            self_update_mode,
+            SelfUpdateMode::Enable | SelfUpdateMode::CheckOnly
+        )
         && !opts.no_self_update;
 
     if self_update && check_rustup_update(&DownloadCfg::new(cfg)).await? {
@@ -1648,6 +1651,7 @@ docs_data![
         "proc_macro/index.html"
     ),
     (reference, "The Rust Reference", "reference/index.html"),
+    (releases, "Rust Release Notes", "releases.html"),
     (
         rust_by_example,
         "A collection of runnable examples that illustrate various Rust concepts and standard libraries",
@@ -1657,6 +1661,11 @@ docs_data![
         rustc,
         "The compiler for the Rust programming language",
         "rustc/index.html"
+    ),
+    (
+        rustc_docs,
+        "The API documentation for the Rust compiler and other toolchain components",
+        "rustc-docs/index.html"
     ),
     (
         rustdoc,

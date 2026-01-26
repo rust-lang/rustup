@@ -96,7 +96,7 @@
 </tspan>
     <tspan x="10px" y="694px">
 </tspan>
-    <tspan x="10px" y="712px"><tspan>  The host may be specified as a target triple. This is most useful</tspan>
+    <tspan x="10px" y="712px"><tspan>  The host may be specified as a target tuple. This is most useful</tspan>
 </tspan>
     <tspan x="10px" y="730px"><tspan>  for installing a 32-bit compiler on a 64-bit platform, or for</tspan>
 </tspan>
@@ -108,7 +108,7 @@
 </tspan>
     <tspan x="10px" y="802px">
 </tspan>
-    <tspan x="10px" y="820px"><tspan>  For convenience, omitted elements of the target triple will be</tspan>
+    <tspan x="10px" y="820px"><tspan>  For convenience, omitted elements of the target tuple will be</tspan>
 </tspan>
     <tspan x="10px" y="838px"><tspan>  inferred, so the above could be written:</tspan>
 </tspan>

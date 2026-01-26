@@ -284,8 +284,7 @@ async fn default() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading 4 components
 info: default toolchain set to nightly-[HOST_TRIPLE]
 
 "#]])
@@ -1708,8 +1707,7 @@ channel = "nightly"
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading component rustc
 info: the active toolchain `nightly-[HOST_TRIPLE]` has been installed
 info: it's active because: overridden by '[TOOLCHAIN_FILE]'
 
@@ -1811,6 +1809,53 @@ installed toolchains
 active toolchain
 ----------------
 no active toolchain
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn uninstall_multiple_toolchains_sequentially() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::SimpleV2);
+        cx.config
+            .expect(["rustup", "toolchain", "install", "stable"])
+            .await
+            .is_ok();
+        cx.config
+            .expect(["rustup", "toolchain", "install", "beta"])
+            .await
+            .is_ok();
+        cx.config
+            .expect(["rustup", "toolchain", "install", "nightly"])
+            .await
+            .is_ok();
+    }
+
+    cx.config
+        .expect(["rustup", "default", "none"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect([
+            "rustup",
+            "toolchain",
+            "uninstall",
+            "stable",
+            "beta",
+            "nightly",
+        ])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "toolchain", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+no installed toolchains
 
 "#]])
         .is_ok();
@@ -2217,6 +2262,25 @@ async fn run_with_relpath_is_not_supported() {
         .with_stderr(snapbox::str![[r#"
 ...
 error:[..] relative path toolchain '[..]/toolchains/nightly-[HOST_TRIPLE]'
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn run_with_plus_prefix_fails_with_helpful_message() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "run", "+stable", "cargo", "check"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error:[..] invalid toolchain name '+stable'; valid toolchain names do not start with '+'
 ...
 "#]])
         .is_err();
@@ -3400,7 +3464,7 @@ async fn file_override_with_target_info() {
         .remove_redactions(["[HOST_TRIPLE]"])
         .with_stderr(snapbox::str![[r#"
 ...
-error: target triple in channel name 'nightly-x86_64-unknown-linux-gnu'
+error: target tuple in channel name 'nightly-x86_64-unknown-linux-gnu'
 ...
 "#]])
         .is_err();
@@ -3827,8 +3891,7 @@ async fn custom_toolchain_with_components_toolchains_profile_does_not_err() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component[..]
-...
+info: downloading component cargo
 info: default toolchain set to nightly-[HOST_TRIPLE]
 
 "#]])

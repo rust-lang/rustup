@@ -7,6 +7,9 @@ use std::io::Write;
 use std::path::Path;
 use std::str;
 
+use retry::delay::{Fibonacci, jitter};
+use retry::{OperationResult, retry};
+
 #[cfg(not(windows))]
 use crate::process::Process;
 
@@ -229,6 +232,15 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     }
 }
 
+fn is_retryable_dir_error(e: &io::Error) -> bool {
+    matches!(
+        e.kind(),
+        io::ErrorKind::DirectoryNotEmpty
+            | io::ErrorKind::PermissionDenied
+            | io::ErrorKind::ResourceBusy
+    )
+}
+
 pub fn remove_dir(path: &Path) -> io::Result<()> {
     if fs::symlink_metadata(path)?.file_type().is_symlink() {
         #[cfg(windows)]
@@ -240,11 +252,28 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
             fs::remove_file(path)
         }
     } else {
-        // Again because remove_dir all doesn't delete write-only files on windows,
-        // this is a custom implementation, more-or-less copied from cargo.
-        // cc rust-lang/rust#31944
-        // cc https://github.com/rust-lang/cargo/blob/master/tests/support/paths.rs#L52
-        remove_dir_all::remove_dir_all(path)
+        let result = retry(Fibonacci::from_millis(10).map(jitter).take(10), || {
+            // Again because remove_dir all doesn't delete write-only files on windows,
+            // this is a custom implementation, more-or-less copied from cargo.
+            // cc rust-lang/rust#31944
+            // cc https://github.com/rust-lang/cargo/blob/master/tests/support/paths.rs#L52
+            match remove_dir_all::remove_dir_all(path) {
+                Ok(()) => OperationResult::Ok(()),
+                Err(e) if is_retryable_dir_error(&e) => OperationResult::Retry(e),
+                Err(e) => OperationResult::Err(e),
+            }
+        });
+
+        // Best-effort sync of parent directory to ensure filesystem metadata consistency
+        // after parallel deletion. Helps prevent "Directory not empty" errors on subsequent
+        // operations. See https://github.com/rust-lang/rustup/issues/4657
+        if result.is_ok()
+            && let Some(parent) = path.parent()
+        {
+            let _ = open_dir_following_links(parent).and_then(|f| f.sync_all());
+        }
+
+        result.map_err(|e| e.error)
     }
 }
 
@@ -255,13 +284,35 @@ pub(crate) fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
         let kind = entry.file_type()?;
         let src = entry.path();
         let dest = dest.join(entry.file_name());
-        if kind.is_dir() {
+        // Check for symlinks first - is_dir() follows symlinks
+        if kind.is_symlink() {
+            copy_symlink(&src, &dest)?;
+        } else if kind.is_dir() {
             copy_dir(&src, &dest)?;
         } else {
             fs::copy(&src, &dest)?;
         }
     }
     Ok(())
+}
+
+/// Copy a symlink, preserving its target
+fn copy_symlink(src: &Path, dest: &Path) -> io::Result<()> {
+    let target = fs::read_link(src)?;
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&target, dest)
+    }
+    #[cfg(windows)]
+    {
+        // Determine symlink type by checking what the source symlink points to
+        let meta = fs::metadata(src);
+        if meta.map(|m| m.is_dir()).unwrap_or(false) {
+            std::os::windows::fs::symlink_dir(&target, dest)
+        } else {
+            std::os::windows::fs::symlink_file(&target, dest)
+        }
+    }
 }
 
 #[cfg(not(windows))]

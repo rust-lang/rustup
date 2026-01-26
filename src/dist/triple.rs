@@ -77,7 +77,7 @@ mod test {
             let partial_target_triple = PartialTargetTriple::new(input);
             assert!(
                 partial_target_triple.is_some(),
-                "expected `{input}` to create some partial target triple; got None"
+                "expected `{input}` to create some partial target tuple; got None"
             );
 
             let expected = PartialTargetTriple {

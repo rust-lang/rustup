@@ -16,7 +16,7 @@
   <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
 
   <text xml:space="preserve" class="container fg">
-    <tspan x="10px" y="28px"><tspan>rustup-init 1.28.2 (d1f31992a 2025-04-28)</tspan>
+    <tspan x="10px" y="28px"><tspan>rustup-init 1.29.0 (2eaaa4bb0 2025-12-11)</tspan>
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>

@@ -14,14 +14,14 @@ use anyhow::{Context, Result, anyhow, bail};
 use chrono::NaiveDate;
 use clap::{ValueEnum, builder::PossibleValue};
 use itertools::Itertools;
-use regex::Regex;
+use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, warn};
 
 use crate::{
     config::Cfg,
-    errors::RustupError,
+    errors::{NIGHTLY_COMPONENT_NOTE, RustupError},
     process::Process,
     toolchain::{DistributableToolchain, ToolchainName},
     utils,
@@ -77,7 +77,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
                 .map(|c| manifest.description(c))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let _ = write!(
+            let _ = writeln!(
                 buf,
                 "some components are unavailable for download for channel '{toolchain}': {cs_str}"
             );
@@ -87,22 +87,15 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
     if toolchain.starts_with("nightly") {
         let _ = write!(
             buf,
-            "\
-Sometimes not all components are available in any given nightly.
-If you don't need these components, you could try a minimal installation with:
-
-    rustup toolchain add {toolchain} --profile minimal
-
-If you require these components, please install and use the latest successfully built version,
-which you can find at <https://rust-lang.github.io/rustup-components-history>.
-
-After determining the correct date, install it with a command such as:
-
-    rustup toolchain install nightly-2018-12-27
-
-Then you can use the toolchain with commands such as:
-
-    cargo +nightly-2018-12-27 build"
+            "{NIGHTLY_COMPONENT_NOTE}\n\
+        help: if you don't need these components, you could try a minimal installation with:\n\
+        help:     rustup toolchain add {toolchain} --profile minimal\n\
+        help: if you require these components, please install and use the latest successfully built version,\n\
+        help: which you can find at <https://rust-lang.github.io/rustup-components-history>\n\
+        help: after determining the correct date, install it with a command such as:\n\
+        help:     rustup toolchain install nightly-2018-12-27\n\
+        help: then you can use the toolchain with commands such as:\n\
+        help:     cargo +nightly-2018-12-27 build"
         );
     } else if ["beta", "stable"].iter().any(|&p| toolchain.starts_with(p)) {
         let _ = write!(
@@ -145,9 +138,9 @@ struct ParsedToolchainDesc {
 }
 
 /// A toolchain descriptor from rustup's perspective. These contain
-/// 'partial target triples', which allow toolchain names like
-/// 'stable-msvc' to work. Partial target triples though are parsed
-/// from a hardcoded set of known triples, whereas target triples
+/// 'partial target tuples', which allow toolchain names like
+/// 'stable-msvc' to work. Partial target tuples though are parsed
+/// from a hardcoded set of known triples, whereas target tuples
 /// are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PartialToolchainDesc {
@@ -304,49 +297,43 @@ impl FromStr for ParsedToolchainDesc {
                     "stable",
                     // Allow from 1.0.0 through to 9.999.99 with optional patch version
                     // and optional beta tag
-                    r"[0-9]{1}\.[0-9]{1,3}(?:\.[0-9]{1,2})?(?:-beta(?:\.[0-9]{1,2})?)?",
+                    r"[0-9]{1}\.(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]?))?(?:-beta(?:\.[0-9]{1,2})?)?",
                 ]
                 .join("|")
             ))
             .unwrap()
         });
 
-        let d = TOOLCHAIN_CHANNEL_RE.captures(desc).map(|c| {
-            fn fn_map(s: &str) -> Option<String> {
-                if s.is_empty() {
-                    None
-                } else {
-                    Some(s.to_owned())
-                }
-            }
+        let d = TOOLCHAIN_CHANNEL_RE
+            .captures(desc)
+            .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_string()))?;
 
-            // These versions don't have v2 manifests, but they don't have point releases either,
-            // so to make the two-part version numbers work for these versions, specially turn
-            // them into their corresponding ".0" version.
-            let channel = match c.get(1).unwrap().as_str() {
-                "1.0" => "1.0.0",
-                "1.1" => "1.1.0",
-                "1.2" => "1.2.0",
-                "1.3" => "1.3.0",
-                "1.4" => "1.4.0",
-                "1.5" => "1.5.0",
-                "1.6" => "1.6.0",
-                "1.7" => "1.7.0",
-                "1.8" => "1.8.0",
-                other => other,
-            };
+        // These versions don't have v2 manifests, but they don't have point releases either,
+        // so to make the two-part version numbers work for these versions, specially turn
+        // them into their corresponding ".0" version.
+        let channel = match d.get(1).unwrap().as_str() {
+            "1.0" => "1.0.0",
+            "1.1" => "1.1.0",
+            "1.2" => "1.2.0",
+            "1.3" => "1.3.0",
+            "1.4" => "1.4.0",
+            "1.5" => "1.5.0",
+            "1.6" => "1.6.0",
+            "1.7" => "1.7.0",
+            "1.8" => "1.8.0",
+            other => other,
+        };
 
-            Self {
-                channel: Channel::from_str(channel).unwrap(),
-                date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
-                target: c.get(3).map(|s| s.as_str()).and_then(fn_map),
-            }
-        });
-
-        match d {
-            Some(d) => Ok(d),
-            None => Err(RustupError::InvalidToolchainName(desc.to_string()).into()),
+        fn non_empty_string(s: Option<Match<'_>>) -> Option<String> {
+            let s = s?.as_str();
+            (!s.is_empty()).then(|| s.to_owned())
         }
+
+        Ok(Self {
+            channel: Channel::from_str(channel)?,
+            date: non_empty_string(d.get(2)),
+            target: non_empty_string(d.get(3)),
+        })
     }
 }
 
@@ -575,9 +562,9 @@ impl TargetTriple {
         }
         // Otherwise we need to parse things
         let partial_self = PartialTargetTriple::new(&self.0)
-            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", self.0)))?;
+            .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", self.0)))?;
         let partial_other = PartialTargetTriple::new(&other.0)
-            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", other.0)))?;
+            .ok_or_else(|| anyhow!(format!("Unable to parse target tuple: {}", other.0)))?;
         // First obvious check is OS, if that doesn't match there's no chance
         let ret = if partial_self.os != partial_other.os {
             false
@@ -1358,7 +1345,15 @@ mod tests {
             assert_eq!(parsed.unwrap(), expected, "input: `{input}`");
         }
 
-        let failure_cases = vec!["anything", "00.0000.000", "3", "", "--", "0.0.0-"];
+        let failure_cases = vec![
+            "anything",
+            "00.0000.000",
+            "3",
+            "",
+            "--",
+            "0.0.0-",
+            "1.90.01",
+        ];
 
         for input in failure_cases {
             let parsed = input.parse::<ParsedToolchainDesc>();

@@ -9,4 +9,5 @@ mod cli_self_upd;
 mod cli_v1;
 mod cli_v2;
 mod dist_install;
-mod known_triples;
+mod known_tuples;
+mod static_roots;

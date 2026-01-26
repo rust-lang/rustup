@@ -457,6 +457,7 @@ This is usually done by running one of the following (note the leading DOT):
     source $"{cargo_home_nushell}/env.nu"  # For nushell
     source "{cargo_home}/env.tcsh"  # For tcsh
     . "{cargo_home}/env.ps1"        # For pwsh
+    source "{cargo_home}/env.xsh"   # For xonsh
 "#
     };
 }
@@ -841,7 +842,7 @@ fn install_bins(process: &Process) -> Result<()> {
     if rustup_path.exists() {
         utils::remove_file("rustup-bin", &rustup_path)?;
     }
-    utils::copy_file(&this_exe_path, &rustup_path)?;
+    utils::copy_file_symlink_to_source(&this_exe_path, &rustup_path)?;
     utils::make_executable(&rustup_path)?;
     install_proxies(process)
 }

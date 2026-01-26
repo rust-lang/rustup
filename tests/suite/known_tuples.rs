@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, io::Write};
 use platforms::Platform;
 
 #[test]
-fn gen_known_triples() {
+fn gen_known_tuples() {
     let out_path = "src/dist/triple/known.rs";
     let existing = std::fs::read_to_string(out_path).unwrap();
 
@@ -54,7 +54,7 @@ fn gen_known_triples() {
 ///
 /// # Discussion
 ///
-/// The current model of target triples in Rustup requires some non-code knowledge to correctly generate the list.
+/// The current model of target tuples in Rustup requires some non-code knowledge to correctly generate the list.
 /// For example, the parsing results of two 2-dash triples can be different:
 ///
 /// ```jsonc
@@ -90,7 +90,7 @@ fn parse_triple(triple: &str) -> (&str, &str, &str) {
             env,
         ),
         _ => panic!(
-            "Internal error while parsing target triple `{triple}`, please file an issue at https://github.com/rust-lang/rustup/issues"
+            "Internal error while parsing target tuple `{triple}`, please file an issue at https://github.com/rust-lang/rustup/issues"
         ),
     }
 }

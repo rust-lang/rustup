@@ -487,8 +487,8 @@ async fn remove_override_toolchain_err_handling() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
-info: downloading component[..]
-...
+info: downloading 4 components
+
 "#]])
         .is_ok();
     cx.config
@@ -520,8 +520,8 @@ async fn file_override_toolchain_err_handling() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for beta-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
-info: downloading component[..]
-...
+info: downloading 4 components
+
 "#]])
         .is_ok();
     cx.config
@@ -1972,7 +1972,7 @@ async fn add_missing_component() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-(sometimes not all components are available in any given nightly)
+note: sometimes not all components are available in any given nightly
 ...
 "#]])
         .is_err();
@@ -1986,7 +1986,7 @@ error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download fo
 }
 
 #[tokio::test]
-async fn add_missing_component_toolchain() {
+async fn add_toolchain_with_missing_component() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     make_component_unavailable(&cx.config, "rust-std", this_host_triple());
     cx.config
@@ -1995,22 +1995,42 @@ async fn add_missing_component_toolchain() {
         .with_stderr(snapbox::str![[r#"
 ...
 error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
-Sometimes not all components are available in any given nightly.
-If you don't need these components, you could try a minimal installation with:
+note: sometimes not all components are available in any given nightly
+help: if you don't need these components, you could try a minimal installation with:
+help:     rustup toolchain add nightly --profile minimal
+help: if you require these components, please install and use the latest successfully built version,
+help: which you can find at <https://rust-lang.github.io/rustup-components-history>
+help: after determining the correct date, install it with a command such as:
+help:     rustup toolchain install nightly-2018-12-27
+help: then you can use the toolchain with commands such as:
+help:     cargo +nightly-2018-12-27 build
 
-    rustup toolchain add nightly --profile minimal
+"#]])
+        .is_err();
+}
 
-If you require these components, please install and use the latest successfully built version,
-which you can find at <https://rust-lang.github.io/rustup-components-history>.
-
-After determining the correct date, install it with a command such as:
-
-    rustup toolchain install nightly-2018-12-27
-
-Then you can use the toolchain with commands such as:
-
-    cargo +nightly-2018-12-27 build
+#[tokio::test]
+async fn add_toolchain_with_missing_components() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    for comp in &["rust-std", "cargo"] {
+        make_component_unavailable(&cx.config, comp, this_host_triple());
+    }
+    cx.config
+        .expect(["rustup", "toolchain", "add", "nightly"])
+        .await
+        .with_stderr(snapbox::str![[r#"
 ...
+error: some components are unavailable for download for channel 'nightly': 'cargo' for target '[HOST_TRIPLE]', 'rust-std' for target '[HOST_TRIPLE]'
+note: sometimes not all components are available in any given nightly
+help: if you don't need these components, you could try a minimal installation with:
+help:     rustup toolchain add nightly --profile minimal
+help: if you require these components, please install and use the latest successfully built version,
+help: which you can find at <https://rust-lang.github.io/rustup-components-history>
+help: after determining the correct date, install it with a command such as:
+help:     rustup toolchain install nightly-2018-12-27
+help: then you can use the toolchain with commands such as:
+help:     cargo +nightly-2018-12-27 build
+
 "#]])
         .is_err();
 }
@@ -2461,8 +2481,8 @@ async fn run_with_install_flag_against_unavailable_component() {
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 warn: skipping unavailable component rust-std
-info: downloading component[..]
-...
+info: downloading 3 components
+
 "#]])
         .is_ok();
     cx.config

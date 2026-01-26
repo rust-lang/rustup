@@ -492,3 +492,208 @@ fn rollback_failure_keeps_going() {
 #[test]
 #[ignore]
 fn intermediate_dir_rollback() {}
+
+#[test]
+#[cfg(unix)]
+fn copy_dir_preserves_symlinks() {
+    // copy_dir must preserve symlinks, not follow them
+    use std::os::unix::fs::symlink;
+
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
+
+    let src_dir = cx.pkg_dir.path();
+
+    let src_real_file = src_dir.join("real_file.txt");
+    utils::write_file("", &src_real_file, "original content").unwrap();
+
+    let src_subdir = src_dir.join("subdir");
+    fs::create_dir(&src_subdir).unwrap();
+
+    let src_subdir_link_to_file = src_subdir.join("link_to_file.txt");
+    symlink("../real_file.txt", &src_subdir_link_to_file).unwrap();
+
+    let src_real_dir = src_dir.join("real_dir");
+    fs::create_dir(&src_real_dir).unwrap();
+    utils::write_file("", &src_real_dir.join("inner.txt"), "inner content").unwrap();
+    let src_subdir_link_to_dir = src_subdir.join("link_to_dir");
+    symlink("../real_dir", &src_subdir_link_to_dir).unwrap();
+
+    assert!(
+        fs::symlink_metadata(&src_subdir_link_to_file)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Source file symlink should be a symlink"
+    );
+    assert!(
+        fs::symlink_metadata(&src_subdir_link_to_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Source dir symlink should be a symlink"
+    );
+
+    tx.copy_dir("test-component", PathBuf::from("dest"), src_dir)
+        .unwrap();
+    tx.commit();
+
+    let dest_file_symlink = cx.prefix.path().join("dest/subdir/link_to_file.txt");
+    let dest_dir_symlink = cx.prefix.path().join("dest/subdir/link_to_dir");
+
+    assert!(
+        fs::symlink_metadata(&dest_file_symlink)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Destination file symlink should be preserved as a symlink"
+    );
+    assert!(
+        fs::symlink_metadata(&dest_dir_symlink)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Destination dir symlink should be preserved as a symlink"
+    );
+
+    assert_eq!(
+        fs::read_link(&dest_file_symlink).unwrap().to_str().unwrap(),
+        "../real_file.txt",
+        "File symlink target should be preserved"
+    );
+    assert_eq!(
+        fs::read_link(&dest_dir_symlink).unwrap().to_str().unwrap(),
+        "../real_dir",
+        "Dir symlink target should be preserved"
+    );
+}
+
+/// Test that utils::copy_file preserves symlink targets
+#[test]
+#[cfg(unix)]
+fn copy_file_preserves_symlinks() {
+    use std::os::unix::fs::symlink;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let src_dir = tmp.path().join("src");
+    let dest_dir = tmp.path().join("dest");
+    fs::create_dir_all(&src_dir).unwrap();
+    fs::create_dir_all(&dest_dir).unwrap();
+
+    let src_real_file = src_dir.join("real_file.txt");
+    utils::write_file("", &src_real_file, "content").unwrap();
+
+    let src_link_file = src_dir.join("link.txt");
+    symlink("real_file.txt", &src_link_file).unwrap();
+
+    assert!(
+        fs::symlink_metadata(&src_link_file)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(
+        fs::read_link(&src_link_file).unwrap().to_str().unwrap(),
+        "real_file.txt"
+    );
+
+    // copy_file should preserve the symlink target
+    let dest_link_file = dest_dir.join("link.txt");
+    utils::copy_file(&src_link_file, &dest_link_file).unwrap();
+
+    assert!(
+        fs::symlink_metadata(&dest_link_file)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "copy_file should preserve symlinks"
+    );
+    assert_eq!(
+        fs::read_link(&dest_link_file).unwrap().to_str().unwrap(),
+        "real_file.txt",
+        "copy_file should preserve the original symlink target"
+    );
+}
+
+/// Test that utils::copy_file_symlink_to_source creates a symlink pointing to the source path
+#[test]
+#[cfg(unix)]
+fn copy_file_symlink_to_source_creates_symlink_to_source() {
+    use std::os::unix::fs::symlink;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let src_dir = tmp.path().join("src");
+    let dest_dir = tmp.path().join("dest");
+    fs::create_dir_all(&src_dir).unwrap();
+    fs::create_dir_all(&dest_dir).unwrap();
+
+    let src_real_file = src_dir.join("real_file.txt");
+    utils::write_file("", &src_real_file, "original content").unwrap();
+
+    let src_link_file = src_dir.join("link.txt");
+    symlink("real_file.txt", &src_link_file).unwrap();
+
+    assert!(
+        fs::symlink_metadata(&src_link_file)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+
+    // copy_file_symlink_to_source should create a symlink pointing to the source path
+    let dest_link_file = dest_dir.join("copied.txt");
+    utils::copy_file_symlink_to_source(&src_link_file, &dest_link_file).unwrap();
+
+    // Destination should be a symlink pointing to the source path
+    assert!(
+        fs::symlink_metadata(&dest_link_file)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "copy_file_symlink_to_source should create a symlink"
+    );
+    assert_eq!(
+        fs::read_link(&dest_link_file).unwrap(),
+        src_link_file,
+        "copy_file_symlink_to_source should create a symlink pointing to the source path"
+    );
+}
+
+/// Test that Transaction::copy_file (which uses utils::copy_file) preserves symlinks
+#[test]
+#[cfg(unix)]
+fn transaction_copy_file_preserves_symlinks() {
+    use std::os::unix::fs::symlink;
+
+    let cx = DistContext::new(None).unwrap();
+    let mut tx = cx.transaction();
+
+    let src_dir = cx.pkg_dir.path();
+    let real_file = src_dir.join("real_file.txt");
+    utils::write_file("", &real_file, "content").unwrap();
+
+    let link_file = src_dir.join("link.txt");
+    symlink("real_file.txt", &link_file).unwrap();
+
+    tx.copy_file(
+        "test-component",
+        PathBuf::from("copied_link.txt"),
+        &link_file,
+    )
+    .unwrap();
+    tx.commit();
+
+    let dest_link = cx.prefix.path().join("copied_link.txt");
+    assert!(
+        fs::symlink_metadata(&dest_link)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Transaction::copy_file should preserve symlinks"
+    );
+    assert_eq!(
+        fs::read_link(&dest_link).unwrap().to_str().unwrap(),
+        "real_file.txt",
+        "Transaction::copy_file should preserve symlink target"
+    );
+}

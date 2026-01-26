@@ -226,13 +226,34 @@ pub(crate) fn copy_dir(src: &Path, dest: &Path) -> Result<()> {
     })
 }
 
+/// Copy a file from `src` to `dst`, preserving the symlink target if `src` is a symlink.
+/// This is the default behavior for component installation.
 pub(crate) fn copy_file(src: &Path, dest: &Path) -> Result<()> {
+    copy_file_impl(src, dest, true)
+}
+
+/// Copy a file from `src` to `dst`, or if `src` is a symlink, create a new symlink
+/// at `dst` pointing to it.
+/// Used for self-update where we want to preserve the symlink to the original location.
+pub(crate) fn copy_file_symlink_to_source(src: &Path, dest: &Path) -> Result<()> {
+    copy_file_impl(src, dest, false)
+}
+
+fn copy_file_impl(src: &Path, dest: &Path, preserve_symlink: bool) -> Result<()> {
     let metadata = fs::symlink_metadata(src).with_context(|| RustupError::ReadingFile {
         name: "metadata for",
         path: PathBuf::from(src),
     })?;
     if metadata.file_type().is_symlink() {
-        symlink_file(src, dest).map(|_| ())
+        let target = if preserve_symlink {
+            &fs::read_link(src).with_context(|| RustupError::ReadingFile {
+                name: "symlink target for",
+                path: PathBuf::from(src),
+            })?
+        } else {
+            src
+        };
+        symlink_file(target, dest).map(|_| ())
     } else {
         fs::copy(src, dest)
             .with_context(|| {

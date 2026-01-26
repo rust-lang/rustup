@@ -185,6 +185,9 @@ fn suggest_message(suggestion: &Option<String>) -> String {
     }
 }
 
+pub(crate) const NIGHTLY_COMPONENT_NOTE: &str =
+    "note: sometimes not all components are available in any given nightly";
+
 /// Returns a error message indicating that certain [`Component`]s are unavailable.
 ///
 /// See also [`components_missing_msg`](../dist/dist/fn.components_missing_msg.html)
@@ -207,10 +210,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             );
 
             if toolchain.starts_with("nightly") {
-                let _ = write!(
-                    buf,
-                    "(sometimes not all components are available in any given nightly)"
-                );
+                let _ = write!(buf, "{NIGHTLY_COMPONENT_NOTE}");
             }
         }
         cs => {
@@ -231,16 +231,13 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
                     .join(", ")
             };
 
-            let _ = write!(
+            let _ = writeln!(
                 buf,
-                "some components are unavailable for download for channel '{toolchain}': {cs_str}"
+                "some components are unavailable for download for channel '{toolchain}': {cs_str}",
             );
 
             if toolchain.starts_with("nightly") {
-                let _ = write!(
-                    buf,
-                    "(sometimes not all components are available in any given nightly)"
-                );
+                let _ = write!(buf, "{NIGHTLY_COMPONENT_NOTE}");
             }
         }
     }

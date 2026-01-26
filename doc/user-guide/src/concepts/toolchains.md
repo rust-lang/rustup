@@ -27,7 +27,7 @@ Standard release channel toolchain names have the following form:
 can be optionally appended with an archive date, as in `nightly-2014-12-18`, in
 which case the toolchain is downloaded from the archive for that date.
 
-Finally, the host may be specified as a target triple. This is most useful for
+Finally, the host may be specified as a target tuple. This is most useful for
 installing a 32-bit compiler on a 64-bit platform, or for installing the
 [MSVC-based toolchain][msvc-toolchain] on Windows. For example:
 
@@ -35,7 +35,7 @@ installing a 32-bit compiler on a 64-bit platform, or for installing the
 $ rustup toolchain install stable-x86_64-pc-windows-msvc
 ```
 
-For convenience, elements of the target triple that are omitted will be
+For convenience, elements of the target tuple that are omitted will be
 inferred, so the above could be written:
 
 ```console
