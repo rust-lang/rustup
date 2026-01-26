@@ -34,6 +34,7 @@ jobs: # skip-main skip-pr skip-stable
           - x86_64-unknown-netbsd          # skip-pr skip-main
           - x86_64-unknown-illumos         # skip-pr skip-main
           - powerpc-unknown-linux-gnu      # skip-pr skip-main
+          - powerpc64-unknown-linux-musl   # skip-pr skip-main skip-stable
           - powerpc64le-unknown-linux-gnu  # skip-pr skip-main
           - powerpc64le-unknown-linux-musl # skip-pr skip-main
           - s390x-unknown-linux-gnu        # skip-pr skip-main

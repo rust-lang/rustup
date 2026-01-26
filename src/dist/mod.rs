@@ -264,6 +264,10 @@ const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
 const TRIPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
 #[cfg(all(not(windows), not(target_env = "musl")))]
+const TRIPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TRIPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
 const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
 const TRIPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
@@ -512,6 +516,7 @@ impl TargetTriple {
                     TRIPLE_AARCH64_UNKNOWN_LINUX
                 }),
                 (b"Linux", b"loongarch64") => Some(TRIPLE_LOONGARCH64_UNKNOWN_LINUX),
+                (b"Linux", b"ppc64") => Some(TRIPLE_POWERPC64_UNKNOWN_LINUX),
                 (b"Linux", b"ppc64le") => Some(TRIPLE_POWERPC64LE_UNKNOWN_LINUX),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
