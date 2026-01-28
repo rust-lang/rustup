@@ -183,13 +183,18 @@ impl Assert {
 
     /// Asserts that the command exited with an ok status.
     pub fn is_ok(&self) -> &Self {
-        assert!(self.output.ok);
-        self
+        self.has_code(0)
     }
 
     /// Asserts that the command exited with an error.
     pub fn is_err(&self) -> &Self {
-        assert!(!self.output.ok);
+        assert_ne!(self.output.status, Some(0));
+        self
+    }
+
+    /// Asserts that the command exited with the specific code.
+    pub fn has_code(&self, code: i32) -> &Self {
+        assert_eq!(self.output.status, Some(code));
         self
     }
 
@@ -350,7 +355,7 @@ impl Config {
 
     pub async fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]).await;
-        if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
+        if out.status != Some(0) || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
             print_command(args, &out);
             println!("expected.ok: true");
             print_indented("expected.stdout.contains", stdout);
@@ -362,7 +367,11 @@ impl Config {
     pub async fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
         let out1 = self.run(args1[0], &args1[1..], &[]).await;
         let out2 = self.run(args2[0], &args2[1..], &[]).await;
-        if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
+        if out1.status != Some(0)
+            || out2.status != Some(0)
+            || out1.stdout != out2.stdout
+            || out1.stderr != out2.stderr
+        {
             print_command(args1, &out1);
             println!("expected.ok: true");
             print_command(args2, &out2);
@@ -373,7 +382,7 @@ impl Config {
 
     pub async fn expect_component_executable(&self, cmd: &str) {
         let out1 = self.run(cmd, ["--version"], &[]).await;
-        if !out1.ok {
+        if out1.status != Some(0) {
             print_command(&[cmd, "--version"], &out1);
             println!("expected.ok: true");
             panic!()
@@ -382,7 +391,7 @@ impl Config {
 
     pub async fn expect_component_not_executable(&self, cmd: &str) {
         let out1 = self.run(cmd, ["--version"], &[]).await;
-        if out1.ok {
+        if out1.status == Some(0) {
             print_command(&[cmd, "--version"], &out1);
             println!("expected.ok: false");
             panic!()
@@ -1092,7 +1101,7 @@ pub fn print_command(args: &[&str], out: &SanitizedOutput) {
         }
     }
     println!();
-    println!("out.ok: {}", out.ok);
+    println!("out.status: {:?}", out.status);
     print_indented("out.stdout", &out.stdout);
     print_indented("out.stderr", &out.stderr);
 }
@@ -1120,7 +1129,7 @@ pub struct Output {
 
 #[derive(Debug, Clone)]
 pub struct SanitizedOutput {
-    pub ok: bool,
+    pub status: Option<i32>,
     pub stdout: String,
     pub stderr: String,
 }
@@ -1130,7 +1139,7 @@ impl TryFrom<Output> for SanitizedOutput {
 
     fn try_from(out: Output) -> Result<Self, Self::Error> {
         Ok(Self {
-            ok: matches!(out.status, Some(0)),
+            status: out.status,
             stdout: String::from_utf8(out.stdout)?,
             stderr: String::from_utf8(out.stderr)?,
         })

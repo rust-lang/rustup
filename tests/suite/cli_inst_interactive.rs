@@ -35,7 +35,7 @@ fn run_input_with_env(config: &Config, args: &[&str], input: &str, env: &[(&str,
     let out = child.wait_with_output().unwrap();
 
     Assert::new(SanitizedOutput {
-        ok: out.status.success(),
+        status: out.status.code(),
         stdout: String::from_utf8(out.stdout).unwrap(),
         stderr: String::from_utf8(out.stderr).unwrap(),
     })
