@@ -276,7 +276,7 @@ async fn with_no_toolchain_doesnt_hang() {
     )
     .is_ok();
 
-    cx.config.expect(["rustup", "check"]).await.is_err();
+    cx.config.expect(["rustup", "check"]).await.is_ok();
 }
 
 #[tokio::test]
@@ -296,7 +296,7 @@ async fn with_no_toolchain_doesnt_hang_with_concurrent_downloads_override() {
     cx.config
         .expect_with_env(["rustup", "check"], [("RUSTUP_CONCURRENT_DOWNLOADS", "2")])
         .await
-        .is_err();
+        .is_ok();
 }
 
 #[tokio::test]
