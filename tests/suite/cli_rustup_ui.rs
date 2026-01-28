@@ -83,7 +83,7 @@ async fn rustup_check_updates_none() {
             None,
         ))
         .with_stderr("")
-        .is_err();
+        .is_ok();
 }
 
 #[tokio::test]
@@ -108,7 +108,7 @@ async fn rustup_check_updates_some() {
             None,
         ))
         .with_stderr("")
-        .is_ok();
+        .has_code(100);
 }
 
 #[test]

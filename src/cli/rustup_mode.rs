@@ -927,8 +927,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         update_available = true;
     }
 
-    let exit_status = if update_available { 0 } else { 1 };
-    Ok(ExitCode(exit_status))
+    Ok(ExitCode(if update_available { 100 } else { 0 }))
 }
 
 async fn update(
