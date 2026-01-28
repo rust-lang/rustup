@@ -180,7 +180,7 @@ async fn check_updates_none() {
     cx.config
         .expect(["rustup", "check"])
         .await
-        .is_err()
+        .is_ok()
         .with_stdout(snapbox::str![[r#"
 stable-[HOST_TRIPLE] - up to date: 1.1.0 (hash-stable-1.1.0)
 beta-[HOST_TRIPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
@@ -205,7 +205,7 @@ async fn check_updates_some() {
     cx.config
         .expect(["rustup", "check"])
         .await
-        .is_ok()
+        .has_code(100)
         .with_stdout(snapbox::str![[r#"
 stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
 beta-[HOST_TRIPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
@@ -230,7 +230,7 @@ async fn check_updates_self() {
         .expect(["rustup", "check"])
         .await
         .extend_redactions([("[TEST_VERSION]", test_version)])
-        .is_ok()
+        .has_code(100)
         .with_stdout(snapbox::str![[r#"
 rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
 
@@ -252,7 +252,7 @@ async fn check_updates_self_no_change() {
     cx.config
         .expect(["rustup", "check"])
         .await
-        .is_err()
+        .is_ok()
         .with_stdout(snapbox::str![[r#"
 rustup - Up to date : [CURRENT_VERSION]
 
@@ -272,7 +272,7 @@ async fn check_updates_with_update() {
         cx.config
             .expect(["rustup", "check"])
             .await
-            .is_err()
+            .is_ok()
             .with_stdout(snapbox::str![[r#"
 stable-[HOST_TRIPLE] - up to date: 1.0.0 (hash-stable-1.0.0)
 beta-[HOST_TRIPLE] - up to date: 1.1.0 (hash-beta-1.1.0)
@@ -285,7 +285,7 @@ nightly-[HOST_TRIPLE] - up to date: 1.2.0 (hash-nightly-1)
     cx.config
         .expect(["rustup", "check"])
         .await
-        .is_ok()
+        .has_code(100)
         .with_stdout(snapbox::str![[r#"
 stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
 beta-[HOST_TRIPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
@@ -296,7 +296,7 @@ nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-
     cx.config
         .expect(["rustup", "check"])
         .await
-        .is_ok()
+        .has_code(100)
         .with_stdout(snapbox::str![[r#"
 stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
 beta-[HOST_TRIPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
