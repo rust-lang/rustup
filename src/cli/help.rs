@@ -216,6 +216,15 @@ pub(crate) fn run_help() -> String {
     )
 }
 
+pub(crate) fn check_help() -> String {
+    format!(
+        r"{HEADER}Exit status:{HEADER:#}
+  {LITERAL}0{LITERAL:#}   Everything is up to date.
+  {LITERAL}100{LITERAL:#} At least one update is available.
+  {LITERAL}1{LITERAL:#}   An error occurred."
+    )
+}
+
 pub(crate) fn doc_help() -> String {
     format!(
         r"{HEADER}Discussion:{HEADER:#}

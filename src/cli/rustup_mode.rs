@@ -28,7 +28,7 @@ use crate::{
         common::{self, PackageUpdate, update_console_filter},
         errors::CliError,
         help::{
-            completions_help, default_help, doc_help, install_help,
+            check_help, completions_help, default_help, doc_help, install_help,
             maybe_resolvable_toolchain_arg_help, official_toolchain_arg_help, override_help,
             override_unset_help, resolvable_local_toolchain_arg_help,
             resolvable_toolchain_arg_help, run_help, rustup_help, show_active_toolchain_help,
@@ -192,6 +192,7 @@ enum RustupSubcmd {
     },
 
     /// Check for updates to Rust toolchains and rustup
+    #[command(after_help = check_help())]
     Check {
         #[command(flatten)]
         opts: CheckOpts,
