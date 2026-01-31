@@ -1,4 +1,4 @@
-<svg width="785px" height="164px" xmlns="http://www.w3.org/2000/svg">
+<svg width="785px" height="254px" xmlns="http://www.w3.org/2000/svg">
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
@@ -35,6 +35,16 @@
     <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>            Print help</tspan>
 </tspan>
     <tspan x="10px" y="154px">
+</tspan>
+    <tspan x="10px" y="172px"><tspan class="fg-bright-green bold">Exit status:</tspan>
+</tspan>
+    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">0</tspan><tspan>   Everything is up to date.</tspan>
+</tspan>
+    <tspan x="10px" y="208px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">100</tspan><tspan> At least one update is available.</tspan>
+</tspan>
+    <tspan x="10px" y="226px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">1</tspan><tspan>   An error occurred.</tspan>
+</tspan>
+    <tspan x="10px" y="244px">
 </tspan>
   </text>
 
