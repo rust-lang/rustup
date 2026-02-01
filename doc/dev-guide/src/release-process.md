@@ -11,6 +11,7 @@ As a maintainer, you have two options to choose from when cutting a new
 release: a beta release or an official release.
 The main difference between the two is that they use different values for
 the `RUSTUP_UPDATE_ROOT` environment variable:
+
 - A beta release is deployed on `https://dev-static.rust-lang.org/rustup`.
 - An official release is deployed on `https://static.rust-lang.org/rustup`.
 
@@ -25,14 +26,15 @@ or an official [r]elease:
 1. [b/r] In a separate PR:
    1. If the version strings in `Cargo.toml`s haven't been updated:
       - Decide what the new version number `$VER_NUM` should be.
-        > **Note:** We always increment the *minor* number unless:
+        > **Note:** We always increment the _minor_ number unless:
+        >
         > - A major incompatibility has been introduced in this release:
-        >   increment the *major* number instead.
+        >   increment the _major_ number instead.
         > - This release is a hotfix because the last one had a defect:
-        >   increment the *patch* number instead.
+        >   increment the _patch_ number instead.
       - Update `Cargo.toml` and `download/Cargo.toml` to have that same new
         version number, then run `cargo build` and review `Cargo.lock` changes.
-      If all looks well, make a commit.
+      - If all looks well, make a commit.
    2. Update `CHANGELOG.md` accordingly if necessary.
 2. [b/r] After merging the PR made in step 1, in a separate PR:
    1. Update `rustup-init.sh` so that:
@@ -55,18 +57,22 @@ or an official [r]elease:
    for the reported version statements to ensure that
    we definitely built something cleanly which reports as the right version
    number when run `--version`.
-6. [r] Make a new PR to the [Rust Blog] adding a new release announcement post.
-7. [b/r] Ping someone in the release team to perform the actual release.
+6. [b] Make a new PR to the [Inside Rust Blog] adding a new "Call for Testing"
+   announcement post.
+7. [r] Make a new PR to the [Rust Blog] adding a new release announcement post.
+8. [b/r] Ping someone in the release team to perform the actual release.
    They can find instructions in `ci/sync-dist.py`.
    > **Note:** Some manual testing occurs here, so hopefully they'll catch
-     anything egregious in which case abort the change and roll back.
-8. [b] Once the beta release has happened, post a new topic named "Seeking beta
-   testers for Rustup $VER_NUM" on the [Internals Forum].
-9. [r] Once the official release has happened, prepare and push a tag on the
-   latest `stable` commit.
-   - `git tag -as $VER_NUM -m $VER_NUM` (optionally without `-s` if not GPG
-     signing the tag)
-   - `git push origin $VER_NUM`
+   > anything egregious in which case abort the change and roll back.
+9. [b] Once the beta release has happened, post a new topic named "Seeking beta
+   testers for Rustup $VER_NUM" on the [Internals Forum] to point to the blog
+   post made previously.
+10. [r] Once the official release has happened, prepare and push a tag on the
+    latest `stable` commit.
+    - `git tag -as $VER_NUM -m $VER_NUM` (optionally without `-s` if not GPG
+      signing the tag)
+    - `git push origin $VER_NUM`
 
 [Rust Blog]: https://github.com/rust-lang/blog.rust-lang.org
+[Inside Rust Blog]: https://github.com/rust-lang/blog.rust-lang.org/tree/main/content/inside-rust
 [Internals Forum]: https://internals.rust-lang.org
