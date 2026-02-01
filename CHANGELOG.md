@@ -43,6 +43,15 @@ This release also comes with other quality-of-life improvements, to name a few:
   resetting configuration values to default when an override is present.
   [pr#4422]
 
+- `rustup check` will use different exit codes based on whether new updates
+  have been found: it will exit with `100` on any updates or `0` for no
+  updates. [pr#4694]
+
+Furthermore, @FranciscoTGouveia has joined the team. He has shown his talent,
+enthusiasm and commitment to the project since the first interactions with
+rustup, so we are thrilled to have him on board and are actively looking
+forward to what we can achieve together.
+
 [1.29.0]: https://github.com/rust-lang/rustup/releases/tag/1.29.0
 [pr#4324]: https://github.com/rust-lang/rustup/pull/4324
 [pr#4380]: https://github.com/rust-lang/rustup/pull/4380
@@ -55,6 +64,7 @@ This release also comes with other quality-of-life improvements, to name a few:
 [pr#4471]: https://github.com/rust-lang/rustup/pull/4471
 [pr#4605]: https://github.com/rust-lang/rustup/pull/4605
 [pr#4626]: https://github.com/rust-lang/rustup/pull/4626
+[pr#4694]: https://github.com/rust-lang/rustup/pull/4694
 
 ### Detailed changes
 
@@ -250,6 +260,48 @@ This release also comes with other quality-of-life improvements, to name a few:
 * chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4630
 * feat: Added xonsh shell support by @anki-code in https://github.com/rust-lang/rustup/pull/4626
 * download: statically bundle relevant trust anchors by @djc in https://github.com/rust-lang/rustup/pull/4631
+* test(static-roots): refine `store_static_roots()` by @rami3l in https://github.com/rust-lang/rustup/pull/4634
+* dist: bump `rustup` version to v1.29.0 by @rami3l in https://github.com/rust-lang/rustup/pull/4513
+* dist(rustup-init/sh): update commit shasum in help string by @rami3l in https://github.com/rust-lang/rustup/pull/4637
+* Avoid panicking when parsing a toolchain version with leading zeros by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4639
+* docs(dev-guide): mention snapshot updating in release process by @rami3l in https://github.com/rust-lang/rustup/pull/4640
+* Tweak version parser by @djc in https://github.com/rust-lang/rustup/pull/4641
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4642
+* chore(deps): update actions/cache action to v5 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4646
+* chore(deps): update actions/upload-artifact action to v6 by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4647
+* cli: add `doc --releases` to open release notes by @cuviper in https://github.com/rust-lang/rustup/pull/4645
+* fix(toolchain): forbid toolchain names starting with `+` by @cachebag in https://github.com/rust-lang/rustup/pull/4650
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4656
+* use "tuple" instead of "triple" for target names by @tshepang in https://github.com/rust-lang/rustup/pull/4658
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4661
+* Upgrade to reqwest 0.13 by @djc in https://github.com/rust-lang/rustup/pull/4664
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4669
+* Unify nightly component unavailable messages by @enthropy7 in https://github.com/rust-lang/rustup/pull/4670
+* fix(dist): adjust printed newlines in `components_missing_msg()` by @rami3l in https://github.com/rust-lang/rustup/pull/4673
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4677
+* fix(utils): "Directory not empty" error when uninstalling multiple toolchains by @cachebag in https://github.com/rust-lang/rustup/pull/4678
+* fix(cli/rustup-mode): `check` for self updates for `SelfUpdateMode::CheckOnly` by @rami3l in https://github.com/rust-lang/rustup/pull/4680
+* Remove the mixed singular/plural phrasing as “`component(s)`” by @steffahn in https://github.com/rust-lang/rustup/pull/4682
+* feat(cli/rustup-mode): add `doc --rustc-docs` to open rustdoc for Rust internals by @rami3l in https://github.com/rust-lang/rustup/pull/4660
+* fix: `copy_dir` and `copy_file` to preserve symlinks instead of following them by @cachebag in https://github.com/rust-lang/rustup/pull/4671
+* Add powerpc64 unknown linux musl support by @Gelbpunkt in https://github.com/rust-lang/rustup/pull/4688
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4685
+* fix(cli/rustup-mode): improve exit code of `rustup check` by @rami3l in https://github.com/rust-lang/rustup/pull/4694
+* Add common commands section in help text by @dingxiangfei2009 in https://github.com/rust-lang/rustup/pull/4651
+* feat(cli/rustup-mode): add "Exit status" section to `rustup check --help` by @appleGun22 in https://github.com/rust-lang/rustup/pull/4696
+* Replace `$nu.home-path` with `~` in `env.nu` file by @VasanthakumarV in https://github.com/rust-lang/rustup/pull/4701
+* Add winget instructions to MSVC install page by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4702
+* cli: introduce semantic exit code constants for rustup check by @dharmvr1 in https://github.com/rust-lang/rustup/pull/4700
+* Preserve partial downloads on network failure by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4695
+* fix(dist/manifest): sort keys when serializing `Manifest` by @rami3l in https://github.com/rust-lang/rustup/pull/4716
+* Ensure the server honors range requests to prevent download corruption by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4718
+* fix(diskio): fall back to single-threaded unpacking  by @cachebag in https://github.com/rust-lang/rustup/pull/4717
+* Improve logs when recovering from an interrupted installation by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4725
+* Add `--override` flag in `rustup toolchain install` by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4727
+* Fix the default number of `RUSTUP_CONCURRENT_DOWNLOADS` in the documentation by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4728
+* fix(cli/self-update): fix output format for `rustup check` on TTY by @rami3l in https://github.com/rust-lang/rustup/pull/4730
+* Implement dark mode for rustup.rs website by @Bogay in https://github.com/rust-lang/rustup/pull/4729
+* fix(cli): Style CLI errors in init mode  by @epage in https://github.com/rust-lang/rustup/pull/4735
 
 ## [1.28.2] - 2025-05-05
 
