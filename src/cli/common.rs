@@ -21,7 +21,7 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::Process,
     toolchain::{LocalToolchainName, Toolchain, ToolchainName},
-    utils,
+    utils::{self, ExitCode},
 };
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
@@ -211,10 +211,7 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub(crate) async fn update_all_channels(
-    cfg: &Cfg<'_>,
-    force_update: bool,
-) -> Result<utils::ExitCode> {
+pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Result<ExitCode> {
     let profile = cfg.get_profile()?;
     let mut toolchains = Vec::new();
     for (desc, distributable) in cfg.list_channels()? {
@@ -230,7 +227,11 @@ pub(crate) async fn update_all_channels(
     }
 
     let has_update_error = toolchains.iter().any(|(_, r)| r.is_err());
-    let exit_code = utils::ExitCode(if has_update_error { 1 } else { 0 });
+    let exit_code = if has_update_error {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    };
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
@@ -258,7 +259,7 @@ pub(super) fn list_items(
     installed_only: bool,
     quiet: bool,
     process: &Process,
-) -> Result<utils::ExitCode> {
+) -> Result<ExitCode> {
     let t = process.stdout();
     let mut t = t.lock();
     let bold = Style::new().bold();
@@ -269,14 +270,10 @@ pub(super) fn list_items(
             writeln!(t, "{name}")?;
         }
     }
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
-pub(crate) async fn list_toolchains(
-    cfg: &Cfg<'_>,
-    verbose: bool,
-    quiet: bool,
-) -> Result<utils::ExitCode> {
+pub(crate) async fn list_toolchains(cfg: &Cfg<'_>, verbose: bool, quiet: bool) -> Result<ExitCode> {
     let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         writeln!(cfg.process.stdout().lock(), "no installed toolchains")?;
@@ -346,10 +343,10 @@ pub(crate) async fn list_toolchains(
         Ok(())
     }
 
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
-pub(crate) fn list_overrides(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_overrides(cfg: &Cfg<'_>) -> Result<ExitCode> {
     let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
 
     if overrides.is_empty() {
@@ -377,7 +374,7 @@ pub(crate) fn list_overrides(cfg: &Cfg<'_>) -> Result<utils::ExitCode> {
             );
         }
     }
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 git_testament!(TESTAMENT);
@@ -390,7 +387,7 @@ pub(crate) fn version() -> &'static str {
     &RENDERED
 }
 
-pub(crate) fn dump_testament(process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn dump_testament(process: &Process) -> Result<ExitCode> {
     use git_testament::GitModification::*;
     writeln!(
         process.stdout().lock(),
@@ -440,7 +437,7 @@ pub(crate) fn dump_testament(process: &Process) -> Result<utils::ExitCode> {
             }
         }
     }
-    Ok(utils::ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 fn show_backtrace(process: &Process) -> bool {

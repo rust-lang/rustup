@@ -464,7 +464,7 @@ impl Config {
             Ok(process_res) => process_res,
             Err(e) => {
                 crate::cli::common::report_error(&e, &tp.process);
-                utils::ExitCode(1)
+                utils::ExitCode::FAILURE
             }
         };
         Output {

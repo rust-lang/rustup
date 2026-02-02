@@ -66,7 +66,7 @@ fn handle_epipe(res: Result<ExitCode>) -> Result<ExitCode> {
             if let Some(io_err) = root.downcast_ref::<io::Error>()
                 && io_err.kind() == io::ErrorKind::BrokenPipe
             {
-                return Ok(ExitCode(0));
+                return Ok(ExitCode::SUCCESS);
             }
             Err(e)
         }
@@ -597,12 +597,12 @@ pub async fn main(
         Ok(matches) => matches,
         Err(err) if err.kind() == DisplayHelp => {
             write!(process.stdout().lock(), "{}", err.render().ansi())?;
-            return Ok(ExitCode(0));
+            return Ok(ExitCode::SUCCESS);
         }
         Err(err) if err.kind() == DisplayVersion => {
             write!(process.stdout().lock(), "{}", err.render().ansi())?;
             display_version(current_dir, process).await?;
-            return Ok(ExitCode(0));
+            return Ok(ExitCode::SUCCESS);
         }
         Err(err) => {
             if [
@@ -616,7 +616,7 @@ pub async fn main(
             } else {
                 write!(process.stderr().lock(), "{}", err.render().ansi())?;
             }
-            return Ok(ExitCode(1));
+            return Ok(ExitCode::FAILURE);
         }
     };
 
@@ -628,7 +628,7 @@ pub async fn main(
     let Some(subcmd) = matches.subcmd else {
         let help = Rustup::command().render_long_help();
         writeln!(process.stderr().lock(), "{}", help.ansi())?;
-        return Ok(ExitCode(1));
+        return Ok(ExitCode::FAILURE);
     };
 
     match subcmd {
@@ -643,7 +643,7 @@ pub async fn main(
             Some(ShowSubcmd::Home) => show_rustup_home(cfg),
             Some(ShowSubcmd::Profile) => {
                 writeln!(process.stdout().lock(), "{}", cfg.get_profile()?)?;
-                Ok(ExitCode(0))
+                Ok(ExitCode::SUCCESS)
             }
         }),
         RustupSubcmd::Update {
@@ -739,21 +739,21 @@ pub async fn main(
                 no_prompt,
                 no_modify_path,
             } => self_update::uninstall(no_prompt, no_modify_path, process),
-            SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode(0)),
+            SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
             SetSubcmd::DefaultHost { host_triple } => cfg
                 .set_default_host_triple(host_triple)
-                .map(|_| ExitCode(0)),
+                .map(|_| ExitCode::SUCCESS),
             SetSubcmd::Profile { profile_name } => {
-                cfg.set_profile(profile_name).map(|_| ExitCode(0))
+                cfg.set_profile(profile_name).map(|_| ExitCode::SUCCESS)
             }
             SetSubcmd::AutoSelfUpdate {
                 auto_self_update_mode,
             } => set_auto_self_update(cfg, auto_self_update_mode),
-            SetSubcmd::AutoInstall { auto_install_mode } => {
-                cfg.set_auto_install(auto_install_mode).map(|_| ExitCode(0))
-            }
+            SetSubcmd::AutoInstall { auto_install_mode } => cfg
+                .set_auto_install(auto_install_mode)
+                .map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)
@@ -807,7 +807,7 @@ async fn default_(
         writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
@@ -927,7 +927,11 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         update_available = true;
     }
 
-    Ok(ExitCode(if update_available { 100 } else { 0 }))
+    Ok(if update_available {
+        ExitCode::UPDATES_AVAILABLE
+    } else {
+        ExitCode::SUCCESS
+    })
 }
 
 async fn update(
@@ -935,7 +939,7 @@ async fn update(
     opts: UpdateOpts,
     ensure_active_toolchain: bool,
 ) -> Result<ExitCode> {
-    let mut exit_code = ExitCode(0);
+    let mut exit_code = ExitCode::SUCCESS;
 
     common::warn_if_host_is_emulated(cfg.process);
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
@@ -1050,7 +1054,7 @@ async fn which(
     let binary_path = toolchain.binary_file(binary);
     if utils::is_file(&binary_path) {
         writeln!(cfg.process.stdout().lock(), "{}", binary_path.display())?;
-        return Ok(ExitCode(0));
+        return Ok(ExitCode::SUCCESS);
     }
 
     let toolchain_name = toolchain.name();
@@ -1206,7 +1210,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         Ok(())
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
@@ -1237,13 +1241,13 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode>
         }
         None => return Err(anyhow!("no active toolchain")),
     }
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
 fn show_rustup_home(cfg: &Cfg<'_>) -> Result<ExitCode> {
     writeln!(cfg.process.stdout().lock(), "{}", cfg.rustup_dir.display())?;
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn target_list(
@@ -1331,7 +1335,7 @@ async fn target_add(
         distributable.add_component(new_component).await?;
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn target_remove(
@@ -1371,7 +1375,7 @@ async fn target_remove(
         distributable.remove_component(new_component).await?;
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn component_list(
@@ -1425,7 +1429,7 @@ async fn component_add(
         distributable.add_component(new_component).await?;
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 fn get_target(
@@ -1452,7 +1456,7 @@ async fn component_remove(
         distributable.remove_component(new_component).await?;
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -> Result<ExitCode> {
@@ -1479,7 +1483,7 @@ async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -
         InstallMethod::Copy { src, dest, cfg }.install().await?;
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode> {
@@ -1513,7 +1517,7 @@ async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<Exit
 
         Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
     }
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn override_add(
@@ -1541,7 +1545,7 @@ async fn override_add(
     }
 
     cfg.make_override(path.unwrap_or(&cfg.current_dir), &toolchain_name)?;
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Result<ExitCode> {
@@ -1578,7 +1582,7 @@ fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Res
             }
         }
     }
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 macro_rules! docs_data {
@@ -1774,7 +1778,7 @@ async fn doc(
     if path_only {
         let doc_path = toolchain.doc_path(&doc_path)?;
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
-        return Ok(ExitCode(0));
+        return Ok(ExitCode::SUCCESS);
     }
 
     if let Some(name) = topic {
@@ -1786,7 +1790,7 @@ async fn doc(
         writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
     }
     toolchain.open_docs(&doc_path, fragment)?;
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 #[cfg(not(windows))]
@@ -1810,7 +1814,7 @@ async fn man(
         .arg(command)
         .status()
         .expect("failed to open man page");
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 fn set_auto_self_update(
@@ -1830,7 +1834,7 @@ fn set_auto_self_update(
         );
     }
     cfg.set_auto_self_update(auto_self_update_mode)?;
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -1901,7 +1905,7 @@ fn output_completion_script(
         }
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> {

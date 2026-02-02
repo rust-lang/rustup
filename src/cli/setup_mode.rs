@@ -101,7 +101,7 @@ pub async fn main(
         Err(e) if [ErrorKind::DisplayHelp, ErrorKind::DisplayVersion].contains(&e.kind()) => {
             use std::io::Write as _;
             write!(process.stdout().lock(), "{}", e.render().ansi())?;
-            return Ok(utils::ExitCode(0));
+            return Ok(utils::ExitCode::SUCCESS);
         }
         Err(e) => return Err(format_err!("{}", e.render().ansi())),
     };
