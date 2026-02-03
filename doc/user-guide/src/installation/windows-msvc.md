@@ -12,6 +12,19 @@ It is free for individuals, academic and open source use, but not for other uses
 Users should ask their organisation which edition is right for them.
 See [licensing terms][vs licences] for more details.
 
+## WinGet
+
+Alternatively Visual Studio can be installed via the [WinGet] package manager, which should be avaliable by default on recent versions of Windows.
+Run the following command in powershell or the command prompt:
+
+```
+winget install --id Microsoft.VisualStudio.2022.Community --source winget --force --override "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --addProductLang En-us"
+```
+
+You can replace "Community" with "BuildTools" in the above command if you already have a Visual Studio license.
+
+[WinGet]: https://learn.microsoft.com/en-us/windows/package-manager/winget/
+
 ## Manual install
 
 [Download Visual Studio][vs downloads].
