@@ -454,7 +454,7 @@ the corresponding `env` file under {cargo_home}.
 This is usually done by running one of the following (note the leading DOT):
     . "{cargo_home}/env"            # For sh/bash/zsh/ash/dash/pdksh
     source "{cargo_home}/env.fish"  # For fish
-    source $"{cargo_home_nushell}/env.nu"  # For nushell
+    source "{cargo_home_nushell}/env.nu"  # For nushell
     source "{cargo_home}/env.tcsh"  # For tcsh
     . "{cargo_home}/env.ps1"        # For pwsh
     source "{cargo_home}/env.xsh"   # For xonsh
