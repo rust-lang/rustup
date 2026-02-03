@@ -317,7 +317,7 @@ impl UnixShell for Nu {
     }
 
     fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
-        cargo_home_str_with_home("($nu.home-path)", process)
+        cargo_home_str_with_home("~", process)
     }
 }
 
