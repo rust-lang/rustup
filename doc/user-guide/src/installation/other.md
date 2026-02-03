@@ -6,9 +6,8 @@ by platform:
 * On Windows, download and run the `rustup-init.exe` built for the
   [`x86_64-pc-windows-msvc`] or [`aarch64-pc-windows-msvc`] target,
   depending on your OS architecture. In general, this is the build of
-  `rustup` one should install on Windows. This will require the Visual C++
-  Build Tools 2019 or equivalent (Visual Studio 2019, etc.) to already be
-  installed. If you would prefer to install GNU toolchains or the i686
+  `rustup` one should install on Windows. This will require [MSVC prerequisites].
+  If you would prefer to install GNU toolchains or the i686
   toolchains by default this can be modified at install time, either
   interactively, with the `--default-host` flag, or after installation
   via `rustup set default-host`.
@@ -19,6 +18,7 @@ by platform:
 [`x86_64-pc-windows-msvc`]: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
 [`aarch64-pc-windows-msvc`]: https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe
 [`rustup-init.sh`]: https://static.rust-lang.org/rustup/rustup-init.sh
+[MSVC prerequisites]: windows-msvc.html
 
 `rustup-init` accepts arguments, which can be passed through the shell script.
 Some examples:
