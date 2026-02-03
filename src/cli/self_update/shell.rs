@@ -311,7 +311,7 @@ impl UnixShell for Nu {
 
     fn source_string(&self, process: &Process) -> Result<String> {
         Ok(format!(
-            r#"source $"{}/env.nu""#,
+            r#"source "{}/env.nu""#,
             self.cargo_home_str(process)?
         ))
     }
