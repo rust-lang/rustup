@@ -23,6 +23,32 @@ winget install --id Microsoft.VisualStudio.2022.Community --source winget --forc
 
 You can replace "Community" with "BuildTools" in the above command if you already have a Visual Studio license.
 
+### Missing Windows SDK
+
+If after running the above command the Windows 11 SDK is missing then you may need to manually install it, which can also be done via WinGet.
+First search for the avaliable versions:
+
+```
+winget search --source winget --id Microsoft.WindowsSDK.
+```
+
+This should display a table of results. that will look like this:
+
+```
+Name                                                       Id                              Version
+----------------------------------------------------------------------------------------------------------
+Windows Software Development Kit                           Microsoft.WindowsSDK.10.0.22000 10.0.22000.832
+Windows Software Development Kit - Windows 10.0.22621.2428 Microsoft.WindowsSDK.10.0.22621 10.0.22621.2428
+Windows Software Development Kit - Windows 10.0.26100.4188 Microsoft.WindowsSDK.10.0.26100 10.0.26100.4188
+```
+
+Pick the Id with the latest version and install that via `winget install`.
+For example, to install `Microsoft.WindowsSDK.10.0.26100` run:
+
+```
+winget install --source winget --id Microsoft.WindowsSDK.10.0.26100 
+```
+
 [WinGet]: https://learn.microsoft.com/en-us/windows/package-manager/winget/
 
 ## Manual install
