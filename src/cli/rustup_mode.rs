@@ -282,7 +282,7 @@ enum RustupSubcmd {
     /// Generate tab-completion scripts for your shell
     #[command(after_help = completions_help(), arg_required_else_help = true)]
     Completions {
-        shell: Shell,
+        shell: CompletionShell,
 
         #[arg(default_value = "rustup")]
         command: CompletionCommand,
@@ -1866,8 +1866,57 @@ impl fmt::Display for CompletionCommand {
     }
 }
 
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+enum CompletionShell {
+    Bash,
+    Elvish,
+    Fish,
+    Nushell,
+    PowerShell,
+    Zsh,
+}
+
+impl fmt::Display for CompletionShell {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            CompletionShell::Bash => "bash",
+            CompletionShell::Elvish => "elvish",
+            CompletionShell::Fish => "fish",
+            CompletionShell::Nushell => "nushell",
+            CompletionShell::PowerShell => "powershell",
+            CompletionShell::Zsh => "zsh",
+        })
+    }
+}
+
+impl clap_complete::Generator for CompletionShell {
+    fn file_name(&self, name: &str) -> String {
+        match self {
+            CompletionShell::Bash => Shell::Bash.file_name(name),
+            CompletionShell::Elvish => Shell::Elvish.file_name(name),
+            CompletionShell::Fish => Shell::Fish.file_name(name),
+            CompletionShell::PowerShell => Shell::PowerShell.file_name(name),
+            CompletionShell::Zsh => Shell::Zsh.file_name(name),
+
+            CompletionShell::Nushell => clap_complete_nushell::Nushell.file_name(name),
+        }
+    }
+
+    fn generate(&self, cmd: &clap::Command, buf: &mut dyn Write) {
+        match self {
+            CompletionShell::Bash => Shell::Bash.generate(cmd, buf),
+            CompletionShell::Elvish => Shell::Elvish.generate(cmd, buf),
+            CompletionShell::Fish => Shell::Fish.generate(cmd, buf),
+            CompletionShell::PowerShell => Shell::PowerShell.generate(cmd, buf),
+            CompletionShell::Zsh => Shell::Zsh.generate(cmd, buf),
+
+            CompletionShell::Nushell => clap_complete_nushell::Nushell.generate(cmd, buf),
+        }
+    }
+}
+
 fn output_completion_script(
-    shell: Shell,
+    shell: CompletionShell,
     command: CompletionCommand,
     process: &Process,
 ) -> Result<ExitCode> {
@@ -1881,18 +1930,15 @@ fn output_completion_script(
             );
         }
         CompletionCommand::Cargo => {
-            if let Shell::Zsh = shell {
-                writeln!(process.stdout().lock(), "#compdef cargo")?;
-            }
-
             let script = match shell {
-                Shell::Bash => "/etc/bash_completion.d/cargo",
-                Shell::Zsh => "/share/zsh/site-functions/_cargo",
+                CompletionShell::Bash => "/etc/bash_completion.d/cargo",
+                CompletionShell::Zsh => {
+                    writeln!(process.stdout().lock(), "#compdef cargo")?;
+                    "/share/zsh/site-functions/_cargo"
+                }
                 _ => {
                     return Err(anyhow!(
-                        "{} does not currently support completions for {}",
-                        command,
-                        shell
+                        "{command} does not currently support completions for {shell}",
                     ));
                 }
             };
