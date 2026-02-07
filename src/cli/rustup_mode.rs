@@ -796,7 +796,7 @@ async fn default_(
         if let Some((toolchain, source)) = cfg.active_toolchain()?
             && !matches!(source, ActiveSource::Default)
         {
-            info!(
+            warn!(
                 "note that the toolchain '{toolchain}' is currently in use ({})",
                 source.to_reason()
             );
