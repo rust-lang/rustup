@@ -541,10 +541,11 @@ mod curl {
 
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest_be {
-    use std::io;
+    #[cfg(feature = "reqwest-rustls-tls")]
+    use std::sync::Arc;
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use std::sync::{Arc, OnceLock};
-    use std::time::Duration;
+    use std::sync::OnceLock;
+    use std::{io, time::Duration};
 
     #[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
     use crate::anchors::RUSTUP_TRUST_ANCHORS;
