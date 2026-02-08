@@ -66,6 +66,9 @@ opener = "0.8.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
 openssl = { version = "0.10", optional = true }
+# HACK: Temporarily pinned due to ppc64 ELFv1/v2 ABI issue in 300.5.5, to be
+# removed when <https://github.com/openssl/openssl/issues/29815> lands.
+openssl-src = { version = "=300.5.4", optional = true }
 opentelemetry = { version = "0.31", optional = true }
 opentelemetry-otlp = { version = "0.31", features = ["grpc-tonic"], optional = true }
 opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"], optional = true }
