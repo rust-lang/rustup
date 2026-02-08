@@ -21,10 +21,7 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use crate::{
-    dist::download::DownloadStatus, download::DownloadError as DEK, errors::RustupError,
-    process::Process,
-};
+use crate::{dist::download::DownloadStatus, errors::RustupError, process::Process};
 
 #[cfg(test)]
 mod tests;
@@ -53,11 +50,13 @@ pub(crate) async fn download_file_with_resume(
             if e.downcast_ref::<std::io::Error>().is_some() {
                 return Err(e);
             }
-            let is_client_error = match e.downcast_ref::<DEK>() {
+            let is_client_error = match e.downcast_ref::<DownloadError>() {
                 // Specifically treat the bad partial range error as not our
                 // fault in case it was something odd which happened.
-                Some(DEK::HttpStatus(416)) => false,
-                Some(DEK::HttpStatus(400..=499)) | Some(DEK::FileNotFound) => true,
+                Some(DownloadError::HttpStatus(416)) => false,
+                Some(DownloadError::HttpStatus(400..=499)) | Some(DownloadError::FileNotFound) => {
+                    true
+                }
                 _ => false,
             };
             Err(e).with_context(|| {
@@ -263,8 +262,8 @@ impl Backend {
             return Ok(());
         };
 
-        let is_network_failure = match err.downcast_ref::<DEK>() {
-            Some(DEK::Reqwest(e)) => e.is_timeout() || e.is_connect(),
+        let is_network_failure = match err.downcast_ref::<DownloadError>() {
+            Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
             _ => false,
         };
 
