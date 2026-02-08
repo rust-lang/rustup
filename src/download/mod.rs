@@ -268,7 +268,9 @@ impl Backend {
             _ => false,
         };
 
-        // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
+        // TODO: Currently, we only refrain from removing the cached download
+        // if there was a network failure from the client side.
+        // It may be worth looking for other cases where removal is also not desired.
         Err(
             if !(resume_from_partial && is_network_failure)
                 && let Err(file_err) = remove_file(path).context("cleaning up cached downloads")
