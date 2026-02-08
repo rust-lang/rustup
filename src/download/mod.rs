@@ -1,8 +1,9 @@
 //! Easy file downloading
 
-use std::fs::remove_file;
+use std::fs::{File, OpenOptions, remove_file};
+use std::io;
 use std::num::NonZero;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -26,6 +27,96 @@ use crate::{dist::download::DownloadStatus, errors::RustupError, process::Proces
 #[cfg(test)]
 mod tests;
 
+/// An OS lock on a file that unlocks when dropping the file.
+pub(crate) struct LockedFile {
+    path: PathBuf,
+    file: File,
+}
+
+impl LockedFile {
+    /// Creates the file if it does not exit, does not lock.
+    #[cfg(unix)]
+    pub(crate) fn create(path: impl Into<PathBuf>) -> Result<Self, io::Error> {
+        use std::os::unix::fs::PermissionsExt;
+        use tempfile::NamedTempFile;
+
+        let path = path.into();
+
+        // If path already exists, return it.
+        if let Ok(file) = OpenOptions::new().read(true).write(true).open(&path) {
+            return Ok(Self { path, file });
+        }
+
+        // Otherwise, create a temporary file with 666 permissions, to handle races between
+        // processes running under different UIDs (e.g., in Docker containers). We must set
+        // permissions _after_ creating the file, to override the `umask`.
+        let file = if let Some(parent) = path.parent() {
+            NamedTempFile::new_in(parent)?
+        } else {
+            NamedTempFile::new()?
+        };
+        if let Err(err) = file
+            .as_file()
+            .set_permissions(std::fs::Permissions::from_mode(0o666))
+        {
+            warn!("failed to set permissions on temporary file: {err}");
+        }
+
+        // Try to move the file to path, but if path exists now, just open path
+        match file.persist_noclobber(&path) {
+            Ok(file) => Ok(Self { path, file }),
+            Err(err) => {
+                if err.error.kind() == io::ErrorKind::AlreadyExists {
+                    let file = OpenOptions::new().read(true).write(true).open(&path)?;
+                    Ok(Self { path, file })
+                } else {
+                    Err(err.error)
+                }
+            }
+        }
+    }
+
+    /// Creates the file if it does not exit, does not lock.
+    #[cfg(not(unix))]
+    pub(crate) fn create(path: impl Into<PathBuf>) -> Result<Self, io::Error> {
+        let path = path.into();
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)?;
+        Ok(Self { path, file })
+    }
+
+    /// Acquire an exclusive lock on a file, blocking until the file is ready.
+    pub(crate) fn lock(self) -> Result<Self, io::Error> {
+        match self.file.lock() {
+            Err(err) if err.kind() == io::ErrorKind::Unsupported => {
+                warn!("locking files is not supported, running rustup in parallel may error");
+                Ok(self)
+            }
+            Err(err) => Err(err),
+            Ok(()) => Ok(self),
+        }
+    }
+}
+
+impl Drop for LockedFile {
+    /// Unlock the file.
+    fn drop(&mut self) {
+        if let Err(err) = self.file.unlock() {
+            warn!(
+                "failed to unlock {}; program may be stuck: {}",
+                self.path.display(),
+                err
+            );
+        } else {
+            debug!("released lock at `{}`", self.path.display());
+        }
+    }
+}
+
 pub(crate) async fn download_file(
     url: &Url,
     path: &Path,
@@ -48,7 +139,7 @@ pub(crate) async fn download_file_with_resume(
     match download_file_(url, path, hasher, resume_from_partial, status, process).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            if e.downcast_ref::<std::io::Error>().is_some() {
+            if e.downcast_ref::<io::Error>().is_some() {
                 return Err(e);
             }
             let is_client_error = match e.downcast_ref::<DEK>() {
@@ -731,7 +822,7 @@ enum DownloadError {
     #[error("{0}")]
     Message(String),
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    IoError(#[from] io::Error),
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     #[error(transparent)]
     Reqwest(#[from] ::reqwest::Error),
