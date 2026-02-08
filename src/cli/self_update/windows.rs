@@ -22,8 +22,6 @@ use super::{InstallOpts, install_bins, report_error};
 use crate::cli::markdown::md;
 use crate::config::Cfg;
 use crate::dist::TargetTriple;
-use crate::dist::download::DownloadCfg;
-use crate::download::download_file;
 use crate::process::{ColorableTerminal, Process};
 use crate::utils;
 
@@ -52,7 +50,7 @@ fn choice(max: u8, process: &Process) -> Result<Option<u8>> {
 pub(crate) fn choose_vs_install(process: &Process) -> Result<Option<VsInstallPlan>> {
     writeln!(
         process.stdout().lock(),
-        "\n1) Quick install via the Visual Studio Community installer"
+        "\n1) Quick install via the Visual Studio Installer"
     )?;
     writeln!(
         process.stdout().lock(),
@@ -145,13 +143,14 @@ later, but they don't seem to be installed.
 "#;
 
 static MSVC_MANUAL_INSTALL_MESSAGE: &str = r#"
-You can acquire the build tools by installing Microsoft Visual Studio.
+You can acquire the build tools by installing the Build Tools for Microsoft Visual Studio:
 
-    https://visualstudio.microsoft.com/downloads/
+    https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2026
 
-Check the box for "Desktop development with C++" which will ensure that the
-needed components are installed. If your locale language is not English,
-then additionally check the box for English under Language packs.
+You will need the following components to be installed:
+    MSVC Build Tools for x64/x86 (Latest)
+    Windows 11 SDK (10.0.26100.XXXX)
+    Language pack: English
 
 For more details see:
 
@@ -199,9 +198,8 @@ pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option
         // If the user does not have Visual Studio installed and their host
         // machine is i686 or x86_64 then it's OK to try an auto install.
         // Otherwise a manual install will be required.
-        let has_any_vs = windows_registry::find_vs_version().is_ok();
         let is_x86 = host_triple.contains("i686") || host_triple.contains("x86_64");
-        if is_x86 && !has_any_vs {
+        if is_x86 {
             Some(VsInstallPlan::Automatic)
         } else {
             Some(VsInstallPlan::Manual)
@@ -262,47 +260,32 @@ pub(crate) async fn try_install_msvc(
     opts: &InstallOpts<'_>,
     cfg: &Cfg<'_>,
 ) -> Result<ContinueInstall> {
-    // download the installer
-    let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
+    info!("running the Visual Studio Installer\n");
+    info!("Follow the Installation and Close the Window to continue with rustup!\n");
 
-    let tempdir = tempfile::Builder::new()
-        .prefix("rustup-visualstudio")
-        .tempdir()
-        .context("error creating temp directory")?;
-
-    let visual_studio = tempdir.path().join("vs_setup.exe");
-    let dl_cfg = DownloadCfg::new(cfg);
-    info!("downloading Visual Studio installer");
-    download_file(
-        &visual_studio_url,
-        &visual_studio,
-        None,
-        None,
-        dl_cfg.process,
-    )
-    .await?;
-
-    // Run the installer. Arguments are documented at:
-    // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio
-    let mut cmd = Command::new(visual_studio);
-    cmd.arg("--wait")
-        // Display an interactive GUI focused on installing just the selected components.
-        .arg("--focusedUi")
-        // Add the English language pack
-        .args(["--addProductLang", "En-us"])
-        // Add the linker and C runtime libraries.
-        .args(["--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]);
-
+    let mut vsi_args = String::from(
+        "--focusedUi --addProductLang En-us --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+    );
     // It's possible an earlier or later version of the Windows SDK has been
     // installed separately from Visual Studio so installing it can be skipped.
     if !has_windows_sdk_libs(cfg.process) {
-        cmd.args([
-            "--add",
-            "Microsoft.VisualStudio.Component.Windows11SDK.26100",
-        ]);
+        vsi_args.push_str(" --add Microsoft.VisualStudio.Component.Windows11SDK.26100");
     }
-    info!("running the Visual Studio install");
-    info!("rustup will continue once Visual Studio installation is complete\n");
+
+    // Run the installer. Arguments are documented at:
+    // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio
+    let mut cmd = Command::new("winget");
+    cmd.arg("install")
+        .args(["--id", "Microsoft.VisualStudio.BuildTools"])
+        // Simple force update the Installer
+        .arg("--force")
+        // Overide winget silent mode
+        .arg("--interactive")
+        // Add custom arguments to the installer
+        .arg("--custom")
+        // Has all to be an argument value of --custom
+        .arg(vsi_args);
+
     let exit_status = cmd
         .spawn()
         .and_then(|mut child| child.wait())
