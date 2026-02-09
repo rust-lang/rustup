@@ -76,6 +76,14 @@ pub(crate) async fn download_file_with_resume(
     }
 }
 
+pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
+    match err.downcast_ref::<DownloadError>() {
+        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+        Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
+        _ => false,
+    }
+}
+
 async fn download_file_(
     url: &Url,
     path: &Path,
@@ -262,16 +270,11 @@ impl Backend {
             return Ok(());
         };
 
-        let is_network_failure = match err.downcast_ref::<DownloadError>() {
-            Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
-            _ => false,
-        };
-
         // TODO: Currently, we only refrain from removing the cached download
         // if there was a network failure from the client side.
         // It may be worth looking for other cases where removal is also not desired.
         Err(
-            if !(resume_from_partial && is_network_failure)
+            if !(resume_from_partial && is_network_failure(&err))
                 && let Err(file_err) = remove_file(path).context("cleaning up cached downloads")
             {
                 file_err.context(err)
