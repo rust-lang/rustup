@@ -257,6 +257,23 @@ mod reqwest {
         assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
     }
+
+    #[tokio::test]
+    async fn network_failure_does_not_delete_partial_file() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded.partial");
+        write_file(&target_path, "123");
+
+        let from_url = "http://240.0.0.0:1080".parse().unwrap();
+        Backend::Reqwest(TlsBackend::NativeTls)
+            .download_to_path(&from_url, &target_path, true, None, Duration::from_secs(1))
+            .await
+            .expect_err("download should fail with a connect error");
+
+        assert!(target_path.exists(), "partial file should not be deleted");
+        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "123");
+    }
 }
 
 pub fn tmp_dir() -> TempDir {
