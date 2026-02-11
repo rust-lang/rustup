@@ -262,9 +262,18 @@ impl Backend {
             return Ok(());
         };
 
-        // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
+        let is_network_failure = match err.downcast_ref::<DownloadError>() {
+            Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
+            _ => false,
+        };
+
+        // TODO: Currently, we only refrain from removing the cached download
+        // if there was a network failure from the client side.
+        // It may be worth looking for other cases where removal is also not desired.
         Err(
-            if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
+            if !(resume_from_partial && is_network_failure)
+                && let Err(file_err) = remove_file(path).context("cleaning up cached downloads")
+            {
                 file_err.context(err)
             } else {
                 err
@@ -587,7 +596,7 @@ mod reqwest_be {
 
         let mut stream = res.bytes_stream();
         while let Some(item) = stream.next().await {
-            let bytes = item?;
+            let bytes = item.map_err(DownloadError::Reqwest)?;
             callback(Event::DownloadDataReceived(&bytes))?;
         }
         Ok(())
