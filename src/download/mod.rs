@@ -44,18 +44,19 @@ pub(crate) async fn download_file_with_resume(
     status: Option<&DownloadStatus>,
     process: &Process,
 ) -> anyhow::Result<()> {
-    use crate::download::DownloadError as DEK;
     match download_file_(url, path, hasher, resume_from_partial, status, process).await {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {
                 return Err(e);
             }
-            let is_client_error = match e.downcast_ref::<DEK>() {
+            let is_client_error = match e.downcast_ref::<DownloadError>() {
                 // Specifically treat the bad partial range error as not our
                 // fault in case it was something odd which happened.
-                Some(DEK::HttpStatus(416)) => false,
-                Some(DEK::HttpStatus(400..=499)) | Some(DEK::FileNotFound) => true,
+                Some(DownloadError::HttpStatus(416)) => false,
+                Some(DownloadError::HttpStatus(400..=499)) | Some(DownloadError::FileNotFound) => {
+                    true
+                }
                 _ => false,
             };
             Err(e).with_context(|| {
