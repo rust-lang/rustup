@@ -538,14 +538,14 @@ mod curl {
                 })?;
             }
 
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error
+            // If we didn't get a 20x or 0 ("OK" for files) then return an error.
+            // If resuming a download, we need a 206, as a 200 would mean the server ignored
+            // the range header, resulting in corruption.
             let code = handle.response_code()?;
-            match code {
-                0 | 200..=299 => {}
-                _ => {
-                    return Err(DownloadError::HttpStatus(code).into());
-                }
-            };
+            match (resume_from > 0, code) {
+                (_, 0) | (true, 206) | (false, 200..=299) => {}
+                _ => return Err(DownloadError::HttpStatus(code).into()),
+            }
 
             Ok(())
         })
