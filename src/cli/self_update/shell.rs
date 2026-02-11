@@ -311,13 +311,13 @@ impl UnixShell for Nu {
 
     fn source_string(&self, process: &Process) -> Result<String> {
         Ok(format!(
-            r#"source $"{}/env.nu""#,
+            r#"source "{}/env.nu""#,
             self.cargo_home_str(process)?
         ))
     }
 
     fn cargo_home_str(&self, process: &Process) -> Result<Cow<'static, str>> {
-        cargo_home_str_with_home("($nu.home-path)", process)
+        cargo_home_str_with_home("~", process)
     }
 }
 

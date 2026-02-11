@@ -302,24 +302,24 @@ impl SelfUpdateMode {
         if cfg!(feature = "no-self-update") {
             info!("self-update is disabled for this build of rustup");
             info!("any updates to rustup will need to be fetched with your system package manager");
-            return Ok(ExitCode(0));
+            return Ok(ExitCode::SUCCESS);
         }
         match self {
             Self::Enable if should_self_update => (),
             Self::CheckOnly => {
                 check_rustup_update(dl_cfg).await?;
-                return Ok(ExitCode(0));
+                return Ok(ExitCode::SUCCESS);
             }
-            _ => return Ok(ExitCode(0)),
+            _ => return Ok(ExitCode::SUCCESS),
         }
 
         match self_update_permitted(false)? {
             SelfUpdatePermission::HardFail => {
                 error!("Unable to self-update.  STOP");
-                return Ok(ExitCode(1));
+                return Ok(ExitCode::FAILURE);
             }
             #[cfg(not(windows))]
-            SelfUpdatePermission::Skip => return Ok(ExitCode(0)),
+            SelfUpdatePermission::Skip => return Ok(ExitCode::SUCCESS),
             SelfUpdatePermission::Permit => {}
         }
 
@@ -332,7 +332,7 @@ impl SelfUpdateMode {
             install_proxies(dl_cfg.process)?;
         }
 
-        Ok(ExitCode(0))
+        Ok(ExitCode::SUCCESS)
     }
 }
 
@@ -454,7 +454,7 @@ the corresponding `env` file under {cargo_home}.
 This is usually done by running one of the following (note the leading DOT):
     . "{cargo_home}/env"            # For sh/bash/zsh/ash/dash/pdksh
     source "{cargo_home}/env.fish"  # For fish
-    source $"{cargo_home_nushell}/env.nu"  # For nushell
+    source "{cargo_home_nushell}/env.nu"  # For nushell
     source "{cargo_home}/env.tcsh"  # For tcsh
     . "{cargo_home}/env.ps1"        # For pwsh
     source "{cargo_home}/env.xsh"   # For xonsh
@@ -579,7 +579,7 @@ pub(crate) async fn install(
     cfg: &mut Cfg<'_>,
 ) -> Result<ExitCode> {
     #[cfg_attr(not(unix), allow(unused_mut))]
-    let mut exit_code = ExitCode(0);
+    let mut exit_code = ExitCode::SUCCESS;
 
     opts.validate(cfg.process).map_err(|e| {
         anyhow!(
@@ -619,7 +619,7 @@ pub(crate) async fn install(
             match common::confirm_advanced(customized_install, cfg.process)? {
                 Confirm::No => {
                     info!("aborting installation");
-                    return Ok(ExitCode(0));
+                    return Ok(ExitCode::SUCCESS);
                 }
                 Confirm::Yes => {
                     break;
@@ -645,7 +645,7 @@ pub(crate) async fn install(
             windows::ensure_prompt(cfg.process)?;
         }
 
-        return Ok(ExitCode(1));
+        return Ok(ExitCode::FAILURE);
     }
 
     let cargo_home = canonical_cargo_home(cfg.process)?;
@@ -1033,7 +1033,7 @@ pub(crate) fn uninstall(
     if cfg!(feature = "no-self-update") {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
-        return Ok(ExitCode(1));
+        return Ok(ExitCode::FAILURE);
     }
 
     let cargo_home = process.cargo_home()?;
@@ -1055,7 +1055,7 @@ pub(crate) fn uninstall(
         md(&mut process.stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false, process)? {
             info!("aborting uninstallation");
-            return Ok(ExitCode(0));
+            return Ok(ExitCode::SUCCESS);
         }
     }
 
@@ -1132,7 +1132,7 @@ pub(crate) fn uninstall(
 
     info!("rustup is uninstalled");
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1201,12 +1201,12 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
             // TODO: Detect which package manager and be more useful.
             error!("self-update is disabled for this build of rustup");
             error!("you should probably use your system package manager to update rustup");
-            return Ok(ExitCode(1));
+            return Ok(ExitCode::FAILURE);
         }
         #[cfg(not(windows))]
         Skip => {
             info!("Skipping self-update at this time");
-            return Ok(ExitCode(0));
+            return Ok(ExitCode::SUCCESS);
         }
         Permit => {}
     }
@@ -1215,7 +1215,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
         Some(setup_path) => {
             let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
                 error!("failed to get rustup version");
-                return Ok(ExitCode(1));
+                return Ok(ExitCode::FAILURE);
             };
 
             let _ = common::show_channel_update(
@@ -1236,7 +1236,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
         }
     }
 
-    Ok(ExitCode(0))
+    Ok(ExitCode::SUCCESS)
 }
 
 fn get_and_parse_new_rustup_version(path: &Path) -> Option<String> {

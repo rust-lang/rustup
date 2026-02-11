@@ -29,6 +29,17 @@ pub(crate) mod units;
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExitCode(pub i32);
 
+impl ExitCode {
+    /// Successful execution.
+    pub const SUCCESS: Self = Self(0);
+
+    /// Generic failure.
+    pub const FAILURE: Self = Self(1);
+
+    /// Updates are available.
+    pub const UPDATES_AVAILABLE: Self = Self(100);
+}
+
 impl BitAnd for ExitCode {
     type Output = Self;
 

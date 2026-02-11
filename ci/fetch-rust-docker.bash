@@ -33,7 +33,8 @@ case "$TARGET" in
   mips64el-unknown-linux-gnuabi64) image=dist-mips64el-linux ;;
   mipsel-unknown-linux-gnu)        image=dist-mipsel-linux ;;
   powerpc-unknown-linux-gnu)       image=dist-powerpc-linux ;;
-  powerpc64-unknown-linux-gnu)     image=dist-powerpc64-linux ;;
+  powerpc64-unknown-linux-gnu)     image=dist-powerpc64-linux-gnu ;;
+  powerpc64-unknown-linux-musl)    image=dist-powerpc64-linux-musl ;;
   powerpc64le-unknown-linux-gnu)   image=dist-powerpc64le-linux-gnu ;;
   powerpc64le-unknown-linux-musl)  image=dist-powerpc64le-linux-musl ;;
   s390x-unknown-linux-gnu)         image=dist-s390x-linux ;;

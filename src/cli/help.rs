@@ -11,7 +11,18 @@ pub(crate) fn rustup_help() -> String {
   for common platforms.
 
   If you are new to Rust consider running `rustup doc --book` to
-  learn Rust."
+  learn Rust.
+
+{HEADER}Common commands:{HEADER:#}
+
+  Update Rust toolchains and rustup
+
+    {LITERAL}$ rustup update{LITERAL:#}
+    
+  Install the current stable release of Rust for your host platform
+
+    {LITERAL}$ rustup toolchain install stable{LITERAL:#}
+  "
     )
 }
 
@@ -202,6 +213,15 @@ pub(crate) fn run_help() -> String {
     {LITERAL}$ cargo +nightly build{LITERAL:#}
 
     {LITERAL}$ rustup run nightly cargo build{LITERAL:#}"
+    )
+}
+
+pub(crate) fn check_help() -> String {
+    format!(
+        r"{HEADER}Exit status:{HEADER:#}
+  {LITERAL}0{LITERAL:#}   Everything is up to date.
+  {LITERAL}100{LITERAL:#} At least one update is available.
+  {LITERAL}1{LITERAL:#}   An error occurred."
     )
 }
 
