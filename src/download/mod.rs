@@ -538,8 +538,12 @@ mod curl {
                 })?;
             }
 
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error
+            // When resuming, require 206 Partial Content; 200 OK means the Range request was ignored.
             let code = handle.response_code()?;
+
+            if resume_from > 0 && code != 206 {
+                return Err(DownloadError::InvalidResumeResponse(code).into());
+            }
             match code {
                 0 | 200..=299 => {}
                 _ => {
@@ -587,8 +591,16 @@ mod reqwest_be {
             .await
             .context("error downloading file")?;
 
-        if !res.status().is_success() {
-            let code: u16 = res.status().into();
+        let status = res.status();
+
+        if resume_from > 0 && status != reqwest::StatusCode::PARTIAL_CONTENT {
+            return Err(anyhow!(DownloadError::InvalidResumeResponse(
+                status.as_u16() as u32
+            )));
+        }
+
+        if !status.is_success() {
+            let code: u16 = status.into();
             return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
         }
 
@@ -751,4 +763,6 @@ enum DownloadError {
     #[cfg(feature = "curl-backend")]
     #[error(transparent)]
     CurlError(#[from] ::curl::Error),
+    #[error("server did not honor HTTP range request (status {0})")]
+    InvalidResumeResponse(u32),
 }
