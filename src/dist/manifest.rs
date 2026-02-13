@@ -12,11 +12,12 @@
 //!
 //! Docs: <https://forge.rust-lang.org/infra/channel-layout.html>
 
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::str::FromStr;
+use std::{
+    collections::{BTreeMap, btree_map::Entry},
+    fmt,
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
 use anyhow::{Context, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
@@ -41,13 +42,13 @@ pub struct Manifest {
     pub(crate) manifest_version: ManifestVersion,
     pub date: String,
     #[serde(default, rename = "pkg")]
-    pub packages: HashMap<String, Package>,
+    pub packages: BTreeMap<String, Package>,
     #[serde(default)]
-    pub renames: HashMap<String, Renamed>,
+    pub renames: BTreeMap<String, Renamed>,
     #[serde(default, skip_serializing)]
-    pub reverse_renames: HashMap<String, String>,
+    pub reverse_renames: BTreeMap<String, String>,
     #[serde(default)]
-    pub profiles: HashMap<Profile, Vec<String>>,
+    pub profiles: BTreeMap<Profile, Vec<String>>,
 }
 
 impl Manifest {
@@ -94,12 +95,12 @@ pub struct Package {
 #[serde(from = "TargetsMap", into = "TargetsMap")]
 pub enum PackageTargets {
     Wildcard(TargetedPackage),
-    Targeted(HashMap<TargetTriple, TargetedPackage>),
+    Targeted(BTreeMap<TargetTriple, TargetedPackage>),
 }
 
 #[derive(Deserialize, Serialize)]
 #[serde(transparent)]
-struct TargetsMap(HashMap<TargetTriple, TargetedPackage>);
+struct TargetsMap(BTreeMap<TargetTriple, TargetedPackage>);
 
 impl From<TargetsMap> for PackageTargets {
     fn from(mut map: TargetsMap) -> Self {
@@ -115,7 +116,7 @@ impl From<PackageTargets> for TargetsMap {
     fn from(targets: PackageTargets) -> Self {
         match targets {
             PackageTargets::Wildcard(tpkg) => {
-                let mut map = HashMap::new();
+                let mut map = BTreeMap::new();
                 map.insert(TargetTriple::new("*"), tpkg);
                 Self(map)
             }
@@ -639,6 +640,9 @@ mod tests {
 
     // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
     static EXAMPLE: &str = include_str!("manifest/tests/channel-rust-nightly-example.toml");
+    // Same manifest as above, but with the packages in a different order.
+    static EXAMPLE_REORDERED: &str =
+        include_str!("manifest/tests/channel-rust-nightly-example.toml");
     // From brson's live build-rust-manifest.py script
     static EXAMPLE2: &str = include_str!("manifest/tests/channel-rust-nightly-example2.toml");
 
@@ -741,5 +745,14 @@ date = "2015-10-10"
         let manifest = EXAMPLE.replace("x86_64-unknown-linux-gnu", "mycpu-myvendor-myos");
 
         assert!(Manifest::parse(&manifest).is_ok());
+    }
+
+    // #4715
+    #[test]
+    fn manifest_serialized_with_sorted_keys() -> anyhow::Result<()> {
+        let manifest = Manifest::parse(EXAMPLE)?;
+        let manifest_reordered = Manifest::parse(EXAMPLE_REORDERED)?;
+        assert_eq!(manifest.stringify()?, manifest_reordered.stringify()?);
+        Ok(())
     }
 }

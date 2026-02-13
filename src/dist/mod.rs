@@ -725,7 +725,9 @@ impl TryFrom<&ToolchainName> for ToolchainDesc {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize, PartialOrd, Ord,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Profile {
     Minimal,
