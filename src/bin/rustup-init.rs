@@ -40,7 +40,7 @@ fn main() -> Result<ExitCode> {
     let process = Process::os();
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
-        .worker_threads(process.io_thread_count()?)
+        .worker_threads(process.io_thread_count()?.count())
         .build()
         .unwrap();
 

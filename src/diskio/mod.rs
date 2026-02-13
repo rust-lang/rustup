@@ -62,6 +62,7 @@ use std::{fmt::Debug, fs::OpenOptions};
 use anyhow::Result;
 use tracing::{error, trace, warn};
 
+use crate::process::IoThreadCount;
 use crate::utils::units::Size;
 
 pub(crate) mod immediate;
@@ -442,15 +443,42 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     std::fs::create_dir(path)
 }
 
+/// The Threaded executor uses substantially more memory than its ram_budget
+/// accounts for (pool overhead, sharded_slab metadata, multiple in-flight
+/// operations, thread stacks, allocator fragmentation). On systems where the
+/// ram_budget is under this threshold, fall back to single-threaded unpacking
+/// which peaks at ~110MB.
+/// See https://github.com/rust-lang/rustup/issues/3125
+const LOW_MEMORY_THRESHOLD: usize = 512 * 1024 * 1024;
+
 /// Get the executor for disk IO.
 pub(crate) fn get_executor<'a>(
     ram_budget: usize,
-    io_thread_count: usize,
+    thread_count: IoThreadCount,
 ) -> Box<dyn Executor + 'a> {
     // If this gets lots of use, consider exposing via the config file.
-    match io_thread_count {
+    let threads = effective_thread_count(ram_budget, thread_count);
+    match threads {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
         n => Box::new(threaded::Threaded::new(n, ram_budget)),
+    }
+}
+
+fn effective_thread_count(ram_budget: usize, thread_count: IoThreadCount) -> usize {
+    match thread_count {
+        IoThreadCount::UserSpecified(n) => n,
+        IoThreadCount::Default(n) if n <= 1 => n,
+        IoThreadCount::Default(n) if ram_budget < LOW_MEMORY_THRESHOLD => {
+            warn!(
+                "Using single-threaded unpacking due to low memory \
+                 (ram budget: {} < {} threshold). \
+                 Set RUSTUP_IO_THREADS to override.",
+                Size::new(ram_budget),
+                Size::new(LOW_MEMORY_THRESHOLD)
+            );
+            1
+        }
+        IoThreadCount::Default(n) => n,
     }
 }
 
