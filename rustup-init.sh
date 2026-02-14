@@ -473,6 +473,10 @@ get_architecture() {
 
         aarch64 | arm64)
             _cputype=aarch64
+            # Windows aarch64 uses gnullvm instead of gnu
+            if [ "$_ostype" = "pc-windows-gnu" ]; then
+                _ostype=pc-windows-gnullvm
+            fi
             ;;
 
         x86_64 | x86-64 | x64 | amd64)
