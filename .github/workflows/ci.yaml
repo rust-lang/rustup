@@ -636,7 +636,10 @@ jobs:
       - name: Maybe build a docker from there
         run: |
           if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
-            docker build -t "rustup/$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
+            # HACK: A possible regression in Docker will make this step fail
+            # when BuildKit is enabled, so disabling it for now. See
+            # <https://github.com/rust-lang/rustup/issues/4720> for more info.
+            DOCKER_BUILDKIT=0 docker build -t "rustup/$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
         env:
@@ -805,7 +808,10 @@ jobs:
       - name: Maybe build a docker from there
         run: |
           if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
-            docker build -t "rustup/$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
+            # HACK: A possible regression in Docker will make this step fail
+            # when BuildKit is enabled, so disabling it for now. See
+            # <https://github.com/rust-lang/rustup/issues/4720> for more info.
+            DOCKER_BUILDKIT=0 docker build -t "rustup/$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
         env:
@@ -999,7 +1005,10 @@ jobs:
       - name: Maybe build a docker from there
         run: |
           if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
-            docker build -t "rustup/$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
+            # HACK: A possible regression in Docker will make this step fail
+            # when BuildKit is enabled, so disabling it for now. See
+            # <https://github.com/rust-lang/rustup/issues/4720> for more info.
+            DOCKER_BUILDKIT=0 docker build -t "rustup/$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
         env:
