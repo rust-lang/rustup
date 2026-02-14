@@ -12,7 +12,7 @@ use std::{
     mem,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     time::Instant,
@@ -1261,4 +1261,346 @@ where
         fs::hard_link(a, b).map(drop)
     }
     inner(original.as_ref(), link.as_ref())
+}
+
+const DEFAULT_RUSTUP_TEST_NETWORK_NAME: &str = "rustup-test-network";
+
+// This is the simplest ferron config that will send all output to stderr and serve the rustup test distribution files
+// and require basic authentication. The only valid credentials are 'test:123?45>6'.
+const RUSTUP_TEST_DIST_SERVER_CONFIG: &str = ":8080 {\n\
+  log \"/dev/stderr\"\n\
+  error_log \"/dev/stderr\"\n\
+  status 401 users=\"test\" brute_protection=#false\n\
+  user \"test\" \"$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08\"\n\
+  root \"/mnt/rustup-test-temp-dir\"\n\
+}";
+
+// This config starts the forward proxy. The only valid credentials are 'test:123?45>6'.
+const RUSTUP_TEST_FORWARD_PROXY_CONFIG: &str = ":9080 {\n\
+  log \"/dev/stderr\"\n\
+  error_log \"/dev/stderr\"\n\
+  user \"test\" \"$argon2id$v=19$m=19456,t=2,p=1$emTillHaS3OqFuvITdXxzg$G00heP8QSXk5H/ruTiLt302Xk3uETfU5QO8hBIwUq08\"\n\
+  forward_proxy_auth users=\"test\" brute_protection=#false\n\
+  forward_proxy\n\
+}";
+
+// This is used for ensuring one thread ensures the test network is created.
+static CONTAINER_NETWORK_CREATE_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(()));
+
+#[derive(Debug)]
+pub enum TestContainer {
+    DistServer,
+    ForwardProxy,
+}
+
+impl std::fmt::Display for TestContainer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TestContainer::DistServer => {
+                write!(f, "rustup-test-dist-server")
+            }
+            TestContainer::ForwardProxy => {
+                write!(f, "rustup-test-forward-proxy")
+            }
+        }
+    }
+}
+
+pub struct TestContainerContext {
+    container: TestContainer,
+    docker_program: std::ffi::OsString,
+    leave_container_running: bool,
+    cli_test_context: CliTestContext,
+    host_port: Option<u16>,
+}
+
+impl Drop for TestContainerContext {
+    fn drop(&mut self) {
+        self.cleanup_container().unwrap();
+    }
+}
+
+impl TestContainerContext {
+    pub async fn new(process: &process::Process, container: TestContainer) -> Self {
+        let default_docker_program = format!("docker{EXE_SUFFIX}");
+        let docker_program = process
+            .var_os("RUSTUP_TEST_DOCKER_PROGRAM")
+            .unwrap_or(default_docker_program.into());
+        let leave_container_running = process
+            .var_opt("RUSTUP_TEST_LEAVE_CONTAINERS_RUNNING")
+            .unwrap()
+            .map(|var| var.eq("true"))
+            .unwrap_or_default();
+        let mut cli_test_context = match container {
+            TestContainer::DistServer => CliTestContext::new(Scenario::SimpleV2).await,
+            TestContainer::ForwardProxy => CliTestContext::new(Scenario::Empty).await,
+        };
+        if leave_container_running {
+            cli_test_context.config.test_dist_dir.disable_cleanup(true);
+        }
+        Self {
+            container,
+            docker_program,
+            leave_container_running,
+            cli_test_context,
+            host_port: None,
+        }
+    }
+
+    pub async fn run(&mut self) -> anyhow::Result<()> {
+        let container_port: u16 = match self.container {
+            TestContainer::DistServer => 8080,
+            TestContainer::ForwardProxy => 9080,
+        };
+        if !self.is_running() {
+            self.ensure_network_created().await.unwrap();
+            match self.container {
+                TestContainer::DistServer => {
+                    let temp_dir_string = self
+                        .cli_test_context
+                        .config
+                        .test_dist_dir
+                        .path()
+                        .to_string_lossy()
+                        .into_owned();
+                    tokio::fs::write(
+                        self.cli_test_context
+                            .config
+                            .test_dist_dir
+                            .path()
+                            .join("rustup-test-dist-server.kdl"),
+                        RUSTUP_TEST_DIST_SERVER_CONFIG,
+                    )
+                    .await
+                    .unwrap();
+                    let mut command = Command::new(&self.docker_program);
+                    let exit_status = command
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .args([
+                            "run",
+                            "--detach",
+                            "--name",
+                            format!("{}", self.container).as_str(),
+                            "--net",
+                            DEFAULT_RUSTUP_TEST_NETWORK_NAME,
+                            "--publish",
+                            format!("{container_port}").as_str(),
+                            "--volume",
+                            format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
+                            "docker.io/ferronserver/ferron:2",
+                            "ferron",
+                            "--config",
+                            "/mnt/rustup-test-temp-dir/rustup-test-dist-server.kdl",
+                        ])
+                        .spawn()
+                        .unwrap()
+                        .wait()
+                        .unwrap();
+                    if !exit_status.success() {
+                        let msg = format!(
+                            "A problem occurred attempting to start the {} container.",
+                            self.container
+                        );
+                        tracing::error!("{msg}");
+                        Err(anyhow::anyhow!(msg))
+                    } else {
+                        Ok(())
+                    }
+                }
+                TestContainer::ForwardProxy => {
+                    let temp_dir_string = self
+                        .cli_test_context
+                        .config
+                        .test_dist_dir
+                        .path()
+                        .to_string_lossy()
+                        .into_owned();
+                    tokio::fs::write(
+                        self.cli_test_context
+                            .config
+                            .test_dist_dir
+                            .path()
+                            .join("rustup-test-forward-proxy.kdl"),
+                        RUSTUP_TEST_FORWARD_PROXY_CONFIG,
+                    )
+                    .await
+                    .unwrap();
+                    let mut command = Command::new(&self.docker_program);
+                    let exit_status = command
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .args([
+                            "run",
+                            "--detach",
+                            "--name",
+                            format!("{}", self.container).as_str(),
+                            "--net",
+                            DEFAULT_RUSTUP_TEST_NETWORK_NAME,
+                            "--publish",
+                            format!("{container_port}").as_str(),
+                            "--volume",
+                            format!("{temp_dir_string}:/mnt/rustup-test-temp-dir").as_str(),
+                            "docker.io/ferronserver/ferron:2",
+                            "ferron",
+                            "--config",
+                            "/mnt/rustup-test-temp-dir/rustup-test-forward-proxy.kdl",
+                        ])
+                        .spawn()
+                        .unwrap()
+                        .wait()
+                        .unwrap();
+                    if !exit_status.success() {
+                        let msg = format!(
+                            "A problem occurred attempting to start the {} container.",
+                            self.container
+                        );
+                        tracing::error!("{msg}");
+                        Err(anyhow::anyhow!(msg))
+                    } else {
+                        Ok(())
+                    }
+                }
+            }
+        } else {
+            Ok(())
+        }?;
+        // Determine which host port is being used for the published container port.
+        let mut command = Command::new(&self.docker_program);
+        let output = command
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .args([
+                "inspect",
+                "--format",
+                format!("{{{{(index (index .NetworkSettings.Ports \"{container_port}/tcp\") 0).HostPort}}}}").as_str(),
+                format!("{}", self.container).as_str(),
+            ])
+            .output()
+            .unwrap();
+        let host_port_string = String::from_utf8_lossy(output.stdout.as_ref())
+            .trim()
+            .to_owned();
+        let host_port = host_port_string.parse::<u16>().unwrap();
+        self.host_port = Some(host_port);
+        Ok(())
+    }
+
+    pub fn host_port(&self) -> &Option<u16> {
+        &self.host_port
+    }
+
+    async fn ensure_network_created(&self) -> anyhow::Result<()> {
+        let _guard = (*CONTAINER_NETWORK_CREATE_LOCK).lock().await;
+        let mut command = Command::new(&self.docker_program);
+        let output = command
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .args([
+                "network",
+                "ls",
+                "--format",
+                "{{.Name}}",
+                "--filter",
+                format!("name={DEFAULT_RUSTUP_TEST_NETWORK_NAME}").as_str(),
+            ])
+            .output()
+            .unwrap();
+        if output.stdout.is_empty() {
+            let mut command = Command::new(&self.docker_program);
+            let exit_status = command
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .args(["network", "create", DEFAULT_RUSTUP_TEST_NETWORK_NAME])
+                .spawn()
+                .unwrap()
+                .wait()
+                .unwrap();
+            if !exit_status.success() {
+                let msg = format!(
+                    "A problem occurred attempting to ensure '{DEFAULT_RUSTUP_TEST_NETWORK_NAME}' network is created."
+                );
+                tracing::error!("{msg}");
+                Err(anyhow::anyhow!(msg))
+            } else {
+                Ok(())
+            }
+        } else {
+            Ok(())
+        }
+    }
+
+    fn is_running(&self) -> bool {
+        let mut command = Command::new(&self.docker_program);
+        let output = command
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .args([
+                "ps",
+                "--format",
+                "{{.ID}}",
+                "--filter",
+                format!("name={}", self.container).as_str(),
+            ])
+            .output()
+            .unwrap();
+        !output.stdout.is_empty()
+    }
+
+    pub fn cleanup_container(&self) -> anyhow::Result<()> {
+        if !self.leave_container_running {
+            if self.is_running() {
+                let mut command = Command::new(&self.docker_program);
+                let exit_status = command
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .args(["stop", format!("{}", self.container).as_str()])
+                    .spawn()
+                    .unwrap()
+                    .wait()
+                    .unwrap();
+                if !exit_status.success() {
+                    let msg = format!(
+                        "A problem occurred attempting to stop the {} container.",
+                        self.container
+                    );
+                    tracing::error!("{msg}");
+                    Err(anyhow::anyhow!(msg))
+                } else {
+                    let mut command = Command::new(&self.docker_program);
+                    let exit_status = command
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .args(["rm", format!("{}", self.container).as_str()])
+                        .spawn()
+                        .unwrap()
+                        .wait()
+                        .unwrap();
+                    if !exit_status.success() {
+                        let msg = format!(
+                            "A problem occurred attempting to remove the {} container.",
+                            self.container
+                        );
+                        tracing::error!("{msg}");
+                        Err(anyhow::anyhow!(msg))
+                    } else {
+                        Ok(())
+                    }
+                }
+            } else {
+                Ok(())
+            }
+        } else {
+            Ok(())
+        }
+    }
 }
