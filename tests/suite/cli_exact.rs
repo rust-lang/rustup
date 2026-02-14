@@ -62,7 +62,7 @@ async fn update_once_and_check_self_update() {
 
   nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
 
-rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
+Update available rustup [CURRENT_VERSION] -> [TEST_VERSION]
 
 "#]])
         .with_stderr(snapbox::str![[r#"
@@ -182,9 +182,9 @@ async fn check_updates_none() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - up to date: 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - up to date: 1.3.0 (hash-nightly-2)
+      Up to date stable-[HOST_TRIPLE] 1.1.0 (hash-stable-1.1.0)
+      Up to date beta-[HOST_TRIPLE] 1.2.0 (hash-beta-1.2.0)
+      Up to date nightly-[HOST_TRIPLE] 1.3.0 (hash-nightly-2)
 
 "#]]);
 }
@@ -207,9 +207,9 @@ async fn check_updates_some() {
         .await
         .has_code(100)
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
+Update available stable-[HOST_TRIPLE] 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+Update available beta-[HOST_TRIPLE] 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
+Update available nightly-[HOST_TRIPLE] 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 
 "#]]);
 }
@@ -232,7 +232,7 @@ async fn check_updates_self() {
         .extend_redactions([("[TEST_VERSION]", test_version)])
         .has_code(100)
         .with_stdout(snapbox::str![[r#"
-rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
+Update available rustup [CURRENT_VERSION] -> [TEST_VERSION]
 
 "#]]);
 }
@@ -254,7 +254,7 @@ async fn check_updates_self_no_change() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-rustup - Up to date : [CURRENT_VERSION]
+      Up to date rustup [CURRENT_VERSION]
 
 "#]]);
 }
@@ -274,9 +274,9 @@ async fn check_updates_with_update() {
             .await
             .is_ok()
             .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - up to date: 1.0.0 (hash-stable-1.0.0)
-beta-[HOST_TRIPLE] - up to date: 1.1.0 (hash-beta-1.1.0)
-nightly-[HOST_TRIPLE] - up to date: 1.2.0 (hash-nightly-1)
+      Up to date stable-[HOST_TRIPLE] 1.0.0 (hash-stable-1.0.0)
+      Up to date beta-[HOST_TRIPLE] 1.1.0 (hash-beta-1.1.0)
+      Up to date nightly-[HOST_TRIPLE] 1.2.0 (hash-nightly-1)
 
 "#]]);
     }
@@ -287,9 +287,9 @@ nightly-[HOST_TRIPLE] - up to date: 1.2.0 (hash-nightly-1)
         .await
         .has_code(100)
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - update available: 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
+Update available stable-[HOST_TRIPLE] 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+Update available beta-[HOST_TRIPLE] 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
+Update available nightly-[HOST_TRIPLE] 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 
 "#]]);
     cx.config.expect(["rustup", "update", "beta"]).await.is_ok();
@@ -298,9 +298,9 @@ nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-
         .await
         .has_code(100)
         .with_stdout(snapbox::str![[r#"
-stable-[HOST_TRIPLE] - update available: 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
-beta-[HOST_TRIPLE] - up to date: 1.2.0 (hash-beta-1.2.0)
-nightly-[HOST_TRIPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
+Update available stable-[HOST_TRIPLE] 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+      Up to date beta-[HOST_TRIPLE] 1.2.0 (hash-beta-1.2.0)
+Update available nightly-[HOST_TRIPLE] 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 
 "#]]);
 }
