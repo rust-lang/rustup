@@ -93,7 +93,7 @@ threadpool = "1"
 tokio = { version = "1.26.0", default-features = false, features = ["macros", "rt-multi-thread", "sync"] }
 tokio-retry = "0.3.0"
 tokio-stream = "0.1.14"
-toml = "0.9"
+toml = "1.0"
 tracing = "0.1"
 tracing-log = "0.2"
 tracing-opentelemetry = { version = "0.32", optional = true }
