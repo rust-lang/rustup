@@ -538,14 +538,14 @@ mod curl {
                 })?;
             }
 
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error
+            // If we didn't get a 20x or 0 ("OK" for files) then return an error.
+            // If resuming a download, we need a 206, as a 200 would mean the server ignored
+            // the range header, resulting in corruption.
             let code = handle.response_code()?;
-            match code {
-                0 | 200..=299 => {}
-                _ => {
-                    return Err(DownloadError::HttpStatus(code).into());
-                }
-            };
+            match (resume_from > 0, code) {
+                (_, 0) | (true, 206) | (false, 200..=299) => {}
+                _ => return Err(DownloadError::HttpStatus(code).into()),
+            }
 
             Ok(())
         })
@@ -587,9 +587,13 @@ mod reqwest_be {
             .await
             .context("error downloading file")?;
 
-        if !res.status().is_success() {
-            let code: u16 = res.status().into();
-            return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
+        // If a download is being resumed, we expect a 206 response;
+        // otherwise, if the server ignored the range header,
+        // an error is thrown preemptively to avoid corruption.
+        let status = res.status().into();
+        match (resume_from > 0, status) {
+            (true, 206) | (false, 200..=299) => {}
+            _ => return Err(DownloadError::HttpStatus(u32::from(status)).into()),
         }
 
         if let Some(len) = res.content_length() {
