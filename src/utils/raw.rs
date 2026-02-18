@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use std::str;
 
+use rand::RngExt;
 use retry::delay::{Fibonacci, jitter};
 use retry::{OperationResult, retry};
 
@@ -60,7 +61,6 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 }
 
 pub(crate) fn random_string(length: usize) -> String {
-    use rand::Rng;
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789_";
     let mut rng = rand::rng();
     (0..length)

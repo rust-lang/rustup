@@ -1,7 +1,7 @@
 //! Tools for building and working with the filesystem of a mock Rust
 //! distribution server, with v1 and v2 manifests.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
@@ -771,15 +771,15 @@ impl MockDistServer {
         let mut manifest = Manifest {
             manifest_version: ManifestVersion::V2,
             date: channel.date.clone(),
-            renames: HashMap::default(),
-            packages: HashMap::default(),
-            reverse_renames: HashMap::default(),
-            profiles: HashMap::default(),
+            renames: BTreeMap::default(),
+            packages: BTreeMap::default(),
+            reverse_renames: BTreeMap::default(),
+            profiles: BTreeMap::default(),
         };
 
         // [pkg.*]
         for package in &channel.packages {
-            let mut targets = HashMap::default();
+            let mut targets = BTreeMap::default();
 
             // [pkg.*.target.*]
             for target in &package.targets {

@@ -44,18 +44,19 @@ pub(crate) async fn download_file_with_resume(
     status: Option<&DownloadStatus>,
     process: &Process,
 ) -> anyhow::Result<()> {
-    use crate::download::DownloadError as DEK;
     match download_file_(url, path, hasher, resume_from_partial, status, process).await {
         Ok(_) => Ok(()),
         Err(e) => {
             if e.downcast_ref::<std::io::Error>().is_some() {
                 return Err(e);
             }
-            let is_client_error = match e.downcast_ref::<DEK>() {
+            let is_client_error = match e.downcast_ref::<DownloadError>() {
                 // Specifically treat the bad partial range error as not our
                 // fault in case it was something odd which happened.
-                Some(DEK::HttpStatus(416)) => false,
-                Some(DEK::HttpStatus(400..=499)) | Some(DEK::FileNotFound) => true,
+                Some(DownloadError::HttpStatus(416)) => false,
+                Some(DownloadError::HttpStatus(400..=499)) | Some(DownloadError::FileNotFound) => {
+                    true
+                }
                 _ => false,
             };
             Err(e).with_context(|| {
@@ -72,6 +73,14 @@ pub(crate) async fn download_file_with_resume(
                 }
             })
         }
+    }
+}
+
+pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
+    match err.downcast_ref::<DownloadError>() {
+        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+        Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
+        _ => false,
     }
 }
 
@@ -282,9 +291,13 @@ impl Backend {
             return Ok(());
         };
 
-        // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
+        // TODO: Currently, we only refrain from removing the cached download
+        // if there was a network failure from the client side.
+        // It may be worth looking for other cases where removal is also not desired.
         Err(
-            if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
+            if !(resume_from_partial && is_network_failure(&err))
+                && let Err(file_err) = remove_file(path).context("cleaning up cached downloads")
+            {
                 file_err.context(err)
             } else {
                 err
@@ -604,14 +617,14 @@ mod curl {
                 })?;
             }
 
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error
+            // If we didn't get a 20x or 0 ("OK" for files) then return an error.
+            // If resuming a download, we need a 206, as a 200 would mean the server ignored
+            // the range header, resulting in corruption.
             let code = handle.response_code()?;
-            match code {
-                0 | 200..=299 => {}
-                _ => {
-                    return Err(DownloadError::HttpStatus(code).into());
-                }
-            };
+            match (resume_from > 0, code) {
+                (_, 0) | (true, 206) | (false, 200..=299) => {}
+                _ => return Err(DownloadError::HttpStatus(code).into()),
+            }
 
             Ok(())
         })
@@ -620,10 +633,11 @@ mod curl {
 
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest_be {
-    use std::io;
+    #[cfg(feature = "reqwest-rustls-tls")]
+    use std::sync::Arc;
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use std::sync::{Arc, OnceLock};
-    use std::time::Duration;
+    use std::sync::OnceLock;
+    use std::{io, time::Duration};
 
     #[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
     use crate::anchors::RUSTUP_TRUST_ANCHORS;
@@ -682,9 +696,13 @@ mod reqwest_be {
             .await
             .context("error downloading file")?;
 
-        if !res.status().is_success() {
-            let code: u16 = res.status().into();
-            return Err(anyhow!(DownloadError::HttpStatus(u32::from(code))));
+        // If a download is being resumed, we expect a 206 response;
+        // otherwise, if the server ignored the range header,
+        // an error is thrown preemptively to avoid corruption.
+        let status = res.status().into();
+        match (resume_from > 0, status) {
+            (true, 206) | (false, 200..=299) => {}
+            _ => return Err(DownloadError::HttpStatus(u32::from(status)).into()),
         }
 
         if let Some(len) = res.content_length() {
@@ -694,7 +712,7 @@ mod reqwest_be {
 
         let mut stream = res.bytes_stream();
         while let Some(item) = stream.next().await {
-            let bytes = item?;
+            let bytes = item.map_err(DownloadError::Reqwest)?;
             callback(Event::DownloadDataReceived(&bytes))?;
         }
         Ok(())

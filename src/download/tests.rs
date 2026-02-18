@@ -61,7 +61,7 @@ mod curl {
         let target_path = tmpdir.path().join("downloaded");
         write_file(&target_path, "123");
 
-        let addr = serve_file(b"xxx45".to_vec());
+        let addr = serve_file(b"xxx45".to_vec(), true);
 
         let from_url = format!("http://{addr}").parse().unwrap();
 
@@ -222,7 +222,7 @@ mod reqwest {
         let target_path = tmpdir.path().join("downloaded");
         write_file(&target_path, "123");
 
-        let addr = serve_file(b"xxx45".to_vec());
+        let addr = serve_file(b"xxx45".to_vec(), true);
 
         let from_url = format!("http://{addr}").parse().unwrap();
 
@@ -267,6 +267,50 @@ mod reqwest {
         assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
     }
+
+    #[tokio::test]
+    async fn resume_partial_fails_if_server_ignores_range() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded");
+        write_file(&target_path, "123");
+
+        let addr = serve_file(b"xxx45".to_vec(), false);
+        let from_url = format!("http://{addr}").parse().unwrap();
+
+        Backend::Reqwest(TlsBackend::NativeTls)
+            .download_to_path(
+                &from_url,
+                &target_path,
+                true,
+                None,
+                Duration::from_secs(180),
+            )
+            .await
+            .expect_err("download should fail if server ignores range");
+
+        assert!(
+            !target_path.exists(),
+            "partial file should have been deleted"
+        );
+    }
+
+    #[tokio::test]
+    async fn network_failure_does_not_delete_partial_file() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded.partial");
+        write_file(&target_path, "123");
+
+        let from_url = "http://240.0.0.0:1080".parse().unwrap();
+        Backend::Reqwest(TlsBackend::NativeTls)
+            .download_to_path(&from_url, &target_path, true, None, Duration::from_secs(1))
+            .await
+            .expect_err("download should fail with a connect error");
+
+        assert!(target_path.exists(), "partial file should not be deleted");
+        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "123");
+    }
 }
 
 pub fn tmp_dir() -> TempDir {
@@ -292,11 +336,16 @@ pub fn write_file(path: &Path, contents: &str) {
 // A dead simple hyper server implementation.
 // For more info, see:
 // https://hyper.rs/guides/1/server/hello-world/
-async fn run_server(addr_tx: Sender<SocketAddr>, addr: SocketAddr, contents: Vec<u8>) {
+async fn run_server(
+    addr_tx: Sender<SocketAddr>,
+    addr: SocketAddr,
+    contents: Vec<u8>,
+    honor_range: bool,
+) {
     let svc = service_fn(move |req: Request<hyper::body::Incoming>| {
         let contents = contents.clone();
         async move {
-            let res = serve_contents(req, contents);
+            let res = serve_contents(req, contents, honor_range);
             Ok::<_, Infallible>(res)
         }
     });
@@ -324,12 +373,12 @@ async fn run_server(addr_tx: Sender<SocketAddr>, addr: SocketAddr, contents: Vec
     }
 }
 
-pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
+pub fn serve_file(contents: Vec<u8>, honor_range: bool) -> SocketAddr {
     let addr = ([127, 0, 0, 1], 0).into();
     let (addr_tx, addr_rx) = channel();
 
     thread::spawn(move || {
-        let server = run_server(addr_tx, addr, contents);
+        let server = run_server(addr_tx, addr, contents, honor_range);
         let rt = tokio::runtime::Runtime::new().expect("could not creating Runtime");
         rt.block_on(server);
     });
@@ -341,9 +390,11 @@ pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
 fn serve_contents(
     req: Request<hyper::body::Incoming>,
     contents: Vec<u8>,
+    honor_range: bool,
 ) -> hyper::Response<Full<Bytes>> {
     let mut range_header = None;
-    let (status, body) = if let Some(range) = req.headers().get(hyper::header::RANGE) {
+    let (status, body) = if honor_range && let Some(range) = req.headers().get(hyper::header::RANGE)
+    {
         // extract range "bytes={start}-"
         let range = range.to_str().expect("unexpected Range header");
         assert!(range.starts_with("bytes="));

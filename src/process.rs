@@ -69,24 +69,25 @@ impl Process {
         home::env::rustup_home_with_env(self).context("failed to determine rustup home dir")
     }
 
-    pub fn io_thread_count(&self) -> Result<usize> {
+    pub fn io_thread_count(&self) -> Result<IoThreadCount> {
         if let Ok(n) = self.var("RUSTUP_IO_THREADS") {
             let threads = usize::from_str(&n).context(
                 "invalid value in RUSTUP_IO_THREADS -- must be a natural number greater than zero",
             )?;
             match threads {
                 0 => bail!("RUSTUP_IO_THREADS must be a natural number greater than zero"),
-                _ => return Ok(threads),
+                _ => return Ok(IoThreadCount::UserSpecified(threads)),
             }
         };
 
-        Ok(match thread::available_parallelism() {
+        let count = match thread::available_parallelism() {
             // Don't spawn more than 8 I/O threads unless the user tells us to.
             // Feel free to increase this value if it improves performance.
             Ok(threads) => Ord::min(threads.get(), 8),
             // Unknown for target platform or no permission to query.
             Err(_) => 1,
-        })
+        };
+        Ok(IoThreadCount::Default(count))
     }
 
     pub(crate) fn unpack_ram(&self) -> Result<Option<usize>, env::VarError> {
@@ -232,6 +233,19 @@ impl Process {
     pub fn concurrent_downloads(&self) -> Option<usize> {
         let s = self.var("RUSTUP_CONCURRENT_DOWNLOADS").ok()?;
         Some(NonZero::from_str(&s).ok()?.get())
+    }
+}
+
+pub enum IoThreadCount {
+    Default(usize),
+    UserSpecified(usize),
+}
+
+impl From<IoThreadCount> for usize {
+    fn from(c: IoThreadCount) -> Self {
+        match c {
+            IoThreadCount::Default(n) | IoThreadCount::UserSpecified(n) => n,
+        }
     }
 }
 

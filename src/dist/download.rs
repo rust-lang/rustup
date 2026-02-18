@@ -15,7 +15,7 @@ use url::Url;
 use crate::config::Cfg;
 use crate::dist::manifest::Manifest;
 use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
-use crate::download::{download_file, download_file_with_resume};
+use crate::download::{download_file, download_file_with_resume, is_network_failure};
 use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
@@ -93,12 +93,13 @@ impl<'a> DownloadCfg<'a> {
         )
         .await
         {
+            let is_network_failure = is_network_failure(&e);
             let err = Err(e);
-            if partial_file_existed {
-                return err.context(RustupError::BrokenPartialFile);
-            } else {
-                return err;
-            }
+            return match (partial_file_existed, is_network_failure) {
+                (true, true) => err.context(RustupError::IncompletePartialFile),
+                (true, false) => err.context(RustupError::BrokenPartialFile),
+                (false, _) => err,
+            };
         };
 
         let actual_hash = format!("{:x}", hasher.finalize());
