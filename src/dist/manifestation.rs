@@ -15,7 +15,7 @@ use anyhow::{Context as _, Result, anyhow, bail};
 use futures_util::Stream;
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use tokio::task::{JoinHandle, spawn_blocking};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram};
 use crate::dist::component::{Components, DirectoryPackage, Transaction};
@@ -185,6 +185,12 @@ impl Manifestation {
         // to uninstall it first.
         tx = self.maybe_handle_v2_upgrade(&config, tx)?;
 
+        // If there are no components installed, and we are recovering from
+        // a partial installation, we can provide a more informative message.
+        if !update.components_to_uninstall.is_empty() && self.installation.list()?.is_empty() {
+            info!("recovering from a partially installed toolchain");
+        }
+
         // Uninstall components
         for component in update.components_to_uninstall {
             match (implicit_modify, &component.target) {
@@ -329,7 +335,7 @@ impl Manifestation {
         } else if let Some(c) = self.installation.find(short_name)? {
             tx = c.uninstall(tx)?;
         } else {
-            warn!(
+            debug!(
                 "component {} not found during uninstall",
                 manifest.short_name(&component),
             );
