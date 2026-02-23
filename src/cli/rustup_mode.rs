@@ -402,6 +402,10 @@ struct UpdateOpts {
     /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
     #[arg(long)]
     force_non_host: bool,
+
+    /// Set the installed toolchain as the override for the current directory
+    #[arg(long)]
+    r#override: bool,
 }
 
 #[derive(Debug, Default, Args)]
@@ -946,6 +950,7 @@ async fn update(
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
     let should_self_update = !opts.no_self_update;
     let force_non_host = opts.force_non_host;
+    let set_override = opts.r#override;
     cfg.profile_override = opts.profile;
 
     let cfg = &cfg;
@@ -1003,6 +1008,11 @@ async fn update(
                 PackageUpdate::Toolchain(desc.clone()),
                 Ok(status.clone()),
             )?;
+
+            if set_override {
+                cfg.make_override(&cfg.current_dir, &desc.clone().into())?;
+            }
+
             if cfg.get_default()?.is_none() && matches!(status, UpdateStatus::Installed) {
                 cfg.set_default(Some(&desc.into()))?;
             }
