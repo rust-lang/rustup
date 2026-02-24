@@ -69,7 +69,7 @@
 - `RUSTUP_DOWNLOAD_TIMEOUT` *unstable* (default: 180). Allows to override the default
   timeout (in seconds) for downloading components.
 
-- `RUSTUP_CONCURRENT_DOWNLOADS` *unstable* (default: the number of components to download). Controls the number of
+- `RUSTUP_CONCURRENT_DOWNLOADS` *unstable* (default: 2). Controls the number of
   downloads made concurrently.
 
 - `RUSTUP_TOOLCHAIN_SOURCE` *unstable*. Set by rustup to tell proxied tools how `RUSTUP_TOOLCHAIN` was determined. Non-rustup tools should not set this environment variable, except insofar as to mirror an earlier invocation from rustup.
