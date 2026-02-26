@@ -60,6 +60,28 @@
     --copy-button-text-color: var(--rustup-teal);
 }
 
+@media (prefers-color-scheme: dark) {
+    :root {
+        --rustup-teal: #2d9b8e;
+        --rustup-teal-hover: #4aad9f;
+        --gray: #e8e6e3;
+        --white: white;
+        --black: #181a1b;
+
+        --body-background-color: var(--black);
+        --body-color: var(--gray);
+        --heading-color: var(--white);
+        --code-color: var(--white);
+        --code-shadow-color: rgba(213, 203, 198, 0.1);
+        --link-color: var(--rustup-teal);
+        --link-color-hover: var(--rustup-teal-hover);
+        --hr-color: var(--rustup-teal);
+        --platform-button-background-color: var(--gray);
+        --platform-button-color: var(--black);
+        --copy-button-text-color: var(--rustup-teal);
+    }
+}
+
 body {
     margin-top: 2em;
     background-color: var(--body-background-color);
