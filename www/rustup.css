@@ -58,6 +58,7 @@
     --platform-button-background-color: var(--gray);
     --platform-button-color: var(--white);
     --copy-button-text-color: var(--rustup-teal);
+    --rust-logo-filter: initital;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,6 +80,7 @@
         --platform-button-background-color: var(--gray);
         --platform-button-color: var(--black);
         --copy-button-text-color: var(--rustup-teal);
+        --rust-logo-filter: drop-shadow(1px 0 0px #fff) drop-shadow(0 1px 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 -1px 0 #fff);
     }
 }
 
@@ -305,4 +307,8 @@ hr {
 
 .display-inline {
     display: inline;
+}
+
+.rust-logo {
+    filter: var(--rust-logo-filter);
 }
