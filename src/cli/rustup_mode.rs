@@ -865,7 +865,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
 
                 let template = match (current_version, dist_version) {
                     (None, None) => {
-                        let status = "Cannot identify installed or update versions";
+                        let status = "cannot identify installed or update versions";
                         format!("{msg}{error}{status}{error:#}")
                     }
                     (Some(cv), None) => {
@@ -880,7 +880,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
                     (None, Some(dv)) => {
                         let status = "update available";
                         update_a = true;
-                        format!("{msg}{warn}{status}{warn:#}: (Unknown version) -> {dv}")
+                        format!("{msg}{warn}{status}{warn:#}: (unknown version) -> {dv}")
                     }
                 };
                 pb.set_style(ProgressStyle::with_template(template.as_str()).unwrap());

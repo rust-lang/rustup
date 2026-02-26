@@ -62,7 +62,7 @@ async fn update_once_and_check_self_update() {
 
   nightly-[HOST_TRIPLE] installed - 1.3.0 (hash-nightly-2)
 
-rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
+rustup - update available : [CURRENT_VERSION] -> [TEST_VERSION]
 
 "#]])
         .with_stderr(snapbox::str![[r#"
@@ -232,7 +232,7 @@ async fn check_updates_self() {
         .extend_redactions([("[TEST_VERSION]", test_version)])
         .has_code(100)
         .with_stdout(snapbox::str![[r#"
-rustup - Update available : [CURRENT_VERSION] -> [TEST_VERSION]
+rustup - update available : [CURRENT_VERSION] -> [TEST_VERSION]
 
 "#]]);
 }
@@ -254,7 +254,7 @@ async fn check_updates_self_no_change() {
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-rustup - Up to date : [CURRENT_VERSION]
+rustup - up to date : [CURRENT_VERSION]
 
 "#]]);
 }

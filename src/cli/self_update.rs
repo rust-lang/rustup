@@ -1403,11 +1403,11 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> Result<bool
     Ok(if current_version != available_version {
         writeln!(
             t,
-            "{yellow}Update available{yellow:#} : {current_version} -> {available_version}"
+            "{yellow}update available{yellow:#} : {current_version} -> {available_version}"
         )?;
         true
     } else {
-        writeln!(t, "{green}Up to date{green:#} : {current_version}")?;
+        writeln!(t, "{green}up to date{green:#} : {current_version}")?;
         false
     })
 }
