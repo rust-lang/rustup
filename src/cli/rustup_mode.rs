@@ -892,7 +892,8 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         // If we are running in a TTY, we can use `buffer_unordered` since
         // displaying the output in the correct order is already handled by
         // `indicatif`.
-        let channels = if !multi_progress_bars.is_hidden() {
+        let has_progress_bars = !multi_progress_bars.is_hidden();
+        let channels = if has_progress_bars {
             channels
                 .buffer_unordered(channels_len)
                 .collect::<Vec<_>>()
@@ -910,7 +911,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
             if update_a {
                 update_available = true;
             }
-            if multi_progress_bars.is_hidden() {
+            if !has_progress_bars {
                 writeln!(t.lock(), "{message}")?;
             }
         }
