@@ -915,6 +915,13 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
                 writeln!(t.lock(), "{message}")?;
             }
         }
+        if has_progress_bars {
+            // HACK: Add a final newline to avoid possible display issues with `indicatif` in
+            // certain terminal emulators. Currently, `indicatif` puts a series of spaces at the end
+            // of the line, forcing any output after the progress bar to be on a second line. This
+            // might not be desirable in all cases.
+            writeln!(t.lock())?;
+        }
     }
 
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
