@@ -40,10 +40,30 @@
         url("fonts/AlfaSlabOne-Regular.woff") format('woff');
 }
 
+:root {
+    --rustup-teal: #0b7261;
+    --rustup-teal-hover: #0d8b75;
+    --gray: #515151;
+    --white: white;
+    --black: black;
+
+    --body-background-color: var(--white);
+    --body-color: var(--gray);
+    --heading-color: var(--black);
+    --code-color: var(--black);
+    --code-shadow-color: #f1eeee;
+    --link-color: var(--rustup-teal);
+    --link-color-hover: var(--rustup-teal-hover);
+    --hr-color: var(--rustup-teal);
+    --platform-button-background-color: var(--gray);
+    --platform-button-color: var(--white);
+    --copy-button-text-color: var(--rustup-teal);
+}
+
 body {
     margin-top: 2em;
-    background-color: white;
-    color: #515151;
+    background-color: var(--body-background-color);
+    color: var(--body-color);
     font-family: "Fira Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight: 300;
     font-size: 25px;
@@ -62,7 +82,7 @@ header > div {
 
 header > div > h1 {
     font-family: "Alfa Slab One", serif;
-    color: black;
+    color: var(--heading-color);
     font-size: 4rem;
     margin-bottom: 0;
     margin-top: 1rem;
@@ -72,18 +92,18 @@ header > div > h1 {
 }
 
 header > div > h2 {
-    color: black;
+    color: var(--heading-color);
     font-size: 2rem;
     font-weight: 300;
 }
 
 a {
-    color: #0b7261;
+    color: var(--link-color);
     text-decoration: underline;
 }
 
 a:hover {
-    color: #0d8b75;
+    color: var(--link-color-hover);
     text-decoration: underline;
 }
 
@@ -119,7 +139,7 @@ body#idx p.other-platforms-help {
 }
 
 hr {
-    border-color: #0b7261;
+    border-color: var(--hr-color);
     margin-top: 2em;
     margin-bottom: 2em;
 }
@@ -134,18 +154,18 @@ hr {
 }
 
 .rustup-command::before {
-    color: black;
+    color: var(--code-color);
     content: " $ ";
-	margin-left: 15px;
+    margin-left: 15px;
 }
 
 .rustup-command {
-    color: black;
+    color: var(--code-color);
     padding: 1rem 1rem 1rem 0;
     height: auto;
     text-align: center;
     border-radius: 3px 0 0 3px;
-    box-shadow: inset 0px 0px 20px 0px #f1eeee;
+    box-shadow: inset 0px 0px 20px 0px var(--code-shadow-color);
     overflow: hidden;
     font-size: 0.6em;
     white-space: nowrap;
@@ -202,7 +222,7 @@ hr {
     transition: opacity 0.2s ease-in-out;
     opacity: 0;
     font-size: 10px;
-    color: #0b7261;
+    color: var(--copy-button-text-color);
     width: 41px;
     height: 15px;
     position: relative;
@@ -246,8 +266,8 @@ hr {
 }
 
 #platform-button {
-    background-color: #515151;
-    color: white;
+    background-color: var(--platform-button-background-color);
+    color: var(--platform-button-color);
     margin-left: auto;
     margin-right: auto;
     padding: 1em;
