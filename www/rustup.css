@@ -216,25 +216,19 @@ hr {
 #platform-instructions-win-arm64 button.copy-button,
 #platform-instructions-default button.copy-button,
 #platform-instructions-unknown button.copy-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    aspect-ratio: 51 / 58;
     height: 58px;
     margin: 0;
-    padding: 0 5px 0 5px;
     border-width: 0px;
     cursor: pointer;
 }
 
-#platform-instructions-unix div.copy-icon,
-#platform-instructions-win32 div.copy-icon,
-#platform-instructions-win64 div.copy-icon,
-#platform-instructions-win-arm64 div.copy-icon,
-#platform-instructions-default div.copy-icon,
-#platform-instructions-unknown div.copy-icon {
-    position: relative;
-    width: fit-content;
-    height: fit-content;
-    top: 27px;
-    left: 23px;
-    transform: translate(-50%, -50%);
+div.copy-icon {
+    transform: translateX(3px);
 }
 
 #platform-instructions-unix div.copy-button-text,
@@ -244,13 +238,14 @@ hr {
 #platform-instructions-default div.copy-button-text,
 #platform-instructions-unknown div.copy-button-text {
     transition: opacity 0.2s ease-in-out;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    color: var(--rustup-teal);
+    font-size: 14px;
     opacity: 0;
-    font-size: 10px;
-    color: var(--copy-button-text-color);
-    width: 41px;
-    height: 15px;
-    position: relative;
-    top: 6px;
 }
 
 #platform-instructions-win32 a.windows-download,
