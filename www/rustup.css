@@ -225,10 +225,19 @@ hr {
     margin: 0;
     border-width: 0px;
     cursor: pointer;
+    background-color: var(--code-shadow-color);
 }
 
 div.copy-icon {
     transform: translateX(3px);
+}
+
+div.copy-icon svg {
+    fill: var(--body-color);
+}
+
+button.copy-button:hover svg {
+    fill: var(--rustup-teal);
 }
 
 #platform-instructions-unix div.copy-button-text,
