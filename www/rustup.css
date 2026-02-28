@@ -168,12 +168,7 @@ hr {
     margin-bottom: 2em;
 }
 
-#platform-instructions-unix > p,
-#platform-instructions-win32 > p,
-#platform-instructions-win64 > p,
-#platform-instructions-win-arm64 > p,
-#platform-instructions-default > p,
-#platform-instructions-unknown > p {
+.instructions > p {
     width: 80%;
 }
 
@@ -198,24 +193,14 @@ hr {
     overflow-x: auto;
 }
 
-#platform-instructions-unix div.copy-container,
-#platform-instructions-win32 div.copy-container,
-#platform-instructions-win64 div.copy-container,
-#platform-instructions-win-arm64 div.copy-container,
-#platform-instructions-default div.copy-container,
-#platform-instructions-unknown div.copy-container {
+.instructions div.copy-container {
     display: flex;
     align-items: center;
     width: 90%;
     justify-content: center;
 }
 
-#platform-instructions-unix button.copy-button,
-#platform-instructions-win32 button.copy-button,
-#platform-instructions-win64 button.copy-button,
-#platform-instructions-win-arm64 button.copy-button,
-#platform-instructions-default button.copy-button,
-#platform-instructions-unknown button.copy-button {
+.instructions button.copy-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -240,12 +225,7 @@ button.copy-button:hover svg {
     fill: var(--rustup-teal);
 }
 
-#platform-instructions-unix div.copy-button-text,
-#platform-instructions-win32 div.copy-button-text,
-#platform-instructions-win64 div.copy-button-text,
-#platform-instructions-win-arm64 div.copy-button-text,
-#platform-instructions-default div.copy-button-text,
-#platform-instructions-unknown div.copy-button-text {
+.instructions div.copy-button-text {
     transition: opacity 0.2s ease-in-out;
     position: absolute;
     bottom: 100%;
@@ -257,11 +237,7 @@ button.copy-button:hover svg {
     opacity: 0;
 }
 
-#platform-instructions-win32 a.windows-download,
-#platform-instructions-win64 a.windows-download,
-#platform-instructions-win-arm64 a.windows-download,
-#platform-instructions-default a.windows-download,
-#platform-instructions-unknown a.windows-download {
+.instructions a.windows-download {
     display: block;
     padding-top: 0.4rem;
     padding-bottom: 0.6rem;
