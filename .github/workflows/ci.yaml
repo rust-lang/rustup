@@ -148,7 +148,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -320,7 +320,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -498,7 +498,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -668,7 +668,7 @@ jobs:
             "rustup/$DOCKER" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
@@ -840,7 +840,7 @@ jobs:
             "rustup/$DOCKER" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
@@ -1037,7 +1037,7 @@ jobs:
             "rustup/$DOCKER" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
@@ -1163,7 +1163,7 @@ jobs:
           fi
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -1294,7 +1294,7 @@ jobs:
           fi
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
