@@ -1,8 +1,13 @@
-<svg width="810px" height="146px" xmlns="http://www.w3.org/2000/svg">
+<svg width="740px" height="146px" xmlns="http://www.w3.org/2000/svg">
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
+    .fg-bright-cyan { fill: #55FFFF }
+    .fg-bright-green { fill: #55FF55 }
+    .fg-bright-red { fill: #FF5555 }
+    .fg-cyan { fill: #00AAAA }
     .fg-red { fill: #AA0000 }
+    .fg-yellow { fill: #AA5500 }
     .container {
       padding: 0 10px;
       line-height: 18px;
@@ -18,15 +23,15 @@
   <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
 
   <text xml:space="preserve" class="container fg">
-    <tspan x="10px" y="28px"><tspan class="fg-red bold">error:</tspan><tspan> /x1b[1m/x1b[91merror:/x1b[0m unexpected argument '/x1b[1m/x1b[33m--random/x1b[0m' found</tspan>
+    <tspan x="10px" y="28px"><tspan class="fg-red bold">error:</tspan><tspan> </tspan><tspan class="fg-bright-red bold">error:</tspan><tspan> unexpected argument '</tspan><tspan class="fg-yellow bold">--random</tspan><tspan>' found</tspan>
 </tspan>
     <tspan x="10px" y="46px">
 </tspan>
-    <tspan x="10px" y="64px"><tspan>/x1b[1m/x1b[92mUsage:/x1b[0m /x1b[1m/x1b[96mrustup-init[EXE]/x1b[0m /x1b[36m[OPTIONS]/x1b[0m</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-bright-green bold">Usage:</tspan><tspan> </tspan><tspan class="fg-bright-cyan bold">rustup-init[EXE]</tspan><tspan> </tspan><tspan class="fg-cyan">[OPTIONS]</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>
-    <tspan x="10px" y="100px"><tspan>For more information, try '/x1b[1m/x1b[96m--help/x1b[0m'.</tspan>
+    <tspan x="10px" y="100px"><tspan>For more information, try '</tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>'.</tspan>
 </tspan>
     <tspan x="10px" y="118px">
 </tspan>

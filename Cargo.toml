@@ -100,7 +100,9 @@ toml = "1.0"
 tracing = "0.1"
 tracing-log = "0.2"
 tracing-opentelemetry = { version = "0.32", optional = true }
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+# Newer versions render ANSI escape codes, causing CLI errors to be ugly
+# See also https://github.com/tokio-rs/tracing/issues/3369
+tracing-subscriber = { version = "=0.3.19", features = ["env-filter"] }
 url = "2.4"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
