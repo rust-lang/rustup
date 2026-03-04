@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.29.0] - Unreleased
+## [1.29.0] - 2026-03-05
 
 This new release of rustup comes with significant changes.
 
