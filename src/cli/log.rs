@@ -50,7 +50,8 @@ where
     let process = process.clone();
     let logger = tracing_subscriber::fmt::layer()
         .with_writer(process.stderr())
-        .with_ansi(true); // `process.stderr()` will translate ANSI escape codes
+        .with_ansi(true)
+        .with_ansi_sanitization(false); // `process.stderr()` will translate ANSI escape codes
     if let Ok(directives) = maybe_rustup_log_directives {
         let (env_filter, handle) = reload::Layer::new(
             EnvFilter::builder()
