@@ -659,7 +659,7 @@ version = "12""#,
         .is_ok()
         .with_stderr(snapbox::str![[r#"
 ...
-warn: It looks like you have an existing rustup settings file at:
+warn: it looks like you have an existing rustup settings file at:
 ...
 "#]]);
 }
