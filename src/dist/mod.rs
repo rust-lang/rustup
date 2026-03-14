@@ -377,8 +377,10 @@ impl TargetTriple {
     }
 
     pub(crate) fn from_build() -> Self {
-        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-            Self::new(triple)
+        if let Some(tuple) = option_env!("RUSTUP_OVERRIDE_BUILD_TUPLE") {
+            Self::new(tuple)
+        } else if let Some(tuple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
+            Self::new(tuple)
         } else {
             Self::new(env!("TARGET"))
         }
@@ -549,8 +551,10 @@ impl TargetTriple {
             host_triple.map(TargetTriple::new)
         }
 
-        if let Ok(triple) = process.var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
-            Some(Self(triple))
+        if let Ok(tuple) = process.var("RUSTUP_OVERRIDE_HOST_TUPLE") {
+            Some(Self(tuple))
+        } else if let Ok(tuple) = process.var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+            Some(Self(tuple))
         } else {
             inner()
         }

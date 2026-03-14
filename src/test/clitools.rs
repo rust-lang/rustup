@@ -280,7 +280,7 @@ impl Config {
             format!("file://{}", distdir.to_string_lossy()),
         );
         cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
-        cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
+        cmd.env("RUSTUP_OVERRIDE_HOST_TUPLE", this_host_triple());
 
         // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
         cmd.env("HOME", self.homedir.to_string_lossy().to_string());
