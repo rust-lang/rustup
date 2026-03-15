@@ -1498,6 +1498,39 @@ installed targets:
         .is_ok();
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn show_active_toolchain_rustc_permission_denied() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+    // Remove the executable bit so that spawn() fails with a permission error.
+    let rustc_path = path.join(format!("bin/rustc{EXE_SUFFIX}"));
+    let mut perms = fs::metadata(&rustc_path).unwrap().permissions();
+    perms.set_mode(0o644);
+    fs::set_permissions(&rustc_path, perms).unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+compiler: (error reading rustc version: Permission denied [..])
+...
+"#]])
+        .with_stderr(snapbox::str![[""]])
+        .is_ok();
+}
+
 #[tokio::test]
 async fn show_active_toolchain_with_verbose() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
