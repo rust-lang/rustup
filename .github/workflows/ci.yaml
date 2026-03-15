@@ -1360,7 +1360,7 @@ jobs:
     - name: Run a full build
       uses: vmactions/freebsd-vm@v1
       with:
-        release: 13.2
+        release: "14.0"
         usesh: true
         copyback: false
         prepare: |
@@ -1392,7 +1392,7 @@ jobs:
     - name: Run a full build
       uses: vmactions/freebsd-vm@v1
       with:
-        release: 13.2
+        release: "14.0"
         usesh: true
         copyback: false
         prepare: |
