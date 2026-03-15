@@ -1419,6 +1419,35 @@ compiler: (rustc does not exist: [..])
         .is_err();
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn show_active_toolchain_rustc_version_error() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+    // Replace mock rustc with a shell script that exits 1
+    let rustc_path = path.join(format!("bin/rustc{EXE_SUFFIX}"));
+    fs::write(&rustc_path, "#!/bin/sh\nexit 1\n").unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+compiler: (error reading rustc version: exit status: [..])
+...
+"#]])
+        .with_stderr(snapbox::str![[""]])
+        .is_ok();
+}
+
 #[tokio::test]
 async fn show_with_verbose() {
     let mut cx = CliTestContext::new(Scenario::None).await;
