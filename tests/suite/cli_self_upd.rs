@@ -690,7 +690,6 @@ async fn rustup_self_update_exact() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
 info: cleaning up downloads & tmp directories
