@@ -97,7 +97,6 @@ async fn rustup_stable_no_change() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for stable-[HOST_TRIPLE]
 info: cleaning up downloads & tmp directories
 
 "#]])
@@ -210,7 +209,6 @@ info: syncing channel updates for stable-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
 info: removing previous version of component cargo
 ...
-info: syncing channel updates for beta-[HOST_TRIPLE]
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: removing previous version of component cargo

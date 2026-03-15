@@ -10,6 +10,7 @@ use std::{cmp, env};
 use anstyle::Style;
 use anyhow::{Context, Result, anyhow};
 use clap_cargo::style::{CONTEXT, ERROR, UPDATE_ADDED, UPDATE_UNCHANGED, UPDATE_UPGRADED};
+use futures_util::future::join_all;
 use git_testament::{git_testament, render_testament};
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -213,11 +214,26 @@ fn show_channel_updates(
 
 pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Result<ExitCode> {
     let profile = cfg.get_profile()?;
+    let channels = cfg.list_channels()?;
+
+    // Run a pre-check to determine which channels have updates available.
+    let channels_with_manifests = join_all(channels.into_iter().map(|(desc, d)| async move {
+        // Prefetch errors are intentionally discarded; a failed prefetch falls
+        // back to the normal update path, where errors are properly propagated.
+        let manifest = d.fetch_dist_manifest().await.unwrap_or(None);
+        (desc, d, manifest)
+    }))
+    .await;
+
     let mut toolchains = Vec::new();
-    for (desc, distributable) in cfg.list_channels()? {
-        let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
-            .for_update(&distributable, false);
-        let result = InstallMethod::Dist(options).install(None).await;
+    for (desc, distributable, manifest) in channels_with_manifests {
+        let result = if force_update || manifest.is_some() {
+            let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
+                .for_update(&distributable, false);
+            InstallMethod::Dist(options).install(manifest).await
+        } else {
+            Ok(UpdateStatus::Unchanged)
+        };
 
         if let Err(e) = &result {
             error!("{e}");
