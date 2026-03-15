@@ -1357,7 +1357,10 @@ jobs:
     - name: Run a full build
       uses: vmactions/freebsd-vm@v1
       with:
-        release: 13.2
+        # HACK: Due to <https://github.com/alexcrichton/curl-rust/issues/632>
+        # we cannot use v13 or v14 for testing for now, but it should be okay
+        # since we only have best-effort testing on FreeBSD.
+        release: "15.0"
         usesh: true
         copyback: false
         prepare: |
@@ -1389,7 +1392,10 @@ jobs:
     - name: Run a full build
       uses: vmactions/freebsd-vm@v1
       with:
-        release: 13.2
+        # HACK: Due to <https://github.com/alexcrichton/curl-rust/issues/632>
+        # we cannot use v13 or v14 for testing for now, but it should be okay
+        # since we only have best-effort testing on FreeBSD.
+        release: "15.0"
         usesh: true
         copyback: false
         prepare: |
