@@ -174,6 +174,17 @@ main() {
         exit 1
     fi
 
+    # If a default host has been specified on the command line, we should
+    # revert our own override before calling the installer.
+    for arg in "$@"; do
+        case "$arg" in
+            --default-host|--default-host=*)
+                _default_host_override=
+                break
+                ;;
+        esac
+    done
+
     if [ "$need_tty" = "yes" ] && [ ! -t 0 ]; then
         # The installer is going to want to ask for confirmation by
         # reading stdin.  This script was piped into `sh` though and
