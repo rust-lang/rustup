@@ -218,8 +218,8 @@ async fn uninstall_deletes_installed_toolchains() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: uninstalling toolchain 'custom'
-info: toolchain 'custom' uninstalled
+info: uninstalling toolchain custom
+info: toolchain custom uninstalled
 ...
 "#]])
         .is_ok();
