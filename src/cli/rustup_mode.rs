@@ -46,7 +46,7 @@ use crate::{
     dist::{
         AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
         download::DownloadCfg,
-        manifest::{Component, ComponentStatus},
+        manifest::{Component, ComponentStatus, ManifestWithHash},
     },
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
@@ -866,7 +866,12 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
             async move {
                 let _permit = sem.acquire().await.unwrap();
                 let current_version = distributable.show_version()?;
-                let dist_version = distributable.show_dist_version().await?;
+                let dist_version = match distributable.fetch_dist_manifest().await? {
+                    Some(ManifestWithHash { manifest, .. }) => {
+                        Some(manifest.get_rust_version()?.to_string())
+                    }
+                    None => None,
+                };
                 let mut update_a = false;
 
                 let template = match (current_version, dist_version) {

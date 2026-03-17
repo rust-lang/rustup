@@ -422,18 +422,14 @@ impl<'a> DistributableToolchain<'a> {
         Ok(())
     }
 
-    pub async fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
-        match DownloadCfg::new(self.toolchain.cfg)
+    pub async fn fetch_dist_manifest(&self) -> anyhow::Result<Option<ManifestWithHash>> {
+        DownloadCfg::new(self.toolchain.cfg)
             .dl_v2_manifest(
                 Some(&self.toolchain.cfg.get_hash_file(&self.desc, false)?),
                 &self.desc,
                 self.toolchain.cfg,
             )
-            .await?
-        {
-            Some(ManifestWithHash { manifest, .. }) => Ok(Some(manifest.get_rust_version()?.to_string())),
-            None => Ok(None),
-        }
+            .await
     }
 
     pub fn show_version(&self) -> anyhow::Result<Option<String>> {
