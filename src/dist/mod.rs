@@ -955,7 +955,11 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     //
     // Returns the manifest's hash if anything changed.
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all, fields(profile = ?self.profile, prefix = %prefix.path().display()))]
-    pub(crate) async fn install_into(&self, prefix: &InstallPrefix) -> Result<Option<String>> {
+    pub(crate) async fn install_into(
+        &self,
+        prefix: &InstallPrefix,
+        manifest: Option<ManifestWithHash>,
+    ) -> Result<Option<String>> {
         let fresh_install = !prefix.path().exists();
         // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
         if fresh_install && self.update_hash.exists() {
@@ -1013,6 +1017,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         };
 
         let mut toolchain = self.toolchain.clone();
+        let mut prefetched_manifest = manifest;
         let res = loop {
             let result = try_update_from_dist_(
                 &self.dl_cfg,
@@ -1028,6 +1033,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                 self.targets,
                 &mut fetched,
                 self.cfg,
+                prefetched_manifest.take(),
             )
             .await;
 
@@ -1126,27 +1132,32 @@ async fn try_update_from_dist_(
     targets: &[&str],
     fetched: &mut String,
     cfg: &Cfg<'_>,
+    prefetched_manifest: Option<ManifestWithHash>,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
     // TODO: Add a notification about which manifest version is going to be used
     info!("syncing channel updates for {toolchain_str}");
-    match download
-        .dl_v2_manifest(
-            // Even if manifest has not changed, we must continue to install requested components.
-            // So if components or targets is not empty, we skip passing `update_hash` so that
-            // we essentially degenerate to `rustup component add` / `rustup target add`
-            if components.is_empty() && targets.is_empty() {
-                Some(update_hash)
-            } else {
-                None
-            },
-            toolchain,
-            cfg,
-        )
-        .await
-    {
+    let manifest_result = if prefetched_manifest.is_some() {
+        Ok(prefetched_manifest)
+    } else {
+        download
+            .dl_v2_manifest(
+                // Even if manifest has not changed, we must continue to install requested components.
+                // So if components or targets is not empty, we skip passing `update_hash` so that
+                // we essentially degenerate to `rustup component add` / `rustup target add`
+                if components.is_empty() && targets.is_empty() {
+                    Some(update_hash)
+                } else {
+                    None
+                },
+                toolchain,
+                cfg,
+            )
+            .await
+    };
+    match manifest_result {
         Ok(Some(ManifestWithHash { manifest: m, hash })) => {
             match m.get_rust_version() {
                 Ok(version) => info!("latest update on {} for version {version}", m.date),

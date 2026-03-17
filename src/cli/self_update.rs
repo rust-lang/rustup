@@ -1023,7 +1023,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
             // For now, we error.
             let toolchain = DistributableToolchain::new(cfg, desc.clone())?;
             InstallMethod::Dist(options.for_update(&toolchain, false))
-                .install()
+                .install(None)
                 .await?
         } else {
             DistributableToolchain::install(options).await?.0

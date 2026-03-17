@@ -39,7 +39,7 @@ impl<'a> DistributableToolchain<'a> {
         options: DistOptions<'a, '_>,
     ) -> anyhow::Result<(UpdateStatus, Self)> {
         let (cfg, toolchain) = (options.cfg, options.toolchain);
-        let status = InstallMethod::Dist(options).install().await?;
+        let status = InstallMethod::Dist(options).install(None).await?;
         Ok((status, Self::new(cfg, toolchain.clone())?))
     }
 
