@@ -920,9 +920,10 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
             zstwriter = zstd::stream::write::Encoder::new(outfile, 0)?.auto_finish();
             &mut zstwriter
         }
-        _ => panic!("Unsupported archive format"),
+        _ => panic!("unsupported archive format"),
     };
     let mut tar = tar::Builder::new(writer);
+    tar.mode(tar::HeaderMode::Deterministic);
     for entry in walkdir::WalkDir::new(src) {
         let entry = entry?;
         let parts: Vec<_> = entry.path().iter().map(ToOwned::to_owned).collect();
@@ -930,11 +931,30 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
         let parts = parts.into_iter().skip(parts_len - entry.depth());
         let mut relpath = relpath.to_owned();
         relpath.extend(parts);
-        if entry.file_type().is_file() {
-            let mut srcfile = File::open(entry.path())?;
-            tar.append_file(relpath, &mut srcfile)?;
+        let mut header = tar::Header::new_ustar();
+        let srcfile = if entry.file_type().is_file() {
+            let srcfile = File::open(entry.path())?;
+            header.set_entry_type(tar::EntryType::Regular);
+            header.set_size(srcfile.metadata()?.len());
+            header.set_mode(0o644);
+            Some(srcfile)
         } else if entry.file_type().is_dir() {
-            tar.append_dir(relpath, entry.path())?;
+            let mut header = tar::Header::new_ustar();
+            header.set_entry_type(tar::EntryType::Directory);
+            header.set_size(0);
+            header.set_mode(0o755);
+            None
+        } else {
+            continue;
+        };
+        header.set_uid(0);
+        header.set_gid(0);
+        header.set_mtime(0);
+        header.set_cksum();
+        if let Some(mut srcfile) = srcfile {
+            tar.append_data(&mut header, relpath, &mut srcfile)?;
+        } else {
+            tar.append_data(&mut header, relpath, io::empty())?;
         }
     }
     tar.finish()
