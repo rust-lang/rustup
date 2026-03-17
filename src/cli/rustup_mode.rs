@@ -1003,7 +1003,7 @@ async fn update(
                 Ok(d) => {
                     if !opts.no_update {
                         InstallMethod::Dist(dist_opts.for_update(&d, opts.allow_downgrade))
-                            .install()
+                            .install(None)
                             .await?
                     } else {
                         UpdateStatus::Unchanged
@@ -1501,10 +1501,10 @@ async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -
             dest,
             cfg,
         }
-        .install()
+        .install(None)
         .await?;
     } else {
-        InstallMethod::Copy { src, dest, cfg }.install().await?;
+        InstallMethod::Copy { src, dest, cfg }.install(None).await?;
     }
 
     Ok(ExitCode::SUCCESS)

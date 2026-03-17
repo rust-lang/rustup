@@ -7,7 +7,7 @@ use tracing::debug;
 
 use crate::{
     config::Cfg,
-    dist::{DistOptions, prefix::InstallPrefix},
+    dist::{DistOptions, manifest::ManifestWithHash, prefix::InstallPrefix},
     errors::RustupError,
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
@@ -37,7 +37,7 @@ pub(crate) enum InstallMethod<'cfg, 'a> {
 impl InstallMethod<'_, '_> {
     // Install a toolchain
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub(crate) async fn install(self) -> Result<UpdateStatus> {
+    pub(crate) async fn install(self, manifest: Option<ManifestWithHash>) -> Result<UpdateStatus> {
         // Initialize rayon for use by the remove_dir_all crate limiting the number of threads.
         // This will error if rayon is already initialized but it's fine to ignore that.
         let _ = rayon::ThreadPoolBuilder::new()
@@ -54,7 +54,7 @@ impl InstallMethod<'_, '_> {
         }
 
         debug!("toolchain directory: {}", self.dest_path().display());
-        let updated = self.run(&self.dest_path()).await?;
+        let updated = self.run(&self.dest_path(), manifest).await?;
 
         let status = match updated {
             false => {
@@ -82,7 +82,7 @@ impl InstallMethod<'_, '_> {
         }
     }
 
-    async fn run(&self, path: &Path) -> Result<bool> {
+    async fn run(&self, path: &Path, manifest: Option<ManifestWithHash>) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -104,7 +104,7 @@ impl InstallMethod<'_, '_> {
             }
             InstallMethod::Dist(opts) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = opts.install_into(prefix).await?;
+                let maybe_new_hash = opts.install_into(prefix, manifest).await?;
 
                 if let Some(hash) = maybe_new_hash {
                     utils::write_file("update hash", &opts.update_hash, &hash)?;

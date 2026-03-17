@@ -811,7 +811,7 @@ impl<'a> Cfg<'a> {
                 let status = if !distributable.components_exist(&components, &targets)? {
                     options.force = true;
                     InstallMethod::Dist(options.for_update(&distributable, false))
-                        .install()
+                        .install(None)
                         .await?
                 } else {
                     UpdateStatus::Unchanged

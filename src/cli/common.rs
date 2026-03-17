@@ -217,7 +217,7 @@ pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Re
     for (desc, distributable) in cfg.list_channels()? {
         let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
             .for_update(&distributable, false);
-        let result = InstallMethod::Dist(options).install().await;
+        let result = InstallMethod::Dist(options).install(None).await;
 
         if let Err(e) = &result {
             error!("{e}");
