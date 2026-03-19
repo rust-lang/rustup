@@ -137,6 +137,12 @@ features = [
 ]
 version = "0.61"
 
+# HACK: Temporarily pinned due to `zlib` regression, to be removed when
+# <https://github.com/madler/zlib/issues/1168> is resolved.
+# See: <https://github.com/rust-lang/rustup/issues/4760>
+[target.'cfg(target_os = "freebsd")'.dependencies]
+libz-sys = "=1.1.24"
+
 [dev-dependencies]
 enum-map = "2.5.0"
 http-body-util = "0.1.0"
