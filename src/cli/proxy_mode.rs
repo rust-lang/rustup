@@ -32,7 +32,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .skip(1 + toolchain.is_some() as usize)
         .collect();
 
-    let cfg = Cfg::from_env(current_dir, true, process)?;
+    let cfg = Cfg::from_env(current_dir, false, process)?;
     let (toolchain, source) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
