@@ -120,6 +120,12 @@ mod reqwest {
     use super::{scrub_env, serve_file, tmp_dir, write_file};
     use crate::download::{Backend, Event, TlsBackend};
 
+    #[cfg(feature = "reqwest-rustls-tls")]
+    const DOWNLOAD_BACKEND: Backend = Backend::Reqwest(TlsBackend::Rustls);
+
+    #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
+    const DOWNLOAD_BACKEND: Backend = Backend::Reqwest(TlsBackend::NativeTls;
+
     // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
     #[tokio::test]
     async fn read_basic_proxy_params() {
@@ -192,7 +198,7 @@ mod reqwest {
         write_file(&target_path, "123");
 
         let from_url = Url::from_file_path(&from_path).unwrap();
-        Backend::Reqwest(TlsBackend::NativeTls)
+        DOWNLOAD_BACKEND
             .download_to_path(
                 &from_url,
                 &target_path,
@@ -221,7 +227,7 @@ mod reqwest {
         let callback_len = Mutex::new(None);
         let received_in_callback = Mutex::new(Vec::new());
 
-        Backend::Reqwest(TlsBackend::NativeTls)
+        DOWNLOAD_BACKEND
             .download_to_path(
                 &from_url,
                 &target_path,
@@ -268,7 +274,7 @@ mod reqwest {
         let addr = serve_file(b"xxx45".to_vec(), false);
         let from_url = format!("http://{addr}").parse().unwrap();
 
-        Backend::Reqwest(TlsBackend::NativeTls)
+        DOWNLOAD_BACKEND
             .download_to_path(
                 &from_url,
                 &target_path,
@@ -293,7 +299,7 @@ mod reqwest {
         write_file(&target_path, "123");
 
         let from_url = "http://240.0.0.0:1080".parse().unwrap();
-        Backend::Reqwest(TlsBackend::NativeTls)
+        DOWNLOAD_BACKEND
             .download_to_path(&from_url, &target_path, true, None, Duration::from_secs(1))
             .await
             .expect_err("download should fail with a connect error");
