@@ -13,7 +13,10 @@ use std::{
 use anstream::ColorChoice;
 use anstyle::Style;
 use anyhow::{Context, Error, Result, anyhow};
-use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum, builder::PossibleValue};
+use clap::{
+    Args, CommandFactory, Parser, Subcommand, ValueEnum,
+    builder::{PossibleValue, ValueHint},
+};
 use clap_cargo::style::{CONTEXT, ERROR, GOOD, HEADER, TRANSIENT, WARN};
 use clap_complete::Shell;
 use futures_util::stream::StreamExt;
@@ -97,6 +100,7 @@ struct Rustup {
     #[arg(
         name = "+toolchain",
         value_parser = plus_toolchain_value_parser,
+        value_hint = ValueHint::Other,
     )]
     plus_toolchain: Option<ResolvableToolchainName>,
 
