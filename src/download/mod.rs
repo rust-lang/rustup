@@ -90,7 +90,7 @@ async fn download_file_(
     process: &Process,
 ) -> anyhow::Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use crate::download::{Backend, Event, TlsBackend};
+    use crate::download::{Backend, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -150,15 +150,15 @@ async fn download_file_(
 
         // Prefer explicit selections before falling back to the default TLS stack.
         #[cfg(feature = "reqwest-native-tls")]
-        Some(false) => Backend::Reqwest(TlsBackend::NativeTls),
+        Some(false) => Backend::NativeTls,
 
         // The default fallback is `rustls`, which should be used whenever available.
         #[cfg(feature = "reqwest-rustls-tls")]
-        _ => Backend::Reqwest(TlsBackend::Rustls),
+        _ => Backend::Rustls,
 
         // The `rustls` feature is disabled, fall back to `native-tls` instead.
         #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
-        _ => Backend::Reqwest(TlsBackend::NativeTls),
+        _ => Backend::NativeTls,
     };
 
     let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
@@ -202,8 +202,10 @@ const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
 
 #[derive(Debug, Copy, Clone)]
 enum Backend {
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    Reqwest(TlsBackend),
+    #[cfg(feature = "reqwest-rustls-tls")]
+    Rustls,
+    #[cfg(feature = "reqwest-native-tls")]
+    NativeTls,
 }
 
 impl Backend {
@@ -335,31 +337,6 @@ impl Backend {
         resume_from: u64,
         timeout: Duration,
         callback: DownloadCallback<'_>,
-    ) -> anyhow::Result<()> {
-        match self {
-            #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-            Self::Reqwest(tls) => tls.download(url, resume_from, callback, timeout).await,
-        }
-    }
-}
-
-#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-#[derive(Debug, Copy, Clone)]
-enum TlsBackend {
-    #[cfg(feature = "reqwest-rustls-tls")]
-    Rustls,
-    #[cfg(feature = "reqwest-native-tls")]
-    NativeTls,
-}
-
-#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-impl TlsBackend {
-    async fn download(
-        self,
-        url: &Url,
-        resume_from: u64,
-        callback: DownloadCallback<'_>,
-        timeout: Duration,
     ) -> anyhow::Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
