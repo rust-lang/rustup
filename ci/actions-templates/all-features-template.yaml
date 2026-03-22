@@ -25,9 +25,12 @@ jobs: # skip-all
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
       - name: Install Protoc
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@v3
+        env:
+          # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=semver
+          PROTOBUF_VERSION: "34.1"
         with:
-          version: "3.x"
+          version: ${{ env.PROTOBUF_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install OpenSSL
         if: ${{ contains(matrix.os, 'windows') }}
