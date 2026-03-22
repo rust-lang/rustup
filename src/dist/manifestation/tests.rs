@@ -509,14 +509,7 @@ impl TestContext {
         };
 
         manifestation
-            .update(
-                manifest,
-                changes,
-                force,
-                &dl_cfg,
-                self.toolchain.manifest_name(),
-                true,
-            )
+            .update(manifest, changes, force, &dl_cfg, &self.toolchain, true)
             .await
     }
 
@@ -660,7 +653,7 @@ async fn unavailable_component() {
             manifest,
             toolchain,
         }) => {
-            assert_eq!(toolchain, "nightly");
+            assert_eq!(toolchain, "nightly-x86_64-apple-darwin");
             let descriptions = components
                 .iter()
                 .map(|c| manifest.description(c))
@@ -705,7 +698,7 @@ async fn unavailable_component_from_profile() {
             manifest,
             toolchain,
         }) => {
-            assert_eq!(toolchain, "nightly");
+            assert_eq!(toolchain, "nightly-x86_64-apple-darwin");
             let descriptions = components
                 .iter()
                 .map(|c| manifest.description(c))
@@ -759,7 +752,7 @@ async fn removed_component() {
             manifest,
             toolchain,
         }) => {
-            assert_eq!(toolchain, "nightly");
+            assert_eq!(toolchain, "nightly-x86_64-apple-darwin");
             let descriptions = components
                 .iter()
                 .map(|c| manifest.description(c))
@@ -823,7 +816,7 @@ async fn unavailable_components_is_target() {
             manifest,
             toolchain,
         }) => {
-            assert_eq!(toolchain, "nightly");
+            assert_eq!(toolchain, "nightly-x86_64-apple-darwin");
             let descriptions = components
                 .iter()
                 .map(|c| manifest.description(c))
@@ -888,7 +881,7 @@ async fn unavailable_components_with_same_target() {
             manifest,
             toolchain,
         }) => {
-            assert_eq!(toolchain, "nightly");
+            assert_eq!(toolchain, "nightly-x86_64-apple-darwin");
             let descriptions = components
                 .iter()
                 .map(|c| manifest.description(c))

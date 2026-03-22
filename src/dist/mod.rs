@@ -1199,14 +1199,7 @@ async fn try_update_from_dist_(
             fetched.clone_from(&m.date);
 
             return match manifestation
-                .update(
-                    m,
-                    changes,
-                    force_update,
-                    download,
-                    toolchain.manifest_name(),
-                    true,
-                )
+                .update(m, changes, force_update, download, toolchain, true)
                 .await
             {
                 Ok(status) => match status {

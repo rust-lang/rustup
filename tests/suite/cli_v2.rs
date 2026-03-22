@@ -1952,7 +1952,7 @@ async fn update_unavailable_std() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly-[HOST_TRIPLE]'
 ...
 "#]])
         .is_err();
@@ -1971,7 +1971,7 @@ async fn add_missing_component() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly-[HOST_TRIPLE]'
 note: sometimes not all components are available in any given nightly
 ...
 "#]])
@@ -1994,10 +1994,10 @@ async fn add_toolchain_with_missing_component() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rust-std' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly-[HOST_TRIPLE]'
 note: sometimes not all components are available in any given nightly
 help: if you don't need these components, you could try a minimal installation with:
-help:     rustup toolchain add nightly --profile minimal
+help:     rustup toolchain add nightly-[HOST_TRIPLE] --profile minimal
 help: if you require these components, please install and use the latest successfully built version,
 help: which you can find at <https://rust-lang.github.io/rustup-components-history>
 help: after determining the correct date, install it with a command such as:
@@ -2020,10 +2020,10 @@ async fn add_toolchain_with_missing_components() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: some components are unavailable for download for channel 'nightly': 'cargo' for target '[HOST_TRIPLE]', 'rust-std' for target '[HOST_TRIPLE]'
+error: some components are unavailable for download for channel 'nightly-[HOST_TRIPLE]': 'cargo' for target '[HOST_TRIPLE]', 'rust-std' for target '[HOST_TRIPLE]'
 note: sometimes not all components are available in any given nightly
 help: if you don't need these components, you could try a minimal installation with:
-help:     rustup toolchain add nightly --profile minimal
+help:     rustup toolchain add nightly-[HOST_TRIPLE] --profile minimal
 help: if you require these components, please install and use the latest successfully built version,
 help: which you can find at <https://rust-lang.github.io/rustup-components-history>
 help: after determining the correct date, install it with a command such as:
@@ -2068,7 +2068,7 @@ async fn update_removed_component_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'stable'
+error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'stable-[HOST_TRIPLE]'
 One or many components listed above might have been permanently removed from newer versions
 of the official Rust distribution due to deprecation.
 ...
@@ -2112,7 +2112,7 @@ async fn update_unavailable_force() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly-[HOST_TRIPLE]'
 ...
 "#]])
         .is_err();
@@ -2429,7 +2429,7 @@ async fn test_complete_profile_skips_missing_when_forced() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly-[HOST_TRIPLE]'
 ...
 "#]])
         .is_err();
@@ -2522,7 +2522,7 @@ async fn install_allow_downgrade() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly'
+error: component 'rls' for target '[HOST_TRIPLE]' is unavailable for download for channel 'nightly-[HOST_TRIPLE]'
 ...
 "#]])
         .is_err();
