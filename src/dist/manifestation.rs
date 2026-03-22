@@ -24,7 +24,7 @@ use tracing::{debug, info, warn};
 use crate::{
     diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram},
     dist::{
-        DEFAULT_DIST_SERVER, Profile, TargetTriple,
+        DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
         component::{Components, DirectoryPackage, Transaction},
         config::Config,
         download::{DownloadCfg, DownloadStatus, File},
@@ -120,7 +120,7 @@ impl Manifestation {
         changes: Changes,
         force_update: bool,
         download_cfg: &DownloadCfg<'_>,
-        toolchain_str: String,
+        toolchain: &ToolchainDesc,
         implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
@@ -137,7 +137,7 @@ impl Manifestation {
         }
 
         // Validate that the requested components are available
-        if let Err(e) = update.unavailable_components(&new_manifest, &toolchain_str) {
+        if let Err(e) = update.unavailable_components(&new_manifest, toolchain) {
             if !force_update {
                 return Err(e);
             }
@@ -702,7 +702,11 @@ impl Update {
         self.components_to_uninstall.is_empty() && self.components_to_install.is_empty()
     }
 
-    fn unavailable_components(&self, new_manifest: &Manifest, toolchain_str: &str) -> Result<()> {
+    fn unavailable_components(
+        &self,
+        new_manifest: &Manifest,
+        toolchain: &ToolchainDesc,
+    ) -> Result<()> {
         let mut unavailable_components: Vec<Component> = self
             .components_to_install
             .iter()
@@ -723,7 +727,7 @@ impl Update {
             bail!(RustupError::RequestedComponentsUnavailable {
                 components: unavailable_components,
                 manifest: new_manifest.clone(),
-                toolchain: toolchain_str.to_owned(),
+                toolchain: toolchain.to_string(),
             });
         }
 

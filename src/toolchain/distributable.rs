@@ -121,14 +121,7 @@ impl<'a> DistributableToolchain<'a> {
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
-            .update(
-                manifest,
-                changes,
-                false,
-                &download_cfg,
-                self.desc.manifest_name(),
-                false,
-            )
+            .update(manifest, changes, false, &download_cfg, &self.desc, false)
             .await?;
 
         Ok(())
@@ -432,14 +425,7 @@ impl<'a> DistributableToolchain<'a> {
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
-            .update(
-                manifest,
-                changes,
-                false,
-                &download_cfg,
-                self.desc.manifest_name(),
-                false,
-            )
+            .update(manifest, changes, false, &download_cfg, &self.desc, false)
             .await?;
 
         Ok(())
