@@ -4,29 +4,37 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::VecDeque;
-use std::path::Path;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::{Context, Poll, ready};
-use std::vec;
+use std::{
+    collections::VecDeque,
+    path::Path,
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll, ready},
+    vec,
+};
 
 use anyhow::{Context as _, Result, anyhow, bail};
-use futures_util::Stream;
-use futures_util::stream::{FuturesUnordered, StreamExt};
+use futures_util::{
+    Stream,
+    stream::{FuturesUnordered, StreamExt},
+};
 use tokio::task::{JoinHandle, spawn_blocking};
 use tracing::{debug, info, warn};
 
-use crate::diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram};
-use crate::dist::component::{Components, DirectoryPackage, Transaction};
-use crate::dist::config::Config;
-use crate::dist::download::{DownloadCfg, DownloadStatus, File};
-use crate::dist::manifest::{Component, CompressionKind, HashedBinary, Manifest};
-use crate::dist::prefix::InstallPrefix;
-use crate::dist::temp;
-use crate::dist::{DEFAULT_DIST_SERVER, Profile, TargetTriple};
-use crate::errors::RustupError;
-use crate::utils;
+use crate::{
+    diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram},
+    dist::{
+        DEFAULT_DIST_SERVER, Profile, TargetTriple,
+        component::{Components, DirectoryPackage, Transaction},
+        config::Config,
+        download::{DownloadCfg, DownloadStatus, File},
+        manifest::{Component, CompressionKind, HashedBinary, Manifest},
+        prefix::InstallPrefix,
+        temp,
+    },
+    errors::RustupError,
+    utils,
+};
 
 pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
