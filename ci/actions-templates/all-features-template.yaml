@@ -24,10 +24,11 @@ jobs: # skip-all
         uses: actions/checkout@v6
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
+      # Protoc is an external dependency of the `otel` feature.
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         env:
-          # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=semver
+          # renovate: datasource=github-releases depName=protocolbuffers/protobuf versioning=semver-coerced
           PROTOBUF_VERSION: "34.1"
         with:
           version: ${{ env.PROTOBUF_VERSION }}
