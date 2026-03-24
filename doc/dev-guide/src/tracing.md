@@ -58,10 +58,6 @@ receive log lines only from `rustup` itself with a max verbosity of `DEBUG`.
 
 ## Opentelemetry tracing
 
-> **Prerequisites:** Before following the instructions in this section,
-> `protoc` must be installed, which can be downloaded from GitHub
-> or installed via a package manager.
-
 The feature `otel` can be used when building rustup to turn on Opentelemetry
 tracing with an OLTP GRPC exporter.
 
