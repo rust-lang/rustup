@@ -34,7 +34,7 @@ pub mod download;
 use download::DownloadCfg;
 
 pub mod manifest;
-use manifest::{Component, Manifest as ManifestV2};
+use manifest::{Component, Manifest as ManifestV2, ManifestWithHash};
 
 pub mod manifestation;
 use manifestation::{Changes, Manifestation, UpdateStatus};
@@ -1147,7 +1147,7 @@ async fn try_update_from_dist_(
         )
         .await
     {
-        Ok(Some((m, hash))) => {
+        Ok(Some(ManifestWithHash { manifest: m, hash })) => {
             match m.get_rust_version() {
                 Ok(version) => info!("latest update on {} for version {version}", m.date),
                 Err(_) => info!("latest update on {}", m.date),

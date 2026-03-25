@@ -28,6 +28,12 @@ use crate::{
     toolchain::DistributableToolchain,
 };
 
+/// A download manifest paired with its respective hash, as returned by the dist server.
+pub struct ManifestWithHash {
+    pub manifest: Manifest,
+    pub hash: String,
+}
+
 /// Used by the `installed_components` function
 pub(crate) struct ComponentStatus {
     pub component: Component,
