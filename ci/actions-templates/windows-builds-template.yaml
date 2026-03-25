@@ -7,7 +7,7 @@ jobs: # skip-main skip-pr skip-stable
   build-windows-stable: # job-name skip-main skip-pr
     runs-on: ${{ matrix.os || 'windows-latest' }}
     if: ${{ contains('["pull_request", "merge_group"]', github.event_name) }} # skip-main skip-stable
-    if: ${{ (github.event_name == 'push' && github.ref_name == 'main') }} # skip-pr skip-stable
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'backport/')) }} # skip-pr skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'schedule' }} # skip-pr skip-main
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static

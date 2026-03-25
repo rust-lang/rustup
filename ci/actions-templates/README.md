@@ -4,20 +4,22 @@ This directory contains all the workflows we use in Rustup for GitHub Actions.
 
 ## Triggers for CI builds
 
-Rustup has five situations in which we perform CI builds:
+Rustup performs CI builds in a variety of situations:
 
 1. On PR changes
-2. On merge to main
-3. Time-based rebuilds of main
-4. Pushes to the stable branch
-5. Renovate branches with dependency updates, tested before opening a PR or
-   merging. They are assessed the same as a PR: if it would be good enough as a
-   human proposed change, it's good enough as a robot proposed change.
+2. On merge to the `main` branch, including in-queue and post-merge builds
+3. Time-based rebuilds of `main`
+4. Pushes to the `stable` branch
+5. Renovate branches with dependency updates
+6. Pushes to backport branches
 
 The goals for each of those situations are subtly different. For PR changes,
 we want to know as quickly as possible if the change is likely to be an issue.
 
 Once a change hits main, we want to know that all our targets build.
+
+Backport CI builds are similar to the `main` ones but do not deploy outside
+GitHub Actions.
 
 Time based rebuilds of main are about determining if updates to the toolchain
 have caused us problems, and also to try and highlight if we have flaky tests.
