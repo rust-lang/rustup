@@ -285,16 +285,18 @@ impl<'a> DownloadCfg<'a> {
         Ok(Some((file, partial_hash)))
     }
 
-    pub(crate) fn status_for(&self, component: impl Into<Cow<'static, str>>) -> DownloadStatus {
+    pub(crate) fn status_for(
+        &self,
+        component_name: impl Into<Cow<'static, str>>,
+    ) -> DownloadStatus {
         let progress = ProgressBar::hidden();
         progress.set_style(
-            ProgressStyle::with_template(
-                "{msg:>13.bold} downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
+            DownloadStatus::progress_style(
+                "downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
-            .unwrap()
             .progress_chars("## "),
         );
-        progress.set_message(component);
+        progress.set_message(component_name);
         self.tracker.multi_progress_bars.add(progress.clone());
 
         DownloadStatus {
@@ -360,43 +362,39 @@ impl DownloadStatus {
 
         *retry_time = None;
         self.progress.set_style(
-            ProgressStyle::with_template(
-                "{msg:>13.bold} downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
+            DownloadStatus::progress_style(
+                "downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
-            .unwrap()
             .progress_chars("## "),
         );
     }
 
     pub(crate) fn finished(&self) {
-        self.progress.set_style(
-            ProgressStyle::with_template("{msg:>13.bold} pending installation {total_bytes:>20}")
-                .unwrap(),
-        );
+        self.progress.set_style(DownloadStatus::progress_style(
+            "pending installation {total_bytes:>20}",
+        ));
         self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
     }
 
     pub(crate) fn failed(&self) {
-        self.progress.set_style(
-            ProgressStyle::with_template("{msg:>13.bold} download failed after {elapsed}").unwrap(),
-        );
+        self.progress.set_style(DownloadStatus::progress_style(
+            "download failed after {elapsed}",
+        ));
         self.progress.finish();
     }
 
     pub(crate) fn retrying(&self) {
         *self.retry_time.lock().unwrap() = Some(Instant::now());
-        self.progress.set_style(
-            ProgressStyle::with_template("{msg:>13.bold} retrying download...").unwrap(),
-        );
+        self.progress
+            .set_style(DownloadStatus::progress_style("retrying download..."));
     }
 
     pub(crate) fn unpack<T: Read>(&self, inner: T) -> ProgressBarIter<T> {
         self.progress.reset();
         self.progress.set_style(
-            ProgressStyle::with_template(
-                "{msg:>13.bold} unpacking   [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
+            DownloadStatus::progress_style(
+                "unpacking   [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
-            .unwrap()
             .progress_chars("## "),
         );
         self.progress.wrap_read(inner)
@@ -404,20 +402,22 @@ impl DownloadStatus {
 
     pub(crate) fn installing(&self) {
         self.progress.set_style(
-            ProgressStyle::with_template(
-                "{msg:>13.bold} installing {spinner:.green} {total_bytes:>28}",
-            )
-            .unwrap()
-            .tick_chars(r"|/-\ "),
+            DownloadStatus::progress_style("installing {spinner:.green} {total_bytes:>28}")
+                .tick_chars(r"|/-\ "),
         );
         self.progress.enable_steady_tick(Duration::from_millis(100));
     }
 
     pub(crate) fn installed(&self) {
-        self.progress.set_style(
-            ProgressStyle::with_template("{msg:>13.bold} installed {total_bytes:>31}").unwrap(),
-        );
+        self.progress.set_style(DownloadStatus::progress_style(
+            "installed {total_bytes:>31}",
+        ));
         self.progress.finish();
+    }
+
+    fn progress_style(suffix: &str) -> ProgressStyle {
+        let template = format!("{{msg:>13.bold}} {suffix}");
+        ProgressStyle::with_template(&template).unwrap()
     }
 }
 
