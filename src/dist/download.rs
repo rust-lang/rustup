@@ -13,7 +13,7 @@ use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::config::Cfg;
-use crate::dist::manifest::Manifest;
+use crate::dist::manifest::{Manifest, ManifestWithHash};
 use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
 use crate::download::{download_file, download_file_with_resume, is_network_failure};
 use crate::errors::RustupError;
@@ -153,7 +153,7 @@ impl<'a> DownloadCfg<'a> {
         update_hash: Option<&Path>,
         toolchain: &ToolchainDesc,
         cfg: &Cfg<'_>,
-    ) -> Result<Option<(Manifest, String)>> {
+    ) -> Result<Option<ManifestWithHash>> {
         let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, self.process);
         match self
             .download_and_check(&manifest_url, update_hash, None, ".toml")
@@ -161,7 +161,7 @@ impl<'a> DownloadCfg<'a> {
         {
             Ok(manifest_dl) => {
                 // Downloaded ok!
-                let Some((manifest_file, manifest_hash)) = manifest_dl else {
+                let Some((manifest_file, hash)) = manifest_dl else {
                     return Ok(None);
                 };
                 let manifest_str = utils::read_file("manifest", &manifest_file)?;
@@ -171,7 +171,7 @@ impl<'a> DownloadCfg<'a> {
                         path: manifest_file.to_path_buf(),
                     })?;
 
-                Ok(Some((manifest, manifest_hash)))
+                Ok(Some(ManifestWithHash { manifest, hash }))
             }
             Err(any) => {
                 if let Some(err @ RustupError::ChecksumFailed { .. }) =

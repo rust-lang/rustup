@@ -14,7 +14,7 @@ use crate::{
         DistOptions, PartialToolchainDesc, ToolchainDesc,
         config::Config,
         download::DownloadCfg,
-        manifest::{Component, ComponentStatus, Manifest},
+        manifest::{Component, ComponentStatus, Manifest, ManifestWithHash},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
@@ -431,7 +431,7 @@ impl<'a> DistributableToolchain<'a> {
             )
             .await?
         {
-            Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
+            Some(ManifestWithHash { manifest, .. }) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
     }
