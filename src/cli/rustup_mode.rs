@@ -1144,7 +1144,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
             .components()?
             .into_iter()
             .filter_map(|c| {
-                (c.installed && c.component.short_name_in_manifest() == "rust-std")
+                (c.installed && c.component.short_name() == "rust-std")
                     .then(|| c.component.target.expect("rust-std should have a target"))
             })
             .collect(),
@@ -1287,7 +1287,7 @@ async fn target_list(
     if let Ok(distributable) = DistributableToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
             distributable.components()?.into_iter().filter_map(|c| {
-                if c.component.short_name_in_manifest() == "rust-std" && c.available {
+                if c.component.short_name() == "rust-std" && c.available {
                     c.component.target.map(|target| (target, c.installed))
                 } else {
                     None
@@ -1335,7 +1335,7 @@ async fn target_add(
 
         targets.clear();
         for component in components {
-            if component.component.short_name_in_manifest() == "rust-std"
+            if component.component.short_name() == "rust-std"
                 && component.available
                 && !component.installed
             {
@@ -1763,9 +1763,7 @@ async fn doc(
         && let [_] = distributable
             .components()?
             .into_iter()
-            .filter(|cstatus| {
-                cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
-            })
+            .filter(|cstatus| cstatus.component.short_name() == "rust-docs" && !cstatus.installed)
             .take(1)
             .collect::<Vec<ComponentStatus>>()
             .as_slice()

@@ -1175,7 +1175,7 @@ async fn try_update_from_dist_(
                 if let Some(c) = rust_target_package
                     .components
                     .iter()
-                    .find(|c| c.short_name_in_manifest() == component.short_name_in_manifest())
+                    .find(|c| c.short_name() == component.short_name())
                     && c.target.is_none()
                 {
                     component = component.wildcard();

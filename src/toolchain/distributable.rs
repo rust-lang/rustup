@@ -163,7 +163,7 @@ impl<'a> DistributableToolchain<'a> {
         let wanted_components = components.iter().all(|name| {
             installed_components.iter().any(|status| {
                 let cname = manifest.short_name(&status.component);
-                let cnameim = status.component.short_name_in_manifest();
+                let cnameim = status.component.short_name();
                 let cnameim = cnameim.as_str();
                 (cname == *name || cnameim == *name) && status.installed
             })
@@ -172,7 +172,7 @@ impl<'a> DistributableToolchain<'a> {
         let wanted_targets = targets.iter().all(|name| {
             installed_components
                 .iter()
-                .filter(|c| c.component.short_name_in_manifest() == "rust-std")
+                .filter(|c| c.component.short_name() == "rust-std")
                 .any(|status| {
                     let ctarg = status.component.target();
                     (ctarg == *name) && status.installed
@@ -265,10 +265,7 @@ impl<'a> DistributableToolchain<'a> {
                 .filter(|c| !only_installed || c.installed)
                 .map(|c| {
                     (
-                        damerau_levenshtein(
-                            &c.component.name_in_manifest()[..],
-                            &manifest.name(component)[..],
-                        ),
+                        damerau_levenshtein(&c.component.name()[..], &manifest.name(component)[..]),
                         c,
                     )
                 })
@@ -285,16 +282,10 @@ impl<'a> DistributableToolchain<'a> {
                 closest_distance = long_name_distance;
 
                 // Check if only targets differ
-                if closest_distance.1.component.short_name_in_manifest()
-                    == component.short_name_in_manifest()
-                {
+                if closest_distance.1.component.short_name() == component.short_name() {
                     closest_match = long_name_distance.1.component.target();
                 } else {
-                    closest_match = long_name_distance
-                        .1
-                        .component
-                        .short_name_in_manifest()
-                        .to_string();
+                    closest_match = long_name_distance.1.component.short_name().to_string();
                 }
             } else {
                 // Check if only targets differ

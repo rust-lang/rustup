@@ -317,7 +317,7 @@ impl Manifest {
     }
 
     pub(super) fn binary(&self, component: &Component) -> Result<Option<&HashedBinary>> {
-        let package = self.get_package(component.short_name_in_manifest())?;
+        let package = self.get_package(component.short_name())?;
         let target_package = package.get_target(component.target.as_ref())?;
         // We prefer the first format in the list, since the parsing of the
         // manifest leaves us with the files/hash pairs in preference order.
@@ -456,7 +456,7 @@ impl Manifest {
 
             // Get the component so we can check if it is available
             let component_pkg = self
-                .get_package(component.short_name_in_manifest())
+                .get_package(component.short_name())
                 .unwrap_or_else(|_| {
                     panic!(
                         "manifest should contain component {}",
@@ -538,7 +538,7 @@ impl Component {
         let manifest = distributable.get_manifest()?;
         for component_status in distributable.components()? {
             let component = component_status.component;
-            if name == component.name_in_manifest() || name == manifest.name(&component) {
+            if name == component.name() || name == manifest.name(&component) {
                 return Ok(component);
             }
         }
@@ -558,11 +558,11 @@ impl Component {
         }
     }
 
-    pub fn short_name_in_manifest(&self) -> &String {
+    pub fn short_name(&self) -> &String {
         &self.pkg
     }
-    pub(crate) fn name_in_manifest(&self) -> String {
-        let pkg = self.short_name_in_manifest();
+    pub(crate) fn name(&self) -> String {
+        let pkg = self.short_name();
         if let Some(t) = &self.target {
             format!("{pkg}-{t}")
         } else {
@@ -670,11 +670,11 @@ mod tests {
         assert_eq!(rust_target_pkg.bins[0].hash, "...");
 
         let component = &rust_target_pkg.components[0];
-        assert_eq!(component.short_name_in_manifest(), "rustc");
+        assert_eq!(component.short_name(), "rustc");
         assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_gnu));
 
         let component = &rust_target_pkg.components[4];
-        assert_eq!(component.short_name_in_manifest(), "rust-std");
+        assert_eq!(component.short_name(), "rust-std");
         assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_musl));
 
         let docs_pkg = pkg.get_package("rust-docs").unwrap();

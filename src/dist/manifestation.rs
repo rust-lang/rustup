@@ -336,8 +336,8 @@ impl Manifestation {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target tuple.
-        let name = component.name_in_manifest();
-        let short_name = component.short_name_in_manifest();
+        let name = component.name();
+        let short_name = component.short_name();
         if let Some(c) = self.installation.find(&name)? {
             tx = c.uninstall(tx)?;
         } else if let Some(c) = self.installation.find(short_name)? {
@@ -712,8 +712,7 @@ impl Update {
             .iter()
             .filter(|c| {
                 use crate::dist::manifest::{Package, TargetedPackage};
-                let pkg: Option<&Package> =
-                    new_manifest.get_package(c.short_name_in_manifest()).ok();
+                let pkg: Option<&Package> = new_manifest.get_package(c.short_name()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
                 target_pkg.map(TargetedPackage::available) != Some(true)
@@ -827,8 +826,8 @@ impl ComponentInstall {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target tuple.
-        let pkg_name = self.component.name_in_manifest();
-        let short_pkg_name = self.component.short_name_in_manifest();
+        let pkg_name = self.component.name();
+        let short_pkg_name = self.component.short_name();
         let reader = self.status.unpack(utils::buffered(&self.installer)?);
         let package = DirectoryPackage::compressed(
             reader,
