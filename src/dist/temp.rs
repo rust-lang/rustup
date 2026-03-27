@@ -73,7 +73,7 @@ impl Drop for File {
 }
 
 pub struct Context {
-    root_directory: PathBuf,
+    pub root_directory: PathBuf,
     pub dist_server: String,
 }
 
