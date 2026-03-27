@@ -129,7 +129,7 @@ pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()
-        .context("unable to run updater")?;
+        .context(format!("unable to run updater ({})", setup_path.display()))?;
 
     if !status.success() {
         bail!("self-updated failed to replace rustup executable");
