@@ -84,50 +84,7 @@ pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
     }
 }
 
-async fn download_file_(
-    url: &Url,
-    path: &Path,
-    hasher: Option<&mut Sha256>,
-    resume_from_partial: bool,
-    status: Option<&DownloadStatus>,
-    process: &Process,
-) -> anyhow::Result<()> {
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use crate::download::{Backend, Event, TlsBackend};
-    use sha2::Digest;
-    use std::cell::RefCell;
-
-    debug!(url = %url, "downloading file");
-    let hasher = RefCell::new(hasher);
-
-    // This callback will write the download to disk and optionally
-    // hash the contents, then forward the notification up the stack
-    let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
-        if let Event::DownloadDataReceived(data) = msg
-            && let Some(h) = hasher.borrow_mut().as_mut()
-        {
-            h.update(data);
-        }
-
-        match msg {
-            Event::DownloadContentLengthReceived(len) => {
-                if let Some(status) = status {
-                    status.received_length(len)
-                }
-            }
-            Event::DownloadDataReceived(data) => {
-                if let Some(status) = status {
-                    status.received_data(data.len())
-                }
-            }
-            Event::ResumingPartialDownload => debug!("resuming partial download"),
-        }
-
-        Ok(())
-    };
-
-    // Download the file
-
+fn select_backend(process: &Process) -> anyhow::Result<Backend> {
     // Keep the curl env var around for a bit
     let use_curl_backend = process.var_os("RUSTUP_USE_CURL").map(|it| it != "0");
     if use_curl_backend == Some(true) {
@@ -199,14 +156,67 @@ async fn download_file_(
         _ => Backend::Curl,
     };
 
+    Ok(backend)
+}
+
+fn timeout(process: &Process) -> anyhow::Result<Duration> {
     let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
-        Ok(s) => NonZero::from_str(&s)
+    Ok(s) => NonZero::from_str(&s)
             .context(
                 "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
             )?
             .get(),
         Err(_) => 180,
     });
+
+    Ok(timeout)
+}
+
+async fn download_file_(
+    url: &Url,
+    path: &Path,
+    hasher: Option<&mut Sha256>,
+    resume_from_partial: bool,
+    status: Option<&DownloadStatus>,
+    process: &Process,
+) -> anyhow::Result<()> {
+    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+    use crate::download::{Backend, Event};
+    use sha2::Digest;
+    use std::cell::RefCell;
+
+    debug!(url = %url, "downloading file");
+    let hasher = RefCell::new(hasher);
+
+    // This callback will write the download to disk and optionally
+    // hash the contents, then forward the notification up the stack
+    let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
+        if let Event::DownloadDataReceived(data) = msg
+            && let Some(h) = hasher.borrow_mut().as_mut()
+        {
+            h.update(data);
+        }
+
+        match msg {
+            Event::DownloadContentLengthReceived(len) => {
+                if let Some(status) = status {
+                    status.received_length(len)
+                }
+            }
+            Event::DownloadDataReceived(data) => {
+                if let Some(status) = status {
+                    status.received_data(data.len())
+                }
+            }
+            Event::ResumingPartialDownload => debug!("resuming partial download"),
+        }
+
+        Ok(())
+    };
+
+    // Download the file
+    let backend = select_backend(process)?;
+    let timeout = timeout(process)?;
 
     match backend {
         #[cfg(feature = "curl-backend")]
