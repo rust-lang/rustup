@@ -240,6 +240,28 @@ async fn download_file_(
     res
 }
 
+#[allow(dead_code)]
+pub(crate) async fn content_length(url: &Url, process: &Process) -> anyhow::Result<Option<u64>> {
+    if url.scheme() == "file" {
+        let path = url
+            .to_file_path()
+            .map_err(|_| anyhow::anyhow!("bogus file url: '{url}'"))?;
+        return Ok(Some(std::fs::metadata(path)?.len()));
+    }
+
+    let backend = select_backend(process)?;
+    let timeout = timeout(process)?;
+
+    match backend {
+        #[cfg(feature = "curl-backend")]
+        Backend::Curl => debug!(url = %url, "fetching content-length with curl"),
+        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+        Backend::Reqwest(_) => debug!(url = %url, "fetching content-length with reqwest"),
+    };
+
+    backend.content_length(url, timeout).await
+}
+
 /// User agent header value for HTTP request.
 /// See: https://github.com/rust-lang/rustup/issues/2860.
 #[cfg(feature = "curl-backend")]
@@ -402,6 +424,16 @@ impl Backend {
             Self::Reqwest(tls) => tls.download(url, resume_from, callback, timeout).await,
         }
     }
+
+    #[allow(dead_code)]
+    async fn content_length(self, url: &Url, timeout: Duration) -> anyhow::Result<Option<u64>> {
+        match self {
+            #[cfg(feature = "curl-backend")]
+            Self::Curl => curl::content_length(url, timeout),
+            #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+            Self::Reqwest(tls) => tls.content_length(url, timeout).await,
+        }
+    }
 }
 
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
@@ -431,6 +463,18 @@ impl TlsBackend {
 
         reqwest_be::download(url, resume_from, callback, client).await
     }
+
+    #[allow(dead_code)]
+    async fn content_length(self, url: &Url, timeout: Duration) -> anyhow::Result<Option<u64>> {
+        let client = match self {
+            #[cfg(feature = "reqwest-rustls-tls")]
+            Self::Rustls => reqwest_be::rustls_client(timeout)?,
+            #[cfg(feature = "reqwest-native-tls")]
+            Self::NativeTls => reqwest_be::native_tls_client(timeout)?,
+        };
+
+        reqwest_be::content_length(url, client).await
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -457,6 +501,47 @@ mod curl {
     use url::Url;
 
     use super::{DownloadError, Event};
+
+    #[allow(dead_code)]
+    pub(super) fn content_length(url: &Url, timeout: Duration) -> Result<Option<u64>> {
+        let mut handle = Easy::new();
+        handle.url(url.as_ref())?;
+        handle.follow_location(true)?;
+        handle.useragent(super::CURL_USER_AGENT)?;
+        handle.nobody(true)?;
+        handle.connect_timeout(timeout)?;
+
+        let length = std::cell::Cell::new(None);
+        {
+            let mut transfer = handle.transfer();
+            transfer.header_function(|header| {
+                let Ok(data) = str::from_utf8(header) else {
+                    return true;
+                };
+                let prefix = "content-length: ";
+                let Some((dp, ds)) = data.split_at_checked(prefix.len()) else {
+                    return true;
+                };
+                if !dp.eq_ignore_ascii_case(prefix) {
+                    return true;
+                }
+                if let Ok(s) = ds.trim().parse::<u64>() {
+                    length.set(Some(s));
+                }
+                true
+            })?;
+
+            transfer.perform()?;
+        }
+
+        let code = handle.response_code()?;
+        match code {
+            0 | 200..=299 => Ok(length.get()),
+            // Some servers do not support HEAD for file assets
+            405 => Ok(None),
+            _ => Err(DownloadError::HttpStatus(code).into()),
+        }
+    }
 
     pub(super) fn download(
         url: &Url,
@@ -618,6 +703,23 @@ mod reqwest_be {
             callback(Event::DownloadDataReceived(&bytes))?;
         }
         Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub(super) async fn content_length(url: &Url, client: &Client) -> anyhow::Result<Option<u64>> {
+        let res = client
+            .head(url.as_str())
+            .send()
+            .await
+            .context("error fetching content length")?;
+
+        let status = res.status().into();
+        match status {
+            200..=299 => Ok(res.content_length()),
+            // Some servers do not support HEAD for file assets
+            405 => Ok(None),
+            _ => Err(DownloadError::HttpStatus(u32::from(status)).into()),
+        }
     }
 
     fn client_generic() -> ClientBuilder {
