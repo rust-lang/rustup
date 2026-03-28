@@ -161,11 +161,24 @@ impl Manifestation {
             }
         }
 
+        const DEFAULT_MIN_NAME_WIDTH: usize = 13;
+        let max_name_width = update
+            .components_to_install
+            .iter()
+            // The same as the component name's length used in `ComponentBinary::new`
+            // As it's used for status output
+            .map(|component| new_manifest.short_name(component).len())
+            .max()
+            .unwrap_or(0)
+            .max(DEFAULT_MIN_NAME_WIDTH);
+
         // Download component packages and validate hashes
         let components = update
             .components_to_install
             .into_iter()
-            .filter_map(|component| ComponentBinary::new(component, &new_manifest, download_cfg))
+            .filter_map(|component| {
+                ComponentBinary::new(component, &new_manifest, download_cfg, max_name_width)
+            })
             .collect::<Result<Vec<_>>>()?;
 
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
@@ -416,7 +429,8 @@ impl Manifestation {
             .unwrap()
             .replace(DEFAULT_DIST_SERVER, dl_cfg.tmp_cx.dist_server.as_str());
 
-        let status = dl_cfg.status_for("rust");
+        let component_name = "rust";
+        let status = dl_cfg.status_for(component_name, component_name.len());
         let dl = dl_cfg
             .download_and_check(&url, Some(update_hash), Some(&status), ".tar.gz")
             .await?;
@@ -752,6 +766,7 @@ impl<'a> ComponentBinary<'a> {
         component: Component,
         manifest: &'a Manifest,
         download_cfg: &'a DownloadCfg<'a>,
+        name_width: usize,
     ) -> Option<Result<Self>> {
         Some(Ok(ComponentBinary {
             binary: match manifest.binary(&component) {
@@ -759,7 +774,7 @@ impl<'a> ComponentBinary<'a> {
                 Ok(None) => return None,
                 Err(e) => return Some(Err(e)),
             },
-            status: download_cfg.status_for(manifest.short_name(&component).to_owned()),
+            status: download_cfg.status_for(manifest.short_name(&component).to_owned(), name_width),
             component,
             manifest,
             download_cfg,
