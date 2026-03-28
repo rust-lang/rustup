@@ -288,10 +288,12 @@ impl<'a> DownloadCfg<'a> {
     pub(crate) fn status_for(
         &self,
         component_name: impl Into<Cow<'static, str>>,
+        name_width: usize,
     ) -> DownloadStatus {
         let progress = ProgressBar::hidden();
         progress.set_style(
             DownloadStatus::progress_style(
+                name_width,
                 "downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
             .progress_chars("## "),
@@ -302,6 +304,7 @@ impl<'a> DownloadCfg<'a> {
         DownloadStatus {
             progress,
             retry_time: Mutex::new(None),
+            name_width,
         }
     }
 
@@ -345,6 +348,8 @@ pub(crate) struct DownloadStatus {
     /// bar would reappear immediately, not allowing the user to correctly see the message,
     /// before the progress bar starts again.
     retry_time: Mutex<Option<Instant>>,
+    /// The dynamic maximum width of the component names for alignment
+    name_width: usize,
 }
 
 impl DownloadStatus {
@@ -363,6 +368,7 @@ impl DownloadStatus {
         *retry_time = None;
         self.progress.set_style(
             DownloadStatus::progress_style(
+                self.name_width,
                 "downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
             .progress_chars("## "),
@@ -371,6 +377,7 @@ impl DownloadStatus {
 
     pub(crate) fn finished(&self) {
         self.progress.set_style(DownloadStatus::progress_style(
+            self.name_width,
             "pending installation {total_bytes:>20}",
         ));
         self.progress.tick(); // A tick is needed for the new style to appear, as it is static.
@@ -378,6 +385,7 @@ impl DownloadStatus {
 
     pub(crate) fn failed(&self) {
         self.progress.set_style(DownloadStatus::progress_style(
+            self.name_width,
             "download failed after {elapsed}",
         ));
         self.progress.finish();
@@ -385,14 +393,17 @@ impl DownloadStatus {
 
     pub(crate) fn retrying(&self) {
         *self.retry_time.lock().unwrap() = Some(Instant::now());
-        self.progress
-            .set_style(DownloadStatus::progress_style("retrying download..."));
+        self.progress.set_style(DownloadStatus::progress_style(
+            self.name_width,
+            "retrying download...",
+        ));
     }
 
     pub(crate) fn unpack<T: Read>(&self, inner: T) -> ProgressBarIter<T> {
         self.progress.reset();
         self.progress.set_style(
             DownloadStatus::progress_style(
+                self.name_width,
                 "unpacking   [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
             .progress_chars("## "),
@@ -402,21 +413,25 @@ impl DownloadStatus {
 
     pub(crate) fn installing(&self) {
         self.progress.set_style(
-            DownloadStatus::progress_style("installing {spinner:.green} {total_bytes:>28}")
-                .tick_chars(r"|/-\ "),
+            DownloadStatus::progress_style(
+                self.name_width,
+                "installing {spinner:.green} {total_bytes:>28}",
+            )
+            .tick_chars(r"|/-\ "),
         );
         self.progress.enable_steady_tick(Duration::from_millis(100));
     }
 
     pub(crate) fn installed(&self) {
         self.progress.set_style(DownloadStatus::progress_style(
+            self.name_width,
             "installed {total_bytes:>31}",
         ));
         self.progress.finish();
     }
 
-    fn progress_style(suffix: &str) -> ProgressStyle {
-        let template = format!("{{msg:>13.bold}} {suffix}");
+    fn progress_style(name_width: usize, suffix: &str) -> ProgressStyle {
+        let template = format!("{{msg:>{name_width}.bold}} {suffix}");
         ProgressStyle::with_template(&template).unwrap()
     }
 }
