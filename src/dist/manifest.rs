@@ -52,6 +52,8 @@ pub struct Manifest {
 }
 
 impl Manifest {
+    /// Returns the [`Component`]'s name **before** renaming, including the target if present.
+    /// For the name after renaming, see [`Component::name()`].
     pub(crate) fn name(&self, component: &Component) -> String {
         let pkg = self.short_name(component);
         if let Some(t) = &component.target {
@@ -70,6 +72,8 @@ impl Manifest {
         }
     }
 
+    /// Returns the [`Component`]'s short name (not including the target) **before** renaming.
+    /// For the name after renaming, see [`Component::short_name()`].
     pub(crate) fn short_name<'a>(&'a self, component: &'a Component) -> &'a str {
         if let Some(from) = self.reverse_renames.get(&component.pkg) {
             from
@@ -558,9 +562,13 @@ impl Component {
         }
     }
 
+    /// Returns the [`Component`]'s short name (not including the target) **after** renaming.
+    /// For the name before renaming, see [`Manifest::short_name()`].
     pub fn short_name(&self) -> &String {
         &self.pkg
     }
+    /// Returns the [`Component`]'s name **after** renaming, including the target if present.
+    /// For the short name before renaming, see [`Manifest::name()`].
     pub(crate) fn name(&self) -> String {
         let pkg = self.short_name();
         if let Some(t) = &self.target {
