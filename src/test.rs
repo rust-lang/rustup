@@ -308,7 +308,7 @@ pub fn calc_hash(src: &Path) -> String {
     File::open(src).unwrap().read_to_end(&mut buf).unwrap();
     let mut hasher = Sha256::new();
     hasher.update(buf);
-    format!("{:x}", hasher.finalize())
+    faster_hex::hex_string(&hasher.finalize())
 }
 
 pub fn create_hash(src: &Path, dst: &Path) -> String {
