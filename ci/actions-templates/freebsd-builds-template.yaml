@@ -5,7 +5,6 @@ jobs: # skip-main skip-stable
   build-freebsd-main: # job-name skip-stable
   build-freebsd-stable: # job-name skip-main
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'schedule' }} # skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-main
     steps:
     - uses: actions/checkout@v6
@@ -18,7 +17,10 @@ jobs: # skip-main skip-stable
     - name: Run a full build
       uses: vmactions/freebsd-vm@v1
       with:
-        release: 13.2
+        # HACK: Due to <https://github.com/alexcrichton/curl-rust/issues/632>
+        # we cannot use v13 or v14 for testing for now, but it should be okay
+        # since we only have best-effort testing on FreeBSD.
+        release: "15.0"
         usesh: true
         copyback: false
         prepare: |
