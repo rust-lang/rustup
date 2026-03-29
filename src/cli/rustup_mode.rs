@@ -844,6 +844,8 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
     if channels_len > 0 {
         let multi_progress_bars =
             MultiProgress::with_draw_target(cfg.process.progress_draw_target());
+        // Help avoid flickering by moving the cursor instead of clearing the line.
+        multi_progress_bars.set_move_cursor(true);
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
         let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
             let msg = format!("{bold}{name} - {bold:#}");

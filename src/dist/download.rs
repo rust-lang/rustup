@@ -332,7 +332,8 @@ impl DownloadTracker {
         } else {
             ProgressDrawTarget::hidden()
         });
-
+        // Help avoid flickering by moving the cursor instead of clearing the line.
+        multi_progress_bars.set_move_cursor(true);
         Self {
             multi_progress_bars,
         }
