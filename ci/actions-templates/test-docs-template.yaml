@@ -41,7 +41,7 @@ jobs: # skip-all
           mkdir -p ${{ runner.temp }}/book
           mv book ${{ runner.temp }}/book/dev-guide
       - name: Deploy to GitHub
-        if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) && !startsWith(github.ref_name, 'backport/') }}
+        if: ${{ !contains('["pull_request", "merge_group"]', github.event_name) && !startsWith(github.ref_name, 'release/') }}
         run: |
           cd ${{ runner.temp }}/book
           git config --global init.defaultBranch main
