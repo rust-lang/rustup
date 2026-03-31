@@ -5,7 +5,7 @@ jobs: # skip-main skip-stable
   build-freebsd-main: # job-name skip-stable
   build-freebsd-stable: # job-name skip-main
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'backport/'))) || github.event_name == 'schedule' }} # skip-stable
+    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/'))) || github.event_name == 'schedule' }} # skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-main
     steps:
     - uses: actions/checkout@v6
