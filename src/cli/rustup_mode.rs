@@ -1318,7 +1318,7 @@ async fn target_add(
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
-    // list_components *and* add_component would both be inappropriate for
+    // list_components *and* add_components would both be inappropriate for
     // custom toolchains.
     let distributable = DistributableToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
@@ -1351,14 +1351,20 @@ async fn target_add(
         }
     }
 
-    for target in targets {
-        let new_component = Component::new(
-            "rust-std".to_string(),
-            Some(TargetTriple::new(target)),
-            false,
-        );
-        distributable.add_component(new_component).await?;
-    }
+    distributable
+        .add_components(
+            targets
+                .into_iter()
+                .map(|target| {
+                    Component::new(
+                        "rust-std".to_string(),
+                        Some(TargetTriple::new(target)),
+                        false,
+                    )
+                })
+                .collect(),
+        )
+        .await?;
 
     Ok(ExitCode::SUCCESS)
 }
@@ -1449,10 +1455,15 @@ async fn component_add(
     .await?;
 
     let target = get_target(target, &distributable);
-    for component in &components {
-        let new_component = Component::try_new(component, &distributable, target.as_ref())?;
-        distributable.add_component(new_component).await?;
-    }
+
+    distributable
+        .add_components(
+            components
+                .into_iter()
+                .map(|component| Component::try_new(&component, &distributable, target.as_ref()))
+                .collect::<Result<_>>()?,
+        )
+        .await?;
 
     Ok(ExitCode::SUCCESS)
 }

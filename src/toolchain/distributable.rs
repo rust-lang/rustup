@@ -60,16 +60,10 @@ impl<'a> DistributableToolchain<'a> {
         &self.desc
     }
 
-    pub(crate) async fn add_component(&self, mut component: Component) -> anyhow::Result<()> {
-        // TODO: take multiple components?
+    pub(crate) async fn add_components(&self, components: Vec<Component>) -> anyhow::Result<()> {
         let manifestation = self.get_manifestation()?;
         let manifest = self.get_manifest()?;
-        // Rename the component if necessary.
-        if let Some(c) = manifest.rename_component(&component) {
-            component = c;
-        }
 
-        // Validate the component name
         let rust_pkg = manifest
             .packages
             .get("rust")
@@ -79,32 +73,33 @@ impl<'a> DistributableToolchain<'a> {
             .get(&self.desc.target)
             .expect("installed manifest should have a known target");
 
-        if !targ_pkg.components.contains(&component) {
+        let mut validated_components = Vec::with_capacity(components.len());
+
+        for mut component in components {
+            if let Some(c) = manifest.rename_component(&component) {
+                component = c;
+            }
+
+            if targ_pkg.components.contains(&component) {
+                validated_components.push(component);
+                continue;
+            }
+
             let wildcard_component = component.wildcard();
             if targ_pkg.components.contains(&wildcard_component) {
-                component = wildcard_component;
-            } else {
-                let config = manifestation.read_config()?.unwrap_or_default();
-                let suggestion =
-                    self.get_component_suggestion(&component, &config, &manifest, false);
-                let desc = self.desc.clone();
-                // Check if the target is supported.
-                if !targ_pkg
-                    .components
-                    .iter()
-                    .any(|c| c.target() == component.target())
-                {
-                    let target = component.target.expect("component target should be known");
-                    if let Some(platform) = Platform::find(&target) {
-                        return Err(RustupError::UnavailableTarget { desc, platform }.into());
-                    };
-                    return Err(RustupError::UnknownTarget {
-                        desc,
-                        target,
-                        suggestion,
-                    }
-                    .into());
-                }
+                validated_components.push(wildcard_component);
+                continue;
+            }
+
+            let config = manifestation.read_config()?.unwrap_or_default();
+            let suggestion = self.get_component_suggestion(&component, &config, &manifest, false);
+            let desc = self.desc.clone();
+
+            if targ_pkg
+                .components
+                .iter()
+                .any(|c| c.target() == component.target())
+            {
                 return Err(RustupError::UnknownComponent {
                     desc,
                     component: manifest.description(&component),
@@ -112,10 +107,22 @@ impl<'a> DistributableToolchain<'a> {
                 }
                 .into());
             }
+
+            let target = component.target.expect("component target should be known");
+            if let Some(platform) = Platform::find(&target) {
+                return Err(RustupError::UnavailableTarget { desc, platform }.into());
+            }
+
+            return Err(RustupError::UnknownTarget {
+                desc,
+                target,
+                suggestion,
+            }
+            .into());
         }
 
         let changes = Changes {
-            explicit_add_components: vec![component],
+            explicit_add_components: validated_components,
             remove_components: vec![],
         };
 
