@@ -17,7 +17,7 @@ on:
   merge_group:
   pull_request:
     branches:
-      - "*"
+      - "**"
   push:
     branches:
       - main
