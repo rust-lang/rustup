@@ -23,6 +23,7 @@ on:
       - main
       - release/*
       - stable
+  workflow_dispatch:
   schedule:
     - cron: "30 0 * * 1,3,5" # At 00:30 UTC on Monday, Wednesday, and Friday
 
