@@ -8,7 +8,7 @@ jobs: # skip-main skip-pr skip-stable
     runs-on: ${{ matrix.os || 'windows-latest' }}
     if: ${{ contains(fromJSON('["pull_request", "merge_group"]'), github.event_name) }} # skip-main skip-stable
     if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }} # skip-pr skip-stable
-    if: ${{ github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'schedule' }} # skip-pr skip-main
+    if: ${{ github.event_name == 'push' && github.ref_name == 'stable' || contains(fromJSON('["schedule", "workflow_dispatch"]'), github.event_name) }} # skip-pr skip-main
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
