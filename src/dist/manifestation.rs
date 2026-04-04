@@ -244,13 +244,12 @@ impl Manifestation {
         }
 
         if !components.is_empty() {
-            if components.len() > 2 {
-                info!("downloading {} components", components.len());
-            } else {
-                info!(
+            match &components[..] {
+                [c] => info!(
                     "downloading component {}",
-                    components[0].manifest.short_name(&components[0].component),
-                );
+                    c.manifest.short_name(&c.component),
+                ),
+                _ => info!("downloading {} components", components.len()),
             };
 
             let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));

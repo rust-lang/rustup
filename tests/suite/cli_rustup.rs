@@ -3889,7 +3889,7 @@ async fn custom_toolchain_with_components_toolchains_profile_does_not_err() {
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TRIPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
-info: downloading component cargo
+info: downloading 2 components
 info: default toolchain set to nightly-[HOST_TRIPLE]
 
 "#]])
