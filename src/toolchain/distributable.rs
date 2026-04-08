@@ -21,6 +21,8 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
 };
 
+use crate::errors::UnknownComponentInfo;
+
 use super::{
     Toolchain,
     names::{LocalToolchainName, ToolchainName},
@@ -100,10 +102,13 @@ impl<'a> DistributableToolchain<'a> {
                 .iter()
                 .any(|c| c.target() == component.target())
             {
-                return Err(RustupError::UnknownComponent {
+                return Err(RustupError::UnknownComponents {
                     desc,
-                    component: manifest.description(&component),
-                    suggestion,
+                    components: vec![UnknownComponentInfo {
+                        name: manifest.short_name(&component).to_string(),
+                        description: manifest.description(&component),
+                        suggestion,
+                    }],
                 }
                 .into());
             }
@@ -407,10 +412,13 @@ impl<'a> DistributableToolchain<'a> {
                     }
                     .into());
                 }
-                return Err(RustupError::UnknownComponent {
+                return Err(RustupError::UnknownComponents {
                     desc: self.desc.clone(),
-                    component: manifest.description(&component),
-                    suggestion,
+                    components: vec![UnknownComponentInfo {
+                        name: manifest.short_name(&component).to_string(),
+                        description: manifest.description(&component),
+                        suggestion,
+                    }],
                 }
                 .into());
             }
