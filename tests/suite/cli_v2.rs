@@ -2133,7 +2133,8 @@ async fn add_component_suggest_best_match() {
         .expect(["rustup", "component", "add", "rsl"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for target '[HOST_TRIPLE]'; did you mean 'rls'?
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for target '[HOST_TRIPLE]'
+help: did you mean 'rls'?
 
 "#]])
         .is_err();
@@ -2141,7 +2142,8 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for ta
         .expect(["rustup", "component", "add", "rsl-preview"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview' for target '[HOST_TRIPLE]'; did you mean 'rls-preview'?
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview' for target '[HOST_TRIPLE]'
+help: did you mean 'rls-preview'?
 
 "#]])
         .is_err();
@@ -2149,7 +2151,8 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview
         .expect(["rustup", "component", "add", "rustd"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rustd' for target '[HOST_TRIPLE]'; did you mean 'rustc'?
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rustd' for target '[HOST_TRIPLE]'
+help: did you mean 'rustc'?
 
 "#]])
         .is_err();
@@ -2180,7 +2183,8 @@ async fn remove_component_suggest_best_match() {
         .expect(["rustup", "component", "remove", "rsl"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for target '[HOST_TRIPLE]'; did you mean 'rls'?
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for target '[HOST_TRIPLE]'
+help: did you mean 'rls'?
 
 "#]])
         .is_err();
@@ -2192,7 +2196,8 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl' for ta
         .expect(["rustup", "component", "add", "rsl-preview"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview' for target '[HOST_TRIPLE]'; did you mean 'rls-preview'?
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview' for target '[HOST_TRIPLE]'
+help: did you mean 'rls-preview'?
 
 "#]])
         .is_err();
@@ -2200,7 +2205,8 @@ error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rsl-preview
         .expect(["rustup", "component", "remove", "rustd"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rustd' for target '[HOST_TRIPLE]'; did you mean 'rustc'?
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain component 'rustd' for target '[HOST_TRIPLE]'
+help: did you mean 'rustc'?
 
 "#]])
         .is_err();

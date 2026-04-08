@@ -1,14 +1,19 @@
 //! Test cases for new rustup UI
 
-use std::fs;
-use std::path::PathBuf;
-use std::{env::consts::EXE_SUFFIX, path::Path};
-
-use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
-    topical_doc_data,
+use std::{
+    env::consts::EXE_SUFFIX,
+    fs,
+    path::{Path, PathBuf},
 };
-use rustup::utils::raw;
+
+use rustup::{
+    for_host,
+    test::{
+        CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
+        topical_doc_data,
+    },
+    utils::raw,
+};
 
 #[tokio::test]
 async fn rustup_stable() {
@@ -2132,6 +2137,96 @@ async fn add_remove_multiple_components() {
             this_host_triple(),
             file
         ));
+        assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
+    }
+}
+
+#[tokio::test]
+async fn remove_multiple_components_best_effort() {
+    let files = [
+        "lib/rustlib/src/rust-src/foo.rs",
+        for_host!("lib/rustlib/{}/analysis/libfoo.json"),
+    ];
+
+    for (one, two, three) in [
+        ("bad-component", "rust-src", "rust-analysis"),
+        ("rust-src", "bad-component", "rust-analysis"),
+        ("rust-src", "rust-analysis", "bad-component"),
+    ] {
+        let cx = CliTestContext::new(Scenario::SimpleV2).await;
+        cx.config
+            .expect(&["rustup", "default", "nightly"])
+            .await
+            .is_ok();
+        cx.config
+            .expect(&["rustup", "component", "add", "rust-src", "rust-analysis"])
+            .await
+            .is_ok();
+
+        for file in &files {
+            let path = for_host!("toolchains/nightly-{0}/{file}");
+            assert!(cx.config.rustupdir.has(path));
+        }
+
+        cx.config
+            .expect(&["rustup", "component", "remove", one, two, three])
+            .await
+            .is_err();
+
+        for file in &files {
+            let path = PathBuf::from(for_host!("toolchains/nightly-{0}/{file}"));
+            assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
+        }
+    }
+}
+
+#[tokio::test]
+async fn remove_multiple_components_reports_all_invalid_names() {
+    let files = [
+        "lib/rustlib/src/rust-src/foo.rs",
+        for_host!("lib/rustlib/{}/analysis/libfoo.json"),
+    ];
+
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "component", "add", "rust-src", "rust-analysis"])
+        .await
+        .is_ok();
+
+    for file in &files {
+        let path = for_host!("toolchains/nightly-{0}/{file}");
+        assert!(cx.config.rustupdir.has(path));
+    }
+
+    cx.config
+        .expect([
+            "rustup",
+            "component",
+            "remove",
+            "bad-component-1",
+            "rust-src",
+            "bad-component-2",
+            "rust-analysis",
+        ])
+        .await
+        .with_stderr(snapbox::str![[r#"
+info: removing component rust-src
+info: removing component rust-analysis
+error: toolchain 'nightly-[HOST_TRIPLE]' does not contain these components:
+  - 'bad-component-1'
+  - 'bad-component-2'
+
+
+"#]])
+        .is_err();
+
+    for file in &files {
+        let path = PathBuf::from(for_host!("toolchains/nightly-{0}/{file}",));
         assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
     }
 }

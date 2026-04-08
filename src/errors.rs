@@ -1,7 +1,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use std::ffi::OsString;
-use std::fmt::Debug;
+use std::fmt::{Debug, Write as FmtWrite};
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
@@ -22,6 +22,13 @@ use crate::{
 #[derive(Debug, ThisError)]
 #[error(transparent)]
 pub struct OperationError(pub anyhow::Error);
+
+#[derive(Debug, Clone)]
+pub struct UnknownComponentInfo {
+    pub name: String,
+    pub description: String,
+    pub suggestion: Option<String>,
+}
 
 #[derive(ThisError, Debug)]
 pub enum RustupError {
@@ -124,15 +131,10 @@ pub enum RustupError {
         help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
     )]
     ToolchainNotSelected(String),
-    #[error("toolchain '{}' does not contain component {}{}{}", .desc, .component, suggest_message(.suggestion), if .component.contains("rust-std") {
-        format!("\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html{}",
-            if desc.channel == Channel::Nightly { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
-        )
-    } else { "".to_string() })]
-    UnknownComponent {
+    #[error("{}", unknown_components_msg(.desc, .components))]
+    UnknownComponents {
         desc: ToolchainDesc,
-        component: String,
-        suggestion: Option<String>,
+        components: Vec<UnknownComponentInfo>,
     },
     #[error(
         "toolchain '{desc}' has no prebuilt artifacts available for target '{platform}'\n\
@@ -241,4 +243,50 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
     }
 
     String::from_utf8(buf).unwrap()
+}
+
+fn unknown_components_msg(desc: &ToolchainDesc, components: &[UnknownComponentInfo]) -> String {
+    let mut buf = String::new();
+
+    match components {
+        [] => panic!("`unknown_components_msg` should not be called with an empty collection"),
+        [component] => {
+            let _ = write!(
+                buf,
+                "toolchain '{desc}' does not contain component {}",
+                component.description,
+            );
+
+            if let Some(suggestion) = &component.suggestion {
+                let _ = write!(buf, "\nhelp: did you mean '{suggestion}'?");
+            }
+
+            if component.description.contains("rust-std") {
+                let _ = write!(
+                    buf,
+                    "\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html"
+                );
+
+                if desc.channel == Channel::Nightly {
+                    let _ = write!(
+                        buf,
+                        "\nhelp: consider using `cargo build -Z build-std` instead"
+                    );
+                }
+            }
+        }
+        components => {
+            let _ = writeln!(buf, "toolchain '{desc}' does not contain these components:");
+
+            for component in components {
+                let _ = writeln!(buf, "  - '{}'", component.name);
+
+                if let Some(suggestion) = &component.suggestion {
+                    let _ = writeln!(buf, "    help: did you mean '{suggestion}'?");
+                }
+            }
+        }
+    }
+
+    buf
 }
