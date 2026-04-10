@@ -828,20 +828,47 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
 
 #[cfg(unix)]
 fn warn_if_default_linker_missing(process: &Process) {
-    // Search for `cc` in PATH
-    if let Some(path) = process.var_os("PATH") {
-        let cc_binary = format!("cc{}", EXE_SUFFIX);
+    // Search for linker in PATH
+    let Some(path) = process.var_os("PATH") else {
+        warn!("unable to search PATH for a default linker");
+        warn!("many Rust crates require a system C toolchain to build");
+        return;
+    };
 
-        for mut p in env::split_paths(&path) {
-            p.push(&cc_binary);
-            if p.is_file() {
-                return;
-            }
-        }
+    // If we have the host triple, attempt to determine the CC/linker path that
+    // `cc-rs` would use, as this is *usually* why we need a linker to invoke.
+    //
+    // Doing it this way allows us to correctly diagnose quirky systems like
+    // solaris and illumos that use `gcc` rather than `cc` for historical reasons.
+    let cc_tool = TargetTriple::from_host(process).and_then(|triple| {
+        // Fill in some dummy settings for `Build`/`Tool` to be able to properly
+        // give us the metadata we want
+        cc::Build::new()
+            .opt_level(0)
+            .target(&triple)
+            .host(&triple)
+            .try_get_compiler()
+            .ok()
+    });
+
+    let cc_binary = if let Some(cc_tool) = &cc_tool {
+        Cow::Borrowed(cc_tool.path())
+    } else {
+        // If we don't get info from cc-rs, fall back to just looking for the literal `cc`.
+        Cow::Owned(format!("cc{EXE_SUFFIX}").into())
+    };
+
+    // Search the path for the selected binary
+    let found = env::split_paths(&path).any(|mut p| {
+        p.push(&cc_binary);
+        p.is_file()
+    });
+
+    if !found {
+        let bin_disp = cc_binary.display();
+        warn!("no default linker (`{bin_disp}`) was found in your PATH");
+        warn!("many Rust crates require a system C toolchain to build");
     }
-
-    warn!("no default linker (`cc`) was found in your PATH");
-    warn!("many Rust crates require a system C toolchain to build");
 }
 
 fn install_bins(process: &Process) -> Result<()> {

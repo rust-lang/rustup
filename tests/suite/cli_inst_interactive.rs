@@ -684,7 +684,7 @@ async fn install_warns_if_default_linker_missing() {
         .is_ok()
         .with_stderr(snapbox::str![[r#"
 ...
-warn: no default linker (`cc`) was found in your PATH
+warn: no default linker ([CC_TOOL]) was found in your PATH
 warn: many Rust crates require a system C toolchain to build
 ...
 "#]]);
