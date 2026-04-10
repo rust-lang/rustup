@@ -133,6 +133,9 @@ impl Assert {
                 ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
                 ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
                 ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
+                ("[CC_TOOL]", Cow::Borrowed("`cc`")),
+                ("[CC_TOOL]", Cow::Borrowed("`gcc`")),
+                ("[CC_TOOL]", Cow::Borrowed("`clang`")),
             ])
             .expect("invalid redactions detected");
         Self {
