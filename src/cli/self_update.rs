@@ -84,9 +84,6 @@ use unix::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
 #[cfg(unix)]
 pub(crate) use unix::{run_update, self_replace};
 
-#[cfg(unix)]
-use self::shell::{Nu, UnixShell};
-
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
@@ -446,35 +443,19 @@ but will not be added automatically."
 }
 
 #[cfg(not(windows))]
-macro_rules! post_install_msg_unix_source_env {
-    () => {
-        r#"To configure your current shell, you need to source
-the corresponding `env` file under {cargo_home}.
-
-This is usually done by running one of the following (note the leading DOT):
-    . "{cargo_home}/env"            # For sh/bash/zsh/ash/dash/pdksh
-    source "{cargo_home}/env.fish"  # For fish
-    source "{cargo_home_nushell}/env.nu"  # For nushell
-    source "{cargo_home}/env.tcsh"  # For tcsh
-    . "{cargo_home}/env.ps1"        # For pwsh
-    source "{cargo_home}/env.xsh"   # For xonsh
-"#
-    };
-}
-
-#[cfg(not(windows))]
 macro_rules! post_install_msg_unix {
     () => {
-        concat!(
-            r"# Rust is installed now. Great!
+        r"# Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
 Cargo's bin directory ({cargo_home}/bin).
 
-",
-            post_install_msg_unix_source_env!(),
-        )
+To configure your current shell, you need to source the
+corresponding `env` file under {cargo_home}.
+
+Consider running the right command for your shell (note the leading DOT):
+{source_env_lines}"
     };
 }
 
@@ -494,15 +475,16 @@ Cargo's bin directory ({cargo_home}\\bin).
 #[cfg(not(windows))]
 macro_rules! post_install_msg_unix_no_modify_path {
     () => {
-        concat!(
-            r"# Rust is installed now. Great!
+        r"# Rust is installed now. Great!
 
 To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable. This has not been done automatically.
 
-",
-            post_install_msg_unix_source_env!(),
-        )
+To configure your current shell, you need to source
+the corresponding `env` file under {cargo_home}.
+
+Consider running the right command for your shell (note the leading DOT):
+{source_env_lines}"
     };
 }
 
@@ -661,19 +643,19 @@ pub(crate) async fn install(
         format!(post_install_msg_win!(), cargo_home = cargo_home)
     };
     #[cfg(not(windows))]
-    let cargo_home_nushell = Nu.cargo_home_str(cfg.process)?;
+    let source_env_lines = shell::build_source_env_lines(cfg.process);
     #[cfg(not(windows))]
     let msg = if no_modify_path {
         format!(
             post_install_msg_unix_no_modify_path!(),
             cargo_home = cargo_home,
-            cargo_home_nushell = cargo_home_nushell,
+            source_env_lines = source_env_lines,
         )
     } else {
         format!(
             post_install_msg_unix!(),
             cargo_home = cargo_home,
-            cargo_home_nushell = cargo_home_nushell,
+            source_env_lines = source_env_lines,
         )
     };
     md(&mut term, msg);

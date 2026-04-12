@@ -73,6 +73,30 @@ fn enumerate_shells() -> Vec<Shell> {
     ]
 }
 
+/// Builds the shell source lines for the post-install message, showing only
+/// shells that are available on the current system. Shells sharing the same
+/// env file are grouped onto one line (e.g. sh/bash/zsh all use `env`).
+pub(crate) fn build_source_env_lines(process: &Process) -> String {
+    let mut groups = Vec::<(_, Vec<_>)>::new();
+    for shell in get_available_shells(process) {
+        let Ok(src) = shell.source_string(process) else {
+            continue;
+        };
+        if let Some(names) = groups
+            .iter_mut()
+            .find_map(|(s, names)| (*s == src).then_some(names))
+        {
+            names.push(shell.name());
+        } else {
+            groups.push((src, vec![shell.name()]));
+        }
+    }
+    groups
+        .into_iter()
+        .map(|(src, names)| format!("    {}  # For {}\n", src, names.join("/")))
+        .collect()
+}
+
 pub(crate) fn get_available_shells(process: &Process) -> impl Iterator<Item = Shell> + '_ {
     enumerate_shells()
         .into_iter()
@@ -83,6 +107,9 @@ pub(crate) trait UnixShell {
     // Detects if a shell "exists". Users have multiple shells, so an "eager"
     // heuristic should be used, assuming shells exist if any traces do.
     fn does_exist(&self, process: &Process) -> bool;
+
+    // Returns the display name of the shell, used in post-install messages.
+    fn name(&self) -> &'static str;
 
     // Gives all rcfiles of a given shell that Rustup is concerned with.
     // Used primarily in checking rcfiles for cleanup.
@@ -128,6 +155,10 @@ impl UnixShell for Posix {
         true
     }
 
+    fn name(&self) -> &'static str {
+        "sh/ash/dash/pdksh"
+    }
+
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
         match process.home_dir() {
             Some(dir) => vec![dir.join(".profile")],
@@ -147,6 +178,10 @@ struct Bash;
 impl UnixShell for Bash {
     fn does_exist(&self, process: &Process) -> bool {
         !self.update_rcs(process).is_empty()
+    }
+
+    fn name(&self) -> &'static str {
+        "bash"
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
@@ -197,6 +232,10 @@ impl UnixShell for Zsh {
             || utils::find_cmd(&["zsh"], process).is_some()
     }
 
+    fn name(&self) -> &'static str {
+        "zsh"
+    }
+
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
         [Zsh::zdotdir(process).ok(), process.home_dir()]
             .iter()
@@ -227,6 +266,10 @@ impl UnixShell for Fish {
         // fish has to either be the shell or be callable for fish setup.
         matches!(process.var("SHELL"), Ok(sh) if sh.contains("fish"))
             || utils::find_cmd(&["fish"], process).is_some()
+    }
+
+    fn name(&self) -> &'static str {
+        "fish"
     }
 
     // > "$XDG_CONFIG_HOME/fish/conf.d" (or "~/.config/fish/conf.d" if that variable is unset) for the user
@@ -276,6 +319,10 @@ impl UnixShell for Nu {
         // nu has to either be the shell or be callable for nu setup.
         matches!(process.var("SHELL"), Ok(sh) if sh.contains("nu"))
             || utils::find_cmd(&["nu"], process).is_some()
+    }
+
+    fn name(&self) -> &'static str {
+        "nushell"
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
@@ -329,6 +376,10 @@ impl UnixShell for Tcsh {
             || utils::find_cmd(&["tcsh"], process).is_some()
     }
 
+    fn name(&self) -> &'static str {
+        "tcsh"
+    }
+
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
         let mut paths = vec![];
 
@@ -376,6 +427,10 @@ impl UnixShell for Pwsh {
     fn does_exist(&self, process: &Process) -> bool {
         matches!(process.var("SHELL"), Ok(sh) if sh.contains("pwsh"))
             || utils::find_cmd(&["pwsh"], process).is_some()
+    }
+
+    fn name(&self) -> &'static str {
+        "pwsh"
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
@@ -451,6 +506,10 @@ struct Xonsh;
 impl UnixShell for Xonsh {
     fn does_exist(&self, process: &Process) -> bool {
         process.var("XONSHRC").is_ok() || utils::find_cmd(&["xonsh"], process).is_some()
+    }
+
+    fn name(&self) -> &'static str {
+        "xonsh"
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
