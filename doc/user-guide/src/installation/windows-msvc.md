@@ -14,7 +14,7 @@ See [licensing terms][vs licences] for more details.
 
 ## WinGet
 
-Alternatively Visual Studio can be installed via the [WinGet] package manager, which should be avaliable by default on recent versions of Windows.
+Alternatively Visual Studio can be installed via the [WinGet] package manager, which should be available by default on recent versions of Windows.
 Run the following command in powershell or the command prompt:
 
 ```
@@ -26,7 +26,7 @@ You can replace "Community" with "BuildTools" in the above command if you alread
 ### Missing Windows SDK
 
 If after running the above command the Windows 11 SDK is missing then you may need to manually install it, which can also be done via WinGet.
-First search for the avaliable versions:
+First search for the available versions:
 
 ```
 winget search --source winget --id Microsoft.WindowsSDK.
