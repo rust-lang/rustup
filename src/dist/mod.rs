@@ -608,6 +608,7 @@ impl TargetTuple {
                 (b"Linux", b"loongarch64") => Some(TUPLE_LOONGARCH64_UNKNOWN_LINUX),
                 (b"Linux", b"ppc64") => Some(TUPLE_POWERPC64_UNKNOWN_LINUX),
                 (b"Linux", b"ppc64le") => Some(TUPLE_POWERPC64LE_UNKNOWN_LINUX),
+                (b"Linux", b"riscv64") => Some(TUPLE_RISCV64GC_UNKNOWN_LINUX),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
@@ -712,6 +713,10 @@ const TUPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-musl";
 const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
 const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TUPLE_RISCV64GC_UNKNOWN_LINUX: &str = "riscv64gc-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TUPLE_RISCV64GC_UNKNOWN_LINUX: &str = "riscv64gc-unknown-linux-musl";
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
