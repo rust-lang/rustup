@@ -43,6 +43,7 @@ jobs: # skip-main skip-pr skip-stable
           - armv7-linux-androideabi        # skip-pr skip-main
           - x86_64-linux-android           # skip-pr skip-main
           - riscv64gc-unknown-linux-gnu    # skip-pr skip-main
+          - riscv64gc-unknown-linux-musl   # skip-pr skip-main
           - loongarch64-unknown-linux-gnu  # skip-pr skip-main
           - loongarch64-unknown-linux-musl # skip-pr skip-main
         include:

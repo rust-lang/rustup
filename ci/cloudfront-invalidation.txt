@@ -53,6 +53,10 @@ rustup/dist/powerpc64le-unknown-linux-gnu/rustup-init
 rustup/dist/powerpc64le-unknown-linux-gnu/rustup-init.sha256
 rustup/dist/powerpc64le-unknown-linux-musl/rustup-init
 rustup/dist/powerpc64le-unknown-linux-musl/rustup-init.sha256
+rustup/dist/riscv64gc-unknown-linux-gnu/rustup-init
+rustup/dist/riscv64gc-unknown-linux-gnu/rustup-init.sha256
+rustup/dist/riscv64gc-unknown-linux-musl/rustup-init
+rustup/dist/riscv64gc-unknown-linux-musl/rustup-init.sha256
 rustup/dist/s390x-unknown-linux-gnu/rustup-init
 rustup/dist/s390x-unknown-linux-gnu/rustup-init.sha256
 rustup/dist/sparcv9-sun-solaris/rustup-init.exe
