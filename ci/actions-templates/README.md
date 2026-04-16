@@ -34,7 +34,7 @@ to build for all targets listed in the _tier 1_ or the _tier 2 with host tools_ 
 
 [platform support policy]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
 
-In order to reduce the maintainance burden, targets listed in the _tier 2 without host
+In order to reduce the maintenance burden, targets listed in the _tier 2 without host
 tools_ section might get limited support, but should by no means become a blocker.
 We should not build for targets listed in the _tier 3_ section, and if a target gets
 downgraded to tier 3, its CI workflows should be dropped accordingly.
