@@ -847,7 +847,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
         // Help avoid flickering by moving the cursor instead of clearing the line.
         multi_progress_bars.set_move_cursor(true);
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-        let channels = tokio_stream::iter(channels.into_iter()).map(|(name, distributable)| {
+        let channels = tokio_stream::iter(channels).map(|(name, distributable)| {
             let msg = format!("{bold}{name} - {bold:#}");
             let status = "Checking...";
             let template = format!(
@@ -1582,8 +1582,8 @@ fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Res
     let paths = if nonexistent {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
-                .iter()
-                .filter_map(|(k, _)| {
+                .keys()
+                .filter_map(|k| {
                     let path = Path::new(k);
                     (!path.is_dir()).then(|| path.to_owned())
                 })
