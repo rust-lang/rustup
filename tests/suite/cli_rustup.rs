@@ -4144,3 +4144,35 @@ installed targets:
         .with_stderr(snapbox::str![[""]])
         .is_ok();
 }
+
+#[tokio::test]
+async fn missing_manifest_shows_reinstall_help() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+
+    let manifest_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("nightly-{}", this_host_triple()))
+        .join("lib")
+        .join("rustlib")
+        .join("multirust-channel-manifest.toml");
+
+    fs::remove_file(&manifest_path).unwrap();
+
+    cx.config
+        .expect(["rustup", "component", "list", "--toolchain", "nightly"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: missing manifest in toolchain 'nightly-[HOST_TRIPLE]'
+help: this may happen if the toolchain installation was interrupted
+help: try reinstalling or updating the toolchain
+
+"#]])
+        .is_err();
+}
