@@ -71,7 +71,11 @@ pub enum RustupError {
     DownloadingFile { url: Url, path: PathBuf },
     #[error("could not download file from '{url}' to '{}'", .path.display())]
     DownloadNotExists { url: Url, path: PathBuf },
-    #[error("Missing manifest in toolchain '{}'", .0)]
+    #[error(
+        "missing manifest in toolchain '{0}'\n\
+     help: this may happen if the toolchain installation was interrupted\n\
+     help: try reinstalling or updating the toolchain"
+    )]
     MissingManifest(ToolchainDesc),
     #[error("server sent a broken manifest: missing package for component {0}")]
     MissingPackageForComponent(String),
