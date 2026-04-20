@@ -656,7 +656,7 @@ mod tests {
     static EXAMPLE: &str = include_str!("manifest/tests/channel-rust-nightly-example.toml");
     // Same manifest as above, but with the packages in a different order.
     static EXAMPLE_REORDERED: &str =
-        include_str!("manifest/tests/channel-rust-nightly-example.toml");
+        include_str!("manifest/tests/channel-rust-nightly-example-reordered.toml");
     // From brson's live build-rust-manifest.py script
     static EXAMPLE2: &str = include_str!("manifest/tests/channel-rust-nightly-example2.toml");
 
