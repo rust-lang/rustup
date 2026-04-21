@@ -75,7 +75,7 @@ jobs:
         uses: ilammy/setup-nasm@v1
         if: matrix.mingwdir == ''
       - name: Install mingw
-        uses: bwoodsend/setup-winlibs-action@v1
+        uses: bwoodsend/setup-winlibs-action@v1.16
         if: matrix.mingwdir != ''
         with:
           architecture: ${{ matrix.arch }}
@@ -247,7 +247,7 @@ jobs:
         uses: ilammy/setup-nasm@v1
         if: matrix.mingwdir == ''
       - name: Install mingw
-        uses: bwoodsend/setup-winlibs-action@v1
+        uses: bwoodsend/setup-winlibs-action@v1.16
         if: matrix.mingwdir != ''
         with:
           architecture: ${{ matrix.arch }}
@@ -425,7 +425,7 @@ jobs:
         uses: ilammy/setup-nasm@v1
         if: matrix.mingwdir == ''
       - name: Install mingw
-        uses: bwoodsend/setup-winlibs-action@v1
+        uses: bwoodsend/setup-winlibs-action@v1.16
         if: matrix.mingwdir != ''
         with:
           architecture: ${{ matrix.arch }}
