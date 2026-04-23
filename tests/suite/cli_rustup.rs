@@ -9,7 +9,7 @@ use std::{
 use rustup::{
     for_host,
     test::{
-        CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_triple,
+        CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
         topical_doc_data,
     },
     utils::raw,
@@ -351,7 +351,7 @@ async fn add_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -370,7 +370,7 @@ async fn remove_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -402,13 +402,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(cx.config.rustupdir.has(path));
@@ -419,13 +419,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(!cx.config.rustupdir.has(path));
@@ -472,7 +472,7 @@ async fn add_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -498,7 +498,7 @@ async fn remove_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_triple(),
+        &this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -1583,7 +1583,7 @@ default
 async fn set_default_host() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
-        .expect(["rustup", "set", "default-host", &this_host_triple()])
+        .expect(["rustup", "set", "default-host", &this_host_tuple()])
         .await
         .is_ok();
     cx.config
@@ -1649,7 +1649,7 @@ async fn update_doesnt_update_non_tracking_channels() {
         .is_ok()
         .without_stderr(&format!(
             "syncing channel updates for 'nightly-2015-01-01-{}'",
-            this_host_triple(),
+            this_host_tuple(),
         ));
 }
 
@@ -1914,7 +1914,7 @@ async fn add_component() {
         .is_ok();
     let path = format!(
         "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
-        this_host_triple()
+        this_host_tuple()
     );
     assert!(cx.config.rustupdir.has(path));
 }
@@ -1937,7 +1937,7 @@ async fn add_component_by_target_triple() {
         .is_ok();
     let path = format!(
         "toolchains/stable-{}/lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib",
-        this_host_triple()
+        this_host_tuple()
     );
     assert!(cx.config.rustupdir.has(path));
 }
@@ -1954,7 +1954,7 @@ async fn add_component_by_target_triple_renamed_from() {
             "rustup",
             "component",
             "add",
-            &format!("rls-{}", this_host_triple()),
+            &format!("rls-{}", this_host_tuple()),
         ])
         .await
         .is_ok();
@@ -1981,7 +1981,7 @@ async fn add_component_by_target_triple_renamed_to() {
             "rustup",
             "component",
             "add",
-            &format!("rls-preview-{}", this_host_triple()),
+            &format!("rls-preview-{}", this_host_tuple()),
         ])
         .await
         .is_ok();
@@ -2053,7 +2053,7 @@ async fn remove_component() {
         .is_ok();
     let path = PathBuf::from(format!(
         "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
-        this_host_triple(),
+        this_host_tuple(),
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
@@ -2077,7 +2077,7 @@ async fn remove_component_by_target_triple() {
         .is_ok();
     let path = PathBuf::from(format!(
         "toolchains/stable-{}/lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib",
-        this_host_triple()
+        this_host_tuple()
     ));
     assert!(cx.config.rustupdir.has(&path));
     cx.config
@@ -2091,7 +2091,7 @@ async fn remove_component_by_target_triple() {
 async fn add_remove_multiple_components() {
     let files = [
         "lib/rustlib/src/rust-src/foo.rs".to_owned(),
-        format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple()),
+        format!("lib/rustlib/{}/analysis/libfoo.json", this_host_tuple()),
         format!("lib/rustlib/{CROSS_ARCH1}/lib/libstd.rlib"),
         format!("lib/rustlib/{CROSS_ARCH2}/lib/libstd.rlib"),
     ];
@@ -2116,7 +2116,7 @@ async fn add_remove_multiple_components() {
         .await
         .is_ok();
     for file in &files {
-        let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
+        let path = format!("toolchains/nightly-{}/{}", this_host_tuple(), file);
         assert!(cx.config.rustupdir.has(&path));
     }
     cx.config
@@ -2132,11 +2132,7 @@ async fn add_remove_multiple_components() {
         .await
         .is_ok();
     for file in &files {
-        let path = PathBuf::from(format!(
-            "toolchains/nightly-{}/{}",
-            this_host_triple(),
-            file
-        ));
+        let path = PathBuf::from(format!("toolchains/nightly-{}/{}", this_host_tuple(), file));
         assert!(!cx.config.rustupdir.has(path.parent().unwrap()));
     }
 }
@@ -2282,7 +2278,7 @@ async fn env_override_path() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
 
     cx.config
         .expect_with_env(
@@ -2312,7 +2308,7 @@ async fn plus_override_relpath_is_not_supported() {
     let toolchain_path = Path::new("..")
         .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustc",
@@ -2342,7 +2338,7 @@ async fn run_with_relpath_is_not_supported() {
     let toolchain_path = Path::new("..")
         .join(cx.config.rustupdir.rustupdir.file_name().unwrap())
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -2395,7 +2391,7 @@ async fn plus_override_abspath_is_supported() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
+        .join(format!("nightly-{}", this_host_tuple()))
         .canonicalize()
         .unwrap();
     cx.config
@@ -2424,7 +2420,7 @@ async fn run_with_abspath_is_supported() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
+        .join(format!("nightly-{}", this_host_tuple()))
         .canonicalize()
         .unwrap();
     cx.config
@@ -2455,7 +2451,7 @@ async fn file_override_path() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(
         &toolchain_file,
@@ -2499,7 +2495,7 @@ async fn proxy_override_path() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(
         &toolchain_file,
@@ -2533,7 +2529,7 @@ async fn file_override_path_relative_not_supported() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()));
+        .join(format!("nightly-{}", this_host_tuple()));
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
 
     // Find shared prefix so we can determine a relative path
@@ -3097,7 +3093,7 @@ async fn close_file_override_beats_far_directory_override() {
 #[tokio::test]
 async fn override_order() {
     let cx = CliTestContext::new(Scenario::ArchivesV2).await;
-    let host = this_host_triple();
+    let host = this_host_tuple();
     // give each override type a different toolchain
     let default_tc = &format!("beta-2015-01-01-{host}");
     let env_tc = &format!("stable-2015-01-01-{host}");
@@ -3516,7 +3512,7 @@ async fn valid_override_settings() {
         .expect(&["rustup", "default", "nightly"])
         .await
         .is_ok();
-    let nightly_with_host = format!("nightly-{}", this_host_triple());
+    let nightly_with_host = format!("nightly-{}", this_host_tuple());
     raw::write_file(&toolchain_file, "nightly").unwrap();
     cx.config.expect(&["rustc", "--version"]).await.is_ok();
     // Special case: same version as is installed is permitted.
@@ -3818,7 +3814,7 @@ error: no default toolchain is configured
     let mock_settings_file = cx.config.current_dir().join("mock_fallback_settings.toml");
     raw::write_file(
         &mock_settings_file,
-        &format!("default_toolchain = 'nightly-{}'", this_host_triple()),
+        &format!("default_toolchain = 'nightly-{}'", this_host_tuple()),
     )
     .unwrap();
 
@@ -3875,7 +3871,7 @@ note: add the `--force-non-host` flag to install the toolchain anyway
 #[tokio::test]
 async fn dont_warn_on_partial_build() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let arch = this_host_triple().split_once('-').unwrap().0.to_owned();
+    let arch = this_host_tuple().split_once('-').unwrap().0.to_owned();
     cx.config
         .expect(["rustup", "toolchain", "install", &format!("nightly-{arch}")])
         .await
@@ -4002,7 +3998,7 @@ rustc-[HOST_TRIPLE]
     // link the toolchain
     let toolchains = cx.config.rustupdir.join("toolchains");
     raw::symlink_dir(
-        &toolchains.join(format!("nightly-{}", this_host_triple())),
+        &toolchains.join(format!("nightly-{}", this_host_tuple())),
         &toolchains.join("my-custom"),
     )
     .expect("failed to symlink");
@@ -4060,7 +4056,7 @@ async fn show_custom_toolchain() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()));
+        .join(format!("stable-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -4107,7 +4103,7 @@ async fn show_custom_toolchain_without_components_file() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("stable-{}", this_host_triple()));
+        .join(format!("stable-{}", this_host_tuple()));
     cx.config
         .expect([
             "rustup",
@@ -4158,7 +4154,7 @@ async fn missing_manifest_shows_reinstall_help() {
         .config
         .rustupdir
         .join("toolchains")
-        .join(format!("nightly-{}", this_host_triple()))
+        .join(format!("nightly-{}", this_host_tuple()))
         .join("lib")
         .join("rustlib")
         .join("multirust-channel-manifest.toml");
