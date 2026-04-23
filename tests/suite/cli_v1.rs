@@ -147,7 +147,7 @@ async fn default_existing_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: using existing install for nightly-[HOST_TRIPLE]
+info: using existing install for nightly-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -199,8 +199,8 @@ async fn list_toolchains() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stdout(snapbox::str![[r#"
-beta-2015-01-01-[HOST_TRIPLE]
-nightly-[HOST_TRIPLE] (active, default)
+beta-2015-01-01-[HOST_TUPLE]
+nightly-[HOST_TUPLE] (active, default)
 
 "#]])
         .is_ok();
@@ -208,8 +208,8 @@ nightly-[HOST_TRIPLE] (active, default)
         .expect(["rustup", "toolchain", "list", "-v"])
         .await
         .with_stdout(snapbox::str![[r#"
-beta-2015-01-01-[HOST_TRIPLE] [..]/toolchains/beta-2015-01-01-[HOST_TRIPLE]
-nightly-[HOST_TRIPLE] (active, default) [..]/toolchains/nightly-[HOST_TRIPLE]
+beta-2015-01-01-[HOST_TUPLE] [..]/toolchains/beta-2015-01-01-[HOST_TUPLE]
+nightly-[HOST_TUPLE] (active, default) [..]/toolchains/nightly-[HOST_TUPLE]
 
 "#]])
         .is_ok();
@@ -278,7 +278,7 @@ async fn remove_override_toolchain_err_handling() {
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-info: syncing channel updates for beta-[HOST_TRIPLE]
+info: syncing channel updates for beta-[HOST_TUPLE]
 ...
 "#]])
         .is_ok();
@@ -664,7 +664,7 @@ async fn no_update_on_channel_when_date_has_not_changed() {
         .await
         .with_stdout(snapbox::str![[r#"
 
-  nightly-[HOST_TRIPLE] unchanged - 1.3.0 (hash-nightly-2)
+  nightly-[HOST_TUPLE] unchanged - 1.3.0 (hash-nightly-2)
 
 
 "#]])

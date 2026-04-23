@@ -17,7 +17,7 @@
   <rect width="100%" height="100%" y="0" rx="4.5" class="bg" />
 
   <text xml:space="preserve" class="container fg">
-    <tspan x="10px" y="28px"><tspan class="bold">info:</tspan><tspan> syncing channel updates for stable-[HOST_TRIPLE]</tspan>
+    <tspan x="10px" y="28px"><tspan class="bold">info:</tspan><tspan> syncing channel updates for stable-[HOST_TUPLE]</tspan>
 </tspan>
     <tspan x="10px" y="46px"><tspan class="bold">info:</tspan><tspan> latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)</tspan>
 </tspan>
