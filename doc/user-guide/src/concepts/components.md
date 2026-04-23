@@ -24,7 +24,7 @@ To make it easier to choose which components are installed, `rustup` has the
 concept of "profiles" which provide named groupings of different components.
 See the [Profiles] chapter for more detail.
 
-Most components have a target-triple suffix, such as
+Most components have a target-tuple suffix, such as
 `rustc-x86_64-apple-darwin`, to signify the platform the component is for.
 
 The set of available components may vary with different releases and
