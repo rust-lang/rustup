@@ -80,7 +80,7 @@ pub(crate) enum FileBuffer {
 }
 
 impl FileBuffer {
-    /// All the buffers space to be re-used when the last reference to it is dropped.
+    /// All the buffers space to be reused when the last reference to it is dropped.
     pub(crate) fn clear(&mut self) {
         if let FileBuffer::Threaded(contents) = self {
             contents.clear()
