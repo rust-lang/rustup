@@ -5,6 +5,7 @@
 use std::{
     collections::HashMap,
     env, fs,
+    io::Write,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -14,6 +15,7 @@ use anyhow::{Result, anyhow};
 use url::Url;
 
 use crate::{
+    config::Cfg,
     dist::{
         DEFAULT_DIST_SERVER, Profile, TargetTuple, ToolchainDesc,
         download::{DownloadCfg, DownloadTracker},
@@ -26,8 +28,10 @@ use crate::{
     errors::RustupError,
     process::TestProcess,
     test::{
+        Env, RustupHome,
         dist::*,
         mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
+        test_dir,
     },
     utils::{self, raw as utils_raw},
 };
@@ -1531,4 +1535,68 @@ async fn handle_corrupt_partial_downloads() {
 
     assert!(utils::path_exists(cx.prefix.path().join("bin/rustc")));
     assert!(utils::path_exists(cx.prefix.path().join("lib/libstd.rlib")));
+}
+
+/// If the v2 channel manifest bytes do not match the published `.sha256`, the failure must be
+/// reported as an error (not treated as "no update" / `Ok(None)`).
+#[tokio::test]
+async fn v2_manifest_checksum_mismatch_surfaces_error() {
+    let cx = TestContext::new(None, GZOnly);
+    let mock_root = cx.url.to_file_path().unwrap();
+    let manifest_path = mock_root.join("dist/channel-rust-nightly.toml");
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&manifest_path)
+        .unwrap()
+        .write_all(b"\n# test: corrupt manifest body vs .sha256\n")
+        .unwrap();
+
+    let root = test_dir().unwrap();
+    let rustup_home = RustupHome::new_in(root.path()).unwrap();
+    let cargo_home = tempfile::Builder::new()
+        .prefix("cargo")
+        .tempdir_in(root.path())
+        .unwrap();
+    let home = tempfile::Builder::new()
+        .prefix("home")
+        .tempdir_in(root.path())
+        .unwrap();
+
+    let mut vars = HashMap::new();
+    rustup_home.apply(&mut vars);
+    vars.env(
+        "CARGO_HOME",
+        cargo_home.path().to_string_lossy().to_string(),
+    );
+    vars.env("HOME", home.path().to_string_lossy().to_string());
+    vars.env("RUSTUP_DIST_SERVER", cx.url.as_str());
+
+    let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], vars, "");
+    let cfg = Cfg::from_env(tp.process.current_dir().unwrap(), false, true, &tp.process).unwrap();
+    let dl_cfg = DownloadCfg::new(&cfg);
+    let update_hash = cfg.get_hash_file(&cx.toolchain, true).unwrap();
+    let mut fetched = String::new();
+
+    let err = super::super::try_update_from_dist_(
+        &dl_cfg,
+        &update_hash,
+        &cx.toolchain,
+        Some(Profile::Default),
+        &cx.prefix,
+        false,
+        &[],
+        &[],
+        &mut fetched,
+        &cfg,
+        None,
+    )
+    .await
+    .unwrap_err();
+
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ChecksumFailed { .. }) => {}
+        e => {
+            panic!("expected ChecksumFailed for corrupt v2 manifest, got {e:?} full error: {err:?}")
+        }
+    }
 }
