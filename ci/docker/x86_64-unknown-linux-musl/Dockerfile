@@ -5,6 +5,7 @@ COPY ci/docker/scripts/sccache.bash /scripts/
 RUN \
   apt-get update && \
   apt-get install -qy \
+    libc6-dev \
     musl-dev \
     musl-tools \
     curl \
