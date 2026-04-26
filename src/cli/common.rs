@@ -17,7 +17,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     config::Cfg,
-    dist::{DistOptions, TargetTriple, ToolchainDesc},
+    dist::{DistOptions, TargetTuple, ToolchainDesc},
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
@@ -510,8 +510,8 @@ pub(crate) fn ignorable_error(
 /// - The `force_non_host` flag is set to `false`.
 pub(crate) fn check_non_host_toolchain(
     toolchain: String,
-    host_arch: &TargetTriple,
-    target_triple: &TargetTriple,
+    host_arch: &TargetTuple,
+    target_triple: &TargetTuple,
     force_non_host: bool,
 ) -> Result<()> {
     if force_non_host || host_arch.can_run(target_triple)? {
@@ -531,10 +531,10 @@ pub(crate) fn warn_if_host_is_emulated(process: &Process) {
     if process.var("RUSTUP_CI").is_ok() {
         return;
     }
-    if TargetTriple::is_host_emulated() {
+    if TargetTuple::is_host_emulated() {
         warn!(
             "Rustup is not running natively. It's running under emulation of {}.",
-            TargetTriple::from_host_or_build(process)
+            TargetTuple::from_host_or_build(process)
         );
         warn!(
             "For best compatibility and performance you should reinstall rustup for your native CPU."

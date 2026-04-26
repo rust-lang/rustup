@@ -15,7 +15,7 @@ use url::Url;
 
 use crate::{
     dist::{
-        DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, Profile, TargetTuple, ToolchainDesc,
         download::{DownloadCfg, DownloadTracker},
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
@@ -317,7 +317,7 @@ async fn rename_component() {
 
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
 
@@ -357,7 +357,7 @@ async fn rename_component_new() {
 
     let adds = [Component::new(
         "bobo".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
     // Install the basics from day 1
@@ -635,7 +635,7 @@ async fn unavailable_component() {
     let cx = TestContext::new(Some(edit), GZOnly);
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
 
@@ -734,7 +734,7 @@ async fn removed_component() {
     let cx = TestContext::new(Some(edit), GZOnly);
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
 
@@ -785,12 +785,12 @@ async fn unavailable_components_is_target() {
     let adds = [
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -905,12 +905,12 @@ async fn update_preserves_extensions() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -955,12 +955,12 @@ async fn add_extensions_for_initial_install() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -984,12 +984,12 @@ async fn add_extensions_for_same_manifest() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1018,12 +1018,12 @@ async fn add_extensions_for_upgrade() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1046,7 +1046,7 @@ async fn add_extension_not_in_manifest() {
     let cx = TestContext::new(None, GZOnly);
     let adds = vec![Component::new(
         "rust-bogus".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         true,
     )];
 
@@ -1059,7 +1059,7 @@ async fn add_extension_that_is_required_component() {
     let cx = TestContext::new(None, GZOnly);
     let adds = vec![Component::new(
         "rustc".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         false,
     )];
 
@@ -1081,7 +1081,7 @@ async fn add_extensions_does_not_remove_other_components() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1097,7 +1097,7 @@ async fn remove_extensions_for_initial_install() {
     let cx = TestContext::new(None, GZOnly);
     let removes = vec![Component::new(
         "rustc".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         false,
     )];
 
@@ -1110,12 +1110,12 @@ async fn remove_extensions_for_same_manifest() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1124,7 +1124,7 @@ async fn remove_extensions_for_same_manifest() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1148,12 +1148,12 @@ async fn remove_extensions_for_upgrade() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1164,7 +1164,7 @@ async fn remove_extensions_for_upgrade() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1193,7 +1193,7 @@ async fn remove_extension_not_in_manifest() {
 
     let removes = vec![Component::new(
         "rust-bogus".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         true,
     )];
 
@@ -1227,7 +1227,7 @@ async fn remove_extension_not_in_manifest_but_is_already_installed() {
 
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
     cx.update_from_dist(&adds, &[], false).await.unwrap();
@@ -1237,7 +1237,7 @@ async fn remove_extension_not_in_manifest_but_is_already_installed() {
 
     let removes = vec![Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
     cx.update_from_dist(&[], &removes, false).await.unwrap();
@@ -1251,7 +1251,7 @@ async fn remove_extension_that_is_required_component() {
 
     let removes = vec![Component::new(
         "rustc".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         false,
     )];
 
@@ -1266,7 +1266,7 @@ async fn remove_extension_not_installed() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1282,7 +1282,7 @@ async fn remove_extensions_does_not_remove_other_components() {
     let cx = TestContext::new(None, GZOnly);
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1290,7 +1290,7 @@ async fn remove_extensions_does_not_remove_other_components() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1309,7 +1309,7 @@ async fn remove_extensions_does_not_hang_with_concurrent_downloads_override() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1317,7 +1317,7 @@ async fn remove_extensions_does_not_hang_with_concurrent_downloads_override() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1333,7 +1333,7 @@ async fn add_and_remove_for_upgrade() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1343,13 +1343,13 @@ async fn add_and_remove_for_upgrade() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1371,7 +1371,7 @@ async fn add_and_remove() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1379,13 +1379,13 @@ async fn add_and_remove() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1408,13 +1408,13 @@ async fn add_and_remove_same_component() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
