@@ -23,7 +23,7 @@ use crate::{
     RustupError,
     config::{ActiveSource, Cfg, InstalledPath},
     dist::{
-        DistOptions, PartialToolchainDesc, TargetTriple,
+        DistOptions, PartialToolchainDesc, TargetTuple,
         component::{Component, Components},
         prefix::InstallPrefix,
     },
@@ -588,14 +588,14 @@ impl<'a> Toolchain<'a> {
     }
 
     /// Get the list of installed targets for any toolchain
-    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTuple>> {
         Ok(self
             .installed_components()?
             .into_iter()
             .filter_map(|c| {
                 c.name()
                     .strip_prefix("rust-std-")
-                    .map(|triple| TargetTriple::new(triple.to_string()))
+                    .map(|triple| TargetTuple::new(triple.to_string()))
             })
             .collect())
     }
