@@ -96,7 +96,7 @@ use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path}
 pub(crate) use windows::{run_update, self_replace};
 
 pub(crate) struct InstallOpts<'a> {
-    pub default_host_triple: Option<String>,
+    pub default_host_tuple: Option<String>,
     pub default_toolchain: Option<MaybeOfficialToolchainName>,
     pub profile: Profile,
     pub no_modify_path: bool,
@@ -108,7 +108,7 @@ pub(crate) struct InstallOpts<'a> {
 impl InstallOpts<'_> {
     fn install(self, cfg: &mut Cfg<'_>) -> Result<Option<ToolchainDesc>> {
         let Self {
-            default_host_triple,
+            default_host_tuple,
             default_toolchain,
             profile,
             no_modify_path: _no_modify_path,
@@ -119,12 +119,12 @@ impl InstallOpts<'_> {
 
         cfg.set_profile(profile)?;
 
-        if let Some(default_host_triple) = &default_host_triple {
-            // Set host triple now as it will affect resolution of toolchain_str
-            info!("setting default host triple to {}", default_host_triple);
-            cfg.set_default_host_triple(default_host_triple.to_owned())?;
+        if let Some(default_host_tuple) = &default_host_tuple {
+            // Set host tuple now as it will affect resolution of toolchain_str
+            info!("setting default host tuple to {}", default_host_tuple);
+            cfg.set_default_host_triple(default_host_tuple.to_owned())?;
         } else {
-            info!("default host triple is {}", cfg.get_default_host_triple()?);
+            info!("default host tuple is {}", cfg.get_default_host_triple()?);
         }
 
         let user_specified_something = default_toolchain.is_some()
@@ -195,10 +195,10 @@ impl InstallOpts<'_> {
 
         writeln!(process.stdout().lock())?;
 
-        self.default_host_triple = Some(common::question_str(
-            "Default host triple?",
+        self.default_host_tuple = Some(common::question_str(
+            "Default host tuple?",
             &self
-                .default_host_triple
+                .default_host_tuple
                 .take()
                 .unwrap_or_else(|| TargetTriple::from_host_or_build(process).to_string()),
             process,
@@ -232,8 +232,8 @@ impl InstallOpts<'_> {
     fn validate(&self, process: &Process) -> Result<()> {
         common::warn_if_host_is_emulated(process);
 
-        let host_triple = self
-            .default_host_triple
+        let host_tuple = self
+            .default_host_tuple
             .as_ref()
             .map(TargetTriple::new)
             .unwrap_or_else(|| TargetTriple::from_host_or_build(process));
@@ -243,7 +243,7 @@ impl InstallOpts<'_> {
             }
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
-        let resolved = partial_channel.resolve(&host_triple)?;
+        let resolved = partial_channel.resolve(&host_tuple)?;
         trace!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     }
@@ -567,7 +567,7 @@ pub(crate) async fn install(
         anyhow!(
             "Pre-checks for host and toolchain failed: {e}\n\
             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
-            Valid host triples look something like: {}",
+            Valid host tuples look something like: {}",
             TargetTriple::from_host_or_build(cfg.process)
         )
     })?;
@@ -740,7 +740,7 @@ fn check_existence_of_settings_file(cfg: &Cfg<'_>) -> Result<()> {
         PartialToolchainDesc::from_str("stable")?.resolve(&cfg.get_default_host_triple()?)?;
     if default_toolchain != inferred.to_string() {
         warn!("rustup will install the default toolchain as specified in the settings file,");
-        warn!("instead of the one inferred from the default host triple.");
+        warn!("instead of the one inferred from the default host tuple.");
     }
     Ok(())
 }
@@ -790,12 +790,12 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
     format!(
         r"Current installation options:
 
-- ` `default host triple: `{}`
+- `  `default host tuple: `{}`
 - `   `default toolchain: `{}`
 - `             `profile: `{}`
 - modify PATH variable: `{}`
 ",
-        opts.default_host_triple
+        opts.default_host_tuple
             .as_ref()
             .map(TargetTriple::new)
             .unwrap_or_else(|| TargetTriple::from_host_or_build(process)),
@@ -817,18 +817,18 @@ fn warn_if_default_linker_missing(process: &Process) {
         return;
     };
 
-    // If we have the host triple, attempt to determine the CC/linker path that
+    // If we have the host tuple, attempt to determine the CC/linker path that
     // `cc-rs` would use, as this is *usually* why we need a linker to invoke.
     //
     // Doing it this way allows us to correctly diagnose quirky systems like
     // solaris and illumos that use `gcc` rather than `cc` for historical reasons.
-    let cc_tool = TargetTriple::from_host(process).and_then(|triple| {
+    let cc_tool = TargetTriple::from_host(process).and_then(|tuple| {
         // Fill in some dummy settings for `Build`/`Tool` to be able to properly
         // give us the metadata we want
         cc::Build::new()
             .opt_level(0)
-            .target(&triple)
-            .host(&triple)
+            .target(&tuple)
+            .host(&tuple)
             .try_get_compiler()
             .ok()
     });
@@ -1299,8 +1299,8 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
         utils::remove_file("setup", &setup_path)?;
     }
 
-    // Get build triple
-    let triple = TargetTriple::from_build();
+    // Get build tuple
+    let tuple = TargetTriple::from_build();
 
     // For windows x86 builds seem slow when used with windows defender.
     // The website defaulted to i686-windows-gnu builds for a long time.
@@ -1309,7 +1309,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     // If someone really wants to use another version, they still can enforce
     // that using the environment variable RUSTUP_OVERRIDE_HOST_TUPLE.
     #[cfg(windows)]
-    let triple = TargetTriple::from_host(dl_cfg.process).unwrap_or(triple);
+    let tuple = TargetTriple::from_host(dl_cfg.process).unwrap_or(tuple);
 
     // Get update root.
     let update_root = update_root(dl_cfg.process);
@@ -1333,7 +1333,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     }
 
     // Get download URL
-    let url = format!("{update_root}/archive/{available_version}/{triple}/rustup-init{EXE_SUFFIX}");
+    let url = format!("{update_root}/archive/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}");
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
@@ -1466,7 +1466,7 @@ mod tests {
                 Cfg::from_env(tp.process.current_dir().unwrap(), false, &tp.process).unwrap();
 
             let opts = InstallOpts {
-                default_host_triple: None,
+                default_host_tuple: None,
                 default_toolchain: None,   // No toolchain specified
                 profile: Profile::Default, // default profile
                 no_modify_path: false,
@@ -1488,7 +1488,7 @@ mod tests {
             assert_eq!(
                 for_host!(
                     r"info: profile set to default
-info: default host triple is {0}
+info: default host tuple is {0}
 "
                 ),
                 &String::from_utf8(tp.stderr()).unwrap()
