@@ -1599,13 +1599,13 @@ Default host: [HOST_TUPLE]
 
 // #846
 #[tokio::test]
-async fn set_default_host_invalid_triple() {
+async fn set_default_host_invalid_tuple() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect(["rustup", "set", "default-host", "foo"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: Provided host 'foo' couldn't be converted to partial triple
+error: Provided host 'foo' couldn't be converted to partial tuple
 
 "#]])
         .is_err();
@@ -1613,7 +1613,7 @@ error: Provided host 'foo' couldn't be converted to partial triple
 
 // #745
 #[tokio::test]
-async fn set_default_host_invalid_triple_valid_partial() {
+async fn set_default_host_invalid_tuple_valid_partial() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
         .expect(["rustup", "set", "default-host", "x86_64-msvc"])

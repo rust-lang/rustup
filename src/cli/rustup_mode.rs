@@ -984,11 +984,11 @@ async fn update(
             // This needs another pass to fix it all up
             if !name.target.is_empty() {
                 let host_arch = TargetTuple::from_host_or_build(cfg.process);
-                let target_triple = name.clone().resolve(&host_arch)?.target;
+                let target_tuple = name.clone().resolve(&host_arch)?.target;
                 common::check_non_host_toolchain(
                     name.to_string(),
                     &host_arch,
-                    &target_triple,
+                    &target_tuple,
                     force_non_host,
                 )?;
             }
