@@ -24,7 +24,7 @@ use tracing::{debug, info, warn};
 use crate::{
     diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram},
     dist::{
-        DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, Profile, TargetTuple, ToolchainDesc,
         component::{Components, DirectoryPackage, Transaction},
         config::Config,
         download::{DownloadCfg, DownloadStatus, File},
@@ -42,7 +42,7 @@ pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
-    target_triple: TargetTriple,
+    target_triple: TargetTuple,
 }
 
 #[derive(Debug)]
@@ -87,7 +87,7 @@ impl Manifestation {
     /// it will be created as needed. If there's an existing install
     /// then the rust-install installation format will be verified. A
     /// bad installer version is the only reason this will fail.
-    pub fn open(prefix: InstallPrefix, triple: TargetTriple) -> Result<Self> {
+    pub fn open(prefix: InstallPrefix, triple: TargetTuple) -> Result<Self> {
         // TODO: validate the triple with the existing install as well
         // as the metadata format of the existing install
         Ok(Self {
