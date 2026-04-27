@@ -482,7 +482,7 @@ mod tests {
     use crate::{
         dist::{
             PartialToolchainDesc,
-            triple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
+            target_tuple::known::{LIST_ARCHS, LIST_ENVS, LIST_OSES},
         },
         toolchain::names::{CustomToolchainName, ResolvableToolchainName, ToolchainName},
     };
