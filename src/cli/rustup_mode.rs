@@ -689,34 +689,40 @@ pub async fn main(
             toolchain,
             force_non_host,
         } => default_(cfg, toolchain, force_non_host).await,
-        RustupSubcmd::Target { subcmd } => match subcmd {
-            TargetSubcmd::List {
-                toolchain,
-                installed,
-                quiet,
-            } => handle_epipe(target_list(cfg, toolchain, installed, quiet).await),
-            TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain).await,
-            TargetSubcmd::Remove { target, toolchain } => {
-                target_remove(cfg, target, toolchain).await
+        RustupSubcmd::Target { subcmd } => {
+            cfg.skip_auto_install = true;
+            match subcmd {
+                TargetSubcmd::List {
+                    toolchain,
+                    installed,
+                    quiet,
+                } => handle_epipe(target_list(cfg, toolchain, installed, quiet).await),
+                TargetSubcmd::Add { target, toolchain } => target_add(cfg, target, toolchain).await,
+                TargetSubcmd::Remove { target, toolchain } => {
+                    target_remove(cfg, target, toolchain).await
+                }
             }
-        },
-        RustupSubcmd::Component { subcmd } => match subcmd {
-            ComponentSubcmd::List {
-                toolchain,
-                installed,
-                quiet,
-            } => handle_epipe(component_list(cfg, toolchain, installed, quiet).await),
-            ComponentSubcmd::Add {
-                component,
-                toolchain,
-                target,
-            } => component_add(cfg, component, toolchain, target).await,
-            ComponentSubcmd::Remove {
-                component,
-                toolchain,
-                target,
-            } => component_remove(cfg, component, toolchain, target).await,
-        },
+        }
+        RustupSubcmd::Component { subcmd } => {
+            cfg.skip_auto_install = true;
+            match subcmd {
+                ComponentSubcmd::List {
+                    toolchain,
+                    installed,
+                    quiet,
+                } => handle_epipe(component_list(cfg, toolchain, installed, quiet).await),
+                ComponentSubcmd::Add {
+                    component,
+                    toolchain,
+                    target,
+                } => component_add(cfg, component, toolchain, target).await,
+                ComponentSubcmd::Remove {
+                    component,
+                    toolchain,
+                    target,
+                } => component_remove(cfg, component, toolchain, target).await,
+            }
+        }
         RustupSubcmd::Override { subcmd } => match subcmd {
             OverrideSubcmd::List => handle_epipe(common::list_overrides(cfg)),
             OverrideSubcmd::Set { toolchain, path } => {
