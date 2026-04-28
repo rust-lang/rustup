@@ -51,6 +51,10 @@ impl PartialTargetTriple {
             }
         })
     }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.arch.is_none() && self.env.is_none() && self.os.is_none()
+    }
 }
 
 #[cfg(test)]
