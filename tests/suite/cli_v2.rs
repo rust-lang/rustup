@@ -1210,7 +1210,7 @@ async fn set_auto_install_disable() {
         .await
         .is_ok();
     cx.config
-        .expect(["rustup", "target", "list", "--toolchain=nightly"])
+        .expect(["cargo", "+nightly", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
@@ -1220,7 +1220,7 @@ error: toolchain 'nightly-[HOST_TUPLE]' is not installed
         .is_err();
     cx.config
         .expect_with_env(
-            ["rustup", "target", "list", "--toolchain=nightly"],
+            ["cargo", "+nightly", "--version"],
             [("RUSTUP_AUTO_INSTALL", "0")],
         )
         .await
@@ -1233,7 +1233,7 @@ error: toolchain 'nightly-[HOST_TUPLE]' is not installed
     // The environment variable takes precedence over the setting.
     cx.config
         .expect_with_env(
-            ["rustup", "target", "list", "--toolchain=nightly"],
+            ["cargo", "+nightly", "--version"],
             [("RUSTUP_AUTO_INSTALL", "1")],
         )
         .await
