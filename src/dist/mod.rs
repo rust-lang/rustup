@@ -1230,11 +1230,15 @@ async fn try_update_from_dist_(
         Ok(None) => return Ok(None),
         Err(err) => {
             match err.downcast_ref::<RustupError>() {
-                Some(RustupError::ChecksumFailed { .. }) => return Ok(None),
                 Some(RustupError::DownloadNotExists { .. }) => {
                     // Proceed to try v1 as a fallback
                     debug!("manifest not found; trying legacy manifest");
                 }
+                // Includes `ChecksumFailed`: if the v2 manifest exists but its
+                // contents do not match the published `.sha256`, surface the
+                // integrity failure as an error rather than silently treating
+                // the toolchain as up to date. The v1 fallback path below
+                // already does the same.
                 _ => return Err(err),
             }
         }
