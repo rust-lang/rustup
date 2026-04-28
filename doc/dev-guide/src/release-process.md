@@ -98,7 +98,7 @@ and determine which `$BRANCH` you should be working on:
 
 Producing the final release artifacts is a bit involved because of the way
 rustup is distributed. Below is a list of things to be done in order to cut a
-new [b]eta release or an official [r]elease:
+new [b]eta release or an official release [r]:
 
 1. [b/r] Make sure that the desired version number for the new release
    `$VER_NUM` already exists in `$BRANCH`'s `Cargo.toml` file. Then in a new PR
