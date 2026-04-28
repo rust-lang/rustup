@@ -246,6 +246,12 @@ pub(crate) struct Cfg<'a> {
     pub quiet: bool,
     pub current_dir: PathBuf,
     pub process: &'a Process,
+
+    /// If this flag is set to `true`, it can stop `rustup` from automatically installing the active
+    /// toolchain in certain undesired cases, such as under `rustup component` and `rustup target`
+    /// subcommands. This effect has higher precedence than the `RUSTUP_AUTO_INSTALL` environment
+    /// variable and the `rustup set auto-install` setting.
+    pub skip_auto_install: bool,
 }
 
 impl<'a> Cfg<'a> {
@@ -317,6 +323,7 @@ impl<'a> Cfg<'a> {
             quiet,
             current_dir,
             process,
+            skip_auto_install: false,
         };
 
         // Run some basic checks against the constructed configuration
@@ -373,6 +380,10 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn should_auto_install(&self) -> Result<bool> {
+        if self.skip_auto_install {
+            return Ok(false);
+        }
+
         if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
             Ok(mode != "0")
         } else {
@@ -959,6 +970,7 @@ impl Debug for Cfg<'_> {
             dist_root_url,
             quiet,
             current_dir,
+            skip_auto_install,
             process: _,
         } = self;
 
@@ -976,6 +988,7 @@ impl Debug for Cfg<'_> {
             .field("dist_root_url", dist_root_url)
             .field("quiet", quiet)
             .field("current_dir", current_dir)
+            .field("skip_auto_install", skip_auto_install)
             .finish()
     }
 }
