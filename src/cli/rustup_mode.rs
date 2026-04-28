@@ -631,7 +631,7 @@ pub async fn main(
 
     update_console_filter(process, &console_filter, matches.quiet, matches.verbose);
 
-    let cfg = &mut Cfg::from_env(current_dir, matches.quiet, process)?;
+    let cfg = &mut Cfg::from_env(current_dir, matches.quiet, true, process)?;
     cfg.toolchain_override = matches.plus_toolchain;
 
     let Some(subcmd) = matches.subcmd else {
@@ -1974,7 +1974,7 @@ fn output_completion_script(
 
 async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> {
     info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
-    let mut cfg = Cfg::from_env(current_dir, true, process)?;
+    let mut cfg = Cfg::from_env(current_dir, true, true, process)?;
     cfg.toolchain_override = cfg
         .process
         .args()
