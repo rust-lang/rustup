@@ -284,6 +284,7 @@ impl<'a> Toolchain<'a> {
     #[tracing::instrument(level = "trace")]
     pub fn rustc_version(&self) -> String {
         match self.create_command("rustc") {
+            Err(e) => format!("(rustc does not exist: {e})"),
             Ok(mut cmd) => {
                 cmd.arg("--version");
                 cmd.stdin(Stdio::null());
@@ -291,40 +292,41 @@ impl<'a> Toolchain<'a> {
                 cmd.stderr(Stdio::piped());
                 self.set_ldpath(&mut cmd);
 
+                let mut child = match cmd.spawn() {
+                    Err(e) => return format!("(error reading rustc version: {e})"),
+                    Ok(child) => child,
+                };
                 // some toolchains are faulty with some combinations of platforms and
                 // may fail to launch but also to timely terminate.
                 // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
                 // we guard against such cases by enforcing a reasonable timeout to read.
-                let mut line1 = None;
-                if let Ok(mut child) = cmd.spawn() {
-                    let timeout = Duration::new(10, 0);
-                    match child.wait_timeout(timeout) {
-                        Ok(Some(status)) if status.success() => {
-                            let out = child
-                                .stdout
-                                .expect("Child::stdout requested but not present");
-                            let mut line = String::new();
-                            if BufReader::new(out).read_line(&mut line).is_ok() {
-                                let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
-                                line.truncate(lineend);
-                                line1 = Some(line);
-                            }
-                        }
-                        Ok(None) => {
-                            let _ = child.kill();
-                            return String::from("(timeout reading rustc version)");
-                        }
-                        Ok(Some(_)) | Err(_) => {}
+                let timeout = Duration::new(10, 0);
+                let status = match child.wait_timeout(timeout) {
+                    Ok(None) => {
+                        let _ = child.kill();
+                        return String::from("(timeout reading rustc version)");
                     }
+                    Err(e) => return format!("(error reading rustc version: {e})"),
+                    Ok(Some(status)) => status,
+                };
+
+                if !status.success() {
+                    return format!("(error reading rustc version: {status})");
                 }
 
-                if let Some(line1) = line1 {
-                    line1
-                } else {
-                    String::from("(error reading rustc version)")
+                let out = child
+                    .stdout
+                    .expect("Child::stdout requested but not present");
+                let mut line = String::new();
+                match BufReader::new(out).read_line(&mut line) {
+                    Ok(_) => {
+                        let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
+                        line.truncate(lineend);
+                        line
+                    }
+                    Err(e) => format!("(error reading rustc version: {e})"),
                 }
             }
-            Err(_) => String::from("(rustc does not exist)"),
         }
     }
 
