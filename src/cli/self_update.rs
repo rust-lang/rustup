@@ -1469,7 +1469,7 @@ mod tests {
             home.apply(&mut vars);
             let tp = TestProcess::with_vars(vars);
             let mut cfg =
-                Cfg::from_env(tp.process.current_dir().unwrap(), false, &tp.process).unwrap();
+                Cfg::from_env(tp.process.current_dir().unwrap(), false, true, &tp.process).unwrap();
 
             let opts = InstallOpts {
                 default_host_tuple: None,
