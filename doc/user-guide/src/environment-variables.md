@@ -28,6 +28,16 @@
 - `RUSTUP_VERSION` (default: none). Overrides the rustup version (e.g. `1.27.1`)
   to be downloaded when executing `rustup-init.sh` or `rustup self update`.
 
+- `RUSTUP_AUTHORIZATION_HEADER` (default: none). The value to an `Authorization` HTTP
+  header that should be added to all requests made by rustup. This is meant for use when
+  using an alternate rustup distribution server (through the `RUSTUP_DIST_SERVER`
+  environment variable) which requires authentication such as basic username:password
+  credentials or a bearer token.
+
+- `RUSTUP_PROXY_AUTHORIZATION_HEADER` (default: none). This is like the `RUSTUP_AUTHORIZATION_HEADER` except
+  this will add a `Proxy-Authorization` HTTP header. This is for authenticating to forward
+  proxies (via the `HTTP_PROXY` or `HTTPS_PROXY`) environment variables.
+
 - `RUSTUP_IO_THREADS` *unstable* (default: reported cpu count, max 8). Sets the
   number of threads to perform close IO in. Set to `1` to force
   single-threaded IO for troubleshooting, or an arbitrary number to override
