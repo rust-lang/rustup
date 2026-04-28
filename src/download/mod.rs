@@ -8,7 +8,6 @@ use std::time::Duration;
 
 use anyhow::Context;
 #[cfg(any(
-    not(feature = "curl-backend"),
     not(feature = "reqwest-rustls-tls"),
     not(feature = "reqwest-native-tls")
 ))]
@@ -16,8 +15,6 @@ use anyhow::anyhow;
 use sha2::Sha256;
 use thiserror::Error;
 use tracing::debug;
-#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-use tracing::info;
 use tracing::warn;
 use url::Url;
 
@@ -93,7 +90,7 @@ async fn download_file_(
     process: &Process,
 ) -> anyhow::Result<()> {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use crate::download::{Backend, Event, TlsBackend};
+    use crate::download::{Backend, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -128,15 +125,6 @@ async fn download_file_(
 
     // Download the file
 
-    // Keep the curl env var around for a bit
-    let use_curl_backend = process.var_os("RUSTUP_USE_CURL").map(|it| it != "0");
-    if use_curl_backend == Some(true) {
-        warn!(
-            "RUSTUP_USE_CURL is set; the curl backend is deprecated,
-            please file an issue if the default download backend does not work for your use case"
-        );
-    }
-
     let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
     if use_rustls == Some(false) {
         warn!(
@@ -145,58 +133,32 @@ async fn download_file_(
         );
     }
 
-    let backend = match (use_curl_backend, use_rustls) {
-        // If environment specifies a backend that's unavailable, error out
+    let backend = match use_rustls {
+        // If the environment explicitly selects a TLS backend that's unavailable, error out.
         #[cfg(not(feature = "reqwest-rustls-tls"))]
-        (_, Some(true)) => {
+        Some(true) => {
             return Err(anyhow!(
                 "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
             ));
         }
         #[cfg(not(feature = "reqwest-native-tls"))]
-        (_, Some(false)) => {
+        Some(false) => {
             return Err(anyhow!(
                 "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
             ));
         }
-        #[cfg(not(feature = "curl-backend"))]
-        (Some(true), _) => {
-            return Err(anyhow!(
-                "RUSTUP_USE_CURL is set, but this rustup distribution was not built with the curl-backend feature"
-            ));
-        }
 
-        // Positive selections, from least preferred to most preferred
-        #[cfg(feature = "curl-backend")]
-        (Some(true), None) => Backend::Curl,
+        // Prefer explicit selections before falling back to the default TLS stack.
         #[cfg(feature = "reqwest-native-tls")]
-        (_, Some(false)) => {
-            if use_curl_backend == Some(true) {
-                info!(
-                    "RUSTUP_USE_CURL is set and RUSTUP_USE_RUSTLS is set to off, using reqwest with native-tls"
-                );
-            }
-            Backend::Reqwest(TlsBackend::NativeTls)
-        }
-        #[cfg(feature = "reqwest-rustls-tls")]
-        _ => {
-            if use_curl_backend == Some(true) {
-                info!(
-                    "both RUSTUP_USE_CURL and RUSTUP_USE_RUSTLS are set, using reqwest with rustls"
-                );
-            }
-            Backend::Reqwest(TlsBackend::Rustls)
-        }
+        Some(false) => Backend::NativeTls,
 
-        // Falling back if only one backend is available
+        // The default fallback is `rustls`, which should be used whenever available.
+        #[cfg(feature = "reqwest-rustls-tls")]
+        _ => Backend::Rustls,
+
+        // The `rustls` feature is disabled, fall back to `native-tls` instead.
         #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
-        _ => Backend::Reqwest(TlsBackend::NativeTls),
-        #[cfg(all(
-            not(feature = "reqwest-rustls-tls"),
-            not(feature = "reqwest-native-tls"),
-            feature = "curl-backend"
-        ))]
-        _ => Backend::Curl,
+        _ => Backend::NativeTls,
     };
 
     let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
@@ -208,12 +170,7 @@ async fn download_file_(
         Err(_) => 180,
     });
 
-    match backend {
-        #[cfg(feature = "curl-backend")]
-        Backend::Curl => debug!("downloading with curl"),
-        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-        Backend::Reqwest(_) => debug!("downloading with reqwest"),
-    };
+    debug!("downloading with reqwest");
 
     let res = backend
         .download_to_path(url, path, resume_from_partial, Some(callback), timeout)
@@ -232,9 +189,6 @@ async fn download_file_(
 
 /// User agent header value for HTTP request.
 /// See: https://github.com/rust-lang/rustup/issues/2860.
-#[cfg(feature = "curl-backend")]
-const CURL_USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"), " (curl)");
-
 #[cfg(feature = "reqwest-native-tls")]
 const REQWEST_DEFAULT_TLS_USER_AGENT: &str = concat!(
     "rustup/",
@@ -248,10 +202,10 @@ const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
 
 #[derive(Debug, Copy, Clone)]
 enum Backend {
-    #[cfg(feature = "curl-backend")]
-    Curl,
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    Reqwest(TlsBackend),
+    #[cfg(feature = "reqwest-rustls-tls")]
+    Rustls,
+    #[cfg(feature = "reqwest-native-tls")]
+    NativeTls,
 }
 
 impl Backend {
@@ -372,7 +326,6 @@ impl Backend {
 
     #[cfg_attr(
         all(
-            not(feature = "curl-backend"),
             not(feature = "reqwest-rustls-tls"),
             not(feature = "reqwest-native-tls")
         ),
@@ -384,33 +337,6 @@ impl Backend {
         resume_from: u64,
         timeout: Duration,
         callback: DownloadCallback<'_>,
-    ) -> anyhow::Result<()> {
-        match self {
-            #[cfg(feature = "curl-backend")]
-            Self::Curl => curl::download(url, resume_from, callback, timeout),
-            #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-            Self::Reqwest(tls) => tls.download(url, resume_from, callback, timeout).await,
-        }
-    }
-}
-
-#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-#[derive(Debug, Copy, Clone)]
-enum TlsBackend {
-    #[cfg(feature = "reqwest-rustls-tls")]
-    Rustls,
-    #[cfg(feature = "reqwest-native-tls")]
-    NativeTls,
-}
-
-#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-impl TlsBackend {
-    async fn download(
-        self,
-        url: &Url,
-        resume_from: u64,
-        callback: DownloadCallback<'_>,
-        timeout: Duration,
     ) -> anyhow::Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
@@ -433,124 +359,6 @@ enum Event<'a> {
 }
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> anyhow::Result<()>;
-
-/// Download via libcurl; encrypt with the native (or OpenSSl) TLS
-/// stack via libcurl
-#[cfg(feature = "curl-backend")]
-mod curl {
-    use std::cell::RefCell;
-    use std::str;
-    use std::time::Duration;
-
-    use anyhow::{Context, Result};
-    use curl::easy::Easy;
-    use url::Url;
-
-    use super::{DownloadError, Event};
-
-    pub(super) fn download(
-        url: &Url,
-        resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> Result<()>,
-        timeout: Duration,
-    ) -> Result<()> {
-        // Fetch either a cached libcurl handle (which will preserve open
-        // connections) or create a new one if it isn't listed.
-        //
-        // Once we've acquired it, reset the lifetime from 'static to our local
-        // scope.
-        thread_local!(static EASY: RefCell<Easy> = RefCell::new(Easy::new()));
-        EASY.with(|handle| {
-            let mut handle = handle.borrow_mut();
-
-            handle.url(url.as_ref())?;
-            handle.follow_location(true)?;
-            handle.useragent(super::CURL_USER_AGENT)?;
-
-            if resume_from > 0 {
-                handle.resume_from(resume_from)?;
-            } else {
-                // an error here indicates that the range header isn't supported by underlying curl,
-                // so there's nothing to "clear" - safe to ignore this error.
-                let _ = handle.resume_from(0);
-            }
-
-            // Take at most 3m to connect if the `RUSTUP_DOWNLOAD_TIMEOUT` env var is not set.
-            handle.connect_timeout(timeout)?;
-
-            {
-                let cberr = RefCell::new(None);
-                let mut transfer = handle.transfer();
-
-                // Data callback for libcurl which is called with data that's
-                // downloaded. We just feed it into our hasher and also write it out
-                // to disk.
-                transfer.write_function(|data| {
-                    match callback(Event::DownloadDataReceived(data)) {
-                        Ok(()) => Ok(data.len()),
-                        Err(e) => {
-                            *cberr.borrow_mut() = Some(e);
-                            Ok(0)
-                        }
-                    }
-                })?;
-
-                // Listen for headers and parse out a `Content-Length` (case-insensitive) if it
-                // comes so we know how much we're downloading.
-                transfer.header_function(|header| {
-                    let Ok(data) = str::from_utf8(header) else {
-                        return true;
-                    };
-                    let prefix = "content-length: ";
-                    let Some((dp, ds)) = data.split_at_checked(prefix.len()) else {
-                        return true;
-                    };
-                    if !dp.eq_ignore_ascii_case(prefix) {
-                        return true;
-                    }
-                    let Ok(s) = ds.trim().parse::<u64>() else {
-                        return true;
-                    };
-                    let msg = Event::DownloadContentLengthReceived(s + resume_from);
-                    if let Err(e) = callback(msg) {
-                        *cberr.borrow_mut() = Some(e);
-                        return false;
-                    }
-                    true
-                })?;
-
-                // If an error happens check to see if we had a filesystem error up
-                // in `cberr`, but we always want to punt it up.
-                transfer.perform().or_else(|e| {
-                    // If the original error was generated by one of our
-                    // callbacks, return it.
-                    match cberr.borrow_mut().take() {
-                        Some(cberr) => Err(cberr),
-                        None => {
-                            // Otherwise, return the error from curl
-                            if e.is_file_couldnt_read_file() {
-                                Err(e).context(DownloadError::FileNotFound)
-                            } else {
-                                Err(e).context("error during download")?
-                            }
-                        }
-                    }
-                })?;
-            }
-
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error.
-            // If resuming a download, we need a 206, as a 200 would mean the server ignored
-            // the range header, resulting in corruption.
-            let code = handle.response_code()?;
-            match (resume_from > 0, code) {
-                (_, 0) | (true, 206) | (false, 200..=299) => {}
-                _ => return Err(DownloadError::HttpStatus(code).into()),
-            }
-
-            Ok(())
-        })
-    }
-}
 
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest_be {
@@ -753,7 +561,4 @@ enum DownloadError {
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     #[error(transparent)]
     Reqwest(#[from] ::reqwest::Error),
-    #[cfg(feature = "curl-backend")]
-    #[error(transparent)]
-    CurlError(#[from] ::curl::Error),
 }
