@@ -516,6 +516,30 @@ pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn disk_free(path: impl AsRef<OsStr>) -> Result<u64> {
+    use libc::statvfs;
+    use std::mem::MaybeUninit;
+    use std::os::unix::ffi::OsStrExt;
+
+    let mut os_path = path.as_ref().as_bytes().to_vec();
+    os_path.push(0);
+
+    let mut stat = MaybeUninit::<statvfs>::uninit();
+    match unsafe { statvfs(os_path.as_ptr() as *const _, stat.as_mut_ptr()) } {
+        // bit width of f_bavail and f_bsize may differ on platforms and sometimes u32
+        #[allow(clippy::useless_conversion)]
+        0 => {
+            let stat = unsafe { stat.assume_init() };
+            let available_blocks: u64 = stat.f_bavail.into();
+            let block_size: u64 = stat.f_bsize.into();
+
+            Ok(available_blocks.saturating_mul(block_size))
+        }
+        _ => anyhow::bail!("failed to acquire block size"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
