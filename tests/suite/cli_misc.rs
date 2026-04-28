@@ -26,7 +26,7 @@ async fn version_mentions_rustc_version_confusion() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-info: This is the version for the rustup toolchain manager, not the rustc compiler.
+info: this is the version for the rustup toolchain manager, not the rustc compiler
 ...
 "#]])
         .is_ok();
@@ -1383,11 +1383,11 @@ async fn which_asking_uninstalled_toolchain() {
     cx.config
         .expect(["rustup", "which", "--toolchain=nightly", "rustc"])
         .await
-        .with_stdout(snapbox::str![[r#"
-[..]/toolchains/nightly-[HOST_TUPLE]/bin/rustc[EXE]
-
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'nightly-[HOST_TUPLE]' is not installed
+...
 "#]])
-        .is_ok();
+        .is_err();
 }
 
 #[tokio::test]
@@ -1512,7 +1512,7 @@ active because: overridden by +toolchain on the command line
         .expect(["rustup", "+foo", "which", "rustc"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: override toolchain 'foo' is not installed: the +toolchain on the command line specifies an uninstalled toolchain
+error:[..] toolchain 'foo' is not installed[..]
 
 "#]])
         .is_err();

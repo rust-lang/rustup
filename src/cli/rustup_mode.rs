@@ -301,6 +301,36 @@ fn update_toolchain_value_parser(s: &str) -> Result<PartialToolchainDesc> {
     })
 }
 
+impl RustupSubcmd {
+    fn allow_auto_install(&self) -> bool {
+        match self {
+            // These subcommands execute or rely on the active toolchain, so auto-installing it when
+            // missing may be reasonable depending on the user's decision.
+            #[cfg(not(windows))]
+            RustupSubcmd::Man { .. } => true,
+            RustupSubcmd::Doc { .. } | RustupSubcmd::Run { .. } => true,
+
+            // These subcommands don't require the active toolchain, so auto-installing it should be
+            // disabled to avoid surprises.
+            RustupSubcmd::Check { .. }
+            | RustupSubcmd::Completions { .. }
+            | RustupSubcmd::Component { .. }
+            | RustupSubcmd::Default { .. }
+            | RustupSubcmd::DumpTestament
+            | RustupSubcmd::Install { .. }
+            | RustupSubcmd::Override { .. }
+            | RustupSubcmd::Self_ { .. }
+            | RustupSubcmd::Set { .. }
+            | RustupSubcmd::Show { .. }
+            | RustupSubcmd::Target { .. }
+            | RustupSubcmd::Toolchain { .. }
+            | RustupSubcmd::Uninstall { .. }
+            | RustupSubcmd::Update { .. }
+            | RustupSubcmd::Which { .. } => false,
+        }
+    }
+}
+
 #[derive(Debug, Subcommand)]
 enum ShowSubcmd {
     /// Show the active toolchain
@@ -631,14 +661,19 @@ pub async fn main(
 
     update_console_filter(process, &console_filter, matches.quiet, matches.verbose);
 
-    let cfg = &mut Cfg::from_env(current_dir, matches.quiet, true, process)?;
-    cfg.toolchain_override = matches.plus_toolchain;
-
     let Some(subcmd) = matches.subcmd else {
         let help = Rustup::command().render_long_help();
         writeln!(process.stderr().lock(), "{}", help.ansi())?;
         return Ok(ExitCode::FAILURE);
     };
+
+    let cfg = &mut Cfg::from_env(
+        current_dir,
+        matches.quiet,
+        subcmd.allow_auto_install(),
+        process,
+    )?;
+    cfg.toolchain_override = matches.plus_toolchain;
 
     match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
@@ -1968,8 +2003,8 @@ fn output_completion_script(
 }
 
 async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> {
-    info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
-    let mut cfg = Cfg::from_env(current_dir, true, true, process)?;
+    info!("this is the version for the rustup toolchain manager, not the rustc compiler");
+    let mut cfg = Cfg::from_env(current_dir, true, false, process)?;
     cfg.toolchain_override = cfg
         .process
         .args()
@@ -1982,6 +2017,12 @@ async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> 
                 "the currently active `rustc` version is `{}`",
                 tc.rustc_version()
             ),
+            Err(RustupError::ToolchainNotInstalled {
+                name,
+                is_active: true,
+            }) => {
+                info!("the active toolchain `{name}` is not installed");
+            }
             Err(err) => error!("failed to display the current `rustc` version: {err}"),
         },
         Ok(None) => info!("no `rustc` is currently active"),
