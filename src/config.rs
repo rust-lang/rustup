@@ -246,6 +246,12 @@ pub(crate) struct Cfg<'a> {
     pub quiet: bool,
     pub current_dir: PathBuf,
     pub process: &'a Process,
+
+    /// If this flag is set to `true`, it can stop `rustup` from automatically installing the active
+    /// toolchain in certain undesired cases, such as under `rustup component` and `rustup target`
+    /// subcommands. This effect has higher precedence than the `RUSTUP_AUTO_INSTALL` environment
+    /// variable and the `rustup set auto-install` setting.
+    pub skip_auto_install: bool,
 }
 
 impl<'a> Cfg<'a> {
@@ -317,6 +323,7 @@ impl<'a> Cfg<'a> {
             quiet,
             current_dir,
             process,
+            skip_auto_install: false,
         };
 
         // Run some basic checks against the constructed configuration
@@ -373,12 +380,30 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn should_auto_install(&self) -> Result<bool> {
-        if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
-            Ok(mode != "0")
-        } else {
-            self.settings_file
-                .with(|s| Ok(s.auto_install != Some(AutoInstallMode::Disable)))
+        if self.skip_auto_install {
+            return Ok(false);
         }
+
+        let should_auto = match self.process.var("RUSTUP_AUTO_INSTALL") {
+            Ok(mode) => mode != "0",
+            Err(_) => self
+                .settings_file
+                .with(|s| Ok(s.auto_install != Some(AutoInstallMode::Disable)))?,
+        };
+        if !should_auto {
+            return Ok(false);
+        }
+
+        // We also need to suppress this warning if we're deep inside a recursive call.
+        let recursions = self.process.var("RUST_RECURSION_COUNT");
+        if recursions.is_ok_and(|it| it != "0") {
+            return Ok(true);
+        }
+
+        warn!("auto-install is enabled, active toolchain will be installed if absent");
+        warn!("this might cause rustup commands to take longer time to finish than expected");
+        info!("you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`");
+        Ok(true)
     }
 
     // Returns a profile, if one exists in the settings file.
@@ -706,13 +731,10 @@ impl<'a> Cfg<'a> {
         name: Option<(LocalToolchainName, ActiveSource)>,
     ) -> Result<(Toolchain<'_>, ActiveSource)> {
         match name {
-            Some((tc, source)) => {
-                let install_if_missing = self.should_auto_install()?;
-                Ok((
-                    Toolchain::from_local(tc, install_if_missing, self).await?,
-                    source,
-                ))
-            }
+            Some((tc, src)) => Ok((
+                Toolchain::from_local(tc, || self.should_auto_install(), self).await?,
+                src,
+            )),
             None => {
                 let (tc, source) = self
                     .maybe_ensure_active_toolchain(None)
@@ -959,6 +981,7 @@ impl Debug for Cfg<'_> {
             dist_root_url,
             quiet,
             current_dir,
+            skip_auto_install,
             process: _,
         } = self;
 
@@ -976,6 +999,7 @@ impl Debug for Cfg<'_> {
             .field("dist_root_url", dist_root_url)
             .field("quiet", quiet)
             .field("current_dir", current_dir)
+            .field("skip_auto_install", skip_auto_install)
             .finish()
     }
 }
