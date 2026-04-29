@@ -37,3 +37,4 @@ at your option.
 <!-- Badges -->
 [actions-default-branch]: https://github.com/rust-lang/rustup/actions/workflows/ci.yaml/badge.svg
 [actions-default-branch-status]: https://github.com/rust-lang/rustup/actions?query=branch%3Amain
+daily oss pr 2026-04-29
