@@ -752,7 +752,7 @@ pub async fn main(
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
             SetSubcmd::DefaultHost { host_triple } => cfg
-                .set_default_host_triple(host_triple)
+                .set_default_host_tuple(host_triple)
                 .map(|_| ExitCode::SUCCESS),
             SetSubcmd::Profile { profile_name } => {
                 cfg.set_profile(profile_name).map(|_| ExitCode::SUCCESS)
@@ -1108,7 +1108,7 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    // Print host triple
+    // Print host tuple
     {
         let t = cfg.process.stdout();
         let mut t = t.lock();

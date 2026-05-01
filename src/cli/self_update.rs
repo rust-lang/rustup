@@ -122,7 +122,7 @@ impl InstallOpts<'_> {
         if let Some(default_host_tuple) = &default_host_tuple {
             // Set host tuple now as it will affect resolution of toolchain_str
             info!("setting default host tuple to {}", default_host_tuple);
-            cfg.set_default_host_triple(default_host_tuple.to_owned())?;
+            cfg.set_default_host_tuple(default_host_tuple.to_owned())?;
         } else {
             info!("default host tuple is {}", cfg.default_host_tuple()?);
         }
