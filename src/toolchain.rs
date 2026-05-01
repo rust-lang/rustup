@@ -376,7 +376,7 @@ impl<'a> Toolchain<'a> {
         // toolchains in principle.
         for fallback in ["nightly", "beta", "stable"] {
             let resolved =
-                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
+                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_tuple)?;
             if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
                 let cmd = fallback.create_fallback_command("cargo", self)?;
                 return Ok(Some(cmd));
@@ -595,7 +595,7 @@ impl<'a> Toolchain<'a> {
             .filter_map(|c| {
                 c.name()
                     .strip_prefix("rust-std-")
-                    .map(|triple| TargetTuple::new(triple.to_string()))
+                    .map(|tuple| TargetTuple::new(tuple.to_string()))
             })
             .collect())
     }
