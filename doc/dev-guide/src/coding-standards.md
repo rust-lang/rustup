@@ -58,7 +58,7 @@ which can build up over time.
 
 ## Writing platform-specific code
 
-For developers using BSD/Linux/Mac OS, there are Windows VM's suitable for such
+For developers using BSD/Linux/Mac OS, there are Windows VMs suitable for such
 development tasks for use with virtualbox and other hypervisors are downloadable
 from
 [Microsoft](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/).
