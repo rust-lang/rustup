@@ -226,8 +226,8 @@ async fn subcommand_required_for_self() {
 
 #[tokio::test]
 async fn multi_host_smoke_test() {
-    // We cannot run this test if the current host triple is equal to the
-    // multi-arch triple, but this should never be the case.  Check that just
+    // We cannot run this test if the current host tuple is equal to the
+    // multi-arch tuple, but this should never be the case.  Check that just
     // to be sure.
     assert_ne!(this_host_tuple(), MULTI_ARCH1);
 
