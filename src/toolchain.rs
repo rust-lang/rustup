@@ -371,7 +371,7 @@ impl<'a> Toolchain<'a> {
             return Ok(None);
         }
 
-        let default_host_triple = self.cfg.get_default_host_triple()?;
+        let default_host_tuple = self.cfg.default_host_tuple()?;
         // XXX: This could actually consider all installed distributable
         // toolchains in principle.
         for fallback in ["nightly", "beta", "stable"] {
