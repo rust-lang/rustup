@@ -124,7 +124,7 @@ impl InstallOpts<'_> {
             info!("setting default host tuple to {}", default_host_tuple);
             cfg.set_default_host_triple(default_host_tuple.to_owned())?;
         } else {
-            info!("default host tuple is {}", cfg.get_default_host_triple()?);
+            info!("default host tuple is {}", cfg.default_host_tuple()?);
         }
 
         let user_specified_something = default_toolchain.is_some()
@@ -164,7 +164,7 @@ impl InstallOpts<'_> {
                         MaybeOfficialToolchainName::None => unreachable!(),
                         MaybeOfficialToolchainName::Some(n) => n,
                     };
-                    Some(toolchain_name.resolve(&cfg.get_default_host_triple()?)?)
+                    Some(toolchain_name.resolve(&cfg.default_host_tuple()?)?)
                 }
                 None => match cfg.get_default()? {
                     // Default is installable
@@ -174,7 +174,7 @@ impl InstallOpts<'_> {
                     None => Some(
                         "stable"
                             .parse::<PartialToolchainDesc>()?
-                            .resolve(&cfg.get_default_host_triple()?)?,
+                            .resolve(&cfg.default_host_tuple()?)?,
                     ),
                 },
             })
@@ -736,8 +736,7 @@ fn check_existence_of_settings_file(cfg: &Cfg<'_>) -> Result<()> {
     };
     warn!("it looks like you have an existing rustup settings file at:");
     warn!("{}", settings_file_path.display());
-    let inferred =
-        PartialToolchainDesc::from_str("stable")?.resolve(&cfg.get_default_host_triple()?)?;
+    let inferred = PartialToolchainDesc::from_str("stable")?.resolve(&cfg.default_host_tuple()?)?;
     if default_toolchain != inferred.to_string() {
         warn!("rustup will install the default toolchain as specified in the settings file,");
         warn!("instead of the one inferred from the default host tuple.");
@@ -1479,7 +1478,7 @@ mod tests {
                 "stable"
                     .parse::<PartialToolchainDesc>()
                     .unwrap()
-                    .resolve(&cfg.get_default_host_triple().unwrap())
+                    .resolve(&cfg.default_host_tuple().unwrap())
                     .unwrap(),
                 opts.install(&mut cfg)
                     .unwrap() // result
