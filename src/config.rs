@@ -895,7 +895,7 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
+    pub(crate) fn set_default_host_tuple(&self, host_triple: String) -> Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
