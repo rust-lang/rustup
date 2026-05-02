@@ -39,6 +39,9 @@ otel = [
 # Exports code dependent on private interfaces for the integration test suite
 test = ["dep:snapbox", "dep:walkdir", "clap-cargo/testing_colors"]
 
+# Run the tests that require containers.
+test-with-containers = ["test"]
+
 # Sorted by alphabetic order
 [dependencies]
 anstream = "1"
