@@ -252,6 +252,50 @@ impl Manifestation {
                 _ => info!("downloading {} components", components.len()),
             };
 
+            // TODO: enable this for windows
+            //       disk_free() is only available for cfg(unix) for now
+            #[cfg(unix)]
+            {
+                let estimated_download_size = futures_util::future::join_all(
+                    components
+                        .iter()
+                        .map(|component| component.required_size_via_head()),
+                )
+                .await
+                .iter()
+                .try_fold(0u64, |acc, elem| {
+                    match elem {
+                        Ok(Some(size)) => Some(acc + size),
+                        // This component size's unknown (None or Err)
+                        _ => {
+                            warn!("failed to fetch component size, continueing...");
+                            None
+                        }
+                    }
+                });
+
+                let path = &components
+                    .first()
+                    .unwrap()
+                    .download_cfg
+                    .tmp_cx
+                    .root_directory;
+                let disk_free = match utils::disk_free(path) {
+                    Ok(size) => Some(size),
+                    Err(e) => {
+                        warn!("failed to acquire disk free space: {e}\ncontinueing... ");
+                        None
+                    }
+                };
+
+                if let (Some(df), Some(est)) = (disk_free, estimated_download_size)
+                    && df < est
+                    && !force_update
+                {
+                    bail!("insufficient storage: {est} bytes required, {df} bytes available")
+                }
+            };
+
             let mut stream = InstallEvents::new(components.into_iter(), Arc::new(self));
             let mut transaction = Some(tx);
             tx = loop {
@@ -778,6 +822,12 @@ impl<'a> ComponentBinary<'a> {
             manifest,
             download_cfg,
         }))
+    }
+
+    #[allow(dead_code)]
+    async fn required_size_via_head(&self) -> Result<Option<u64>> {
+        let url = self.download_cfg.url(&self.binary.url)?;
+        self.download_cfg.content_length(&url).await
     }
 
     async fn download(self, max_retries: usize) -> Result<(ComponentInstall, &'a str)> {

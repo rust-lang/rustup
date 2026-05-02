@@ -129,6 +129,11 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
+    #[allow(dead_code)]
+    pub(crate) async fn content_length(&self, url: &Url) -> Result<Option<u64>> {
+        crate::download::content_length(url, self.process).await
+    }
+
     pub(crate) fn clean(&self, hashes: &[impl AsRef<Path>]) -> Result<()> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
