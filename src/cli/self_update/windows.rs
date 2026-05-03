@@ -22,7 +22,6 @@ use super::{InstallOpts, install_bins, report_error};
 use crate::cli::markdown::md;
 use crate::config::Cfg;
 use crate::dist::TargetTuple;
-use crate::dist::download::DownloadCfg;
 use crate::download::Download;
 use crate::process::{ColorableTerminal, Process};
 use crate::utils;
@@ -271,9 +270,8 @@ pub(crate) async fn try_install_msvc(
         .context("error creating temp directory")?;
 
     let visual_studio = tempdir.path().join("vs_setup.exe");
-    let dl_cfg = DownloadCfg::new(cfg);
     info!("downloading Visual Studio installer");
-    Download::new(&visual_studio_url, &visual_studio, dl_cfg.process)
+    Download::new(&visual_studio_url, &visual_studio, cfg.process)
         .download()
         .await?;
 
