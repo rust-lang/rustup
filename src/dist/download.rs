@@ -15,7 +15,7 @@ use url::Url;
 use crate::config::Cfg;
 use crate::dist::manifest::{Manifest, ManifestWithHash};
 use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
-use crate::download::{download_file, download_file_with_resume, is_network_failure};
+use crate::download::{Download, is_network_failure};
 use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
@@ -82,17 +82,12 @@ impl<'a> DownloadCfg<'a> {
         let partial_file_existed = partial_file_path.exists();
 
         let mut hasher = Sha256::new();
+        let download = Download::new(url, &partial_file_path, self.process)
+            .with_hasher(&mut hasher)
+            .with_status(status)
+            .with_resume();
 
-        if let Err(e) = download_file_with_resume(
-            url,
-            &partial_file_path,
-            Some(&mut hasher),
-            true,
-            Some(status),
-            self.process,
-        )
-        .await
-        {
+        if let Err(e) = download.download().await {
             let is_network_failure = is_network_failure(&e);
             let err = Err(e);
             return match (partial_file_existed, is_network_failure) {
@@ -142,9 +137,9 @@ impl<'a> DownloadCfg<'a> {
     async fn download_hash(&self, url: &str) -> Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
-
-        download_file(&hash_url, &hash_file, None, None, self.process).await?;
-
+        Download::new(&hash_url, &hash_file, self.process)
+            .download()
+            .await?;
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
 
@@ -267,7 +262,14 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        download_file(&url, &file, Some(&mut hasher), status, self.process).await?;
+        let download = Download::new(&url, &file, self.process).with_hasher(&mut hasher);
+
+        let download = match status {
+            Some(status) => download.with_status(status),
+            None => download,
+        };
+
+        download.download().await?;
         let actual_hash = faster_hex::hex_string(&hasher.finalize());
 
         if hash != actual_hash {

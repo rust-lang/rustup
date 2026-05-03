@@ -31,53 +31,165 @@ use crate::{dist::download::DownloadStatus, errors::RustupError, process::Proces
 #[cfg(test)]
 mod tests;
 
-pub(crate) async fn download_file(
-    url: &Url,
-    path: &Path,
-    hasher: Option<&mut Sha256>,
-    status: Option<&DownloadStatus>,
-    process: &Process,
-) -> anyhow::Result<()> {
-    download_file_with_resume(url, path, hasher, false, status, process).await
+pub struct Download<'a> {
+    url: &'a Url,
+    path: &'a Path,
+    hasher: Option<RefCell<&'a mut Sha256>>,
+    status: Option<&'a DownloadStatus>,
+    resume: bool,
+    process: &'a Process,
 }
 
-pub(crate) async fn download_file_with_resume(
-    url: &Url,
-    path: &Path,
-    hasher: Option<&mut Sha256>,
-    resume_from_partial: bool,
-    status: Option<&DownloadStatus>,
-    process: &Process,
-) -> anyhow::Result<()> {
-    match download_file_(url, path, hasher, resume_from_partial, status, process).await {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            if e.downcast_ref::<io::Error>().is_some() {
-                return Err(e);
-            }
-            let is_client_error = match e.downcast_ref::<DownloadError>() {
-                // Specifically treat the bad partial range error as not our
-                // fault in case it was something odd which happened.
-                Some(DownloadError::HttpStatus(416)) => false,
-                Some(DownloadError::HttpStatus(400..=499)) | Some(DownloadError::FileNotFound) => {
-                    true
-                }
-                _ => false,
-            };
-            Err(e).with_context(|| {
-                if is_client_error {
-                    RustupError::DownloadNotExists {
-                        url: url.clone(),
-                        path: path.to_path_buf(),
-                    }
-                } else {
-                    RustupError::DownloadingFile {
-                        url: url.clone(),
-                        path: path.to_path_buf(),
-                    }
-                }
-            })
+impl<'a> Download<'a> {
+    pub(crate) fn new(url: &'a Url, path: &'a Path, process: &'a Process) -> Self {
+        Self {
+            url,
+            path,
+            hasher: None,
+            status: None,
+            resume: false,
+            process,
         }
+    }
+
+    pub(crate) fn with_hasher(mut self, hasher: &'a mut Sha256) -> Self {
+        self.hasher = Some(RefCell::new(hasher));
+        self
+    }
+
+    pub(crate) fn with_status(mut self, status: &'a DownloadStatus) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    pub(crate) fn with_resume(mut self) -> Self {
+        self.resume = true;
+        self
+    }
+
+    pub(crate) async fn download(&self) -> anyhow::Result<()> {
+        match self.download_file_().await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                if e.downcast_ref::<io::Error>().is_some() {
+                    return Err(e);
+                }
+                let is_client_error = match e.downcast_ref::<DownloadError>() {
+                    // Specifically treat the bad partial range error as not our
+                    // fault in case it was something odd which happened.
+                    Some(DownloadError::HttpStatus(416)) => false,
+                    Some(DownloadError::HttpStatus(400..=499))
+                    | Some(DownloadError::FileNotFound) => true,
+                    _ => false,
+                };
+                Err(e).with_context(|| {
+                    if is_client_error {
+                        RustupError::DownloadNotExists {
+                            url: self.url.clone(),
+                            path: self.path.to_path_buf(),
+                        }
+                    } else {
+                        RustupError::DownloadingFile {
+                            url: self.url.clone(),
+                            path: self.path.to_path_buf(),
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    async fn download_file_(&self) -> anyhow::Result<()> {
+        debug!(url = %self.url, "downloading file");
+
+        // This callback will write the download to disk and optionally
+        // hash the contents, then forward the notification up the stack
+        let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
+            if let Event::DownloadDataReceived(data) = msg
+                && let Some(h) = self.hasher.as_ref()
+            {
+                h.borrow_mut().update(data);
+            }
+
+            match msg {
+                Event::DownloadContentLengthReceived(len) => {
+                    if let Some(status) = self.status {
+                        status.received_length(len)
+                    }
+                }
+                Event::DownloadDataReceived(data) => {
+                    if let Some(status) = self.status {
+                        status.received_data(data.len())
+                    }
+                }
+                Event::ResumingPartialDownload => debug!("resuming partial download"),
+            }
+
+            Ok(())
+        };
+
+        // Download the file
+
+        let use_rustls = self.process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
+        if use_rustls == Some(false) {
+            warn!(
+                "RUSTUP_USE_RUSTLS is set to `0`; the native-tls backend is deprecated,
+            please file an issue if the default download backend does not work for your use case"
+            );
+        }
+
+        let backend = match use_rustls {
+            // If the environment explicitly selects a TLS backend that's unavailable, error out.
+            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            Some(true) => {
+                return Err(anyhow!(
+                    "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
+                ));
+            }
+            #[cfg(not(feature = "reqwest-native-tls"))]
+            Some(false) => {
+                return Err(anyhow!(
+                    "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
+                ));
+            }
+
+            // Prefer explicit selections before falling back to the default TLS stack.
+            #[cfg(feature = "reqwest-native-tls")]
+            Some(false) => Backend::NativeTls,
+
+            // The default fallback is `rustls`, which should be used whenever available.
+            #[cfg(feature = "reqwest-rustls-tls")]
+            _ => Backend::Rustls,
+
+            // The `rustls` feature is disabled, fall back to `native-tls` instead.
+            #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
+            _ => Backend::NativeTls,
+        };
+
+        let timeout = Duration::from_secs(match self.process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
+            Ok(s) => NonZero::from_str(&s)
+                .context(
+                    "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
+                )?
+                .get(),
+            Err(_) => 180,
+        });
+
+        debug!("downloading with reqwest");
+
+        let res = backend
+            .download_to_path(self.url, self.path, self.resume, Some(callback), timeout)
+            .await;
+
+        // The notification should only be sent if the download was successful (i.e. didn't timeout)
+        if let Some(status) = self.status {
+            match &res {
+                Ok(_) => status.finished(),
+                Err(_) => status.failed(),
+            };
+        }
+
+        res
     }
 }
 
@@ -87,107 +199,6 @@ pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
         Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
         _ => false,
     }
-}
-
-async fn download_file_(
-    url: &Url,
-    path: &Path,
-    hasher: Option<&mut Sha256>,
-    resume_from_partial: bool,
-    status: Option<&DownloadStatus>,
-    process: &Process,
-) -> anyhow::Result<()> {
-    debug!(url = %url, "downloading file");
-    let hasher = RefCell::new(hasher);
-
-    // This callback will write the download to disk and optionally
-    // hash the contents, then forward the notification up the stack
-    let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
-        if let Event::DownloadDataReceived(data) = msg
-            && let Some(h) = hasher.borrow_mut().as_mut()
-        {
-            h.update(data);
-        }
-
-        match msg {
-            Event::DownloadContentLengthReceived(len) => {
-                if let Some(status) = status {
-                    status.received_length(len)
-                }
-            }
-            Event::DownloadDataReceived(data) => {
-                if let Some(status) = status {
-                    status.received_data(data.len())
-                }
-            }
-            Event::ResumingPartialDownload => debug!("resuming partial download"),
-        }
-
-        Ok(())
-    };
-
-    // Download the file
-
-    let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
-    if use_rustls == Some(false) {
-        warn!(
-            "RUSTUP_USE_RUSTLS is set to `0`; the native-tls backend is deprecated,
-            please file an issue if the default download backend does not work for your use case"
-        );
-    }
-
-    let backend = match use_rustls {
-        // If the environment explicitly selects a TLS backend that's unavailable, error out.
-        #[cfg(not(feature = "reqwest-rustls-tls"))]
-        Some(true) => {
-            return Err(anyhow!(
-                "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
-            ));
-        }
-        #[cfg(not(feature = "reqwest-native-tls"))]
-        Some(false) => {
-            return Err(anyhow!(
-                "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
-            ));
-        }
-
-        // Prefer explicit selections before falling back to the default TLS stack.
-        #[cfg(feature = "reqwest-native-tls")]
-        Some(false) => Backend::NativeTls,
-
-        // The default fallback is `rustls`, which should be used whenever available.
-        #[cfg(feature = "reqwest-rustls-tls")]
-        _ => Backend::Rustls,
-
-        // The `rustls` feature is disabled, fall back to `native-tls` instead.
-        #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
-        _ => Backend::NativeTls,
-    };
-
-    let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
-        Ok(s) => NonZero::from_str(&s)
-            .context(
-                "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
-            )?
-            .get(),
-        Err(_) => 180,
-    });
-
-    debug!("downloading with reqwest");
-
-    let res = backend
-        .download_to_path(url, path, resume_from_partial, Some(callback), timeout)
-        .await;
-
-    // The notification should only be sent if the download was successful (i.e. didn't timeout)
-    if let Some(status) = status {
-        match &res {
-            Ok(_) => status.finished(),
-            Err(_) => status.failed(),
-        };
-    }
-
-    res
 }
 
 /// User agent header value for HTTP request.

@@ -23,7 +23,7 @@ use crate::cli::markdown::md;
 use crate::config::Cfg;
 use crate::dist::TargetTuple;
 use crate::dist::download::DownloadCfg;
-use crate::download::download_file;
+use crate::download::Download;
 use crate::process::{ColorableTerminal, Process};
 use crate::utils;
 
@@ -273,14 +273,9 @@ pub(crate) async fn try_install_msvc(
     let visual_studio = tempdir.path().join("vs_setup.exe");
     let dl_cfg = DownloadCfg::new(cfg);
     info!("downloading Visual Studio installer");
-    download_file(
-        &visual_studio_url,
-        &visual_studio,
-        None,
-        None,
-        dl_cfg.process,
-    )
-    .await?;
+    Download::new(&visual_studio_url, &visual_studio, dl_cfg.process)
+        .download()
+        .await?;
 
     // Run the installer. Arguments are documented at:
     // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio

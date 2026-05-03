@@ -63,7 +63,7 @@ use crate::{
         DistOptions, PartialToolchainDesc, Profile, TargetTuple, ToolchainDesc,
         download::DownloadCfg,
     },
-    download::download_file,
+    download::Download,
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
@@ -1340,7 +1340,9 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
 
     // Download new version
     info!("downloading self-update (new version: {available_version})");
-    download_file(&download_url, &setup_path, None, None, dl_cfg.process).await?;
+    Download::new(&download_url, &setup_path, dl_cfg.process)
+        .download()
+        .await?;
 
     // Mark as executable
     utils::make_executable(&setup_path)?;
@@ -1359,7 +1361,10 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    download_file(&release_file_url, &release_file, None, None, dl_cfg.process).await?;
+    Download::new(&release_file_url, &release_file, dl_cfg.process)
+        .download()
+        .await?;
+
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml = toml::from_str::<RustupManifest>(&release_toml_str)
         .context("unable to parse rustup release file")?;
