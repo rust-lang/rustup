@@ -22,7 +22,7 @@ use crate::{
         prefix::InstallPrefix,
         temp,
     },
-    download::download_file,
+    download::Download,
     errors::RustupError,
     process::TestProcess,
     test::{
@@ -490,7 +490,9 @@ impl TestContext {
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
-        download_file(&manifest_url, &manifest_file, None, None, dl_cfg.process).await?;
+        Download::new(&manifest_url, &manifest_file, dl_cfg.process)
+            .download()
+            .await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
         let manifest = Manifest::parse(&manifest_str)?;
 
