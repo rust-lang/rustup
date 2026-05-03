@@ -15,7 +15,7 @@ use url::Url;
 use crate::config::Cfg;
 use crate::dist::manifest::{Manifest, ManifestWithHash};
 use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
-use crate::download::{Download, is_network_failure};
+use crate::download::{DownloadOptions, is_network_failure};
 use crate::errors::RustupError;
 use crate::process::Process;
 use crate::utils;
@@ -82,7 +82,8 @@ impl<'a> DownloadCfg<'a> {
         let partial_file_existed = partial_file_path.exists();
 
         let mut hasher = Sha256::new();
-        let download = Download::new(url, &partial_file_path, self.process)
+        let download = DownloadOptions::try_from(self.process)?
+            .start(url, &partial_file_path)
             .with_hasher(&mut hasher)
             .with_status(status)
             .with_resume();
@@ -137,7 +138,8 @@ impl<'a> DownloadCfg<'a> {
     async fn download_hash(&self, url: &str) -> Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
-        Download::new(&hash_url, &hash_file, self.process)
+        DownloadOptions::try_from(self.process)?
+            .start(&hash_url, &hash_file)
             .download()
             .await?;
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
@@ -262,7 +264,9 @@ impl<'a> DownloadCfg<'a> {
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        let download = Download::new(&url, &file, self.process).with_hasher(&mut hasher);
+        let download = DownloadOptions::try_from(self.process)?
+            .start(&url, &file)
+            .with_hasher(&mut hasher);
 
         let download = match status {
             Some(status) => download.with_status(status),
