@@ -63,7 +63,7 @@ use crate::{
         DistOptions, PartialToolchainDesc, Profile, TargetTuple, ToolchainDesc,
         download::DownloadCfg,
     },
-    download::Download,
+    download::DownloadOptions,
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
@@ -1339,7 +1339,8 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
 
     // Download new version
     info!("downloading self-update (new version: {available_version})");
-    Download::new(&download_url, &setup_path, dl_cfg.process)
+    DownloadOptions::try_from(dl_cfg.process)?
+        .start(&download_url, &setup_path)
         .download()
         .await?;
 
@@ -1360,7 +1361,8 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String
     let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    Download::new(&release_file_url, &release_file, dl_cfg.process)
+    DownloadOptions::try_from(dl_cfg.process)?
+        .start(&release_file_url, &release_file)
         .download()
         .await?;
 

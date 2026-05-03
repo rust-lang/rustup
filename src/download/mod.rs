@@ -31,27 +31,88 @@ use crate::{dist::download::DownloadStatus, errors::RustupError, process::Proces
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Clone, Copy)]
+pub struct DownloadOptions {
+    tls: Tls,
+    timeout: Duration,
+}
+
+impl DownloadOptions {
+    pub fn start<'a>(&self, url: &'a Url, path: &'a Path) -> Download<'a> {
+        Download {
+            url,
+            path,
+            hasher: None,
+            status: None,
+            resume: false,
+            options: *self,
+        }
+    }
+}
+
+impl TryFrom<&Process> for DownloadOptions {
+    type Error = anyhow::Error;
+
+    fn try_from(process: &Process) -> Result<Self, Self::Error> {
+        let use_rustls = process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
+        if use_rustls == Some(false) {
+            warn!(
+                "RUSTUP_USE_RUSTLS is set to `0`; the native-tls backend is deprecated,
+            please file an issue if the default download backend does not work for your use case"
+            );
+        }
+
+        let tls = match use_rustls {
+            // If the environment explicitly selects a TLS backend that's unavailable, error out.
+            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            Some(true) => {
+                return Err(anyhow!(
+                    "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
+                ));
+            }
+            #[cfg(not(feature = "reqwest-native-tls"))]
+            Some(false) => {
+                return Err(anyhow!(
+                    "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
+                ));
+            }
+
+            // Prefer explicit selections before falling back to the default TLS stack.
+            #[cfg(feature = "reqwest-native-tls")]
+            Some(false) => Tls::NativeTls,
+
+            // The default fallback is `rustls`, which should be used whenever available.
+            #[cfg(feature = "reqwest-rustls-tls")]
+            _ => Tls::Rustls,
+
+            // The `rustls` feature is disabled, fall back to `native-tls` instead.
+            #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
+            _ => Tls::NativeTls,
+        };
+
+        let timeout = Duration::from_secs(match process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
+            Ok(s) => NonZero::from_str(&s)
+                .context(
+                    "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
+                )?
+                .get(),
+            Err(_) => 180,
+        });
+
+        Ok(Self { tls, timeout })
+    }
+}
+
 pub struct Download<'a> {
     url: &'a Url,
     path: &'a Path,
     hasher: Option<RefCell<&'a mut Sha256>>,
     status: Option<&'a DownloadStatus>,
     resume: bool,
-    process: &'a Process,
+    options: DownloadOptions,
 }
 
 impl<'a> Download<'a> {
-    pub(crate) fn new(url: &'a Url, path: &'a Path, process: &'a Process) -> Self {
-        Self {
-            url,
-            path,
-            hasher: None,
-            status: None,
-            resume: false,
-            process,
-        }
-    }
-
     pub(crate) fn with_hasher(mut self, hasher: &'a mut Sha256) -> Self {
         self.hasher = Some(RefCell::new(hasher));
         self
@@ -130,55 +191,16 @@ impl<'a> Download<'a> {
 
         // Download the file
 
-        let use_rustls = self.process.var_os("RUSTUP_USE_RUSTLS").map(|it| it != "0");
-        if use_rustls == Some(false) {
-            warn!(
-                "RUSTUP_USE_RUSTLS is set to `0`; the native-tls backend is deprecated,
-            please file an issue if the default download backend does not work for your use case"
-            );
-        }
-
-        let tls = match use_rustls {
-            // If the environment explicitly selects a TLS backend that's unavailable, error out.
-            #[cfg(not(feature = "reqwest-rustls-tls"))]
-            Some(true) => {
-                return Err(anyhow!(
-                    "RUSTUP_USE_RUSTLS is set, but this rustup distribution was not built with the reqwest-rustls-tls feature"
-                ));
-            }
-            #[cfg(not(feature = "reqwest-native-tls"))]
-            Some(false) => {
-                return Err(anyhow!(
-                    "RUSTUP_USE_RUSTLS is set to false, but this rustup distribution was not built with the reqwest-native-tls feature"
-                ));
-            }
-
-            // Prefer explicit selections before falling back to the default TLS stack.
-            #[cfg(feature = "reqwest-native-tls")]
-            Some(false) => Tls::NativeTls,
-
-            // The default fallback is `rustls`, which should be used whenever available.
-            #[cfg(feature = "reqwest-rustls-tls")]
-            _ => Tls::Rustls,
-
-            // The `rustls` feature is disabled, fall back to `native-tls` instead.
-            #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
-            _ => Tls::NativeTls,
-        };
-
-        let timeout = Duration::from_secs(match self.process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
-            Ok(s) => NonZero::from_str(&s)
-                .context(
-                    "invalid value in RUSTUP_DOWNLOAD_TIMEOUT -- must be a natural number greater than zero",
-                )?
-                .get(),
-            Err(_) => 180,
-        });
-
-        debug!("downloading with reqwest");
-
-        let res = tls
-            .download_to_path(self.url, self.path, self.resume, Some(callback), timeout)
+        let res = self
+            .options
+            .tls
+            .download_to_path(
+                self.url,
+                self.path,
+                self.resume,
+                Some(callback),
+                self.options.timeout,
+            )
             .await;
 
         // The notification should only be sent if the download was successful (i.e. didn't timeout)
