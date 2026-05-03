@@ -359,7 +359,31 @@ async fn download(
     client: &Client,
 ) -> anyhow::Result<()> {
     // Short-circuit reqwest for the "file:" URL scheme
-    if download_from_file_url(url, resume_from, callback)? {
+    // The file scheme is mostly for use by tests to mock the dist server
+    if url.scheme() == "file" {
+        let src = url
+            .to_file_path()
+            .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
+        if !src.is_file() {
+            // Because some of rustup's logic depends on checking
+            // the error when a downloaded file doesn't exist, make
+            // the file case return the same error value as the
+            // network case.
+            return Err(anyhow!(DownloadError::FileNotFound));
+        }
+
+        let mut f = fs::File::open(src).context("unable to open downloaded file")?;
+        Seek::seek(&mut f, SeekFrom::Start(resume_from))?;
+
+        let mut buffer = vec![0u8; 0x10000];
+        loop {
+            let bytes_read = Read::read(&mut f, &mut buffer)?;
+            if bytes_read == 0 {
+                break;
+            }
+            callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
+        }
+
         return Ok(());
     }
 
@@ -474,42 +498,6 @@ async fn request(url: &Url, resume_from: u64, client: &Client) -> Result<Respons
     }
 
     Ok(req.send().await?)
-}
-
-fn download_from_file_url(
-    url: &Url,
-    resume_from: u64,
-    callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
-) -> anyhow::Result<bool> {
-    // The file scheme is mostly for use by tests to mock the dist server
-    if url.scheme() == "file" {
-        let src = url
-            .to_file_path()
-            .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
-        if !src.is_file() {
-            // Because some of rustup's logic depends on checking
-            // the error when a downloaded file doesn't exist, make
-            // the file case return the same error value as the
-            // network case.
-            return Err(anyhow!(DownloadError::FileNotFound));
-        }
-
-        let mut f = fs::File::open(src).context("unable to open downloaded file")?;
-        Seek::seek(&mut f, SeekFrom::Start(resume_from))?;
-
-        let mut buffer = vec![0u8; 0x10000];
-        loop {
-            let bytes_read = Read::read(&mut f, &mut buffer)?;
-            if bytes_read == 0 {
-                break;
-            }
-            callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-        }
-
-        Ok(true)
-    } else {
-        Ok(false)
-    }
 }
 
 #[derive(Debug, Error)]
