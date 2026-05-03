@@ -191,17 +191,7 @@ impl<'a> Download<'a> {
 
         // Download the file
 
-        let res = self
-            .options
-            .tls
-            .download_to_path(
-                self.url,
-                self.path,
-                self.resume,
-                Some(callback),
-                self.options.timeout,
-            )
-            .await;
+        let res = self.download_to_path(Some(callback)).await;
 
         // The notification should only be sent if the download was successful (i.e. didn't timeout)
         if let Some(status) = self.status {
@@ -213,50 +203,9 @@ impl<'a> Download<'a> {
 
         res
     }
-}
 
-pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
-    match err.downcast_ref::<DownloadError>() {
-        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-        Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
-        _ => false,
-    }
-}
-
-/// User agent header value for HTTP request.
-/// See: https://github.com/rust-lang/rustup/issues/2860.
-#[cfg(feature = "reqwest-native-tls")]
-const REQWEST_DEFAULT_TLS_USER_AGENT: &str = concat!(
-    "rustup/",
-    env!("CARGO_PKG_VERSION"),
-    " (reqwest; default-tls)"
-);
-
-#[cfg(feature = "reqwest-rustls-tls")]
-const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
-    concat!("rustup/", env!("CARGO_PKG_VERSION"), " (reqwest; rustls)");
-
-#[derive(Debug, Copy, Clone)]
-enum Tls {
-    #[cfg(feature = "reqwest-rustls-tls")]
-    Rustls,
-    #[cfg(feature = "reqwest-native-tls")]
-    NativeTls,
-}
-
-impl Tls {
-    async fn download_to_path(
-        self,
-        url: &Url,
-        path: &Path,
-        resume_from_partial: bool,
-        callback: Option<DownloadCallback<'_>>,
-        timeout: Duration,
-    ) -> anyhow::Result<()> {
-        let Err(err) = self
-            .download_impl(url, path, resume_from_partial, callback, timeout)
-            .await
-        else {
+    async fn download_to_path(&self, callback: Option<DownloadCallback<'_>>) -> anyhow::Result<()> {
+        let Err(err) = self.download_impl(callback).await else {
             return Ok(());
         };
 
@@ -264,8 +213,9 @@ impl Tls {
         // if there was a network failure from the client side.
         // It may be worth looking for other cases where removal is also not desired.
         Err(
-            if !(resume_from_partial && is_network_failure(&err))
-                && let Err(file_err) = remove_file(path).context("cleaning up cached downloads")
+            if !(self.resume && is_network_failure(&err))
+                && let Err(file_err) =
+                    remove_file(self.path).context("cleaning up cached downloads")
             {
                 file_err.context(err)
             } else {
@@ -274,17 +224,10 @@ impl Tls {
         )
     }
 
-    async fn download_impl(
-        self,
-        url: &Url,
-        path: &Path,
-        resume_from_partial: bool,
-        callback: Option<DownloadCallback<'_>>,
-        timeout: Duration,
-    ) -> anyhow::Result<()> {
-        let (file, resume_from) = if resume_from_partial {
+    async fn download_impl(&self, callback: Option<DownloadCallback<'_>>) -> anyhow::Result<()> {
+        let (file, resume_from) = if self.resume {
             // TODO: blocking call
-            let possible_partial = OpenOptions::new().read(true).open(path);
+            let possible_partial = OpenOptions::new().read(true).open(self.path);
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
                 if let Some(cb) = callback {
@@ -315,7 +258,7 @@ impl Tls {
                 .write(true)
                 .create(true)
                 .truncate(false)
-                .open(path)
+                .open(self.path)
                 .context("error opening file for download")?;
 
             possible_partial.seek(SeekFrom::End(0))?;
@@ -327,26 +270,37 @@ impl Tls {
                     .write(true)
                     .create(true)
                     .truncate(true)
-                    .open(path)
+                    .open(self.path)
                     .context("error creating file for download")?,
                 0,
             )
         };
 
         let file = RefCell::new(file);
+        let client = match self.options.tls {
+            #[cfg(feature = "reqwest-rustls-tls")]
+            Tls::Rustls => rustls_client(self.options.timeout)?,
+            #[cfg(feature = "reqwest-native-tls")]
+            Tls::NativeTls => native_tls_client(self.options.timeout)?,
+        };
 
         // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
-        self.download(url, resume_from, timeout, &|event| {
-            if let Event::DownloadDataReceived(data) = event {
-                file.borrow_mut()
-                    .write_all(data)
-                    .context("unable to write download to disk")?;
-            }
-            match callback {
-                Some(cb) => cb(event),
-                None => Ok(()),
-            }
-        })
+        download(
+            self.url,
+            resume_from,
+            &|event| {
+                if let Event::DownloadDataReceived(data) = event {
+                    file.borrow_mut()
+                        .write_all(data)
+                        .context("unable to write download to disk")?;
+                }
+                match callback {
+                    Some(cb) => cb(event),
+                    None => Ok(()),
+                }
+            },
+            client,
+        )
         .await?;
 
         file.borrow_mut()
@@ -355,23 +309,35 @@ impl Tls {
 
         Ok::<(), anyhow::Error>(())
     }
+}
 
-    async fn download(
-        self,
-        url: &Url,
-        resume_from: u64,
-        timeout: Duration,
-        callback: DownloadCallback<'_>,
-    ) -> anyhow::Result<()> {
-        let client = match self {
-            #[cfg(feature = "reqwest-rustls-tls")]
-            Self::Rustls => rustls_client(timeout)?,
-            #[cfg(feature = "reqwest-native-tls")]
-            Self::NativeTls => native_tls_client(timeout)?,
-        };
-
-        download(url, resume_from, callback, client).await
+pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
+    match err.downcast_ref::<DownloadError>() {
+        #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+        Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
+        _ => false,
     }
+}
+
+/// User agent header value for HTTP request.
+/// See: https://github.com/rust-lang/rustup/issues/2860.
+#[cfg(feature = "reqwest-native-tls")]
+const REQWEST_DEFAULT_TLS_USER_AGENT: &str = concat!(
+    "rustup/",
+    env!("CARGO_PKG_VERSION"),
+    " (reqwest; default-tls)"
+);
+
+#[cfg(feature = "reqwest-rustls-tls")]
+const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
+    concat!("rustup/", env!("CARGO_PKG_VERSION"), " (reqwest; rustls)");
+
+#[derive(Debug, Copy, Clone)]
+enum Tls {
+    #[cfg(feature = "reqwest-rustls-tls")]
+    Rustls,
+    #[cfg(feature = "reqwest-native-tls")]
+    NativeTls,
 }
 
 #[derive(Debug, Copy, Clone)]

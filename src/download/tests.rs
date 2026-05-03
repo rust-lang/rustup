@@ -30,7 +30,12 @@ mod reqwest {
     use url::Url;
 
     use super::{scrub_env, serve_file, tmp_dir, write_file};
-    use crate::download::{Event, Tls};
+    use crate::download::{DownloadOptions, Event, Tls};
+
+    const OPTIONS: DownloadOptions = DownloadOptions {
+        tls: DOWNLOAD_BACKEND,
+        timeout: Duration::from_secs(180),
+    };
 
     #[cfg(feature = "reqwest-rustls-tls")]
     const DOWNLOAD_BACKEND: Tls = Tls::Rustls;
@@ -110,14 +115,10 @@ mod reqwest {
         write_file(&target_path, "123");
 
         let from_url = Url::from_file_path(&from_path).unwrap();
-        DOWNLOAD_BACKEND
-            .download_to_path(
-                &from_url,
-                &target_path,
-                true,
-                None,
-                Duration::from_secs(180),
-            )
+        OPTIONS
+            .start(&from_url, &target_path)
+            .with_resume()
+            .download_to_path(None)
             .await
             .expect("Test download failed");
 
@@ -139,33 +140,29 @@ mod reqwest {
         let callback_len = Mutex::new(None);
         let received_in_callback = Mutex::new(Vec::new());
 
-        DOWNLOAD_BACKEND
-            .download_to_path(
-                &from_url,
-                &target_path,
-                true,
-                Some(&|msg| {
-                    match msg {
-                        Event::ResumingPartialDownload => {
-                            assert!(!callback_partial.load(Ordering::SeqCst));
-                            callback_partial.store(true, Ordering::SeqCst);
-                        }
-                        Event::DownloadContentLengthReceived(len) => {
-                            let mut flag = callback_len.lock().unwrap();
-                            assert!(flag.is_none());
-                            *flag = Some(len);
-                        }
-                        Event::DownloadDataReceived(data) => {
-                            for b in data.iter() {
-                                received_in_callback.lock().unwrap().push(*b);
-                            }
+        OPTIONS
+            .start(&from_url, &target_path)
+            .with_resume()
+            .download_to_path(Some(&|msg| {
+                match msg {
+                    Event::ResumingPartialDownload => {
+                        assert!(!callback_partial.load(Ordering::SeqCst));
+                        callback_partial.store(true, Ordering::SeqCst);
+                    }
+                    Event::DownloadContentLengthReceived(len) => {
+                        let mut flag = callback_len.lock().unwrap();
+                        assert!(flag.is_none());
+                        *flag = Some(len);
+                    }
+                    Event::DownloadDataReceived(data) => {
+                        for b in data.iter() {
+                            received_in_callback.lock().unwrap().push(*b);
                         }
                     }
+                }
 
-                    Ok(())
-                }),
-                Duration::from_secs(180),
-            )
+                Ok(())
+            }))
             .await
             .expect("Test download failed");
 
@@ -186,14 +183,10 @@ mod reqwest {
         let addr = serve_file(b"xxx45".to_vec(), false);
         let from_url = format!("http://{addr}").parse().unwrap();
 
-        DOWNLOAD_BACKEND
-            .download_to_path(
-                &from_url,
-                &target_path,
-                true,
-                None,
-                Duration::from_secs(180),
-            )
+        OPTIONS
+            .start(&from_url, &target_path)
+            .with_resume()
+            .download_to_path(None)
             .await
             .expect_err("download should fail if server ignores range");
 
@@ -211,10 +204,15 @@ mod reqwest {
         write_file(&target_path, "123");
 
         let from_url = "http://240.0.0.0:1080".parse().unwrap();
-        DOWNLOAD_BACKEND
-            .download_to_path(&from_url, &target_path, true, None, Duration::from_secs(1))
-            .await
-            .expect_err("download should fail with a connect error");
+        DownloadOptions {
+            tls: DOWNLOAD_BACKEND,
+            timeout: Duration::from_secs(1),
+        }
+        .start(&from_url, &target_path)
+        .with_resume()
+        .download_to_path(None)
+        .await
+        .expect_err("download should fail with a connect error");
 
         assert!(target_path.exists(), "partial file should not be deleted");
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "123");
