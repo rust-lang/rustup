@@ -138,7 +138,7 @@ impl<'a> Download<'a> {
             );
         }
 
-        let backend = match use_rustls {
+        let tls = match use_rustls {
             // If the environment explicitly selects a TLS backend that's unavailable, error out.
             #[cfg(not(feature = "reqwest-rustls-tls"))]
             Some(true) => {
@@ -155,15 +155,15 @@ impl<'a> Download<'a> {
 
             // Prefer explicit selections before falling back to the default TLS stack.
             #[cfg(feature = "reqwest-native-tls")]
-            Some(false) => Backend::NativeTls,
+            Some(false) => Tls::NativeTls,
 
             // The default fallback is `rustls`, which should be used whenever available.
             #[cfg(feature = "reqwest-rustls-tls")]
-            _ => Backend::Rustls,
+            _ => Tls::Rustls,
 
             // The `rustls` feature is disabled, fall back to `native-tls` instead.
             #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
-            _ => Backend::NativeTls,
+            _ => Tls::NativeTls,
         };
 
         let timeout = Duration::from_secs(match self.process.var("RUSTUP_DOWNLOAD_TIMEOUT") {
@@ -177,7 +177,7 @@ impl<'a> Download<'a> {
 
         debug!("downloading with reqwest");
 
-        let res = backend
+        let res = tls
             .download_to_path(self.url, self.path, self.resume, Some(callback), timeout)
             .await;
 
@@ -215,14 +215,14 @@ const REQWEST_RUSTLS_TLS_USER_AGENT: &str =
     concat!("rustup/", env!("CARGO_PKG_VERSION"), " (reqwest; rustls)");
 
 #[derive(Debug, Copy, Clone)]
-enum Backend {
+enum Tls {
     #[cfg(feature = "reqwest-rustls-tls")]
     Rustls,
     #[cfg(feature = "reqwest-native-tls")]
     NativeTls,
 }
 
-impl Backend {
+impl Tls {
     async fn download_to_path(
         self,
         url: &Url,
