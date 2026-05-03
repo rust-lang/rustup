@@ -426,7 +426,7 @@ fn client_generic() -> ClientBuilder {
         // See <https://github.com/hyperium/hyper/issues/2312> for more details.
         .pool_max_idle_per_host(0)
         .gzip(false)
-        .proxy(Proxy::custom(env_proxy))
+        .proxy(Proxy::custom(|url| env_proxy::for_url(url).to_url()))
 }
 
 #[cfg(feature = "reqwest-rustls-tls")]
@@ -491,10 +491,6 @@ fn native_tls_client(timeout: Duration) -> Result<&'static Client, DownloadError
 
 #[cfg(feature = "reqwest-native-tls")]
 static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
-
-fn env_proxy(url: &Url) -> Option<Url> {
-    env_proxy::for_url(url).to_url()
-}
 
 #[derive(Debug, Error)]
 enum DownloadError {
