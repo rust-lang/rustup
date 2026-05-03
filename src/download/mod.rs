@@ -13,7 +13,7 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use anyhow::{Context, anyhow};
-use reqwest::{Client, ClientBuilder, Proxy, Response, header};
+use reqwest::{Client, ClientBuilder, Proxy, header};
 #[cfg(feature = "reqwest-rustls-tls")]
 use rustls::crypto::aws_lc_rs;
 #[cfg(feature = "reqwest-rustls-tls")]
@@ -387,8 +387,14 @@ async fn download(
         return Ok(());
     }
 
-    let res = request(url, resume_from, client)
+    let mut req = client.get(url.as_str());
+    if resume_from != 0 {
+        req = req.header(header::RANGE, format!("bytes={resume_from}-"));
+    }
+    let res = req
+        .send()
         .await
+        .map_err(DownloadError::Reqwest)
         .context("error downloading file")?;
 
     // If a download is being resumed, we expect a 206 response;
@@ -488,16 +494,6 @@ static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
 
 fn env_proxy(url: &Url) -> Option<Url> {
     env_proxy::for_url(url).to_url()
-}
-
-async fn request(url: &Url, resume_from: u64, client: &Client) -> Result<Response, DownloadError> {
-    let mut req = client.get(url.as_str());
-
-    if resume_from != 0 {
-        req = req.header(header::RANGE, format!("bytes={resume_from}-"));
-    }
-
-    Ok(req.send().await?)
 }
 
 #[derive(Debug, Error)]
