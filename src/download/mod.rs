@@ -1,7 +1,8 @@
 //! Easy file downloading
 
-use std::fs::remove_file;
-use std::io;
+use std::cell::RefCell;
+use std::fs::{self, OpenOptions, remove_file};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::num::NonZero;
 use std::path::Path;
 use std::str::FromStr;
@@ -17,7 +18,7 @@ use reqwest::{Client, ClientBuilder, Proxy, Response, header};
 use rustls::crypto::aws_lc_rs;
 #[cfg(feature = "reqwest-rustls-tls")]
 use rustls_platform_verifier::Verifier;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio_stream::StreamExt;
 use tracing::{debug, warn};
@@ -96,11 +97,6 @@ async fn download_file_(
     status: Option<&DownloadStatus>,
     process: &Process,
 ) -> anyhow::Result<()> {
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use crate::download::{Backend, Event};
-    use sha2::Digest;
-    use std::cell::RefCell;
-
     debug!(url = %url, "downloading file");
     let hasher = RefCell::new(hasher);
 
@@ -253,10 +249,6 @@ impl Backend {
         callback: Option<DownloadCallback<'_>>,
         timeout: Duration,
     ) -> anyhow::Result<()> {
-        use std::cell::RefCell;
-        use std::fs::OpenOptions;
-        use std::io::{Read, Seek, SeekFrom, Write};
-
         let (file, resume_from) = if resume_from_partial {
             // TODO: blocking call
             let possible_partial = OpenOptions::new().read(true).open(path);
@@ -489,8 +481,6 @@ fn download_from_file_url(
     resume_from: u64,
     callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
 ) -> anyhow::Result<bool> {
-    use std::fs;
-
     // The file scheme is mostly for use by tests to mock the dist server
     if url.scheme() == "file" {
         let src = url
@@ -505,11 +495,11 @@ fn download_from_file_url(
         }
 
         let mut f = fs::File::open(src).context("unable to open downloaded file")?;
-        io::Seek::seek(&mut f, io::SeekFrom::Start(resume_from))?;
+        Seek::seek(&mut f, SeekFrom::Start(resume_from))?;
 
         let mut buffer = vec![0u8; 0x10000];
         loop {
-            let bytes_read = io::Read::read(&mut f, &mut buffer)?;
+            let bytes_read = Read::read(&mut f, &mut buffer)?;
             if bytes_read == 0 {
                 break;
             }
