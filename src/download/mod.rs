@@ -1,23 +1,30 @@
 //! Easy file downloading
 
 use std::fs::remove_file;
+use std::io;
 use std::num::NonZero;
 use std::path::Path;
 use std::str::FromStr;
+#[cfg(feature = "reqwest-rustls-tls")]
+use std::sync::Arc;
+#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
+use std::sync::OnceLock;
 use std::time::Duration;
 
-use anyhow::Context;
-#[cfg(any(
-    not(feature = "reqwest-rustls-tls"),
-    not(feature = "reqwest-native-tls")
-))]
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
+use reqwest::{Client, ClientBuilder, Proxy, Response, header};
+#[cfg(feature = "reqwest-rustls-tls")]
+use rustls::crypto::aws_lc_rs;
+#[cfg(feature = "reqwest-rustls-tls")]
+use rustls_platform_verifier::Verifier;
 use sha2::Sha256;
 use thiserror::Error;
-use tracing::debug;
-use tracing::warn;
+use tokio_stream::StreamExt;
+use tracing::{debug, warn};
 use url::Url;
 
+#[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
+use crate::anchors::RUSTUP_TRUST_ANCHORS;
 use crate::{dist::download::DownloadStatus, errors::RustupError, process::Process};
 
 #[cfg(test)]
@@ -44,7 +51,7 @@ pub(crate) async fn download_file_with_resume(
     match download_file_(url, path, hasher, resume_from_partial, status, process).await {
         Ok(_) => Ok(()),
         Err(e) => {
-            if e.downcast_ref::<std::io::Error>().is_some() {
+            if e.downcast_ref::<io::Error>().is_some() {
                 return Err(e);
             }
             let is_client_error = match e.downcast_ref::<DownloadError>() {
@@ -324,13 +331,6 @@ impl Backend {
         Ok::<(), anyhow::Error>(())
     }
 
-    #[cfg_attr(
-        all(
-            not(feature = "reqwest-rustls-tls"),
-            not(feature = "reqwest-native-tls")
-        ),
-        allow(unused_variables)
-    )]
     async fn download(
         self,
         url: &Url,
@@ -340,12 +340,12 @@ impl Backend {
     ) -> anyhow::Result<()> {
         let client = match self {
             #[cfg(feature = "reqwest-rustls-tls")]
-            Self::Rustls => reqwest_be::rustls_client(timeout)?,
+            Self::Rustls => rustls_client(timeout)?,
             #[cfg(feature = "reqwest-native-tls")]
-            Self::NativeTls => reqwest_be::native_tls_client(timeout)?,
+            Self::NativeTls => native_tls_client(timeout)?,
         };
 
-        reqwest_be::download(url, resume_from, callback, client).await
+        download(url, resume_from, callback, client).await
     }
 }
 
@@ -360,191 +360,165 @@ enum Event<'a> {
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> anyhow::Result<()>;
 
-#[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-mod reqwest_be {
-    #[cfg(feature = "reqwest-rustls-tls")]
-    use std::sync::Arc;
-    #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    use std::sync::OnceLock;
-    use std::{io, time::Duration};
-
-    #[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
-    use crate::anchors::RUSTUP_TRUST_ANCHORS;
-    use anyhow::{Context, anyhow};
-    use reqwest::{Client, ClientBuilder, Proxy, Response, header};
-    #[cfg(feature = "reqwest-rustls-tls")]
-    use rustls::crypto::aws_lc_rs;
-    #[cfg(feature = "reqwest-rustls-tls")]
-    use rustls_platform_verifier::Verifier;
-    use tokio_stream::StreamExt;
-    use url::Url;
-
-    use super::{DownloadError, Event};
-
-    pub(super) async fn download(
-        url: &Url,
-        resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
-        client: &Client,
-    ) -> anyhow::Result<()> {
-        // Short-circuit reqwest for the "file:" URL scheme
-        if download_from_file_url(url, resume_from, callback)? {
-            return Ok(());
-        }
-
-        let res = request(url, resume_from, client)
-            .await
-            .context("error downloading file")?;
-
-        // If a download is being resumed, we expect a 206 response;
-        // otherwise, if the server ignored the range header,
-        // an error is thrown preemptively to avoid corruption.
-        let status = res.status().into();
-        match (resume_from > 0, status) {
-            (true, 206) | (false, 200..=299) => {}
-            _ => return Err(DownloadError::HttpStatus(u32::from(status)).into()),
-        }
-
-        if let Some(len) = res.content_length() {
-            let len = len + resume_from;
-            callback(Event::DownloadContentLengthReceived(len))?;
-        }
-
-        let mut stream = res.bytes_stream();
-        while let Some(item) = stream.next().await {
-            let bytes = item.map_err(DownloadError::Reqwest)?;
-            callback(Event::DownloadDataReceived(&bytes))?;
-        }
-        Ok(())
+async fn download(
+    url: &Url,
+    resume_from: u64,
+    callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
+    client: &Client,
+) -> anyhow::Result<()> {
+    // Short-circuit reqwest for the "file:" URL scheme
+    if download_from_file_url(url, resume_from, callback)? {
+        return Ok(());
     }
 
-    fn client_generic() -> ClientBuilder {
-        Client::builder()
-            // HACK: set `pool_max_idle_per_host` to `0` to avoid an issue in the underlying
-            // `hyper` library that causes the `reqwest` client to hang in some cases.
-            // See <https://github.com/hyperium/hyper/issues/2312> for more details.
-            .pool_max_idle_per_host(0)
-            .gzip(false)
-            .proxy(Proxy::custom(env_proxy))
+    let res = request(url, resume_from, client)
+        .await
+        .context("error downloading file")?;
+
+    // If a download is being resumed, we expect a 206 response;
+    // otherwise, if the server ignored the range header,
+    // an error is thrown preemptively to avoid corruption.
+    let status = res.status().into();
+    match (resume_from > 0, status) {
+        (true, 206) | (false, 200..=299) => {}
+        _ => return Err(DownloadError::HttpStatus(u32::from(status)).into()),
     }
 
-    #[cfg(feature = "reqwest-rustls-tls")]
-    pub(super) fn rustls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
-        // If the client is already initialized, the passed timeout is ignored.
-        if let Some(client) = CLIENT_RUSTLS_TLS.get() {
-            return Ok(client);
+    if let Some(len) = res.content_length() {
+        let len = len + resume_from;
+        callback(Event::DownloadContentLengthReceived(len))?;
+    }
+
+    let mut stream = res.bytes_stream();
+    while let Some(item) = stream.next().await {
+        let bytes = item.map_err(DownloadError::Reqwest)?;
+        callback(Event::DownloadDataReceived(&bytes))?;
+    }
+    Ok(())
+}
+
+fn client_generic() -> ClientBuilder {
+    Client::builder()
+        // HACK: set `pool_max_idle_per_host` to `0` to avoid an issue in the underlying
+        // `hyper` library that causes the `reqwest` client to hang in some cases.
+        // See <https://github.com/hyperium/hyper/issues/2312> for more details.
+        .pool_max_idle_per_host(0)
+        .gzip(false)
+        .proxy(Proxy::custom(env_proxy))
+}
+
+#[cfg(feature = "reqwest-rustls-tls")]
+fn rustls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
+    // If the client is already initialized, the passed timeout is ignored.
+    if let Some(client) = CLIENT_RUSTLS_TLS.get() {
+        return Ok(client);
+    }
+
+    let provider = Arc::new(aws_lc_rs::default_provider());
+    #[cfg(not(target_os = "android"))]
+    let result =
+        Verifier::new_with_extra_roots(RUSTUP_TRUST_ANCHORS.iter().cloned(), provider.clone());
+    #[cfg(target_os = "android")]
+    let result = Verifier::new(provider.clone());
+    let verifier = result.map_err(|err| {
+        DownloadError::Message(format!("failed to initialize platform verifier: {err}"))
+    })?;
+
+    let mut tls_config = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .unwrap()
+        .dangerous() // We're using a rustls verifier, so it's okay
+        .with_custom_certificate_verifier(Arc::new(verifier))
+        .with_no_client_auth();
+    tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+
+    let client = client_generic()
+        .read_timeout(timeout)
+        .use_preconfigured_tls(tls_config)
+        .user_agent(REQWEST_RUSTLS_TLS_USER_AGENT)
+        .build()
+        .map_err(DownloadError::Reqwest)?;
+
+    let _ = CLIENT_RUSTLS_TLS.set(client);
+    // "The cell is guaranteed to contain a value when `set` returns, though not necessarily
+    // the one provided."
+    Ok(CLIENT_RUSTLS_TLS.get().unwrap())
+}
+
+#[cfg(feature = "reqwest-rustls-tls")]
+static CLIENT_RUSTLS_TLS: OnceLock<Client> = OnceLock::new();
+
+#[cfg(feature = "reqwest-native-tls")]
+fn native_tls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
+    // If the client is already initialized, the passed timeout is ignored.
+    if let Some(client) = CLIENT_NATIVE_TLS.get() {
+        return Ok(client);
+    }
+
+    let client = client_generic()
+        .read_timeout(timeout)
+        .user_agent(REQWEST_DEFAULT_TLS_USER_AGENT)
+        .build()
+        .map_err(DownloadError::Reqwest)?;
+
+    let _ = CLIENT_NATIVE_TLS.set(client);
+    // "The cell is guaranteed to contain a value when `set` returns, though not necessarily
+    // the one provided."
+    Ok(CLIENT_NATIVE_TLS.get().unwrap())
+}
+
+#[cfg(feature = "reqwest-native-tls")]
+static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
+
+fn env_proxy(url: &Url) -> Option<Url> {
+    env_proxy::for_url(url).to_url()
+}
+
+async fn request(url: &Url, resume_from: u64, client: &Client) -> Result<Response, DownloadError> {
+    let mut req = client.get(url.as_str());
+
+    if resume_from != 0 {
+        req = req.header(header::RANGE, format!("bytes={resume_from}-"));
+    }
+
+    Ok(req.send().await?)
+}
+
+fn download_from_file_url(
+    url: &Url,
+    resume_from: u64,
+    callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
+) -> anyhow::Result<bool> {
+    use std::fs;
+
+    // The file scheme is mostly for use by tests to mock the dist server
+    if url.scheme() == "file" {
+        let src = url
+            .to_file_path()
+            .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
+        if !src.is_file() {
+            // Because some of rustup's logic depends on checking
+            // the error when a downloaded file doesn't exist, make
+            // the file case return the same error value as the
+            // network case.
+            return Err(anyhow!(DownloadError::FileNotFound));
         }
 
-        let provider = Arc::new(aws_lc_rs::default_provider());
-        #[cfg(not(target_os = "android"))]
-        let result =
-            Verifier::new_with_extra_roots(RUSTUP_TRUST_ANCHORS.iter().cloned(), provider.clone());
-        #[cfg(target_os = "android")]
-        let result = Verifier::new(provider.clone());
-        let verifier = result.map_err(|err| {
-            DownloadError::Message(format!("failed to initialize platform verifier: {err}"))
-        })?;
+        let mut f = fs::File::open(src).context("unable to open downloaded file")?;
+        io::Seek::seek(&mut f, io::SeekFrom::Start(resume_from))?;
 
-        let mut tls_config = rustls::ClientConfig::builder_with_provider(provider)
-            .with_safe_default_protocol_versions()
-            .unwrap()
-            .dangerous() // We're using a rustls verifier, so it's okay
-            .with_custom_certificate_verifier(Arc::new(verifier))
-            .with_no_client_auth();
-        tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
-
-        let client = client_generic()
-            .read_timeout(timeout)
-            .use_preconfigured_tls(tls_config)
-            .user_agent(super::REQWEST_RUSTLS_TLS_USER_AGENT)
-            .build()
-            .map_err(DownloadError::Reqwest)?;
-
-        let _ = CLIENT_RUSTLS_TLS.set(client);
-        // "The cell is guaranteed to contain a value when `set` returns, though not necessarily
-        // the one provided."
-        Ok(CLIENT_RUSTLS_TLS.get().unwrap())
-    }
-
-    #[cfg(feature = "reqwest-rustls-tls")]
-    static CLIENT_RUSTLS_TLS: OnceLock<Client> = OnceLock::new();
-
-    #[cfg(feature = "reqwest-native-tls")]
-    pub(super) fn native_tls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
-        // If the client is already initialized, the passed timeout is ignored.
-        if let Some(client) = CLIENT_NATIVE_TLS.get() {
-            return Ok(client);
-        }
-
-        let client = client_generic()
-            .read_timeout(timeout)
-            .user_agent(super::REQWEST_DEFAULT_TLS_USER_AGENT)
-            .build()
-            .map_err(DownloadError::Reqwest)?;
-
-        let _ = CLIENT_NATIVE_TLS.set(client);
-        // "The cell is guaranteed to contain a value when `set` returns, though not necessarily
-        // the one provided."
-        Ok(CLIENT_NATIVE_TLS.get().unwrap())
-    }
-
-    #[cfg(feature = "reqwest-native-tls")]
-    static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
-
-    fn env_proxy(url: &Url) -> Option<Url> {
-        env_proxy::for_url(url).to_url()
-    }
-
-    async fn request(
-        url: &Url,
-        resume_from: u64,
-        client: &Client,
-    ) -> Result<Response, DownloadError> {
-        let mut req = client.get(url.as_str());
-
-        if resume_from != 0 {
-            req = req.header(header::RANGE, format!("bytes={resume_from}-"));
-        }
-
-        Ok(req.send().await?)
-    }
-
-    fn download_from_file_url(
-        url: &Url,
-        resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
-    ) -> anyhow::Result<bool> {
-        use std::fs;
-
-        // The file scheme is mostly for use by tests to mock the dist server
-        if url.scheme() == "file" {
-            let src = url
-                .to_file_path()
-                .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
-            if !src.is_file() {
-                // Because some of rustup's logic depends on checking
-                // the error when a downloaded file doesn't exist, make
-                // the file case return the same error value as the
-                // network case.
-                return Err(anyhow!(DownloadError::FileNotFound));
+        let mut buffer = vec![0u8; 0x10000];
+        loop {
+            let bytes_read = io::Read::read(&mut f, &mut buffer)?;
+            if bytes_read == 0 {
+                break;
             }
-
-            let mut f = fs::File::open(src).context("unable to open downloaded file")?;
-            io::Seek::seek(&mut f, io::SeekFrom::Start(resume_from))?;
-
-            let mut buffer = vec![0u8; 0x10000];
-            loop {
-                let bytes_read = io::Read::read(&mut f, &mut buffer)?;
-                if bytes_read == 0 {
-                    break;
-                }
-                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-            }
-
-            Ok(true)
-        } else {
-            Ok(false)
+            callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
         }
+
+        Ok(true)
+    } else {
+        Ok(false)
     }
 }
 
@@ -557,7 +531,7 @@ enum DownloadError {
     #[error("{0}")]
     Message(String),
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    IoError(#[from] io::Error),
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     #[error(transparent)]
     Reqwest(#[from] ::reqwest::Error),
