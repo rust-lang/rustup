@@ -285,8 +285,7 @@ impl<'a> Download<'a> {
         };
 
         // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
-        download(
-            self.url,
+        self.execute(
             resume_from,
             &|event| {
                 if let Event::DownloadDataReceived(data) = event {
@@ -308,6 +307,74 @@ impl<'a> Download<'a> {
             .context("unable to sync download to disk")?;
 
         Ok::<(), anyhow::Error>(())
+    }
+
+    async fn execute(
+        &self,
+        resume_from: u64,
+        callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
+        client: &Client,
+    ) -> anyhow::Result<()> {
+        // Short-circuit reqwest for the "file:" URL scheme
+        // The file scheme is mostly for use by tests to mock the dist server
+        let url = self.url;
+        if url.scheme() == "file" {
+            let src = url
+                .to_file_path()
+                .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
+            if !src.is_file() {
+                // Because some of rustup's logic depends on checking
+                // the error when a downloaded file doesn't exist, make
+                // the file case return the same error value as the
+                // network case.
+                return Err(anyhow!(DownloadError::FileNotFound));
+            }
+
+            let mut f = fs::File::open(src).context("unable to open downloaded file")?;
+            Seek::seek(&mut f, SeekFrom::Start(resume_from))?;
+
+            let mut buffer = vec![0u8; 0x10000];
+            loop {
+                let bytes_read = Read::read(&mut f, &mut buffer)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
+            }
+
+            return Ok(());
+        }
+
+        let mut req = client.get(url.as_str());
+        if resume_from != 0 {
+            req = req.header(header::RANGE, format!("bytes={resume_from}-"));
+        }
+        let res = req
+            .send()
+            .await
+            .map_err(DownloadError::Reqwest)
+            .context("error downloading file")?;
+
+        // If a download is being resumed, we expect a 206 response;
+        // otherwise, if the server ignored the range header,
+        // an error is thrown preemptively to avoid corruption.
+        let status = res.status().into();
+        match (resume_from > 0, status) {
+            (true, 206) | (false, 200..=299) => {}
+            _ => return Err(DownloadError::HttpStatus(u32::from(status)).into()),
+        }
+
+        if let Some(len) = res.content_length() {
+            let len = len + resume_from;
+            callback(Event::DownloadContentLengthReceived(len))?;
+        }
+
+        let mut stream = res.bytes_stream();
+        while let Some(item) = stream.next().await {
+            let bytes = item.map_err(DownloadError::Reqwest)?;
+            callback(Event::DownloadDataReceived(&bytes))?;
+        }
+        Ok(())
     }
 }
 
@@ -350,73 +417,6 @@ enum Event<'a> {
 }
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> anyhow::Result<()>;
-
-async fn download(
-    url: &Url,
-    resume_from: u64,
-    callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
-    client: &Client,
-) -> anyhow::Result<()> {
-    // Short-circuit reqwest for the "file:" URL scheme
-    // The file scheme is mostly for use by tests to mock the dist server
-    if url.scheme() == "file" {
-        let src = url
-            .to_file_path()
-            .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
-        if !src.is_file() {
-            // Because some of rustup's logic depends on checking
-            // the error when a downloaded file doesn't exist, make
-            // the file case return the same error value as the
-            // network case.
-            return Err(anyhow!(DownloadError::FileNotFound));
-        }
-
-        let mut f = fs::File::open(src).context("unable to open downloaded file")?;
-        Seek::seek(&mut f, SeekFrom::Start(resume_from))?;
-
-        let mut buffer = vec![0u8; 0x10000];
-        loop {
-            let bytes_read = Read::read(&mut f, &mut buffer)?;
-            if bytes_read == 0 {
-                break;
-            }
-            callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-        }
-
-        return Ok(());
-    }
-
-    let mut req = client.get(url.as_str());
-    if resume_from != 0 {
-        req = req.header(header::RANGE, format!("bytes={resume_from}-"));
-    }
-    let res = req
-        .send()
-        .await
-        .map_err(DownloadError::Reqwest)
-        .context("error downloading file")?;
-
-    // If a download is being resumed, we expect a 206 response;
-    // otherwise, if the server ignored the range header,
-    // an error is thrown preemptively to avoid corruption.
-    let status = res.status().into();
-    match (resume_from > 0, status) {
-        (true, 206) | (false, 200..=299) => {}
-        _ => return Err(DownloadError::HttpStatus(u32::from(status)).into()),
-    }
-
-    if let Some(len) = res.content_length() {
-        let len = len + resume_from;
-        callback(Event::DownloadContentLengthReceived(len))?;
-    }
-
-    let mut stream = res.bytes_stream();
-    while let Some(item) = stream.next().await {
-        let bytes = item.map_err(DownloadError::Reqwest)?;
-        callback(Event::DownloadDataReceived(&bytes))?;
-    }
-    Ok(())
-}
 
 fn client_generic() -> ClientBuilder {
     Client::builder()
