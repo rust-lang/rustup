@@ -30,13 +30,13 @@ mod reqwest {
     use url::Url;
 
     use super::{scrub_env, serve_file, tmp_dir, write_file};
-    use crate::download::{Backend, Event};
+    use crate::download::{Event, Tls};
 
     #[cfg(feature = "reqwest-rustls-tls")]
-    const DOWNLOAD_BACKEND: Backend = Backend::Rustls;
+    const DOWNLOAD_BACKEND: Tls = Tls::Rustls;
 
     #[cfg(all(not(feature = "reqwest-rustls-tls"), feature = "reqwest-native-tls"))]
-    const DOWNLOAD_BACKEND: Backend = Backend::NativeTls;
+    const DOWNLOAD_BACKEND: Tls = Tls::NativeTls;
 
     // Tests for correctly retrieving the proxy (host, port) tuple from $https_proxy
     #[tokio::test]
