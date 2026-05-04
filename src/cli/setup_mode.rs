@@ -130,6 +130,6 @@ pub async fn main(
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    let mut cfg = Cfg::from_env(current_dir, quiet, true, process)?;
+    let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
     self_update::install(no_prompt, opts, &mut cfg).await
 }
