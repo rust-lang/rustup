@@ -1143,21 +1143,6 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         .map(|atar| (&atar.0, &atar.1))
         .unzip();
 
-    let active_toolchain_targets = match active_toolchain_name {
-        Some(ToolchainName::Official(desc)) => DistributableToolchain::new(cfg, desc.clone())?
-            .components()?
-            .into_iter()
-            .filter_map(|c| {
-                (c.installed && c.component.short_name() == "rust-std")
-                    .then(|| c.component.target.expect("rust-std should have a target"))
-            })
-            .collect(),
-        Some(ToolchainName::Custom(name)) => {
-            Toolchain::new(cfg, LocalToolchainName::Named(name.into()))?.installed_targets()?
-        }
-        None => Vec::new(),
-    };
-
     // show installed toolchains
     print_header(&mut t, "installed toolchains")?;
 
@@ -1214,6 +1199,20 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
 
     // show installed targets for the active toolchain
     writeln!(t.lock(), "installed targets:")?;
+
+    let active_toolchain_targets = match active_toolchain_name {
+        ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone())?
+            .components()?
+            .into_iter()
+            .filter_map(|c| {
+                (c.installed && c.component.short_name() == "rust-std")
+                    .then(|| c.component.target.expect("rust-std should have a target"))
+            })
+            .collect(),
+        ToolchainName::Custom(name) => {
+            Toolchain::new(cfg, LocalToolchainName::Named(name.into()))?.installed_targets()?
+        }
+    };
 
     for target in active_toolchain_targets {
         writeln!(t.lock(), "  {target}")?;
