@@ -1218,14 +1218,21 @@ async fn show_toolchain_toolchain_file_override_not_installed() {
 Default host: [HOST_TUPLE]
 rustup home:  [RUSTUP_DIR]
 
+installed toolchains
+--------------------
+stable-[HOST_TUPLE] (default)
+
+active toolchain
+----------------
+name: nightly-[HOST_TUPLE]
+active because: overridden by '[TOOLCHAIN_FILE]'
 
 "#]])
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TUPLE]' is not installed
-help: run `rustup toolchain install` to install it
+info: the active toolchain `nightly-[HOST_TUPLE]` is not installed
 
 "#]])
-        .is_err();
+        .is_ok();
 }
 
 #[tokio::test]
