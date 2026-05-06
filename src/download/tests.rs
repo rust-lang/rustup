@@ -117,7 +117,7 @@ mod reqwest {
         OPTIONS
             .start(&from_url, &target_path)
             .with_resume()
-            .download_to_path()
+            .download()
             .await
             .expect("Test download failed");
 
@@ -137,7 +137,7 @@ mod reqwest {
         OPTIONS
             .start(&from_url, &target_path)
             .with_resume()
-            .download_to_path()
+            .download()
             .await
             .expect_err("download should fail if server ignores range");
 
@@ -161,7 +161,7 @@ mod reqwest {
         }
         .start(&from_url, &target_path)
         .with_resume()
-        .download_to_path()
+        .download()
         .await
         .expect_err("download should fail with a connect error");
 

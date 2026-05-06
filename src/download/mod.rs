@@ -130,18 +130,26 @@ impl<'a> Download<'a> {
     pub(crate) async fn download(&mut self) -> anyhow::Result<()> {
         debug!(url = %self.url, "downloading file");
 
-        let res = self.download_to_path().await;
+        let Err(err) = self.download_impl().await else {
+            if let Some(status) = self.status {
+                status.finished();
+            }
+            return Ok(());
+        };
 
-        // The notification should only be sent if the download was successful (i.e. didn't timeout)
         if let Some(status) = self.status {
-            match &res {
-                Ok(_) => status.finished(),
-                Err(_) => status.failed(),
-            };
+            status.failed();
         }
 
-        let Err(e) = res else {
-            return Ok(());
+        // TODO: Currently, we only refrain from removing the cached download
+        // if there was a network failure from the client side.
+        // It may be worth looking for other cases where removal is also not desired.
+        let e = if !(self.resume && is_network_failure(&err))
+            && let Err(file_err) = remove_file(self.path).context("cleaning up cached downloads")
+        {
+            file_err.context(err)
+        } else {
+            err
         };
 
         if e.downcast_ref::<io::Error>().is_some() {
@@ -169,26 +177,6 @@ impl<'a> Download<'a> {
                 }
             }
         })
-    }
-
-    async fn download_to_path(&mut self) -> anyhow::Result<()> {
-        let Err(err) = self.download_impl().await else {
-            return Ok(());
-        };
-
-        // TODO: Currently, we only refrain from removing the cached download
-        // if there was a network failure from the client side.
-        // It may be worth looking for other cases where removal is also not desired.
-        Err(
-            if !(self.resume && is_network_failure(&err))
-                && let Err(file_err) =
-                    remove_file(self.path).context("cleaning up cached downloads")
-            {
-                file_err.context(err)
-            } else {
-                err
-            },
-        )
     }
 
     async fn download_impl(&mut self) -> anyhow::Result<()> {
