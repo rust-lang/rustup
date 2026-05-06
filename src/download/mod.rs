@@ -224,7 +224,7 @@ impl<'a> Download<'a> {
     }
 
     async fn download_impl(&self, callback: Option<DownloadCallback<'_>>) -> anyhow::Result<()> {
-        let (file, resume_from) = if self.resume {
+        let (mut file, resume_from) = if self.resume {
             // TODO: blocking call
             let possible_partial = OpenOptions::new().read(true).open(self.path);
 
@@ -275,7 +275,6 @@ impl<'a> Download<'a> {
             )
         };
 
-        let file = RefCell::new(file);
         let client = match self.options.tls {
             #[cfg(feature = "reqwest-rustls-tls")]
             Tls::Rustls => rustls_client(self.options.timeout)?,
@@ -284,25 +283,10 @@ impl<'a> Download<'a> {
         };
 
         // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
-        self.execute(
-            resume_from,
-            &|event| {
-                if let Event::DownloadDataReceived(data) = event {
-                    file.borrow_mut()
-                        .write_all(data)
-                        .context("unable to write download to disk")?;
-                }
-                match callback {
-                    Some(cb) => cb(event),
-                    None => Ok(()),
-                }
-            },
-            client,
-        )
-        .await?;
+        self.execute(&mut file, resume_from, callback, client)
+            .await?;
 
-        file.borrow_mut()
-            .sync_data()
+        file.sync_data()
             .context("unable to sync download to disk")?;
 
         Ok::<(), anyhow::Error>(())
@@ -310,8 +294,9 @@ impl<'a> Download<'a> {
 
     async fn execute(
         &self,
+        file: &mut fs::File,
         resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> anyhow::Result<()>,
+        callback: Option<&dyn Fn(Event<'_>) -> anyhow::Result<()>>,
         client: &Client,
     ) -> anyhow::Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
@@ -338,7 +323,12 @@ impl<'a> Download<'a> {
                 if bytes_read == 0 {
                     break;
                 }
-                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
+
+                file.write_all(&buffer[0..bytes_read])
+                    .context("unable to write download to disk")?;
+                if let Some(callback) = callback {
+                    callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
+                }
             }
 
             return Ok(());
@@ -365,13 +355,19 @@ impl<'a> Download<'a> {
 
         if let Some(len) = res.content_length() {
             let len = len + resume_from;
-            callback(Event::DownloadContentLengthReceived(len))?;
+            if let Some(callback) = callback {
+                callback(Event::DownloadContentLengthReceived(len))?;
+            }
         }
 
         let mut stream = res.bytes_stream();
         while let Some(item) = stream.next().await {
             let bytes = item.map_err(DownloadError::Reqwest)?;
-            callback(Event::DownloadDataReceived(&bytes))?;
+            file.write_all(&bytes)
+                .context("unable to write download to disk")?;
+            if let Some(callback) = callback {
+                callback(Event::DownloadDataReceived(&bytes))?;
+            }
         }
         Ok(())
     }
