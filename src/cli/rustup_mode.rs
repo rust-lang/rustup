@@ -1202,10 +1202,11 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     };
 
+    writeln!(t.lock(), "name: {active_toolchain_name}")?;
+    writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
+
     let active_toolchain =
         Toolchain::with_source(cfg, active_toolchain_name.clone().into(), &active_source)?;
-    writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-    writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
     if verbose {
         writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
         writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
