@@ -36,7 +36,7 @@ struct RustupInit {
     quiet: bool,
 
     /// Disable confirmation prompt
-    #[arg(short = 'y')]
+    #[arg(short = 'y', long = "yes")]
     no_prompt: bool,
 
     /// Choose a default host tuple
