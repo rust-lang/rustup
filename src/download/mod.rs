@@ -128,7 +128,19 @@ impl<'a> Download<'a> {
     }
 
     pub(crate) async fn download(&mut self) -> anyhow::Result<()> {
-        match self.download_file_().await {
+        debug!(url = %self.url, "downloading file");
+
+        let res = self.download_to_path().await;
+
+        // The notification should only be sent if the download was successful (i.e. didn't timeout)
+        if let Some(status) = self.status {
+            match &res {
+                Ok(_) => status.finished(),
+                Err(_) => status.failed(),
+            };
+        }
+
+        match res {
             Ok(_) => Ok(()),
             Err(e) => {
                 if e.downcast_ref::<io::Error>().is_some() {
@@ -157,24 +169,6 @@ impl<'a> Download<'a> {
                 })
             }
         }
-    }
-
-    async fn download_file_(&mut self) -> anyhow::Result<()> {
-        debug!(url = %self.url, "downloading file");
-
-        // Download the file
-
-        let res = self.download_to_path().await;
-
-        // The notification should only be sent if the download was successful (i.e. didn't timeout)
-        if let Some(status) = self.status {
-            match &res {
-                Ok(_) => status.finished(),
-                Err(_) => status.failed(),
-            };
-        }
-
-        res
     }
 
     async fn download_to_path(&mut self) -> anyhow::Result<()> {
