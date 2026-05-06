@@ -136,7 +136,6 @@ mod reqwest {
 
         let from_url = format!("http://{addr}").parse().unwrap();
 
-        let callback_len = Mutex::new(None);
         let received_in_callback = Mutex::new(Vec::new());
 
         OPTIONS
@@ -144,11 +143,6 @@ mod reqwest {
             .with_resume()
             .download_to_path(Some(&|msg| {
                 match msg {
-                    Event::DownloadContentLengthReceived(len) => {
-                        let mut flag = callback_len.lock().unwrap();
-                        assert!(flag.is_none());
-                        *flag = Some(len);
-                    }
                     Event::DownloadDataReceived(data) => {
                         for b in data.iter() {
                             received_in_callback.lock().unwrap().push(*b);
@@ -161,7 +155,6 @@ mod reqwest {
             .await
             .expect("Test download failed");
 
-        assert_eq!(*callback_len.lock().unwrap(), Some(5));
         let observed_bytes = received_in_callback.into_inner().unwrap();
         assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");

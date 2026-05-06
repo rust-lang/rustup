@@ -173,11 +173,6 @@ impl<'a> Download<'a> {
             }
 
             match msg {
-                Event::DownloadContentLengthReceived(len) => {
-                    if let Some(status) = self.status {
-                        status.received_length(len)
-                    }
-                }
                 Event::DownloadDataReceived(data) => {
                     if let Some(status) = self.status {
                         status.received_data(data.len())
@@ -355,8 +350,8 @@ impl<'a> Download<'a> {
 
         if let Some(len) = res.content_length() {
             let len = len + resume_from;
-            if let Some(callback) = callback {
-                callback(Event::DownloadContentLengthReceived(len))?;
+            if let Some(status) = self.status {
+                status.received_length(len);
             }
         }
 
@@ -404,8 +399,6 @@ enum Tls {
 
 #[derive(Debug, Copy, Clone)]
 enum Event<'a> {
-    /// Received the Content-Length of the to-be downloaded data.
-    DownloadContentLengthReceived(u64),
     /// Received some data.
     DownloadDataReceived(&'a [u8]),
 }
