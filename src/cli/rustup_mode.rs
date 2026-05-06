@@ -1108,20 +1108,17 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
+    let mut t = cfg.process.stdout();
+
     // Print host tuple
-    {
-        let t = cfg.process.stdout();
-        let mut t = t.lock();
-        writeln!(
-            t,
-            "{HEADER}Default host: {HEADER:#}{}",
-            cfg.default_host_tuple()?
-        )?;
-    }
+    writeln!(
+        t.lock(),
+        "{HEADER}Default host: {HEADER:#}{}",
+        cfg.default_host_tuple()?
+    )?;
 
     // Print rustup home directory
     {
-        let t = cfg.process.stdout();
         let mut t = t.lock();
         writeln!(
             t,
@@ -1162,73 +1159,64 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     };
 
     // show installed toolchains
-    {
-        let mut t = cfg.process.stdout();
+    print_header(&mut t, "installed toolchains")?;
 
-        print_header(&mut t, "installed toolchains")?;
+    let default_toolchain_name = cfg.get_default()?;
+    let last_index = installed_toolchains.len().wrapping_sub(1);
+    for (n, toolchain_name) in installed_toolchains.into_iter().enumerate() {
+        let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain_name);
+        let is_active_toolchain = active_toolchain_name == Some(&toolchain_name);
 
-        let default_toolchain_name = cfg.get_default()?;
-        let last_index = installed_toolchains.len().wrapping_sub(1);
-        for (n, toolchain_name) in installed_toolchains.into_iter().enumerate() {
-            let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain_name);
-            let is_active_toolchain = active_toolchain_name == Some(&toolchain_name);
+        let status_str = match (is_active_toolchain, is_default_toolchain) {
+            (true, true) => " (active, default)",
+            (true, false) => " (active)",
+            (false, true) => " (default)",
+            (false, false) => "",
+        };
 
-            let status_str = match (is_active_toolchain, is_default_toolchain) {
-                (true, true) => " (active, default)",
-                (true, false) => " (active)",
-                (false, true) => " (default)",
-                (false, false) => "",
-            };
+        let mut t = t.lock();
 
-            writeln!(t.lock(), "{toolchain_name}{CONTEXT}{status_str}{CONTEXT:#}")?;
+        writeln!(t, "{toolchain_name}{CONTEXT}{status_str}{CONTEXT:#}")?;
 
-            if verbose {
-                let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
-                writeln!(
-                    cfg.process.stdout().lock(),
-                    "  {}\n  path: {}",
-                    toolchain.rustc_version(),
-                    toolchain.path().display()
-                )?;
-                if n != last_index {
-                    writeln!(cfg.process.stdout().lock())?;
-                }
+        if verbose {
+            let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
+            writeln!(
+                t,
+                "  {}\n  path: {}",
+                toolchain.rustc_version(),
+                toolchain.path().display()
+            )?;
+            if n != last_index {
+                writeln!(t)?;
             }
         }
     }
 
     // show active toolchain
-    {
-        let mut t = cfg.process.stdout();
+    writeln!(t.lock())?;
 
-        writeln!(t.lock())?;
+    print_header(&mut t, "active toolchain")?;
 
-        print_header(&mut t, "active toolchain")?;
-
-        match active_toolchain_and_source {
-            Some((active_toolchain_name, active_source)) => {
-                let active_toolchain = Toolchain::with_source(
-                    cfg,
-                    active_toolchain_name.clone().into(),
-                    &active_source,
-                )?;
-                writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-                writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
-                if verbose {
-                    writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
-                    writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
-                }
-
-                // show installed targets for the active toolchain
-                writeln!(t.lock(), "installed targets:")?;
-
-                for target in active_toolchain_targets {
-                    writeln!(t.lock(), "  {target}")?;
-                }
+    match active_toolchain_and_source {
+        Some((active_toolchain_name, active_source)) => {
+            let active_toolchain =
+                Toolchain::with_source(cfg, active_toolchain_name.clone().into(), &active_source)?;
+            writeln!(t.lock(), "name: {}", active_toolchain.name())?;
+            writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
+            if verbose {
+                writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
+                writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
             }
-            None => {
-                writeln!(t.lock(), "no active toolchain")?;
+
+            // show installed targets for the active toolchain
+            writeln!(t.lock(), "installed targets:")?;
+
+            for target in active_toolchain_targets {
+                writeln!(t.lock(), "  {target}")?;
             }
+        }
+        None => {
+            writeln!(t.lock(), "no active toolchain")?;
         }
     }
 
