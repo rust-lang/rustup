@@ -1,6 +1,5 @@
 //! Easy file downloading
 
-use std::cell::RefCell;
 use std::fs::{self, OpenOptions, remove_file};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::num::NonZero;
@@ -106,7 +105,7 @@ impl TryFrom<&Process> for DownloadOptions {
 pub struct Download<'a> {
     url: &'a Url,
     path: &'a Path,
-    hasher: Option<RefCell<&'a mut Sha256>>,
+    hasher: Option<&'a mut Sha256>,
     status: Option<&'a DownloadStatus>,
     resume: bool,
     options: DownloadOptions,
@@ -114,7 +113,7 @@ pub struct Download<'a> {
 
 impl<'a> Download<'a> {
     pub(crate) fn with_hasher(mut self, hasher: &'a mut Sha256) -> Self {
-        self.hasher = Some(RefCell::new(hasher));
+        self.hasher = Some(hasher);
         self
     }
 
@@ -128,7 +127,7 @@ impl<'a> Download<'a> {
         self
     }
 
-    pub(crate) async fn download(&self) -> anyhow::Result<()> {
+    pub(crate) async fn download(&mut self) -> anyhow::Result<()> {
         match self.download_file_().await {
             Ok(_) => Ok(()),
             Err(e) => {
@@ -160,7 +159,7 @@ impl<'a> Download<'a> {
         }
     }
 
-    async fn download_file_(&self) -> anyhow::Result<()> {
+    async fn download_file_(&mut self) -> anyhow::Result<()> {
         debug!(url = %self.url, "downloading file");
 
         // Download the file
@@ -178,7 +177,7 @@ impl<'a> Download<'a> {
         res
     }
 
-    async fn download_to_path(&self) -> anyhow::Result<()> {
+    async fn download_to_path(&mut self) -> anyhow::Result<()> {
         let Err(err) = self.download_impl().await else {
             return Ok(());
         };
@@ -198,7 +197,7 @@ impl<'a> Download<'a> {
         )
     }
 
-    async fn download_impl(&self) -> anyhow::Result<()> {
+    async fn download_impl(&mut self) -> anyhow::Result<()> {
         let (mut file, resume_from) = if self.resume {
             // TODO: blocking call
             let possible_partial = OpenOptions::new().read(true).open(self.path);
@@ -267,7 +266,7 @@ impl<'a> Download<'a> {
     }
 
     async fn execute(
-        &self,
+        &mut self,
         file: &mut fs::File,
         resume_from: u64,
         client: &Client,
@@ -341,9 +340,9 @@ impl<'a> Download<'a> {
         Ok(())
     }
 
-    fn data_received(&self, data: &[u8]) {
-        if let Some(hasher) = &self.hasher {
-            hasher.borrow_mut().update(data);
+    fn data_received(&mut self, data: &[u8]) {
+        if let Some(hasher) = &mut self.hasher {
+            hasher.update(data);
         }
         if let Some(status) = self.status {
             status.received_data(data.len());
