@@ -20,7 +20,6 @@ mod reqwest {
     use std::env::set_var;
     use std::error::Error;
     use std::net::TcpListener;
-    use std::sync::Mutex;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::thread;
     use std::time::Duration;
@@ -30,7 +29,7 @@ mod reqwest {
     use url::Url;
 
     use super::{scrub_env, serve_file, tmp_dir, write_file};
-    use crate::download::{DownloadOptions, Event, Tls};
+    use crate::download::{DownloadOptions, Tls};
 
     const OPTIONS: DownloadOptions = DownloadOptions {
         tls: DOWNLOAD_BACKEND,
@@ -118,45 +117,10 @@ mod reqwest {
         OPTIONS
             .start(&from_url, &target_path)
             .with_resume()
-            .download_to_path(None)
+            .download_to_path()
             .await
             .expect("Test download failed");
 
-        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
-    }
-
-    #[tokio::test]
-    async fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
-        let _guard = scrub_env().await;
-        let tmpdir = tmp_dir();
-        let target_path = tmpdir.path().join("downloaded");
-        write_file(&target_path, "123");
-
-        let addr = serve_file(b"xxx45".to_vec(), true);
-
-        let from_url = format!("http://{addr}").parse().unwrap();
-
-        let received_in_callback = Mutex::new(Vec::new());
-
-        OPTIONS
-            .start(&from_url, &target_path)
-            .with_resume()
-            .download_to_path(Some(&|msg| {
-                match msg {
-                    Event::DownloadDataReceived(data) => {
-                        for b in data.iter() {
-                            received_in_callback.lock().unwrap().push(*b);
-                        }
-                    }
-                }
-
-                Ok(())
-            }))
-            .await
-            .expect("Test download failed");
-
-        let observed_bytes = received_in_callback.into_inner().unwrap();
-        assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
     }
 
@@ -173,7 +137,7 @@ mod reqwest {
         OPTIONS
             .start(&from_url, &target_path)
             .with_resume()
-            .download_to_path(None)
+            .download_to_path()
             .await
             .expect_err("download should fail if server ignores range");
 
@@ -197,7 +161,7 @@ mod reqwest {
         }
         .start(&from_url, &target_path)
         .with_resume()
-        .download_to_path(None)
+        .download_to_path()
         .await
         .expect_err("download should fail with a connect error");
 

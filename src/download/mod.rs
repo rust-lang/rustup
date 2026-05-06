@@ -163,29 +163,9 @@ impl<'a> Download<'a> {
     async fn download_file_(&self) -> anyhow::Result<()> {
         debug!(url = %self.url, "downloading file");
 
-        // This callback will write the download to disk and optionally
-        // hash the contents, then forward the notification up the stack
-        let callback: &dyn Fn(Event<'_>) -> anyhow::Result<()> = &|msg| {
-            if let Event::DownloadDataReceived(data) = msg
-                && let Some(h) = self.hasher.as_ref()
-            {
-                h.borrow_mut().update(data);
-            }
-
-            match msg {
-                Event::DownloadDataReceived(data) => {
-                    if let Some(status) = self.status {
-                        status.received_data(data.len())
-                    }
-                }
-            }
-
-            Ok(())
-        };
-
         // Download the file
 
-        let res = self.download_to_path(Some(callback)).await;
+        let res = self.download_to_path().await;
 
         // The notification should only be sent if the download was successful (i.e. didn't timeout)
         if let Some(status) = self.status {
@@ -198,8 +178,8 @@ impl<'a> Download<'a> {
         res
     }
 
-    async fn download_to_path(&self, callback: Option<DownloadCallback<'_>>) -> anyhow::Result<()> {
-        let Err(err) = self.download_impl(callback).await else {
+    async fn download_to_path(&self) -> anyhow::Result<()> {
+        let Err(err) = self.download_impl().await else {
             return Ok(());
         };
 
@@ -218,13 +198,13 @@ impl<'a> Download<'a> {
         )
     }
 
-    async fn download_impl(&self, callback: Option<DownloadCallback<'_>>) -> anyhow::Result<()> {
+    async fn download_impl(&self) -> anyhow::Result<()> {
         let (mut file, resume_from) = if self.resume {
             // TODO: blocking call
             let possible_partial = OpenOptions::new().read(true).open(self.path);
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
-                if let Some(cb) = callback {
+                if self.status.is_some() || self.hasher.is_some() {
                     debug!("resuming partial download");
 
                     let mut buf = vec![0; 32768];
@@ -235,7 +215,7 @@ impl<'a> Download<'a> {
                         if n == 0 {
                             break;
                         }
-                        cb(Event::DownloadDataReceived(&buf[..n]))?;
+                        self.data_received(&buf[..n]);
                     }
 
                     downloaded_so_far
@@ -278,8 +258,7 @@ impl<'a> Download<'a> {
         };
 
         // TODO: the sync callback will stall the async runtime if IO calls block, which is OS dependent. Rearrange.
-        self.execute(&mut file, resume_from, callback, client)
-            .await?;
+        self.execute(&mut file, resume_from, client).await?;
 
         file.sync_data()
             .context("unable to sync download to disk")?;
@@ -291,7 +270,6 @@ impl<'a> Download<'a> {
         &self,
         file: &mut fs::File,
         resume_from: u64,
-        callback: Option<&dyn Fn(Event<'_>) -> anyhow::Result<()>>,
         client: &Client,
     ) -> anyhow::Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
@@ -321,9 +299,7 @@ impl<'a> Download<'a> {
 
                 file.write_all(&buffer[0..bytes_read])
                     .context("unable to write download to disk")?;
-                if let Some(callback) = callback {
-                    callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-                }
+                self.data_received(&buffer[0..bytes_read]);
             }
 
             return Ok(());
@@ -360,11 +336,18 @@ impl<'a> Download<'a> {
             let bytes = item.map_err(DownloadError::Reqwest)?;
             file.write_all(&bytes)
                 .context("unable to write download to disk")?;
-            if let Some(callback) = callback {
-                callback(Event::DownloadDataReceived(&bytes))?;
-            }
+            self.data_received(&bytes);
         }
         Ok(())
+    }
+
+    fn data_received(&self, data: &[u8]) {
+        if let Some(hasher) = &self.hasher {
+            hasher.borrow_mut().update(data);
+        }
+        if let Some(status) = self.status {
+            status.received_data(data.len());
+        }
     }
 }
 
@@ -396,14 +379,6 @@ enum Tls {
     #[cfg(feature = "reqwest-native-tls")]
     NativeTls,
 }
-
-#[derive(Debug, Copy, Clone)]
-enum Event<'a> {
-    /// Received some data.
-    DownloadDataReceived(&'a [u8]),
-}
-
-type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> anyhow::Result<()>;
 
 fn client_generic() -> ClientBuilder {
     Client::builder()
