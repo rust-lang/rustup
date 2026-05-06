@@ -44,7 +44,7 @@ Options:
           Set log level to 'DEBUG' if 'RUSTUP_LOG' is unset
   -q, --quiet
           Disable progress output, set log level to 'WARN' if 'RUSTUP_LOG' is unset
-  -y
+  -y, --yes
           Disable confirmation prompt
       --default-host <DEFAULT_HOST>
           Choose a default host tuple
@@ -133,6 +133,11 @@ main() {
                 ;;
             --quiet)
                 RUSTUP_QUIET=yes
+                ;;
+            --yes)
+                # user wants to skip the prompt --
+                # we don't need /dev/tty
+                need_tty=no
                 ;;
             *)
                 OPTIND=1

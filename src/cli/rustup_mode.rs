@@ -556,7 +556,7 @@ enum SelfSubcmd {
     /// Uninstall rustup
     Uninstall {
         /// Disable confirmation prompt
-        #[arg(short = 'y')]
+        #[arg(short = 'y', long = "yes")]
         no_prompt: bool,
 
         /// Do not clean up the `PATH` environment variable
