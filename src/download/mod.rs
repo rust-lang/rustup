@@ -140,35 +140,35 @@ impl<'a> Download<'a> {
             };
         }
 
-        match res {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                if e.downcast_ref::<io::Error>().is_some() {
-                    return Err(e);
-                }
-                let is_client_error = match e.downcast_ref::<DownloadError>() {
-                    // Specifically treat the bad partial range error as not our
-                    // fault in case it was something odd which happened.
-                    Some(DownloadError::HttpStatus(416)) => false,
-                    Some(DownloadError::HttpStatus(400..=499))
-                    | Some(DownloadError::FileNotFound) => true,
-                    _ => false,
-                };
-                Err(e).with_context(|| {
-                    if is_client_error {
-                        RustupError::DownloadNotExists {
-                            url: self.url.clone(),
-                            path: self.path.to_path_buf(),
-                        }
-                    } else {
-                        RustupError::DownloadingFile {
-                            url: self.url.clone(),
-                            path: self.path.to_path_buf(),
-                        }
-                    }
-                })
-            }
+        let Err(e) = res else {
+            return Ok(());
+        };
+
+        if e.downcast_ref::<io::Error>().is_some() {
+            return Err(e);
         }
+
+        let is_client_error = match e.downcast_ref::<DownloadError>() {
+            // Specifically treat the bad partial range error as not our
+            // fault in case it was something odd which happened.
+            Some(DownloadError::HttpStatus(416)) => false,
+            Some(DownloadError::HttpStatus(400..=499)) | Some(DownloadError::FileNotFound) => true,
+            _ => false,
+        };
+
+        Err(e).with_context(|| {
+            if is_client_error {
+                RustupError::DownloadNotExists {
+                    url: self.url.clone(),
+                    path: self.path.to_path_buf(),
+                }
+            } else {
+                RustupError::DownloadingFile {
+                    url: self.url.clone(),
+                    path: self.path.to_path_buf(),
+                }
+            }
+        })
     }
 
     async fn download_to_path(&mut self) -> anyhow::Result<()> {
