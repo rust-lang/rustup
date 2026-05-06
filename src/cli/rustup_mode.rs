@@ -1197,27 +1197,25 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
 
     print_header(&mut t, "active toolchain")?;
 
-    match active_toolchain_and_source {
-        Some((active_toolchain_name, active_source)) => {
-            let active_toolchain =
-                Toolchain::with_source(cfg, active_toolchain_name.clone().into(), &active_source)?;
-            writeln!(t.lock(), "name: {}", active_toolchain.name())?;
-            writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
-            if verbose {
-                writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
-                writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
-            }
+    let Some((active_toolchain_name, active_source)) = active_toolchain_and_source else {
+        writeln!(t.lock(), "no active toolchain")?;
+        return Ok(ExitCode::SUCCESS);
+    };
 
-            // show installed targets for the active toolchain
-            writeln!(t.lock(), "installed targets:")?;
+    let active_toolchain =
+        Toolchain::with_source(cfg, active_toolchain_name.clone().into(), &active_source)?;
+    writeln!(t.lock(), "name: {}", active_toolchain.name())?;
+    writeln!(t.lock(), "active because: {}", active_source.to_reason())?;
+    if verbose {
+        writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
+        writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
+    }
 
-            for target in active_toolchain_targets {
-                writeln!(t.lock(), "  {target}")?;
-            }
-        }
-        None => {
-            writeln!(t.lock(), "no active toolchain")?;
-        }
+    // show installed targets for the active toolchain
+    writeln!(t.lock(), "installed targets:")?;
+
+    for target in active_toolchain_targets {
+        writeln!(t.lock(), "  {target}")?;
     }
 
     fn print_header(t: &mut ColorableTerminal, text: &str) -> Result<(), Error> {
