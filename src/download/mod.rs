@@ -183,7 +183,6 @@ impl<'a> Download<'a> {
                         status.received_data(data.len())
                     }
                 }
-                Event::ResumingPartialDownload => debug!("resuming partial download"),
             }
 
             Ok(())
@@ -231,7 +230,7 @@ impl<'a> Download<'a> {
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
                 if let Some(cb) = callback {
-                    cb(Event::ResumingPartialDownload)?;
+                    debug!("resuming partial download");
 
                     let mut buf = vec![0; 32768];
                     let mut downloaded_so_far = 0;
@@ -409,7 +408,6 @@ enum Tls {
 
 #[derive(Debug, Copy, Clone)]
 enum Event<'a> {
-    ResumingPartialDownload,
     /// Received the Content-Length of the to-be downloaded data.
     DownloadContentLengthReceived(u64),
     /// Received some data.
