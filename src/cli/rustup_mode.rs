@@ -747,7 +747,7 @@ pub async fn main(
             SelfSubcmd::Uninstall {
                 no_prompt,
                 no_modify_path,
-            } => self_update::uninstall(no_prompt, no_modify_path, process),
+            } => self_update::uninstall(cfg, no_prompt, no_modify_path, process),
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
