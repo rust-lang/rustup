@@ -82,7 +82,7 @@ impl<'a> DownloadCfg<'a> {
         let partial_file_existed = partial_file_path.exists();
 
         let mut hasher = Sha256::new();
-        let download = DownloadOptions::try_from(self.process)?
+        let mut download = DownloadOptions::try_from(self.process)?
             .start(url, &partial_file_path)
             .with_hasher(&mut hasher)
             .with_status(status)
@@ -268,7 +268,7 @@ impl<'a> DownloadCfg<'a> {
             .start(&url, &file)
             .with_hasher(&mut hasher);
 
-        let download = match status {
+        let mut download = match status {
             Some(status) => download.with_status(status),
             None => download,
         };
