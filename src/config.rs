@@ -913,6 +913,8 @@ impl<'a> Cfg<'a> {
         // if the supplied tuple is insufficient / bad.
         PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
+            // TODO: Support default_host_tuple in settings while keeping default_host_triple
+            // for backwards compatibility.
             s.default_host_triple = Some(host_tuple);
             Ok(())
         })
