@@ -30,7 +30,7 @@
 </tspan>
     <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Commands:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">default-host</tspan><tspan>      The triple used to identify toolchains when not specified</tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">default-host</tspan><tspan>      The tuple used to identify toolchains when not specified</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">profile</tspan><tspan>           The default components installed with a toolchain</tspan>
 </tspan>
