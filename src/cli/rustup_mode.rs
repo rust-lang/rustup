@@ -571,8 +571,8 @@ enum SelfSubcmd {
 #[derive(Debug, Subcommand)]
 #[command(arg_required_else_help = true, subcommand_required = true)]
 enum SetSubcmd {
-    /// The triple used to identify toolchains when not specified
-    DefaultHost { host_triple: String },
+    /// The tuple used to identify toolchains when not specified
+    DefaultHost { host_tuple: String },
 
     /// The default components installed with a toolchain
     Profile {
@@ -751,8 +751,8 @@ pub async fn main(
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
-            SetSubcmd::DefaultHost { host_triple } => cfg
-                .set_default_host_tuple(host_triple)
+            SetSubcmd::DefaultHost { host_tuple } => cfg
+                .set_default_host_tuple(host_tuple)
                 .map(|_| ExitCode::SUCCESS),
             SetSubcmd::Profile { profile_name } => {
                 cfg.set_profile(profile_name).map(|_| ExitCode::SUCCESS)
