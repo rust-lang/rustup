@@ -346,6 +346,7 @@ async fn scrub_env() -> tokio::sync::MutexGuard<'static, ()> {
     // mutex guard.
     unsafe {
         remove_var("http_proxy");
+        remove_var("HTTP_PROXY");
         remove_var("https_proxy");
         remove_var("HTTPS_PROXY");
         remove_var("ftp_proxy");
