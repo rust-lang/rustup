@@ -159,6 +159,8 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/powerpc64le-unknown-linux-gnu/rustup-init.sha256)
 - [powerpc64le-unknown-linux-musl](https://static.rust-lang.org/rustup/dist/powerpc64le-unknown-linux-musl/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/powerpc64le-unknown-linux-musl/rustup-init.sha256)
+- [riscv64gc-unknown-linux-musl](https://static.rust-lang.org/rustup/dist/riscv64gc-unknown-linux-musl/rustup-init)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/riscv64gc-unknown-linux-musl/rustup-init.sha256)
 - [s390x-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/s390x-unknown-linux-gnu/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/s390x-unknown-linux-gnu/rustup-init.sha256)
 - [sparcv9-sun-solaris](https://static.rust-lang.org/rustup/dist/sparcv9-sun-solaris/rustup-init)
