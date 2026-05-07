@@ -298,12 +298,10 @@ impl<'a> Cfg<'a> {
         let download_dir = rustup_dir.join("downloads");
 
         // Figure out default_host_tuple before Config is populated
-        let default_host_triple = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
+        let default_host = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
         // Environment override
         let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => {
-                Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host_triple)?)
-            }
+            Some(tc) => Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host)?),
             None => None,
         };
 
@@ -645,7 +643,7 @@ impl<'a> Cfg<'a> {
                                 toolchain_file.display()
                             )
                         })?;
-                    let default_host_triple = default_host_tuple(settings, self.process);
+                    let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
                     if let ResolvableToolchainName::Official(name) = &toolchain_name
@@ -661,7 +659,7 @@ impl<'a> Cfg<'a> {
                     }
 
                     // XXX: this awkwardness deals with settings file being locked already
-                    let toolchain_name = toolchain_name.resolve(&default_host_triple)?;
+                    let toolchain_name = toolchain_name.resolve(&default_host)?;
                     if !Toolchain::exists(self, &(&toolchain_name).into())?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
@@ -909,14 +907,13 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) fn set_default_host_tuple(&self, host_triple: String) -> Result<()> {
-        // Ensure that the provided host_triple is capable of resolving
+    pub(crate) fn set_default_host_tuple(&self, host_tuple: String) -> Result<()> {
+        // Ensure that the provided host tuple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
-        // if the supplied triple is insufficient / bad.
-        PartialToolchainDesc::from_str("stable")?
-            .resolve(&TargetTuple::new(host_triple.clone()))?;
+        // if the supplied tuple is insufficient / bad.
+        PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
-            s.default_host_triple = Some(host_triple);
+            s.default_host_triple = Some(host_tuple);
             Ok(())
         })
     }
