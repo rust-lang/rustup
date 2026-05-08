@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug, Display};
 use std::io;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -121,6 +122,30 @@ impl Display for ActiveSource {
             Self::OverrideDb(_) => "path-override",
             Self::ToolchainFile(_) => "toolchain-file",
         })
+    }
+}
+
+/// Represents the result of an operation that may ensure the installation of a certain toolchain.
+#[derive(Clone, Debug)]
+pub(crate) struct EnsureInstalled<T> {
+    pub inner: T,
+    pub status: UpdateStatus,
+}
+
+impl<T> EnsureInstalled<T> {
+    pub fn new(toolchain: T, status: UpdateStatus) -> Self {
+        Self {
+            inner: toolchain,
+            status,
+        }
+    }
+}
+
+impl<T> Deref for EnsureInstalled<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 
@@ -787,7 +812,7 @@ impl<'a> Cfg<'a> {
         profile: Option<Profile>,
         force_non_host: bool,
         verbose: bool,
-    ) -> Result<(UpdateStatus, Toolchain<'_>)> {
+    ) -> Result<EnsureInstalled<Toolchain<'_>>> {
         common::check_non_host_toolchain(
             toolchain.to_string(),
             &TargetTuple::from_host_or_build(self.process),
@@ -831,7 +856,7 @@ impl<'a> Cfg<'a> {
             }
             Err(e) => return Err(e.into()),
         };
-        Ok((status, toolchain.into()))
+        Ok(EnsureInstalled::new(toolchain.into(), status))
     }
 
     /// Get the configured default toolchain.
