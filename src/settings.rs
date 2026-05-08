@@ -224,4 +224,16 @@ profile = "default"
 
 [overrides]
 "#;
+
+    #[test]
+    fn deserialize_default_host_triple() {
+        let raw = r#"version = "12"
+default_host_triple = "stable-aarch64-apple-darwin"
+"#;
+        let settings = Settings::parse(raw).unwrap();
+        assert_eq!(
+            settings.default_host_triple,
+            Some("stable-aarch64-apple-darwin".to_owned())
+        );
+    }
 }
