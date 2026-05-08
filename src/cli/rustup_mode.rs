@@ -826,7 +826,7 @@ async fn default_(
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
-                    .0;
+                    .status;
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
