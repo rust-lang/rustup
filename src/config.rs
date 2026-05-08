@@ -913,9 +913,7 @@ impl<'a> Cfg<'a> {
         // if the supplied tuple is insufficient / bad.
         PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
-            // TODO: Support default_host_tuple in settings while keeping default_host_triple
-            // for backwards compatibility.
-            s.default_host_triple = Some(host_tuple);
+            s.default_host_tuple = Some(host_tuple);
             Ok(())
         })
     }
@@ -995,7 +993,7 @@ impl Debug for Cfg<'_> {
 }
 
 fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple {
-    s.default_host_triple
+    s.default_host_tuple
         .as_ref()
         .map(TargetTuple::new)
         .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
