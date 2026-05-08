@@ -710,11 +710,13 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
     if let Err(path) = rustc_or_cargo_exists_in_path(process) {
         warn!("It looks like you have an existing installation of Rust at:");
         warn!("{}", path);
-        warn!("It is recommended that rustup be the primary Rust installation.");
-        warn!("Otherwise you may have confusion unless you are careful with your PATH.");
-        warn!("If you are sure that you want both rustup and your already installed Rust");
-        warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
-        warn!("or pass `-y' to ignore all ignorable checks.");
+        warn!("This could mean one of the following:");
+        warn!("- You have already installed rustup: you can quit the installer right now.");
+        warn!("- You haven't installed rustup yet, but have Rust installed from elsewhere.");
+        warn!("In the latter case, rustup can coexist with and adopt your existing Rust.");
+        warn!("To adopt, please reply `yes`, or set RUSTUP_INIT_SKIP_PATH_CHECK to yes,");
+        warn!("or pass `-y` to ignore all ignorable checks, then follow the instructions at:");
+        warn!("<https://rust-lang.github.io/rustup/installation/already-installed-rust.html>");
         ignorable_error("cannot install while Rust is installed", no_prompt, process)?;
     }
     Ok(())
