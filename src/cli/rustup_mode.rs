@@ -1074,7 +1074,7 @@ async fn update(
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
     } else if ensure_active_toolchain {
         let (toolchain, source) = cfg.ensure_active_toolchain(force_non_host, true).await?;
-        info!("the active toolchain `{toolchain}` has been installed");
+        info!("the active toolchain `{}` has been installed", *toolchain);
         info!("it's active because: {}", source.to_reason());
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
     } else {
