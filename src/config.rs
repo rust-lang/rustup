@@ -717,13 +717,10 @@ impl<'a> Cfg<'a> {
         name: Option<(LocalToolchainName, ActiveSource)>,
     ) -> Result<(Toolchain<'_>, ActiveSource)> {
         match name {
-            Some((tc, source)) => {
-                let install_if_missing = self.should_auto_install()?;
-                Ok((
-                    Toolchain::from_local(tc, install_if_missing, self).await?,
-                    source,
-                ))
-            }
+            Some((tc, src)) => Ok((
+                Toolchain::from_local(tc, || self.should_auto_install(), self).await?,
+                src,
+            )),
             None => {
                 let (tc, source) = self
                     .maybe_ensure_active_toolchain(None)
