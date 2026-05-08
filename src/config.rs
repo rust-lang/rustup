@@ -542,7 +542,10 @@ impl<'a> Cfg<'a> {
         }
 
         match self.ensure_active_toolchain(true, false).await {
-            Ok(r) => Ok(Some(r)),
+            Ok(r) => {
+                let (tc, source) = r;
+                Ok(Some((tc.inner, source)))
+            }
             Err(e) => match e.downcast_ref::<RustupError>() {
                 Some(RustupError::ToolchainNotSelected(_)) => Ok(None),
                 _ => Err(e),
@@ -744,10 +747,8 @@ impl<'a> Cfg<'a> {
         match name {
             Some((tc, source)) => {
                 let install_if_missing = self.should_auto_install()?;
-                Ok((
-                    Toolchain::from_local(tc, install_if_missing, self).await?,
-                    source,
-                ))
+                let tc = Toolchain::from_local(tc, install_if_missing, self).await?;
+                Ok((tc.inner, source))
             }
             None => {
                 let (tc, source) = self
@@ -764,10 +765,10 @@ impl<'a> Cfg<'a> {
         &self,
         force_non_host: bool,
         verbose: bool,
-    ) -> Result<(LocalToolchainName, ActiveSource)> {
+    ) -> Result<(EnsureInstalled<LocalToolchainName>, ActiveSource)> {
         if let Some((override_config, source)) = self.find_override_config()? {
             let toolchain = override_config.clone().into_local_toolchain_name();
-            if let OverrideCfg::Official {
+            let status = if let OverrideCfg::Official {
                 toolchain,
                 components,
                 targets,
@@ -782,20 +783,24 @@ impl<'a> Cfg<'a> {
                     force_non_host,
                     verbose,
                 )
-                .await?;
+                .await?
+                .status
             } else {
                 Toolchain::with_source(self, toolchain.clone(), &source)?;
-            }
-            Ok((toolchain, source))
+                UpdateStatus::Unchanged
+            };
+            Ok((EnsureInstalled::new(toolchain, status), source))
         } else if let Some(toolchain) = self.get_default()? {
             let source = ActiveSource::Default;
-            if let ToolchainName::Official(desc) = &toolchain {
+            let status = if let ToolchainName::Official(desc) = &toolchain {
                 self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
-                    .await?;
+                    .await?
+                    .status
             } else {
                 Toolchain::with_source(self, toolchain.clone().into(), &source)?;
-            }
-            Ok((toolchain.into(), source))
+                UpdateStatus::Unchanged
+            };
+            Ok((EnsureInstalled::new(toolchain.into(), status), source))
         } else {
             Err(no_toolchain_error(self.process))
         }

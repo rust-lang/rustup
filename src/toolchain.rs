@@ -21,13 +21,14 @@ use wait_timeout::ChildExt;
 
 use crate::{
     RustupError,
-    config::{ActiveSource, Cfg, InstalledPath},
+    config::{ActiveSource, Cfg, EnsureInstalled, InstalledPath},
     dist::{
         DistOptions, PartialToolchainDesc, TargetTuple,
         component::{Component, Components},
         prefix::InstallPrefix,
     },
-    env_var, install,
+    env_var,
+    install::{self, UpdateStatus},
     utils::{self, raw::open_dir_following_links},
 };
 
@@ -54,15 +55,16 @@ impl<'a> Toolchain<'a> {
         name: LocalToolchainName,
         install_if_missing: bool,
         cfg: &'a Cfg<'a>,
-    ) -> anyhow::Result<Toolchain<'a>> {
+    ) -> anyhow::Result<EnsureInstalled<Toolchain<'a>>> {
         match Self::new(cfg, name) {
-            Ok(tc) => Ok(tc),
+            Ok(tc) => Ok(EnsureInstalled::new(tc, UpdateStatus::Unchanged)),
             Err(RustupError::ToolchainNotInstalled {
                 name: ToolchainName::Official(desc),
                 ..
             }) if install_if_missing => {
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
-                Ok(DistributableToolchain::install(options).await?.1.toolchain)
+                let tc = DistributableToolchain::install(options).await?.1.toolchain;
+                Ok(EnsureInstalled::new(tc, UpdateStatus::Installed))
             }
             Err(e) => Err(e.into()),
         }
