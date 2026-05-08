@@ -82,7 +82,8 @@ impl SettingsFile {
 pub struct Settings {
     pub version: MetadataVersion,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_host_triple: Option<String>,
+    #[serde(alias = "default_host_triple")]
+    pub default_host_tuple: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_toolchain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -232,7 +233,19 @@ default_host_triple = "stable-aarch64-apple-darwin"
 "#;
         let settings = Settings::parse(raw).unwrap();
         assert_eq!(
-            settings.default_host_triple,
+            settings.default_host_tuple,
+            Some("stable-aarch64-apple-darwin".to_owned())
+        );
+    }
+
+    #[test]
+    fn deserialize_default_host_tuple() {
+        let raw = r#"version = "12"
+default_host_tuple = "stable-aarch64-apple-darwin"
+"#;
+        let settings = Settings::parse(raw).unwrap();
+        assert_eq!(
+            settings.default_host_tuple,
             Some("stable-aarch64-apple-darwin".to_owned())
         );
     }
