@@ -91,9 +91,10 @@ pub(crate) fn build_source_env_lines(process: &Process) -> String {
             groups.push((src, vec![shell.name()]));
         }
     }
+    let src_width = groups.iter().map(|(src, _)| src.len()).max().unwrap_or(0);
     groups
         .into_iter()
-        .map(|(src, names)| format!("    {}  # For {}\n", src, names.join("/")))
+        .map(|(src, names)| format!(" {:<src_width$} # For {}\n", src, names.join("/")))
         .collect()
 }
 
