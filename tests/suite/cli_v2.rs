@@ -488,6 +488,9 @@ async fn remove_override_toolchain_err_handling() {
 info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading 4 components
+warn: the missing active toolchain `beta-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
 
 "#]])
         .is_ok();
@@ -521,6 +524,9 @@ async fn file_override_toolchain_err_handling() {
 info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading 4 components
+warn: the missing active toolchain `beta-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
 
 "#]])
         .is_ok();
