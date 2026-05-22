@@ -674,7 +674,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
+pub(crate) fn clean_cargo_bin(process: &Process) -> Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;

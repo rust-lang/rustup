@@ -80,7 +80,7 @@ mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
-use unix::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+use unix::{clean_cargo_bin, do_add_to_path, do_remove_from_path};
 #[cfg(unix)]
 pub(crate) use unix::{run_update, self_replace};
 
@@ -91,7 +91,7 @@ pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+use windows::{clean_cargo_bin, do_add_to_path, do_remove_from_path};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -1151,7 +1151,7 @@ pub(crate) fn uninstall(
     // Delete rustup. This is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    delete_rustup_and_cargo_home(process)?;
+    clean_cargo_bin(process)?;
 
     info!("rustup is uninstalled");
 
