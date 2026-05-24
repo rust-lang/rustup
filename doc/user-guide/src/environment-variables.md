@@ -47,6 +47,9 @@
 - `RUSTUP_NO_BACKTRACE`. Disables backtraces on non-panic errors even when
   `RUST_BACKTRACE` is set.
 
+- `RUSTUP_RELEASE_HINT` (default: `1`). When set to `0`, suppresses the hint
+  that is shown when a new stable Rust release is (likely) available.
+
 - `RUSTUP_PERMIT_COPY_RENAME` *unstable*. When set, allows rustup to fall-back
   to copying files if attempts to `rename` result in cross-device link
   errors. These errors occur on OverlayFS, which is used by [Docker][dc]. This
