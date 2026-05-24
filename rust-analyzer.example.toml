@@ -1,0 +1,17 @@
+# Example rust-analyzer config for rustup development.
+# Copy and rename to rust-analyzer.toml for recommended linting and diagnostics.
+
+[check]
+# Use clippy for checking
+command = "clippy"
+
+[cargo]
+# Enable the "test" feature for test-specific code
+features = ["test"]
+
+# Alternatively, enable all features if needed
+# features = "all"
+
+[diagnostics]
+# Disable all dimming of inactive code due to current `cfg`
+disabled = ["inactive-code"]

@@ -4,6 +4,7 @@
 /.settings
 /.idea/
 /.vscode/
+rust-analyzer.toml
 *~
 /**/target
 /home
