@@ -400,10 +400,17 @@ which can build up over time.
 
 ## Writing platform-specific code
 
-For developers using BSD/Linux/Mac OS, there are Windows VMs suitable for such
-development tasks for use with virtualbox and other hypervisors are downloadable
-from
-[Microsoft](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/).
-Similarly, there are many Linux and Unix operating systems images available for
-developers whose usual operating system is Windows. Currently Rustup has no Mac
-OS specific code, so there should be no need to worry about Mac VM images.
+If you are on Unix and would like to develop Windows-specific code
+(`#[cfg(windows)]`), you can [check and lint your code
+locally](linting.md#checking-windows-specific-code-on-unix) before pushing the
+code and leaving the rest to our CI as long as the relevant test cases are in
+place.
+
+In the rare case where you would like to test Windows-specific behavior
+yourself, you can use one of [Microsoft's developer VM
+images](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/).
+
+For developing Unix-specific code (`#[cfg(unix)]`) on Windows, it is
+recommended to use
+[WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) for a full Linux
+environment.
