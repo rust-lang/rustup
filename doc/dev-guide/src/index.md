@@ -10,8 +10,10 @@
 
 For developing on `rustup` itself, the easiest way is to run the development
 build on your current installation. This approach is best used for minor fixes
-or improvements. See the documentation for [`RUSTUP_FORCE_ARG0`] for more info.
+or improvements. See the documentation for [`cargo run-rustup`] and
+[`RUSTUP_FORCE_ARG0`] for more info.
 
+[`cargo run-rustup`]: tips-and-tricks.md#cargo-run-rustup
 [`RUSTUP_FORCE_ARG0`]: tips-and-tricks.md#rustup_force_arg0
 
 A more formal solution involves installing rustup into a temporary directory as
