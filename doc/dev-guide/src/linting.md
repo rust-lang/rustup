@@ -28,36 +28,31 @@ activating only the `test` feature by replacing `--all-features` with `--feature
 
 ## Rust-Analyzer
 
-When checking the codebase using `rust-analyzer`, the first thing to do remains unchanged:
-enabling the features.
+To work with the codebase using `rust-analyzer`, you may want to configure it
+upfront. To do so, you can find an example configuration file in
+`rust-analyzer.example.toml` in the root of the repository. Then, you can copy
+it to `rust-analyzer.toml` and adjust the settings as needed.
 
-This is done by setting the `rust-analyzer.cargo.features` property to `"all"`.
+You might also want to refer to the
+[`rust-analyzer` manual](https://rust-analyzer.github.io/manual.html#configuration)
+for more details on properly setting up `rust-analyzer` in your IDE of choice.
 
-For example, if you are using `rust-analyzer` within VSCode, you would want to
-add the following to your project's `.vscode/settings.json`[^vscode-global-cfg]:
+If you are using `rust-analyzer` within VSCode, you may also add the
+corresponding configuration items to your project's
+`.vscode/settings.json`[^vscode-global-cfg]. For example:
+
+```toml
+[cargo]
+features = "all"
+```
+
+... will become:
 
 ```jsonc
 "rust-analyzer.cargo.features": "all",
 ```
 
 [^vscode-global-cfg]:
-    Alternatively, if you want to apply the configuration to all your Rust projects,
-    you can add it to your global configuration at `~/.config/Code/User/settings.json` instead.
-
-Alternatively, if you want to enable the `test` feature only, you should set the
-following instead:
-
-```jsonc
-"rust-analyzer.cargo.features": ["test"]
-```
-
-Next, as `rust-analyzer` depends on `cargo check` by default, it is also recommended to
-enable the `cargo clippy` integration by adding the following:
-
-```jsonc
-"rust-analyzer.check.command": "clippy",
-```
-
-You might also want to refer to the
-[`rust-analyzer` manual](https://rust-analyzer.github.io/manual.html#configuration)
-for more details on properly setting up `rust-analyzer` in your IDE of choice.
+    Alternatively, if you want to apply the configuration to all your Rust
+    projects, you can add them to your global configuration at
+    `~/.config/Code/User/settings.json` instead.
