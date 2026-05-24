@@ -675,7 +675,13 @@ pub async fn main(
     )?;
     cfg.toolchain_override = matches.plus_toolchain;
 
-    match subcmd {
+    let should_notify = !matches.quiet
+        && !matches!(
+            subcmd,
+            RustupSubcmd::Update { .. } | RustupSubcmd::Install { .. }
+        );
+
+    let result = match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
         RustupSubcmd::Install { opts } => update(cfg, opts, true).await,
         RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
@@ -802,7 +808,13 @@ pub async fn main(
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)
         }
+    };
+
+    if should_notify {
+        let _ = common::notify_release(cfg);
     }
+
+    result
 }
 
 async fn default_(
