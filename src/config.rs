@@ -1,10 +1,13 @@
 use std::fmt::{self, Debug, Display};
 use std::io;
+use std::io::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, anyhow, bail};
+use chrono::{DateTime, NaiveDate};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, trace, warn};
@@ -12,8 +15,8 @@ use tracing::{debug, info, trace, warn};
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
-        ToolchainDesc,
+        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, ReleaseHintMode,
+        TargetTuple, ToolchainDesc,
     },
     errors::RustupError,
     fallback_settings::FallbackSettings,
@@ -479,6 +482,15 @@ impl<'a> Cfg<'a> {
             Ok(())
         })?;
         info!("setting auto install mode to {}", mode.as_str());
+        Ok(())
+    }
+
+    pub(crate) fn set_release_hint(&self, mode: ReleaseHintMode) -> Result<()> {
+        self.settings_file.with_mut(|s| {
+            s.release_hint = Some(mode);
+            Ok(())
+        })?;
+        info!("setting release hint mode to {}", mode.as_str());
         Ok(())
     }
 
@@ -1044,6 +1056,64 @@ impl<'a> Cfg<'a> {
             LocalToolchainName::Path(p) => p.to_path_buf(),
         }
     }
+
+    /// Notifies a user with a hint whenever a new Rust release is available.
+    /// This is only shown at max once per day and only if not in proxy mode.
+    pub(crate) fn notify_release(&self) -> Result<()> {
+        if self.settings_file.with(|s| Ok(s.release_hint))? == Some(ReleaseHintMode::Disable) {
+            return Ok(());
+        }
+
+        let time_now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        // Limit notifications to at most once per day.
+        // This is checked before loading the manifest to avoid unnecessary disk I/O.
+        let last_notified = self
+            .state_file
+            .with(|s| Ok(s.last_release_notified_secs.unwrap_or(0)))?;
+        if time_now.saturating_sub(last_notified) < NOTIFY_INTERVAL_SECS {
+            return Ok(());
+        }
+
+        let default_host = self.default_host_tuple()?;
+        let stable_desc = PartialToolchainDesc::from_str("stable")?.resolve(&default_host)?;
+        let distributable = DistributableToolchain::new(self, stable_desc)
+            .map_err(|e| anyhow!("stable toolchain unavailable: {e}"))?;
+        let release_date_str = match distributable.get_manifestation() {
+            Ok(manifestation) => match manifestation.load_manifest() {
+                Ok(Some(manifest)) => manifest.date,
+                Ok(None) | Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
+            },
+            Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
+        };
+
+        let today = DateTime::from_timestamp(time_now as i64, 0)
+            .unwrap_or_default()
+            .date_naive();
+
+        let release_date = NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d")
+            .map_err(|e| anyhow!("could not parse release date '{}': {e}", release_date_str))?;
+
+        // Skip the hint if fewer than 6 weeks have passed since the last known release.
+        if (today - release_date).num_days() < RELEASE_CYCLE_DAYS {
+            return Ok(());
+        }
+
+        self.state_file.with_mut(|s| {
+            s.last_release_notified_secs = Some(time_now);
+            Ok(())
+        })?;
+
+        writeln!(
+            self.process.stderr().lock(),
+            "hint: a new stable Rust release is available, run `rustup update stable` to install it"
+        )?;
+
+        Ok(())
+    }
 }
 
 /// The root path of the release server, without the `/dist` suffix.
@@ -1137,6 +1207,10 @@ pub(crate) enum InstalledPath<'a> {
     File { name: &'static str, path: PathBuf },
     Dir { path: &'a Path },
 }
+
+const RELEASE_CYCLE_DAYS: i64 = 42;
+const NOTIFY_INTERVAL_SECS: u64 = 24 * 60 * 60;
+const FALLBACK_RELEASE_DATE: &str = "2026-04-17";
 
 #[cfg(test)]
 mod tests {
