@@ -1,21 +1,40 @@
 # Developer tips and tricks
 
-## `RUSTUP_FORCE_ARG0`
+## `cargo run-rustup`
 
-The environment variable `RUSTUP_FORCE_ARG0` can be used to get rustup to think
-it's a particular binary, rather than e.g. copying it, symlinking it or other
-tricks with exec. This is handy when testing particular code paths from cargo
-run.
+This is the easiest way to build rustup from source and test it against your
+current rustup installation. Compared to `cargo run` which executes
+`rustup-init`, `cargo run-rustup` runs `rustup` directly.
 
-For example, if you want to run `rustup show` with `cargo run`, you may execute:
+For example, if you want to run `rustup show`, you may execute:
 
 ```console
-> cargo run --config env.RUSTUP_FORCE_ARG0=\'rustup\' -- show
+> cargo run-rustup -- show
+```
+
+## `RUSTUP_FORCE_ARG0`
+
+Sometimes, you may want to test how rustup behaves when it's invoked with an
+executable name different from `rustup-init` and `rustup`, such as `rustc` or
+`cargo` when testing the proxy mode. In this case, `RUSTUP_FORCE_ARG0` can be
+used to force rustup into thinking it's being invoked with the given name.
+Similar to [`cargo run-rustup`], it directly runs on your existing rustup
+installation.
+
+For example, if you want to run `rustc --version`, you may execute:
+
+```console
+> cargo run --config env.RUSTUP_FORCE_ARG0=\'rustc\' -- --version
 ```
 
 This command passes the `RUSTUP_FORCE_ARG0` environment variable to the
 `rustup-init` binary without influencing the `cargo run` command itself,
 which is very important since `cargo` could also be a rustup proxy.
+
+In fact, [`cargo run-rustup`] is simply implemented as an alias of `cargo run
+--config env.RUSTUP_FORCE_ARG0=\'rustup\'`.
+
+[`cargo run-rustup`]: #cargo-run-rustup
 
 ## `RUSTUP_BACKTRACK_LIMIT`
 
