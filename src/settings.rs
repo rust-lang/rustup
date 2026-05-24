@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::cli::self_update::SelfUpdateMode;
-use crate::dist::{AutoInstallMode, Profile};
+use crate::dist::{Profile, Switch};
 use crate::errors::RustupError;
 use crate::utils;
 
@@ -95,7 +95,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_self_update: Option<SelfUpdateMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub auto_install: Option<AutoInstallMode>,
+    pub auto_install: Option<Switch>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_hint: Option<Switch>,
 }
 
 impl Settings {

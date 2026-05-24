@@ -880,6 +880,49 @@ installed targets:
   [HOST_TUPLE]
 
 "#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn notify_release_hint_at_most_once_per_day() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "set", "release-hint", "enable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+hint: a new stable Rust release is available, run `rustup update stable` to install it
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stderr(snapbox::str![[""]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn notify_release_hint_skipped_for_recent_release() {
+    let cx = CliTestContext::new(Scenario::RecentStable).await;
+    cx.config
+        .expect(["rustup", "set", "release-hint", "enable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
         .with_stderr(snapbox::str![[""]])
         .is_ok();
 }

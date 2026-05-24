@@ -44,7 +44,7 @@ use crate::{
     command, component_for_bin,
     config::{ActiveSource, Cfg},
     dist::{
-        AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
+        DistOptions, PartialToolchainDesc, Profile, Switch, TargetTuple,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, ManifestWithHash},
     },
@@ -647,7 +647,13 @@ enum SetSubcmd {
     /// The auto toolchain install mode
     AutoInstall {
         #[arg(value_enum, default_value_t)]
-        auto_install_mode: AutoInstallMode,
+        auto_install_mode: Switch,
+    },
+
+    /// The new stable release hint mode
+    ReleaseHint {
+        #[arg(value_enum, default_value_t)]
+        release_hint_mode: Switch,
     },
 }
 
@@ -704,6 +710,12 @@ pub async fn main(
     cfg.toolchain_override = matches.plus_toolchain;
 
     let should_warn = subcmd.should_warn_empty_setup();
+
+    let should_notify = !matches.quiet
+        && !matches!(
+            subcmd,
+            RustupSubcmd::Update { .. } | RustupSubcmd::Install { .. }
+        );
 
     let exit_code = match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
@@ -828,6 +840,9 @@ pub async fn main(
             SetSubcmd::AutoInstall { auto_install_mode } => cfg
                 .set_auto_install(auto_install_mode)
                 .map(|_| ExitCode::SUCCESS),
+            SetSubcmd::ReleaseHint { release_hint_mode } => cfg
+                .set_release_hint(release_hint_mode)
+                .map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)
@@ -836,6 +851,10 @@ pub async fn main(
 
     if should_warn && cfg.list_toolchains()?.is_empty() && cfg.get_default()?.is_none() {
         warn!("no toolchain installed and no default toolchain set\n{DEFAULT_STABLE_HINT}");
+    }
+
+    if should_notify && let Err(e) = cfg.notify_release() {
+        warn!("could not check if there is a new Rust release: {e}");
     }
 
     Ok(exit_code)
