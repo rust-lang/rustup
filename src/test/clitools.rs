@@ -15,9 +15,10 @@ use std::{
     process::Command,
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
-    time::Instant,
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
+use chrono::{DateTime, Duration};
 use enum_map::{Enum, EnumMap, enum_map};
 use snapbox::{IntoData, RedactedValue, Redactions, assert_data_eq};
 use tempfile::TempDir;
@@ -553,6 +554,8 @@ pub enum Scenario {
     /// Three dates, v2 manifests, host and MULTI_ARCH1 in first, host only in second,
     /// host and MULTI_ARCH1 but no RLS in last
     MissingComponentMulti,
+    /// One recent date (within the last 6 weeks), v2 manifests
+    RecentStable,
 }
 
 impl Scenario {
@@ -641,6 +644,16 @@ impl Scenario {
                     .multi_arch()
                     .with_rls(RlsStatus::Unavailable),
             ],
+            Self::RecentStable => {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                let recent = (DateTime::from_timestamp(now as i64, 0).unwrap() - Duration::days(7))
+                    .format("%Y-%m-%d")
+                    .to_string();
+                vec![Release::stable("1.1.0", &recent)]
+            }
         };
 
         let vs = match self {
@@ -661,7 +674,8 @@ impl Scenario {
             | Self::HostGoesMissingBefore
             | Self::HostGoesMissingAfter
             | Self::MissingComponent
-            | Self::MissingComponentMulti => vec![MockManifestVersion::V2],
+            | Self::MissingComponentMulti
+            | Self::RecentStable => vec![MockManifestVersion::V2],
         };
 
         MockDistServer {
@@ -718,6 +732,7 @@ impl ConstState {
                 Scenario::SimpleV2 => RwLock::new(None),
                 Scenario::Unavailable => RwLock::new(None),
                 Scenario::UnavailableRls => RwLock::new(None),
+                Scenario::RecentStable => RwLock::new(None),
             },
         }
     }
@@ -946,6 +961,13 @@ impl CliTestContext {
         if scenario != Scenario::None {
             config.distdir = Some(config.test_dist_dir.path().to_path_buf());
         }
+
+        // Disable the new release hint by default to avoid extra
+        // output to be matched during the tests.
+        config
+            .expect(["rustup", "set", "release-hint", "disable"])
+            .await
+            .is_ok();
 
         Self { config, _test_dir }
     }

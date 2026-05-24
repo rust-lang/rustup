@@ -815,13 +815,13 @@ impl fmt::Display for Profile {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum AutoInstallMode {
+pub enum Switch {
     #[default]
     Enable,
     Disable,
 }
 
-impl AutoInstallMode {
+impl Switch {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
             Self::Enable => "enable",
@@ -830,7 +830,7 @@ impl AutoInstallMode {
     }
 }
 
-impl ValueEnum for AutoInstallMode {
+impl ValueEnum for Switch {
     fn value_variants<'a>() -> &'a [Self] {
         &[Self::Enable, Self::Disable]
     }
@@ -844,7 +844,7 @@ impl ValueEnum for AutoInstallMode {
     }
 }
 
-impl FromStr for AutoInstallMode {
+impl FromStr for Switch {
     type Err = anyhow::Error;
 
     fn from_str(mode: &str) -> Result<Self> {
@@ -852,7 +852,7 @@ impl FromStr for AutoInstallMode {
             "enable" => Ok(Self::Enable),
             "disable" => Ok(Self::Disable),
             _ => Err(anyhow!(format!(
-                "unknown auto install mode: '{}'; valid modes are {}",
+                "unknown mode: '{}'; valid modes are {}",
                 mode,
                 Self::value_variants().iter().join(", ")
             ))),
@@ -860,7 +860,7 @@ impl FromStr for AutoInstallMode {
     }
 }
 
-impl fmt::Display for AutoInstallMode {
+impl fmt::Display for Switch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
