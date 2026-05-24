@@ -1,2 +1,3 @@
 [alias]
 dev-install = "run -- --no-modify-path -y"
+run-rustup = ["run", "--config", "env.RUSTUP_FORCE_ARG0='rustup'"]
