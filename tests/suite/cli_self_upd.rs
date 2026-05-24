@@ -378,6 +378,7 @@ async fn update_exact() {
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
+hint: a new stable Rust release is available. Run `rustup update stable` to install it.
 
 "#]])
         .is_ok();
@@ -406,6 +407,7 @@ async fn update_precise() {
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: `RUSTUP_VERSION` has been set to `[TEST_VERSION]`
 info: downloading self-update (new version: [TEST_VERSION])
+hint: a new stable Rust release is available. Run `rustup update stable` to install it.
 
 "#]]);
 }
@@ -594,6 +596,7 @@ async fn update_no_change() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
+hint: a new stable Rust release is available. Run `rustup update stable` to install it.
 
 "#]])
         .is_ok();
@@ -1056,6 +1059,7 @@ async fn update_does_not_overwrite_rustfmt() {
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
 warn: tool `rustfmt` is already installed, remove it from `[..]`, then run `rustup update` to have rustup manage this tool.
+hint: a new stable Rust release is available. Run `rustup update stable` to install it.
 
 "#]])
         .is_ok();
