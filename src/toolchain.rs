@@ -63,8 +63,8 @@ impl<'a> Toolchain<'a> {
                 ..
             }) if install_if_missing => {
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
-                let tc = DistributableToolchain::install(options).await?.1.toolchain;
-                Ok(EnsureInstalled::new(tc, UpdateStatus::Installed))
+                let tc = DistributableToolchain::install(options).await?;
+                Ok(EnsureInstalled::new(tc.inner.into(), tc.status))
             }
             Err(e) => Err(e.into()),
         }
