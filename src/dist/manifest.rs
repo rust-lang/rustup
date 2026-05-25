@@ -23,7 +23,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    dist::{Profile, TargetTriple, ToolchainDesc, config::Config},
+    dist::{Profile, TargetTuple, ToolchainDesc, config::Config},
     errors::RustupError,
     toolchain::DistributableToolchain,
 };
@@ -105,16 +105,16 @@ pub struct Package {
 #[serde(from = "TargetsMap", into = "TargetsMap")]
 pub enum PackageTargets {
     Wildcard(TargetedPackage),
-    Targeted(BTreeMap<TargetTriple, TargetedPackage>),
+    Targeted(BTreeMap<TargetTuple, TargetedPackage>),
 }
 
 #[derive(Deserialize, Serialize)]
 #[serde(transparent)]
-struct TargetsMap(BTreeMap<TargetTriple, TargetedPackage>);
+struct TargetsMap(BTreeMap<TargetTuple, TargetedPackage>);
 
 impl From<TargetsMap> for PackageTargets {
     fn from(mut map: TargetsMap) -> Self {
-        let wildcard = TargetTriple::new("*");
+        let wildcard = TargetTuple::new("*");
         match (map.0.len(), map.0.entry(wildcard)) {
             (1, Entry::Occupied(entry)) => Self::Wildcard(entry.remove()),
             (_, _) => Self::Targeted(map.0),
@@ -127,7 +127,7 @@ impl From<PackageTargets> for TargetsMap {
         match targets {
             PackageTargets::Wildcard(tpkg) => {
                 let mut map = BTreeMap::new();
-                map.insert(TargetTriple::new("*"), tpkg);
+                map.insert(TargetTuple::new("*"), tpkg);
                 Self(map)
             }
             PackageTargets::Targeted(tpkgs) => Self(tpkgs),
@@ -264,7 +264,7 @@ pub struct HashedBinary {
 pub struct Component {
     pub pkg: String,
     #[serde(with = "component_target")]
-    pub target: Option<TargetTriple>,
+    pub target: Option<TargetTuple>,
     // Older Rustup distinguished between components (which are essential) and
     // extensions (which are not).
     #[serde(default)]
@@ -288,11 +288,11 @@ impl Hash for Component {
 }
 
 mod component_target {
-    use super::{Result, TargetTriple};
+    use super::{Result, TargetTuple};
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S: Serializer>(
-        target: &Option<TargetTriple>,
+        target: &Option<TargetTuple>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(match target {
@@ -303,9 +303,9 @@ mod component_target {
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
-    ) -> Result<Option<TargetTriple>, D::Error> {
+    ) -> Result<Option<TargetTuple>, D::Error> {
         Ok(match Option::<String>::deserialize(deserializer)? {
-            Some(s) if s != "*" => Some(TargetTriple::new(s)),
+            Some(s) if s != "*" => Some(TargetTuple::new(s)),
             _ => None,
         })
     }
@@ -344,7 +344,7 @@ impl Manifest {
         self.get_package("rust").map(|p| &*p.version)
     }
 
-    pub(crate) fn get_legacy_components(&self, target: &TargetTriple) -> Result<Vec<Component>> {
+    pub(crate) fn get_legacy_components(&self, target: &TargetTuple) -> Result<Vec<Component>> {
         // Build a profile from the components/extensions.
         let result = self
             .get_package("rust")?
@@ -360,7 +360,7 @@ impl Manifest {
     pub fn get_profile_components(
         &self,
         profile: Profile,
-        target: &TargetTriple,
+        target: &TargetTuple,
     ) -> Result<Vec<Component>> {
         // An older manifest with no profiles section.
         if self.profiles.is_empty() {
@@ -462,7 +462,7 @@ impl Manifest {
         for component in &targ_pkg.components {
             let installed = component.contained_within(&config.components);
 
-            let component_target = TargetTriple::new(component.target());
+            let component_target = TargetTuple::new(component.target());
 
             // Get the component so we can check if it is available
             let component_pkg = self
@@ -493,7 +493,7 @@ impl Manifest {
 }
 
 impl Package {
-    pub fn get_target(&self, target: Option<&TargetTriple>) -> Result<&TargetedPackage> {
+    pub fn get_target(&self, target: Option<&TargetTuple>) -> Result<&TargetedPackage> {
         match &self.targets {
             PackageTargets::Wildcard(tpkg) => Ok(tpkg),
             PackageTargets::Targeted(tpkgs) => {
@@ -511,13 +511,13 @@ impl Package {
 }
 
 impl PackageTargets {
-    pub(crate) fn get<'a>(&'a self, target: &TargetTriple) -> Option<&'a TargetedPackage> {
+    pub(crate) fn get<'a>(&'a self, target: &TargetTuple) -> Option<&'a TargetedPackage> {
         match self {
             Self::Wildcard(tpkg) => Some(tpkg),
             Self::Targeted(tpkgs) => tpkgs.get(target),
         }
     }
-    pub fn get_mut<'a>(&'a mut self, target: &TargetTriple) -> Option<&'a mut TargetedPackage> {
+    pub fn get_mut<'a>(&'a mut self, target: &TargetTuple) -> Option<&'a mut TargetedPackage> {
         match self {
             Self::Wildcard(tpkg) => Some(tpkg),
             Self::Targeted(tpkgs) => tpkgs.get_mut(target),
@@ -532,7 +532,7 @@ impl TargetedPackage {
 }
 
 impl Component {
-    pub fn new(pkg: String, target: Option<TargetTriple>, is_extension: bool) -> Self {
+    pub fn new(pkg: String, target: Option<TargetTuple>, is_extension: bool) -> Self {
         Self {
             pkg,
             target,
@@ -543,7 +543,7 @@ impl Component {
     pub(crate) fn try_new(
         name: &str,
         distributable: &DistributableToolchain<'_>,
-        fallback_target: Option<&TargetTriple>,
+        fallback_target: Option<&TargetTuple>,
     ) -> Result<Self> {
         let manifest = distributable.get_manifest()?;
         for component_status in distributable.components()? {
@@ -649,7 +649,7 @@ impl fmt::Display for ManifestVersion {
 #[cfg(test)]
 mod tests {
     use crate::RustupError;
-    use crate::dist::TargetTriple;
+    use crate::dist::TargetTuple;
     use crate::dist::manifest::Manifest;
 
     // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
@@ -662,8 +662,8 @@ mod tests {
 
     #[test]
     fn parse_smoke_test() {
-        let x86_64_unknown_linux_gnu = TargetTriple::new("x86_64-unknown-linux-gnu");
-        let x86_64_unknown_linux_musl = TargetTriple::new("x86_64-unknown-linux-musl");
+        let x86_64_unknown_linux_gnu = TargetTuple::new("x86_64-unknown-linux-gnu");
+        let x86_64_unknown_linux_musl = TargetTuple::new("x86_64-unknown-linux-musl");
 
         let pkg = Manifest::parse(EXAMPLE).unwrap();
 

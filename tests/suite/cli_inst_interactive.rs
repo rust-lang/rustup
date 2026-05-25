@@ -74,7 +74,7 @@ these changes will be reverted.
 Current installation options:
 
 
-   default host triple: [HOST_TUPLE]
+    default host tuple: [HOST_TUPLE]
      default toolchain: stable (default)
                profile: default
   modify PATH variable: no
@@ -136,12 +136,12 @@ Rust is installed now. Great!
 }
 
 #[tokio::test]
-async fn installer_shows_default_host_triple() {
+async fn installer_shows_default_host_tuple() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "2\n").with_stdout(snapbox::str![
         [r#"
 ...
-Default host triple? [[HOST_TUPLE]]
+Default host tuple? [[HOST_TUPLE]]
 ...
 "#]
     ]);
@@ -545,8 +545,6 @@ async fn install_stops_if_rustc_exists() {
 ...
 warn: It looks like you have an existing installation of Rust at:
 ...
-warn: If you are sure that you want both rustup and your already installed Rust
-...
 "#]]);
 }
 
@@ -575,8 +573,6 @@ async fn install_stops_if_cargo_exists() {
         .with_stderr(snapbox::str![[r#"
 ...
 warn: It looks like you have an existing installation of Rust at:
-...
-warn: If you are sure that you want both rustup and your already installed Rust
 ...
 "#]]);
 }

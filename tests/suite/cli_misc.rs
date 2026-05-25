@@ -64,7 +64,7 @@ async fn rustc_with_bad_rustup_toolchain_env_var() {
         .expect_with_env(["rustc"], [("RUSTUP_TOOLCHAIN", "bogus")])
         .await
         .with_stderr(snapbox::str![[r#"
-error: override toolchain 'bogus' is not installed[..]
+error:[..] toolchain 'bogus' is not installed[..]
 
 "#]])
         .is_err();
@@ -226,8 +226,8 @@ async fn subcommand_required_for_self() {
 
 #[tokio::test]
 async fn multi_host_smoke_test() {
-    // We cannot run this test if the current host triple is equal to the
-    // multi-arch triple, but this should never be the case.  Check that just
+    // We cannot run this test if the current host tuple is equal to the
+    // multi-arch tuple, but this should never be the case.  Check that just
     // to be sure.
     assert_ne!(this_host_tuple(), MULTI_ARCH1);
 
@@ -1381,7 +1381,10 @@ async fn which_asking_uninstalled_toolchain() {
 "#]])
         .is_ok();
     cx.config
-        .expect(["rustup", "which", "--toolchain=nightly", "rustc"])
+        .expect_with_env(
+            ["rustup", "which", "--toolchain=nightly", "rustc"],
+            [("RUSTUP_AUTO_INSTALL", "1")],
+        )
         .await
         .with_stdout(snapbox::str![[r#"
 [..]/toolchains/nightly-[HOST_TUPLE]/bin/rustc[EXE]
@@ -1743,6 +1746,52 @@ info: `rust-analyzer` is unavailable for the active toolchain
 info: falling back to "[EXTERN_PATH]"
 [EXTERN_PATH]
 
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn warn_auto_install_on_proxy() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustc", "--version"],
+            [("RUSTUP_TOOLCHAIN", "stable"), ("RUSTUP_AUTO_INSTALL", "1")],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.1.0 (hash-stable-1.1.0)
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+warn: the missing active toolchain `stable-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+...
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn warn_auto_install_on_rustup() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "doc", "--path"],
+            [("RUSTUP_TOOLCHAIN", "stable"), ("RUSTUP_AUTO_INSTALL", "1")],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+[..]/toolchains/stable-[HOST_TUPLE]/share/doc/rust/html/index.html
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+warn: the missing active toolchain `stable-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+...
 "#]])
         .is_ok();
 }

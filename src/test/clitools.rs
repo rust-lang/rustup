@@ -314,6 +314,12 @@ impl Config {
             "/bogus-config-file.toml",
         );
 
+        // Clear current recursion count to avoid messing up related logic
+        cmd.env("RUST_RECURSION_COUNT", "");
+
+        // Clear override for auto installation of active toolchain unless explicitly requested
+        cmd.env("RUSTUP_AUTO_INSTALL", "");
+
         // Pass `RUSTUP_CI` over to the test process in case it is required downstream
         if let Some(ci) = env::var_os("RUSTUP_CI") {
             cmd.env("RUSTUP_CI", ci);
@@ -874,7 +880,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
     hard_link(&rustup_path, rls_path).unwrap();
     hard_link(&rustup_path, rust_lldb_path).unwrap();
 
-    // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
+    // Make sure the host tuple matches the build tuple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
     config

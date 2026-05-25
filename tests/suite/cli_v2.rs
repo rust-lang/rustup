@@ -5,7 +5,7 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use rustup::dist::TargetTriple;
+use rustup::dist::TargetTuple;
 use rustup::dist::manifest::Manifest;
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_tuple,
@@ -478,7 +478,7 @@ async fn remove_override_toolchain_err_handling() {
         .await
         .is_ok();
     cx.config
-        .expect(["rustc", "--version"])
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_AUTO_INSTALL", "1")])
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)
@@ -488,6 +488,9 @@ async fn remove_override_toolchain_err_handling() {
 info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading 4 components
+warn: the missing active toolchain `beta-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
 
 "#]])
         .is_ok();
@@ -511,7 +514,7 @@ async fn file_override_toolchain_err_handling() {
     let toolchain_file = cwd.join("rust-toolchain");
     rustup::utils::raw::write_file(&toolchain_file, "beta").unwrap();
     cx.config
-        .expect(["rustc", "--version"])
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_AUTO_INSTALL", "1")])
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)
@@ -521,6 +524,9 @@ async fn file_override_toolchain_err_handling() {
 info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
 info: downloading 4 components
+warn: the missing active toolchain `beta-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
 
 "#]])
         .is_ok();
@@ -553,7 +559,10 @@ error: toolchain 'beta-[HOST_TUPLE]' is not installed
 "#]])
         .is_err();
     cx.config
-        .expect(["rustc", "+beta", "--version"])
+        .expect_with_env(
+            ["rustc", "+beta", "--version"],
+            [("RUSTUP_AUTO_INSTALL", "1")],
+        )
         .await
         .with_stdout(snapbox::str![[r#"
 1.2.0 (hash-beta-1.2.0)
@@ -1930,7 +1939,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: String) {
     let mut manifest = Manifest::parse(&manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
-        let target = TargetTriple::new(target);
+        let target = TargetTuple::new(target);
         let target_pkg = std_pkg.targets.get_mut(&target).unwrap();
         target_pkg.bins = Vec::new();
     }

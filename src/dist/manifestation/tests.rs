@@ -5,6 +5,7 @@
 use std::{
     collections::HashMap,
     env, fs,
+    io::Write,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -14,8 +15,9 @@ use anyhow::{Result, anyhow};
 use url::Url;
 
 use crate::{
+    config::Cfg,
     dist::{
-        DEFAULT_DIST_SERVER, Profile, TargetTriple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, Profile, TargetTuple, ToolchainDesc,
         download::{DownloadCfg, DownloadTracker},
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
@@ -26,8 +28,10 @@ use crate::{
     errors::RustupError,
     process::TestProcess,
     test::{
+        Env, RustupHome,
         dist::*,
         mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
+        test_dir,
     },
     utils::{self, raw as utils_raw},
 };
@@ -317,7 +321,7 @@ async fn rename_component() {
 
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
 
@@ -357,7 +361,7 @@ async fn rename_component_new() {
 
     let adds = [Component::new(
         "bobo".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
     // Install the basics from day 1
@@ -635,7 +639,7 @@ async fn unavailable_component() {
     let cx = TestContext::new(Some(edit), GZOnly);
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
 
@@ -734,7 +738,7 @@ async fn removed_component() {
     let cx = TestContext::new(Some(edit), GZOnly);
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
 
@@ -785,12 +789,12 @@ async fn unavailable_components_is_target() {
     let adds = [
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -905,12 +909,12 @@ async fn update_preserves_extensions() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -955,12 +959,12 @@ async fn add_extensions_for_initial_install() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -984,12 +988,12 @@ async fn add_extensions_for_same_manifest() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1018,12 +1022,12 @@ async fn add_extensions_for_upgrade() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1046,7 +1050,7 @@ async fn add_extension_not_in_manifest() {
     let cx = TestContext::new(None, GZOnly);
     let adds = vec![Component::new(
         "rust-bogus".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         true,
     )];
 
@@ -1059,7 +1063,7 @@ async fn add_extension_that_is_required_component() {
     let cx = TestContext::new(None, GZOnly);
     let adds = vec![Component::new(
         "rustc".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         false,
     )];
 
@@ -1081,7 +1085,7 @@ async fn add_extensions_does_not_remove_other_components() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1097,7 +1101,7 @@ async fn remove_extensions_for_initial_install() {
     let cx = TestContext::new(None, GZOnly);
     let removes = vec![Component::new(
         "rustc".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         false,
     )];
 
@@ -1110,12 +1114,12 @@ async fn remove_extensions_for_same_manifest() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1124,7 +1128,7 @@ async fn remove_extensions_for_same_manifest() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1148,12 +1152,12 @@ async fn remove_extensions_for_upgrade() {
     let adds = vec![
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple-darwin")),
+            Some(TargetTuple::new("i686-apple-darwin")),
             false,
         ),
         Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            Some(TargetTuple::new("i686-unknown-linux-gnu")),
             false,
         ),
     ];
@@ -1164,7 +1168,7 @@ async fn remove_extensions_for_upgrade() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1193,7 +1197,7 @@ async fn remove_extension_not_in_manifest() {
 
     let removes = vec![Component::new(
         "rust-bogus".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         true,
     )];
 
@@ -1227,7 +1231,7 @@ async fn remove_extension_not_in_manifest_but_is_already_installed() {
 
     let adds = [Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
     cx.update_from_dist(&adds, &[], false).await.unwrap();
@@ -1237,7 +1241,7 @@ async fn remove_extension_not_in_manifest_but_is_already_installed() {
 
     let removes = vec![Component::new(
         "bonus".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         true,
     )];
     cx.update_from_dist(&[], &removes, false).await.unwrap();
@@ -1251,7 +1255,7 @@ async fn remove_extension_that_is_required_component() {
 
     let removes = vec![Component::new(
         "rustc".to_string(),
-        Some(TargetTriple::new("x86_64-apple-darwin")),
+        Some(TargetTuple::new("x86_64-apple-darwin")),
         false,
     )];
 
@@ -1266,7 +1270,7 @@ async fn remove_extension_not_installed() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1282,7 +1286,7 @@ async fn remove_extensions_does_not_remove_other_components() {
     let cx = TestContext::new(None, GZOnly);
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1290,7 +1294,7 @@ async fn remove_extensions_does_not_remove_other_components() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1309,7 +1313,7 @@ async fn remove_extensions_does_not_hang_with_concurrent_downloads_override() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1317,7 +1321,7 @@ async fn remove_extensions_does_not_hang_with_concurrent_downloads_override() {
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1333,7 +1337,7 @@ async fn add_and_remove_for_upgrade() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1343,13 +1347,13 @@ async fn add_and_remove_for_upgrade() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1371,7 +1375,7 @@ async fn add_and_remove() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1379,13 +1383,13 @@ async fn add_and_remove() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-unknown-linux-gnu")),
+        Some(TargetTuple::new("i686-unknown-linux-gnu")),
         false,
     )];
 
@@ -1408,13 +1412,13 @@ async fn add_and_remove_same_component() {
 
     let adds = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
     let removes = vec![Component::new(
         "rust-std".to_string(),
-        Some(TargetTriple::new("i686-apple-darwin")),
+        Some(TargetTuple::new("i686-apple-darwin")),
         false,
     )];
 
@@ -1528,4 +1532,68 @@ async fn handle_corrupt_partial_downloads() {
 
     assert!(utils::path_exists(cx.prefix.path().join("bin/rustc")));
     assert!(utils::path_exists(cx.prefix.path().join("lib/libstd.rlib")));
+}
+
+/// If the v2 channel manifest bytes do not match the published `.sha256`, the failure must be
+/// reported as an error (not treated as "no update" / `Ok(None)`).
+#[tokio::test]
+async fn v2_manifest_checksum_mismatch_surfaces_error() {
+    let cx = TestContext::new(None, GZOnly);
+    let mock_root = cx.url.to_file_path().unwrap();
+    let manifest_path = mock_root.join("dist/channel-rust-nightly.toml");
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&manifest_path)
+        .unwrap()
+        .write_all(b"\n# test: corrupt manifest body vs .sha256\n")
+        .unwrap();
+
+    let root = test_dir().unwrap();
+    let rustup_home = RustupHome::new_in(root.path()).unwrap();
+    let cargo_home = tempfile::Builder::new()
+        .prefix("cargo")
+        .tempdir_in(root.path())
+        .unwrap();
+    let home = tempfile::Builder::new()
+        .prefix("home")
+        .tempdir_in(root.path())
+        .unwrap();
+
+    let mut vars = HashMap::new();
+    rustup_home.apply(&mut vars);
+    vars.env(
+        "CARGO_HOME",
+        cargo_home.path().to_string_lossy().to_string(),
+    );
+    vars.env("HOME", home.path().to_string_lossy().to_string());
+    vars.env("RUSTUP_DIST_SERVER", cx.url.as_str());
+
+    let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], vars, "");
+    let cfg = Cfg::from_env(tp.process.current_dir().unwrap(), false, true, &tp.process).unwrap();
+    let dl_cfg = DownloadCfg::new(&cfg);
+    let update_hash = cfg.get_hash_file(&cx.toolchain, true).unwrap();
+    let mut fetched = String::new();
+
+    let err = super::super::try_update_from_dist_(
+        &dl_cfg,
+        &update_hash,
+        &cx.toolchain,
+        Some(Profile::Default),
+        &cx.prefix,
+        false,
+        &[],
+        &[],
+        &mut fetched,
+        &cfg,
+        None,
+    )
+    .await
+    .unwrap_err();
+
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ChecksumFailed { .. }) => {}
+        e => {
+            panic!("expected ChecksumFailed for corrupt v2 manifest, got {e:?} full error: {err:?}")
+        }
+    }
 }

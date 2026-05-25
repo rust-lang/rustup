@@ -36,7 +36,7 @@ struct RustupInit {
     quiet: bool,
 
     /// Disable confirmation prompt
-    #[arg(short = 'y')]
+    #[arg(short = 'y', long = "yes")]
     no_prompt: bool,
 
     /// Choose a default host tuple
@@ -121,7 +121,7 @@ pub async fn main(
     update_console_filter(process, &console_filter, quiet, verbose);
 
     let opts = InstallOpts {
-        default_host_triple: default_host,
+        default_host_tuple: default_host,
         default_toolchain,
         profile,
         no_modify_path,
@@ -130,6 +130,6 @@ pub async fn main(
         targets: &target.iter().map(|s| &**s).collect::<Vec<_>>(),
     };
 
-    let mut cfg = Cfg::from_env(current_dir, quiet, process)?;
+    let mut cfg = Cfg::from_env(current_dir, quiet, true, process)?;
     self_update::install(no_prompt, opts, &mut cfg).await
 }

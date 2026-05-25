@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug, Display};
 use std::io;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -11,7 +12,7 @@ use tracing::{debug, info, trace, warn};
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTriple,
+        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
         ToolchainDesc,
     },
     errors::RustupError,
@@ -124,6 +125,48 @@ impl Display for ActiveSource {
     }
 }
 
+/// Represents the result of an operation that may ensure the installation of a certain toolchain.
+#[derive(Clone, Debug)]
+pub(crate) struct EnsureInstalled<T> {
+    pub inner: T,
+    pub status: UpdateStatus,
+}
+
+impl<T> EnsureInstalled<T> {
+    pub fn new(toolchain: T, status: UpdateStatus) -> Self {
+        Self {
+            inner: toolchain,
+            status,
+        }
+    }
+}
+
+impl<T: Display> EnsureInstalled<T> {
+    fn warn_auto_install(&self, process: &Process) {
+        // If we're already in a recursion, or we haven't just installed the active toolchain, then
+        // don't print the warning.
+        let recursions = process.var("RUST_RECURSION_COUNT");
+        if recursions.is_ok_and(|it| it != "0") || !matches!(self.status, UpdateStatus::Installed) {
+            return;
+        }
+
+        warn!(
+            "the missing active toolchain `{}` has been auto-installed",
+            self.inner,
+        );
+        warn!("this might cause rustup commands to take longer time to finish than expected");
+        info!("you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`");
+    }
+}
+
+impl<T> Deref for EnsureInstalled<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 // Represents a toolchain override from a +toolchain command line option,
 // RUSTUP_TOOLCHAIN environment variable, or rust-toolchain.toml file etc. Can
 // include components and targets from a rust-toolchain.toml that should be
@@ -144,7 +187,7 @@ impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
             (Some(name), None) => {
-                ResolvableToolchainName::try_from(name)?.resolve(&cfg.get_default_host_triple()?)?
+                ResolvableToolchainName::try_from(name)?.resolve(&cfg.default_host_tuple()?)?
             }
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
@@ -246,12 +289,21 @@ pub(crate) struct Cfg<'a> {
     pub quiet: bool,
     pub current_dir: PathBuf,
     pub process: &'a Process,
+
+    /// Allows the auto-installation of the active toolchain when it is missing.
+    ///
+    /// This flag should be set to `false` when auto-installation behavior is undesired, such as
+    /// when running `rustup component` and `rustup target` subcommands. In these cases, it has a
+    /// higher precedence than the `RUSTUP_AUTO_INSTALL` environment variable and the `rustup set
+    /// auto-install` setting.
+    pub allow_auto_install: bool,
 }
 
 impl<'a> Cfg<'a> {
     pub(crate) fn from_env(
         current_dir: PathBuf,
         quiet: bool,
+        allow_auto_install: bool,
         process: &'a Process,
     ) -> Result<Self> {
         // Set up the rustup home directory
@@ -288,14 +340,11 @@ impl<'a> Cfg<'a> {
         let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
 
-        // Figure out get_default_host_triple before Config is populated
-        let default_host_triple =
-            settings_file.with(|s| Ok(get_default_host_triple(s, process)))?;
+        // Figure out default_host_tuple before Config is populated
+        let default_host = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
         // Environment override
         let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => {
-                Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host_triple)?)
-            }
+            Some(tc) => Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host)?),
             None => None,
         };
 
@@ -317,13 +366,14 @@ impl<'a> Cfg<'a> {
             quiet,
             current_dir,
             process,
+            allow_auto_install,
         };
 
         // Run some basic checks against the constructed configuration
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
         ResolvableToolchainName::try_from("stable")?.resolve(
-            &cfg.get_default_host_triple()
+            &cfg.default_host_tuple()
                 .context("Unable parse configuration")?,
         )?;
 
@@ -373,6 +423,10 @@ impl<'a> Cfg<'a> {
     }
 
     pub(crate) fn should_auto_install(&self) -> Result<bool> {
+        if !self.allow_auto_install {
+            return Ok(false);
+        }
+
         if let Ok(mode) = self.process.var("RUSTUP_AUTO_INSTALL") {
             Ok(mode != "0")
         } else {
@@ -483,7 +537,7 @@ impl<'a> Cfg<'a> {
             .map(|(desc, source)| {
                 anyhow::Ok((
                     LocalToolchainName::Named(ToolchainName::Official(
-                        desc.resolve(&self.get_default_host_triple()?)?,
+                        desc.resolve(&self.default_host_tuple()?)?,
                     )),
                     source,
                 ))
@@ -506,7 +560,11 @@ impl<'a> Cfg<'a> {
         }
 
         match self.ensure_active_toolchain(true, false).await {
-            Ok(r) => Ok(Some(r)),
+            Ok(r) => {
+                let (tc, source) = r;
+                tc.warn_auto_install(self.process);
+                Ok(Some((tc.inner, source)))
+            }
             Err(e) => match e.downcast_ref::<RustupError>() {
                 Some(RustupError::ToolchainNotSelected(_)) => Ok(None),
                 _ => Err(e),
@@ -529,7 +587,7 @@ impl<'a> Cfg<'a> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
-                let override_config = name.resolve(&self.get_default_host_triple()?)?.into();
+                let override_config = name.resolve(&self.default_host_tuple()?)?.into();
                 Some((override_config, ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
@@ -574,7 +632,7 @@ impl<'a> Cfg<'a> {
                 // have an unresolved name. I'm just preserving pre-existing
                 // behaviour by choosing ResolvableToolchainName here.
                 let toolchain_name = ResolvableToolchainName::try_from(name)?
-                    .resolve(&get_default_host_triple(settings, self.process))?;
+                    .resolve(&default_host_tuple(settings, self.process))?;
                 let override_cfg = toolchain_name.into();
                 return Ok(Some((override_cfg, source)));
             }
@@ -632,11 +690,11 @@ impl<'a> Cfg<'a> {
                                 toolchain_file.display()
                             )
                         })?;
-                    let default_host_triple = get_default_host_triple(settings, self.process);
+                    let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
                     if let ResolvableToolchainName::Official(name) = &toolchain_name
-                        && name.has_triple()
+                        && !name.target.is_empty()
                     {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
                         // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
@@ -648,7 +706,7 @@ impl<'a> Cfg<'a> {
                     }
 
                     // XXX: this awkwardness deals with settings file being locked already
-                    let toolchain_name = toolchain_name.resolve(&default_host_triple)?;
+                    let toolchain_name = toolchain_name.resolve(&default_host)?;
                     if !Toolchain::exists(self, &(&toolchain_name).into())?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
@@ -708,10 +766,10 @@ impl<'a> Cfg<'a> {
         match name {
             Some((tc, source)) => {
                 let install_if_missing = self.should_auto_install()?;
-                Ok((
-                    Toolchain::from_local(tc, install_if_missing, self).await?,
-                    source,
-                ))
+                let EnsureInstalled { inner: tc, status } =
+                    Toolchain::from_local(tc, install_if_missing, self).await?;
+                EnsureInstalled::new(tc.name(), status).warn_auto_install(self.process);
+                Ok((tc, source))
             }
             None => {
                 let (tc, source) = self
@@ -728,10 +786,10 @@ impl<'a> Cfg<'a> {
         &self,
         force_non_host: bool,
         verbose: bool,
-    ) -> Result<(LocalToolchainName, ActiveSource)> {
+    ) -> Result<(EnsureInstalled<LocalToolchainName>, ActiveSource)> {
         if let Some((override_config, source)) = self.find_override_config()? {
             let toolchain = override_config.clone().into_local_toolchain_name();
-            if let OverrideCfg::Official {
+            let status = if let OverrideCfg::Official {
                 toolchain,
                 components,
                 targets,
@@ -746,20 +804,24 @@ impl<'a> Cfg<'a> {
                     force_non_host,
                     verbose,
                 )
-                .await?;
+                .await?
+                .status
             } else {
                 Toolchain::with_source(self, toolchain.clone(), &source)?;
-            }
-            Ok((toolchain, source))
+                UpdateStatus::Unchanged
+            };
+            Ok((EnsureInstalled::new(toolchain, status), source))
         } else if let Some(toolchain) = self.get_default()? {
             let source = ActiveSource::Default;
-            if let ToolchainName::Official(desc) = &toolchain {
+            let status = if let ToolchainName::Official(desc) = &toolchain {
                 self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
-                    .await?;
+                    .await?
+                    .status
             } else {
                 Toolchain::with_source(self, toolchain.clone().into(), &source)?;
-            }
-            Ok((toolchain.into(), source))
+                UpdateStatus::Unchanged
+            };
+            Ok((EnsureInstalled::new(toolchain.into(), status), source))
         } else {
             Err(no_toolchain_error(self.process))
         }
@@ -776,10 +838,10 @@ impl<'a> Cfg<'a> {
         profile: Option<Profile>,
         force_non_host: bool,
         verbose: bool,
-    ) -> Result<(UpdateStatus, Toolchain<'_>)> {
+    ) -> Result<EnsureInstalled<Toolchain<'_>>> {
         common::check_non_host_toolchain(
             toolchain.to_string(),
-            &TargetTriple::from_host_or_build(self.process),
+            &TargetTuple::from_host_or_build(self.process),
             &toolchain.target,
             force_non_host,
         )?;
@@ -820,7 +882,7 @@ impl<'a> Cfg<'a> {
             }
             Err(e) => return Err(e.into()),
         };
-        Ok((status, toolchain.into()))
+        Ok(EnsureInstalled::new(toolchain.into(), status))
     }
 
     /// Get the configured default toolchain.
@@ -839,7 +901,7 @@ impl<'a> Cfg<'a> {
         toolchain_maybe_str
             .map(ResolvableToolchainName::try_from)
             .transpose()?
-            .map(|t| t.resolve(&self.get_default_host_triple()?))
+            .map(|t| t.resolve(&self.default_host_tuple()?))
             .transpose()
     }
 
@@ -896,22 +958,21 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    pub(crate) fn set_default_host_triple(&self, host_triple: String) -> Result<()> {
-        // Ensure that the provided host_triple is capable of resolving
+    pub(crate) fn set_default_host_tuple(&self, host_tuple: String) -> Result<()> {
+        // Ensure that the provided host tuple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
-        // if the supplied triple is insufficient / bad.
-        PartialToolchainDesc::from_str("stable")?
-            .resolve(&TargetTriple::new(host_triple.clone()))?;
+        // if the supplied tuple is insufficient / bad.
+        PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
-            s.default_host_triple = Some(host_triple);
+            s.default_host_tuple = Some(host_tuple);
             Ok(())
         })
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) fn get_default_host_triple(&self) -> Result<TargetTriple> {
+    pub(crate) fn default_host_tuple(&self) -> Result<TargetTuple> {
         self.settings_file
-            .with(|s| Ok(get_default_host_triple(s, self.process)))
+            .with(|s| Ok(default_host_tuple(s, self.process)))
     }
 
     /// The path on disk of any concrete toolchain
@@ -959,6 +1020,7 @@ impl Debug for Cfg<'_> {
             dist_root_url,
             quiet,
             current_dir,
+            allow_auto_install,
             process: _,
         } = self;
 
@@ -976,15 +1038,16 @@ impl Debug for Cfg<'_> {
             .field("dist_root_url", dist_root_url)
             .field("quiet", quiet)
             .field("current_dir", current_dir)
+            .field("allow_auto_install", allow_auto_install)
             .finish()
     }
 }
 
-fn get_default_host_triple(s: &Settings, process: &Process) -> TargetTriple {
-    s.default_host_triple
+fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple {
+    s.default_host_tuple
         .as_ref()
-        .map(TargetTriple::new)
-        .unwrap_or_else(|| TargetTriple::from_host_or_build(process))
+        .map(TargetTuple::new)
+        .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
 }
 
 fn no_toolchain_error(process: &Process) -> anyhow::Error {

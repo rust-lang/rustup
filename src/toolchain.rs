@@ -21,13 +21,14 @@ use wait_timeout::ChildExt;
 
 use crate::{
     RustupError,
-    config::{ActiveSource, Cfg, InstalledPath},
+    config::{ActiveSource, Cfg, EnsureInstalled, InstalledPath},
     dist::{
-        DistOptions, PartialToolchainDesc, TargetTriple,
+        DistOptions, PartialToolchainDesc, TargetTuple,
         component::{Component, Components},
         prefix::InstallPrefix,
     },
-    env_var, install,
+    env_var,
+    install::{self, UpdateStatus},
     utils::{self, raw::open_dir_following_links},
 };
 
@@ -54,15 +55,16 @@ impl<'a> Toolchain<'a> {
         name: LocalToolchainName,
         install_if_missing: bool,
         cfg: &'a Cfg<'a>,
-    ) -> anyhow::Result<Toolchain<'a>> {
+    ) -> anyhow::Result<EnsureInstalled<Toolchain<'a>>> {
         match Self::new(cfg, name) {
-            Ok(tc) => Ok(tc),
+            Ok(tc) => Ok(EnsureInstalled::new(tc, UpdateStatus::Unchanged)),
             Err(RustupError::ToolchainNotInstalled {
                 name: ToolchainName::Official(desc),
                 ..
             }) if install_if_missing => {
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
-                Ok(DistributableToolchain::install(options).await?.1.toolchain)
+                let tc = DistributableToolchain::install(options).await?.1.toolchain;
+                Ok(EnsureInstalled::new(tc, UpdateStatus::Installed))
             }
             Err(e) => Err(e.into()),
         }
@@ -371,12 +373,12 @@ impl<'a> Toolchain<'a> {
             return Ok(None);
         }
 
-        let default_host_triple = self.cfg.get_default_host_triple()?;
+        let default_host_tuple = self.cfg.default_host_tuple()?;
         // XXX: This could actually consider all installed distributable
         // toolchains in principle.
         for fallback in ["nightly", "beta", "stable"] {
             let resolved =
-                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
+                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_tuple)?;
             if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
                 let cmd = fallback.create_fallback_command("cargo", self)?;
                 return Ok(Some(cmd));
@@ -588,14 +590,14 @@ impl<'a> Toolchain<'a> {
     }
 
     /// Get the list of installed targets for any toolchain
-    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTriple>> {
+    pub fn installed_targets(&self) -> anyhow::Result<Vec<TargetTuple>> {
         Ok(self
             .installed_components()?
             .into_iter()
             .filter_map(|c| {
                 c.name()
                     .strip_prefix("rust-std-")
-                    .map(|triple| TargetTriple::new(triple.to_string()))
+                    .map(|tuple| TargetTuple::new(tuple.to_string()))
             })
             .collect())
     }
