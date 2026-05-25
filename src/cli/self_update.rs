@@ -1036,7 +1036,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
                 .install(None)
                 .await?
         } else {
-            DistributableToolchain::install(options).await?.0
+            DistributableToolchain::install(options).await?.status
         };
 
         check_proxy_sanity(cfg.process, components, desc)?;

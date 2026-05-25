@@ -1016,7 +1016,7 @@ async fn update(
                     }
                 }
                 Err(RustupError::ToolchainNotInstalled { .. }) => {
-                    DistributableToolchain::install(dist_opts).await?.0
+                    DistributableToolchain::install(dist_opts).await?.status
                 }
                 Err(e) => Err(e)?,
             };
@@ -1593,7 +1593,7 @@ async fn override_add(
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Official(desc) => {
                 let options = DistOptions::new(&[], &[], desc, cfg.get_profile()?, false, cfg)?;
-                let status = DistributableToolchain::install(options).await?.0;
+                let status = DistributableToolchain::install(options).await?.status;
                 writeln!(cfg.process.stdout().lock())?;
                 common::show_channel_update(
                     cfg,
