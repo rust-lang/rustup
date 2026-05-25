@@ -9,7 +9,7 @@ use platforms::Platform;
 
 use crate::{
     RustupError, component_for_bin,
-    config::{ActiveSource, Cfg},
+    config::{ActiveSource, Cfg, EnsureInstalled},
     dist::{
         DistOptions, PartialToolchainDesc, ToolchainDesc,
         config::Config,
@@ -18,7 +18,7 @@ use crate::{
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
-    install::{InstallMethod, UpdateStatus},
+    install::InstallMethod,
 };
 
 use crate::errors::UnknownComponentInfo;
@@ -39,10 +39,13 @@ impl<'a> DistributableToolchain<'a> {
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn install(
         options: DistOptions<'a, '_>,
-    ) -> anyhow::Result<(UpdateStatus, Self)> {
+    ) -> anyhow::Result<EnsureInstalled<Self>> {
         let (cfg, toolchain) = (options.cfg, options.toolchain);
         let status = InstallMethod::Dist(options).install(None).await?;
-        Ok((status, Self::new(cfg, toolchain.clone())?))
+        Ok(EnsureInstalled::new(
+            Self::new(cfg, toolchain.clone())?,
+            status,
+        ))
     }
 
     pub(crate) async fn from_partial(
