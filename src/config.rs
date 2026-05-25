@@ -862,9 +862,10 @@ impl<'a> Cfg<'a> {
             self,
         )?;
 
-        let (status, toolchain) = match DistributableToolchain::new(self, toolchain.clone()) {
+        Ok(match DistributableToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled { .. }) => {
-                DistributableToolchain::install(options).await?
+                let tc = DistributableToolchain::install(options).await?;
+                EnsureInstalled::new(tc.inner.into(), tc.status)
             }
             Ok(distributable) => {
                 if verbose {
@@ -878,11 +879,10 @@ impl<'a> Cfg<'a> {
                 } else {
                     UpdateStatus::Unchanged
                 };
-                (status, distributable)
+                EnsureInstalled::new(distributable.into(), status)
             }
             Err(e) => return Err(e.into()),
-        };
-        Ok(EnsureInstalled::new(toolchain.into(), status))
+        })
     }
 
     /// Get the configured default toolchain.
