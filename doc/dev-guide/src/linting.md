@@ -149,3 +149,9 @@ $ CC_x86_64_pc_windows_gnu="clang --sysroot=/usr/x86_64-w64-mingw32" \
   CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=clang \
   cargo clippy --target x86_64-pc-windows-gnu
 ```
+
+### Rust-Analyzer
+
+It is also possible for the above setup to work with `rust-analyzer`. See the
+relevant sections in the [example configuration](#rust-analyzer) for more
+information.
