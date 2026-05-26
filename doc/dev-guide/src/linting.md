@@ -56,3 +56,96 @@ features = "all"
     Alternatively, if you want to apply the configuration to all your Rust
     projects, you can add them to your global configuration at
     `~/.config/Code/User/settings.json` instead.
+
+## Checking Windows-specific code on Unix
+
+You can lint Windows-specific code (`#[cfg(windows)]`) without a Windows VM
+with `cargo clippy` targeting `x86_64-pc-windows-gnu`.
+
+> **Note**: This is for linting and diagnosis only. For building
+> distributable Windows binaries, prefer relying on our CI.
+
+### Prerequisites
+
+You need to install the corresponding cross-compilation target first:
+
+```console
+$ rustup target add x86_64-pc-windows-gnu
+```
+
+### Recommended method: mingw-w64 gcc
+
+This is the most reliable approach across all platforms. The full gcc
+cross-toolchain includes its own sysroot, so no manual `--sysroot` tuning
+is needed.
+
+#### Install the dependencies
+
+| Platform      | Install Command                         |
+| ------------- | --------------------------------------- |
+| Debian/Ubuntu | `sudo apt install gcc-mingw-w64-x86-64` |
+| Fedora        | `sudo dnf install mingw64-gcc`          |
+| Arch Linux    | `sudo pacman -S mingw-w64-gcc`          |
+| macOS         | `brew install mingw-w64`                |
+
+#### Lint
+
+In most cases with mingw-w64-gcc, cargo auto-detects the cross-compiler:
+
+```console
+$ cargo clippy --target x86_64-pc-windows-gnu
+```
+
+Or modify `.cargo/config.windows-cross.example.toml` based on sysroot matrix, then copy it as `.cargo/config.windows-cross.toml`.
+
+```console
+$ cargo clippy --config .cargo/config.windows-cross.toml
+```
+
+If your distro does not auto-detect, set the compiler explicitly:
+
+```console
+$ CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc \
+  CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
+  cargo clippy --target x86_64-pc-windows-gnu
+```
+
+### Alternate method: clang + mingw-w64 headers
+
+This uses a lighter install (clang + headers only instead of full gcc
+toolchain), but requires per-distro sysroot tuning because clang does not
+always auto-detect the correct MinGW header paths.
+
+#### Install the dependencies
+
+| Platform      | Install Command                                                |
+| ------------- | -------------------------------------------------------------- |
+| Debian/Ubuntu | `sudo apt install clang mingw-w64-x86-64-dev`                  |
+| Fedora        | `sudo dnf install clang mingw64-headers mingw64-winpthreads`   |
+| Arch Linux    | `sudo pacman -S clang mingw-w64-headers mingw-w64-winpthreads` |
+
+#### Lint
+
+When running `clippy`, you may need to inform the Rust toolchain of your sysroot, which requires passing a `cargo` config either via a file or with environment variables.
+
+_Sysroot Matrix_
+
+| Platform      | Need explicit sysroot | Sysroot                                |
+| ------------- | --------------------- | -------------------------------------- |
+| Debian/Ubuntu | Yes                   | /usr/x86_64-w64-mingw32                |
+| Fedora        | No                    | /usr/x86_64-w64-mingw32/sys-root/mingw |
+| Arch Linux    | No                    | /usr/x86_64-w64-mingw32                |
+
+Modify `.cargo/config.windows-cross.example.toml` based on sysroot matrix, then copy it as `.cargo/config.windows-cross.toml`.
+
+```console
+$ cargo clippy --config .cargo/config.windows-cross.toml
+```
+
+Or, you can pass them as environment variables directly, e.g.:
+
+```console
+$ CC_x86_64_pc_windows_gnu="clang --sysroot=/usr/x86_64-w64-mingw32" \
+  CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=clang \
+  cargo clippy --target x86_64-pc-windows-gnu
+```
