@@ -424,9 +424,10 @@ impl DownloadStatus {
     }
 
     pub(crate) fn installed(&self) {
+        self.progress.set_prefix("installed");
         self.progress.set_style(DownloadStatus::progress_style(
             self.name_width,
-            "installed {total_bytes:>31}",
+            "{prefix:.green.bold} {total_bytes:>31}",
         ));
         self.progress.finish();
     }
