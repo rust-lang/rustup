@@ -3,7 +3,7 @@
 //! prefix, represented by a `Components` instance.
 
 use std::collections::{HashMap, HashSet};
-use std::io::{self, ErrorKind as IOErrorKind, Read};
+use std::io::{self, BufRead, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
@@ -32,23 +32,25 @@ pub struct DirectoryPackage<P> {
 }
 
 impl DirectoryPackage<temp::Dir> {
-    pub(crate) fn compressed<R: Read>(
+    pub(crate) fn compressed<R: BufRead>(
         stream: R,
         kind: CompressionKind,
         temp_dir: temp::Dir,
         io_executor: Box<dyn Executor>,
     ) -> Result<Self> {
         match kind {
-            CompressionKind::GZip => {
-                Self::from_tar(flate2::read::GzDecoder::new(stream), temp_dir, io_executor)
-            }
+            CompressionKind::GZip => Self::from_tar(
+                flate2::bufread::GzDecoder::new(stream),
+                temp_dir,
+                io_executor,
+            ),
             CompressionKind::ZStd => Self::from_tar(
-                zstd::stream::read::Decoder::new(stream)?,
+                zstd::stream::read::Decoder::with_buffer(stream)?,
                 temp_dir,
                 io_executor,
             ),
             CompressionKind::XZ => {
-                Self::from_tar(xz2::read::XzDecoder::new(stream), temp_dir, io_executor)
+                Self::from_tar(xz2::bufread::XzDecoder::new(stream), temp_dir, io_executor)
             }
         }
     }
