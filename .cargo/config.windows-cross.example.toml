@@ -1,0 +1,19 @@
+# Windows cross-checking for #[cfg(windows)] code on UNIX clippy config
+# NOTE: requires a working cross-compiler.
+# see https://rust-lang.github.io/rustup/dev-guide/linting.html#checking-windows-specific-code-on-unix
+
+[build]
+target = "x86_64-pc-windows-gnu"
+
+# For clang only: uncomment and append the clang sysroot option per your distro
+# NOTE: may need explicit sysroot config
+# see Sysroot Matrix on https://rust-lang.github.io/rustup/dev-guide/linting.html#lint-1
+# [env]
+# without explicit sysroot
+# CC_x86_64_pc_windows_gnu = { value = "clang", force = true }
+
+# with explicit sysroot
+# CC_x86_64_pc_windows_gnu = { value = "clang --sysroot=<sysroot>", force = true }
+
+# [target.x86_64-pc-windows-gnu]
+# linker = "clang"
