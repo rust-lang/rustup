@@ -87,6 +87,15 @@ impl Manifest {
             &component.pkg
         }
     }
+
+    pub(crate) fn display_name(&self, component: &Component, host_target: &TargetTuple) -> String {
+        match &component.target {
+            Some(component_target) if *host_target == *component_target => {
+                self.short_name(component).to_owned()
+            }
+            _ => self.name(component),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
