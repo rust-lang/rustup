@@ -12,6 +12,18 @@ features = ["test"]
 # Alternatively, enable all features if needed
 # features = "all"
 
+# Uncomment the section below to enable Windows cross-checking for #[cfg(windows)] code on UNIX.
+# NOTE: requires a working cross-compiler.
+# see https://rust-lang.github.io/rustup/dev-guide/linting.html#checking-windows-specific-code-on-unix
+# target = "x86_64-pc-windows-gnu"
+
+# For clang only: uncomment and append the clang sysroot option per your distro
+# NOTE: may need explicit sysroot config.
+# see https://rust-lang.github.io/rustup/dev-guide/linting.html#lint-1
+# [cargo.extraEnv]
+# CC_x86_64_pc_windows_gnu = "clang"
+# CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = "clang"
+
 [diagnostics]
 # Disable all dimming of inactive code due to current `cfg`
 disabled = ["inactive-code"]
