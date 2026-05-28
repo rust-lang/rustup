@@ -20,7 +20,7 @@ use std::process::Command;
 use anyhow::Result;
 use sha2::{Digest, Sha256};
 
-use crate::dist::TargetTriple;
+use crate::dist::TargetTuple;
 use crate::process::TestProcess;
 
 #[cfg(windows)]
@@ -135,14 +135,14 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
 ///
 /// IF it becomes very hard to workaround that, then we can either make a second
 /// this_host_tuple that doesn't make its own process or use
-/// TargetTriple::from_host() from within the process context as needed.
+/// [`TargetTuple::from_host()`] from within the process context as needed.
 pub fn this_host_tuple() -> String {
     if cfg!(target_os = "windows") {
         // For windows, this host may be different to the target: we may be
         // building with i686 toolchain, but on an x86_64 host, so run the
         // actual detection logic and trust it.
         let tp = TestProcess::default();
-        return TargetTriple::from_host(&tp.process).unwrap().to_string();
+        return TargetTuple::from_host(&tp.process).unwrap().to_string();
     }
     let arch = if cfg!(target_arch = "x86") {
         "i686"
@@ -284,8 +284,8 @@ pub mod topical_doc_data {
     fn repath(origin: &str) -> String {
         // Add doc prefix and rewrite string paths for the current platform
         let with_prefix = "share/doc/rust/html/".to_owned() + origin;
-        let splitted = with_prefix.split('/');
-        let repathed = splitted.fold(PathBuf::new(), |acc, e| acc.join(e));
+        let split = with_prefix.split('/');
+        let repathed = split.fold(PathBuf::new(), |acc, e| acc.join(e));
         repathed.into_os_string().into_string().unwrap()
     }
 
