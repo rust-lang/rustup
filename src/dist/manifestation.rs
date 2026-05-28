@@ -167,7 +167,11 @@ impl Manifestation {
             .iter()
             // The same as the component name's length used in `ComponentBinary::new`
             // As it's used for status output
-            .map(|component| new_manifest.short_name(component).len())
+            .map(|component| {
+                new_manifest
+                    .display_name(component, &toolchain.target)
+                    .len()
+            })
             .max()
             .unwrap_or(0)
             .max(DEFAULT_MIN_NAME_WIDTH);
@@ -177,7 +181,13 @@ impl Manifestation {
             .components_to_install
             .into_iter()
             .filter_map(|component| {
-                ComponentBinary::new(component, &new_manifest, download_cfg, max_name_width)
+                ComponentBinary::new(
+                    component,
+                    &new_manifest,
+                    download_cfg,
+                    max_name_width,
+                    &toolchain.target,
+                )
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -766,6 +776,7 @@ impl<'a> ComponentBinary<'a> {
         manifest: &'a Manifest,
         download_cfg: &'a DownloadCfg<'a>,
         name_width: usize,
+        host_toolchain_target: &TargetTuple,
     ) -> Option<Result<Self>> {
         Some(Ok(ComponentBinary {
             binary: match manifest.binary(&component) {
@@ -773,7 +784,10 @@ impl<'a> ComponentBinary<'a> {
                 Ok(None) => return None,
                 Err(e) => return Some(Err(e)),
             },
-            status: download_cfg.status_for(manifest.short_name(&component).to_owned(), name_width),
+            status: download_cfg.status_for(
+                manifest.display_name(&component, host_toolchain_target),
+                name_width,
+            ),
             component,
             manifest,
             download_cfg,
