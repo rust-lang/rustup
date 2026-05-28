@@ -284,8 +284,8 @@ pub mod topical_doc_data {
     fn repath(origin: &str) -> String {
         // Add doc prefix and rewrite string paths for the current platform
         let with_prefix = "share/doc/rust/html/".to_owned() + origin;
-        let splitted = with_prefix.split('/');
-        let repathed = splitted.fold(PathBuf::new(), |acc, e| acc.join(e));
+        let split = with_prefix.split('/');
+        let repathed = split.fold(PathBuf::new(), |acc, e| acc.join(e));
         repathed.into_os_string().into_string().unwrap()
     }
 
