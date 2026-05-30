@@ -1092,11 +1092,6 @@ pub(crate) fn uninstall(
 
     info!("removing cargo home");
 
-    // Remove CARGO_HOME/bin from PATH
-    if !no_modify_path {
-        do_remove_from_path(process)?;
-    }
-
     // Delete everything in CARGO_HOME *except* the rustup bin
 
     // First everything except the bin directory
@@ -1151,7 +1146,7 @@ pub(crate) fn uninstall(
     // Delete rustup. This is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    clean_cargo_bin(process)?;
+    clean_cargo_bin(process, no_modify_path)?;
 
     info!("rustup is uninstalled");
 

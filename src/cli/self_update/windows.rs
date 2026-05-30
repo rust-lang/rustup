@@ -674,7 +674,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn clean_cargo_bin(process: &Process) -> Result<()> {
+pub(crate) fn clean_cargo_bin(process: &Process, no_modify_path: bool) -> Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
@@ -687,6 +687,10 @@ pub(crate) fn clean_cargo_bin(process: &Process) -> Result<()> {
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = process.cargo_home()?;
+    if !no_modify_path {
+        do_remove_from_path(process)?;
+    }
+
     // The rustup.exe bin
     let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
 
