@@ -24,16 +24,15 @@
 //! During uninstall (`rustup self uninstall`):
 //!
 //! * Delete `$RUSTUP_HOME`.
-//! * Delete everything in `$CARGO_HOME`, including
-//!   the rustup binary and its hardlinks
+//! * Delete rustup tool proxy binaries from `$CARGO_HOME`/bin.
+//! * Delete `$CARGO_HOME`/bin if it is empty after uninstall.
 //!
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
 use std::borrow::Cow;
 use std::env::{self, consts::EXE_SUFFIX};
-use std::io;
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
@@ -79,7 +78,7 @@ mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
-use unix::{clean_cargo_bin as platform_clean_cargo_bin, do_add_to_path, do_remove_from_path};
+use unix::{do_add_to_path, do_remove_from_path};
 #[cfg(unix)]
 pub(crate) use unix::{run_update, self_replace};
 
@@ -90,7 +89,7 @@ pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{clean_cargo_bin as platform_clean_cargo_bin, do_add_to_path, do_remove_from_path};
+use windows::{do_add_to_path, do_remove_from_path};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -1047,6 +1046,12 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     Ok(())
 }
 
+/// Uninstall process:
+/// 1. Remove rustup home.
+/// 2. Clean up rustup tool proxies.
+/// 3. Remove rustup binary file.
+/// 4. Try to clean up $CARGO_HOME/bin if it's empty.
+/// 5. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
 pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
@@ -1103,66 +1108,17 @@ pub(crate) fn uninstall(
         }
     }
 
-    info!("removing cargo home");
-
-    // Delete everything in CARGO_HOME *except* the rustup bin
-
-    // First everything except the bin directory
-    let diriter = fs::read_dir(&cargo_home).map_err(|e| CliError::ReadDirError {
-        p: cargo_home.clone(),
-        source: e,
-    })?;
-    for dirent in diriter {
-        let dirent = dirent.map_err(|e| CliError::ReadDirError {
-            p: cargo_home.clone(),
-            source: e,
-        })?;
-        if dirent.file_name().to_str() != Some("bin") {
-            if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path())?;
-            } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
-            }
-        }
-    }
-
-    // Then everything in bin except rustup and tools. These can't be unlinked
-    // until this process exits (on windows).
-    let tools = TOOLS
-        .iter()
-        .chain(DUP_TOOLS.iter())
-        .map(|t| format!("{t}{EXE_SUFFIX}"));
-    let tools: Vec<_> = tools.chain(vec![format!("rustup{EXE_SUFFIX}")]).collect();
-    let bin_dir = cargo_home.join("bin");
-    let diriter = fs::read_dir(&bin_dir).map_err(|e| CliError::ReadDirError {
-        p: bin_dir.clone(),
-        source: e,
-    })?;
-    for dirent in diriter {
-        let dirent = dirent.map_err(|e| CliError::ReadDirError {
-            p: bin_dir.clone(),
-            source: e,
-        })?;
-        let name = dirent.file_name();
-        let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
-        if file_is_tool == Some(false) {
-            if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path())?;
-            } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
-            }
-        }
-    }
-
-    info!("removing rustup binaries");
-
-    // Delete rustup. This is tricky because this is *probably*
-    // the running executable and on Windows can't be unlinked until
-    // the process exits.
-    platform_clean_cargo_bin(process, no_modify_path)?;
+    // Remove rustup executable and then clean up `$CARGO_HOME/bin` if empty.
+    // Optionally remove it from $PATH if successfully removed.
+    #[cfg(unix)]
+    clean_cargo_bin(process, no_modify_path)?;
+    // NOTE: On windows, this is *tricky*,
+    // the running executable and on Windows can't be unlinked until the process exits.
+    // see: windows::{complete_windows_uninstall,clean_cargo_bin}
+    #[cfg(windows)]
+    windows::clean_cargo_bin(process, no_modify_path)?;
 
     info!("rustup is uninstalled");
-
     Ok(ExitCode::SUCCESS)
 }
 

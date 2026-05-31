@@ -259,13 +259,13 @@ async fn uninstall_works_if_rustup_home_doesnt_exist() {
 }
 
 #[tokio::test]
-async fn uninstall_deletes_cargo_home() {
+async fn uninstall_keeps_cargo_home() {
     let cx = setup_empty_installed().await;
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
         .await
         .is_ok();
-    assert!(!cx.config.cargodir.exists());
+    assert!(cx.config.cargodir.exists());
 }
 
 #[tokio::test]
@@ -300,7 +300,7 @@ async fn uninstall_self_delete_works() {
 
     assert!(out.status.success());
     assert!(!rustup.exists());
-    assert!(!cx.config.cargodir.exists());
+    assert!(cx.config.cargodir.exists());
 
     let rustc = cx.config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
     let rustdoc = cx.config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
@@ -347,7 +347,14 @@ async fn uninstall_doesnt_leave_gc_file() {
 fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
     let garbage = fs::read_dir(dir)
         .unwrap()
-        .map(|d| d.unwrap().path().to_string_lossy().to_string())
+        .filter_map(|entry| {
+            let path = entry.unwrap().path();
+            let name = path.file_name()?.to_str()?;
+            if !(name.starts_with("rustup-gc-") && name.ends_with(EXE_SUFFIX)) {
+                return None;
+            }
+            Some(path.to_string_lossy().to_string())
+        })
         .collect::<Vec<_>>();
     match garbage.len() {
         0 => Ok(()),
