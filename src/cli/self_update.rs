@@ -46,7 +46,7 @@ use clap::ValueEnum;
 use clap::builder::PossibleValue;
 use clap_cargo::style::{GOOD, WARN};
 use itertools::Itertools;
-use same_file::Handle;
+use same_file::{Handle, is_same_file};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, trace, warn};
 
@@ -1060,7 +1060,8 @@ pub(crate) fn uninstall(
 
     let cargo_home = process.cargo_home()?;
 
-    if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
+    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
+    if !rustup_path.exists() {
         return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
     }
 
@@ -1087,6 +1088,19 @@ pub(crate) fn uninstall(
     let rustup_dir = home::rustup_home()?;
     if rustup_dir.exists() {
         utils::remove_dir("rustup_home", &rustup_dir)?;
+    }
+
+    // Clean up rustup tool links
+    let cargo_bin_path = cargo_home.join("bin");
+    let proxy_paths = TOOLS
+        .iter()
+        .chain(DUP_TOOLS.iter())
+        .map(|tool| cargo_bin_path.join(format!("{tool}{EXE_SUFFIX}")));
+
+    for proxy_path in proxy_paths {
+        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
+            utils::remove_file("rustup tool proxy", &proxy_path)?;
+        }
     }
 
     info!("removing cargo home");
