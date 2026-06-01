@@ -259,13 +259,118 @@ async fn uninstall_works_if_rustup_home_doesnt_exist() {
 }
 
 #[tokio::test]
-async fn uninstall_deletes_cargo_home() {
+async fn uninstall_keeps_cargo_home() {
     let cx = setup_empty_installed().await;
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
         .await
         .is_ok();
-    assert!(!cx.config.cargodir.exists());
+    assert!(cx.config.cargodir.exists());
+}
+
+#[tokio::test]
+async fn uninstall_removes_empty_cargo_bin() {
+    let cx = setup_empty_installed().await;
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+    assert!(!cx.config.cargodir.join("bin").exists());
+}
+
+#[tokio::test]
+async fn uninstall_keeps_non_empty_cargo_bin() {
+    let cx = setup_empty_installed().await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+
+    let mock_file = cargo_bin.join(".DS_Store");
+    fs::write(&mock_file, "").unwrap();
+
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+warn: keeping non-empty cargo bin directory `[..]`
+...
+"#]])
+        .is_ok();
+    assert!(cargo_bin.exists());
+    assert!(mock_file.exists());
+}
+
+#[cfg(not(windows))]
+#[tokio::test]
+async fn uninstall_removes_path_only_when_bin_removed() {
+    async fn install(cx: &CliTestContext) {
+        cx.config
+            .expect(["rustup-init", "-y", "--default-toolchain", "none"])
+            .await
+            .is_ok();
+    }
+
+    fn source_line(cx: &CliTestContext) -> String {
+        format!(
+            r#". "{}/env"
+"#,
+            cx.config.cargodir.display()
+        )
+    }
+
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    install(&cx).await;
+    let profile = cx.config.homedir.join(".profile");
+    assert!(
+        fs::read_to_string(&profile)
+            .unwrap()
+            .contains(&source_line(&cx))
+    );
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+    assert!(!cx.config.cargodir.join("bin").exists());
+    assert!(
+        !fs::read_to_string(&profile)
+            .unwrap()
+            .contains(&source_line(&cx))
+    );
+
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    install(&cx).await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+    let profile = cx.config.homedir.join(".profile");
+    fs::write(cargo_bin.join("custom-tool"), "").unwrap();
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+    assert!(cargo_bin.exists());
+    assert!(
+        fs::read_to_string(&profile)
+            .unwrap()
+            .contains(&source_line(&cx))
+    );
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn windows_complete_uninstall_removes_empty_cargo_bin() {
+    let cx = setup_empty_installed().await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+
+    let check = || {
+        if cargo_bin.exists() {
+            Err(format!("cargo bin still exists: {}", cargo_bin.display()))
+        } else {
+            Ok(())
+        }
+    };
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), check).unwrap()
 }
 
 #[tokio::test]
@@ -300,7 +405,7 @@ async fn uninstall_self_delete_works() {
 
     assert!(out.status.success());
     assert!(!rustup.exists());
-    assert!(!cx.config.cargodir.exists());
+    assert!(cx.config.cargodir.exists());
 
     let rustc = cx.config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
     let rustdoc = cx.config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
@@ -347,7 +452,14 @@ async fn uninstall_doesnt_leave_gc_file() {
 fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
     let garbage = fs::read_dir(dir)
         .unwrap()
-        .map(|d| d.unwrap().path().to_string_lossy().to_string())
+        .filter_map(|entry| {
+            let path = entry.unwrap().path();
+            let name = path.file_name()?.to_str()?;
+            if !(name.starts_with("rustup-gc-") && name.ends_with(EXE_SUFFIX)) {
+                return None;
+            }
+            Some(path.to_string_lossy().to_string())
+        })
         .collect::<Vec<_>>();
     match garbage.len() {
         0 => Ok(()),

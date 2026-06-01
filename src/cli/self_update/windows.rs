@@ -348,16 +348,18 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
     false
 }
 
-/// Run by rustup-gc-$num.exe to delete CARGO_HOME
+/// Run by rustup-gc-$num.exe to delete rustup binary
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> {
     use std::process::Stdio;
 
     wait_for_parent()?;
 
-    // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
-    let cargo_home = process.cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home)?;
+    let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
+
+    // Clean up CARGO_HOME/bin if it's empty now
+    // On success, also remove it from $PATH.
+    super::clean_cargo_bin(process, no_modify_path)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -373,6 +375,8 @@ pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> 
 
     Ok(utils::ExitCode(0))
 }
+
+const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
 pub(crate) fn wait_for_parent() -> Result<()> {
     use std::io;
@@ -644,9 +648,9 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-// The last step of uninstallation is to delete *this binary*,
-// rustup.exe and the CARGO_HOME that contains it. On Unix, this
-// works fine. On Windows you can't delete files while they are open,
+// The last step of uninstallation is to delete *this binary*, rustup.exe.
+// On Unix, this works fine.
+// On Windows you can't delete files while they are open,
 // like when they are running.
 //
 // Here's what we're going to do:
@@ -659,7 +663,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //   processes created with the option to inherit handles
 //   will also keep them open.
 // - Run the gc exe, which waits for the original rustup.exe
-//   process to close, then deletes CARGO_HOME. This process
+//   process to close, then deletes rustup.exe. This process
 //   has inherited a FILE_FLAG_DELETE_ON_CLOSE handle to itself.
 // - Finally, spawn yet another system binary with the inherit handles
 //   flag, so *it* inherits the FILE_FLAG_DELETE_ON_CLOSE handle to
@@ -674,7 +678,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
+pub(crate) fn clean_cargo_bin(process: &Process, no_modify_path: bool) -> Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
@@ -734,6 +738,7 @@ pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
     };
 
     Command::new(gc_exe)
+        .env(GC_MODIFY_PATH, if no_modify_path { "0" } else { "1" })
         .spawn()
         .context(CliError::WindowsUninstallMadness)?;
 

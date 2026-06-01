@@ -47,11 +47,6 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool, process: &Process) -> Result<u
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
-    let cargo_home = process.cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home)
-}
-
 pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_bytes = format!("{}\n", sh.source_string(process)?).into_bytes();
