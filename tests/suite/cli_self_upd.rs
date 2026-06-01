@@ -269,6 +269,49 @@ async fn uninstall_deletes_cargo_home() {
 }
 
 #[tokio::test]
+async fn complete_uninstall_removes_empty_cargo_bin() {
+    let cx = setup_empty_installed().await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+
+    #[cfg(unix)]
+    assert!(!cargo_bin.exists());
+
+    #[cfg(windows)]
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+        if cargo_bin.exists() {
+            return Err(format!("cargo bin still exists: {}", cargo_bin.display()));
+        }
+        Ok(())
+    })
+    .unwrap()
+}
+
+#[tokio::test]
+async fn complete_uninstall_keeps_non_empty_cargo_bin() {
+    let cx = setup_empty_installed().await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+
+    let mock_file = cargo_bin.join("custom-tool");
+    fs::write(&mock_file, "").unwrap();
+
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+warn: keeping non-empty cargo bin directory `[..]`
+...
+"#]])
+        .is_ok();
+    assert!(cargo_bin.exists());
+    assert!(mock_file.exists());
+}
+
+#[tokio::test]
 async fn uninstall_fails_if_not_installed() {
     let cx = setup_empty_installed().await;
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
