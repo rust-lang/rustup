@@ -305,6 +305,7 @@ impl<'a> DownloadCfg<'a> {
             .progress_chars("## "),
         );
         progress.set_message(component_name);
+        progress.set_prefix("installed");
         self.tracker.multi_progress_bars.add(progress.clone());
 
         DownloadStatus {
@@ -432,7 +433,7 @@ impl DownloadStatus {
     pub(crate) fn installed(&self) {
         self.progress.set_style(DownloadStatus::progress_style(
             self.name_width,
-            "installed {total_bytes:>31}",
+            "{prefix:.green.bold} {total_bytes:>31}",
         ));
         self.progress.finish();
     }
