@@ -58,6 +58,15 @@ pub struct Manifest {
 }
 
 impl Manifest {
+    pub(crate) fn display_name(&self, component: &Component, host_target: &TargetTuple) -> String {
+        match &component.target {
+            Some(component_target) if *host_target == *component_target => {
+                self.short_name(component).to_owned()
+            }
+            _ => self.name(component),
+        }
+    }
+
     /// Returns the [`Component`]'s name **before** renaming, including the target if present.
     /// For the name after renaming, see [`Component::name()`].
     pub(crate) fn name(&self, component: &Component) -> String {
@@ -85,15 +94,6 @@ impl Manifest {
             from
         } else {
             &component.pkg
-        }
-    }
-
-    pub(crate) fn display_name(&self, component: &Component, host_target: &TargetTuple) -> String {
-        match &component.target {
-            Some(component_target) if *host_target == *component_target => {
-                self.short_name(component).to_owned()
-            }
-            _ => self.name(component),
         }
     }
 }
