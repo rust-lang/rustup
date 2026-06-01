@@ -32,7 +32,6 @@
 
 use std::borrow::Cow;
 use std::env::{self, consts::EXE_SUFFIX};
-#[cfg(not(windows))]
 use std::io;
 use std::io::Write;
 use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
@@ -80,7 +79,7 @@ mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
-use unix::{clean_cargo_bin, do_add_to_path, do_remove_from_path};
+use unix::{clean_cargo_bin as platform_clean_cargo_bin, do_add_to_path, do_remove_from_path};
 #[cfg(unix)]
 pub(crate) use unix::{run_update, self_replace};
 
@@ -91,7 +90,7 @@ pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{clean_cargo_bin, do_add_to_path, do_remove_from_path};
+use windows::{clean_cargo_bin as platform_clean_cargo_bin, do_add_to_path, do_remove_from_path};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -1146,11 +1145,44 @@ pub(crate) fn uninstall(
     // Delete rustup. This is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    clean_cargo_bin(process, no_modify_path)?;
+    platform_clean_cargo_bin(process, no_modify_path)?;
 
     info!("rustup is uninstalled");
 
     Ok(ExitCode::SUCCESS)
+}
+
+/// Remove the `$CARGO_HOME/bin` directory if it's empty.
+/// On success, remove it from `$PATH` unless `no_modify_path` is set.
+/// If the directory is not empty, emit a warning and return success.
+fn clean_cargo_bin(process: &Process, no_modify_path: bool) -> Result<()> {
+    // Remove rustup binary
+    let cargo_bin_path = process.cargo_home()?.join("bin");
+    let rustup_path = cargo_bin_path.join(format!("rustup{EXE_SUFFIX}"));
+
+    utils::remove_file("rustup_bin", &rustup_path)?;
+
+    // Remove $CARGO_HOME/bin
+    let cargo_bin_path_display = cargo_bin_path.display();
+    info!("removing empty cargo bin directory `{cargo_bin_path_display}`");
+
+    let Err(e) = fs::remove_dir(&cargo_bin_path) else {
+        if !no_modify_path {
+            info!("removing cargo bin directory `{cargo_bin_path_display}` from $PATH");
+            do_remove_from_path(process)?;
+        }
+
+        return Ok(());
+    };
+
+    if e.kind() == io::ErrorKind::DirectoryNotEmpty {
+        warn!("keeping non-empty cargo bin directory `{cargo_bin_path_display}`");
+
+        return Ok(());
+    }
+
+    Err(e)
+        .with_context(|| format!("failed to remove cargo bin directory `{cargo_bin_path_display}`"))
 }
 
 #[derive(Clone, Copy, Debug)]
