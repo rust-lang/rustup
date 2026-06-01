@@ -1049,6 +1049,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
 }
 
 pub(crate) fn uninstall(
+    cfg: &Cfg<'_>,
     no_prompt: bool,
     no_modify_path: bool,
     process: &Process,
@@ -1080,6 +1081,11 @@ pub(crate) fn uninstall(
             info!("aborting uninstallation");
             return Ok(ExitCode::SUCCESS);
         }
+    }
+
+    info!("removing toolchains");
+    for toolchain in cfg.list_toolchains()? {
+        Toolchain::ensure_removed(cfg, toolchain.into())?;
     }
 
     info!("removing rustup home");
