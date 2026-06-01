@@ -74,6 +74,17 @@ and you should be able to run `rustup`, `rustc`, `cargo`, etc. normally.
 
 [correctly exposed]: ./already-installed-rust.html#ensure-the-correct-path-configuration
 
+### winget
+
+`MSVC` Pre Requisite
+```powershell
+winget install Microsoft.VisualStudio.2022.Community --silent --override "--wait --quiet --add ProductLang En-us --add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
+```
+Installing `rustup`
+```powershell
+winget install Rustlang.Rustup
+```
+
 ### APT
 
 Starting from Debian 13 (trixie) and Ubuntu 24.04 (noble),
