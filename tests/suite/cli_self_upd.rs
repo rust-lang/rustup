@@ -299,6 +299,60 @@ warn: keeping non-empty cargo bin directory `[..]`
     assert!(mock_file.exists());
 }
 
+#[cfg(not(windows))]
+#[tokio::test]
+async fn uninstall_removes_path_only_when_bin_removed() {
+    async fn install(cx: &CliTestContext) {
+        cx.config
+            .expect(["rustup-init", "-y", "--default-toolchain", "none"])
+            .await
+            .is_ok();
+    }
+
+    fn source_line(cx: &CliTestContext) -> String {
+        format!(
+            r#". "{}/env"
+"#,
+            cx.config.cargodir.display()
+        )
+    }
+
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    install(&cx).await;
+    let profile = cx.config.homedir.join(".profile");
+    assert!(
+        fs::read_to_string(&profile)
+            .unwrap()
+            .contains(&source_line(&cx))
+    );
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+    assert!(!cx.config.cargodir.join("bin").exists());
+    assert!(
+        !fs::read_to_string(&profile)
+            .unwrap()
+            .contains(&source_line(&cx))
+    );
+
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    install(&cx).await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+    let profile = cx.config.homedir.join(".profile");
+    fs::write(cargo_bin.join("custom-tool"), "").unwrap();
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+    assert!(cargo_bin.exists());
+    assert!(
+        fs::read_to_string(&profile)
+            .unwrap()
+            .contains(&source_line(&cx))
+    );
+}
+
 #[tokio::test]
 async fn uninstall_fails_if_not_installed() {
     let cx = setup_empty_installed().await;
