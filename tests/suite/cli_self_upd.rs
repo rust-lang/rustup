@@ -353,6 +353,26 @@ async fn uninstall_removes_path_only_when_bin_removed() {
     );
 }
 
+#[cfg(windows)]
+#[tokio::test]
+async fn windows_complete_uninstall_removes_empty_cargo_bin() {
+    let cx = setup_empty_installed().await;
+    let cargo_bin = cx.config.cargodir.join("bin");
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .is_ok();
+
+    let check = || {
+        if cargo_bin.exists() {
+            Err(format!("cargo bin still exists: {}", cargo_bin.display()))
+        } else {
+            Ok(())
+        }
+    };
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), check).unwrap()
+}
+
 #[tokio::test]
 async fn uninstall_fails_if_not_installed() {
     let cx = setup_empty_installed().await;
