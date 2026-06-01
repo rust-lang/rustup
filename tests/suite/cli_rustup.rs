@@ -870,7 +870,10 @@ installed targets:
   [HOST_TUPLE]
 
 "#]])
-        .with_stderr(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+hint: a new stable Rust release is available. Run `rustup update stable` to install it.
+
+"#]])
         .is_ok();
 }
 

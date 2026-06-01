@@ -96,6 +96,8 @@ pub struct Settings {
     pub auto_self_update: Option<SelfUpdateMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_install: Option<AutoInstallMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_release_notified_secs: Option<u64>,
 }
 
 impl Settings {

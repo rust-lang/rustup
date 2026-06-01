@@ -4,7 +4,9 @@ use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, Write};
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::LazyLock;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{cmp, env};
 
 use anstyle::Style;
@@ -17,15 +19,18 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     config::Cfg,
-    dist::{DistOptions, TargetTuple, ToolchainDesc},
+    dist::{DistOptions, PartialToolchainDesc, TargetTuple, ToolchainDesc},
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
-    toolchain::{LocalToolchainName, Toolchain, ToolchainName},
+    toolchain::{DistributableToolchain, LocalToolchainName, Toolchain, ToolchainName},
     utils::{self, ExitCode},
 };
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
+const RELEASE_CYCLE_DAYS: i64 = 42;
+const NOTIFY_INTERVAL_SECS: u64 = 24 * 60 * 60;
+const FALLBACK_RELEASE_DATE: &str = "2026-04-17";
 
 pub(crate) fn confirm(question: &str, default: bool, process: &Process) -> Result<bool> {
     write!(process.stdout().lock(), "{question} ")?;
@@ -568,4 +573,62 @@ pub(super) fn update_console_filter(
             .modify(|it| *it = EnvFilter::new(directives))
             .expect("error reloading `EnvFilter` for console_logger");
     }
+}
+
+/// Notifies a user with a hint whenever a new Rust release is available.
+/// This is only shown at max once per day and only if not in proxy mode.
+pub(crate) fn notify_release(cfg: &Cfg<'_>) -> Result<()> {
+    if cfg.process.var("RUSTUP_RELEASE_HINT").ok().as_deref() == Some("0") {
+        return Ok(());
+    }
+
+    let time_now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    // Limit notifications to at most once per day.
+    // This is checked before loading the manifest to avoid unnecessary disk I/O.
+    let last_notified = cfg
+        .settings_file
+        .with(|s| Ok(s.last_release_notified_secs.unwrap_or(0)))?;
+    if time_now.saturating_sub(last_notified) < NOTIFY_INTERVAL_SECS {
+        return Ok(());
+    }
+
+    let default_host = cfg.default_host_tuple()?;
+    let stable_desc = PartialToolchainDesc::from_str("stable")?.resolve(&default_host)?;
+    let distributable = DistributableToolchain::new(cfg, stable_desc)
+        .map_err(|e| anyhow!("stable toolchain unavailable: {e}"))?;
+    let release_date_str = distributable
+        .get_manifestation()
+        .and_then(|m| m.load_manifest())
+        .ok()
+        .flatten()
+        .map(|m| m.date.clone())
+        .unwrap_or_else(|| FALLBACK_RELEASE_DATE.to_owned());
+
+    let today = chrono::DateTime::from_timestamp(time_now as i64, 0)
+        .unwrap_or_default()
+        .date_naive();
+
+    let release_date = chrono::NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d")
+        .map_err(|e| anyhow!("could not parse release date '{}': {e}", release_date_str))?;
+
+    // Skip the hint if fewer than 6 weeks have passed since the last known release.
+    if (today - release_date).num_days() < RELEASE_CYCLE_DAYS {
+        return Ok(());
+    }
+
+    cfg.settings_file.with_mut(|s| {
+        s.last_release_notified_secs = Some(time_now);
+        Ok(())
+    })?;
+
+    writeln!(
+        cfg.process.stderr().lock(),
+        "hint: a new stable Rust release is available. Run `rustup update stable` to install it."
+    )?;
+
+    Ok(())
 }

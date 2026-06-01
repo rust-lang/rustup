@@ -584,6 +584,7 @@ async fn rustup_run_not_installed() {
         .expect(["rustup", "run", "nightly", "rustc", "--version"])
         .await
         .with_stderr(snapbox::str![[r#"
+hint: a new stable Rust release is available. Run `rustup update stable` to install it.
 error: toolchain 'nightly-[HOST_TUPLE]' is not installed
 help: run `rustup toolchain install nightly-[HOST_TUPLE]` to install it
 
