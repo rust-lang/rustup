@@ -1795,3 +1795,27 @@ info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install d
 "#]])
         .is_ok();
 }
+
+#[tokio::test]
+async fn warn_auto_install_on_rustup_deprecated() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "component", "list"],
+            [("RUSTUP_TOOLCHAIN", "stable"), ("RUSTUP_AUTO_INSTALL", "1")],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+rustc-[HOST_TUPLE] (installed)
+...
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+warn: the missing active toolchain `stable-[HOST_TUPLE]` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+
+"#]])
+        .is_ok();
+}
