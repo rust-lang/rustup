@@ -142,10 +142,10 @@ impl<T> EnsureInstalled<T> {
 }
 
 impl<T: Display> EnsureInstalled<T> {
-    fn warn_auto_install(&self, process: &Process) {
+    fn warn_auto_install(&self, cfg: &Cfg<'_>) {
         // If we're already in a recursion, or we haven't just installed the active toolchain, then
         // don't print the warning.
-        let recursions = process.var("RUST_RECURSION_COUNT");
+        let recursions = cfg.process.var("RUST_RECURSION_COUNT");
         if recursions.is_ok_and(|it| it != "0") || !matches!(self.status, UpdateStatus::Installed) {
             return;
         }
@@ -562,7 +562,7 @@ impl<'a> Cfg<'a> {
         match self.ensure_active_toolchain(true, false).await {
             Ok(r) => {
                 let (tc, source) = r;
-                tc.warn_auto_install(self.process);
+                tc.warn_auto_install(self);
                 Ok(Some((tc.inner, source)))
             }
             Err(e) => match e.downcast_ref::<RustupError>() {
@@ -768,7 +768,7 @@ impl<'a> Cfg<'a> {
                 let install_if_missing = self.should_auto_install()?;
                 let EnsureInstalled { inner: tc, status } =
                     Toolchain::from_local(tc, install_if_missing, self).await?;
-                EnsureInstalled::new(tc.name(), status).warn_auto_install(self.process);
+                EnsureInstalled::new(tc.name(), status).warn_auto_install(self);
                 Ok((tc, source))
             }
             None => {
