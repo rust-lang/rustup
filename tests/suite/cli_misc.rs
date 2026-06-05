@@ -1813,8 +1813,10 @@ rustc-[HOST_TUPLE] (installed)
         .with_stderr(snapbox::str![[r#"
 ...
 warn: the missing active toolchain `stable-[HOST_TUPLE]` has been auto-installed
-warn: this might cause rustup commands to take longer time to finish than expected
-info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+warn: auto-installation is deprecated for most `rustup` commands
+warn: scripts relying on this behavior in `rustup` may stop working in the future
+warn: to install the active toolchain, use `rustup install` instead
+warn: see <https://github.com/rust-lang/rustup/issues/4836> for more info
 
 "#]])
         .is_ok();
