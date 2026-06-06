@@ -1048,6 +1048,12 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     Ok(())
 }
 
+/// Uninstall process:
+/// 1. Remove rustup home.
+/// 2. Delete everything in CARGO_HOME *except* the except the bin directory
+/// 3. Remove other tools in $CARGO_HOME/bin, but skipping rustup binary file and links to rustup.
+/// 4. If no `--no-modify-path` is passed $CARGO_HOME/bin, clean up $PATH.
+/// 5. Remove $CARGO_HOME
 pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
