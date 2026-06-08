@@ -553,8 +553,8 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
 }
 
 /// Installing is a simple matter of copying the running binary to
-/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
-/// and adding `CARGO_HOME`/bin to PATH.
+/// `$CARGO_HOME/bin`, hard-linking the various Rust tools to it,
+/// and adding `$CARGO_HOME/bin` to PATH.
 pub(crate) async fn install(
     no_prompt: bool,
     mut opts: InstallOpts<'_>,
@@ -1096,11 +1096,31 @@ pub(crate) fn uninstall(
         utils::remove_dir("rustup_home", &rustup_dir)?;
     }
 
+    info!("removing rustup binaries");
+
+    // Delete rustup.
+    #[cfg(unix)]
+    delete_rustup_and_cargo_home(no_modify_path, process)?;
+    // NOTE: On windows, this is tricky because this is *probably*
+    // the running executable and on Windows can't be unlinked until
+    // the process exits.
+    // see: windows::{complete_windows_uninstall,spawn_uninstall_gc}
+    #[cfg(windows)]
+    windows::spawn_uninstall_gc(no_modify_path, process)?;
+
+    info!("rustup is uninstalled");
+
+    Ok(ExitCode::SUCCESS)
+}
+
+fn delete_rustup_and_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
+    let cargo_home = process.cargo_home()?;
+
     info!("removing cargo home");
 
-    // Delete everything in CARGO_HOME *except* the rustup bin
+    // Delete everything in CARGO_HOME *except* the rustup bin.
 
-    // First everything except the bin directory
+    // First everything except the bin directory.
     let diriter = fs::read_dir(&cargo_home).map_err(|e| CliError::ReadDirError {
         p: cargo_home.clone(),
         source: e,
@@ -1147,25 +1167,6 @@ pub(crate) fn uninstall(
         }
     }
 
-    info!("removing rustup binaries");
-
-    // Delete rustup.
-    #[cfg(unix)]
-    delete_rustup_and_cargo_home(no_modify_path, process)?;
-    // NOTE: On windows, this is tricky because this is *probably*
-    // the running executable and on Windows can't be unlinked until
-    // the process exits.
-    // see: windows::{complete_windows_uninstall,spawn_uninstall_gc}
-    #[cfg(windows)]
-    windows::spawn_uninstall_gc(no_modify_path, process)?;
-
-    info!("rustup is uninstalled");
-
-    Ok(ExitCode::SUCCESS)
-}
-
-fn delete_rustup_and_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
-    let cargo_home = process.cargo_home()?;
     if !no_modify_path {
         do_remove_from_path(process)?;
     }
@@ -1210,7 +1211,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
     Ok(SelfUpdatePermission::Permit)
 }
 
-/// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
+/// Self update downloads rustup-init to `$CARGO_HOME/bin/rustup-init`
 /// and runs it.
 ///
 /// It does a few things to accommodate self-delete problems on windows:
@@ -1223,7 +1224,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 ///
 /// Because it's again difficult for rustup-init to delete itself
 /// (and on windows this process will not be running to do it),
-/// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
+/// rustup-init is stored in `$CARGO_HOME/bin`, and then deleted next
 /// time rustup runs.
 pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
