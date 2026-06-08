@@ -24,15 +24,16 @@
 //! During uninstall (`rustup self uninstall`):
 //!
 //! * Delete `$RUSTUP_HOME`.
-//! * Delete everything in `$CARGO_HOME`, including
-//!   the rustup binary and its hardlinks
+//! * Delete all entries in `$CARGO_HOME` except `bin`.
+//! * Delete rustup tool links and binary from `$CARGO_HOME/bin`.
+//! * Delete `$CARGO_HOME/bin` if it is empty after uninstall.
+//! * Delete `$CARGO_HOME` if it is empty after uninstall.
 //!
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
 use std::borrow::Cow;
 use std::env::{self, consts::EXE_SUFFIX};
-#[cfg(not(windows))]
 use std::io;
 use std::io::Write;
 use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
@@ -47,7 +48,7 @@ use clap::ValueEnum;
 use clap::builder::PossibleValue;
 use clap_cargo::style::{GOOD, WARN};
 use itertools::Itertools;
-use same_file::Handle;
+use same_file::{Handle, is_same_file};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, trace, warn};
 
@@ -1050,10 +1051,11 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
 
 /// Uninstall process:
 /// 1. Remove rustup home.
-/// 2. Delete everything in CARGO_HOME *except* the except the bin directory
-/// 3. Remove other tools in $CARGO_HOME/bin, but skipping rustup binary file and links to rustup.
-/// 4. If no `--no-modify-path` is passed $CARGO_HOME/bin, clean up $PATH.
-/// 5. Remove $CARGO_HOME
+/// 2. Remove all entries in `$CARGO_HOME` except `bin`.
+/// 3. Remove rustup tool links and binary.
+/// 4. Try to remove $CARGO_HOME/bin directory if it's empty.
+/// 5. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
+/// 6. Try to remove $CARGO_HOME directory if it's empty.
 pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
@@ -1096,11 +1098,9 @@ pub(crate) fn uninstall(
         utils::remove_dir("rustup_home", &rustup_dir)?;
     }
 
-    info!("removing rustup binaries");
-
     // Delete rustup.
     #[cfg(unix)]
-    delete_rustup_and_cargo_home(no_modify_path, process)?;
+    clean_cargo_home(no_modify_path, process)?;
     // NOTE: On windows, this is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
@@ -1113,14 +1113,17 @@ pub(crate) fn uninstall(
     Ok(ExitCode::SUCCESS)
 }
 
-fn delete_rustup_and_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
+/// Remove rustup-owned cargo-home state.
+/// This removes non-`bin` entries in `$CARGO_HOME`, removes rustup tool links and executable from
+/// `$CARGO_HOME/bin`, then removes `$CARGO_HOME/bin` and `$CARGO_HOME` only if they are empty.
+/// Nonempty directories are left in place.
+fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
     let cargo_home = process.cargo_home()?;
+    let cargo_bin = cargo_home.join("bin");
 
     info!("removing cargo home");
 
-    // Delete everything in CARGO_HOME *except* the rustup bin.
-
-    // First everything except the bin directory.
+    // Delete everything in CARGO_HOME except the bin directory first.
     let diriter = fs::read_dir(&cargo_home).map_err(|e| CliError::ReadDirError {
         p: cargo_home.clone(),
         source: e,
@@ -1139,39 +1142,58 @@ fn delete_rustup_and_cargo_home(no_modify_path: bool, process: &Process) -> Resu
         }
     }
 
-    // Then everything in bin except rustup and tools. These can't be unlinked
-    // until this process exits (on windows).
-    let tools = TOOLS
+    info!("removing rustup tool links and binary");
+
+    let rustup_path = cargo_bin.join(format!("rustup{EXE_SUFFIX}"));
+
+    let proxy_paths = TOOLS
         .iter()
         .chain(DUP_TOOLS.iter())
-        .map(|t| format!("{t}{EXE_SUFFIX}"));
-    let tools: Vec<_> = tools.chain(vec![format!("rustup{EXE_SUFFIX}")]).collect();
-    let bin_dir = cargo_home.join("bin");
-    let diriter = fs::read_dir(&bin_dir).map_err(|e| CliError::ReadDirError {
-        p: bin_dir.clone(),
-        source: e,
-    })?;
-    for dirent in diriter {
-        let dirent = dirent.map_err(|e| CliError::ReadDirError {
-            p: bin_dir.clone(),
-            source: e,
-        })?;
-        let name = dirent.file_name();
-        let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
-        if file_is_tool == Some(false) {
-            if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path())?;
-            } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
-            }
+        .map(|tool| cargo_bin.join(format!("{tool}{EXE_SUFFIX}")));
+
+    for proxy_path in proxy_paths {
+        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
+            utils::remove_file("rustup tool proxy", &proxy_path)?;
         }
     }
 
-    if !no_modify_path {
-        do_remove_from_path(process)?;
+    utils::remove_file("rustup_bin", &rustup_path)?;
+
+    let cargo_bin_display = cargo_bin.display();
+    info!("removing empty cargo bin directory `{cargo_bin_display}`");
+
+    match fs::remove_dir(&cargo_bin) {
+        Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
+            warn!("keeping non-empty cargo bin directory `{cargo_bin_display}`")
+        }
+        Err(e) => {
+            return Err(e).with_context(|| {
+                format!("failed to remove cargo bin directory `{cargo_bin_display}`")
+            });
+        }
+        Ok(()) if !no_modify_path => {
+            info!("removing cargo bin directory `{cargo_bin_display}` from $PATH");
+            do_remove_from_path(process)?;
+        }
+        Ok(()) => {}
     }
 
-    utils::remove_dir("cargo_home", &cargo_home)
+    let cargo_home_display = cargo_home.display();
+    info!("removing empty cargo home directory `{cargo_home_display}`");
+
+    match fs::remove_dir(&cargo_home) {
+        Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
+            warn!("keeping non-empty cargo home directory `{cargo_home_display}`");
+        }
+        Err(e) => {
+            return Err(e).with_context(|| {
+                format!("failed to remove cargo home directory `{cargo_home_display}`")
+            });
+        }
+        Ok(()) => {}
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug)]
