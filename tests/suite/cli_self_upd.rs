@@ -347,7 +347,15 @@ async fn uninstall_doesnt_leave_gc_file() {
 fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
     let garbage = fs::read_dir(dir)
         .unwrap()
-        .map(|d| d.unwrap().path().to_string_lossy().to_string())
+        .filter_map(|entry| {
+            let path = entry.unwrap().path();
+            let name = path.file_name()?.to_str()?;
+            // On Windows, this binary is cleaned up on exit
+            if !(name.starts_with("rustup-gc-") && name.ends_with(EXE_SUFFIX)) {
+                return None;
+            }
+            Some(path.to_string_lossy().to_string())
+        })
         .collect::<Vec<_>>();
     match garbage.len() {
         0 => Ok(()),
