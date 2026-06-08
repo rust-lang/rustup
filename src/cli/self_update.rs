@@ -80,7 +80,7 @@ mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
-use unix::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+use unix::{do_add_to_path, do_remove_from_path};
 #[cfg(unix)]
 pub(crate) use unix::{run_update, self_replace};
 
@@ -1161,6 +1161,12 @@ pub(crate) fn uninstall(
     info!("rustup is uninstalled");
 
     Ok(ExitCode::SUCCESS)
+}
+
+#[cfg(unix)]
+fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
+    let cargo_home = process.cargo_home()?;
+    utils::remove_dir("cargo_home", &cargo_home)
 }
 
 #[derive(Clone, Copy, Debug)]
