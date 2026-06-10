@@ -1148,10 +1148,15 @@ pub(crate) fn uninstall(
 
     info!("removing rustup binaries");
 
-    // Delete rustup. This is tricky because this is *probably*
+    // Delete rustup.
+    #[cfg(unix)]
+    delete_rustup_and_cargo_home(process)?;
+    // NOTE: On windows, this is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    delete_rustup_and_cargo_home(process)?;
+    // see: windows::{complete_windows_uninstall,spawn_uninstall_gc}
+    #[cfg(windows)]
+    windows::spawn_uninstall_gc(process)?;
 
     info!("rustup is uninstalled");
 
