@@ -91,7 +91,7 @@ pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
+use windows::{do_add_to_path, do_remove_from_path};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -1163,7 +1163,6 @@ pub(crate) fn uninstall(
     Ok(ExitCode::SUCCESS)
 }
 
-#[cfg(unix)]
 fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
     let cargo_home = process.cargo_home()?;
     utils::remove_dir("cargo_home", &cargo_home)
