@@ -355,8 +355,10 @@ pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> 
 
     wait_for_parent()?;
 
+    let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
+
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
-    super::delete_rustup_and_cargo_home(process)?;
+    super::delete_rustup_and_cargo_home(no_modify_path, process)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -673,7 +675,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(process: &Process) -> Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
@@ -733,6 +735,7 @@ pub(crate) fn spawn_uninstall_gc(process: &Process) -> Result<()> {
     };
 
     Command::new(gc_exe)
+        .env(GC_MODIFY_PATH, if no_modify_path { "0" } else { "1" })
         .spawn()
         .context(CliError::WindowsUninstallMadness)?;
 
@@ -747,6 +750,10 @@ pub(crate) fn spawn_uninstall_gc(process: &Process) -> Result<()> {
 
     Ok(())
 }
+
+// The rustup-gc executable cannot accept normal function call here,
+// so we use env var here, notifying it if we need to remove $CARGO_HOME/bin from $PATH
+const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
 #[cfg(any(test, feature = "test"))]
 pub fn get_path() -> Result<Option<Value>> {
