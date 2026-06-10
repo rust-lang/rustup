@@ -644,10 +644,10 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-// The last step of uninstallation is to delete *this binary*,
-// rustup.exe and the CARGO_HOME that contains it. On Unix, this
-// works fine. On Windows you can't delete files while they are open,
-// like when they are running.
+// Spawn a temporary rustup-gc-$random.exe to finish Windows uninstall
+// after the original rustup.exe process exits. On Unix, the running
+// executable can be deleted directly. On Windows you can't delete files
+// while they are open, like when they are running.
 //
 // Here's what we're going to do:
 // - Copy rustup.exe to a temporary file in
@@ -674,7 +674,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn delete_rustup_and_cargo_home(process: &Process) -> Result<()> {
+pub(crate) fn spawn_uninstall_gc(process: &Process) -> Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
