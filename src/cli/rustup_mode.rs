@@ -675,6 +675,24 @@ pub async fn main(
     )?;
     cfg.toolchain_override = matches.plus_toolchain;
 
+    let is_install_cmd = match &subcmd {
+        RustupSubcmd::Install { .. } => true,
+        RustupSubcmd::Toolchain { subcmd } => {
+            matches!(subcmd, ToolchainSubcmd::Install { .. })
+        }
+        _ => false,
+    };
+
+    if !is_install_cmd && cfg.list_toolchains()?.is_empty() && cfg.find_default()?.is_none() {
+        use std::io::Write;
+        let mut stderr = cfg.process.stderr().lock();
+        writeln!(stderr, "info: no toolchains installed")?;
+        writeln!(
+            stderr,
+            "hint: run 'rustup toolchain install stable' to install the default toolchain"
+        )?;
+    }
+
     match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
         RustupSubcmd::Install { opts } => update(cfg, opts, true).await,
