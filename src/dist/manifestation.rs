@@ -798,7 +798,7 @@ impl<'a> ComponentBinary<'a> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = self.download_cfg.url(&self.binary.url)?;
-        let installer = RetryIf::spawn(
+        let installer = RetryIf::start(
             FixedInterval::from_millis(0).take(max_retries),
             || {
                 self.download_cfg
