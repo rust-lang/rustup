@@ -97,7 +97,7 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     for result in io::BufRead::lines(&mut reader) {
         let line = result?;
         if filter(&line) {
-            writeln!(writer, "{}", &line)?;
+            writeln!(writer, "{line}")?;
         } else {
             removed += 1;
         }
