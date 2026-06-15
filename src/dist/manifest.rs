@@ -479,7 +479,7 @@ impl Manifest {
                 .unwrap_or_else(|_| {
                     panic!(
                         "manifest should contain component {}",
-                        &self.short_name(component)
+                        self.short_name(component)
                     )
                 });
             let component_target_pkg = component_pkg

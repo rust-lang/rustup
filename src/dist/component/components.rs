@@ -231,7 +231,7 @@ pub struct Component {
 
 impl Component {
     pub(crate) fn manifest_name(&self) -> String {
-        format!("manifest-{}", &self.name)
+        format!("manifest-{}", self.name)
     }
     pub(crate) fn manifest_file(&self) -> PathBuf {
         self.components.prefix.manifest_file(&self.manifest_name())

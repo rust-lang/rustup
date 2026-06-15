@@ -838,7 +838,7 @@ impl fmt::Display for TargetTuple {
 
 impl fmt::Display for PartialToolchainDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self.channel)?;
+        write!(f, "{}", self.channel)?;
 
         if let Some(date) = &self.date {
             write!(f, "-{date}")?;
@@ -859,7 +859,7 @@ impl fmt::Display for PartialToolchainDesc {
 
 impl fmt::Display for ToolchainDesc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self.channel)?;
+        write!(f, "{}", self.channel)?;
 
         if let Some(date) = &self.date {
             write!(f, "-{date}")?;
