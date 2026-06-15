@@ -117,6 +117,8 @@ You can manually download `rustup-init` for a given target from
   - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init.sha256)
 - [aarch64-unknown-linux-musl](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-musl/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-musl/rustup-init.sha256)
+- [aarch64-unknown-freebsd](https://static.rust-lang.org/rustup/dist/aarch64-unknown-freebsd/rustup-init)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-unknown-freebsd/rustup-init.sha256)
 - [arm-linux-androideabi](https://static.rust-lang.org/rustup/dist/arm-linux-androideabi/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/arm-linux-androideabi/rustup-init.sha256)
 - [arm-unknown-linux-gnueabi](https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabi/rustup-init)

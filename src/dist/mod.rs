@@ -524,6 +524,7 @@ impl TargetTuple {
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
                 (b"FreeBSD", b"i686") => Some("i686-unknown-freebsd"),
+                (b"FreeBSD", b"aarch64") => Some("aarch64-unknown-freebsd"),
                 (b"OpenBSD", b"x86_64") => Some("x86_64-unknown-openbsd"),
                 (b"OpenBSD", b"i686") => Some("i686-unknown-openbsd"),
                 (b"NetBSD", b"x86_64") => Some("x86_64-unknown-netbsd"),
