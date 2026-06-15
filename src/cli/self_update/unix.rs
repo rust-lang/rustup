@@ -82,7 +82,7 @@ pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
 pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_cmd = sh.source_string(process)?;
-        let source_cmd_with_newline = format!("\n{}", &source_cmd);
+        let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.update_rcs(process) {
             let cmd_to_write = match utils::read_file("rcfile", &rc) {
