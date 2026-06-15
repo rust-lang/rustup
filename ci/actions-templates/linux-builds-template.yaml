@@ -24,6 +24,7 @@ jobs: # skip-main skip-pr skip-stable
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl     # skip-pr skip-main
+          - aarch64-unknown-freebsd        # skip-pr skip-main skip-stable
           - powerpc64-unknown-linux-gnu    # skip-pr
           - x86_64-unknown-linux-musl      # skip-pr
           - i686-unknown-linux-gnu         # skip-pr skip-main
