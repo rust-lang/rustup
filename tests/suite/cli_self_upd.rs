@@ -8,6 +8,7 @@ use std::process::Command;
 
 use remove_dir_all::remove_dir_all;
 
+#[cfg(windows)]
 use retry::{
     delay::{Fibonacci, jitter},
     retry,
@@ -368,6 +369,7 @@ async fn uninstall_self_delete_works() {
 // On windows rustup self uninstall temporarily puts a rustup-gc-$randomnumber.exe
 // file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[tokio::test]
+#[cfg(windows)]
 async fn uninstall_doesnt_leave_gc_file() {
     let cx = setup_empty_installed().await;
     cx.config
@@ -387,6 +389,7 @@ async fn uninstall_doesnt_leave_gc_file() {
     }
 }
 
+#[cfg(windows)]
 fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
     let garbage = fs::read_dir(dir)
         .unwrap()
@@ -400,14 +403,16 @@ fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
             Some(path.to_string_lossy().to_string())
         })
         .collect::<Vec<_>>();
-    match garbage.len() {
-        0 => Ok(()),
-        _ => Err(GcErr(garbage)),
+    if garbage.is_empty() {
+        Ok(())
+    } else {
+        Err(GcErr(garbage))
     }
 }
 
 #[derive(thiserror::Error, Debug)]
 #[error("garbage remaining: {:?}", .0)]
+#[cfg(windows)]
 struct GcErr(Vec<String>);
 
 #[tokio::test]
