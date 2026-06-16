@@ -18,6 +18,8 @@ use crate::{
     toolchain::{PathBasedToolchainName, ToolchainName},
 };
 
+pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
+
 /// A type erasing thunk for the retry crate to permit use with anyhow. See <https://github.com/dtolnay/anyhow/issues/149>
 #[derive(Debug, ThisError)]
 #[error(transparent)]
@@ -131,8 +133,8 @@ pub enum RustupError {
     #[error("path '{0}' not found")]
     PathToolchainNotInstalled(PathBasedToolchainName),
     #[error(
-        "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n\
-        help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
+        "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n{hint}",
+        hint = DEFAULT_STABLE_HINT
     )]
     ToolchainNotSelected(String),
     #[error("{}", unknown_components_msg(.desc, .components))]
