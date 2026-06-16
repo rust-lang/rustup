@@ -393,6 +393,8 @@ async fn remove_override_none() {
             .with_stderr(snapbox::str![[r#"
 info: no override toolchain for '[CWD]'
 info: you may use `--path <path>` option to remove override toolchain for a specific path
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
 
 "#]]);
     }
@@ -628,6 +630,8 @@ async fn default_none() {
         .is_ok()
         .with_stderr(snapbox::str![[r#"
 info: default toolchain unset
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
 
 "#]]);
 
