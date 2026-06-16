@@ -1030,6 +1030,8 @@ test
         .with_stderr(snapbox::str![[r#"
 info: uninstalling toolchain test
 info: toolchain test uninstalled
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
 
 "#]])
         .is_ok();

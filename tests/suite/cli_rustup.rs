@@ -267,6 +267,8 @@ async fn rustup_no_channels() {
         .with_stderr(snapbox::str![[r#"
 info: no updatable toolchains installed
 info: cleaning up downloads & tmp directories
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
 
 "#]])
         .is_ok();
@@ -721,7 +723,11 @@ async fn show_home() {
 [RUSTUP_DIR]
 
 "#]])
-        .with_stderr(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
+
+"#]])
         .is_ok();
 }
 
@@ -744,7 +750,11 @@ active toolchain
 no active toolchain
 
 "#]])
-        .with_stderr(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
+
+"#]])
         .is_ok();
 }
 

@@ -48,7 +48,7 @@ use crate::{
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, ManifestWithHash},
     },
-    errors::RustupError,
+    errors::{DEFAULT_STABLE_HINT, RustupError},
     install::{InstallMethod, UpdateStatus},
     process::{ColorableTerminal, Process},
     toolchain::{
@@ -327,6 +327,36 @@ impl RustupSubcmd {
             | RustupSubcmd::Uninstall { .. }
             | RustupSubcmd::Update { .. }
             | RustupSubcmd::Which { .. } => false,
+        }
+    }
+
+    /// Returns whether rustup should warn about having no default toolchain and no installed toolchains.
+    fn should_warn_empty_setup(&self) -> bool {
+        match self {
+            // These subcommands are not about toolchains, so the hint would be noise.
+            RustupSubcmd::Completions { .. }
+            | RustupSubcmd::DumpTestament
+            | RustupSubcmd::Self_ { .. } => false,
+
+            // For all other subcommands, the hint may be useful if rustup is still unusable after
+            // the command has completed.
+            RustupSubcmd::Check { .. }
+            | RustupSubcmd::Component { .. }
+            | RustupSubcmd::Default { .. }
+            | RustupSubcmd::Doc { .. }
+            | RustupSubcmd::Install { .. }
+            | RustupSubcmd::Override { .. }
+            | RustupSubcmd::Run { .. }
+            | RustupSubcmd::Set { .. }
+            | RustupSubcmd::Show { .. }
+            | RustupSubcmd::Target { .. }
+            | RustupSubcmd::Toolchain { .. }
+            | RustupSubcmd::Uninstall { .. }
+            | RustupSubcmd::Update { .. }
+            | RustupSubcmd::Which { .. } => true,
+
+            #[cfg(not(windows))]
+            RustupSubcmd::Man { .. } => true,
         }
     }
 }
@@ -675,7 +705,9 @@ pub async fn main(
     )?;
     cfg.toolchain_override = matches.plus_toolchain;
 
-    match subcmd {
+    let should_warn = subcmd.should_warn_empty_setup();
+
+    let exit_code = match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
         RustupSubcmd::Install { opts } => update(cfg, opts, true).await,
         RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
@@ -802,7 +834,13 @@ pub async fn main(
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)
         }
+    }?;
+
+    if should_warn && cfg.list_toolchains()?.is_empty() && cfg.get_default()?.is_none() {
+        warn!("no toolchain installed and no default toolchain set\n{DEFAULT_STABLE_HINT}");
     }
+
+    Ok(exit_code)
 }
 
 async fn default_(
