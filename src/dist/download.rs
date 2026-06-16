@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::fs;
-use std::io::Read;
+use std::io::{self, Read};
 use std::ops;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -46,9 +46,9 @@ impl<'a> DownloadCfg<'a> {
     }
 
     /// Downloads a file and validates its hash. Resumes interrupted downloads.
-    /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
-    /// target file already exists, then the hash is checked and it is returned
-    /// immediately without re-downloading.
+    /// Partial downloads are stored in `self.download_dir` under unique names.
+    /// If the target file already exists, then the hash is checked and it is
+    /// returned immediately without re-downloading.
     pub(crate) async fn download(
         &self,
         url: &Url,
@@ -58,40 +58,29 @@ impl<'a> DownloadCfg<'a> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
 
-        if target_file.exists() {
-            let cached_result = file_hash(&target_file)?;
-            if hash == cached_result {
-                debug!("reusing previously downloaded file");
-                debug!(url = url.as_ref(), "checksum passed");
-                return Ok(File { path: target_file });
-            } else {
-                warn!("bad checksum for cached download");
-                fs::remove_file(&target_file).context("cleaning up previous download")?;
-            }
+        if let Some(file) = self.cached_file(&target_file, hash)? {
+            debug!(url = url.as_ref(), "checksum passed");
+            return Ok(file);
         }
 
-        let partial_file_path = target_file.with_file_name(
-            target_file
-                .file_name()
-                .map(|s| s.to_str().unwrap_or("_"))
-                .unwrap_or("_")
-                .to_owned()
-                + ".partial",
-        );
-
-        let partial_file_existed = partial_file_path.exists();
+        let partial = Self::partial_download(&target_file)?;
 
         let mut hasher = Sha256::new();
         let mut download = DownloadOptions::try_from(self.process)?
-            .start(url, &partial_file_path)
+            .start(url, &partial.path)
             .with_hasher(&mut hasher)
             .with_status(status)
             .with_resume();
 
         if let Err(e) = download.download().await {
             let is_network_failure = is_network_failure(&e);
+            if is_network_failure {
+                Self::keep_partial_for_resume(&partial);
+            } else {
+                utils::ensure_file_removed("partial download", &partial.path)?;
+            }
             let err = Err(e);
-            return match (partial_file_existed, is_network_failure) {
+            return match (partial.existed, is_network_failure) {
                 (true, true) => err.context(RustupError::IncompletePartialFile),
                 (true, false) => err.context(RustupError::BrokenPartialFile),
                 (false, _) => err,
@@ -102,8 +91,8 @@ impl<'a> DownloadCfg<'a> {
 
         if hash != actual_hash {
             // Incorrect hash
-            if partial_file_existed {
-                self.clean(&[hash.to_string() + ".partial"])?;
+            utils::ensure_file_removed("partial download", &partial.path)?;
+            if partial.existed {
                 Err(anyhow!(RustupError::BrokenPartialFile))
             } else {
                 Err(RustupError::ChecksumFailed {
@@ -115,13 +104,125 @@ impl<'a> DownloadCfg<'a> {
             }
         } else {
             debug!(url = url.as_ref(), "checksum passed");
-            utils::rename(
-                "downloaded",
-                &partial_file_path,
-                &target_file,
-                self.permit_copy_rename,
-            )?;
-            Ok(File { path: target_file })
+            self.finish_download(&partial.path, &target_file, hash)
+        }
+    }
+
+    fn cached_file(&self, target_file: &Path, hash: &str) -> Result<Option<File>> {
+        if target_file.exists() {
+            let cached_result = file_hash(target_file)?;
+            if hash == cached_result {
+                debug!("reusing previously downloaded file");
+                return Ok(Some(File {
+                    path: target_file.to_path_buf(),
+                }));
+            } else {
+                warn!("bad checksum for cached download");
+                fs::remove_file(target_file).context("cleaning up previous download")?;
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn partial_download(target_file: &Path) -> Result<PartialDownload> {
+        let legacy_path = Self::legacy_partial_path(target_file);
+        let path = Self::unique_partial_path(target_file);
+
+        let existed = match fs::rename(&legacy_path, &path) {
+            Ok(()) => true,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => false,
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "claiming partial download '{}' for '{}'",
+                        legacy_path.display(),
+                        path.display()
+                    )
+                });
+            }
+        };
+
+        Ok(PartialDownload {
+            path,
+            legacy_path,
+            existed,
+        })
+    }
+
+    fn legacy_partial_path(target_file: &Path) -> PathBuf {
+        target_file.with_file_name(
+            target_file
+                .file_name()
+                .map(|s| s.to_str().unwrap_or("_"))
+                .unwrap_or("_")
+                .to_owned()
+                + ".partial",
+        )
+    }
+
+    fn unique_partial_path(target_file: &Path) -> PathBuf {
+        let file_name = target_file
+            .file_name()
+            .map(|s| s.to_str().unwrap_or("_"))
+            .unwrap_or("_");
+        target_file.with_file_name(format!(
+            "{file_name}.{}.partial",
+            utils::raw::random_string(16)
+        ))
+    }
+
+    fn keep_partial_for_resume(partial: &PartialDownload) {
+        if !utils::path_exists(&partial.path) {
+            return;
+        }
+
+        if utils::path_exists(&partial.legacy_path) {
+            if let Err(e) = utils::ensure_file_removed("partial download", &partial.path) {
+                warn!(
+                    "could not remove duplicate partial download {} ({e})",
+                    partial.path.display()
+                );
+            }
+            return;
+        }
+
+        if let Err(e) = fs::rename(&partial.path, &partial.legacy_path) {
+            warn!(
+                "could not keep partial download {} for resumption at {} ({e})",
+                partial.path.display(),
+                partial.legacy_path.display()
+            );
+        }
+    }
+
+    fn finish_download(
+        &self,
+        partial_file_path: &Path,
+        target_file: &Path,
+        hash: &str,
+    ) -> Result<File> {
+        if let Some(file) = self.cached_file(target_file, hash)? {
+            utils::ensure_file_removed("partial download", partial_file_path)?;
+            return Ok(file);
+        }
+
+        match utils::rename(
+            "downloaded",
+            partial_file_path,
+            target_file,
+            self.permit_copy_rename,
+        ) {
+            Ok(()) => Ok(File {
+                path: target_file.to_path_buf(),
+            }),
+            Err(e) => match self.cached_file(target_file, hash)? {
+                Some(file) => {
+                    utils::ensure_file_removed("partial download", partial_file_path)?;
+                    Ok(file)
+                }
+                None => Err(e),
+            },
         }
     }
 
@@ -457,6 +558,12 @@ fn file_hash(path: &Path) -> Result<String> {
     Ok(faster_hex::hex_string(&hasher.finalize()))
 }
 
+struct PartialDownload {
+    path: PathBuf,
+    legacy_path: PathBuf,
+    existed: bool,
+}
+
 pub(crate) struct File {
     path: PathBuf,
 }
@@ -466,5 +573,83 @@ impl ops::Deref for File {
 
     fn deref(&self) -> &Path {
         self.path.as_path()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use sha2::{Digest, Sha256};
+
+    use super::*;
+    use crate::process::TestProcess;
+
+    #[test]
+    fn partial_download_claims_legacy_partial_for_resume() {
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let target_file = tempdir.path().join("abc123");
+        let legacy_partial = DownloadCfg::legacy_partial_path(&target_file);
+        fs::write(&legacy_partial, b"partial contents").unwrap();
+
+        let partial = DownloadCfg::partial_download(&target_file).unwrap();
+
+        assert!(partial.existed);
+        assert_ne!(partial.path, legacy_partial);
+        assert!(!legacy_partial.exists());
+        assert_eq!(fs::read(&partial.path).unwrap(), b"partial contents");
+        assert!(
+            partial
+                .path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with("abc123.")
+        );
+        assert!(
+            partial
+                .path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .ends_with(".partial")
+        );
+    }
+
+    #[test]
+    fn finish_download_reuses_valid_cache_from_race() {
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let download_dir = tempdir.path().join("downloads");
+        utils::ensure_dir_exists("download dir", &download_dir).unwrap();
+
+        let content = b"cached component contents";
+        let hash = faster_hex::hex_string(&Sha256::digest(content));
+        let target_file = download_dir.join(&hash);
+        let partial_file = download_dir.join(format!("{hash}.other-process.partial"));
+        fs::write(&target_file, content).unwrap();
+        fs::write(&partial_file, content).unwrap();
+
+        let tp = TestProcess::default();
+        let tmp_cx = Arc::new(temp::Context::new(
+            tempdir.path().join("tmp"),
+            DEFAULT_DIST_SERVER,
+        ));
+        let cfg = DownloadCfg {
+            tmp_cx,
+            download_dir: &download_dir,
+            tracker: DownloadTracker::new(false, &tp.process),
+            permit_copy_rename: tp.process.permit_copy_rename(),
+            process: &tp.process,
+        };
+
+        let file = cfg
+            .finish_download(&partial_file, &target_file, &hash)
+            .unwrap();
+
+        assert_eq!(&*file, target_file.as_path());
+        assert!(!partial_file.exists());
+        assert_eq!(fs::read(&target_file).unwrap(), content);
     }
 }
