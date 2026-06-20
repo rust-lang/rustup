@@ -567,8 +567,7 @@ where
 
 pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
-    _apply_new_path(new_path)?;
-    do_remove_from_programs()
+    _apply_new_path(new_path)
 }
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";

@@ -1159,6 +1159,9 @@ fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
 
     utils::remove_file("rustup_bin", &rustup_path)?;
 
+    #[cfg(windows)]
+    do_remove_from_programs()?;
+
     let cargo_bin_display = cargo_bin.display();
     info!("removing empty cargo bin directory `{cargo_bin_display}`");
 
