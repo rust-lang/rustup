@@ -182,6 +182,53 @@ async fn install_twice() {
     assert!(rustup.exists());
 }
 
+#[cfg(windows)]
+#[tokio::test]
+async fn install_writes_programs_even_with_no_modify_path() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let _guard = RegistryGuard::new([
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap();
+    clear_programs_registry_values();
+
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ])
+        .await
+        .is_ok();
+
+    assert_programs_registry_values(&cx);
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn install_writes_programs_with_path() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let _guard = RegistryGuard::new([
+        &USER_PATH,
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap();
+    clear_programs_registry_values();
+
+    cx.config
+        .expect(["rustup-init", "-y", "--default-toolchain", "none"])
+        .await
+        .is_ok();
+
+    assert_programs_registry_values(&cx);
+}
+
 /// Smoke test for the entire install process when dirs need to be made :
 /// depending just on unit tests here could miss subtle dependencies being added
 /// earlier in the code, so a black-box test is needed.

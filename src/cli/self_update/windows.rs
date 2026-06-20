@@ -989,6 +989,11 @@ mod tests {
     use super::*;
     use crate::process::TestProcess;
 
+    const USER_RUSTUP_UNINSTALL_STRING: RegistryValueId = RegistryValueId {
+        sub_key: RUSTUP_UNINSTALL_ENTRY,
+        value_name: "UninstallString",
+    };
+
     #[test]
     fn windows_install_does_not_add_path_twice() {
         assert_eq!(
@@ -998,6 +1003,29 @@ mod tests {
                 HSTRING::from(r"c:\users\example\.cargo\bin")
             )
         );
+    }
+
+    #[test]
+    fn windows_add_to_path_does_not_add_to_programs() {
+        let tp = TestProcess::with_vars(
+            [(
+                "CARGO_HOME".to_string(),
+                r"c:\users\example\.cargo".to_string(),
+            )]
+            .iter()
+            .cloned()
+            .collect(),
+        );
+        let _guard = RegistryGuard::new([&USER_PATH, &USER_RUSTUP_UNINSTALL_STRING]);
+        let environment = CURRENT_USER.create("Environment").unwrap();
+        environment
+            .set_expand_hstring("PATH", &HSTRING::new())
+            .unwrap();
+        USER_RUSTUP_UNINSTALL_STRING.set(None).unwrap();
+
+        do_add_to_path(&tp.process).unwrap();
+
+        assert!(USER_RUSTUP_UNINSTALL_STRING.get().unwrap().is_none());
     }
 
     #[test]
