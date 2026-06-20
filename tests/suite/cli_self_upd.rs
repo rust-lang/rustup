@@ -390,6 +390,38 @@ warn: keeping non-empty cargo bin directory `[..]`
     assert!(mock_file.exists());
 }
 
+#[cfg(windows)]
+#[tokio::test]
+async fn uninstall_removes_programs_with_no_modify_path() {
+    let _guard = RegistryGuard::new([
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap();
+    clear_programs_registry_values();
+
+    let cx = setup_empty_installed().await;
+
+    assert_programs_registry_values(&cx);
+
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+        if USER_RUSTUP_UNINSTALL_STRING.get().unwrap().is_some()
+            || USER_RUSTUP_DISPLAY_NAME.get().unwrap().is_some()
+            || USER_RUSTUP_VERSION.get().unwrap().is_some()
+        {
+            return Err("Programs registry values still exist");
+        }
+        Ok(())
+    })
+    .unwrap()
+}
+
 #[tokio::test]
 async fn uninstall_fails_if_not_installed() {
     let cx = setup_empty_installed().await;
