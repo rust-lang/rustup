@@ -53,7 +53,7 @@ jobs:
             os: windows-11-arm
             run_tests: YES
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
@@ -225,7 +225,7 @@ jobs:
             os: windows-11-arm
             run_tests: YES
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
@@ -403,7 +403,7 @@ jobs:
             mingwdir: mingw32 # skip-pr skip-main
             gcc: i686-w64-mingw32-gcc # skip-pr skip-main
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
@@ -574,7 +574,7 @@ jobs:
             #snap_arch: armhf
     steps:
       - name: Clone repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -746,7 +746,7 @@ jobs:
             #snap_arch: armhf
     steps:
       - name: Clone repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -944,7 +944,7 @@ jobs:
             #snap_arch: s390x # skip-pr skip-main
     steps:
       - name: Clone repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -1097,7 +1097,7 @@ jobs:
         target:
           - x86_64-apple-darwin # skip-aarch64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -1229,7 +1229,7 @@ jobs:
         target:
           - aarch64-apple-darwin # skip-x86_64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -1350,7 +1350,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/'))) || contains(fromJSON('["schedule", "workflow_dispatch"]'), github.event_name) }} # skip-stable
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         fetch-depth: 0
@@ -1382,7 +1382,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' }} # skip-main
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         fetch-depth: 0
@@ -1416,7 +1416,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Clone repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -1512,7 +1512,7 @@ jobs:
             target: x86_64-pc-windows-msvc
     steps:
       - name: Clone repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
       - name: Install OpenSSL
@@ -1555,7 +1555,7 @@ jobs:
   doc: # job-name
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install mdbook
