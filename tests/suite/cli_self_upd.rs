@@ -52,6 +52,37 @@ async fn setup_installed() -> CliTestContext {
     cx
 }
 
+#[cfg(windows)]
+fn clear_programs_registry_values() {
+    for value in [
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ] {
+        value.set(None).unwrap();
+    }
+}
+
+#[cfg(windows)]
+fn assert_programs_registry_values(cx: &CliTestContext) {
+    let mut rustup = cx.config.cargodir.clone();
+    rustup.push(format!("bin\\rustup{EXE_SUFFIX}"));
+    let expected_uninstall = format!("\"{}\" self uninstall", rustup.display());
+
+    assert_eq!(
+        USER_RUSTUP_UNINSTALL_STRING.get().unwrap().unwrap(),
+        Value::from(expected_uninstall.as_str())
+    );
+    assert_eq!(
+        USER_RUSTUP_DISPLAY_NAME.get().unwrap().unwrap(),
+        Value::from("Rustup: the Rust toolchain installer")
+    );
+    assert_eq!(
+        USER_RUSTUP_VERSION.get().unwrap().unwrap(),
+        Value::from(env!("CARGO_PKG_VERSION"))
+    );
+}
+
 /// This is the primary smoke test testing the full end to end behavior of the
 /// installation code path: everything that is output, the proxy installation,
 /// status of the proxies.
@@ -473,7 +504,13 @@ async fn update_overwrites_programs_display_version() {
     let version = env!("CARGO_PKG_VERSION");
 
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    let _guard = RegistryGuard::new([&USER_RUSTUP_VERSION]).unwrap();
+    let _guard = RegistryGuard::new([
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap();
+    clear_programs_registry_values();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -496,7 +533,16 @@ const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
 };
 
 #[cfg(windows)]
-static USER_RUSTUP_VERSION_LOCK: Mutex<()> = Mutex::new(());
+const USER_RUSTUP_UNINSTALL_STRING: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "UninstallString",
+};
+
+#[cfg(windows)]
+const USER_RUSTUP_DISPLAY_NAME: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayName",
+};
 
 #[tokio::test]
 async fn update_but_not_installed() {
