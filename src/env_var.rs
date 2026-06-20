@@ -68,7 +68,7 @@ mod tests {
         );
         let tp = TestProcess::with_vars(vars);
         #[cfg(windows)]
-        let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
         let mut path_entries = vec![];
         let mut cmd = Command::new("test");
 
@@ -116,7 +116,7 @@ mod tests {
         );
         let tp = TestProcess::with_vars(vars);
         #[cfg(windows)]
-        let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
 
         #[track_caller]
         fn check(tp: &TestProcess, path_entries: Vec<PathBuf>, append: &str, expected: &[&str]) {

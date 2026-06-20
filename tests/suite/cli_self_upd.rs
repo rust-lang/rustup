@@ -59,7 +59,7 @@ async fn setup_installed() -> CliTestContext {
 async fn install_bins_to_cargo_home() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -103,7 +103,7 @@ info: default toolchain set to stable-[HOST_TUPLE]
 async fn proxies_are_relative_symlinks() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -143,7 +143,7 @@ info: default toolchain set to stable-[HOST_TUPLE]
 async fn install_twice() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
 
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
@@ -473,7 +473,7 @@ async fn update_overwrites_programs_display_version() {
     let version = env!("CARGO_PKG_VERSION");
 
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    let _guard = RegistryGuard::new(&USER_RUSTUP_VERSION).unwrap();
+    let _guard = RegistryGuard::new([&USER_RUSTUP_VERSION]).unwrap();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -494,6 +494,9 @@ const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
     sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
     value_name: "DisplayVersion",
 };
+
+#[cfg(windows)]
+static USER_RUSTUP_VERSION_LOCK: Mutex<()> = Mutex::new(());
 
 #[tokio::test]
 async fn update_but_not_installed() {

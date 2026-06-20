@@ -479,7 +479,7 @@ mod windows {
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     async fn install_uninstall_affect_path() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path().unwrap().unwrap())
@@ -505,7 +505,7 @@ mod windows {
     #[tokio::test]
     async fn uninstall_keeps_path_when_cargo_bin_is_non_empty() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path().unwrap().unwrap())
@@ -530,7 +530,7 @@ mod windows {
     #[tokio::test]
     async fn uninstall_doesnt_affect_path_with_no_modify_path() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path().unwrap().unwrap())
@@ -556,10 +556,10 @@ mod windows {
     async fn install_uninstall_affect_path_with_non_unicode() {
         use std::os::windows::ffi::OsStrExt;
 
-        use windows_registry::{CURRENT_USER, Type};
+        use windows_registry::Type;
 
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
         // Set up a non unicode PATH
         let mut reg_value = Value::from([
             0x00, 0xD8, // leading surrogate
@@ -567,11 +567,7 @@ mod windows {
             0x00, 0x00, // null
         ]);
         reg_value.set_ty(Type::ExpandString);
-        CURRENT_USER
-            .create("Environment")
-            .unwrap()
-            .set_value("PATH", &reg_value)
-            .unwrap();
+        USER_PATH.set(Some(&reg_value)).unwrap();
 
         // compute expected path after installation
         let mut expected = Value::from(

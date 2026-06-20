@@ -90,7 +90,10 @@ mod windows;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
-pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
+pub use windows::{
+    RUSTUP_TEST_REGISTRY_UUID, RegistryGuard, RegistryValueId, USER_PATH, get_path,
+    test_registry_uuid,
+};
 #[cfg(windows)]
 use windows::{do_add_to_path, do_add_to_programs, do_remove_from_path, do_remove_from_programs};
 #[cfg(windows)]

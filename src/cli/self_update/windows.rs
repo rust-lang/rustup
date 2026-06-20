@@ -1,12 +1,18 @@
+#[cfg(any(test, feature = "test"))]
+use std::borrow::Cow;
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
+#[cfg(any(test, feature = "test"))]
+use std::io as std_io;
 use std::io::Write;
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
 #[cfg(any(test, feature = "test"))]
-use std::sync::{LockResult, Mutex, MutexGuard};
+use std::ptr;
+#[cfg(any(test, feature = "test"))]
+use std::sync::{LazyLock, LockResult, Mutex, MutexGuard};
 
 use anyhow::{Context, Result, anyhow};
 use tracing::{info, warn};
@@ -14,7 +20,15 @@ use tracing::{info, warn};
 use windows_registry::Value;
 use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::HRESULT;
+#[cfg(any(test, feature = "test"))]
+use windows_sys::Win32::Foundation::{
+    CloseHandle, HANDLE, WAIT_ABANDONED, WAIT_FAILED, WAIT_OBJECT_0,
+};
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
+#[cfg(any(test, feature = "test"))]
+use windows_sys::Win32::System::Threading::{
+    CreateMutexW, INFINITE, ReleaseMutex, WaitForSingleObject,
+};
 
 use super::super::errors::CliError;
 use super::common;
@@ -464,7 +478,7 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
         None => return Ok(()), // No need to set the path
     };
 
-    let environment = CURRENT_USER.create("Environment")?;
+    let environment = environment_key()?;
 
     if new_path.is_empty() {
         environment.remove_value("PATH")?;
@@ -493,9 +507,7 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
 // this returns None then the PATH variable is not a string and we
 // should not mess with it.
 fn get_windows_path_var() -> Result<Option<HSTRING>> {
-    let environment = CURRENT_USER
-        .create("Environment")
-        .context("Failed opening Environment key")?;
+    let environment = environment_key().context("Failed opening Environment key")?;
 
     let reg_value = environment.get_hstring("PATH");
     match reg_value {
@@ -572,9 +584,7 @@ pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
 
 fn rustup_uninstall_reg_key() -> Result<Key> {
-    CURRENT_USER
-        .create(RUSTUP_UNINSTALL_ENTRY)
-        .context("Failed creating uninstall key")
+    current_user_create(RUSTUP_UNINSTALL_ENTRY).context("Failed creating uninstall key")
 }
 
 pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
@@ -614,7 +624,7 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
 }
 
 pub(crate) fn do_remove_from_programs() -> Result<()> {
-    match CURRENT_USER.remove_tree(RUSTUP_UNINSTALL_ENTRY) {
+    match current_user_remove_tree(RUSTUP_UNINSTALL_ENTRY) {
         Ok(()) => Ok(()),
         Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
         Err(e) => Err(anyhow!(e)),
@@ -754,43 +764,191 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> Res
 const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
 #[cfg(any(test, feature = "test"))]
+pub const RUSTUP_TEST_RANDOM_REGISTRY_PATH: &str = "RUSTUP_TEST_RANDOM_REGISTRY_PATH";
+
+#[cfg(any(test, feature = "test"))]
+pub const RUSTUP_TEST_REGISTRY_UUID: &str = "RUSTUP_TEST_REGISTRY_UUID";
+
+#[cfg(any(test, feature = "test"))]
+static TEST_REGISTRY_UUID: LazyLock<Option<String>> = LazyLock::new(|| {
+    if let Ok(uuid) = std::env::var(RUSTUP_TEST_REGISTRY_UUID) {
+        return Some(uuid);
+    }
+
+    std::env::var_os(RUSTUP_TEST_RANDOM_REGISTRY_PATH)
+        .is_some()
+        .then(random_uuid)
+});
+
+#[cfg(any(test, feature = "test"))]
+fn random_uuid() -> String {
+    let value: u128 = rand::random();
+    format!(
+        "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
+        (value >> 96) as u32,
+        (value >> 80) as u16,
+        (value >> 64) as u16,
+        (value >> 48) as u16,
+        value & 0x0000_ffff_ffff_ffff
+    )
+}
+
+#[cfg(any(test, feature = "test"))]
+pub fn test_registry_uuid() -> Option<&'static str> {
+    TEST_REGISTRY_UUID.as_deref()
+}
+
+#[cfg(any(test, feature = "test"))]
+fn test_registry_root(uuid: &str) -> String {
+    format!(r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RustupTest-{uuid}")
+}
+
+#[cfg(any(test, feature = "test"))]
+fn registry_sub_key_path(sub_key: &'static str) -> Cow<'static, str> {
+    if let Some(uuid) = test_registry_uuid() {
+        if sub_key == "Environment" {
+            return Cow::Owned(format!(r"{}\Environment", test_registry_root(uuid)));
+        }
+        if sub_key == RUSTUP_UNINSTALL_ENTRY {
+            return Cow::Owned(format!(r"{}\Programs", test_registry_root(uuid)));
+        }
+    }
+
+    Cow::Borrowed(sub_key)
+}
+
+#[cfg(not(any(test, feature = "test")))]
+fn registry_sub_key_path(sub_key: &'static str) -> &'static str {
+    sub_key
+}
+
+fn current_user_create(sub_key: &'static str) -> windows_registry::Result<Key> {
+    CURRENT_USER.create(registry_sub_key_path(sub_key))
+}
+
+fn current_user_remove_tree(sub_key: &'static str) -> windows_registry::Result<()> {
+    CURRENT_USER.remove_tree(registry_sub_key_path(sub_key))
+}
+
+fn environment_key() -> windows_registry::Result<Key> {
+    current_user_create("Environment")
+}
+
+#[cfg(any(test, feature = "test"))]
 pub fn get_path() -> Result<Option<Value>> {
     USER_PATH.get()
 }
 
 #[cfg(any(test, feature = "test"))]
-pub struct RegistryGuard<'a> {
-    _locked: LockResult<MutexGuard<'a, ()>>,
-    id: &'static RegistryValueId,
-    prev: Option<Value>,
+pub struct RegistryGuard {
+    _locked: RegistryGuardLock,
+    values: Vec<(&'static RegistryValueId, Option<Value>)>,
+    cleanup_uuid: Option<&'static str>,
 }
 
 #[cfg(any(test, feature = "test"))]
-impl RegistryGuard<'_> {
-    pub fn new(id: &'static RegistryValueId) -> Result<Self> {
+impl RegistryGuard {
+    pub fn new(ids: impl IntoIterator<Item = &'static RegistryValueId>) -> Result<Self> {
+        let locked = RegistryGuardLock::new()?;
+        let cleanup_uuid = test_registry_uuid();
+        let mut ids = ids.into_iter().collect::<Vec<_>>();
+        ids.sort_unstable_by_key(|id| (id.sub_key, id.value_name));
+        ids.dedup_by(|left, right| {
+            left.sub_key == right.sub_key && left.value_name == right.value_name
+        });
+
+        let values = ids
+            .iter()
+            .map(|&id| Ok((id, id.get()?)))
+            .collect::<Result<_>>()?;
+
         Ok(Self {
-            _locked: REGISTRY_LOCK.lock(),
-            id,
-            prev: id.get()?,
+            _locked: locked,
+            values,
+            cleanup_uuid,
         })
     }
 }
 
 #[cfg(any(test, feature = "test"))]
-impl Drop for RegistryGuard<'_> {
+impl Drop for RegistryGuard {
     fn drop(&mut self) {
-        self.id.set(self.prev.as_ref()).unwrap();
+        for (id, prev) in self.values.iter().rev() {
+            id.set(prev.as_ref()).unwrap();
+        }
+
+        if let Some(uuid) = self.cleanup_uuid {
+            match CURRENT_USER.remove_tree(test_registry_root(uuid)) {
+                Ok(()) => {}
+                Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+                Err(e) => panic!("failed to remove test registry root `{uuid}`: {e}"),
+            }
+        }
     }
 }
 
 #[cfg(any(test, feature = "test"))]
-static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
+struct RegistryGuardLock {
+    _thread_lock: LockResult<MutexGuard<'static, ()>>,
+    mutex: HANDLE,
+}
+
+#[cfg(any(test, feature = "test"))]
+impl RegistryGuardLock {
+    fn new() -> Result<Self> {
+        let thread_lock = REGISTRY_GUARD_LOCK.lock();
+        let name = OsStr::new("RustupTestRegistryGuard")
+            .encode_wide()
+            .chain(Some(0))
+            .collect::<Vec<_>>();
+        let mutex = unsafe { CreateMutexW(ptr::null(), 0, name.as_ptr()) };
+        if mutex.is_null() {
+            return Err(std_io::Error::last_os_error())
+                .context("failed to create registry test mutex");
+        }
+
+        match unsafe { WaitForSingleObject(mutex, INFINITE) } {
+            WAIT_OBJECT_0 | WAIT_ABANDONED => Ok(Self {
+                _thread_lock: thread_lock,
+                mutex,
+            }),
+            WAIT_FAILED => {
+                let error = std_io::Error::last_os_error();
+                unsafe {
+                    CloseHandle(mutex);
+                }
+                Err(error).context("failed waiting for registry test mutex")
+            }
+            code => {
+                unsafe {
+                    CloseHandle(mutex);
+                }
+                Err(anyhow!(
+                    "unexpected registry test mutex wait result: {code}"
+                ))
+            }
+        }
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+impl Drop for RegistryGuardLock {
+    fn drop(&mut self) {
+        unsafe {
+            ReleaseMutex(self.mutex);
+            CloseHandle(self.mutex);
+        }
+    }
+}
 
 #[cfg(any(test, feature = "test"))]
 pub const USER_PATH: RegistryValueId = RegistryValueId {
     sub_key: "Environment",
     value_name: "PATH",
 };
+
+#[cfg(any(test, feature = "test"))]
+static REGISTRY_GUARD_LOCK: Mutex<()> = Mutex::new(());
 
 #[cfg(any(test, feature = "test"))]
 pub struct RegistryValueId {
@@ -801,7 +959,7 @@ pub struct RegistryValueId {
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
     pub fn get(&self) -> Result<Option<Value>> {
-        let sub_key = CURRENT_USER.create(self.sub_key)?;
+        let sub_key = current_user_create(self.sub_key)?;
         match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
             Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(None),
@@ -810,10 +968,14 @@ impl RegistryValueId {
     }
 
     pub fn set(&self, new: Option<&Value>) -> Result<()> {
-        let sub_key = CURRENT_USER.create(self.sub_key)?;
+        let sub_key = current_user_create(self.sub_key)?;
         match new {
             Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
-            None => Ok(sub_key.remove_value(self.value_name)?),
+            None => match sub_key.remove_value(self.value_name) {
+                Ok(()) => Ok(()),
+                Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
+                Err(e) => Err(e.into()),
+            },
         }
     }
 }
@@ -863,16 +1025,16 @@ mod tests {
     #[test]
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
-        environment.remove_value("PATH").unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]);
+        let environment = environment_key().unwrap();
+        let _ = environment.remove_value("PATH");
 
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
             assert_eq!((), _apply_new_path(Some(HSTRING::from("foo"))).unwrap());
         }
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let environment = environment_key().unwrap();
         let path = environment.get_value("PATH").unwrap();
         let path_hstring = environment.get_hstring("PATH").unwrap();
         assert_eq!(path.ty(), Type::ExpandString);
@@ -883,8 +1045,8 @@ mod tests {
     fn windows_path_delete_key_when_empty() {
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]);
+        let environment = environment_key().unwrap();
         environment
             .set_expand_hstring("PATH", &HSTRING::from("foo"))
             .unwrap();
@@ -912,8 +1074,8 @@ mod tests {
                 .collect(),
         );
 
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]);
+        let environment = environment_key().unwrap();
         environment
             .set_bytes("PATH", Type::Bytes, &[0x12, 0x34])
             .unwrap();
@@ -933,9 +1095,9 @@ mod tests {
     #[test]
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
-        environment.remove_value("PATH").unwrap();
+        let _guard = RegistryGuard::new([&USER_PATH]);
+        let environment = environment_key().unwrap();
+        let _ = environment.remove_value("PATH");
 
         assert_eq!(Some(HSTRING::new()), get_windows_path_var().unwrap());
     }
