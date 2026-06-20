@@ -449,8 +449,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 
 pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
-    _apply_new_path(new_path)?;
-    do_add_to_programs(process)
+    _apply_new_path(new_path)
 }
 
 fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
