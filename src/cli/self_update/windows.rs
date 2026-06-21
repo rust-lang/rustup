@@ -950,16 +950,20 @@ mod tests {
     #[test]
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
-        environment.remove_value("PATH").unwrap();
+        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let tp = test_process(&guard);
+        let environment = test_environment_key(&guard);
+        clear_path(&environment);
 
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), _apply_new_path(Some(HSTRING::from("foo"))).unwrap());
+            assert_eq!(
+                (),
+                _apply_new_path(Some(HSTRING::from("foo")), &tp.process).unwrap()
+            );
         }
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let environment = test_environment_key(&guard);
         let path = environment.get_value("PATH").unwrap();
         let path_hstring = environment.get_hstring("PATH").unwrap();
         assert_eq!(path.ty(), Type::ExpandString);
@@ -970,8 +974,9 @@ mod tests {
     fn windows_path_delete_key_when_empty() {
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let tp = test_process(&guard);
+        let environment = test_environment_key(&guard);
         environment
             .set_expand_hstring("PATH", &HSTRING::from("foo"))
             .unwrap();
@@ -979,7 +984,10 @@ mod tests {
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), _apply_new_path(Some(HSTRING::new())).unwrap());
+            assert_eq!(
+                (),
+                _apply_new_path(Some(HSTRING::new()), &tp.process).unwrap()
+            );
         }
         let reg_value = environment.get_value("PATH");
         match reg_value {
@@ -991,16 +999,11 @@ mod tests {
 
     #[test]
     fn windows_doesnt_mess_with_a_non_string_path() {
+        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
         // This writes an error, so we want a sink for it.
-        let tp = TestProcess::with_vars(
-            [("HOME".to_string(), "/unused".to_string())]
-                .iter()
-                .cloned()
-                .collect(),
-        );
+        let tp = test_process(&guard);
 
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let environment = test_environment_key(&guard);
         environment
             .set_bytes("PATH", Type::Bytes, &[0x12, 0x34])
             .unwrap();
@@ -1020,11 +1023,15 @@ mod tests {
     #[test]
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
-        environment.remove_value("PATH").unwrap();
+        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let tp = test_process(&guard);
+        let environment = test_environment_key(&guard);
+        clear_path(&environment);
 
-        assert_eq!(Some(HSTRING::new()), get_windows_path_var().unwrap());
+        assert_eq!(
+            Some(HSTRING::new()),
+            get_windows_path_var(&tp.process).unwrap()
+        );
     }
 
     #[test]
