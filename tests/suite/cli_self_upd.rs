@@ -83,6 +83,17 @@ fn assert_programs_registry_values(cx: &CliTestContext) {
     );
 }
 
+#[cfg(windows)]
+fn self_update_registry_guard() -> RegistryGuard {
+    RegistryGuard::new([
+        &USER_PATH,
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap()
+}
+
 /// This is the primary smoke test testing the full end to end behavior of the
 /// installation code path: everything that is output, the proxy installation,
 /// status of the proxies.
@@ -255,6 +266,8 @@ async fn install_creates_cargo_home() {
 #[tokio::test]
 async fn uninstall_deletes_bins() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     // no-modify-path isn't needed here, as the test-dir-path isn't present
     // in the registry, so the no-change code path will be triggered.
     cx.config
@@ -286,6 +299,8 @@ async fn uninstall_deletes_bins() {
 #[tokio::test]
 async fn uninstall_works_if_some_bins_dont_exist() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let rustc = cx.config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
     let rustdoc = cx.config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
@@ -320,6 +335,8 @@ async fn uninstall_works_if_some_bins_dont_exist() {
 #[tokio::test]
 async fn uninstall_deletes_rustup_home() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
         .await
@@ -330,6 +347,8 @@ async fn uninstall_deletes_rustup_home() {
 #[tokio::test]
 async fn uninstall_works_if_rustup_home_doesnt_exist() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config.rustupdir.remove().unwrap();
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
@@ -340,6 +359,8 @@ async fn uninstall_works_if_rustup_home_doesnt_exist() {
 #[tokio::test]
 async fn uninstall_deletes_cargo_home() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
         .await
@@ -350,6 +371,8 @@ async fn uninstall_deletes_cargo_home() {
 #[tokio::test]
 async fn complete_uninstall_removes_empty_cargo_bin() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let cargo_bin = cx.config.cargodir.join("bin");
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
@@ -372,6 +395,8 @@ async fn complete_uninstall_removes_empty_cargo_bin() {
 #[tokio::test]
 async fn complete_uninstall_keeps_non_empty_cargo_bin() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let cargo_bin = cx.config.cargodir.join("bin");
 
     let mock_file = cargo_bin.join("custom-tool");
@@ -444,6 +469,8 @@ error: rustup is not installed at '[..]'
 #[cfg_attr(target_os = "macos", ignore)] // FIXME #1515
 async fn uninstall_self_delete_works() {
     let cx = setup_empty_installed().await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     let mut cmd = Command::new(rustup.clone());
     cmd.args(["self", "uninstall", "-y"]);
@@ -482,6 +509,7 @@ async fn uninstall_self_delete_works() {
 #[cfg(windows)]
 async fn uninstall_doesnt_leave_gc_file() {
     let cx = setup_empty_installed().await;
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup", "self", "uninstall", "-y"])
         .await

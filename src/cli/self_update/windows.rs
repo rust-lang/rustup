@@ -1017,7 +1017,7 @@ mod tests {
             .collect(),
         );
         let _guard = RegistryGuard::new([&USER_PATH, &USER_RUSTUP_UNINSTALL_STRING]);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let environment = environment_key().unwrap();
         environment
             .set_expand_hstring("PATH", &HSTRING::new())
             .unwrap();
