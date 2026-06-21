@@ -469,6 +469,9 @@ error: could not amend shell profile[..]
 
 #[cfg(windows)]
 mod windows {
+    use retry::delay::{Fibonacci, jitter};
+    use retry::{OperationResult, retry};
+
     use super::INIT_NONE;
     use rustup::test::{CliTestContext, Scenario};
     use rustup::test::{RegistryGuard, USER_PATH, get_path};
@@ -478,37 +481,46 @@ mod windows {
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     async fn install_uninstall_affect_path() {
-        let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
+        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        cx.config.set_registry_uuid(guard.uuid());
+        let uuid = guard.uuid().to_string();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let get_path_ = || {
-            HSTRING::try_from(get_path().unwrap().unwrap())
-                .unwrap()
-                .to_string()
+        let read_path = |uuid: &str| -> Option<String> {
+            retry(
+                Fibonacci::from_millis(1).map(jitter).take(21),
+                || match get_path(Some(uuid)).unwrap() {
+                    Some(v) => OperationResult::Ok(HSTRING::try_from(v).unwrap().to_string()),
+                    None => OperationResult::Retry(()),
+                },
+            )
+            .ok()
         };
 
         cx.config.expect(&INIT_NONE).await.is_ok();
+        let after_install = read_path(&uuid).unwrap_or_default();
         assert!(
-            get_path_().contains(cfg_path.trim_matches('"')),
-            "`{}` not in `{}`",
-            cfg_path,
-            get_path_()
+            after_install.contains(cfg_path.trim_matches('"')),
+            "`{cfg_path}` not in `{after_install}`",
         );
 
         cx.config
             .expect(&["rustup", "self", "uninstall", "-y"])
             .await
             .is_ok();
-        assert!(!get_path_().contains(&cfg_path));
+        let after_uninstall = read_path(&uuid).unwrap_or_default();
+        assert!(!after_uninstall.contains(&cfg_path));
     }
 
     #[tokio::test]
     async fn uninstall_keeps_path_when_cargo_bin_is_non_empty() {
-        let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new(&USER_PATH).unwrap();
+        let mut cx = CliTestContext::new(Scenario::Empty).await;
+        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        cx.config.set_registry_uuid(guard.uuid());
+        let uuid = guard.uuid().to_string();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
-            HSTRING::try_from(get_path().unwrap().unwrap())
+            HSTRING::try_from(get_path(Some(&uuid)).unwrap().unwrap())
                 .unwrap()
                 .to_string()
         };
