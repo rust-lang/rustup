@@ -22,12 +22,12 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::HRESULT;
 #[cfg(any(test, feature = "test"))]
 use windows_sys::Win32::Foundation::{
-    CloseHandle, HANDLE, WAIT_ABANDONED, WAIT_FAILED, WAIT_OBJECT_0,
+    CloseHandle, ERROR_ACCESS_DENIED, HANDLE, WAIT_ABANDONED, WAIT_FAILED, WAIT_OBJECT_0,
 };
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 #[cfg(any(test, feature = "test"))]
 use windows_sys::Win32::System::Threading::{
-    CreateMutexW, INFINITE, ReleaseMutex, WaitForSingleObject,
+    CreateMutexW, INFINITE, MUTEX_MODIFY_STATE, OpenMutexW, ReleaseMutex, WaitForSingleObject,
 };
 
 use super::super::errors::CliError;
@@ -902,9 +902,19 @@ impl RegistryGuardLock {
             .chain(Some(0))
             .collect::<Vec<_>>();
         let mutex = unsafe { CreateMutexW(ptr::null(), 0, name.as_ptr()) };
+        let mutex = if mutex.is_null() {
+            let error = std_io::Error::last_os_error();
+            if error.raw_os_error() == Some(ERROR_ACCESS_DENIED as i32) {
+                unsafe { OpenMutexW(SYNCHRONIZE_ACCESS | MUTEX_MODIFY_STATE, 0, name.as_ptr()) }
+            } else {
+                return Err(error).context("failed to create registry test mutex");
+            }
+        } else {
+            mutex
+        };
         if mutex.is_null() {
             return Err(std_io::Error::last_os_error())
-                .context("failed to create registry test mutex");
+                .context("failed to open registry test mutex");
         }
 
         match unsafe { WaitForSingleObject(mutex, INFINITE) } {
@@ -949,6 +959,9 @@ pub const USER_PATH: RegistryValueId = RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 static REGISTRY_GUARD_LOCK: Mutex<()> = Mutex::new(());
+
+#[cfg(any(test, feature = "test"))]
+const SYNCHRONIZE_ACCESS: u32 = 0x0010_0000;
 
 #[cfg(any(test, feature = "test"))]
 pub struct RegistryValueId {

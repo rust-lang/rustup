@@ -506,25 +506,31 @@ mod windows {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = install_registry_guard();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let get_path_ = || {
-            HSTRING::try_from(get_path().unwrap().unwrap())
+        let get_path_ = || -> Option<String> {
+            get_path()
                 .unwrap()
-                .to_string()
+                .map(|value| HSTRING::try_from(value).unwrap().to_string())
         };
 
         cx.config.expect(&INIT_NONE).await.is_ok();
         assert!(
-            get_path_().contains(cfg_path.trim_matches('"')),
+            get_path_()
+                .as_deref()
+                .is_some_and(|path| path.contains(cfg_path.trim_matches('"'))),
             "`{}` not in `{}`",
             cfg_path,
-            get_path_()
+            get_path_().unwrap_or_default()
         );
 
         cx.config
             .expect(&["rustup", "self", "uninstall", "-y"])
             .await
             .is_ok();
-        assert!(!get_path_().contains(&cfg_path));
+        assert!(
+            get_path_()
+                .as_deref()
+                .is_none_or(|path| !path.contains(&cfg_path))
+        );
     }
 
     #[tokio::test]
@@ -532,10 +538,10 @@ mod windows {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = install_registry_guard();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let get_path_ = || {
-            HSTRING::try_from(get_path().unwrap().unwrap())
+        let get_path_ = || -> Option<String> {
+            get_path()
                 .unwrap()
-                .to_string()
+                .map(|value| HSTRING::try_from(value).unwrap().to_string())
         };
 
         cx.config.expect(&INIT_NONE).await.is_ok();
@@ -545,10 +551,12 @@ mod windows {
             .await
             .is_ok();
         assert!(
-            get_path_().contains(cfg_path.trim_matches('"')),
+            get_path_()
+                .as_deref()
+                .is_some_and(|path| path.contains(cfg_path.trim_matches('"'))),
             "`{}` not in `{}`",
             cfg_path,
-            get_path_()
+            get_path_().unwrap_or_default()
         );
     }
 
@@ -557,10 +565,10 @@ mod windows {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let _guard = install_registry_guard();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let get_path_ = || {
-            HSTRING::try_from(get_path().unwrap().unwrap())
+        let get_path_ = || -> Option<String> {
+            get_path()
                 .unwrap()
-                .to_string()
+                .map(|value| HSTRING::try_from(value).unwrap().to_string())
         };
 
         cx.config.expect(&INIT_NONE).await.is_ok();
@@ -569,10 +577,12 @@ mod windows {
             .await
             .is_ok();
         assert!(
-            get_path_().contains(cfg_path.trim_matches('"')),
+            get_path_()
+                .as_deref()
+                .is_some_and(|path| path.contains(cfg_path.trim_matches('"'))),
             "`{}` not in `{}`",
             cfg_path,
-            get_path_()
+            get_path_().unwrap_or_default()
         );
     }
 
