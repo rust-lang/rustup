@@ -483,21 +483,18 @@ async fn update_overwrites_programs_display_version() {
 
     let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     let guard = RegistryGuard::new([&USER_PATH, &USER_RUSTUP_VERSION]).unwrap();
-    cx.config.set_registry_uuid(guard.uuid());
+    cx.config.set_registry_uuid(&guard.uuid);
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
         .is_ok();
 
     USER_RUSTUP_VERSION
-        .set(Some(&Value::from(PLACEHOLDER_VERSION)), Some(guard.uuid()))
+        .set(Some(&Value::from(PLACEHOLDER_VERSION)), Some(&guard.uuid))
         .unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert_eq!(
-        USER_RUSTUP_VERSION
-            .get(Some(guard.uuid()))
-            .unwrap()
-            .unwrap(),
+        USER_RUSTUP_VERSION.get(Some(&guard.uuid)).unwrap().unwrap(),
         Value::from(version)
     );
 }

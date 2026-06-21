@@ -796,7 +796,7 @@ fn random_uuid() -> String {
 /// Guards a set of registry values for the duration of a test.
 #[cfg(any(test, feature = "test"))]
 pub struct RegistryGuard {
-    uuid: String,
+    pub uuid: String,
     saved: Vec<(&'static RegistryValueId, Option<Value>)>,
 }
 
@@ -812,10 +812,6 @@ impl RegistryGuard {
             }
         }
         Ok(Self { uuid, saved })
-    }
-
-    pub fn uuid(&self) -> &str {
-        &self.uuid
     }
 }
 
@@ -892,7 +888,7 @@ mod tests {
             ("HOME".to_string(), "/unused".to_string()),
             (
                 RUSTUP_TEST_REGISTRY_UUID.to_string(),
-                guard.uuid().to_string(),
+                guard.uuid.to_string(),
             ),
         ]
         .into_iter()
@@ -902,7 +898,7 @@ mod tests {
 
     fn test_environment_key(guard: &RegistryGuard) -> Key {
         CURRENT_USER
-            .create(map_sub_key("Environment", guard.uuid()))
+            .create(map_sub_key("Environment", guard.uuid.as_str()))
             .unwrap()
     }
 

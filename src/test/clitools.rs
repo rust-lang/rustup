@@ -978,7 +978,7 @@ impl CliTestContext {
         ids: impl IntoIterator<Item = &'static crate::cli::self_update::RegistryValueId>,
     ) {
         let guard = crate::cli::self_update::RegistryGuard::new(ids).unwrap();
-        self.config.set_registry_uuid(guard.uuid());
+        self.config.set_registry_uuid(&guard.uuid);
         self._registry_guard = Some(guard);
     }
 

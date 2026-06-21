@@ -483,8 +483,8 @@ mod windows {
     async fn install_uninstall_affect_path() {
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(guard.uuid());
-        let uuid = guard.uuid().to_string();
+        cx.config.set_registry_uuid(&guard.uuid);
+        let uuid = guard.uuid.to_string();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let read_path = |uuid: &str| -> Option<String> {
             retry(
@@ -516,8 +516,8 @@ mod windows {
     async fn uninstall_keeps_path_when_cargo_bin_is_non_empty() {
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(guard.uuid());
-        let uuid = guard.uuid().to_string();
+        cx.config.set_registry_uuid(&guard.uuid);
+        let uuid = guard.uuid.to_string();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path(Some(&uuid)).unwrap().unwrap())
@@ -543,8 +543,8 @@ mod windows {
     async fn uninstall_doesnt_affect_path_with_no_modify_path() {
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(guard.uuid());
-        let uuid = guard.uuid().to_string();
+        cx.config.set_registry_uuid(&guard.uuid);
+        let uuid = guard.uuid.to_string();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path(Some(&uuid)).unwrap().unwrap())
@@ -574,8 +574,8 @@ mod windows {
 
         let mut cx = CliTestContext::new(Scenario::Empty).await;
         let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(guard.uuid());
-        let uuid = guard.uuid().to_string();
+        cx.config.set_registry_uuid(&guard.uuid);
+        let uuid = guard.uuid.to_string();
         // Set up a non unicode PATH
         let mut reg_value = Value::from([
             0x00, 0xD8, // leading surrogate
