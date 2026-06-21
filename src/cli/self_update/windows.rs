@@ -5,8 +5,6 @@ use std::io::Write;
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
-#[cfg(any(test, feature = "test"))]
-use std::sync::{LockResult, Mutex, MutexGuard};
 
 use anyhow::{Context, Result, anyhow};
 use tracing::{info, warn};
@@ -449,10 +447,10 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 
 pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
-    _apply_new_path(new_path)
+    _apply_new_path(new_path, process)
 }
 
-fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
+fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> Result<()> {
     use std::ptr;
     use windows_sys::Win32::Foundation::{LPARAM, WPARAM};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -463,7 +461,7 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
         return Ok(()); // No need to set the path
     };
 
-    let environment = CURRENT_USER.create("Environment")?;
+    let environment = CURRENT_USER.create(registry_sub_key_path("Environment", process))?;
 
     if new_path.is_empty() {
         environment.remove_value("PATH")?;
@@ -491,9 +489,9 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
 // Get the windows PATH variable out of the registry as a String. If
 // this returns None then the PATH variable is not a string and we
 // should not mess with it.
-fn get_windows_path_var() -> Result<Option<HSTRING>> {
+fn get_windows_path_var(process: &Process) -> Result<Option<HSTRING>> {
     let environment = CURRENT_USER
-        .create("Environment")
+        .create(registry_sub_key_path("Environment", process))
         .context("Failed opening Environment key")?;
 
     let reg_value = environment.get_hstring("PATH");
@@ -557,7 +555,7 @@ fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> Result<Option<HSTRIN
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
-    let windows_path = get_windows_path_var()?;
+    let windows_path = get_windows_path_var(process)?;
     let mut path_str = process.cargo_home()?;
     path_str.push("bin");
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
@@ -565,19 +563,19 @@ where
 
 pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
-    _apply_new_path(new_path)
+    _apply_new_path(new_path, process)
 }
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
 
-fn rustup_uninstall_reg_key() -> Result<Key> {
+fn rustup_uninstall_reg_key(process: &Process) -> Result<Key> {
     CURRENT_USER
-        .create(RUSTUP_UNINSTALL_ENTRY)
+        .create(registry_sub_key_path(RUSTUP_UNINSTALL_ENTRY, process))
         .context("Failed creating uninstall key")
 }
 
-pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
-    rustup_uninstall_reg_key()?
+pub(crate) fn do_update_programs_display_version(version: &str, process: &Process) -> Result<()> {
+    rustup_uninstall_reg_key(process)?
         .set_string("DisplayVersion", version)
         .context("Failed to set `DisplayVersion`")
 }
@@ -585,7 +583,7 @@ pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
 pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
     use std::path::PathBuf;
 
-    let key = rustup_uninstall_reg_key()?;
+    let key = rustup_uninstall_reg_key(process)?;
 
     // Don't overwrite registry if Rustup is already installed
     let prev = key.get_hstring("UninstallString");
@@ -607,20 +605,20 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
         .context("Failed to set `UninstallString`")?;
     key.set_string("DisplayName", "Rustup: the Rust toolchain installer")
         .context("Failed to set `DisplayName`")?;
-    do_update_programs_display_version(env!("CARGO_PKG_VERSION"))?;
+    do_update_programs_display_version(env!("CARGO_PKG_VERSION"), process)?;
 
     Ok(())
 }
 
-pub(crate) fn do_remove_from_programs() -> Result<()> {
-    match CURRENT_USER.remove_tree(RUSTUP_UNINSTALL_ENTRY) {
+pub(crate) fn do_remove_from_programs(process: &Process) -> Result<()> {
+    match CURRENT_USER.remove_tree(registry_sub_key_path(RUSTUP_UNINSTALL_ENTRY, process)) {
         Ok(()) => Ok(()),
         Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
         Err(e) => Err(anyhow!(e)),
     }
 }
 
-pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path, process: &Process) -> Result<utils::ExitCode> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
@@ -630,7 +628,7 @@ pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
         warn!("failed to get the new rustup version in order to update `DisplayVersion`");
         return Ok(utils::ExitCode(1));
     };
-    do_update_programs_display_version(&version)?;
+    do_update_programs_display_version(&version, process)?;
 
     Ok(utils::ExitCode(0))
 }
@@ -752,38 +750,93 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> Res
 // so we use env var here, notifying it if we need to remove $CARGO_HOME/bin from $PATH
 const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
+/// Environment variable carrying the per-test registry UUID.
 #[cfg(any(test, feature = "test"))]
-pub fn get_path() -> Result<Option<Value>> {
-    USER_PATH.get()
+pub const RUSTUP_TEST_REGISTRY_UUID: &str = "RUSTUP_TEST_REGISTRY_UUID";
+
+/// Maps a real registry sub-key onto a per-test `RustupTest-{uuid}` subtree.
+#[cfg(any(test, feature = "test"))]
+fn map_sub_key(sub_key: &str, uuid: &str) -> String {
+    let root = format!(r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RustupTest-{uuid}");
+    if sub_key == RUSTUP_UNINSTALL_ENTRY {
+        format!(r"{root}\Programs")
+    } else if sub_key == "Environment" {
+        format!(r"{root}\Environment")
+    } else {
+        format!(r"{root}\{sub_key}")
+    }
+}
+
+/// Resolves a registry sub-key, redirecting into the per-test subtree when the
+/// process carries a [`RUSTUP_TEST_REGISTRY_UUID`]. In production builds this is
+/// the identity function.
+#[cfg(any(test, feature = "test"))]
+fn registry_sub_key_path(sub_key: &str, process: &Process) -> String {
+    match process.var_opt(RUSTUP_TEST_REGISTRY_UUID) {
+        Ok(Some(uuid)) if !uuid.is_empty() => map_sub_key(sub_key, &uuid),
+        _ => sub_key.to_owned(),
+    }
+}
+
+#[cfg(not(any(test, feature = "test")))]
+fn registry_sub_key_path(sub_key: &str, _process: &Process) -> String {
+    sub_key.to_owned()
 }
 
 #[cfg(any(test, feature = "test"))]
-pub struct RegistryGuard<'a> {
-    _locked: LockResult<MutexGuard<'a, ()>>,
-    id: &'static RegistryValueId,
-    prev: Option<Value>,
+pub fn get_path(uuid: Option<&str>) -> Result<Option<Value>> {
+    USER_PATH.get(uuid)
 }
 
 #[cfg(any(test, feature = "test"))]
-impl RegistryGuard<'_> {
-    pub fn new(id: &'static RegistryValueId) -> Result<Self> {
-        Ok(Self {
-            _locked: REGISTRY_LOCK.lock(),
-            id,
-            prev: id.get()?,
-        })
+fn random_uuid() -> String {
+    format!("{:032x}", rand::random::<u128>())
+}
+
+/// Guards a set of registry values for the duration of a test.
+#[cfg(any(test, feature = "test"))]
+pub struct RegistryGuard {
+    uuid: String,
+    saved: Vec<(&'static RegistryValueId, Option<Value>)>,
+}
+
+#[cfg(any(test, feature = "test"))]
+impl RegistryGuard {
+    pub fn new(ids: impl IntoIterator<Item = &'static RegistryValueId>) -> Result<Self> {
+        let uuid = random_uuid();
+        let mut seen = std::collections::HashSet::new();
+        let mut saved = Vec::new();
+        for id in ids {
+            if seen.insert((id.sub_key, id.value_name)) {
+                saved.push((id, id.get(Some(&uuid))?));
+            }
+        }
+        Ok(Self { uuid, saved })
+    }
+
+    pub fn uuid(&self) -> &str {
+        &self.uuid
     }
 }
 
 #[cfg(any(test, feature = "test"))]
-impl Drop for RegistryGuard<'_> {
+impl Drop for RegistryGuard {
     fn drop(&mut self) {
-        self.id.set(self.prev.as_ref()).unwrap();
+        for (id, prev) in self.saved.iter().rev() {
+            let _ = id.set(prev.as_ref(), Some(&self.uuid));
+        }
+
+        let root = format!(
+            r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RustupTest-{}",
+            self.uuid
+        );
+        match CURRENT_USER.remove_tree(&root) {
+            Ok(()) => {}
+            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+            Err(_) => {}
+        }
     }
 }
-
-#[cfg(any(test, feature = "test"))]
-static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
 
 #[cfg(any(test, feature = "test"))]
 pub const USER_PATH: RegistryValueId = RegistryValueId {
@@ -799,8 +852,15 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    pub fn get(&self) -> Result<Option<Value>> {
-        let sub_key = CURRENT_USER.create(self.sub_key)?;
+    fn resolved_sub_key(&self, uuid: Option<&str>) -> windows_registry::Result<Key> {
+        match uuid {
+            Some(uuid) => CURRENT_USER.create(map_sub_key(self.sub_key, uuid)),
+            None => CURRENT_USER.create(self.sub_key),
+        }
+    }
+
+    pub fn get(&self, uuid: Option<&str>) -> Result<Option<Value>> {
+        let sub_key = self.resolved_sub_key(uuid)?;
         match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
             Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(None),
