@@ -63,9 +63,10 @@ async fn setup_installed() -> CliTestContext {
 /// status of the proxies.
 #[tokio::test]
 async fn install_bins_to_cargo_home() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg_attr(not(windows), allow(unused_mut))]
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+    cx.guard_registry([&USER_PATH]);
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -107,9 +108,10 @@ info: default toolchain set to stable-[HOST_TUPLE]
 /// Ensure that proxies are relative symlinks.
 #[tokio::test]
 async fn proxies_are_relative_symlinks() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg_attr(not(windows), allow(unused_mut))]
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+    cx.guard_registry([&USER_PATH]);
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -147,9 +149,10 @@ info: default toolchain set to stable-[HOST_TUPLE]
 
 #[tokio::test]
 async fn install_twice() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg_attr(not(windows), allow(unused_mut))]
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
+    cx.guard_registry([&USER_PATH]);
 
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
