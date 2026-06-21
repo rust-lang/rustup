@@ -28,7 +28,10 @@ const TEST_VERSION: &str = "1.1.1";
 
 /// Empty dist server, rustup installed with no toolchain
 async fn setup_empty_installed() -> CliTestContext {
-    let cx = CliTestContext::new(Scenario::Empty).await;
+    #[cfg_attr(not(windows), allow(unused_mut))]
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    #[cfg(windows)]
+    cx.guard_registry([&USER_PATH, &USER_RUSTUP_VERSION]);
     cx.config
         .expect([
             "rustup-init",
@@ -44,7 +47,10 @@ async fn setup_empty_installed() -> CliTestContext {
 
 /// SimpleV3 dist server, rustup installed with default toolchain
 async fn setup_installed() -> CliTestContext {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg_attr(not(windows), allow(unused_mut))]
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    cx.guard_registry([&USER_PATH, &USER_RUSTUP_VERSION]);
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
