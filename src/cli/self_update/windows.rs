@@ -868,8 +868,8 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set(&self, new: Option<&Value>) -> Result<()> {
-        let sub_key = CURRENT_USER.create(self.sub_key)?;
+    pub fn set(&self, new: Option<&Value>, uuid: Option<&str>) -> Result<()> {
+        let sub_key = self.resolved_sub_key(uuid)?;
         match new {
             Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
             None => Ok(sub_key.remove_value(self.value_name)?),
@@ -879,12 +879,40 @@ impl RegistryValueId {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::os::windows::ffi::OsStringExt;
 
     use windows_registry::Type;
 
     use super::*;
     use crate::process::TestProcess;
+
+    fn test_process(guard: &RegistryGuard) -> TestProcess {
+        let vars: HashMap<String, String> = [
+            ("HOME".to_string(), "/unused".to_string()),
+            (
+                RUSTUP_TEST_REGISTRY_UUID.to_string(),
+                guard.uuid().to_string(),
+            ),
+        ]
+        .into_iter()
+        .collect();
+        TestProcess::with_vars(vars)
+    }
+
+    fn test_environment_key(guard: &RegistryGuard) -> Key {
+        CURRENT_USER
+            .create(map_sub_key("Environment", guard.uuid()))
+            .unwrap()
+    }
+
+    fn clear_path(environment: &Key) {
+        match environment.remove_value("PATH") {
+            Ok(()) => {}
+            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+            Err(e) => panic!("failed to clear PATH: {e}"),
+        }
+    }
 
     #[test]
     fn windows_install_does_not_add_path_twice() {
