@@ -944,6 +944,8 @@ impl SelfUpdateTestContext {
 pub struct CliTestContext {
     pub config: Config,
     _test_dir: TempDir,
+    #[cfg(windows)]
+    _registry_guard: Option<crate::cli::self_update::RegistryGuard>,
 }
 
 impl CliTestContext {
@@ -962,7 +964,22 @@ impl CliTestContext {
             config.distdir = Some(config.test_dist_dir.path().to_path_buf());
         }
 
-        Self { config, _test_dir }
+        Self {
+            config,
+            _test_dir,
+            #[cfg(windows)]
+            _registry_guard: None,
+        }
+    }
+
+    #[cfg(windows)]
+    pub fn guard_registry(
+        &mut self,
+        ids: impl IntoIterator<Item = &'static crate::cli::self_update::RegistryValueId>,
+    ) {
+        let guard = crate::cli::self_update::RegistryGuard::new(ids).unwrap();
+        self.config.set_registry_uuid(guard.uuid());
+        self._registry_guard = Some(guard);
     }
 
     /// Move the dist server to the specified scenario and restore it
