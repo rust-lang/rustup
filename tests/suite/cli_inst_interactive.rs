@@ -6,8 +6,37 @@ use std::process::Stdio;
 
 use rustup::test::{Assert, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple};
 #[cfg(windows)]
-use rustup::test::{RegistryGuard, USER_PATH};
+use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::raw;
+
+#[cfg(windows)]
+const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayVersion",
+};
+
+#[cfg(windows)]
+const USER_RUSTUP_UNINSTALL_STRING: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "UninstallString",
+};
+
+#[cfg(windows)]
+const USER_RUSTUP_DISPLAY_NAME: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayName",
+};
+
+#[cfg(windows)]
+fn install_registry_guard() -> RegistryGuard {
+    RegistryGuard::new([
+        &USER_PATH,
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap()
+}
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> Assert {
     run_input_with_env(config, args, input, &[])
@@ -45,7 +74,7 @@ fn run_input_with_env(config: &Config, args: &[&str], input: &str, env: &[(&str,
 async fn update() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
+    let _guard = install_registry_guard();
 
     run_input(&cx.config, &["rustup-init"], "\n\n");
     run_input(&cx.config, &["rustup-init"], "\n\n").is_ok();
@@ -57,6 +86,8 @@ async fn update() {
 #[tokio::test]
 async fn smoke_case_install_no_modify_path() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     // During an interactive session, after "Press the Enter
     // key..."  the UI emits a blank line, then there is a blank
     // line that comes from the user pressing enter, then log
@@ -101,7 +132,7 @@ Rust is installed now. Great!
 async fn smoke_case_install_with_path_install() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
+    let _guard = install_registry_guard();
 
     run_input(&cx.config, &["rustup-init"], "\n\n")
         .is_ok()
@@ -111,6 +142,8 @@ async fn smoke_case_install_with_path_install() {
 #[tokio::test]
 async fn blank_lines_around_stderr_log_output_update() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -240,6 +273,8 @@ async fn user_says_nope() {
 #[tokio::test]
 async fn with_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &[
@@ -265,6 +300,8 @@ no active toolchain
 #[tokio::test]
 async fn with_no_toolchain_doesnt_hang() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &[
@@ -282,6 +319,8 @@ async fn with_no_toolchain_doesnt_hang() {
 #[tokio::test]
 async fn with_no_toolchain_doesnt_hang_with_concurrent_downloads_override() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &[
@@ -302,6 +341,8 @@ async fn with_no_toolchain_doesnt_hang_with_concurrent_downloads_override() {
 #[tokio::test]
 async fn with_non_default_toolchain_still_prompts() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &[
@@ -329,6 +370,8 @@ nightly-[HOST_TUPLE] (active, default)
 #[tokio::test]
 async fn with_non_release_channel_non_default_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &[
@@ -356,6 +399,8 @@ nightly-2015-01-02-[HOST_TUPLE] (active, default)
 #[tokio::test]
 async fn set_nightly_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -379,6 +424,8 @@ nightly-[HOST_TUPLE] (active, default)
 #[tokio::test]
 async fn set_no_modify_path() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -394,6 +441,8 @@ async fn set_no_modify_path() {
 #[tokio::test]
 async fn set_nightly_toolchain_and_unset() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     run_input(
         &cx.config,
         &["rustup-init", "--no-modify-path"],
@@ -433,6 +482,8 @@ async fn install_with_components() {
         args.extend_from_slice(comp_args);
 
         let cx = CliTestContext::new(Scenario::SimpleV2).await;
+        #[cfg(windows)]
+        let _guard = install_registry_guard();
         cx.config.expect(&args).await.is_ok();
         cx.config
             .expect(["rustup", "component", "list"])
@@ -461,6 +512,8 @@ rust-analysis-[HOST_TUPLE] (installed)
 #[tokio::test]
 async fn install_forces_and_skips_rls() {
     let cx = CliTestContext::new(Scenario::UnavailableRls).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     cx.config.set_current_dist_date("2015-01-01");
 
     run_input(
@@ -486,6 +539,8 @@ warn: skipping unavailable component rls
 #[tokio::test]
 async fn test_warn_if_complete_profile_is_used() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     cx.config
         .expect([
             "rustup-init",
@@ -506,6 +561,8 @@ warn: downloading with complete profile isn't recommended unless you are a devel
 #[tokio::test]
 async fn installing_when_already_installed_updates_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -589,6 +646,8 @@ async fn with_no_prompt_install_succeeds_if_rustc_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     cx.config
         .expect_with_env(
             ["rustup-init", "-y", "--no-modify-path"],
@@ -643,6 +702,8 @@ version = "12""#,
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     cx.config
         .expect_with_env(
             ["rustup-init", "-y", "--no-modify-path"],

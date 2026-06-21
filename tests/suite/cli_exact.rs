@@ -4,7 +4,38 @@
 use rustup::test::{
     CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
 };
+#[cfg(windows)]
+use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::raw;
+
+#[cfg(windows)]
+const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayVersion",
+};
+
+#[cfg(windows)]
+const USER_RUSTUP_UNINSTALL_STRING: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "UninstallString",
+};
+
+#[cfg(windows)]
+const USER_RUSTUP_DISPLAY_NAME: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayName",
+};
+
+#[cfg(windows)]
+fn install_registry_guard() -> RegistryGuard {
+    RegistryGuard::new([
+        &USER_PATH,
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap()
+}
 
 #[tokio::test]
 async fn update_once() {
@@ -43,6 +74,8 @@ rustc-[HOST_TUPLE]
 async fn update_once_and_check_self_update() {
     let test_version = "2.0.0";
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     let _dist_guard = cx.with_update_server(test_version);
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
@@ -88,6 +121,8 @@ rustc-[HOST_TUPLE]
 async fn update_once_and_self_update() {
     let test_version = "2.0.0";
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = install_registry_guard();
     let _dist_guard = cx.with_update_server(test_version);
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])

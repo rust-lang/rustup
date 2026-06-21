@@ -471,15 +471,40 @@ error: could not amend shell profile[..]
 mod windows {
     use super::INIT_NONE;
     use rustup::test::{CliTestContext, Scenario};
-    use rustup::test::{RegistryGuard, USER_PATH, get_path};
+    use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 
     use windows_registry::{HSTRING, Value};
+
+    const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
+        sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+        value_name: "DisplayVersion",
+    };
+
+    const USER_RUSTUP_UNINSTALL_STRING: RegistryValueId = RegistryValueId {
+        sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+        value_name: "UninstallString",
+    };
+
+    const USER_RUSTUP_DISPLAY_NAME: RegistryValueId = RegistryValueId {
+        sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+        value_name: "DisplayName",
+    };
+
+    fn install_registry_guard() -> RegistryGuard {
+        RegistryGuard::new([
+            &USER_PATH,
+            &USER_RUSTUP_UNINSTALL_STRING,
+            &USER_RUSTUP_DISPLAY_NAME,
+            &USER_RUSTUP_VERSION,
+        ])
+        .unwrap()
+    }
 
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     async fn install_uninstall_affect_path() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let _guard = install_registry_guard();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path().unwrap().unwrap())
@@ -505,7 +530,7 @@ mod windows {
     #[tokio::test]
     async fn uninstall_keeps_path_when_cargo_bin_is_non_empty() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let _guard = install_registry_guard();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path().unwrap().unwrap())
@@ -530,7 +555,7 @@ mod windows {
     #[tokio::test]
     async fn uninstall_doesnt_affect_path_with_no_modify_path() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let _guard = install_registry_guard();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
             HSTRING::try_from(get_path().unwrap().unwrap())
@@ -559,7 +584,7 @@ mod windows {
         use windows_registry::Type;
 
         let cx = CliTestContext::new(Scenario::Empty).await;
-        let _guard = RegistryGuard::new([&USER_PATH]).unwrap();
+        let _guard = install_registry_guard();
         // Set up a non unicode PATH
         let mut reg_value = Value::from([
             0x00, 0xD8, // leading surrogate
