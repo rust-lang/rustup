@@ -481,19 +481,23 @@ async fn update_overwrites_programs_display_version() {
     const PLACEHOLDER_VERSION: &str = "9.999.99";
     let version = env!("CARGO_PKG_VERSION");
 
-    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    let _guard = RegistryGuard::new(&USER_RUSTUP_VERSION).unwrap();
+    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let guard = RegistryGuard::new([&USER_PATH, &USER_RUSTUP_VERSION]).unwrap();
+    cx.config.set_registry_uuid(guard.uuid());
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
         .is_ok();
 
     USER_RUSTUP_VERSION
-        .set(Some(&Value::from(PLACEHOLDER_VERSION)))
+        .set(Some(&Value::from(PLACEHOLDER_VERSION)), Some(guard.uuid()))
         .unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert_eq!(
-        USER_RUSTUP_VERSION.get().unwrap().unwrap(),
+        USER_RUSTUP_VERSION
+            .get(Some(guard.uuid()))
+            .unwrap()
+            .unwrap(),
         Value::from(version)
     );
 }
