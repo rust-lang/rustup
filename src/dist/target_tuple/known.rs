@@ -170,6 +170,7 @@ pub static LIST_ENVS: &[&str] = &[
     "gnuasan",
     "gnueabi",
     "gnueabihf",
+    "gnuelfv2",
     "gnullvm",
     "gnumsan",
     "gnuspe",
