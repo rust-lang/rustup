@@ -137,6 +137,61 @@ struct ParsedToolchainDesc {
     target: Option<String>,
 }
 
+impl FromStr for ParsedToolchainDesc {
+    type Err = anyhow::Error;
+    fn from_str(desc: &str) -> Result<Self> {
+        // Note this regex gives you a guaranteed match of the channel (1)
+        // and an optional match of the date (2) and target (3)
+        static TOOLCHAIN_CHANNEL_RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(&format!(
+                r"^({})(?:-([0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}))?(?:-(.+))?$",
+                // The channel patterns we support
+                [
+                    "nightly",
+                    "beta",
+                    "stable",
+                    // Allow from 1.0.0 through to 9.999.99 with optional patch version
+                    // and optional beta tag
+                    r"[0-9]{1}\.(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]?))?(?:-beta(?:\.[0-9]{1,2})?)?",
+                ]
+                .join("|")
+            ))
+            .unwrap()
+        });
+
+        let d = TOOLCHAIN_CHANNEL_RE
+            .captures(desc)
+            .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_string()))?;
+
+        // These versions don't have v2 manifests, but they don't have point releases either,
+        // so to make the two-part version numbers work for these versions, specially turn
+        // them into their corresponding ".0" version.
+        let channel = match d.get(1).unwrap().as_str() {
+            "1.0" => "1.0.0",
+            "1.1" => "1.1.0",
+            "1.2" => "1.2.0",
+            "1.3" => "1.3.0",
+            "1.4" => "1.4.0",
+            "1.5" => "1.5.0",
+            "1.6" => "1.6.0",
+            "1.7" => "1.7.0",
+            "1.8" => "1.8.0",
+            other => other,
+        };
+
+        fn non_empty_string(s: Option<Match<'_>>) -> Option<String> {
+            let s = s?.as_str();
+            (!s.is_empty()).then(|| s.to_owned())
+        }
+
+        Ok(Self {
+            channel: Channel::from_str(channel)?,
+            date: non_empty_string(d.get(2)),
+            target: non_empty_string(d.get(3)),
+        })
+    }
+}
+
 /// A toolchain descriptor from rustup's perspective. These contain
 /// 'partial target tuples', which allow toolchain names like
 /// 'stable-msvc' to work. Partial target tuples though are parsed
@@ -147,6 +202,90 @@ pub struct PartialToolchainDesc {
     pub channel: Channel,
     pub date: Option<String>,
     pub target: PartialTargetTuple,
+}
+
+impl PartialToolchainDesc {
+    /// Create a toolchain desc using input_host to fill in missing fields
+    pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
+        let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
+            anyhow!(format!(
+                "Provided host '{}' couldn't be converted to partial tuple",
+                input_host.0
+            ))
+        })?;
+        let host_arch = host.arch.ok_or_else(|| {
+            anyhow!(format!(
+                "Provided host '{}' did not specify a CPU architecture",
+                input_host.0
+            ))
+        })?;
+        let host_os = host.os.ok_or_else(|| {
+            anyhow!(format!(
+                "Provided host '{}' did not specify an operating system",
+                input_host.0
+            ))
+        })?;
+        let host_env = host.env;
+
+        // If OS was specified, don't default to host environment, even if the OS matches
+        // the host OS, otherwise cannot specify no environment.
+        let env = if self.target.os.is_some() {
+            self.target.env
+        } else {
+            self.target.env.or(host_env)
+        };
+        let arch = self.target.arch.unwrap_or(host_arch);
+        let os = self.target.os.unwrap_or(host_os);
+
+        let trip = if let Some(env) = env {
+            format!("{arch}-{os}-{env}")
+        } else {
+            format!("{arch}-{os}")
+        };
+
+        Ok(ToolchainDesc {
+            channel: self.channel,
+            date: self.date,
+            target: TargetTuple(trip),
+        })
+    }
+}
+
+impl FromStr for PartialToolchainDesc {
+    type Err = anyhow::Error;
+    fn from_str(name: &str) -> Result<Self> {
+        let parsed: ParsedToolchainDesc = name.parse()?;
+        let target = PartialTargetTuple::new(parsed.target.as_deref().unwrap_or(""));
+
+        target
+            .map(|target| Self {
+                channel: parsed.channel,
+                date: parsed.date,
+                target,
+            })
+            .ok_or_else(|| anyhow!(RustupError::InvalidToolchainName(name.to_string())))
+    }
+}
+
+impl fmt::Display for PartialToolchainDesc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.channel)?;
+
+        if let Some(date) = &self.date {
+            write!(f, "-{date}")?;
+        }
+        if let Some(arch) = &self.target.arch {
+            write!(f, "-{arch}")?;
+        }
+        if let Some(os) = &self.target.os {
+            write!(f, "-{os}")?;
+        }
+        if let Some(env) = &self.target.env {
+            write!(f, "-{env}")?;
+        }
+
+        Ok(())
+    }
 }
 
 /// Fully-resolved toolchain descriptors. These always have full target
@@ -160,6 +299,88 @@ pub struct ToolchainDesc {
     pub channel: Channel,
     pub date: Option<String>,
     pub target: TargetTuple,
+}
+
+impl ToolchainDesc {
+    pub(crate) fn manifest_v1_url(&self, dist_root: &str, process: &Process) -> String {
+        let do_manifest_staging = process.var("RUSTUP_STAGED_MANIFEST").is_ok();
+        match (self.date.as_ref(), do_manifest_staging) {
+            (None, false) => format!("{}/channel-rust-{}", dist_root, self.channel),
+            (Some(date), false) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
+            (None, true) => format!("{}/staging/channel-rust-{}", dist_root, self.channel),
+            (Some(_), true) => panic!("not a real-world case"),
+        }
+    }
+
+    pub(crate) fn manifest_v2_url(&self, dist_root: &str, process: &Process) -> String {
+        format!("{}.toml", self.manifest_v1_url(dist_root, process))
+    }
+    /// Either "$channel" or "channel-$date"
+    pub fn manifest_name(&self) -> String {
+        match &self.date {
+            None => self.channel.to_string(),
+            Some(date) => format!("{}-{}", self.channel, date),
+        }
+    }
+
+    pub(crate) fn package_dir(&self, dist_root: &str) -> String {
+        match &self.date {
+            None => dist_root.to_string(),
+            Some(date) => format!("{dist_root}/{date}"),
+        }
+    }
+
+    /// Toolchain channels are considered 'tracking' if it is one of the named channels
+    /// such as `stable`, or is an incomplete version such as `1.48`, and the
+    /// date field is empty.
+    pub(crate) fn is_tracking(&self) -> bool {
+        match &self.channel {
+            _ if self.date.is_some() => false,
+            Channel::Stable | Channel::Beta | Channel::Nightly => true,
+            Channel::Version(ver) => ver.patch.is_none() || &*ver.pre == "beta",
+        }
+    }
+}
+
+impl TryFrom<&ToolchainName> for ToolchainDesc {
+    type Error = DistError;
+
+    fn try_from(value: &ToolchainName) -> std::result::Result<Self, Self::Error> {
+        match value {
+            ToolchainName::Custom(n) => Err(DistError::InvalidOfficialName(n.to_string())),
+            ToolchainName::Official(n) => Ok(n.clone()),
+        }
+    }
+}
+
+impl FromStr for ToolchainDesc {
+    type Err = anyhow::Error;
+    fn from_str(name: &str) -> Result<Self> {
+        let parsed: ParsedToolchainDesc = name.parse()?;
+
+        if parsed.target.is_none() {
+            return Err(anyhow!(RustupError::InvalidToolchainName(name.to_string())));
+        }
+
+        Ok(Self {
+            channel: parsed.channel,
+            date: parsed.date,
+            target: TargetTuple(parsed.target.unwrap()),
+        })
+    }
+}
+
+impl fmt::Display for ToolchainDesc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.channel)?;
+
+        if let Some(date) = &self.date {
+            write!(f, "-{date}")?;
+        }
+        write!(f, "-{}", self.target)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
@@ -248,128 +469,6 @@ impl FromStr for PartialVersion {
 #[derive(Debug, Clone, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
 pub struct TargetTuple(String);
-
-// Linux hosts don't indicate clib in uname, however binaries only
-// run on boxes with the same clib, as expected.
-#[cfg(all(not(windows), not(target_env = "musl")))]
-const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
-#[cfg(all(not(windows), target_env = "musl"))]
-const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
-#[cfg(all(not(windows), not(target_env = "musl")))]
-const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
-#[cfg(all(not(windows), target_env = "musl"))]
-const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
-#[cfg(all(not(windows), not(target_env = "musl")))]
-const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
-#[cfg(all(not(windows), target_env = "musl"))]
-const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
-#[cfg(all(not(windows), not(target_env = "musl")))]
-const TUPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-gnu";
-#[cfg(all(not(windows), target_env = "musl"))]
-const TUPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-musl";
-#[cfg(all(not(windows), not(target_env = "musl")))]
-const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
-#[cfg(all(not(windows), target_env = "musl"))]
-const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
-
-// MIPS platforms don't indicate endianness in uname, however binaries only
-// run on boxes with the same endianness, as expected.
-// Hence we could distinguish between the variants with compile-time cfg()
-// attributes alone.
-#[cfg(all(not(windows), target_endian = "big"))]
-static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
-#[cfg(all(not(windows), target_endian = "little"))]
-static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
-
-#[cfg(all(not(windows), target_endian = "big"))]
-static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
-#[cfg(all(not(windows), target_endian = "little"))]
-static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
-
-impl FromStr for ParsedToolchainDesc {
-    type Err = anyhow::Error;
-    fn from_str(desc: &str) -> Result<Self> {
-        // Note this regex gives you a guaranteed match of the channel (1)
-        // and an optional match of the date (2) and target (3)
-        static TOOLCHAIN_CHANNEL_RE: LazyLock<Regex> = LazyLock::new(|| {
-            Regex::new(&format!(
-                r"^({})(?:-([0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}))?(?:-(.+))?$",
-                // The channel patterns we support
-                [
-                    "nightly",
-                    "beta",
-                    "stable",
-                    // Allow from 1.0.0 through to 9.999.99 with optional patch version
-                    // and optional beta tag
-                    r"[0-9]{1}\.(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]?))?(?:-beta(?:\.[0-9]{1,2})?)?",
-                ]
-                .join("|")
-            ))
-            .unwrap()
-        });
-
-        let d = TOOLCHAIN_CHANNEL_RE
-            .captures(desc)
-            .ok_or_else(|| RustupError::InvalidToolchainName(desc.to_string()))?;
-
-        // These versions don't have v2 manifests, but they don't have point releases either,
-        // so to make the two-part version numbers work for these versions, specially turn
-        // them into their corresponding ".0" version.
-        let channel = match d.get(1).unwrap().as_str() {
-            "1.0" => "1.0.0",
-            "1.1" => "1.1.0",
-            "1.2" => "1.2.0",
-            "1.3" => "1.3.0",
-            "1.4" => "1.4.0",
-            "1.5" => "1.5.0",
-            "1.6" => "1.6.0",
-            "1.7" => "1.7.0",
-            "1.8" => "1.8.0",
-            other => other,
-        };
-
-        fn non_empty_string(s: Option<Match<'_>>) -> Option<String> {
-            let s = s?.as_str();
-            (!s.is_empty()).then(|| s.to_owned())
-        }
-
-        Ok(Self {
-            channel: Channel::from_str(channel)?,
-            date: non_empty_string(d.get(2)),
-            target: non_empty_string(d.get(3)),
-        })
-    }
-}
-
-impl Deref for TargetTuple {
-    type Target = str;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-/// Check if /bin/sh is a 32-bit binary. If it doesn't exist, fall back to
-/// checking if _we_ are a 32-bit binary.
-/// rustup-init.sh also relies on checking /bin/sh for bitness.
-#[cfg(not(windows))]
-fn is_32bit_userspace() -> bool {
-    use std::fs;
-    use std::io::{self, Read};
-
-    // inner function is to simplify error handling.
-    fn inner() -> io::Result<bool> {
-        let mut f = fs::File::open("/bin/sh")?;
-        let mut buf = [0; 5];
-        f.read_exact(&mut buf)?;
-
-        // ELF files start out "\x7fELF", and the following byte is
-        //   0x01 for 32-bit and
-        //   0x02 for 64-bit.
-        Ok(&buf == b"\x7fELF\x01")
-    }
-
-    inner().unwrap_or(cfg!(target_pointer_width = "32"))
-}
 
 impl TargetTuple {
     pub fn new(name: impl Into<String>) -> Self {
@@ -594,136 +693,77 @@ impl TargetTuple {
     }
 }
 
-impl FromStr for PartialToolchainDesc {
-    type Err = anyhow::Error;
-    fn from_str(name: &str) -> Result<Self> {
-        let parsed: ParsedToolchainDesc = name.parse()?;
-        let target = PartialTargetTuple::new(parsed.target.as_deref().unwrap_or(""));
-
-        target
-            .map(|target| Self {
-                channel: parsed.channel,
-                date: parsed.date,
-                target,
-            })
-            .ok_or_else(|| anyhow!(RustupError::InvalidToolchainName(name.to_string())))
+impl fmt::Display for TargetTuple {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 
-impl PartialToolchainDesc {
-    /// Create a toolchain desc using input_host to fill in missing fields
-    pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
-        let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' couldn't be converted to partial tuple",
-                input_host.0
-            ))
-        })?;
-        let host_arch = host.arch.ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' did not specify a CPU architecture",
-                input_host.0
-            ))
-        })?;
-        let host_os = host.os.ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' did not specify an operating system",
-                input_host.0
-            ))
-        })?;
-        let host_env = host.env;
-
-        // If OS was specified, don't default to host environment, even if the OS matches
-        // the host OS, otherwise cannot specify no environment.
-        let env = if self.target.os.is_some() {
-            self.target.env
-        } else {
-            self.target.env.or(host_env)
-        };
-        let arch = self.target.arch.unwrap_or(host_arch);
-        let os = self.target.os.unwrap_or(host_os);
-
-        let trip = if let Some(env) = env {
-            format!("{arch}-{os}-{env}")
-        } else {
-            format!("{arch}-{os}")
-        };
-
-        Ok(ToolchainDesc {
-            channel: self.channel,
-            date: self.date,
-            target: TargetTuple(trip),
-        })
+impl Deref for TargetTuple {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
-impl FromStr for ToolchainDesc {
-    type Err = anyhow::Error;
-    fn from_str(name: &str) -> Result<Self> {
-        let parsed: ParsedToolchainDesc = name.parse()?;
+// Linux hosts don't indicate clib in uname, however binaries only
+// run on boxes with the same clib, as expected.
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TUPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TUPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TUPLE_LOONGARCH64_UNKNOWN_LINUX: &str = "loongarch64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TUPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TUPLE_POWERPC64_UNKNOWN_LINUX: &str = "powerpc64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TUPLE_POWERPC64LE_UNKNOWN_LINUX: &str = "powerpc64le-unknown-linux-musl";
 
-        if parsed.target.is_none() {
-            return Err(anyhow!(RustupError::InvalidToolchainName(name.to_string())));
-        }
+// MIPS platforms don't indicate endianness in uname, however binaries only
+// run on boxes with the same endianness, as expected.
+// Hence we could distinguish between the variants with compile-time cfg()
+// attributes alone.
+#[cfg(all(not(windows), target_endian = "big"))]
+static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
+#[cfg(all(not(windows), target_endian = "little"))]
+static TUPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
 
-        Ok(Self {
-            channel: parsed.channel,
-            date: parsed.date,
-            target: TargetTuple(parsed.target.unwrap()),
-        })
+#[cfg(all(not(windows), target_endian = "big"))]
+static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
+#[cfg(all(not(windows), target_endian = "little"))]
+static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
+
+/// Check if /bin/sh is a 32-bit binary. If it doesn't exist, fall back to
+/// checking if _we_ are a 32-bit binary.
+/// rustup-init.sh also relies on checking /bin/sh for bitness.
+#[cfg(not(windows))]
+fn is_32bit_userspace() -> bool {
+    use std::fs;
+    use std::io::{self, Read};
+
+    // inner function is to simplify error handling.
+    fn inner() -> io::Result<bool> {
+        let mut f = fs::File::open("/bin/sh")?;
+        let mut buf = [0; 5];
+        f.read_exact(&mut buf)?;
+
+        // ELF files start out "\x7fELF", and the following byte is
+        //   0x01 for 32-bit and
+        //   0x02 for 64-bit.
+        Ok(&buf == b"\x7fELF\x01")
     }
-}
 
-impl ToolchainDesc {
-    pub(crate) fn manifest_v1_url(&self, dist_root: &str, process: &Process) -> String {
-        let do_manifest_staging = process.var("RUSTUP_STAGED_MANIFEST").is_ok();
-        match (self.date.as_ref(), do_manifest_staging) {
-            (None, false) => format!("{}/channel-rust-{}", dist_root, self.channel),
-            (Some(date), false) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
-            (None, true) => format!("{}/staging/channel-rust-{}", dist_root, self.channel),
-            (Some(_), true) => panic!("not a real-world case"),
-        }
-    }
-
-    pub(crate) fn manifest_v2_url(&self, dist_root: &str, process: &Process) -> String {
-        format!("{}.toml", self.manifest_v1_url(dist_root, process))
-    }
-    /// Either "$channel" or "channel-$date"
-    pub fn manifest_name(&self) -> String {
-        match &self.date {
-            None => self.channel.to_string(),
-            Some(date) => format!("{}-{}", self.channel, date),
-        }
-    }
-
-    pub(crate) fn package_dir(&self, dist_root: &str) -> String {
-        match &self.date {
-            None => dist_root.to_string(),
-            Some(date) => format!("{dist_root}/{date}"),
-        }
-    }
-
-    /// Toolchain channels are considered 'tracking' if it is one of the named channels
-    /// such as `stable`, or is an incomplete version such as `1.48`, and the
-    /// date field is empty.
-    pub(crate) fn is_tracking(&self) -> bool {
-        match &self.channel {
-            _ if self.date.is_some() => false,
-            Channel::Stable | Channel::Beta | Channel::Nightly => true,
-            Channel::Version(ver) => ver.patch.is_none() || &*ver.pre == "beta",
-        }
-    }
-}
-
-impl TryFrom<&ToolchainName> for ToolchainDesc {
-    type Error = DistError;
-
-    fn try_from(value: &ToolchainName) -> std::result::Result<Self, Self::Error> {
-        match value {
-            ToolchainName::Custom(n) => Err(DistError::InvalidOfficialName(n.to_string())),
-            ToolchainName::Official(n) => Ok(n.clone()),
-        }
-    }
+    inner().unwrap_or(cfg!(target_pointer_width = "32"))
 }
 
 #[derive(
@@ -778,6 +818,12 @@ impl FromStr for Profile {
     }
 }
 
+impl fmt::Display for Profile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AutoInstallMode {
@@ -828,52 +874,6 @@ impl FromStr for AutoInstallMode {
 impl fmt::Display for AutoInstallMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
-    }
-}
-
-impl fmt::Display for TargetTuple {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl fmt::Display for PartialToolchainDesc {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.channel)?;
-
-        if let Some(date) = &self.date {
-            write!(f, "-{date}")?;
-        }
-        if let Some(arch) = &self.target.arch {
-            write!(f, "-{arch}")?;
-        }
-        if let Some(os) = &self.target.os {
-            write!(f, "-{os}")?;
-        }
-        if let Some(env) = &self.target.env {
-            write!(f, "-{env}")?;
-        }
-
-        Ok(())
-    }
-}
-
-impl fmt::Display for ToolchainDesc {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.channel)?;
-
-        if let Some(date) = &self.date {
-            write!(f, "-{date}")?;
-        }
-        write!(f, "-{}", self.target)?;
-
-        Ok(())
-    }
-}
-
-impl fmt::Display for Profile {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.as_str())
     }
 }
 
