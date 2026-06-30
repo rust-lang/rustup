@@ -1179,7 +1179,7 @@ async fn which(
 async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    let mut t = cfg.process.stdout();
+    let t = cfg.process.stdout();
 
     // Print host tuple
     writeln!(
@@ -1215,7 +1215,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         .unzip();
 
     // show installed toolchains
-    print_header(&mut t, "installed toolchains")?;
+    print_header(&t, "installed toolchains")?;
 
     let default_toolchain_name = cfg.get_default()?;
     let last_index = installed_toolchains.len().wrapping_sub(1);
@@ -1251,7 +1251,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     // show active toolchain
     writeln!(t.lock())?;
 
-    print_header(&mut t, "active toolchain")?;
+    print_header(&t, "active toolchain")?;
 
     let Some((active_toolchain_name, active_source)) = active_toolchain_and_source else {
         writeln!(t.lock(), "no active toolchain")?;
@@ -1298,7 +1298,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
         writeln!(t.lock(), "  {target}")?;
     }
 
-    fn print_header(t: &mut ColorableTerminal, text: &str) -> Result<(), Error> {
+    fn print_header(t: &ColorableTerminal, text: &str) -> Result<(), Error> {
         let divider = "-".repeat(text.len());
         let mut term_lock = t.lock();
         writeln!(term_lock, "{HEADER}{text}{HEADER:#}")?;
@@ -1618,7 +1618,7 @@ async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -
     Ok(ExitCode::SUCCESS)
 }
 
-async fn toolchain_remove(cfg: &mut Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode> {
+async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode> {
     let default_toolchain = cfg.get_default().ok().flatten();
     let active_toolchain = cfg
         .maybe_ensure_active_toolchain(Some(false))
@@ -1947,10 +1947,7 @@ async fn man(
     Ok(ExitCode::SUCCESS)
 }
 
-fn set_auto_self_update(
-    cfg: &mut Cfg<'_>,
-    auto_self_update_mode: SelfUpdateMode,
-) -> Result<ExitCode> {
+fn set_auto_self_update(cfg: &Cfg<'_>, auto_self_update_mode: SelfUpdateMode) -> Result<ExitCode> {
     if cfg!(feature = "no-self-update") {
         let mut args = cfg.process.args_os();
         let arg0 = args.next().map(PathBuf::from);
