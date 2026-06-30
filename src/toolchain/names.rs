@@ -89,7 +89,7 @@ macro_rules! from_variant {
 macro_rules! try_from_str {
     ($to:ident) => {
         try_from_str!(&str, $to);
-        try_from_str!(&String, $to);
+
         impl TryFrom<String> for $to {
             type Error = InvalidName;
 
