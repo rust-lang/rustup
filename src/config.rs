@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{Context, Result, anyhow, bail};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, trace, warn};
 
@@ -278,6 +278,7 @@ pub(crate) struct Cfg<'a> {
     pub profile_override: Option<Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
+    state_file: StateFile,
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
@@ -323,6 +324,8 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
+        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
         let fallback_settings = FallbackSettings::new(
@@ -355,6 +358,7 @@ impl<'a> Cfg<'a> {
             profile_override: None,
             rustup_dir,
             settings_file,
+            state_file,
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
@@ -1012,6 +1016,7 @@ impl Debug for Cfg<'_> {
             profile_override,
             rustup_dir,
             settings_file,
+            state_file,
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
@@ -1030,6 +1035,7 @@ impl Debug for Cfg<'_> {
             .field("profile_override", profile_override)
             .field("rustup_dir", rustup_dir)
             .field("settings_file", settings_file)
+            .field("state_file", state_file)
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
@@ -1042,6 +1048,62 @@ impl Debug for Cfg<'_> {
             .field("current_dir", current_dir)
             .field("allow_auto_install", allow_auto_install)
             .finish()
+    }
+}
+
+/// Contrary to `settings.toml`, this file is not intended to be user-facing
+/// and is intended to merely persistently story rustup's internal state.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct StateFile {
+    path: PathBuf,
+}
+
+impl StateFile {
+    fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+
+    fn load(&self) -> Result<State> {
+        if !utils::is_file(&self.path) {
+            return Ok(State::default());
+        }
+        let content = utils::read_file("state", &self.path)?;
+        State::parse(&content).with_context(|| RustupError::ParsingFile {
+            name: "state",
+            path: self.path.clone(),
+        })
+    }
+
+    fn store(&self, state: &State) -> Result<()> {
+        utils::write_file("state", &self.path, &state.stringify()?)?;
+        Ok(())
+    }
+
+    fn with<T, F: FnOnce(&State) -> Result<T>>(&self, f: F) -> Result<T> {
+        f(&self.load()?)
+    }
+
+    fn with_mut<T, F: FnOnce(&mut State) -> Result<T>>(&self, f: F) -> Result<T> {
+        let mut state = self.load()?;
+        let result = f(&mut state)?;
+        self.store(&state)?;
+        Ok(result)
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+struct State {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_release_notified_secs: Option<u64>,
+}
+
+impl State {
+    fn parse(data: &str) -> Result<Self> {
+        toml::from_str(data).context("error parsing state")
+    }
+
+    fn stringify(&self) -> Result<String> {
+        Ok(toml::to_string(self)?)
     }
 }
 
