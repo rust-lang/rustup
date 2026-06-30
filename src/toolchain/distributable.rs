@@ -122,7 +122,7 @@ impl<'a> DistributableToolchain<'a> {
             }
 
             return Err(RustupError::UnknownTarget {
-                desc,
+                desc: Box::new(desc),
                 target,
                 suggestion,
             }
@@ -409,7 +409,7 @@ impl<'a> DistributableToolchain<'a> {
                     .any(|c| c.target() == component.target())
                 {
                     return Err(RustupError::TargetNotInstalled {
-                        desc: self.desc.clone(),
+                        desc: Box::new(self.desc.clone()),
                         target: component.target.expect("component target should be known"),
                         suggestion,
                     }
