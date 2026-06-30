@@ -224,7 +224,7 @@ impl RustupHome {
 
     pub fn new_in<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let rustupdir = tempdir_in_with_prefix(path, "rustup")?;
-        Ok(RustupHome { rustupdir })
+        Ok(Self { rustupdir })
     }
 
     pub fn remove(&self) -> io::Result<()> {

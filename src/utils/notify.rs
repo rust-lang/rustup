@@ -14,11 +14,11 @@ pub(crate) enum NotificationLevel {
 impl fmt::Display for NotificationLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            NotificationLevel::Trace => "trace",
-            NotificationLevel::Debug => "debug",
-            NotificationLevel::Info => "info",
-            NotificationLevel::Warn => "warn",
-            NotificationLevel::Error => "error",
+            Self::Trace => "trace",
+            Self::Debug => "debug",
+            Self::Info => "info",
+            Self::Warn => "warn",
+            Self::Error => "error",
         })
     }
 }

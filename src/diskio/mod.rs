@@ -83,23 +83,23 @@ pub(crate) enum FileBuffer {
 impl FileBuffer {
     /// Allows the buffer's space to be reused when the last reference to it is dropped.
     pub(crate) fn clear(&mut self) {
-        if let FileBuffer::Threaded(contents) = self {
+        if let Self::Threaded(contents) = self {
             contents.clear()
         }
     }
 
     pub(crate) fn len(&self) -> usize {
         match self {
-            FileBuffer::Immediate(vec) => vec.len(),
-            FileBuffer::Threaded(PoolReference::Owned(owned, _)) => owned.len(),
-            FileBuffer::Threaded(PoolReference::Mut(mutable, _)) => mutable.len(),
+            Self::Immediate(vec) => vec.len(),
+            Self::Threaded(PoolReference::Owned(owned, _)) => owned.len(),
+            Self::Threaded(PoolReference::Mut(mutable, _)) => mutable.len(),
         }
     }
 
     pub(crate) fn finished(self) -> Self {
         match self {
-            FileBuffer::Threaded(PoolReference::Mut(mutable, pool)) => {
-                FileBuffer::Threaded(PoolReference::Owned(mutable.downgrade(), pool))
+            Self::Threaded(PoolReference::Mut(mutable, pool)) => {
+                Self::Threaded(PoolReference::Owned(mutable.downgrade(), pool))
             }
             _ => self,
         }
@@ -111,9 +111,9 @@ impl Deref for FileBuffer {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            FileBuffer::Immediate(vec) => vec,
-            FileBuffer::Threaded(PoolReference::Owned(owned, _)) => owned,
-            FileBuffer::Threaded(PoolReference::Mut(mutable, _)) => mutable,
+            Self::Immediate(vec) => vec,
+            Self::Threaded(PoolReference::Owned(owned, _)) => owned,
+            Self::Threaded(PoolReference::Mut(mutable, _)) => mutable,
         }
     }
 }
@@ -121,11 +121,11 @@ impl Deref for FileBuffer {
 impl DerefMut for FileBuffer {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            FileBuffer::Immediate(vec) => vec,
-            FileBuffer::Threaded(PoolReference::Owned(_, _)) => {
+            Self::Immediate(vec) => vec,
+            Self::Threaded(PoolReference::Owned(_, _)) => {
                 unimplemented!()
             }
-            FileBuffer::Threaded(PoolReference::Mut(mutable, _)) => mutable,
+            Self::Threaded(PoolReference::Mut(mutable, _)) => mutable,
         }
     }
 }
@@ -272,11 +272,11 @@ impl IncrementalFileState {
         mode: u32,
     ) -> Result<(Box<dyn ChunkWriter>, IncrementalFile)> {
         match self {
-            IncrementalFileState::Threaded => {
+            Self::Threaded => {
                 let (tx, rx) = mpsc::channel::<FileBuffer>();
                 Ok((Box::new(tx), IncrementalFile::ThreadedReceiver(rx)))
             }
-            IncrementalFileState::Immediate(state) => Ok((
+            Self::Immediate(state) => Ok((
                 Box::new(IncrementalFileWriter::new(path, mode, state.clone())?),
                 IncrementalFile::ImmediateReceiver,
             )),

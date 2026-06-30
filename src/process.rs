@@ -107,9 +107,9 @@ impl Process {
 
     pub fn var(&self, key: &str) -> Result<String, env::VarError> {
         let value = match self {
-            Process::OsProcess(_) => env::var(key)?,
+            Self::OsProcess(_) => env::var(key)?,
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => match p.vars.get(key) {
+            Self::TestProcess(p) => match p.vars.get(key) {
                 Some(val) => val.to_owned(),
                 None => return Err(env::VarError::NotPresent),
             },
@@ -129,17 +129,17 @@ impl Process {
     #[cfg(target_os = "linux")]
     pub fn permit_copy_rename(&self) -> bool {
         match self {
-            Process::OsProcess(_) => env::var_os("RUSTUP_PERMIT_COPY_RENAME").is_some(),
+            Self::OsProcess(_) => env::var_os("RUSTUP_PERMIT_COPY_RENAME").is_some(),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => p.vars.contains_key("RUSTUP_PERMIT_COPY_RENAME"),
+            Self::TestProcess(p) => p.vars.contains_key("RUSTUP_PERMIT_COPY_RENAME"),
         }
     }
 
     pub(crate) fn var_os(&self, key: &str) -> Option<OsString> {
         let value = match self {
-            Process::OsProcess(_) => env::var_os(key)?,
+            Self::OsProcess(_) => env::var_os(key)?,
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => p.vars.get(key).map(OsString::from)?,
+            Self::TestProcess(p) => p.vars.get(key).map(OsString::from)?,
         };
 
         match value.is_empty() {
@@ -150,33 +150,33 @@ impl Process {
 
     pub(crate) fn args(&self) -> Box<dyn Iterator<Item = String> + '_> {
         match self {
-            Process::OsProcess(_) => Box::new(env::args()),
+            Self::OsProcess(_) => Box::new(env::args()),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Box::new(p.args.iter().cloned()),
+            Self::TestProcess(p) => Box::new(p.args.iter().cloned()),
         }
     }
 
     pub(crate) fn args_os(&self) -> Box<dyn Iterator<Item = OsString> + '_> {
         match self {
-            Process::OsProcess(_) => Box::new(env::args_os()),
+            Self::OsProcess(_) => Box::new(env::args_os()),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Box::new(p.args.iter().map(OsString::from)),
+            Self::TestProcess(p) => Box::new(p.args.iter().map(OsString::from)),
         }
     }
 
     pub(crate) fn stdin(&self) -> Box<dyn file_source::Stdin> {
         match self {
-            Process::OsProcess(_) => Box::new(io::stdin()),
+            Self::OsProcess(_) => Box::new(io::stdin()),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Box::new(file_source::TestStdin(p.stdin.clone())),
+            Self::TestProcess(p) => Box::new(file_source::TestStdin(p.stdin.clone())),
         }
     }
 
     pub(crate) fn stdout(&self) -> ColorableTerminal {
         match self {
-            Process::OsProcess(_) => ColorableTerminal::stdout(self),
+            Self::OsProcess(_) => ColorableTerminal::stdout(self),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => {
+            Self::TestProcess(p) => {
                 ColorableTerminal::test(file_source::TestWriter(p.stdout.clone()), self)
             }
         }
@@ -184,9 +184,9 @@ impl Process {
 
     pub(crate) fn stderr(&self) -> ColorableTerminal {
         match self {
-            Process::OsProcess(_) => ColorableTerminal::stderr(self),
+            Self::OsProcess(_) => ColorableTerminal::stderr(self),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => {
+            Self::TestProcess(p) => {
                 ColorableTerminal::test(file_source::TestWriter(p.stderr.clone()), self)
             }
         }
@@ -194,17 +194,17 @@ impl Process {
 
     pub fn current_dir(&self) -> io::Result<PathBuf> {
         match self {
-            Process::OsProcess(_) => env::current_dir(),
+            Self::OsProcess(_) => env::current_dir(),
             #[cfg(feature = "test")]
-            Process::TestProcess(p) => Ok(p.cwd.clone()),
+            Self::TestProcess(p) => Ok(p.cwd.clone()),
         }
     }
 
     pub fn progress_draw_target(&self) -> ProgressDrawTarget {
         match self {
-            Process::OsProcess(_) => (),
+            Self::OsProcess(_) => (),
             #[cfg(feature = "test")]
-            Process::TestProcess(_) => return ProgressDrawTarget::hidden(),
+            Self::TestProcess(_) => return ProgressDrawTarget::hidden(),
         }
 
         let term = self.stdout();
@@ -252,17 +252,17 @@ impl From<IoThreadCount> for usize {
 impl home::env::Env for Process {
     fn home_dir(&self) -> Option<PathBuf> {
         match self {
-            Process::OsProcess(_) => home::env::OS_ENV.home_dir(),
+            Self::OsProcess(_) => home::env::OS_ENV.home_dir(),
             #[cfg(feature = "test")]
-            Process::TestProcess(_) => self.var("HOME").ok().map(|v| v.into()),
+            Self::TestProcess(_) => self.var("HOME").ok().map(|v| v.into()),
         }
     }
 
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
         match self {
-            Process::OsProcess(_) => home::env::OS_ENV.current_dir(),
+            Self::OsProcess(_) => home::env::OS_ENV.current_dir(),
             #[cfg(feature = "test")]
-            Process::TestProcess(_) => self.current_dir(),
+            Self::TestProcess(_) => self.current_dir(),
         }
     }
 
@@ -281,7 +281,7 @@ pub struct OsProcess {
 
 impl OsProcess {
     pub fn new() -> Self {
-        OsProcess {
+        Self {
             stderr_is_a_tty: io::stderr().is_terminal(),
             stdout_is_a_tty: io::stdout().is_terminal(),
         }
@@ -290,7 +290,7 @@ impl OsProcess {
 
 impl Default for OsProcess {
     fn default() -> Self {
-        OsProcess::new()
+        Self::new()
     }
 }
 

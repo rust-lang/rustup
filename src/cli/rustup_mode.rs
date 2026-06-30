@@ -307,26 +307,26 @@ impl RustupSubcmd {
             // These subcommands execute or rely on the active toolchain, so auto-installing it when
             // missing may be reasonable depending on the user's decision.
             #[cfg(not(windows))]
-            RustupSubcmd::Man { .. } => true,
-            RustupSubcmd::Doc { .. } | RustupSubcmd::Run { .. } => true,
+            Self::Man { .. } => true,
+            Self::Doc { .. } | Self::Run { .. } => true,
 
             // These subcommands don't require the active toolchain, so auto-installing it should be
             // disabled to avoid surprises.
-            RustupSubcmd::Check { .. }
-            | RustupSubcmd::Completions { .. }
-            | RustupSubcmd::Component { .. }
-            | RustupSubcmd::Default { .. }
-            | RustupSubcmd::DumpTestament
-            | RustupSubcmd::Install { .. }
-            | RustupSubcmd::Override { .. }
-            | RustupSubcmd::Self_ { .. }
-            | RustupSubcmd::Set { .. }
-            | RustupSubcmd::Show { .. }
-            | RustupSubcmd::Target { .. }
-            | RustupSubcmd::Toolchain { .. }
-            | RustupSubcmd::Uninstall { .. }
-            | RustupSubcmd::Update { .. }
-            | RustupSubcmd::Which { .. } => false,
+            Self::Check { .. }
+            | Self::Completions { .. }
+            | Self::Component { .. }
+            | Self::Default { .. }
+            | Self::DumpTestament
+            | Self::Install { .. }
+            | Self::Override { .. }
+            | Self::Self_ { .. }
+            | Self::Set { .. }
+            | Self::Show { .. }
+            | Self::Target { .. }
+            | Self::Toolchain { .. }
+            | Self::Uninstall { .. }
+            | Self::Update { .. }
+            | Self::Which { .. } => false,
         }
     }
 
@@ -334,29 +334,27 @@ impl RustupSubcmd {
     fn should_warn_empty_setup(&self) -> bool {
         match self {
             // These subcommands are not about toolchains, so the hint would be noise.
-            RustupSubcmd::Completions { .. }
-            | RustupSubcmd::DumpTestament
-            | RustupSubcmd::Self_ { .. } => false,
+            Self::Completions { .. } | Self::DumpTestament | Self::Self_ { .. } => false,
 
             // For all other subcommands, the hint may be useful if rustup is still unusable after
             // the command has completed.
-            RustupSubcmd::Check { .. }
-            | RustupSubcmd::Component { .. }
-            | RustupSubcmd::Default { .. }
-            | RustupSubcmd::Doc { .. }
-            | RustupSubcmd::Install { .. }
-            | RustupSubcmd::Override { .. }
-            | RustupSubcmd::Run { .. }
-            | RustupSubcmd::Set { .. }
-            | RustupSubcmd::Show { .. }
-            | RustupSubcmd::Target { .. }
-            | RustupSubcmd::Toolchain { .. }
-            | RustupSubcmd::Uninstall { .. }
-            | RustupSubcmd::Update { .. }
-            | RustupSubcmd::Which { .. } => true,
+            Self::Check { .. }
+            | Self::Component { .. }
+            | Self::Default { .. }
+            | Self::Doc { .. }
+            | Self::Install { .. }
+            | Self::Override { .. }
+            | Self::Run { .. }
+            | Self::Set { .. }
+            | Self::Show { .. }
+            | Self::Target { .. }
+            | Self::Toolchain { .. }
+            | Self::Uninstall { .. }
+            | Self::Update { .. }
+            | Self::Which { .. } => true,
 
             #[cfg(not(windows))]
-            RustupSubcmd::Man { .. } => true,
+            Self::Man { .. } => true,
         }
     }
 }
@@ -1982,8 +1980,8 @@ impl ValueEnum for CompletionCommand {
 
     fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
         Some(match self {
-            CompletionCommand::Rustup => PossibleValue::new("rustup"),
-            CompletionCommand::Cargo => PossibleValue::new("cargo"),
+            Self::Rustup => PossibleValue::new("rustup"),
+            Self::Cargo => PossibleValue::new("cargo"),
         })
     }
 }
