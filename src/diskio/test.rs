@@ -38,11 +38,11 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
     let mut chunk = io_executor.get_buffer(super::IO_CHUNK_SIZE);
     chunk.extend(b"0123456789");
     chunk = chunk.finished();
-    sender(chunk);
+    sender.submit(chunk);
     let mut chunk = io_executor.get_buffer(super::IO_CHUNK_SIZE);
     chunk.extend(b"0123456789");
     chunk = chunk.finished();
-    sender(chunk);
+    sender.submit(chunk);
     loop {
         for work in io_executor.completed().collect::<Vec<_>>() {
             match work {
@@ -57,7 +57,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
     // sending a zero length chunk closes the file
     let mut chunk = io_executor.get_buffer(super::IO_CHUNK_SIZE);
     chunk = chunk.finished();
-    sender(chunk);
+    sender.submit(chunk);
     loop {
         for work in io_executor.completed().collect::<Vec<_>>() {
             match work {
