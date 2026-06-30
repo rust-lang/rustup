@@ -34,10 +34,10 @@ pub(crate) enum PoolReference {
 impl PoolReference {
     pub(crate) fn clear(&mut self) {
         match self {
-            PoolReference::Mut(orm, pool) => {
+            Self::Mut(orm, pool) => {
                 pool.clear(orm.key());
             }
-            PoolReference::Owned(rm, pool) => {
+            Self::Owned(rm, pool) => {
                 pool.clear(rm.key());
             }
         }
@@ -47,8 +47,8 @@ impl PoolReference {
 impl AsRef<[u8]> for PoolReference {
     fn as_ref(&self) -> &[u8] {
         match self {
-            PoolReference::Owned(owned, _) => owned,
-            PoolReference::Mut(mutable, _) => mutable,
+            Self::Owned(owned, _) => owned,
+            Self::Mut(mutable, _) => mutable,
         }
     }
 }
@@ -154,7 +154,7 @@ impl Threaded {
             pool.pool.clear(key);
         }
         // Since we've just *used* this memory, we had better have been allowed to!
-        assert!(Threaded::ram_highwater(&vec_pools) < ram_budget);
+        assert!(Self::ram_highwater(&vec_pools) < ram_budget);
         Self {
             n_files: Arc::new(AtomicUsize::new(0)),
             pool,
@@ -314,7 +314,7 @@ impl Executor for Threaded {
             return true;
         }
         let size = pool.size;
-        let total_used = Threaded::ram_highwater(&self.vec_pools);
+        let total_used = Self::ram_highwater(&self.vec_pools);
         total_used + size < self.ram_budget
     }
 

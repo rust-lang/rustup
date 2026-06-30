@@ -141,8 +141,8 @@ impl ResolvableToolchainName {
     /// Resolve to a concrete toolchain name
     pub fn resolve(&self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
         match self.clone() {
-            ResolvableToolchainName::Custom(c) => Ok(ToolchainName::Custom(c)),
-            ResolvableToolchainName::Official(desc) => {
+            Self::Custom(c) => Ok(ToolchainName::Custom(c)),
+            Self::Official(desc) => {
                 let resolved = desc.resolve(host)?;
                 Ok(ToolchainName::Official(resolved))
             }
@@ -151,7 +151,7 @@ impl ResolvableToolchainName {
 
     // If candidate could be resolved, return a ready to resolve version of it.
     // Otherwise error.
-    fn validate(candidate: &str) -> Result<ResolvableToolchainName, InvalidName> {
+    fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
         candidate
             .parse::<PartialToolchainDesc>()
@@ -168,15 +168,15 @@ try_from_str!(ResolvableToolchainName);
 
 impl From<&PartialToolchainDesc> for ResolvableToolchainName {
     fn from(value: &PartialToolchainDesc) -> Self {
-        ResolvableToolchainName::Official(value.to_owned())
+        Self::Official(value.to_owned())
     }
 }
 
 impl Display for ResolvableToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResolvableToolchainName::Custom(c) => write!(f, "{c}"),
-            ResolvableToolchainName::Official(o) => write!(f, "{o}"),
+            Self::Custom(c) => write!(f, "{c}"),
+            Self::Official(o) => write!(f, "{o}"),
         }
     }
 }
@@ -193,14 +193,12 @@ pub(crate) enum MaybeResolvableToolchainName {
 impl MaybeResolvableToolchainName {
     // If candidate could be resolved, return a ready to resolve version of it.
     // Otherwise error.
-    fn validate(candidate: &str) -> Result<MaybeResolvableToolchainName, InvalidName> {
+    fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
         if candidate == "none" {
-            Ok(MaybeResolvableToolchainName::None)
+            Ok(Self::None)
         } else {
-            Ok(MaybeResolvableToolchainName::Some(
-                ResolvableToolchainName::validate(candidate)?,
-            ))
+            Ok(Self::Some(ResolvableToolchainName::validate(candidate)?))
         }
     }
 }
@@ -210,8 +208,8 @@ try_from_str!(MaybeResolvableToolchainName);
 impl Display for MaybeResolvableToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MaybeResolvableToolchainName::Some(t) => write!(f, "{t}"),
-            MaybeResolvableToolchainName::None => write!(f, "none"),
+            Self::Some(t) => write!(f, "{t}"),
+            Self::None => write!(f, "none"),
         }
     }
 }
@@ -225,12 +223,12 @@ pub(crate) enum MaybeOfficialToolchainName {
 }
 
 impl MaybeOfficialToolchainName {
-    fn validate(candidate: &str) -> Result<MaybeOfficialToolchainName, InvalidName> {
+    fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
         if candidate == "none" {
-            Ok(MaybeOfficialToolchainName::None)
+            Ok(Self::None)
         } else {
-            Ok(MaybeOfficialToolchainName::Some(
+            Ok(Self::Some(
                 validate(candidate)?
                     .parse::<PartialToolchainDesc>()
                     .map_err(|_| InvalidName::OfficialName(candidate.into()))?,
@@ -244,8 +242,8 @@ try_from_str!(MaybeOfficialToolchainName);
 impl Display for MaybeOfficialToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MaybeOfficialToolchainName::None => write!(f, "none"),
-            MaybeOfficialToolchainName::Some(t) => write!(f, "{t}"),
+            Self::None => write!(f, "none"),
+            Self::Some(t) => write!(f, "{t}"),
         }
     }
 }
@@ -279,8 +277,8 @@ try_from_str!(ToolchainName);
 impl Display for ToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ToolchainName::Custom(t) => write!(f, "{t}"),
-            ToolchainName::Official(t) => write!(f, "{t}"),
+            Self::Custom(t) => write!(f, "{t}"),
+            Self::Official(t) => write!(f, "{t}"),
         }
     }
 }
@@ -298,10 +296,8 @@ impl ResolvableLocalToolchainName {
     /// Resolve to a concrete toolchain name
     pub fn resolve(&self, host: &TargetTuple) -> Result<LocalToolchainName, anyhow::Error> {
         match self.clone() {
-            ResolvableLocalToolchainName::Named(t) => {
-                Ok(LocalToolchainName::Named(t.resolve(host)?))
-            }
-            ResolvableLocalToolchainName::Path(t) => Ok(LocalToolchainName::Path(t)),
+            Self::Named(t) => Ok(LocalToolchainName::Named(t.resolve(host)?)),
+            Self::Path(t) => Ok(LocalToolchainName::Path(t)),
         }
     }
 
@@ -322,8 +318,8 @@ try_from_str!(ResolvableLocalToolchainName);
 impl Display for ResolvableLocalToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResolvableLocalToolchainName::Named(t) => write!(f, "{t}"),
-            ResolvableLocalToolchainName::Path(t) => write!(f, "{t}"),
+            Self::Named(t) => write!(f, "{t}"),
+            Self::Path(t) => write!(f, "{t}"),
         }
     }
 }
@@ -367,7 +363,7 @@ from_variant!(
 impl PartialEq<ToolchainName> for LocalToolchainName {
     fn eq(&self, other: &ToolchainName) -> bool {
         match self {
-            LocalToolchainName::Named(n) => n == other,
+            Self::Named(n) => n == other,
             _ => false,
         }
     }
@@ -376,8 +372,8 @@ impl PartialEq<ToolchainName> for LocalToolchainName {
 impl Display for LocalToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LocalToolchainName::Named(t) => write!(f, "{t}"),
-            LocalToolchainName::Path(t) => write!(f, "{t}"),
+            Self::Named(t) => write!(f, "{t}"),
+            Self::Path(t) => write!(f, "{t}"),
         }
     }
 }
@@ -388,7 +384,7 @@ impl Display for LocalToolchainName {
 pub struct CustomToolchainName(String);
 
 impl CustomToolchainName {
-    fn validate(candidate: &str) -> Result<CustomToolchainName, InvalidName> {
+    fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
         if candidate.parse::<PartialToolchainDesc>().is_ok()
             || candidate == "none"
@@ -397,7 +393,7 @@ impl CustomToolchainName {
         {
             Err(InvalidName::CustomName(candidate.into()))
         } else {
-            Ok(CustomToolchainName(candidate.into()))
+            Ok(Self(candidate.into()))
         }
     }
 }
@@ -448,7 +444,7 @@ impl TryFrom<&Path> for PathBasedToolchainName {
             } else if !value.join("bin").is_dir() {
                 Err(InvalidName::ToolchainPath(as_str))
             } else {
-                Ok(PathBasedToolchainName(value.into(), as_str))
+                Ok(Self(value.into(), as_str))
             }
         }
     }

@@ -86,11 +86,11 @@ pub(super) struct Release {
 
 impl Release {
     pub(super) fn stable(version: &str, date: &str) -> Self {
-        Release::new("stable", version, date, version)
+        Self::new("stable", version, date, version)
     }
 
     pub(super) fn beta(version: &str, date: &str) -> Self {
-        Release::new("beta", version, date, version)
+        Self::new("beta", version, date, version)
     }
 
     pub(super) fn beta_with_tag(tag: Option<&str>, version: &str, date: &str) -> Self {
@@ -98,7 +98,7 @@ impl Release {
             Some(tag) => format!("{version}-beta.{tag}"),
             None => format!("{version}-beta"),
         };
-        Release::new(&channel, version, date, version)
+        Self::new(&channel, version, date, version)
     }
 
     pub(super) fn with_rls(mut self, status: RlsStatus) -> Self {
@@ -123,7 +123,7 @@ impl Release {
     }
 
     pub(super) fn new(channel: &str, version: &str, date: &str, suffix: &str) -> Self {
-        Release {
+        Self {
             channel: channel.to_string(),
             date: date.to_string(),
             version: version.to_string(),
