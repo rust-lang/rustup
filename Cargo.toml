@@ -163,6 +163,7 @@ unused_qualifications = "warn"
 [lints.clippy]
 # `dbg!()` and `todo!()` clearly shouldn't make it to production:
 dbg_macro = "warn"
+manual_let_else = "warn"
 todo = "warn"
 use_self = "warn"
 wildcard_imports = "warn"

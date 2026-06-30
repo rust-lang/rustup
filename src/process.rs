@@ -333,9 +333,8 @@ impl TestProcess {
 
     /// Extracts the stdout from the process
     pub fn stdout(&self) -> Vec<u8> {
-        let tp = match &self.process {
-            Process::TestProcess(tp) => tp,
-            _ => unreachable!(),
+        let Process::TestProcess(tp) = &self.process else {
+            unreachable!()
         };
 
         tp.stdout.lock().unwrap_or_else(|e| e.into_inner()).clone()
@@ -343,9 +342,8 @@ impl TestProcess {
 
     /// Extracts the stderr from the process
     pub fn stderr(&self) -> Vec<u8> {
-        let tp = match &self.process {
-            Process::TestProcess(tp) => tp,
-            _ => unreachable!(),
+        let Process::TestProcess(tp) = &self.process else {
+            unreachable!()
         };
 
         tp.stderr.lock().unwrap_or_else(|e| e.into_inner()).clone()

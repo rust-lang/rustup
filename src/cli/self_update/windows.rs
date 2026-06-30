@@ -460,9 +460,8 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
         HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
     };
 
-    let new_path = match new_path {
-        Some(new_path) => new_path,
-        None => return Ok(()), // No need to set the path
+    let Some(new_path) = new_path else {
+        return Ok(()); // No need to set the path
     };
 
     let environment = CURRENT_USER.create("Environment")?;
