@@ -1710,7 +1710,7 @@ async fn remove_target_not_installed() {
         .expect(["rustup", "target", "remove", CROSS_ARCH1])
         .await
         .extend_redactions([
-            ("[HOST_TUPLE]", this_host_tuple().to_string()),
+            ("[HOST_TUPLE]", this_host_tuple()),
             ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
         ])
         .with_stderr(snapbox::str![[r#"
@@ -1827,7 +1827,7 @@ async fn remove_target_again() {
         .expect(["rustup", "target", "remove", CROSS_ARCH1])
         .await
         .extend_redactions([
-            ("[HOST_TUPLE]", this_host_tuple().to_string()),
+            ("[HOST_TUPLE]", this_host_tuple()),
             ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
         ])
         .with_stderr(snapbox::str![[r#"
