@@ -1627,7 +1627,7 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode
         .flatten()
         .map(|(it, _)| it);
 
-    for toolchain_name in &opts.toolchain {
+    for toolchain_name in opts.toolchain {
         let toolchain_name = toolchain_name.resolve(&cfg.default_host_tuple()?)?;
 
         if active_toolchain

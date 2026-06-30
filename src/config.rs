@@ -593,7 +593,7 @@ impl<'a> Cfg<'a> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
-                let override_config = name.resolve(&self.default_host_tuple()?)?.into();
+                let override_config = name.clone().resolve(&self.default_host_tuple()?)?.into();
                 Some((override_config, ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
