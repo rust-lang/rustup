@@ -863,17 +863,17 @@ async fn rustup_still_works_after_update() {
 #[tokio::test]
 async fn as_rustup_setup() {
     let cx = CliTestContext::new(Scenario::Empty).await;
-    let init = cx.config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
-    let setup = cx.config.exedir.join(format!("rustup-setup{EXE_SUFFIX}"));
-    fs::copy(init, setup).unwrap();
     cx.config
-        .expect([
-            "rustup-setup",
-            "-y",
-            "--no-modify-path",
-            "--default-toolchain",
-            "none",
-        ])
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            [("RUSTUP_FORCE_ARG0", &*format!("rustup-setup{EXE_SUFFIX}"))],
+        )
         .await
         .is_ok();
 }
