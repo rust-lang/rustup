@@ -134,14 +134,11 @@ pub(crate) enum ResolvableToolchainName {
 
 impl ResolvableToolchainName {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(&self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
-        match self.clone() {
-            Self::Custom(c) => Ok(ToolchainName::Custom(c)),
-            Self::Official(desc) => {
-                let resolved = desc.resolve(host)?;
-                Ok(ToolchainName::Official(resolved))
-            }
-        }
+    pub fn resolve(self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
+        Ok(match self {
+            Self::Custom(c) => ToolchainName::Custom(c),
+            Self::Official(desc) => ToolchainName::Official(desc.resolve(host)?),
+        })
     }
 
     // If candidate could be resolved, return a ready to resolve version of it.
