@@ -344,7 +344,7 @@ impl<'a> Cfg<'a> {
         let default_host = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
         // Environment override
         let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(ResolvableLocalToolchainName::try_from(&tc)?.resolve(&default_host)?),
+            Some(tc) => Some(ResolvableLocalToolchainName::try_from(tc)?.resolve(&default_host)?),
             None => None,
         };
 
@@ -683,13 +683,15 @@ impl<'a> Cfg<'a> {
                         }
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
-                    let toolchain_name = ResolvableToolchainName::try_from(toolchain_name_str)
-                        .map_err(|_| {
-                            anyhow!(
-                                "invalid toolchain name detected in override file '{}'",
-                                toolchain_file.display()
-                            )
-                        })?;
+                    let toolchain_name = ResolvableToolchainName::try_from(
+                        toolchain_name_str.as_str(),
+                    )
+                    .map_err(|_| {
+                        anyhow!(
+                            "invalid toolchain name detected in override file '{}'",
+                            toolchain_file.display()
+                        )
+                    })?;
                     let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
@@ -699,7 +701,7 @@ impl<'a> Cfg<'a> {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
                         // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
                         // the base name in the error to help users)
-                        let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
+                        let resolved_name = &ToolchainName::try_from(toolchain_name_str.as_str())?;
                         if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
                             return Err(anyhow!(format!("target tuple in channel name '{name}'")));
                         }
@@ -920,7 +922,7 @@ impl<'a> Cfg<'a> {
                 .filter_map(io::Result::ok)
                 .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
                 .filter_map(|e| e.file_name().into_string().ok())
-                .filter_map(|n| ToolchainName::try_from(&n).ok())
+                .filter_map(|n| ToolchainName::try_from(n).ok())
                 .collect();
 
             toolchains.sort();
