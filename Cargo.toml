@@ -164,6 +164,7 @@ unused_qualifications = "warn"
 # `dbg!()` and `todo!()` clearly shouldn't make it to production:
 dbg_macro = "warn"
 manual_let_else = "warn"
+needless_pass_by_ref_mut = "warn"
 redundant_clone = "warn"
 todo = "warn"
 use_self = "warn"
