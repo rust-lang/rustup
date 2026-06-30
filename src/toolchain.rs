@@ -539,7 +539,7 @@ impl<'a> Toolchain<'a> {
             LocalToolchainName::Named(t) => t,
             LocalToolchainName::Path(_) => bail!("Cannot remove a path based toolchain"),
         };
-        let fs_modified = match Self::exists(cfg, &(&name).into())? {
+        let fs_modified = match Self::exists(cfg, &name.clone().into())? {
             true => {
                 info!("uninstalling toolchain {name}");
                 let installed_paths = match &name {

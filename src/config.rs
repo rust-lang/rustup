@@ -525,7 +525,7 @@ impl<'a> Cfg<'a> {
     pub(crate) fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
         Ok(self
             .get_default()?
-            .map(|n| Toolchain::new(self, (&n).into()))
+            .map(|n| Toolchain::new(self, n.into()))
             .transpose()?)
     }
 
@@ -709,7 +709,7 @@ impl<'a> Cfg<'a> {
 
                     // XXX: this awkwardness deals with settings file being locked already
                     let toolchain_name = toolchain_name.resolve(&default_host)?;
-                    if !Toolchain::exists(self, &(&toolchain_name).into())?
+                    if !Toolchain::exists(self, &toolchain_name.clone().into())?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
                         bail!(
