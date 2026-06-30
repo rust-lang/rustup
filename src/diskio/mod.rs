@@ -55,13 +55,14 @@ use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
 use tracing::{error, trace, warn};
 
+use crate::diskio::immediate::IncrementalFileWriter;
 use crate::process::IoThreadCount;
 use crate::utils::units::Size;
 
@@ -233,11 +234,11 @@ impl Item {
         }
     }
 
-    pub(crate) fn write_file_segmented<'a>(
+    pub(crate) fn write_file_segmented(
         full_path: PathBuf,
         mode: u32,
         state: IncrementalFileState,
-    ) -> Result<(Self, Box<dyn FnMut(FileBuffer) -> bool + 'a>)> {
+    ) -> Result<(Self, Box<dyn ChunkWriter>)> {
         let (chunk_submit, content_callback) = state.incremental_file_channel(&full_path, mode)?;
         let result = Self {
             full_path,
@@ -247,7 +248,7 @@ impl Item {
             result: Ok(()),
             mode,
         };
-        Ok((result, Box::new(chunk_submit)))
+        Ok((result, chunk_submit))
     }
 }
 
@@ -269,23 +270,34 @@ impl IncrementalFileState {
         &self,
         path: &Path,
         mode: u32,
-    ) -> Result<(Box<dyn FnMut(FileBuffer) -> bool>, IncrementalFile)> {
-        use std::sync::mpsc::channel;
+    ) -> Result<(Box<dyn ChunkWriter>, IncrementalFile)> {
         match self {
             IncrementalFileState::Threaded => {
-                let (tx, rx) = channel::<FileBuffer>();
-                let content_callback = IncrementalFile::ThreadedReceiver(rx);
-                let chunk_submit = move |chunk: FileBuffer| tx.send(chunk).is_ok();
-                Ok((Box::new(chunk_submit), content_callback))
+                let (tx, rx) = mpsc::channel::<FileBuffer>();
+                Ok((Box::new(tx), IncrementalFile::ThreadedReceiver(rx)))
             }
-            IncrementalFileState::Immediate(state) => {
-                let content_callback = IncrementalFile::ImmediateReceiver;
-                let mut writer = immediate::IncrementalFileWriter::new(path, mode, state.clone())?;
-                let chunk_submit = move |chunk: FileBuffer| writer.chunk_submit(chunk);
-                Ok((Box::new(chunk_submit), content_callback))
-            }
+            IncrementalFileState::Immediate(state) => Ok((
+                Box::new(IncrementalFileWriter::new(path, mode, state.clone())?),
+                IncrementalFile::ImmediateReceiver,
+            )),
         }
     }
+}
+
+impl ChunkWriter for IncrementalFileWriter {
+    fn submit(&mut self, chunk: FileBuffer) -> bool {
+        self.chunk_submit(chunk)
+    }
+}
+
+impl ChunkWriter for mpsc::Sender<FileBuffer> {
+    fn submit(&mut self, chunk: FileBuffer) -> bool {
+        self.send(chunk).is_ok()
+    }
+}
+
+pub(crate) trait ChunkWriter {
+    fn submit(&mut self, chunk: FileBuffer) -> bool;
 }
 
 /// Trait object for performing IO. At this point the overhead
