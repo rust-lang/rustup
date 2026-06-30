@@ -1281,7 +1281,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     writeln!(t.lock(), "installed targets:")?;
 
     let active_toolchain_targets = match active_toolchain_name {
-        ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc.clone())?
+        ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc)?
             .components()?
             .into_iter()
             .filter_map(|c| {
@@ -1313,7 +1313,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
 async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
     match cfg.maybe_ensure_active_toolchain(None).await? {
         Some((toolchain_name, source)) => {
-            let toolchain = Toolchain::with_source(cfg, toolchain_name.clone(), &source)?;
+            let toolchain = Toolchain::with_source(cfg, toolchain_name, &source)?;
             if verbose {
                 writeln!(
                     cfg.process.stdout().lock(),
