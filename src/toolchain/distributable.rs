@@ -163,15 +163,13 @@ impl<'a> DistributableToolchain<'a> {
 
         let manifestation = self.get_manifestation()?;
         let manifest = manifestation.load_manifest()?;
-        let manifest = match manifest {
-            None => {
-                // No manifest found. If this is a v1 install that's understandable
-                // and we assume the components are all good, otherwise we need to
-                // have a go at re-fetching the manifest to try again.
-                return Ok(self.guess_v1_manifest());
-            }
-            Some(manifest) => manifest,
+        let Some(manifest) = manifest else {
+            // No manifest found. If this is a v1 install that's understandable
+            // and we assume the components are all good, otherwise we need to
+            // have a go at re-fetching the manifest to try again.
+            return Ok(self.guess_v1_manifest());
         };
+
         let config = manifestation.read_config()?.unwrap_or_default();
         let installed_components = manifest.query_components(&self.desc, &config)?;
         // check if all the components we want are installed
