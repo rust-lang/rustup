@@ -156,14 +156,14 @@ pub enum RustupError {
     note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html", .desc, .target,
     suggest_message(.suggestion))]
     UnknownTarget {
-        desc: ToolchainDesc,
+        desc: Box<ToolchainDesc>,
         target: TargetTuple,
         suggestion: Option<String>,
     },
     #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
     suggest_message(.suggestion))]
     TargetNotInstalled {
-        desc: ToolchainDesc,
+        desc: Box<ToolchainDesc>,
         target: TargetTuple,
         suggestion: Option<String>,
     },

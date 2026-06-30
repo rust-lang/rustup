@@ -1,6 +1,3 @@
-#![allow(
-    clippy::result_large_err, // 288 bytes is our 'large' variant today, which is unlikely to be a performance problem
-)]
 #![cfg_attr(not(test), warn(
     // We use the logging system instead of printing directly.
     clippy::print_stdout,
