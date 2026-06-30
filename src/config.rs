@@ -404,7 +404,7 @@ impl<'a> Cfg<'a> {
         Ok(())
     }
 
-    pub(crate) fn set_auto_self_update(&mut self, mode: SelfUpdateMode) -> Result<()> {
+    pub(crate) fn set_auto_self_update(&self, mode: SelfUpdateMode) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.auto_self_update = Some(mode);
             Ok(())
@@ -413,7 +413,7 @@ impl<'a> Cfg<'a> {
         Ok(())
     }
 
-    pub(crate) fn set_auto_install(&mut self, mode: AutoInstallMode) -> Result<()> {
+    pub(crate) fn set_auto_install(&self, mode: AutoInstallMode) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.auto_install = Some(mode);
             Ok(())
