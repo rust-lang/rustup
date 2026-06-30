@@ -748,7 +748,7 @@ impl Update {
         if !unavailable_components.is_empty() {
             bail!(RustupError::RequestedComponentsUnavailable {
                 components: unavailable_components,
-                manifest: new_manifest.clone(),
+                manifest: Box::new(new_manifest.clone()),
                 toolchain: toolchain.to_string(),
             });
         }

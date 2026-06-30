@@ -1214,16 +1214,23 @@ async fn try_update_from_dist_(
                     UpdateStatus::Unchanged => Ok(None),
                     UpdateStatus::Changed => Ok(Some(hash)),
                 },
+                // Check for the variant by reference before we downcast with ownership,
+                // otherwise we'll drop implicit context bundled up in the original anyhow::Error.
                 Err(err) => match err.downcast_ref::<RustupError>() {
-                    Some(RustupError::RequestedComponentsUnavailable {
-                        components,
-                        manifest,
-                        toolchain,
-                    }) => Err(anyhow!(DistError::ToolchainComponentsMissing(
-                        components.to_owned(),
-                        Box::new(manifest.to_owned()),
-                        toolchain.to_owned(),
-                    ))),
+                    Some(RustupError::RequestedComponentsUnavailable { .. }) => {
+                        let Ok(RustupError::RequestedComponentsUnavailable {
+                            components,
+                            manifest,
+                            toolchain,
+                        }) = err.downcast::<RustupError>()
+                        else {
+                            unreachable!()
+                        };
+
+                        Err(anyhow!(DistError::ToolchainComponentsMissing(
+                            components, manifest, toolchain,
+                        )))
+                    }
                     Some(_) | None => Err(err),
                 },
             };
