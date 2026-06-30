@@ -101,7 +101,7 @@ pub enum RustupError {
     #[error("{}", component_unavailable_msg(.components, .manifest, .toolchain))]
     RequestedComponentsUnavailable {
         components: Vec<Component>,
-        manifest: Manifest,
+        manifest: Box<Manifest>,
         toolchain: String,
     },
     #[error("command failed: '{}'", PathBuf::from(.name).display())]
