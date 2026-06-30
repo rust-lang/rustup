@@ -78,11 +78,6 @@ macro_rules! from_variant {
                 $variant(value)
             }
         }
-        impl From<&$from> for $to {
-            fn from(value: &$from) -> Self {
-                $variant(value.to_owned())
-            }
-        }
     };
 }
 
