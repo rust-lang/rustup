@@ -145,14 +145,14 @@ impl ResolvableToolchainName {
     // Otherwise error.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
-        candidate
-            .parse::<PartialToolchainDesc>()
-            .map(ResolvableToolchainName::Official)
-            .or_else(|_| {
-                CustomToolchainName::try_from(candidate)
-                    .map(ResolvableToolchainName::Custom)
-                    .map_err(|_| InvalidName::ToolchainName(candidate.into()))
-            })
+        if let Ok(desc) = PartialToolchainDesc::from_str(candidate) {
+            return Ok(Self::Official(desc));
+        }
+
+        match CustomToolchainName::try_from(candidate) {
+            Ok(custom) => Ok(Self::Custom(custom)),
+            Err(_) => Err(InvalidName::ToolchainName(candidate.into())),
+        }
     }
 }
 
@@ -186,12 +186,10 @@ impl MaybeResolvableToolchainName {
     // If candidate could be resolved, return a ready to resolve version of it.
     // Otherwise error.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
-        if candidate == "none" {
-            Ok(Self::None)
-        } else {
-            Ok(Self::Some(ResolvableToolchainName::validate(candidate)?))
-        }
+        Ok(match validate(candidate)? {
+            "none" => Self::None,
+            candidate => Self::Some(ResolvableToolchainName::validate(candidate)?),
+        })
     }
 }
 
@@ -216,16 +214,13 @@ pub(crate) enum MaybeOfficialToolchainName {
 
 impl MaybeOfficialToolchainName {
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
-        if candidate == "none" {
-            Ok(Self::None)
-        } else {
-            Ok(Self::Some(
-                validate(candidate)?
-                    .parse::<PartialToolchainDesc>()
+        Ok(match validate(candidate)? {
+            "none" => Self::None,
+            candidate => Self::Some(
+                PartialToolchainDesc::from_str(candidate)
                     .map_err(|_| InvalidName::OfficialName(candidate.into()))?,
-            ))
-        }
+            ),
+        })
     }
 }
 
@@ -253,11 +248,14 @@ impl ToolchainName {
     /// If the string is already resolved, allow direct conversion
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
-        candidate
-            .parse::<ToolchainDesc>()
-            .map(ToolchainName::Official)
-            .or_else(|_| CustomToolchainName::try_from(candidate).map(ToolchainName::Custom))
-            .map_err(|_| InvalidName::ToolchainName(candidate.into()))
+        if let Ok(desc) = ToolchainDesc::from_str(candidate) {
+            return Ok(Self::Official(desc));
+        }
+
+        match CustomToolchainName::try_from(candidate) {
+            Ok(custom) => Ok(Self::Custom(custom)),
+            Err(_) => Err(InvalidName::ToolchainName(candidate.into())),
+        }
     }
 }
 
@@ -296,12 +294,13 @@ impl ResolvableLocalToolchainName {
     /// Validates if the string is a resolvable toolchain, or a path based toolchain.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
-        ResolvableToolchainName::try_from(candidate)
-            .map(ResolvableLocalToolchainName::Named)
-            .or_else(|_| {
-                PathBasedToolchainName::try_from(&PathBuf::from(candidate) as &Path)
-                    .map(ResolvableLocalToolchainName::Path)
-            })
+        if let Ok(name) = ResolvableToolchainName::try_from(candidate) {
+            return Ok(Self::Named(name));
+        }
+
+        Ok(Self::Path(PathBasedToolchainName::try_from(
+            &PathBuf::from(candidate) as &Path,
+        )?))
     }
 }
 
