@@ -1041,7 +1041,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
 
         check_proxy_sanity(cfg.process, components, desc)?;
 
-        cfg.set_default(Some(&desc.into()))?;
+        cfg.set_default(Some(&desc.clone().into()))?;
         writeln!(cfg.process.stdout().lock())?;
         common::show_channel_update(cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
     }

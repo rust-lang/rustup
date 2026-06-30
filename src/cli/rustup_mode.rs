@@ -864,7 +864,7 @@ async fn default_(
                     .await?
                     .status;
 
-                cfg.set_default(Some(&(&desc).into()))?;
+                cfg.set_default(Some(&desc.clone().into()))?;
 
                 writeln!(cfg.process.stdout().lock())?;
 
@@ -1647,7 +1647,7 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode
             );
         }
 
-        Toolchain::ensure_removed(cfg, (&toolchain_name).into())?;
+        Toolchain::ensure_removed(cfg, toolchain_name.into())?;
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -1658,7 +1658,7 @@ async fn override_add(
     path: Option<&Path>,
 ) -> Result<ExitCode> {
     let toolchain_name = toolchain.resolve(&cfg.default_host_tuple()?)?;
-    match Toolchain::new(cfg, (&toolchain_name).into()) {
+    match Toolchain::new(cfg, toolchain_name.clone().into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
