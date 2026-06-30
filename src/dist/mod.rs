@@ -23,7 +23,7 @@ use crate::{
     config::Cfg,
     errors::{NIGHTLY_COMPONENT_NOTE, RustupError},
     process::Process,
-    toolchain::{DistributableToolchain, ToolchainName},
+    toolchain::DistributableToolchain,
     utils,
 };
 
@@ -338,17 +338,6 @@ impl ToolchainDesc {
             _ if self.date.is_some() => false,
             Channel::Stable | Channel::Beta | Channel::Nightly => true,
             Channel::Version(ver) => ver.patch.is_none() || &*ver.pre == "beta",
-        }
-    }
-}
-
-impl TryFrom<&ToolchainName> for ToolchainDesc {
-    type Error = DistError;
-
-    fn try_from(value: &ToolchainName) -> std::result::Result<Self, Self::Error> {
-        match value {
-            ToolchainName::Custom(n) => Err(DistError::InvalidOfficialName(n.to_string())),
-            ToolchainName::Official(n) => Ok(n.clone()),
         }
     }
 }
