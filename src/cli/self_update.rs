@@ -207,11 +207,10 @@ impl InstallOpts<'_> {
 
         self.default_toolchain = Some(MaybeOfficialToolchainName::try_from(common::question_str(
             "Default toolchain? (stable/beta/nightly/none)",
-            &self
-                .default_toolchain
-                .as_ref()
-                .map(ToString::to_string)
-                .unwrap_or("stable".into()),
+            &match &self.default_toolchain {
+                Some(name) => name.to_string(),
+                None => "stable".to_owned(),
+            },
             process,
         )?)?);
 
@@ -801,10 +800,10 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
             .as_ref()
             .map(TargetTuple::new)
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process)),
-        opts.default_toolchain
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or("stable (default)".into()),
+        match &opts.default_toolchain {
+            Some(name) => name.to_string(),
+            None => "stable (default)".to_owned(),
+        },
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )

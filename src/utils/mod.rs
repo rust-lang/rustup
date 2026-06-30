@@ -402,14 +402,14 @@ fn copy_and_delete(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     // This uses std::fs::copy() instead of the faster std::fs::rename() to
     // avoid cross-device link errors.
     if src.is_dir() {
-        copy_dir(src, dest).and(remove_dir_all::remove_dir_all(src).with_context(|| {
-            RustupError::RemovingDirectory {
+        copy_dir(src, dest).and_then(|()| {
+            remove_dir_all::remove_dir_all(src).with_context(|| RustupError::RemovingDirectory {
                 name,
                 path: PathBuf::from(src),
-            }
-        }))
+            })
+        })
     } else {
-        copy_file(src, dest).and(remove_file(name, src))
+        copy_file(src, dest).and_then(|()| remove_file(name, src))
     }
 }
 

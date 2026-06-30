@@ -1900,7 +1900,7 @@ async fn doc(
         }
         (None, name) => {
             topic = name;
-            let doc_path = doc_page.path().unwrap_or(Path::new("index.html"));
+            let doc_path = doc_page.path().unwrap_or_else(|| Path::new("index.html"));
             (Cow::Borrowed(doc_path), None)
         }
     };
