@@ -861,9 +861,8 @@ async fn override_windows_root() {
 
     let cwd = cx.config.current_dir();
     let prefix = cwd.components().next().unwrap();
-    let prefix = match prefix {
-        Component::Prefix(p) => p,
-        _ => panic!(),
+    let Component::Prefix(prefix) = prefix else {
+        panic!()
     };
 
     // This value is probably "C:"
