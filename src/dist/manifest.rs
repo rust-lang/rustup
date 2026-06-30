@@ -562,11 +562,7 @@ impl Component {
             }
         }
 
-        Ok(Component::new(
-            name.to_string(),
-            fallback_target.cloned(),
-            true,
-        ))
+        Ok(Self::new(name.to_string(), fallback_target.cloned(), true))
     }
 
     pub(crate) fn wildcard(&self) -> Self {
@@ -600,7 +596,7 @@ impl Component {
         }
     }
 
-    pub(crate) fn contained_within(&self, components: &[Component]) -> bool {
+    pub(crate) fn contained_within(&self, components: &[Self]) -> bool {
         if components.contains(self) {
             // Yes, we're within the component set, move on
             true

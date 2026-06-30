@@ -264,13 +264,13 @@ impl SelfUpdateMode {
         if cfg.process.var("CI").is_ok() && cfg.process.var("RUSTUP_CI").is_err() {
             // If we're in CI (but not rustup's own CI, which wants to test this stuff!),
             // disable automatic self updates.
-            return Ok(SelfUpdateMode::Disable);
+            return Ok(Self::Disable);
         }
 
         cfg.settings_file.with(|s| {
             Ok(match s.auto_self_update {
                 Some(mode) => mode,
-                None => SelfUpdateMode::Enable,
+                None => Self::Enable,
             })
         })
     }

@@ -69,7 +69,7 @@ impl ColorableTerminal {
             .var("RUSTUP_TERM_WIDTH")
             .ok()
             .and_then(|s| s.parse::<NonZero<u16>>().ok());
-        ColorableTerminal {
+        Self {
             inner,
             is_a_tty,
             color_choice: choice,

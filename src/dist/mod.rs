@@ -565,7 +565,7 @@ impl TargetTuple {
         Self::from_host(process).unwrap_or_else(Self::from_build)
     }
 
-    pub(crate) fn can_run(&self, other: &TargetTuple) -> Result<bool> {
+    pub(crate) fn can_run(&self, other: &Self) -> Result<bool> {
         // Most trivial shortcut of all
         if self == other {
             return Ok(true);
@@ -749,7 +749,7 @@ impl Profile {
 
 impl ValueEnum for Profile {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Profile::Minimal, Profile::Default, Profile::Complete]
+        &[Self::Minimal, Self::Default, Self::Complete]
     }
 
     fn to_possible_value(&self) -> Option<PossibleValue> {
