@@ -57,6 +57,9 @@ local builds of the Rust toolchain. To teach `rustup` about your build, run:
 $ rustup toolchain link my-toolchain path/to/my/toolchain/sysroot
 ```
 
+Custom toolchain names may contain ASCII letters, ASCII digits, `.`, `_`, and
+`-`.
+
 For example, on Ubuntu you might clone `rust-lang/rust` into `~/rust`, build
 it, and then run:
 
