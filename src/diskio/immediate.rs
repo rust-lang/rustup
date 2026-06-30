@@ -169,7 +169,7 @@ impl IncrementalFileWriter {
             trace_scoped!("creat", "name": path_display);
             opts.write(true).create(true).truncate(true).open(path)?
         });
-        Ok(IncrementalFileWriter {
+        Ok(Self {
             state,
             file,
             path_display,

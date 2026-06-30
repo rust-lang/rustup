@@ -48,7 +48,7 @@ impl Transaction {
         tmp_cx: Arc<temp::Context>,
         permit_copy_rename: bool,
     ) -> Self {
-        Transaction {
+        Self {
             prefix,
             changes: Vec::new(),
             tmp_cx,
@@ -269,9 +269,9 @@ impl ChangedItem {
         }
     }
     fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
-        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
+        let abs_path = Self::dest_abs_path(prefix, component, &relpath)?;
         let file = File::create(&abs_path)
             .with_context(|| format!("error creating file '{}'", abs_path.display()))?;
-        Ok((ChangedItem::AddedFile(relpath), file))
+        Ok((Self::AddedFile(relpath), file))
     }
 }

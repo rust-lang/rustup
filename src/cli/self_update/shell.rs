@@ -238,7 +238,7 @@ impl UnixShell for Zsh {
     }
 
     fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
-        [Zsh::zdotdir(process).ok(), process.home_dir()]
+        [Self::zdotdir(process).ok(), process.home_dir()]
             .iter()
             .filter_map(|dir| dir.as_ref().map(|p| p.join(".zshenv")))
             .collect()

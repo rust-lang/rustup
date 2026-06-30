@@ -191,16 +191,16 @@ impl MockInstallerBuilder {
 }
 
 impl MockFile {
-    pub fn new<S: Into<String>>(path: S, contents: &[u8]) -> MockFile {
-        MockFile::_new(path.into(), Arc::new(contents.to_vec()))
+    pub fn new<S: Into<String>>(path: S, contents: &[u8]) -> Self {
+        Self::_new(path.into(), Arc::new(contents.to_vec()))
     }
 
-    pub fn new_arc<S: Into<String>>(path: S, contents: Arc<Vec<u8>>) -> MockFile {
-        MockFile::_new(path.into(), contents)
+    pub fn new_arc<S: Into<String>>(path: S, contents: Arc<Vec<u8>>) -> Self {
+        Self::_new(path.into(), contents)
     }
 
-    fn _new(path: String, contents: Arc<Vec<u8>>) -> MockFile {
-        MockFile {
+    fn _new(path: String, contents: Arc<Vec<u8>>) -> Self {
+        Self {
             path,
             contents: Contents::File(MockContents {
                 contents,
@@ -209,8 +209,8 @@ impl MockFile {
         }
     }
 
-    pub fn new_dir(path: &str, files: &[(&'static str, &'static [u8], bool)]) -> MockFile {
-        MockFile {
+    pub fn new_dir(path: &str, files: &[(&'static str, &'static [u8], bool)]) -> Self {
+        Self {
             path: path.to_string(),
             contents: Contents::Dir(
                 files

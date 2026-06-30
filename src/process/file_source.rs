@@ -14,7 +14,7 @@ impl StdinLock for io::StdinLock<'_> {}
 
 impl Stdin for io::Stdin {
     fn lock(&self) -> Box<dyn StdinLock + '_> {
-        Box::new(io::Stdin::lock(self))
+        Box::new(Self::lock(self))
     }
 }
 

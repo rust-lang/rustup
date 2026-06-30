@@ -100,11 +100,11 @@ where
 impl NotificationLevel {
     fn fg_color(&self) -> Option<Color> {
         match self {
-            NotificationLevel::Trace => Some(AnsiColor::Blue.into()),
-            NotificationLevel::Debug => Some(AnsiColor::Magenta.into()),
-            NotificationLevel::Info => None,
-            NotificationLevel::Warn => Some(AnsiColor::Yellow.into()),
-            NotificationLevel::Error => Some(AnsiColor::Red.into()),
+            Self::Trace => Some(AnsiColor::Blue.into()),
+            Self::Debug => Some(AnsiColor::Magenta.into()),
+            Self::Info => None,
+            Self::Warn => Some(AnsiColor::Yellow.into()),
+            Self::Error => Some(AnsiColor::Red.into()),
         }
     }
 }

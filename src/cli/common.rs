@@ -137,8 +137,8 @@ pub(crate) enum PackageUpdate {
 impl Display for PackageUpdate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PackageUpdate::Rustup => write!(f, "rustup"),
-            PackageUpdate::Toolchain(t) => write!(f, "{t}"),
+            Self::Rustup => write!(f, "rustup"),
+            Self::Toolchain(t) => write!(f, "{t}"),
         }
     }
 }

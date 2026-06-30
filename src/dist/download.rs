@@ -368,7 +368,7 @@ impl DownloadStatus {
 
         *retry_time = None;
         self.progress.set_style(
-            DownloadStatus::progress_style(
+            Self::progress_style(
                 self.name_width,
                 "downloading [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
@@ -377,7 +377,7 @@ impl DownloadStatus {
     }
 
     pub(crate) fn finished(&self) {
-        self.progress.set_style(DownloadStatus::progress_style(
+        self.progress.set_style(Self::progress_style(
             self.name_width,
             "pending installation {total_bytes:>20}",
         ));
@@ -385,7 +385,7 @@ impl DownloadStatus {
     }
 
     pub(crate) fn failed(&self) {
-        self.progress.set_style(DownloadStatus::progress_style(
+        self.progress.set_style(Self::progress_style(
             self.name_width,
             "download failed after {elapsed}",
         ));
@@ -394,7 +394,7 @@ impl DownloadStatus {
 
     pub(crate) fn retrying(&self) {
         *self.retry_time.lock().unwrap() = Some(Instant::now());
-        self.progress.set_style(DownloadStatus::progress_style(
+        self.progress.set_style(Self::progress_style(
             self.name_width,
             "retrying download...",
         ));
@@ -403,7 +403,7 @@ impl DownloadStatus {
     pub(crate) fn unpack<T: Read>(&self, inner: T) -> ProgressBarIter<T> {
         self.progress.reset();
         self.progress.set_style(
-            DownloadStatus::progress_style(
+            Self::progress_style(
                 self.name_width,
                 "unpacking   [{bar:15}] {total_bytes:>11} ({bytes_per_sec}, ETA: {eta})",
             )
@@ -414,7 +414,7 @@ impl DownloadStatus {
 
     pub(crate) fn installing(&self) {
         self.progress.set_style(
-            DownloadStatus::progress_style(
+            Self::progress_style(
                 self.name_width,
                 "installing {spinner:.green} {total_bytes:>28}",
             )
@@ -425,7 +425,7 @@ impl DownloadStatus {
 
     pub(crate) fn installed(&self) {
         self.progress.set_message("installed");
-        self.progress.set_style(DownloadStatus::progress_style(
+        self.progress.set_style(Self::progress_style(
             self.name_width,
             "{msg:.green.bold} {total_bytes:>31}",
         ));
