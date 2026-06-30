@@ -1,6 +1,5 @@
 #![allow(
     clippy::result_large_err, // 288 bytes is our 'large' variant today, which is unlikely to be a performance problem
-    clippy::arc_with_non_send_sync, // will get resolved as we move further into async
 )]
 #![cfg_attr(not(test), warn(
     // We use the logging system instead of printing directly.
