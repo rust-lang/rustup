@@ -17,7 +17,7 @@ use tracing::debug;
 use super::{CompletedIo, Executor, Item, perform};
 
 #[derive(Copy, Clone, Debug, Enum)]
-pub(crate) enum Bucket {
+enum Bucket {
     FourK,
     EightK,
     OneM,
@@ -32,7 +32,7 @@ pub(crate) enum PoolReference {
 }
 
 impl PoolReference {
-    pub(crate) fn clear(&mut self) {
+    pub(super) fn clear(&mut self) {
         match self {
             Self::Mut(orm, pool) => {
                 pool.clear(orm.key());
@@ -91,7 +91,7 @@ impl fmt::Debug for Pool {
     }
 }
 
-pub(crate) struct Threaded {
+pub(super) struct Threaded {
     n_files: Arc<AtomicUsize>,
     pool: threadpool::ThreadPool,
     rx: Receiver<Task>,
@@ -102,7 +102,7 @@ pub(crate) struct Threaded {
 
 impl Threaded {
     /// Construct a new Threaded executor.
-    pub(crate) fn new(thread_count: usize, ram_budget: usize) -> Self {
+    pub(super) fn new(thread_count: usize, ram_budget: usize) -> Self {
         // Defaults to hardware thread count threads; this is suitable for
         // our needs as IO bound operations tend to show up as write latencies
         // rather than close latencies, so we don't need to look at

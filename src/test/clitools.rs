@@ -43,7 +43,7 @@ pub struct Config {
     /// Where we put the rustup / rustc / cargo bins
     pub exedir: PathBuf,
     /// The tempfile for the mutable distribution server
-    pub test_dist_dir: TempDir,
+    test_dist_dir: TempDir,
     /// The mutable distribution server; None if none is set.
     pub distdir: Option<PathBuf>,
     /// The const distribution server; None if none is set
@@ -57,11 +57,11 @@ pub struct Config {
     /// ~
     pub homedir: PathBuf,
     /// Root for updates to rustup itself aka RUSTUP_UPDATE_ROOT
-    pub rustup_update_root: Option<String>,
+    rustup_update_root: Option<String>,
     /// This is cwd for the test
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
-    pub test_root_dir: PathBuf,
+    test_root_dir: PathBuf,
 }
 
 /// Helper type to simplify assertions of a command's output.
@@ -170,12 +170,6 @@ impl Assert {
     /// Sort stdout lines to gloss over platform-specific sort orders
     pub fn sort_stdout(&mut self, yes: bool) -> &mut Self {
         self.sort_stdout = yes;
-        self
-    }
-
-    /// Sort stderr lines to gloss over platform-specific sort orders
-    pub fn sort_stderr(&mut self, yes: bool) -> &mut Self {
-        self.sort_stderr = yes;
         self
     }
 
@@ -362,17 +356,6 @@ impl Config {
         Assert::new(output)
     }
 
-    pub async fn expect_ok_contains(&self, args: &[&str], stdout: &str, stderr: &str) {
-        let out = self.run(args[0], &args[1..], &[]).await;
-        if out.status != Some(0) || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
-            print_command(args, &out);
-            println!("expected.ok: true");
-            print_indented("expected.stdout.contains", stdout);
-            print_indented("expected.stderr.contains", stderr);
-            panic!();
-        }
-    }
-
     pub async fn expect_ok_eq(&self, args1: &[&str], args2: &[&str]) {
         let out1 = self.run(args1[0], &args1[1..], &[]).await;
         let out2 = self.run(args2[0], &args2[1..], &[]).await;
@@ -434,12 +417,7 @@ impl Config {
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) async fn run_inprocess<I, A>(
-        &self,
-        name: &str,
-        args: I,
-        env: &[(&str, &str)],
-    ) -> Output
+    async fn run_inprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
@@ -484,7 +462,7 @@ impl Config {
     }
 
     #[track_caller]
-    pub fn run_subprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
+    fn run_subprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
     where
         I: IntoIterator<Item = A>,
         A: AsRef<OsStr>,
@@ -1130,10 +1108,10 @@ pub fn print_indented(heading: &str, text: &str) {
     );
 }
 
-pub struct Output {
-    pub status: Option<i32>,
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
+struct Output {
+    status: Option<i32>,
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -1257,7 +1235,7 @@ fn create_custom_toolchains(customdir: &Path) {
     }
 }
 
-pub(crate) fn hard_link<A, B>(original: A, link: B) -> io::Result<()>
+pub(super) fn hard_link<A, B>(original: A, link: B) -> io::Result<()>
 where
     A: AsRef<Path>,
     B: AsRef<Path>,

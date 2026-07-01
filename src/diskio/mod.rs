@@ -66,10 +66,10 @@ use crate::diskio::immediate::IncrementalFileWriter;
 use crate::process::IoThreadCount;
 use crate::utils::units::Size;
 
-pub(crate) mod immediate;
+mod immediate;
 #[cfg(test)]
 mod test;
-pub(crate) mod threaded;
+mod threaded;
 use threaded::PoolReference;
 
 /// Carries the implementation specific data for complete file transfers into the executor.
@@ -82,13 +82,13 @@ pub(crate) enum FileBuffer {
 
 impl FileBuffer {
     /// Allows the buffer's space to be reused when the last reference to it is dropped.
-    pub(crate) fn clear(&mut self) {
+    fn clear(&mut self) {
         if let Self::Threaded(contents) = self {
             contents.clear()
         }
     }
 
-    pub(crate) fn len(&self) -> usize {
+    fn len(&self) -> usize {
         match self {
             Self::Immediate(vec) => vec.len(),
             Self::Threaded(PoolReference::Owned(owned, _)) => owned.len(),
@@ -96,7 +96,7 @@ impl FileBuffer {
         }
     }
 
-    pub(crate) fn finished(self) -> Self {
+    pub(super) fn finished(self) -> Self {
         match self {
             Self::Threaded(PoolReference::Mut(mutable, pool)) => {
                 Self::Threaded(PoolReference::Owned(mutable.downgrade(), pool))
@@ -130,7 +130,7 @@ impl DerefMut for FileBuffer {
     }
 }
 
-pub(crate) const IO_CHUNK_SIZE: usize = 16_777_216;
+pub(super) const IO_CHUNK_SIZE: usize = 16_777_216;
 
 /// Carries the implementation specific channel data into the executor.
 #[derive(Debug)]
@@ -187,23 +187,23 @@ pub(crate) enum Kind {
 
 /// The details of the IO operation
 #[derive(Debug)]
-pub(crate) struct Item {
+pub(super) struct Item {
     /// The path to operate on
-    pub(crate) full_path: PathBuf,
+    pub(super) full_path: PathBuf,
     /// The operation to perform
-    pub(crate) kind: Kind,
+    pub(super) kind: Kind,
     /// When the operation started
     start: Option<Instant>,
     /// Amount of time the operation took to finish
     finish: Option<Duration>,
     /// The result of the operation (could now be factored into CompletedIO...)
-    pub(crate) result: io::Result<()>,
+    pub(super) result: io::Result<()>,
     /// The mode to apply
     mode: u32,
 }
 
 #[derive(Debug)]
-pub(crate) enum CompletedIo {
+pub(super) enum CompletedIo {
     /// A submitted Item has completed
     Item(Item),
     /// An IncrementalFile has completed a single chunk
@@ -212,7 +212,7 @@ pub(crate) enum CompletedIo {
 }
 
 impl Item {
-    pub(crate) fn make_dir(full_path: PathBuf, mode: u32) -> Self {
+    pub(super) fn make_dir(full_path: PathBuf, mode: u32) -> Self {
         Self {
             full_path,
             kind: Kind::Directory,
@@ -223,7 +223,7 @@ impl Item {
         }
     }
 
-    pub(crate) fn write_file(full_path: PathBuf, mode: u32, content: FileBuffer) -> Self {
+    pub(super) fn write_file(full_path: PathBuf, mode: u32, content: FileBuffer) -> Self {
         Self {
             full_path,
             kind: Kind::File(content),
@@ -234,7 +234,7 @@ impl Item {
         }
     }
 
-    pub(crate) fn write_file_segmented(
+    pub(super) fn write_file_segmented(
         full_path: PathBuf,
         mode: u32,
         state: IncrementalFileState,
@@ -259,7 +259,7 @@ impl Item {
 /// just allows the immediate codepath to get access to the Arc referenced state
 /// without holding a lifetime reference to the executor, as the threaded code
 /// path is all message passing.
-pub(crate) enum IncrementalFileState {
+pub(super) enum IncrementalFileState {
     Threaded,
     Immediate(immediate::IncrementalFileState),
 }
@@ -303,7 +303,7 @@ pub(crate) trait ChunkWriter {
 /// Trait object for performing IO. At this point the overhead
 /// of trait invocation is not a bottleneck, but if it becomes
 /// one we could consider an enum variant based approach instead.
-pub(crate) trait Executor: Send {
+pub(super) trait Executor: Send {
     /// Perform a single operation.
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
@@ -345,7 +345,7 @@ pub(crate) trait Executor: Send {
 
 /// Trivial single threaded IO to be used from executors.
 /// (Crazy sophisticated ones can obviously ignore this)
-pub(crate) fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F) {
+fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F) {
     // directories: make them, TODO: register with the dir existence cache.
     // Files, write them.
     item.result = match &mut item.kind {
@@ -370,11 +370,7 @@ pub(crate) fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F)
 }
 
 #[allow(unused_variables)]
-pub(crate) fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
-    path: P,
-    contents: C,
-    mode: u32,
-) -> io::Result<()> {
+fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C, mode: u32) -> io::Result<()> {
     let mut opts = OpenOptions::new();
     #[cfg(unix)]
     {
@@ -401,7 +397,7 @@ pub(crate) fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
 }
 
 #[allow(unused_variables)]
-pub(crate) fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
+fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
     path: P,
     content_callback: &mut IncrementalFile,
     mode: u32,
@@ -448,7 +444,7 @@ pub(crate) fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
     Ok(())
 }
 
-pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
+fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     let path = path.as_ref();
     let path_display = format!("{}", path.display());
     trace_scoped!("create_dir", "name": path_display);
@@ -456,7 +452,7 @@ pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 }
 
 /// Get the executor for disk IO.
-pub(crate) fn get_executor<'a>(
+pub(super) fn get_executor<'a>(
     ram_budget: usize,
     thread_count: IoThreadCount,
 ) -> Box<dyn Executor + 'a> {
@@ -484,7 +480,7 @@ fn effective_thread_count(ram_budget: usize, thread_count: IoThreadCount) -> usi
     }
 }
 
-pub(crate) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
+pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
     let minimum_ram = io_chunk_size * 2;
 
