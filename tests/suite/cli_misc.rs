@@ -100,6 +100,24 @@ error:[..] invalid custom toolchain name 'stable'
 ...
 "#]])
         .is_err();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "bad name", "foo"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error:[..] invalid custom toolchain name 'bad name'
+...
+"#]])
+        .is_err();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "foo#bar", "foo"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error:[..] invalid custom toolchain name 'foo#bar'
+...
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
