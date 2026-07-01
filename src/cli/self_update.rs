@@ -1056,6 +1056,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
 /// 5. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
 /// 6. Try to remove $CARGO_HOME directory if it's empty.
 pub(crate) fn uninstall(
+    cfg: &Cfg<'_>,
     no_prompt: bool,
     no_modify_path: bool,
     process: &Process,
@@ -1087,6 +1088,11 @@ pub(crate) fn uninstall(
             info!("aborting uninstallation");
             return Ok(ExitCode::SUCCESS);
         }
+    }
+
+    info!("removing toolchains");
+    for toolchain in cfg.list_toolchains()? {
+        Toolchain::ensure_removed(cfg, toolchain.into())?;
     }
 
     info!("removing rustup home");
