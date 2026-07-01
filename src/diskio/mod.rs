@@ -459,7 +459,7 @@ pub(super) fn get_executor<'a>(
     // If this gets lots of use, consider exposing via the config file.
     let threads = effective_thread_count(ram_budget, thread_count);
     match threads {
-        0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
+        0 | 1 => Box::new(immediate::ImmediateUnpacker::default()),
         n => Box::new(threaded::Threaded::new(n, ram_budget)),
     }
 }
