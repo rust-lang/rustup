@@ -14,7 +14,7 @@ use std::{
 use super::{CompletedIo, Executor, FileBuffer, Item};
 
 #[derive(Debug)]
-pub(crate) struct _IncrementalFileState {
+pub(crate) struct FileState {
     completed_chunks: Vec<usize>,
     err: Option<io::Result<()>>,
     item: Option<Item>,
@@ -23,7 +23,7 @@ pub(crate) struct _IncrementalFileState {
 
 #[derive(Default, Debug)]
 pub(super) struct ImmediateUnpacker {
-    incremental_state: Arc<Mutex<Option<_IncrementalFileState>>>,
+    incremental_state: Arc<Mutex<Option<FileState>>>,
 }
 
 impl ImmediateUnpacker {
@@ -116,7 +116,7 @@ impl Executor for ImmediateUnpacker {
         if state.is_some() {
             unreachable!();
         } else {
-            *state = Some(_IncrementalFileState {
+            *state = Some(FileState {
                 completed_chunks: vec![],
                 err: None,
                 item: None,
@@ -143,7 +143,7 @@ impl Executor for ImmediateUnpacker {
 /// The non-shared state for writing a file incrementally
 #[derive(Debug)]
 pub(super) struct IncrementalFileWriter {
-    state: Arc<Mutex<Option<_IncrementalFileState>>>,
+    state: Arc<Mutex<Option<FileState>>>,
     file: Option<File>,
     path_display: String,
 }
@@ -153,7 +153,7 @@ impl IncrementalFileWriter {
     pub(super) fn new<P: AsRef<Path>>(
         path: P,
         mode: u32,
-        state: Arc<Mutex<Option<_IncrementalFileState>>>,
+        state: Arc<Mutex<Option<FileState>>>,
     ) -> Result<Self, io::Error> {
         let mut opts = OpenOptions::new();
         #[cfg(unix)]
