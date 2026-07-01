@@ -3747,7 +3747,7 @@ async fn non_utf8_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain '�(' is not installed
+error: invalid toolchain name '�('
 ...
 "#]]);
 }
@@ -3774,7 +3774,7 @@ async fn non_utf8_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: toolchain '��' is not installed
+error: invalid toolchain name '��'
 ...
 "#]]);
 }

@@ -112,19 +112,6 @@ macro_rules! try_from_str {
     };
 }
 
-/// Common validate rules for all sorts of toolchain names
-fn validate(candidate: &str) -> Result<&str, InvalidName> {
-    if let Some(without_plus) = candidate.strip_prefix('+') {
-        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
-    }
-    let normalized_name = candidate.trim_end_matches('/');
-    if normalized_name.is_empty() {
-        Err(InvalidName::ToolchainName(candidate.into()))
-    } else {
-        Ok(normalized_name)
-    }
-}
-
 /// A toolchain name from user input.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {
@@ -144,7 +131,7 @@ impl ResolvableToolchainName {
     // If candidate could be resolved, return a ready to resolve version of it.
     // Otherwise error.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
+        let candidate = validate_named_toolchain(candidate)?;
         if let Ok(desc) = PartialToolchainDesc::from_str(candidate) {
             return Ok(Self::Official(desc));
         }
@@ -214,7 +201,7 @@ pub(crate) enum MaybeOfficialToolchainName {
 
 impl MaybeOfficialToolchainName {
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        Ok(match validate(candidate)? {
+        Ok(match validate_named_toolchain(candidate)? {
             "none" => Self::None,
             candidate => Self::Some(
                 PartialToolchainDesc::from_str(candidate)
@@ -247,7 +234,7 @@ pub enum ToolchainName {
 impl ToolchainName {
     /// If the string is already resolved, allow direct conversion
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
+        let candidate = validate_named_toolchain(candidate)?;
         if let Ok(desc) = ToolchainDesc::from_str(candidate) {
             return Ok(Self::Official(desc));
         }
@@ -298,9 +285,13 @@ impl ResolvableLocalToolchainName {
             return Ok(Self::Named(name));
         }
 
-        Ok(Self::Path(PathBasedToolchainName::try_from(
-            &PathBuf::from(candidate) as &Path,
-        )?))
+        if candidate.contains('/') || candidate.contains('\\') {
+            let path = PathBuf::from(candidate);
+            let path = PathBasedToolchainName::try_from(&path as &Path)?;
+            return Ok(Self::Path(path));
+        }
+
+        Err(InvalidName::ToolchainName(candidate.into()))
     }
 }
 
@@ -376,12 +367,9 @@ pub struct CustomToolchainName(String);
 
 impl CustomToolchainName {
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
-        if candidate.parse::<PartialToolchainDesc>().is_ok()
-            || candidate == "none"
-            || candidate.contains('/')
-            || candidate.contains('\\')
-        {
+        let candidate = validate_named_toolchain(candidate)
+            .map_err(|_| InvalidName::CustomName(candidate.into()))?;
+        if candidate.parse::<PartialToolchainDesc>().is_ok() || candidate == "none" {
             Err(InvalidName::CustomName(candidate.into()))
         } else {
             Ok(Self(candidate.into()))
@@ -460,6 +448,32 @@ impl Deref for PathBasedToolchainName {
     }
 }
 
+fn validate_named_toolchain(candidate: &str) -> Result<&str, InvalidName> {
+    let candidate = validate(candidate)?;
+    if !matches!(candidate, "." | "..")
+        && candidate
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    {
+        Ok(candidate)
+    } else {
+        Err(InvalidName::ToolchainName(candidate.to_owned()))
+    }
+}
+
+/// Common validate rules for all sorts of toolchain names
+fn validate(candidate: &str) -> Result<&str, InvalidName> {
+    if let Some(without_plus) = candidate.strip_prefix('+') {
+        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
+    }
+    let normalized_name = candidate.trim_end_matches('/');
+    if normalized_name.is_empty() {
+        Err(InvalidName::ToolchainName(candidate.into()))
+    } else {
+        Ok(normalized_name)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
@@ -477,11 +491,19 @@ mod tests {
     fn partial_toolchain_desc_regex() -> String {
         let tuple_regex = format!(
             r"(-({}))?(?:-({}))?(?:-({}))?",
-            LIST_ARCHS.join("|"),
-            LIST_OSES.join("|"),
-            LIST_ENVS.join("|")
+            regex_alternates(LIST_ARCHS),
+            regex_alternates(LIST_OSES),
+            regex_alternates(LIST_ENVS)
         );
         r"(nightly|beta|stable|[0-9]{1}(\.(0|[1-9][0-9]{0,2}))(\.(0|[1-9][0-9]{0,1}))?(-beta(\.(0|[1-9][1-9]{0,1}))?)?)(-([0-9]{4}-[0-9]{2}-[0-9]{2}))?".to_owned() + &tuple_regex
+    }
+
+    fn regex_alternates(values: &[&str]) -> String {
+        values
+            .iter()
+            .map(|value| regex::escape(value))
+            .collect::<Vec<_>>()
+            .join("|")
     }
 
     prop_compose! {
@@ -493,9 +515,8 @@ mod tests {
 
     prop_compose! {
         fn arb_custom_name()
-            (s in r"[^\\/+][^\\/]*") -> String {
+            (s in r"[A-Za-z0-9._-]+") -> String {
                 // perhaps need to filter 'none' and partial toolchains - but they won't typically be generated anyway.
-                // Also filter '+' prefix as that's reserved for +toolchain syntax.
                 s
         }
     }
@@ -528,11 +549,18 @@ mod tests {
 
         #[test]
         fn test_parse_custom(name in arb_custom_name()) {
+            prop_assume!(name != "none");
+            prop_assume!(name != ".");
+            prop_assume!(name != "..");
+            prop_assume!(PartialToolchainDesc::from_str(&name).is_err());
             CustomToolchainName::try_from(name).unwrap();
         }
 
         #[test]
         fn test_parse_resolvable_name(name in arb_resolvable_name()) {
+            prop_assume!(name != "none");
+            prop_assume!(name != ".");
+            prop_assume!(name != "..");
             ResolvableToolchainName::try_from(name).unwrap();
         }
 
@@ -564,10 +592,10 @@ mod tests {
             "1.8.0-x86_64-apple-darwin",
             "1.8.0-x86_64-unknown-linux-gnu",
             "1.10.0-x86_64-unknown-linux-gnu",
-            "bar(baz)",
-            "foo#bar",
-            "the cake is a lie",
-            "this.is.not-a+semver",
+            "bar.baz",
+            "foo_bar",
+            "stage1-local",
+            "this.is.not-a_semver",
         ]
         .into_iter()
         .map(|s| ToolchainName::try_from(s).unwrap())
@@ -588,11 +616,11 @@ mod tests {
             "1.8.0-beta-x86_64-apple-darwin",
             "1.8.0-beta.2-x86_64-apple-darwin",
             // https://github.com/rust-lang/rustup/issues/3517
-            "foo#bar",
-            "bar(baz)",
-            "this.is.not-a+semver",
+            "foo_bar",
+            "bar.baz",
+            "this.is.not-a_semver",
             // https://github.com/rust-lang/rustup/issues/3168
-            "the cake is a lie",
+            "stage1-local",
         ]
         .into_iter()
         .map(|s| ToolchainName::try_from(s).unwrap())
@@ -601,5 +629,22 @@ mod tests {
         v.sort();
 
         assert_eq!(expected, v);
+    }
+
+    #[test]
+    fn custom_names_reject_special_characters() {
+        for name in [
+            "bar(baz)",
+            "foo#bar",
+            "the cake is a lie",
+            "this.is.not-a+semver",
+            "quote'toolchain",
+            ".",
+            "..",
+        ] {
+            CustomToolchainName::try_from(name).unwrap_err();
+            ResolvableToolchainName::try_from(name).unwrap_err();
+            ToolchainName::try_from(name).unwrap_err();
+        }
     }
 }
