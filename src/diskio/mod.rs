@@ -62,7 +62,7 @@ use std::{fmt::Debug, fs::OpenOptions};
 use anyhow::Result;
 use tracing::{error, trace, warn};
 
-use crate::diskio::immediate::{_IncrementalFileState, IncrementalFileWriter};
+use crate::diskio::immediate::{FileState, IncrementalFileWriter};
 use crate::process::IoThreadCount;
 use crate::utils::units::Size;
 
@@ -261,7 +261,7 @@ impl Item {
 /// path is all message passing.
 pub(super) enum IncrementalFileState {
     Threaded,
-    Immediate(Arc<Mutex<Option<_IncrementalFileState>>>),
+    Immediate(Arc<Mutex<Option<FileState>>>),
 }
 
 impl IncrementalFileState {
