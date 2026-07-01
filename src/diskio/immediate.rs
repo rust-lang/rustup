@@ -21,11 +21,9 @@ pub(crate) struct _IncrementalFileState {
     finished: bool,
 }
 
-pub(crate) type IncrementalFileState = Arc<Mutex<Option<_IncrementalFileState>>>;
-
 #[derive(Default, Debug)]
 pub(super) struct ImmediateUnpacker {
-    incremental_state: IncrementalFileState,
+    incremental_state: Arc<Mutex<Option<_IncrementalFileState>>>,
 }
 
 impl ImmediateUnpacker {
@@ -145,7 +143,7 @@ impl Executor for ImmediateUnpacker {
 /// The non-shared state for writing a file incrementally
 #[derive(Debug)]
 pub(super) struct IncrementalFileWriter {
-    state: IncrementalFileState,
+    state: Arc<Mutex<Option<_IncrementalFileState>>>,
     file: Option<File>,
     path_display: String,
 }
@@ -155,7 +153,7 @@ impl IncrementalFileWriter {
     pub(super) fn new<P: AsRef<Path>>(
         path: P,
         mode: u32,
-        state: IncrementalFileState,
+        state: Arc<Mutex<Option<_IncrementalFileState>>>,
     ) -> Result<Self, io::Error> {
         let mut opts = OpenOptions::new();
         #[cfg(unix)]
