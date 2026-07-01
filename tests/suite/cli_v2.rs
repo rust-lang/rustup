@@ -1617,7 +1617,7 @@ async fn cannot_add_empty_named_custom_toolchain() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: invalid value '' for '<TOOLCHAIN>': invalid toolchain name ''
+error: invalid value '' for '<TOOLCHAIN>': invalid custom toolchain name ''
 ...
 "#]])
         .is_err();
