@@ -27,12 +27,6 @@ pub(super) struct ImmediateUnpacker {
 }
 
 impl ImmediateUnpacker {
-    pub(super) fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
-    }
-
     fn deque(&self) -> Box<dyn Iterator<Item = CompletedIo>> {
         let mut guard = self.incremental_state.lock().unwrap();
         // incremental file in progress
