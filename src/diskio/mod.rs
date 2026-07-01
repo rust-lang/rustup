@@ -54,15 +54,15 @@
 use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 use std::sync::mpsc::{self, Receiver};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
 use anyhow::Result;
 use tracing::{error, trace, warn};
 
-use crate::diskio::immediate::IncrementalFileWriter;
+use crate::diskio::immediate::{_IncrementalFileState, IncrementalFileWriter};
 use crate::process::IoThreadCount;
 use crate::utils::units::Size;
 
@@ -261,7 +261,7 @@ impl Item {
 /// path is all message passing.
 pub(super) enum IncrementalFileState {
     Threaded,
-    Immediate(immediate::IncrementalFileState),
+    Immediate(Arc<Mutex<Option<_IncrementalFileState>>>),
 }
 
 impl IncrementalFileState {
