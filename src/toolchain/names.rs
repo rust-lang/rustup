@@ -112,19 +112,6 @@ macro_rules! try_from_str {
     };
 }
 
-/// Common validate rules for all sorts of toolchain names
-fn validate(candidate: &str) -> Result<&str, InvalidName> {
-    if let Some(without_plus) = candidate.strip_prefix('+') {
-        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
-    }
-    let normalized_name = candidate.trim_end_matches('/');
-    if normalized_name.is_empty() {
-        Err(InvalidName::ToolchainName(candidate.into()))
-    } else {
-        Ok(normalized_name)
-    }
-}
-
 /// A toolchain name from user input.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {
@@ -457,6 +444,19 @@ impl Deref for PathBasedToolchainName {
 
     fn deref(&self) -> &PathBuf {
         &self.0
+    }
+}
+
+/// Common validate rules for all sorts of toolchain names
+fn validate(candidate: &str) -> Result<&str, InvalidName> {
+    if let Some(without_plus) = candidate.strip_prefix('+') {
+        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
+    }
+    let normalized_name = candidate.trim_end_matches('/');
+    if normalized_name.is_empty() {
+        Err(InvalidName::ToolchainName(candidate.into()))
+    } else {
+        Ok(normalized_name)
     }
 }
 
