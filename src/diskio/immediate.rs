@@ -21,15 +21,15 @@ pub(crate) struct _IncrementalFileState {
     finished: bool,
 }
 
-pub(super) type IncrementalFileState = Arc<Mutex<Option<_IncrementalFileState>>>;
+pub(crate) type IncrementalFileState = Arc<Mutex<Option<_IncrementalFileState>>>;
 
 #[derive(Default, Debug)]
-pub(crate) struct ImmediateUnpacker {
+pub(super) struct ImmediateUnpacker {
     incremental_state: IncrementalFileState,
 }
 
 impl ImmediateUnpacker {
-    pub(crate) fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             ..Default::default()
         }
@@ -152,7 +152,7 @@ pub(super) struct IncrementalFileWriter {
 
 impl IncrementalFileWriter {
     #[allow(unused_variables)]
-    pub(crate) fn new<P: AsRef<Path>>(
+    pub(super) fn new<P: AsRef<Path>>(
         path: P,
         mode: u32,
         state: IncrementalFileState,
@@ -176,7 +176,7 @@ impl IncrementalFileWriter {
         })
     }
 
-    pub(crate) fn chunk_submit(&mut self, chunk: FileBuffer) -> bool {
+    pub(super) fn chunk_submit(&mut self, chunk: FileBuffer) -> bool {
         if (self.state.lock().unwrap()).is_none() {
             return false;
         }
