@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.29.1] - 2026-XX-YY
+
+<!-- TODO: Add summary -->
+
+### Detailed changes
+
+* use 'tuple' instead of 'triple' for env overrides by @tshepang in https://github.com/rust-lang/rustup/pull/4743
+* Avoid printing a warning about `settings.toml` on a fresh install by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4746
+* fix(rustup-init/sh): prevent passing `--default-host` twice by @rami3l in https://github.com/rust-lang/rustup/pull/4756
+* fix(cli/proxy-mode): stop enforcing `quiet: true` by @rami3l in https://github.com/rust-lang/rustup/pull/4762
+* Fix zsh completion showing all PATH entries for +toolchain arg by @simonhkswan in https://github.com/rust-lang/rustup/pull/4763
+* fix(dist/manifestation): use full toolchain name in `Update::unavailable_components()` by @rami3l in https://github.com/rust-lang/rustup/pull/4767
+* self\_update: show path to executable in case of updater failure by @djc in https://github.com/rust-lang/rustup/pull/4781
+* chore: Rename `Component::name_in_manifest` and `short_name_in_manifest` method to `name` and `short_name` by @Cloud0310 in https://github.com/rust-lang/rustup/pull/4778
+* Fix install message misalignment by @Cloud0310 in https://github.com/rust-lang/rustup/pull/4768
+* fix: Reduce flickering by using `set_move_cursor` by @ChrisDenton in https://github.com/rust-lang/rustup/pull/4786
+* Run a parallel pre-check before updating toolchains by @FranciscoTGouveia in https://github.com/rust-lang/rustup/pull/4752
+* Allow rustup component add to install multiple components in one update by @Inconnu08 in https://github.com/rust-lang/rustup/pull/4790
+* fix(dist/manifestation): fix log format when installing exactly 2 components by @rami3l in https://github.com/rust-lang/rustup/pull/4798
+* chore(deps): lock file maintenance by @renovate[bot] in https://github.com/rust-lang/rustup/pull/4801
+* Use `cc-rs` to detect the default linker, instead of assuming `cc` by @jamesmunns in https://github.com/rust-lang/rustup/pull/4807
+* Make component removal best-effort and preserve single-error behavior by @Inconnu08 in https://github.com/rust-lang/rustup/pull/4797
+* Only show post-install instructions for currently installed shells by @ryankopf in https://github.com/rust-lang/rustup/pull/4806
+* docs(dev-guide): update release process with new backporting flow by @rami3l in https://github.com/rust-lang/rustup/pull/4805
+* test(dist/manifest): use the reordered fixture in `manifest_serialized_with_sorted_keys` by @cachebag in https://github.com/rust-lang/rustup/pull/4822
+* Improve error message for incomplete toolchains by @Inconnu08 in https://github.com/rust-lang/rustup/pull/4819
+* fix: rename partially "Triple" to "Tuple" to reflect the new terminology by @motorailgun in https://github.com/rust-lang/rustup/pull/4827
+* feat(cli/rustup-mode): warn about auto-installation in some subcommands by @rami3l in https://github.com/rust-lang/rustup/pull/4895
+
+<!-- TODO: Add more commits -->
+
 ## [1.29.0] - 2026-03-05
 
 This new release of rustup comes with significant changes.
