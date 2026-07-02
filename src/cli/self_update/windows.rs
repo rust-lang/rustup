@@ -784,7 +784,7 @@ fn registry_sub_key_path(sub_key: &str, _process: &Process) -> String {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub fn get_path(uuid: Option<&str>) -> Result<Option<Value>> {
+pub fn get_path(uuid: &str) -> Result<Option<Value>> {
     USER_PATH.get(uuid)
 }
 
@@ -837,14 +837,11 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    fn resolved_sub_key(&self, uuid: Option<&str>) -> windows_registry::Result<Key> {
-        match uuid {
-            Some(uuid) => CURRENT_USER.create(map_sub_key(self.sub_key, uuid)),
-            None => CURRENT_USER.create(self.sub_key),
-        }
+    fn resolved_sub_key(&self, uuid: &str) -> windows_registry::Result<Key> {
+        CURRENT_USER.create(map_sub_key(self.sub_key, uuid))
     }
 
-    pub fn get(&self, uuid: Option<&str>) -> Result<Option<Value>> {
+    pub fn get(&self, uuid: &str) -> Result<Option<Value>> {
         let sub_key = self.resolved_sub_key(uuid)?;
         match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
@@ -853,7 +850,7 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set(&self, new: Option<&Value>, uuid: Option<&str>) -> Result<()> {
+    pub fn set(&self, new: Option<&Value>, uuid: &str) -> Result<()> {
         let sub_key = self.resolved_sub_key(uuid)?;
         match new {
             Some(new) => Ok(sub_key.set_value(self.value_name, new)?),

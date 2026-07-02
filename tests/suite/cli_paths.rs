@@ -474,22 +474,20 @@ mod windows {
 
     use super::INIT_NONE;
     use rustup::test::{CliTestContext, Scenario};
-    use rustup::test::{RegistryGuard, USER_PATH, get_path};
+    use rustup::test::{USER_PATH, get_path};
 
     use windows_registry::{HSTRING, Value};
 
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     async fn install_uninstall_affect_path() {
-        let mut cx = CliTestContext::new(Scenario::Empty).await;
-        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(&guard.uuid);
-        let uuid = guard.uuid.to_string();
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let uuid = cx.config.test_registry_uuid.as_ref().unwrap().to_owned();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let read_path = |uuid: &str| -> Option<String> {
             retry(
                 Fibonacci::from_millis(1).map(jitter).take(21),
-                || match get_path(Some(uuid)).unwrap() {
+                || match get_path(uuid).unwrap() {
                     Some(v) => OperationResult::Ok(HSTRING::try_from(v).unwrap().to_string()),
                     None => OperationResult::Retry(()),
                 },
@@ -514,13 +512,11 @@ mod windows {
 
     #[tokio::test]
     async fn uninstall_keeps_path_when_cargo_bin_is_non_empty() {
-        let mut cx = CliTestContext::new(Scenario::Empty).await;
-        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(&guard.uuid);
-        let uuid = guard.uuid.to_string();
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let uuid = cx.config.test_registry_uuid.as_ref().unwrap().to_owned();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
-            HSTRING::try_from(get_path(Some(&uuid)).unwrap().unwrap())
+            HSTRING::try_from(get_path(&uuid).unwrap().unwrap())
                 .unwrap()
                 .to_string()
         };
@@ -541,13 +537,11 @@ mod windows {
 
     #[tokio::test]
     async fn uninstall_doesnt_affect_path_with_no_modify_path() {
-        let mut cx = CliTestContext::new(Scenario::Empty).await;
-        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(&guard.uuid);
-        let uuid = guard.uuid.to_string();
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let uuid = cx.config.test_registry_uuid.as_ref().unwrap().to_owned();
         let cfg_path = cx.config.cargodir.join("bin").display().to_string();
         let get_path_ = || {
-            HSTRING::try_from(get_path(Some(&uuid)).unwrap().unwrap())
+            HSTRING::try_from(get_path(&uuid).unwrap().unwrap())
                 .unwrap()
                 .to_string()
         };
@@ -572,10 +566,8 @@ mod windows {
 
         use windows_registry::Type;
 
-        let mut cx = CliTestContext::new(Scenario::Empty).await;
-        let guard = RegistryGuard::new([&USER_PATH]).unwrap();
-        cx.config.set_registry_uuid(&guard.uuid);
-        let uuid = guard.uuid.to_string();
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let uuid = cx.config.test_registry_uuid.as_ref().unwrap().to_owned();
         // Set up a non unicode PATH
         let mut reg_value = Value::from([
             0x00, 0xD8, // leading surrogate
@@ -583,7 +575,7 @@ mod windows {
             0x00, 0x00, // null
         ]);
         reg_value.set_ty(Type::ExpandString);
-        USER_PATH.set(Some(&reg_value), Some(&uuid)).unwrap();
+        USER_PATH.set(Some(&reg_value), &uuid).unwrap();
 
         // compute expected path after installation
         let mut expected = Value::from(
@@ -601,12 +593,12 @@ mod windows {
         expected.set_ty(Type::ExpandString);
 
         cx.config.expect(&INIT_NONE).await.is_ok();
-        assert_eq!(get_path(Some(&uuid)).unwrap().unwrap(), expected);
+        assert_eq!(get_path(&uuid).unwrap().unwrap(), expected);
 
         cx.config
             .expect(&["rustup", "self", "uninstall", "-y"])
             .await
             .is_ok();
-        assert_eq!(get_path(Some(&uuid)).unwrap().unwrap(), reg_value);
+        assert_eq!(get_path(&uuid).unwrap().unwrap(), reg_value);
     }
 }
