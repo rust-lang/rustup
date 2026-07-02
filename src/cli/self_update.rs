@@ -90,9 +90,9 @@ mod windows;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
-pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
+pub use windows::{RUSTUP_TEST_REGISTRY_UUID, RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{do_add_to_path, do_remove_from_path};
+use windows::{do_add_to_path, do_add_to_programs, do_remove_from_path, do_remove_from_programs};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -323,7 +323,7 @@ impl SelfUpdateMode {
         let setup_path = prepare_update(dl_cfg).await?;
 
         if let Some(setup_path) = &setup_path {
-            return run_update(setup_path);
+            return run_update(setup_path, dl_cfg.process);
         } else {
             // Try again in case we emitted "tool `{}` is already installed" last time.
             install_proxies(dl_cfg.process)?;
@@ -1009,6 +1009,9 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
         do_add_to_path(cfg.process)?;
     }
 
+    #[cfg(windows)]
+    do_add_to_programs(cfg.process)?;
+
     // If RUSTUP_HOME is not set, make sure it exists
     if cfg.process.var_os("RUSTUP_HOME").is_none() {
         let home = cfg
@@ -1158,6 +1161,9 @@ fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
 
     utils::remove_file("rustup_bin", &rustup_path)?;
 
+    #[cfg(windows)]
+    do_remove_from_programs(process)?;
+
     let cargo_bin_display = cargo_bin.display();
     info!("removing empty cargo bin directory `{cargo_bin_display}`");
 
@@ -1283,7 +1289,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
                 PackageUpdate::Rustup,
                 Ok(UpdateStatus::Updated(version)),
             );
-            return run_update(&setup_path);
+            return run_update(&setup_path, cfg.process);
         }
         None => {
             let _ = common::show_channel_update(
