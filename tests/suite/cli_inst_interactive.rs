@@ -4,8 +4,6 @@ use std::env::consts::EXE_SUFFIX;
 use std::io::Write;
 use std::process::Stdio;
 
-#[cfg(windows)]
-use rustup::test::USER_PATH;
 use rustup::test::{Assert, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple};
 use rustup::utils::raw;
 
@@ -43,10 +41,7 @@ fn run_input_with_env(config: &Config, args: &[&str], input: &str, env: &[(&str,
 
 #[tokio::test]
 async fn update() {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH]);
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
     run_input(&cx.config, &["rustup-init"], "\n\n");
     run_input(&cx.config, &["rustup-init"], "\n\n").is_ok();
@@ -100,10 +95,7 @@ Rust is installed now. Great!
 
 #[tokio::test]
 async fn smoke_case_install_with_path_install() {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH]);
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
     run_input(&cx.config, &["rustup-init"], "\n\n")
         .is_ok()

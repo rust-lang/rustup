@@ -13,12 +13,12 @@ use retry::{
     delay::{Fibonacci, jitter},
     retry,
 };
+#[cfg(windows)]
+use rustup::test::RegistryValueId;
 use rustup::test::{
     CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash, output_release_file,
     this_host_tuple,
 };
-#[cfg(windows)]
-use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
 use rustup::{DUP_TOOLS, TOOLS};
 #[cfg(windows)]
@@ -28,10 +28,7 @@ const TEST_VERSION: &str = "1.1.1";
 
 /// Empty dist server, rustup installed with no toolchain
 async fn setup_empty_installed() -> CliTestContext {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::Empty).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH, &USER_RUSTUP_VERSION]);
+    let cx = CliTestContext::new(Scenario::Empty).await;
     cx.config
         .expect([
             "rustup-init",
@@ -47,10 +44,7 @@ async fn setup_empty_installed() -> CliTestContext {
 
 /// SimpleV3 dist server, rustup installed with default toolchain
 async fn setup_installed() -> CliTestContext {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH, &USER_RUSTUP_VERSION]);
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -63,10 +57,7 @@ async fn setup_installed() -> CliTestContext {
 /// status of the proxies.
 #[tokio::test]
 async fn install_bins_to_cargo_home() {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH]);
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -108,10 +99,7 @@ info: default toolchain set to stable-[HOST_TUPLE]
 /// Ensure that proxies are relative symlinks.
 #[tokio::test]
 async fn proxies_are_relative_symlinks() {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH]);
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -149,10 +137,7 @@ info: default toolchain set to stable-[HOST_TUPLE]
 
 #[tokio::test]
 async fn install_twice() {
-    #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    cx.guard_registry([&USER_PATH]);
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
@@ -481,20 +466,19 @@ async fn update_overwrites_programs_display_version() {
     const PLACEHOLDER_VERSION: &str = "9.999.99";
     let version = env!("CARGO_PKG_VERSION");
 
-    let mut cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    let guard = RegistryGuard::new([&USER_PATH, &USER_RUSTUP_VERSION]).unwrap();
-    cx.config.set_registry_uuid(&guard.uuid);
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let uuid = cx.config.test_registry_uuid.as_deref().unwrap();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
         .is_ok();
 
     USER_RUSTUP_VERSION
-        .set(Some(&Value::from(PLACEHOLDER_VERSION)), Some(&guard.uuid))
+        .set(Some(&Value::from(PLACEHOLDER_VERSION)), uuid)
         .unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert_eq!(
-        USER_RUSTUP_VERSION.get(Some(&guard.uuid)).unwrap().unwrap(),
+        USER_RUSTUP_VERSION.get(uuid).unwrap().unwrap(),
         Value::from(version)
     );
 }
