@@ -1,19 +1,22 @@
 use std::fmt::{self, Debug, Display};
 use std::io;
+use std::io::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, anyhow, bail};
-use serde::Deserialize;
+use chrono::{DateTime, NaiveDate};
+use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, trace, warn};
 
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, TargetTuple,
-        ToolchainDesc,
+        self, AutoInstallMode, DistOptions, PartialToolchainDesc, Profile, ReleaseHintMode,
+        TargetTuple, ToolchainDesc,
     },
     errors::RustupError,
     fallback_settings::FallbackSettings,
@@ -274,10 +277,67 @@ impl From<LocalToolchainName> for OverrideCfg {
 #[cfg(unix)]
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
+/// Contrary to `settings.toml`, this file is not intended to be user-facing
+/// and is intended to merely persistently story rustup's internal state.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct StateFile {
+    path: PathBuf,
+}
+
+impl StateFile {
+    fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+
+    fn load(&self) -> Result<State> {
+        if !utils::is_file(&self.path) {
+            return Ok(State::default());
+        }
+        let content = utils::read_file("state", &self.path)?;
+        State::parse(&content).with_context(|| RustupError::ParsingFile {
+            name: "state",
+            path: self.path.clone(),
+        })
+    }
+
+    fn store(&self, state: &State) -> Result<()> {
+        utils::write_file("state", &self.path, &state.stringify()?)?;
+        Ok(())
+    }
+
+    fn with<T, F: FnOnce(&State) -> Result<T>>(&self, f: F) -> Result<T> {
+        f(&self.load()?)
+    }
+
+    fn with_mut<T, F: FnOnce(&mut State) -> Result<T>>(&self, f: F) -> Result<T> {
+        let mut state = self.load()?;
+        let result = f(&mut state)?;
+        self.store(&state)?;
+        Ok(result)
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+struct State {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_release_notified_secs: Option<u64>,
+}
+
+impl State {
+    fn parse(data: &str) -> Result<Self> {
+        toml::from_str(data).context("error parsing state")
+    }
+
+    fn stringify(&self) -> Result<String> {
+        Ok(toml::to_string(self)?)
+    }
+}
+
 pub(crate) struct Cfg<'a> {
     pub profile_override: Option<Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
+    state_file: StateFile,
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
@@ -323,6 +383,8 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
+        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
         let fallback_settings = FallbackSettings::new(
@@ -355,6 +417,7 @@ impl<'a> Cfg<'a> {
             profile_override: None,
             rustup_dir,
             settings_file,
+            state_file,
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
@@ -419,6 +482,15 @@ impl<'a> Cfg<'a> {
             Ok(())
         })?;
         info!("setting auto install mode to {}", mode.as_str());
+        Ok(())
+    }
+
+    pub(crate) fn set_release_hint(&self, mode: ReleaseHintMode) -> Result<()> {
+        self.settings_file.with_mut(|s| {
+            s.release_hint = Some(mode);
+            Ok(())
+        })?;
+        info!("setting release hint mode to {}", mode.as_str());
         Ok(())
     }
 
@@ -984,6 +1056,64 @@ impl<'a> Cfg<'a> {
             LocalToolchainName::Path(p) => p.to_path_buf(),
         }
     }
+
+    /// Notifies a user with a hint whenever a new Rust release is available.
+    /// This is only shown at max once per day and only if not in proxy mode.
+    pub(crate) fn notify_release(&self) -> Result<()> {
+        if self.settings_file.with(|s| Ok(s.release_hint))? == Some(ReleaseHintMode::Disable) {
+            return Ok(());
+        }
+
+        let time_now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        // Limit notifications to at most once per day.
+        // This is checked before loading the manifest to avoid unnecessary disk I/O.
+        let last_notified = self
+            .state_file
+            .with(|s| Ok(s.last_release_notified_secs.unwrap_or(0)))?;
+        if time_now.saturating_sub(last_notified) < NOTIFY_INTERVAL_SECS {
+            return Ok(());
+        }
+
+        let default_host = self.default_host_tuple()?;
+        let stable_desc = PartialToolchainDesc::from_str("stable")?.resolve(&default_host)?;
+        let distributable = DistributableToolchain::new(self, stable_desc)
+            .map_err(|e| anyhow!("stable toolchain unavailable: {e}"))?;
+        let release_date_str = match distributable.get_manifestation() {
+            Ok(manifestation) => match manifestation.load_manifest() {
+                Ok(Some(manifest)) => manifest.date,
+                Ok(None) | Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
+            },
+            Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
+        };
+
+        let today = DateTime::from_timestamp(time_now as i64, 0)
+            .unwrap_or_default()
+            .date_naive();
+
+        let release_date = NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d")
+            .map_err(|e| anyhow!("could not parse release date '{}': {e}", release_date_str))?;
+
+        // Skip the hint if fewer than 6 weeks have passed since the last known release.
+        if (today - release_date).num_days() < RELEASE_CYCLE_DAYS {
+            return Ok(());
+        }
+
+        self.state_file.with_mut(|s| {
+            s.last_release_notified_secs = Some(time_now);
+            Ok(())
+        })?;
+
+        writeln!(
+            self.process.stderr().lock(),
+            "hint: a new stable Rust release is available, run `rustup update stable` to install it"
+        )?;
+
+        Ok(())
+    }
 }
 
 /// The root path of the release server, without the `/dist` suffix.
@@ -1012,6 +1142,7 @@ impl Debug for Cfg<'_> {
             profile_override,
             rustup_dir,
             settings_file,
+            state_file,
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
@@ -1030,6 +1161,7 @@ impl Debug for Cfg<'_> {
             .field("profile_override", profile_override)
             .field("rustup_dir", rustup_dir)
             .field("settings_file", settings_file)
+            .field("state_file", state_file)
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
@@ -1075,6 +1207,10 @@ pub(crate) enum InstalledPath<'a> {
     File { name: &'static str, path: PathBuf },
     Dir { path: &'a Path },
 }
+
+const RELEASE_CYCLE_DAYS: i64 = 42;
+const NOTIFY_INTERVAL_SECS: u64 = 24 * 60 * 60;
+const FALLBACK_RELEASE_DATE: &str = "2026-04-17";
 
 #[cfg(test)]
 mod tests {
