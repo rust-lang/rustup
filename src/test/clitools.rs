@@ -968,11 +968,20 @@ impl CliTestContext {
             config.distdir = Some(config.test_dist_dir.path().to_path_buf());
         }
 
+        #[cfg(windows)]
+        let registry_guard = {
+            let guard =
+                crate::cli::self_update::RegistryGuard::new([&crate::cli::self_update::USER_PATH])
+                    .unwrap();
+            config.set_registry_uuid(&guard.uuid);
+            Some(guard)
+        };
+
         Self {
             config,
             _test_dir,
             #[cfg(windows)]
-            _registry_guard: None,
+            _registry_guard: registry_guard,
         }
     }
 
