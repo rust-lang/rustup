@@ -62,6 +62,9 @@ pub struct Config {
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
     test_root_dir: PathBuf,
+    /// Per-test Windows registry UUID.
+    #[cfg(windows)]
+    pub test_registry_uuid: Option<String>,
 }
 
 /// Helper type to simplify assertions of a command's output.
@@ -243,6 +246,11 @@ impl Config {
         self.workdir.borrow().clone()
     }
 
+    #[cfg(windows)]
+    pub fn set_registry_uuid(&mut self, uuid: &str) {
+        self.test_registry_uuid = Some(uuid.to_owned());
+    }
+
     pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
     where
         I: IntoIterator<Item = A>,
@@ -321,6 +329,11 @@ impl Config {
 
         if let Some(root) = self.rustup_update_root.as_ref() {
             cmd.env("RUSTUP_UPDATE_ROOT", root);
+        }
+
+        #[cfg(windows)]
+        if let Some(uuid) = self.test_registry_uuid.as_ref() {
+            cmd.env(crate::cli::self_update::RUSTUP_TEST_REGISTRY_UUID, uuid);
         }
     }
 
@@ -810,6 +823,8 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
         test_root_dir: test_dir.path().to_path_buf(),
+        #[cfg(windows)]
+        test_registry_uuid: None,
     };
 
     let build_path = built_exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
