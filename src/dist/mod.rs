@@ -667,13 +667,8 @@ impl TargetTuple {
         let ret = if partial_self.os != partial_other.os {
             false
         } else if partial_self.os.as_deref() == Some("pc-windows") {
-            // Windows is a special case here: we can run gnu and msvc on the same system,
-            // x86_64 can run i686, and aarch64 can run i686 through emulation
-            (partial_self.arch == partial_other.arch)
-                || (partial_self.arch.as_deref() == Some("x86_64")
-                    && partial_other.arch.as_deref() == Some("i686"))
-                || (partial_self.arch.as_deref() == Some("aarch64")
-                    && partial_other.arch.as_deref() == Some("i686"))
+            // Windows is a special case here: we can run gnu and msvc on the same system.
+            partial_self.arch == partial_other.arch
         } else {
             // For other OSes, for now, we assume other toolchains won't run
             false
@@ -1465,31 +1460,33 @@ mod tests {
                 &["i686-unknown-linux-gnu"],
             ),
             (
-                // On the other hand, 64 bit Windows
+                // On the other hand, Windows msvc
                 "x86_64-pc-windows-msvc",
-                // is compatible with 32 bit windows, and even gnu
-                &[
-                    "i686-pc-windows-msvc",
-                    "x86_64-pc-windows-gnu",
-                    "i686-pc-windows-gnu",
-                ],
+                // is compatible with Windows gnu
+                &["x86_64-pc-windows-gnu"],
                 // But is not compatible with Linux
-                &["x86_64-unknown-linux-gnu"],
-            ),
-            (
-                // Indeed, 64bit windows with the gnu toolchain
-                "x86_64-pc-windows-gnu",
-                // is compatible with the other windows platforms
                 &[
+                    "x86_64-unknown-linux-gnu",
+                    // or 32-bit Windows
                     "i686-pc-windows-msvc",
-                    "x86_64-pc-windows-gnu",
                     "i686-pc-windows-gnu",
                 ],
-                // But is not compatible with Linux despite also being gnu
-                &["x86_64-unknown-linux-gnu"],
             ),
             (
-                // However, 32bit Windows is not expected to be able to run
+                // And the Windows gnu toolchain
+                "x86_64-pc-windows-gnu",
+                // is compatible with Windows msvc
+                &["x86_64-pc-windows-msvc"],
+                // But is not compatible with Linux despite also being gnu
+                &[
+                    "x86_64-unknown-linux-gnu",
+                    // And is not compatible with 32-bit Windows
+                    "i686-pc-windows-msvc",
+                    "i686-pc-windows-gnu",
+                ],
+            ),
+            (
+                // 32bit Windows is not expected to be able to run
                 // 64bit windows
                 "i686-pc-windows-msvc",
                 &["i686-pc-windows-gnu"],
