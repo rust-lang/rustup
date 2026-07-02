@@ -797,31 +797,20 @@ fn random_uuid() -> String {
 #[cfg(any(test, feature = "test"))]
 pub struct RegistryGuard {
     pub uuid: String,
-    saved: Vec<(&'static RegistryValueId, Option<Value>)>,
 }
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryGuard {
-    pub fn new(ids: impl IntoIterator<Item = &'static RegistryValueId>) -> Result<Self> {
-        let uuid = random_uuid();
-        let mut seen = std::collections::HashSet::new();
-        let mut saved = Vec::new();
-        for id in ids {
-            if seen.insert((id.sub_key, id.value_name)) {
-                saved.push((id, id.get(Some(&uuid))?));
-            }
-        }
-        Ok(Self { uuid, saved })
+    pub fn new(_ids: impl IntoIterator<Item = &'static RegistryValueId>) -> Result<Self> {
+        Ok(Self {
+            uuid: random_uuid(),
+        })
     }
 }
 
 #[cfg(any(test, feature = "test"))]
 impl Drop for RegistryGuard {
     fn drop(&mut self) {
-        for (id, prev) in self.saved.iter().rev() {
-            let _ = id.set(prev.as_ref(), Some(&self.uuid));
-        }
-
         let root = format!(
             r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RustupTest-{}",
             self.uuid
