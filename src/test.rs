@@ -24,7 +24,9 @@ use crate::dist::TargetTuple;
 use crate::process::TestProcess;
 
 #[cfg(windows)]
-pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
+pub use crate::cli::self_update::{
+    RUSTUP_TEST_REGISTRY_UUID, RegistryGuard, RegistryValueId, USER_PATH, get_path,
+};
 
 mod clitools;
 pub use clitools::{

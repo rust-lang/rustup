@@ -120,7 +120,7 @@ pub(crate) fn do_write_env_files(process: &Process) -> Result<()> {
 
 /// Tell the upgrader to replace the rustup bins, then delete
 /// itself.
-pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()

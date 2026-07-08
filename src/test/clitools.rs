@@ -62,6 +62,9 @@ pub struct Config {
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
     test_root_dir: PathBuf,
+    /// Per-test Windows registry UUID.
+    #[cfg(windows)]
+    pub test_registry_uuid: Option<String>,
 }
 
 /// Helper type to simplify assertions of a command's output.
@@ -243,6 +246,11 @@ impl Config {
         self.workdir.borrow().clone()
     }
 
+    #[cfg(windows)]
+    pub fn set_registry_uuid(&mut self, uuid: &str) {
+        self.test_registry_uuid = Some(uuid.to_owned());
+    }
+
     pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
     where
         I: IntoIterator<Item = A>,
@@ -321,6 +329,11 @@ impl Config {
 
         if let Some(root) = self.rustup_update_root.as_ref() {
             cmd.env("RUSTUP_UPDATE_ROOT", root);
+        }
+
+        #[cfg(windows)]
+        if let Some(uuid) = self.test_registry_uuid.as_ref() {
+            cmd.env(crate::cli::self_update::RUSTUP_TEST_REGISTRY_UUID, uuid);
         }
     }
 
@@ -810,6 +823,8 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
         test_root_dir: test_dir.path().to_path_buf(),
+        #[cfg(windows)]
+        test_registry_uuid: None,
     };
 
     let build_path = built_exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
@@ -879,6 +894,8 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
 pub struct SelfUpdateTestContext {
     pub config: Config,
     _test_dir: TempDir,
+    #[cfg(windows)]
+    _registry_guard: crate::cli::self_update::RegistryGuard,
     self_dist_tmp: TempDir,
 }
 
@@ -917,6 +934,8 @@ impl SelfUpdateTestContext {
         Self {
             config: cx.config,
             _test_dir: cx._test_dir,
+            #[cfg(windows)]
+            _registry_guard: cx._registry_guard,
             self_dist_tmp,
         }
     }
@@ -929,6 +948,8 @@ impl SelfUpdateTestContext {
 pub struct CliTestContext {
     pub config: Config,
     _test_dir: TempDir,
+    #[cfg(windows)]
+    _registry_guard: crate::cli::self_update::RegistryGuard,
 }
 
 impl CliTestContext {
@@ -947,7 +968,21 @@ impl CliTestContext {
             config.distdir = Some(config.test_dist_dir.path().to_path_buf());
         }
 
-        Self { config, _test_dir }
+        #[cfg(windows)]
+        let registry_guard = {
+            let guard =
+                crate::cli::self_update::RegistryGuard::new([&crate::cli::self_update::USER_PATH])
+                    .unwrap();
+            config.set_registry_uuid(&guard.uuid);
+            guard
+        };
+
+        Self {
+            config,
+            _test_dir,
+            #[cfg(windows)]
+            _registry_guard: registry_guard,
+        }
     }
 
     /// Move the dist server to the specified scenario and restore it
