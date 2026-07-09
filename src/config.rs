@@ -900,10 +900,24 @@ impl<'a> Cfg<'a> {
         })
     }
 
-    /// Get the configured default toolchain.
-    /// If none is configured, returns None
-    /// If a bad toolchain name is configured, errors.
+    /// Gets the configured default toolchain name in its resolved form, if any.
+    ///
+    /// This is essentially [`Cfg::get_default_resolvable()`] with an extra resolution step.
     pub(crate) fn get_default(&self) -> Result<Option<ToolchainName>> {
+        let Some(toolchain) = self.get_default_resolvable()? else {
+            return Ok(None);
+        };
+        Ok(Some(toolchain.resolve(&self.default_host_tuple()?)?))
+    }
+
+    /// Gets the configured default toolchain name in its unresolved form, if any.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if:
+    /// - The configuration file is invalid.
+    /// - The configuration file contains an illegal default toolchain name.
+    pub(crate) fn get_default_resolvable(&self) -> Result<Option<ResolvableToolchainName>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
         let toolchain_maybe_str = if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
@@ -913,11 +927,10 @@ impl<'a> Cfg<'a> {
         } else {
             user_opt
         }?;
-        toolchain_maybe_str
-            .map(|s| ResolvableToolchainName::from_str(&s))
-            .transpose()?
-            .map(|t| t.resolve(&self.default_host_tuple()?))
-            .transpose()
+        let Some(toolchain) = &toolchain_maybe_str else {
+            return Ok(None);
+        };
+        Ok(Some(ResolvableToolchainName::from_str(toolchain)?))
     }
 
     /// List all the installed toolchains: that is paths in the toolchain dir
