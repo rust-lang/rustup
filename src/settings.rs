@@ -29,7 +29,7 @@ impl SettingsFile {
 
     fn write_settings(&self) -> Result<()> {
         let settings = self.cache.borrow();
-        utils::write_file(
+        utils::write_locked_file(
             "settings",
             &self.path,
             &settings.as_ref().unwrap().stringify()?,
@@ -44,7 +44,7 @@ impl SettingsFile {
             if b.is_none() {
                 drop(b);
                 *self.cache.borrow_mut() = Some(if utils::is_file(&self.path) {
-                    let content = utils::read_file("settings", &self.path)?;
+                    let content = utils::read_locked_file("settings", &self.path)?;
                     Settings::parse(&content).with_context(|| RustupError::ParsingFile {
                         name: "settings",
                         path: self.path.clone(),

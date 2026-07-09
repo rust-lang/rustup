@@ -87,8 +87,22 @@ pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     })
 }
 
+pub(crate) fn read_locked_file(name: &'static str, path: &Path) -> Result<String> {
+    raw::read_locked_file(path).with_context(|| RustupError::ReadingFile {
+        name,
+        path: PathBuf::from(path),
+    })
+}
+
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
     raw::write_file(path, contents).with_context(|| RustupError::WritingFile {
+        name,
+        path: PathBuf::from(path),
+    })
+}
+
+pub(crate) fn write_locked_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
+    raw::write_locked_file(path, contents).with_context(|| RustupError::WritingFile {
         name,
         path: PathBuf::from(path),
     })
