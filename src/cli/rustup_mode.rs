@@ -881,13 +881,13 @@ async fn default_(
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
-                let desc = toolchain.resolve(&cfg.default_host_tuple()?)?;
+                let desc = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
                     .status;
 
-                cfg.set_default(Some(&desc.clone().into()))?;
+                cfg.set_default(Some(&toolchain.into()))?;
 
                 writeln!(cfg.process.stdout().lock())?;
 
@@ -1085,7 +1085,7 @@ async fn update(
                     force_non_host,
                 )?;
             }
-            let desc = name.resolve(&cfg.default_host_tuple()?)?;
+            let desc = name.clone().resolve(&cfg.default_host_tuple()?)?;
 
             let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
             let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
@@ -1128,7 +1128,7 @@ async fn update(
             if opts.default
                 || (cfg.get_default()?.is_none() && matches!(status, UpdateStatus::Installed))
             {
-                cfg.set_default(Some(&desc.into()))?;
+                cfg.set_default(Some(&name.into()))?;
             }
         }
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;

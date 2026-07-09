@@ -272,7 +272,7 @@ impl InstallOpts<'_> {
 
             check_proxy_sanity(cfg.process, components, &desc)?;
 
-            cfg.set_default(Some(&desc.clone().into()))?;
+            cfg.set_default(Some(&partial_desc.into()))?;
             writeln!(cfg.process.stdout().lock())?;
             common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
         }

@@ -384,7 +384,7 @@ impl<'a> Cfg<'a> {
         Ok(cfg)
     }
 
-    pub(crate) fn set_default(&self, toolchain: Option<&ToolchainName>) -> Result<()> {
+    pub(crate) fn set_default(&self, toolchain: Option<&ResolvableToolchainName>) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = toolchain.map(|t| t.to_string());
             Ok(())
