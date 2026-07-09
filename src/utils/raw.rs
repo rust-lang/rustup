@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io;
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::str;
 
@@ -60,6 +60,21 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
     fs::metadata(path).is_ok()
 }
 
+pub(crate) fn read_locked_file(path: &Path) -> io::Result<String> {
+    let mut file = File::open(path)?;
+    file.lock_shared()?;
+
+    let size = file
+        .metadata()
+        .map(|metadata| usize::try_from(metadata.len()).unwrap_or(usize::MAX))
+        .ok();
+    let mut contents = String::new();
+    contents.try_reserve_exact(size.unwrap_or(0))?;
+    file.read_to_string(&mut contents)?;
+
+    Ok(contents)
+}
+
 pub(crate) fn random_string(length: usize) -> String {
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789_";
     let mut rng = rand::rng();
@@ -77,6 +92,24 @@ pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
 
     Write::write_all(&mut file, contents.as_bytes())?;
 
+    file.sync_data()?;
+
+    Ok(())
+}
+
+pub(crate) fn write_locked_file(path: &Path, contents: &str) -> io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        // Truncation must happen after the exclusive lock is held.
+        .truncate(false)
+        .open(path)?;
+
+    file.lock()?;
+    file.set_len(0)?;
+    file.seek(SeekFrom::Start(0))?;
+    Write::write_all(&mut file, contents.as_bytes())?;
     file.sync_data()?;
 
     Ok(())
@@ -348,5 +381,22 @@ pub(crate) mod windows {
             Ok(maybe_result)
         }
         inner(s.as_ref())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn locked_file_round_trip_truncates_previous_contents() -> io::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let path = temp_dir.path().join("state.toml");
+
+        write_locked_file(&path, "last_release_notified_secs = 123456\n")?;
+        write_locked_file(&path, "version = \"12\"\n")?;
+
+        assert_eq!(read_locked_file(&path)?, "version = \"12\"\n");
+        Ok(())
     }
 }

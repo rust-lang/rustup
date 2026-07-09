@@ -1134,7 +1134,7 @@ impl StateFile {
         if !utils::is_file(&self.path) {
             return Ok(State::default());
         }
-        let content = utils::read_file("state", &self.path)?;
+        let content = utils::read_locked_file("state", &self.path)?;
         State::parse(&content).with_context(|| RustupError::ParsingFile {
             name: "state",
             path: self.path.clone(),
@@ -1142,7 +1142,7 @@ impl StateFile {
     }
 
     fn store(&self, state: &State) -> Result<()> {
-        utils::write_file("state", &self.path, &state.stringify()?)?;
+        utils::write_locked_file("state", &self.path, &state.stringify()?)?;
         Ok(())
     }
 
