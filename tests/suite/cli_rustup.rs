@@ -353,7 +353,7 @@ async fn add_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -372,7 +372,7 @@ async fn remove_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -404,13 +404,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(cx.config.rustupdir.has(path));
@@ -421,13 +421,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(!cx.config.rustupdir.has(path));
@@ -474,7 +474,7 @@ async fn add_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -500,7 +500,7 @@ async fn remove_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
