@@ -23,7 +23,7 @@ async fn update_once() {
 info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading 4 components
-info: default toolchain set to nightly-[HOST_TUPLE]
+info: default toolchain set to nightly
 
 "#]]);
     cx.config
@@ -322,7 +322,7 @@ async fn default() {
 info: syncing channel updates for nightly-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.3.0 (hash-nightly-2)
 info: downloading 4 components
-info: default toolchain set to nightly-[HOST_TUPLE]
+info: default toolchain set to nightly
 
 "#]]);
     cx.config

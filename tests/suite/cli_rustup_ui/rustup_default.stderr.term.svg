@@ -23,7 +23,7 @@
 </tspan>
     <tspan x="10px" y="64px"><tspan class="bold">info:</tspan><tspan> downloading 4 components</tspan>
 </tspan>
-    <tspan x="10px" y="82px"><tspan class="bold">info:</tspan><tspan> default toolchain set to nightly-[HOST_TUPLE]</tspan>
+    <tspan x="10px" y="82px"><tspan class="bold">info:</tspan><tspan> default toolchain set to nightly</tspan>
 </tspan>
     <tspan x="10px" y="100px">
 </tspan>

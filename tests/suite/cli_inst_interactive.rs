@@ -776,14 +776,12 @@ rustup home:  [RUSTUP_DIR]
 
 installed toolchains
 --------------------
-beta-[HOST_TUPLE] (active, default)
+beta-[HOST_TUPLE]
 
 active toolchain
 ----------------
-name: beta-[HOST_TUPLE]
+name: beta-[CROSS_ARCH_I]
 active because: it's the default toolchain
-installed targets:
-  [HOST_TUPLE]
 
 "#]]);
 }

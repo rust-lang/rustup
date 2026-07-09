@@ -252,6 +252,18 @@ impl ResolvableLocalToolchainName {
     }
 }
 
+impl From<PartialToolchainDesc> for ResolvableToolchainName {
+    fn from(value: PartialToolchainDesc) -> Self {
+        Self::Official(value)
+    }
+}
+
+impl From<CustomToolchainName> for ResolvableToolchainName {
+    fn from(value: CustomToolchainName) -> Self {
+        Self::Custom(value)
+    }
+}
+
 impl FromStr for ResolvableLocalToolchainName {
     type Err = InvalidName;
 
