@@ -109,6 +109,125 @@ pub(crate) struct InstallOpts<'a> {
 }
 
 impl InstallOpts<'_> {
+    /// Installs rustup to the system according to the current options.
+    ///
+    /// The installation process is composed of the following steps:
+    /// - Copying the running binary to the binary directory.
+    /// - Hard-linking the various Rust tools to that copied binary.
+    /// - Adding the binary directory to the `$PATH` unless `no_modify_path` is set.
+    pub(crate) async fn install(mut self, no_prompt: bool, cfg: &mut Cfg<'_>) -> Result<ExitCode> {
+        #[cfg_attr(not(unix), allow(unused_mut))]
+        let mut exit_code = ExitCode::SUCCESS;
+
+        self.validate(cfg.process).map_err(|e| {
+            anyhow!(
+                "Pre-checks for host and toolchain failed: {e}\n\
+            If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
+            Valid host tuples look something like: {}",
+                TargetTuple::from_host_or_build(cfg.process)
+            )
+        })?;
+
+        if cfg
+            .process
+            .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
+            .is_none_or(|s| s != "yes")
+        {
+            check_existence_of_rustc_or_cargo_in_path(no_prompt, cfg.process)?;
+            check_existence_of_settings_file(cfg)?;
+        }
+
+        #[cfg(unix)]
+        {
+            exit_code &= unix::do_anti_sudo_check(no_prompt, cfg.process)?;
+        }
+
+        let mut term = cfg.process.stdout();
+
+        #[cfg(windows)]
+        windows::maybe_install_msvc(&mut term, no_prompt, &self, &*cfg).await?;
+
+        if !no_prompt {
+            let msg = pre_install_msg(self.no_modify_path, cfg.process)?;
+
+            md(&mut term, msg);
+            let mut customized_install = false;
+            loop {
+                md(&mut term, current_install_opts(&self, cfg.process));
+                match common::confirm_advanced(customized_install, cfg.process)? {
+                    Confirm::No => {
+                        info!("aborting installation");
+                        return Ok(ExitCode::SUCCESS);
+                    }
+                    Confirm::Yes => break,
+                    Confirm::Advanced => {
+                        customized_install = true;
+                        self.customize(cfg.process)?;
+                    }
+                }
+            }
+        }
+
+        let no_modify_path = self.no_modify_path;
+        if let Err(e) = self.install_rust(cfg).await {
+            report_error(&e, cfg.process);
+
+            // On windows, where installation happens in a console
+            // that may have opened just for this purpose, give
+            // the user an opportunity to see the error before the
+            // window closes.
+            #[cfg(windows)]
+            if !no_prompt {
+                windows::ensure_prompt(cfg.process)?;
+            }
+
+            return Ok(ExitCode::FAILURE);
+        }
+
+        let cargo_home = canonical_cargo_home(cfg.process)?;
+        #[cfg(windows)]
+        let cargo_home = cargo_home.replace('\\', r"\\");
+        #[cfg(windows)]
+        let msg = if no_modify_path {
+            format!(
+                post_install_msg_win_no_modify_path!(),
+                cargo_home = cargo_home
+            )
+        } else {
+            format!(post_install_msg_win!(), cargo_home = cargo_home)
+        };
+        #[cfg(not(windows))]
+        let source_env_lines = shell::build_source_env_lines(cfg.process);
+        #[cfg(not(windows))]
+        let msg = if no_modify_path {
+            format!(
+                post_install_msg_unix_no_modify_path!(),
+                cargo_home = cargo_home,
+                source_env_lines = source_env_lines,
+            )
+        } else {
+            format!(
+                post_install_msg_unix!(),
+                cargo_home = cargo_home,
+                source_env_lines = source_env_lines,
+            )
+        };
+        md(&mut term, msg);
+
+        #[cfg(unix)]
+        warn_if_default_linker_missing(cfg.process);
+
+        #[cfg(windows)]
+        if !no_prompt {
+            // On windows, where installation happens in a console
+            // that may have opened just for this purpose, require
+            // the user to press a key to continue.
+            windows::ensure_prompt(cfg.process)?;
+        }
+
+        Ok(exit_code)
+    }
+
     /// Installs the rustup binary and proxies, and installs a toolchain if specified.
     async fn install_rust(self, cfg: &mut Cfg<'_>) -> Result<()> {
         install_bins(cfg.process)?;
@@ -454,128 +573,6 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
     } else {
         path.to_string_lossy().into_owned().into()
     })
-}
-
-/// Installing is a simple matter of copying the running binary to
-/// `$CARGO_HOME/bin`, hard-linking the various Rust tools to it,
-/// and adding `$CARGO_HOME/bin` to PATH.
-pub(crate) async fn install(
-    no_prompt: bool,
-    mut opts: InstallOpts<'_>,
-    cfg: &mut Cfg<'_>,
-) -> Result<ExitCode> {
-    #[cfg_attr(not(unix), allow(unused_mut))]
-    let mut exit_code = ExitCode::SUCCESS;
-
-    opts.validate(cfg.process).map_err(|e| {
-        anyhow!(
-            "Pre-checks for host and toolchain failed: {e}\n\
-            If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
-            Valid host tuples look something like: {}",
-            TargetTuple::from_host_or_build(cfg.process)
-        )
-    })?;
-
-    if cfg
-        .process
-        .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
-        .is_none_or(|s| s != "yes")
-    {
-        check_existence_of_rustc_or_cargo_in_path(no_prompt, cfg.process)?;
-        check_existence_of_settings_file(cfg)?;
-    }
-
-    #[cfg(unix)]
-    {
-        exit_code &= unix::do_anti_sudo_check(no_prompt, cfg.process)?;
-    }
-
-    let mut term = cfg.process.stdout();
-
-    #[cfg(windows)]
-    windows::maybe_install_msvc(&mut term, no_prompt, &opts, &*cfg).await?;
-
-    if !no_prompt {
-        let msg = pre_install_msg(opts.no_modify_path, cfg.process)?;
-
-        md(&mut term, msg);
-        let mut customized_install = false;
-        loop {
-            md(&mut term, current_install_opts(&opts, cfg.process));
-            match common::confirm_advanced(customized_install, cfg.process)? {
-                Confirm::No => {
-                    info!("aborting installation");
-                    return Ok(ExitCode::SUCCESS);
-                }
-                Confirm::Yes => {
-                    break;
-                }
-                Confirm::Advanced => {
-                    customized_install = true;
-                    opts.customize(cfg.process)?;
-                }
-            }
-        }
-    }
-
-    let no_modify_path = opts.no_modify_path;
-    if let Err(e) = opts.install_rust(cfg).await {
-        report_error(&e, cfg.process);
-
-        // On windows, where installation happens in a console
-        // that may have opened just for this purpose, give
-        // the user an opportunity to see the error before the
-        // window closes.
-        #[cfg(windows)]
-        if !no_prompt {
-            windows::ensure_prompt(cfg.process)?;
-        }
-
-        return Ok(ExitCode::FAILURE);
-    }
-
-    let cargo_home = canonical_cargo_home(cfg.process)?;
-    #[cfg(windows)]
-    let cargo_home = cargo_home.replace('\\', r"\\");
-    #[cfg(windows)]
-    let msg = if no_modify_path {
-        format!(
-            post_install_msg_win_no_modify_path!(),
-            cargo_home = cargo_home
-        )
-    } else {
-        format!(post_install_msg_win!(), cargo_home = cargo_home)
-    };
-    #[cfg(not(windows))]
-    let source_env_lines = shell::build_source_env_lines(cfg.process);
-    #[cfg(not(windows))]
-    let msg = if no_modify_path {
-        format!(
-            post_install_msg_unix_no_modify_path!(),
-            cargo_home = cargo_home,
-            source_env_lines = source_env_lines,
-        )
-    } else {
-        format!(
-            post_install_msg_unix!(),
-            cargo_home = cargo_home,
-            source_env_lines = source_env_lines,
-        )
-    };
-    md(&mut term, msg);
-
-    #[cfg(unix)]
-    warn_if_default_linker_missing(cfg.process);
-
-    #[cfg(windows)]
-    if !no_prompt {
-        // On windows, where installation happens in a console
-        // that may have opened just for this purpose, require
-        // the user to press a key to continue.
-        windows::ensure_prompt(cfg.process)?;
-    }
-
-    Ok(exit_code)
 }
 
 fn rustc_or_cargo_exists_in_path(process: &Process) -> Result<()> {
