@@ -2083,7 +2083,6 @@ dependencies = [
  "anstyle",
  "anyhow",
  "cc",
- "cfg-if 1.0.4",
  "chrono",
  "clap",
  "clap-cargo",
