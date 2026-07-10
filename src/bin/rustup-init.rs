@@ -16,7 +16,6 @@
 use std::process::ExitCode;
 
 use anyhow::{Context, Result, anyhow};
-use cfg_if::cfg_if;
 // Public macros require availability of the internal symbols
 use rs_tracing::{
     close_trace_file, close_trace_file_internal, open_trace_file, trace_to_file_internal,
@@ -105,12 +104,9 @@ async fn run_rustup_inner(
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
             // rustup deletes its own exe
-            cfg_if! {
-                if #[cfg(windows)] {
-                    self_update::complete_windows_uninstall(process)
-                } else {
-                    unreachable!("Attempted to use Windows-specific code on a non-Windows platform. Aborting.")
-                }
+            cfg_select! {
+                windows => self_update::complete_windows_uninstall(process),
+                _ => unreachable!("Attempted to use Windows-specific code on a non-Windows platform. Aborting."),
             }
         }
         Some(n) => {
