@@ -58,7 +58,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ToolchainDesc) -> Result<Self, RustupError> {
-        Toolchain::new(cfg, (&desc).into()).map(|toolchain| Self { toolchain, desc })
+        Toolchain::new(cfg, desc.clone().into()).map(|toolchain| Self { toolchain, desc })
     }
 
     pub(crate) fn desc(&self) -> &ToolchainDesc {
