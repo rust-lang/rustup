@@ -32,19 +32,19 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-use std::borrow::Cow;
-use std::env::{self, consts::EXE_SUFFIX};
-use std::io;
-use std::io::Write;
-use std::path::{Component, MAIN_SEPARATOR, Path, PathBuf};
-use std::process::Command;
-use std::str::FromStr;
-use std::{fmt, fs};
+use std::{
+    borrow::Cow,
+    env::{self, consts::EXE_SUFFIX},
+    fmt, fs,
+    io::{self, Write},
+    path::{Component, MAIN_SEPARATOR, Path, PathBuf},
+    process::Command,
+    str::FromStr,
+};
 
 use anstyle::Style;
 use anyhow::{Context, Result, anyhow};
-use clap::ValueEnum;
-use clap::builder::PossibleValue;
+use clap::{ValueEnum, builder::PossibleValue};
 use clap_cargo::style::{GOOD, WARN};
 use itertools::Itertools;
 use same_file::{Handle, is_same_file};
