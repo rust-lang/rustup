@@ -109,6 +109,57 @@ pub(crate) struct InstallOpts<'a> {
 }
 
 impl InstallOpts<'_> {
+    /// Installs the rustup binary and proxies, and installs a toolchain if specified.
+    async fn install_rust(self, cfg: &mut Cfg<'_>) -> Result<()> {
+        install_bins(cfg.process)?;
+
+        #[cfg(unix)]
+        unix::do_write_env_files(cfg.process)?;
+
+        if !self.no_modify_path {
+            do_add_to_path(cfg.process)?;
+        }
+
+        // If RUSTUP_HOME is not set, make sure it exists
+        if cfg.process.var_os("RUSTUP_HOME").is_none() {
+            let home = cfg
+                .process
+                .home_dir()
+                .map(|p| p.join(".rustup"))
+                .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
+
+            fs::create_dir_all(home).context("unable to create ~/.rustup")?;
+        }
+
+        let (components, targets) = (self.components, self.targets);
+        let toolchain = self.select_toolchain(cfg)?;
+        if let Some(desc) = toolchain {
+            let options =
+                DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, cfg)?;
+            let status = if Toolchain::exists(cfg, &desc.clone().into())? {
+                warn!("Updating existing toolchain, profile choice will be ignored");
+                // If we have a partial install we might not be able to read content here. We could:
+                // - fail and folk have to delete the partially present toolchain to recover
+                // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
+                // - delete the partial install and start over
+                // For now, we error.
+                let toolchain = DistributableToolchain::new(cfg, desc.clone())?;
+                InstallMethod::Dist(options.for_update(&toolchain, false))
+                    .install(None)
+                    .await?
+            } else {
+                DistributableToolchain::install(options).await?.status
+            };
+
+            check_proxy_sanity(cfg.process, components, &desc)?;
+
+            cfg.set_default(Some(&desc.clone().into()))?;
+            writeln!(cfg.process.stdout().lock())?;
+            common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
+        }
+        Ok(())
+    }
+
     /// Selects the toolchain to install based on the user's intent.
     ///
     /// This function first initializes the default profile and default host tuple in the
@@ -468,7 +519,7 @@ pub(crate) async fn install(
     }
 
     let no_modify_path = opts.no_modify_path;
-    if let Err(e) = maybe_install_rust(opts, cfg).await {
+    if let Err(e) = opts.install_rust(cfg).await {
         report_error(&e, cfg.process);
 
         // On windows, where installation happens in a console
@@ -849,55 +900,6 @@ fn check_proxy_sanity(process: &Process, components: &[&str], desc: &ToolchainDe
         }
     }
 
-    Ok(())
-}
-
-async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<()> {
-    install_bins(cfg.process)?;
-
-    #[cfg(unix)]
-    unix::do_write_env_files(cfg.process)?;
-
-    if !opts.no_modify_path {
-        do_add_to_path(cfg.process)?;
-    }
-
-    // If RUSTUP_HOME is not set, make sure it exists
-    if cfg.process.var_os("RUSTUP_HOME").is_none() {
-        let home = cfg
-            .process
-            .home_dir()
-            .map(|p| p.join(".rustup"))
-            .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
-
-        fs::create_dir_all(home).context("unable to create ~/.rustup")?;
-    }
-
-    let (components, targets) = (opts.components, opts.targets);
-    let toolchain = opts.select_toolchain(cfg)?;
-    if let Some(desc) = toolchain {
-        let options = DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, cfg)?;
-        let status = if Toolchain::exists(cfg, &desc.clone().into())? {
-            warn!("Updating existing toolchain, profile choice will be ignored");
-            // If we have a partial install we might not be able to read content here. We could:
-            // - fail and folk have to delete the partially present toolchain to recover
-            // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
-            // - delete the partial install and start over
-            // For now, we error.
-            let toolchain = DistributableToolchain::new(cfg, desc.clone())?;
-            InstallMethod::Dist(options.for_update(&toolchain, false))
-                .install(None)
-                .await?
-        } else {
-            DistributableToolchain::install(options).await?.status
-        };
-
-        check_proxy_sanity(cfg.process, components, &desc)?;
-
-        cfg.set_default(Some(&desc.clone().into()))?;
-        writeln!(cfg.process.stdout().lock())?;
-        common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
-    }
     Ok(())
 }
 
