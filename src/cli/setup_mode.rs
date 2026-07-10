@@ -131,5 +131,5 @@ pub async fn main(
     };
 
     let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
-    self_update::install(no_prompt, opts, &mut cfg).await
+    opts.install(no_prompt, &mut cfg).await
 }
