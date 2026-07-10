@@ -42,7 +42,6 @@ use std::{fmt, fs};
 
 use anstyle::Style;
 use anyhow::{Context, Result, anyhow};
-use cfg_if::cfg_if;
 use clap::ValueEnum;
 use clap::builder::PossibleValue;
 use clap_cargo::style::{GOOD, WARN};
@@ -539,12 +538,9 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
-        cfg_if! {
-            if #[cfg(windows)] {
-                r"%USERPROFILE%\.cargo".into()
-            } else {
-                "$HOME/.cargo".into()
-            }
+        cfg_select! {
+            windows => r"%USERPROFILE%\.cargo".into(),
+            _ => "$HOME/.cargo".into(),
         }
     } else {
         path.to_string_lossy().into_owned().into()
