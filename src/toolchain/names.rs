@@ -326,15 +326,9 @@ pub(crate) enum LocalToolchainName {
     Path(PathBasedToolchainName),
 }
 
-impl From<&ToolchainDesc> for LocalToolchainName {
-    fn from(value: &ToolchainDesc) -> Self {
-        ToolchainName::Official(value.to_owned()).into()
-    }
-}
-
-impl From<&CustomToolchainName> for LocalToolchainName {
-    fn from(value: &CustomToolchainName) -> Self {
-        ToolchainName::Custom(value.to_owned()).into()
+impl From<ToolchainDesc> for LocalToolchainName {
+    fn from(value: ToolchainDesc) -> Self {
+        ToolchainName::Official(value).into()
     }
 }
 

@@ -870,9 +870,9 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
 
     let (components, targets) = (opts.components, opts.targets);
     let toolchain = opts.install(cfg)?;
-    if let Some(desc) = &toolchain {
-        let options = DistOptions::new(components, targets, desc, cfg.get_profile()?, true, cfg)?;
-        let status = if Toolchain::exists(cfg, &desc.into())? {
+    if let Some(desc) = toolchain {
+        let options = DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, cfg)?;
+        let status = if Toolchain::exists(cfg, &desc.clone().into())? {
             warn!("Updating existing toolchain, profile choice will be ignored");
             // If we have a partial install we might not be able to read content here. We could:
             // - fail and folk have to delete the partially present toolchain to recover
@@ -887,11 +887,11 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
             DistributableToolchain::install(options).await?.status
         };
 
-        check_proxy_sanity(cfg.process, components, desc)?;
+        check_proxy_sanity(cfg.process, components, &desc)?;
 
         cfg.set_default(Some(&desc.clone().into()))?;
         writeln!(cfg.process.stdout().lock())?;
-        common::show_channel_update(cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
+        common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
     }
     Ok(())
 }
