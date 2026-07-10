@@ -243,7 +243,7 @@ impl OverrideCfg {
         match self {
             Self::PathBased(path_based_name) => path_based_name.into(),
             Self::Custom(custom_name) => custom_name.into(),
-            Self::Official { toolchain, .. } => (&toolchain).into(),
+            Self::Official { toolchain, .. } => toolchain.into(),
         }
     }
 }

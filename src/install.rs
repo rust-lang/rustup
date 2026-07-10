@@ -126,11 +126,12 @@ impl InstallMethod<'_, '_> {
 
     fn local_name(&self) -> LocalToolchainName {
         match self {
-            InstallMethod::Copy { dest, .. } => (*dest).into(),
-            InstallMethod::Link { dest, .. } => (*dest).into(),
+            InstallMethod::Copy { dest, .. } | InstallMethod::Link { dest, .. } => {
+                (*dest).clone().into()
+            }
             InstallMethod::Dist(DistOptions {
                 toolchain: desc, ..
-            }) => (*desc).into(),
+            }) => (*desc).clone().into(),
         }
     }
 
@@ -140,13 +141,14 @@ impl InstallMethod<'_, '_> {
 
     fn dest_path(&self) -> PathBuf {
         match self {
-            InstallMethod::Copy { cfg, dest, .. } => cfg.toolchain_path(&(*dest).into()),
-            InstallMethod::Link { cfg, dest, .. } => cfg.toolchain_path(&(*dest).into()),
+            InstallMethod::Copy { cfg, dest, .. } | InstallMethod::Link { cfg, dest, .. } => {
+                cfg.toolchain_path(&(*dest).clone().into())
+            }
             InstallMethod::Dist(DistOptions {
                 cfg,
                 toolchain: desc,
                 ..
-            }) => cfg.toolchain_path(&(*desc).into()),
+            }) => cfg.toolchain_path(&(*desc).clone().into()),
         }
     }
 }

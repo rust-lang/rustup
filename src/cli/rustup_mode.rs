@@ -877,7 +877,7 @@ async fn default_(
                 cfg.set_default(None)?;
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Custom(toolchain_name)) => {
-                Toolchain::new(cfg, (&toolchain_name).into())?;
+                Toolchain::new(cfg, toolchain_name.clone().into())?;
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
             MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
