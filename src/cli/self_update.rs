@@ -109,7 +109,12 @@ pub(crate) struct InstallOpts<'a> {
 }
 
 impl InstallOpts<'_> {
-    fn install(self, cfg: &mut Cfg<'_>) -> Result<Option<ToolchainDesc>> {
+    /// Selects the toolchain to install based on the user's intent.
+    ///
+    /// This function first initializes the default profile and default host tuple in the
+    /// configuration, then returns the toolchain that should be installed, or `None` if none is
+    /// specified by the user.
+    fn select_toolchain(self, cfg: &mut Cfg<'_>) -> Result<Option<ToolchainDesc>> {
         let Self {
             default_host_tuple,
             default_toolchain,
@@ -869,7 +874,7 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     }
 
     let (components, targets) = (opts.components, opts.targets);
-    let toolchain = opts.install(cfg)?;
+    let toolchain = opts.select_toolchain(cfg)?;
     if let Some(desc) = toolchain {
         let options = DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, cfg)?;
         let status = if Toolchain::exists(cfg, &desc.clone().into())? {
@@ -1377,7 +1382,7 @@ mod tests {
                     .unwrap()
                     .resolve(&cfg.default_host_tuple().unwrap())
                     .unwrap(),
-                opts.install(&mut cfg)
+                opts.select_toolchain(&mut cfg)
                     .unwrap() // result
                     .unwrap() // option
             );
