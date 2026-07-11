@@ -3968,6 +3968,31 @@ error: rustup could not choose a version of rustc to run, because one wasn't spe
         .is_ok();
 }
 
+#[tokio::test]
+async fn rust_toolchain_toml_rejects_unknown_keys() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+    raw::write_file(
+        &toolchain_file,
+        "[toolchain]\nchannel = \"nightly\"\nchannnel = \"stable\"",
+    )
+    .unwrap();
+
+    cx.config
+        .expect(["rustup", "show", "active-toolchain"])
+        .await
+        .extend_redactions([("[CWD]", &cwd)])
+        .with_stderr(snapbox::str![[r#"
+...
+error: could not parse override file: '[CWD]/rust-toolchain.toml'[..]
+...
+unknown field `channnel`, expected one of `channel`, `path`, `components`, `targets`, `profile`[..]
+...
+"#]])
+        .is_err();
+}
+
 /// Ensures that `rust-toolchain.toml` files (with `.toml` extension) only allow TOML contents
 #[tokio::test]
 async fn only_toml_in_rust_toolchain_toml() {
