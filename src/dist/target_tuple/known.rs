@@ -54,6 +54,7 @@ pub static LIST_ARCHS: &[&str] = &[
     "riscv32imac",
     "riscv32imafc",
     "riscv32imc",
+    "riscv32imfc",
     "riscv64",
     "riscv64a23",
     "riscv64gc",
