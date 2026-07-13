@@ -384,6 +384,41 @@ error: could not amend shell profile[..]
     }
 
     #[tokio::test]
+    async fn install_preserves_guarded_legacy_source() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let profile = cx.config.homedir.join(".bash_profile");
+        let guarded_source = "[ -f \"$HOME/.cargo/env\" ] && source \"$HOME/.cargo/env\"\n";
+        raw::write_file(&profile, guarded_source).unwrap();
+
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
+        cmd.env_remove("CARGO_HOME");
+        assert!(cmd.output().unwrap().status.success());
+
+        let new_profile = fs::read_to_string(&profile).unwrap();
+        let expected = guarded_source.to_owned() + &source("$HOME/.cargo", POSIX_SH);
+        assert_eq!(new_profile, expected);
+    }
+
+    #[tokio::test]
+    async fn uninstall_preserves_guarded_source() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let profile = cx.config.homedir.join(".bash_profile");
+        let guarded_source = "[ -f \"$HOME/.cargo/env\" ] && . \"$HOME/.cargo/env\"\n";
+        raw::write_file(&profile, guarded_source).unwrap();
+
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
+        cmd.env_remove("CARGO_HOME");
+        assert!(cmd.output().unwrap().status.success());
+
+        let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
+        cmd.env_remove("CARGO_HOME");
+        assert!(cmd.output().unwrap().status.success());
+
+        let new_profile = fs::read_to_string(&profile).unwrap();
+        assert_eq!(new_profile, guarded_source);
+    }
+
+    #[tokio::test]
     async fn uninstall_cleans_up_legacy_paths() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         // Install first, then overwrite.
