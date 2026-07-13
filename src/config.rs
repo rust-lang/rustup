@@ -40,6 +40,7 @@ enum OverrideFileConfigError {
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 struct OverrideFile {
     toolchain: ToolchainSection,
 }
@@ -51,6 +52,7 @@ impl OverrideFile {
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 struct ToolchainSection {
     channel: Option<String>,
     path: Option<PathBuf>,
@@ -1412,5 +1414,28 @@ channel = nightly
             result.unwrap_err().downcast::<OverrideFileConfigError>(),
             Ok(OverrideFileConfigError::Parsing)
         ));
+    }
+
+    #[test]
+    fn parse_toml_rejects_unknown_toolchain_key() {
+        let contents = r#"[toolchain]
+channnel = "nightly"
+"#;
+
+        let error = Cfg::parse_override_file(contents, ParseMode::OnlyToml).unwrap_err();
+        assert!(format!("{error:#}").contains("unknown field `channnel`"));
+    }
+
+    #[test]
+    fn parse_toml_rejects_unknown_top_level_key() {
+        let contents = r#"[toolchain]
+channel = "nightly"
+
+[rustup]
+version = 4
+"#;
+
+        let error = Cfg::parse_override_file(contents, ParseMode::OnlyToml).unwrap_err();
+        assert!(format!("{error:#}").contains("unknown field `rustup`"));
     }
 }
