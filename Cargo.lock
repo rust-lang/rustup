@@ -1652,9 +1652,9 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "platforms"
-version = "4.0.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1edb60d9efe54a87684d4d6217f612ecd22976ec9220e3e3ad78df2deeefc31"
+checksum = "acff5dfd42135d89cd7ad74a8c52813bbec91bf62c018ddd89390127767caab5"
 
 [[package]]
 name = "portable-atomic"
