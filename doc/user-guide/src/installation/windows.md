@@ -25,13 +25,7 @@ target that tuple by default.
 You can change this behavior with `rustup set default-host` or during
 installation.
 
-For example, to explicitly select the 32-bit MSVC host:
-
-```console
-$ rustup set default-host i686-pc-windows-msvc
-```
-
-Or to choose the 64 bit GNU toolchain:
+For example, to choose the 64 bit GNU toolchain:
 
 ```console
 $ rustup set default-host x86_64-pc-windows-gnu
