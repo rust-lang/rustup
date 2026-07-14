@@ -29,14 +29,13 @@ use crate::{
         config::Config,
         download::{DownloadCfg, DownloadStatus, File},
         manifest::{Component, CompressionKind, HashedBinary, Manifest},
-        prefix::InstallPrefix,
+        prefix::{DIST_MANIFEST, InstallPrefix},
         temp,
     },
     errors::RustupError,
     utils,
 };
 
-pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 
 #[derive(Debug)]
@@ -396,8 +395,7 @@ impl Manifestation {
     #[tracing::instrument(level = "trace")]
     pub fn load_manifest(&self) -> Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
-        let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
-        if utils::path_exists(&old_manifest_path) {
+        if let Some(old_manifest_path) = prefix.dist_manifest() {
             let manifest_str = utils::read_file("installed manifest", &old_manifest_path)?;
             Ok(Some(Manifest::parse(&manifest_str).with_context(|| {
                 RustupError::ParsingFile {

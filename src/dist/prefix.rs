@@ -11,6 +11,7 @@ const REL_MANIFEST_DIR: &str = match std::path::MAIN_SEPARATOR {
 };
 
 static V1_COMMON_COMPONENT_LIST: &[&str] = &["cargo", "rustc", "rust-docs"];
+pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 
 #[derive(Clone, Debug)]
 pub struct InstallPrefix {
@@ -35,6 +36,11 @@ impl InstallPrefix {
         let mut path = self.manifest_dir();
         path.push(name);
         path
+    }
+
+    pub(crate) fn dist_manifest(&self) -> Option<PathBuf> {
+        let path = self.manifest_file(DIST_MANIFEST);
+        utils::path_exists(&path).then_some(path)
     }
 
     pub(crate) fn rel_manifest_file(&self, name: &str) -> PathBuf {
