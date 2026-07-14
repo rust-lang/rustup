@@ -1125,10 +1125,9 @@ async fn try_update_from_dist_(
     } else {
         download
             .dl_v2_manifest(
-                // Even if manifest has not changed, we must continue to install requested components.
-                // So if components or targets is not empty, we skip passing `update_hash` so that
-                // we essentially degenerate to `rustup component add` / `rustup target add`
-                if components.is_empty() && targets.is_empty() {
+                // Skip the update hash when the installed manifest is missing or when components
+                // or targets were requested, since either case still requires the channel manifest.
+                if prefix.dist_manifest().is_some() && components.is_empty() && targets.is_empty() {
                     Some(update_hash)
                 } else {
                     None
