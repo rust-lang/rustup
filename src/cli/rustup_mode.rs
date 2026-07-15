@@ -468,6 +468,10 @@ struct UpdateOpts {
     /// Set the installed toolchain as the override for the current directory
     #[arg(long)]
     r#override: bool,
+
+    /// Set the installed toolchain as the default toolchain
+    #[arg(long)]
+    default: bool,
 }
 
 #[derive(Debug, Default, Args)]
@@ -1102,7 +1106,9 @@ async fn update(
                 cfg.make_override(&cfg.current_dir, &desc.clone().into())?;
             }
 
-            if cfg.get_default()?.is_none() && matches!(status, UpdateStatus::Installed) {
+            if opts.default
+                || (cfg.get_default()?.is_none() && matches!(status, UpdateStatus::Installed))
+            {
                 cfg.set_default(Some(&desc.into()))?;
             }
         }
