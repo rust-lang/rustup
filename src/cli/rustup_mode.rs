@@ -1059,7 +1059,6 @@ async fn update(
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
     let should_self_update = !opts.no_self_update;
     let force_non_host = opts.force_non_host;
-    let set_override = opts.r#override;
     cfg.profile_override = opts.profile;
 
     let cfg = &cfg;
@@ -1118,7 +1117,7 @@ async fn update(
                 Ok(status.clone()),
             )?;
 
-            if set_override {
+            if opts.r#override {
                 cfg.make_override(&cfg.current_dir, &desc.clone().into())?;
             }
 
