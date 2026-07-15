@@ -768,6 +768,27 @@ async fn install_override_toolchain_from_version() {
 }
 
 #[tokio::test]
+async fn install_with_default_flag() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "toolchain", "install", "beta", "--default"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.2.0 (hash-beta-1.2.0)
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn override_overrides_default() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
