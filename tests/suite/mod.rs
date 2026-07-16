@@ -1,3 +1,4 @@
+mod cli_crash;
 mod cli_exact;
 mod cli_inst_interactive;
 mod cli_misc;

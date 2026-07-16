@@ -12,10 +12,11 @@ use std::{
     mem,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, ExitStatus},
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
-    time::{Instant, SystemTime, UNIX_EPOCH},
+    thread,
+    time::{Duration as StdDuration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use chrono::{DateTime, Duration};
@@ -33,7 +34,7 @@ use crate::test::this_host_tuple;
 use crate::utils;
 
 use super::{
-    CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1,
+    CHECKPOINT_ENV, CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, checkpoint_path,
     dist::{MockDistServer, MockManifestVersion, Release, RlsStatus, change_channel_date},
     mock::MockFile,
 };
@@ -487,7 +488,7 @@ impl Config {
                         && e.raw_os_error() == Some(26)
                     {
                         // This is an ETXTBSY situation
-                        std::thread::sleep(std::time::Duration::from_millis(250));
+                        thread::sleep(StdDuration::from_millis(250));
                     } else {
                         panic!("Unable to run test command: {e:?}");
                     }
@@ -970,6 +971,48 @@ impl CliTestContext {
             .is_ok();
 
         Self { config, _test_dir }
+    }
+
+    /// Run a rustup command until it reaches `checkpoint`, then terminate it
+    /// without giving destructors an opportunity to run.
+    pub fn kill_at_checkpoint(&self, mut command: Command, checkpoint: &str) -> ExitStatus {
+        let marker = checkpoint_path(&self.config.test_root_dir, checkpoint);
+        if let Err(error) = fs::remove_file(&marker)
+            && error.kind() != io::ErrorKind::NotFound
+        {
+            panic!("failed to remove stale checkpoint marker: {error}");
+        }
+
+        command.env(CHECKPOINT_ENV, checkpoint);
+        let mut child = command
+            .spawn()
+            .expect("failed to start command for checkpoint test");
+
+        let deadline = Instant::now() + StdDuration::from_secs(10);
+        loop {
+            if matches!(fs::read_to_string(&marker), Ok(contents) if contents == checkpoint) {
+                break;
+            }
+            if let Some(status) = child
+                .try_wait()
+                .expect("failed to query checkpoint test command")
+            {
+                panic!("command exited before reaching checkpoint {checkpoint:?}: {status}");
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("timed out waiting for checkpoint {checkpoint:?}");
+            }
+            thread::sleep(StdDuration::from_millis(10));
+        }
+
+        child
+            .kill()
+            .expect("failed to terminate command at checkpoint");
+        child
+            .wait()
+            .expect("failed to reap command after checkpoint")
     }
 
     /// Move the dist server to the specified scenario and restore it
