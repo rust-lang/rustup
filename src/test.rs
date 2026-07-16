@@ -21,7 +21,7 @@ use anyhow::Result;
 use sha2::{Digest, Sha256};
 
 use crate::dist::TargetTuple;
-use crate::process::TestProcess;
+use crate::process::{Process, TestProcess};
 
 #[cfg(windows)]
 pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
@@ -35,6 +35,31 @@ pub(super) mod dist;
 pub use dist::DistContext;
 pub(super) mod mock;
 pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+
+/// Signal that a selected test checkpoint has been reached, then wait for the
+/// test driver to terminate this process.
+pub(crate) fn checkpoint(process: &Process, name: &str) {
+    if process.var(CHECKPOINT_ENV).as_deref() != Ok(name) {
+        return;
+    }
+
+    let rustup_home = process
+        .rustup_home()
+        .expect("selected test checkpoint requires RUSTUP_HOME");
+    let test_root = rustup_home
+        .parent()
+        .expect("test RUSTUP_HOME must be inside the test root");
+    fs::write(checkpoint_path(test_root, name), name)
+        .expect("failed to write test checkpoint marker");
+
+    loop {
+        std::thread::park();
+    }
+}
+
+fn checkpoint_path(test_root: &Path, name: &str) -> PathBuf {
+    test_root.join(format!("rustup-checkpoint-{name}"))
+}
 
 // Things that can have environment variables applied to them.
 pub trait Env {
@@ -327,3 +352,5 @@ pub static CROSS_ARCH2: &str = "arm-linux-androideabi";
 pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
 #[cfg(not(target_pointer_width = "64"))]
 static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
+
+const CHECKPOINT_ENV: &str = "RUSTUP_TEST_CHECKPOINT";
