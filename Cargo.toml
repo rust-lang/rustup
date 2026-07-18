@@ -45,7 +45,6 @@ anstream = "1"
 anstyle = "1.0.11"
 anyhow = "1.0.69"
 cc = "1"
-cfg-if = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help", "string"] }
 clap-cargo = "0.18.3"
@@ -68,13 +67,10 @@ opener = "0.8.0"
 # `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
 # allows controlling the vendoring status without exposing the presence of the download crate.
 openssl = { version = "0.10", optional = true }
-# HACK: Temporarily pinned due to ppc64 ELFv1/v2 ABI issue in 300.5.5, to be
-# removed when <https://github.com/openssl/openssl/issues/29815> lands.
-openssl-src = { version = "=300.5.4", optional = true }
 opentelemetry = { version = "0.32", optional = true }
 opentelemetry-otlp = { version = "0.32", features = ["grpc-tonic"], optional = true }
 opentelemetry_sdk = { version = "0.32", features = ["rt-tokio"], optional = true }
-platforms = "3.4"
+platforms = "4"
 pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.10"
 rayon = "1.10.0"
@@ -155,7 +151,7 @@ tokio-rustls = "0.26.4"
 webpki-root-certs = "1"
 
 [build-dependencies]
-platforms = "3.4"
+platforms = "4"
 
 [lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

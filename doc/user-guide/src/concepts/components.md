@@ -62,6 +62,8 @@ toolchains. The following is an overview of the different components:
 * `rustc-dev` --- This component contains the compiler as a library. Most users
   will not need this; it is only needed for development *of* tools that link
   to the compiler, such as making modifications to [Clippy].
+* `enzyme` --- This component enables the `std::autodiff` module in nightly Rust.
+  See [autodiff][enzyme] for more detail.
 
 ### Previous components
 
@@ -101,3 +103,4 @@ details.
 [rustup components history]: https://rust-lang.github.io/rustup-components-history/
 [profiles]: profiles.md
 [nightly availability]: channels.md#nightly-availability
+[enzyme]: https://rustc-dev-guide.rust-lang.org/autodiff/installation.html

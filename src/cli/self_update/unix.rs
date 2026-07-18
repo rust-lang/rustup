@@ -61,10 +61,7 @@ pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
             let file = utils::read_file("rcfile", rc)?;
             let file_bytes = file.into_bytes();
             // FIXME: This is whitespace sensitive where it should not be.
-            if let Some(idx) = file_bytes
-                .windows(source_bytes.len())
-                .position(|w| w == source_bytes.as_slice())
-            {
+            if let Some(idx) = find_exact_line(&file_bytes, &source_bytes) {
                 // Here we rewrite the file without the offending line.
                 let mut new_bytes = file_bytes[..idx].to_vec();
                 new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
@@ -153,10 +150,7 @@ fn remove_legacy_source_command(source_cmd: String, process: &Process) -> Result
         let file = utils::read_file("rcfile", &rc)?;
         let file_bytes = file.into_bytes();
         // FIXME: This is whitespace sensitive where it should not be.
-        if let Some(idx) = file_bytes
-            .windows(cmd_bytes.len())
-            .position(|w| w == cmd_bytes.as_slice())
-        {
+        if let Some(idx) = find_exact_line(&file_bytes, &cmd_bytes) {
             // Here we rewrite the file without the offending line.
             let mut new_bytes = file_bytes[..idx].to_vec();
             new_bytes.extend(&file_bytes[idx + cmd_bytes.len()..]);
@@ -165,6 +159,16 @@ fn remove_legacy_source_command(source_cmd: String, process: &Process) -> Result
         }
     }
     Ok(())
+}
+
+fn find_exact_line(file: &[u8], line: &[u8]) -> Option<usize> {
+    // The trailing newline enforces the end boundary; check the start boundary here.
+    assert!(line.ends_with(b"\n"));
+    file.windows(line.len())
+        .enumerate()
+        .find_map(|(idx, candidate)| {
+            (candidate == line && (idx == 0 || file[idx - 1] == b'\n')).then_some(idx)
+        })
 }
 
 fn remove_legacy_paths(process: &Process) -> Result<()> {

@@ -42,7 +42,6 @@ use std::{fmt, fs};
 
 use anstyle::Style;
 use anyhow::{Context, Result, anyhow};
-use cfg_if::cfg_if;
 use clap::ValueEnum;
 use clap::builder::PossibleValue;
 use clap_cargo::style::{GOOD, WARN};
@@ -539,12 +538,9 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
-        cfg_if! {
-            if #[cfg(windows)] {
-                r"%USERPROFILE%\.cargo".into()
-            } else {
-                "$HOME/.cargo".into()
-            }
+        cfg_select! {
+            windows => r"%USERPROFILE%\.cargo".into(),
+            _ => "$HOME/.cargo".into(),
         }
     } else {
         path.to_string_lossy().into_owned().into()
@@ -1047,17 +1043,22 @@ async fn maybe_install_rust(opts: InstallOpts<'_>, cfg: &mut Cfg<'_>) -> Result<
     Ok(())
 }
 
-pub(crate) fn uninstall(
-    no_prompt: bool,
-    no_modify_path: bool,
-    process: &Process,
-) -> Result<ExitCode> {
+/// Uninstall process:
+/// 1. Remove all installed toolchains.
+/// 2. Remove rustup home.
+/// 3. Remove all entries in `$CARGO_HOME` except `bin`.
+/// 4. Remove rustup tool links and binary.
+/// 5. Try to remove $CARGO_HOME/bin directory if it's empty.
+/// 6. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
+/// 7. Try to remove $CARGO_HOME directory if it's empty.
+pub(crate) fn uninstall(no_prompt: bool, no_modify_path: bool, cfg: &Cfg<'_>) -> Result<ExitCode> {
     if cfg!(feature = "no-self-update") {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
         return Ok(ExitCode::FAILURE);
     }
 
+    let process = cfg.process;
     let cargo_home = process.cargo_home()?;
 
     if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
@@ -1079,6 +1080,11 @@ pub(crate) fn uninstall(
             info!("aborting uninstallation");
             return Ok(ExitCode::SUCCESS);
         }
+    }
+
+    info!("removing toolchains");
+    for toolchain in cfg.list_toolchains()? {
+        Toolchain::ensure_removed(cfg, toolchain.into())?;
     }
 
     info!("removing rustup home");

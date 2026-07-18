@@ -353,7 +353,7 @@ async fn add_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -372,7 +372,7 @@ async fn remove_target() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -404,13 +404,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(cx.config.rustupdir.has(path));
@@ -421,13 +421,13 @@ async fn add_remove_multiple_targets() {
         .is_ok();
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     assert!(!cx.config.rustupdir.has(path));
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH2
     );
     assert!(!cx.config.rustupdir.has(path));
@@ -474,7 +474,7 @@ async fn add_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -500,7 +500,7 @@ async fn remove_target_explicit() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = format!(
         "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-        &this_host_tuple(),
+        this_host_tuple(),
         CROSS_ARCH1
     );
     cx.config
@@ -4173,14 +4173,7 @@ async fn missing_manifest_shows_reinstall_help() {
         .await
         .is_ok();
 
-    let manifest_path = cx
-        .config
-        .rustupdir
-        .join("toolchains")
-        .join(format!("nightly-{}", this_host_tuple()))
-        .join("lib")
-        .join("rustlib")
-        .join("multirust-channel-manifest.toml");
+    let manifest_path = nightly_manifest_path(&cx);
 
     fs::remove_file(&manifest_path).unwrap();
 
@@ -4194,4 +4187,52 @@ help: try reinstalling or updating the toolchain
 
 "#]])
         .is_err();
+}
+
+#[tokio::test]
+async fn reinstall_restores_missing_manifest() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+
+    let manifest_path = nightly_manifest_path(&cx);
+
+    fs::remove_file(&manifest_path).unwrap();
+
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+
+    assert!(manifest_path.exists());
+}
+
+#[tokio::test]
+async fn update_all_restores_missing_manifest() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+
+    let manifest_path = nightly_manifest_path(&cx);
+    fs::remove_file(&manifest_path).unwrap();
+
+    cx.config.expect(["rustup", "update"]).await.is_ok();
+
+    assert!(manifest_path.exists());
+}
+
+fn nightly_manifest_path(cx: &CliTestContext) -> PathBuf {
+    cx.config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("nightly-{}", this_host_tuple()))
+        .join("lib")
+        .join("rustlib")
+        .join("multirust-channel-manifest.toml")
 }

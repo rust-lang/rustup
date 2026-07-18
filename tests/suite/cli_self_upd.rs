@@ -205,6 +205,28 @@ async fn uninstall_deletes_bins() {
 }
 
 #[tokio::test]
+async fn uninstall_deletes_installed_toolchains() {
+    let cx = setup_empty_installed().await;
+    let path = cx.config.customdir.join("custom-1");
+    let path = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "self", "uninstall", "-y"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+info: uninstalling toolchain custom
+info: toolchain custom uninstalled
+...
+"#]])
+        .is_ok();
+    assert!(!cx.config.rustupdir.join("toolchains").exists());
+}
+
+#[tokio::test]
 async fn uninstall_works_if_some_bins_dont_exist() {
     let cx = setup_empty_installed().await;
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));

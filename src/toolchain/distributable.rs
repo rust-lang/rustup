@@ -439,12 +439,14 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub async fn fetch_dist_manifest(&self) -> anyhow::Result<Option<ManifestWithHash>> {
+        let prefix = InstallPrefix::from(self.toolchain.path());
+        let update_hash = if prefix.dist_manifest().is_some() {
+            Some(self.toolchain.cfg.get_hash_file(&self.desc, false)?)
+        } else {
+            None
+        };
         DownloadCfg::new(self.toolchain.cfg)
-            .dl_v2_manifest(
-                Some(&self.toolchain.cfg.get_hash_file(&self.desc, false)?),
-                &self.desc,
-                self.toolchain.cfg,
-            )
+            .dl_v2_manifest(update_hash.as_deref(), &self.desc, self.toolchain.cfg)
             .await
     }
 

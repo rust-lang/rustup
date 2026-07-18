@@ -193,13 +193,13 @@ jobs: # skip-main skip-pr skip-stable
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.mode == 'release'
+        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
       - name: Deploy build to rustup-builds bucket for release team
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.mode == 'release'
+        if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
         run: |
           aws --debug s3 cp --recursive dist s3://rustup-builds/${{ github.sha }}/dist
         env:

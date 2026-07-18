@@ -468,6 +468,10 @@ struct UpdateOpts {
     /// Set the installed toolchain as the override for the current directory
     #[arg(long)]
     r#override: bool,
+
+    /// Set the installed toolchain as the default toolchain
+    #[arg(long)]
+    default: bool,
 }
 
 #[derive(Debug, Default, Args)]
@@ -812,7 +816,7 @@ pub async fn main(
             SelfSubcmd::Uninstall {
                 no_prompt,
                 no_modify_path,
-            } => self_update::uninstall(no_prompt, no_modify_path, process),
+            } => self_update::uninstall(no_prompt, no_modify_path, cfg),
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
@@ -1040,7 +1044,6 @@ async fn update(
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
     let should_self_update = !opts.no_self_update;
     let force_non_host = opts.force_non_host;
-    let set_override = opts.r#override;
     cfg.profile_override = opts.profile;
 
     let cfg = &cfg;
@@ -1099,11 +1102,13 @@ async fn update(
                 Ok(status.clone()),
             )?;
 
-            if set_override {
+            if opts.r#override {
                 cfg.make_override(&cfg.current_dir, &desc.clone().into())?;
             }
 
-            if cfg.get_default()?.is_none() && matches!(status, UpdateStatus::Installed) {
+            if opts.default
+                || (cfg.get_default()?.is_none() && matches!(status, UpdateStatus::Installed))
+            {
                 cfg.set_default(Some(&desc.into()))?;
             }
         }
