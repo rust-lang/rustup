@@ -1,9 +1,13 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 
-use anyhow::Result;
-use tracing::debug;
+use anyhow::{Context, Result};
+use tracing::{debug, warn};
 
 use crate::{
     config::Cfg,
@@ -12,6 +16,61 @@ use crate::{
     toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
 };
+
+#[cfg(feature = "test")]
+use crate::test::checkpoint;
+
+impl StagedToolchain {
+    fn new(destination: &Path) -> Result<Self> {
+        let parent = destination
+            .parent()
+            .expect("toolchain destination must have a parent");
+        utils::ensure_dir_exists("toolchains", parent)?;
+
+        loop {
+            let root = parent.join(format!(
+                "{STAGING_DIR_PREFIX}{}",
+                utils::raw::random_string(16)
+            ));
+            match fs::create_dir(&root) {
+                Ok(()) => {
+                    let prefix = root.join("toolchain");
+                    return Ok(Self { root, prefix });
+                }
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                Err(error) => {
+                    return Err(error).with_context(|| RustupError::CreatingDirectory {
+                        name: "staging toolchain",
+                        path: root,
+                    });
+                }
+            }
+        }
+    }
+
+    fn prefix(&self) -> &Path {
+        &self.prefix
+    }
+
+    fn publish(self, destination: &Path) -> Result<()> {
+        // Staging is a child of the destination directory, so publication must
+        // be a same-filesystem rename. Never permit the copy-and-delete fallback.
+        utils::rename("toolchain", &self.prefix, destination, false)
+    }
+}
+
+impl Drop for StagedToolchain {
+    fn drop(&mut self) {
+        if utils::path_exists(&self.root)
+            && let Err(error) = utils::remove_dir("staging toolchain", &self.root)
+        {
+            warn!(
+                path = %self.root.display(),
+                "could not remove staging toolchain: {error}"
+            );
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) enum UpdateStatus {
@@ -53,8 +112,14 @@ impl InstallMethod<'_, '_> {
             _ => debug!("updating existing install for '{}'", self.dest_basename()),
         }
 
-        debug!("toolchain directory: {}", self.dest_path().display());
-        let updated = self.run(&self.dest_path(), manifest).await?;
+        let destination = self.dest_path();
+        debug!("toolchain directory: {}", destination.display());
+        let updated = match &self {
+            InstallMethod::Dist(DistOptions { exists: false, .. }) => {
+                self.run_staged_dist(&destination, manifest).await?
+            }
+            _ => self.run(&destination, manifest).await?,
+        };
 
         let status = match updated {
             false => {
@@ -104,7 +169,9 @@ impl InstallMethod<'_, '_> {
             }
             InstallMethod::Dist(opts) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = opts.install_into(prefix, manifest).await?;
+                let maybe_new_hash = opts
+                    .install_into(prefix, &opts.update_hash, manifest)
+                    .await?;
 
                 if let Some(hash) = maybe_new_hash {
                     utils::write_file("update hash", &opts.update_hash, &hash)?;
@@ -114,6 +181,43 @@ impl InstallMethod<'_, '_> {
                 }
             }
         }
+    }
+
+    async fn run_staged_dist(
+        &self,
+        destination: &Path,
+        manifest: Option<ManifestWithHash>,
+    ) -> Result<bool> {
+        let InstallMethod::Dist(opts) = self else {
+            unreachable!("only distribution installs can be staged");
+        };
+
+        if opts.update_hash.exists() {
+            warn!(
+                "removing stray hash file in order to continue: {}",
+                opts.update_hash.display()
+            );
+        }
+
+        let staging = StagedToolchain::new(destination)?;
+        let prefix = InstallPrefix::from(staging.prefix().to_owned());
+        // Installation must not touch alias-scoped metadata before the object
+        // is published, including a stale update hash from an earlier attempt.
+        let staging_hash = staging.root.join("update-hash");
+        let Some(hash) = opts.install_into(&prefix, &staging_hash, manifest).await? else {
+            return Ok(false);
+        };
+
+        #[cfg(feature = "test")]
+        checkpoint(opts.cfg.process, "install-before-publish");
+
+        staging.publish(destination)?;
+
+        #[cfg(feature = "test")]
+        checkpoint(opts.cfg.process, "install-after-publish");
+
+        utils::write_file("update hash", &opts.update_hash, &hash)?;
+        Ok(true)
     }
 
     fn cfg(&self) -> &Cfg<'_> {
@@ -155,4 +259,13 @@ impl InstallMethod<'_, '_> {
 
 pub(crate) fn uninstall(path: &Path) -> Result<()> {
     utils::remove_dir("install", path)
+}
+
+// `+` is not valid at the start of a toolchain name, so abandoned stages are
+// identifiable and excluded by the existing toolchain enumeration.
+const STAGING_DIR_PREFIX: &str = "+rustup-staging-";
+
+struct StagedToolchain {
+    root: PathBuf,
+    prefix: PathBuf,
 }

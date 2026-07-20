@@ -939,16 +939,17 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     pub(crate) async fn install_into(
         &self,
         prefix: &InstallPrefix,
+        update_hash: &Path,
         manifest: Option<ManifestWithHash>,
     ) -> Result<Option<String>> {
         let fresh_install = !prefix.path().exists();
         // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-        if fresh_install && self.update_hash.exists() {
+        if fresh_install && update_hash.exists() {
             warn!(
                 "removing stray hash file in order to continue: {}",
-                self.update_hash.display()
+                update_hash.display()
             );
-            std::fs::remove_file(&self.update_hash)?;
+            std::fs::remove_file(update_hash)?;
         }
 
         let mut fetched = String::new();
@@ -1002,7 +1003,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         let res = loop {
             let result = try_update_from_dist_(
                 &self.dl_cfg,
-                &self.update_hash,
+                update_hash,
                 &toolchain,
                 match self.exists {
                     false => Some(self.profile),
