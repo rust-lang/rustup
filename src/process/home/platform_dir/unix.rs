@@ -1,31 +1,44 @@
+//! Unix legacy-home detection and XDG platform defaults.
+
 use std::io;
 use std::path::PathBuf;
 
-use crate::process::home::env::Env;
+use super::env::Env;
 
-#[allow(dead_code)]
-pub(crate) fn data_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
+pub(super) fn data_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
     xdg_dir("XDG_DATA_HOME", ".local/share", env)
 }
 
-#[allow(dead_code)]
-pub(crate) fn config_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
+pub(super) fn config_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
     xdg_dir("XDG_CONFIG_HOME", ".config", env)
 }
 
-#[allow(dead_code)]
-pub(crate) fn state_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
+pub(super) fn state_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
     xdg_dir("XDG_STATE_HOME", ".local/state", env)
 }
 
-#[allow(dead_code)]
-pub(crate) fn cache_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
+pub(super) fn cache_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
     xdg_dir("XDG_CACHE_HOME", ".cache", env)
 }
 
-#[allow(dead_code)]
-pub(crate) fn bin_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
+pub(super) fn bin_home_with_env(env: &dyn Env) -> io::Result<PathBuf> {
     Ok(xdg_home_dir(env)?.join(".local/bin"))
+}
+
+pub(super) fn cargo_home_if_exists(env: &dyn Env) -> Option<PathBuf> {
+    home_if_exists(".cargo", env)
+}
+
+pub(super) fn rustup_home_if_exists(env: &dyn Env) -> Option<PathBuf> {
+    home_if_exists(".rustup", env)
+}
+
+// One existing legacy root keeps all of that product's categories together. `is_dir`
+// follows symlinks and treats missing or inaccessible paths as absent.
+
+fn home_if_exists(name: &str, env: &dyn Env) -> Option<PathBuf> {
+    let path = super::env::home_dir_with_env(env)?.join(name);
+    path.is_dir().then_some(path)
 }
 
 fn xdg_dir(variable: &str, fallback_subdir: &str, env: &dyn Env) -> io::Result<PathBuf> {
@@ -52,13 +65,12 @@ fn xdg_dir(variable: &str, fallback_subdir: &str, env: &dyn Env) -> io::Result<P
 }
 
 fn xdg_home_dir(env: &dyn Env) -> io::Result<PathBuf> {
-    crate::process::home::env::home_dir_with_env(env)
-        .ok_or_else(|| io::Error::other("could not find home dir"))
+    super::env::home_dir_with_env(env).ok_or_else(|| io::Error::other("could not find home dir"))
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, ffi::OsString, path::Path};
+    use std::{collections::HashMap, ffi::OsString, fs, path::Path};
 
     use super::*;
 
@@ -75,25 +87,25 @@ mod tests {
     const XDG_DIRS: [XdgDir; 4] = [
         XdgDir {
             variable: "XDG_DATA_HOME",
-            explicit: "/srv/rustup/data",
+            explicit: "/srv/data",
             fallback: ".local/share",
             resolve: data_home_with_env,
         },
         XdgDir {
             variable: "XDG_CONFIG_HOME",
-            explicit: "/etc/rustup/config",
+            explicit: "/srv/config",
             fallback: ".config",
             resolve: config_home_with_env,
         },
         XdgDir {
             variable: "XDG_STATE_HOME",
-            explicit: "/var/lib/rustup/state",
+            explicit: "/srv/state",
             fallback: ".local/state",
             resolve: state_home_with_env,
         },
         XdgDir {
             variable: "XDG_CACHE_HOME",
-            explicit: "/var/cache/rustup",
+            explicit: "/srv/cache",
             fallback: ".cache",
             resolve: cache_home_with_env,
         },
@@ -103,15 +115,6 @@ mod tests {
     struct Fixture {
         home: Option<PathBuf>,
         vars: HashMap<&'static str, OsString>,
-    }
-
-    impl Fixture {
-        fn with_home(home: Option<&str>) -> Self {
-            Self {
-                home: home.map(PathBuf::from),
-                ..Self::default()
-            }
-        }
     }
 
     impl Env for Fixture {
@@ -147,47 +150,44 @@ mod tests {
             bin_home_with_env(fixture)?,
             Path::new(TEST_HOME).join(".local/bin")
         );
-
         Ok(())
     }
 
     #[test]
-    fn explicit_env_vars() -> io::Result<()> {
-        let mut fixture = Fixture::with_home(None);
+    fn explicit_xdg_vars_do_not_need_home() -> io::Result<()> {
+        let mut fixture = Fixture::default();
         for case in &XDG_DIRS {
             fixture.vars.insert(case.variable, case.explicit.into());
         }
 
         for case in &XDG_DIRS {
-            assert_eq!(
-                (case.resolve)(&fixture)?,
-                Path::new(case.explicit),
-                "{}",
-                case.variable,
-            );
+            assert_eq!((case.resolve)(&fixture)?, Path::new(case.explicit));
         }
-
         Ok(())
     }
 
     #[test]
-    fn fallback_home_dir() -> io::Result<()> {
-        let missing = Fixture::with_home(Some(TEST_HOME));
+    fn missing_and_empty_xdg_vars_use_home() -> io::Result<()> {
+        let missing = Fixture {
+            home: Some(TEST_HOME.into()),
+            ..Fixture::default()
+        };
         assert_fallback_paths(&missing)?;
 
-        let mut empty = Fixture::with_home(Some(TEST_HOME));
+        let mut empty = Fixture {
+            home: Some(TEST_HOME.into()),
+            ..Fixture::default()
+        };
         for case in &XDG_DIRS {
             empty.vars.insert(case.variable, OsString::new());
         }
-        assert_fallback_paths(&empty)?;
-
-        Ok(())
+        assert_fallback_paths(&empty)
     }
 
     #[test]
-    fn reject_relative_paths() {
+    fn relative_xdg_vars_are_rejected() {
         for case in &XDG_DIRS {
-            let mut fixture = Fixture::with_home(Some(TEST_HOME));
+            let mut fixture = Fixture::default();
             fixture.vars.insert(case.variable, "relative/path".into());
 
             assert_error(
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn missing_home_errors() {
-        let fixture = Fixture::with_home(None);
+        let fixture = Fixture::default();
 
         for case in &XDG_DIRS {
             assert_error(
@@ -214,5 +214,30 @@ mod tests {
             io::ErrorKind::Other,
             "could not find home dir",
         );
+    }
+
+    #[test]
+    fn implicit_legacy_homes_must_be_directories() -> io::Result<()> {
+        let home = tempfile::tempdir()?;
+        let fixture = Fixture {
+            home: Some(home.path().into()),
+            ..Fixture::default()
+        };
+
+        assert_eq!(cargo_home_if_exists(&fixture), None);
+        assert_eq!(rustup_home_if_exists(&fixture), None);
+
+        fs::create_dir(home.path().join(".cargo"))?;
+        fs::create_dir(home.path().join(".rustup"))?;
+
+        assert_eq!(
+            cargo_home_if_exists(&fixture),
+            Some(home.path().join(".cargo"))
+        );
+        assert_eq!(
+            rustup_home_if_exists(&fixture),
+            Some(home.path().join(".rustup"))
+        );
+        Ok(())
     }
 }
