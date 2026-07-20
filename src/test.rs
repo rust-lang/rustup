@@ -36,24 +36,26 @@ pub use dist::DistContext;
 pub(super) mod mock;
 pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
-/// Signal that a selected test checkpoint has been reached, then wait for the
-/// test driver to terminate this process.
-pub(crate) fn checkpoint(process: &Process, name: &str) {
-    if process.var(CHECKPOINT_ENV).as_deref() != Ok(name) {
-        return;
-    }
+impl Process {
+    /// Signal that a selected test checkpoint has been reached, then wait for the
+    /// test driver to terminate this process.
+    pub(crate) fn checkpoint(&self, name: &str) {
+        if self.var(CHECKPOINT_ENV).as_deref() != Ok(name) {
+            return;
+        }
 
-    let rustup_home = process
-        .rustup_home()
-        .expect("selected test checkpoint requires RUSTUP_HOME");
-    let test_root = rustup_home
-        .parent()
-        .expect("test RUSTUP_HOME must be inside the test root");
-    fs::write(checkpoint_path(test_root, name), name)
-        .expect("failed to write test checkpoint marker");
+        let rustup_home = self
+            .rustup_home()
+            .expect("selected test checkpoint requires RUSTUP_HOME");
+        let test_root = rustup_home
+            .parent()
+            .expect("test RUSTUP_HOME must be inside the test root");
+        fs::write(checkpoint_path(test_root, name), name)
+            .expect("failed to write test checkpoint marker");
 
-    loop {
-        std::thread::park();
+        loop {
+            std::thread::park();
+        }
     }
 }
 
