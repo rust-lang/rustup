@@ -975,7 +975,11 @@ impl CliTestContext {
 
     /// Run a rustup command until it reaches `checkpoint`, then terminate it
     /// without giving destructors an opportunity to run.
-    pub fn kill_at_checkpoint(&self, mut command: Command, checkpoint: &str) -> ExitStatus {
+    pub fn kill_at<S: AsRef<OsStr> + Clone + Debug>(
+        &self,
+        checkpoint: &str,
+        args: impl AsRef<[S]>,
+    ) -> ExitStatus {
         let marker = checkpoint_path(&self.config.test_root_dir, checkpoint);
         if let Err(error) = fs::remove_file(&marker)
             && error.kind() != io::ErrorKind::NotFound
@@ -983,10 +987,28 @@ impl CliTestContext {
             panic!("failed to remove stale checkpoint marker: {error}");
         }
 
-        command.env(CHECKPOINT_ENV, checkpoint);
-        let mut child = command
-            .spawn()
-            .expect("failed to start command for checkpoint test");
+        let (program, args) = args
+            .as_ref()
+            .split_first()
+            .expect("args should not be empty");
+        let mut cmd = self.config.cmd(
+            program
+                .as_ref()
+                .to_str()
+                .expect("invalid UTF-8 in program name"),
+            args,
+        );
+        cmd.env(CHECKPOINT_ENV, checkpoint);
+
+        let mut child = {
+            // The lock covers the spawn itself. It must not be held while the
+            // child stays parked: a writer queued behind it would then block
+            // every command spawned in the meantime, including the ones a test
+            // wants to run against the parked process.
+            let _lock = CMD_LOCK.read().unwrap();
+            cmd.spawn()
+                .expect("failed to start command for checkpoint test")
+        };
 
         let deadline = Instant::now() + StdDuration::from_secs(10);
         loop {
