@@ -294,7 +294,7 @@ impl Manifestation {
         #[cfg(feature = "test")]
         download_cfg
             .process
-            .checkpoint("manifestation-update-before-metadata");
+            .checkpoint(CHECKPOINT_UPDATE_BEFORE_METADATA);
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify()?;
@@ -884,3 +884,6 @@ impl ComponentInstall {
         tx
     }
 }
+
+#[cfg(feature = "test")]
+pub const CHECKPOINT_UPDATE_BEFORE_METADATA: &str = "update-before-metadata";
