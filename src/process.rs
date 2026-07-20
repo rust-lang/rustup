@@ -8,6 +8,7 @@ use std::str::FromStr;
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
+    fs,
     io::Cursor,
     path::Path,
     sync::{Arc, Mutex},
@@ -25,7 +26,10 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 #[cfg(feature = "test")]
-use crate::cli::log;
+use crate::{
+    cli::log,
+    test::{CHECKPOINT_ENV, checkpoint_path},
+};
 
 mod file_source;
 mod terminal_source;
@@ -233,6 +237,29 @@ impl Process {
     pub fn concurrent_downloads(&self) -> Option<usize> {
         let s = self.var("RUSTUP_CONCURRENT_DOWNLOADS").ok()?;
         Some(NonZero::from_str(&s).ok()?.get())
+    }
+
+    /// Registers a testing checkpoint with the given name and parks the current thread.
+    ///
+    /// Usually, the current process will be killed by the test driver.
+    #[cfg(feature = "test")]
+    pub(crate) fn checkpoint(&self, name: &str) {
+        if self.var(CHECKPOINT_ENV).as_deref() != Ok(name) {
+            return;
+        }
+
+        let rustup_home = self
+            .rustup_home()
+            .expect("selected test checkpoint requires RUSTUP_HOME");
+        let test_root = rustup_home
+            .parent()
+            .expect("test RUSTUP_HOME must be inside the test root");
+        fs::write(checkpoint_path(test_root, name), name)
+            .expect("failed to write test checkpoint marker");
+
+        loop {
+            thread::park();
+        }
     }
 }
 
