@@ -75,7 +75,7 @@ mod download;
 pub mod env_var;
 pub mod errors;
 mod fallback_settings;
-mod install;
+pub mod install;
 pub mod process;
 mod settings;
 #[cfg(feature = "test")]

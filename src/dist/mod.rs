@@ -17,7 +17,7 @@ use itertools::Itertools;
 use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::{
     config::Cfg,
@@ -943,14 +943,6 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         manifest: Option<ManifestWithHash>,
     ) -> Result<Option<String>> {
         let fresh_install = !prefix.path().exists();
-        // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-        if fresh_install && update_hash.exists() {
-            warn!(
-                "removing stray hash file in order to continue: {}",
-                update_hash.display()
-            );
-            std::fs::remove_file(update_hash)?;
-        }
 
         let mut fetched = String::new();
         let mut first_err = None;

@@ -2,11 +2,10 @@
 //! toolchains
 use std::{
     fs,
-    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use tracing::{debug, warn};
 
 use crate::{
@@ -25,42 +24,86 @@ impl StagedToolchain {
         let parent = destination
             .parent()
             .expect("toolchain destination must have a parent");
+        let name = destination
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("toolchain destination must have a UTF-8 base name");
         utils::ensure_dir_exists("toolchains", parent)?;
 
-        loop {
-            let root = parent.join(format!(
-                "{STAGING_DIR_PREFIX}{}",
-                utils::raw::random_string(16)
-            ));
-            match fs::create_dir(&root) {
-                Ok(()) => {
-                    let prefix = root.join("toolchain");
-                    return Ok(Self { root, prefix });
-                }
-                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
-                Err(error) => {
-                    return Err(error).with_context(|| RustupError::CreatingDirectory {
-                        name: "staging toolchain",
-                        path: root,
-                    });
-                }
+        // The stage lives at a deterministic path so that interrupted
+        // installs of the same toolchain reuse a single staging directory
+        // instead of accumulating abandoned ones.
+        let root = parent.join(format!("{STAGING_DIR_PREFIX}{name}"));
+        utils::ensure_dir_exists("staging toolchain", &root)?;
+
+        // The lock is held for the lifetime of the stage and released by the
+        // OS if this process dies, so an abandoned stage can be reclaimed
+        // safely. Blocking on (rather than failing under) contention and
+        // serializing whole operations is left to the locking work tracked
+        // in rust-lang/rustup#988.
+        let lock = fs::File::create(root.join(STAGING_LOCK_FILE))
+            .with_context(|| format!("failed to create lock file in {}", root.display()))?;
+        match lock.try_lock() {
+            Ok(()) => {}
+            Err(fs::TryLockError::WouldBlock) => bail!(
+                "toolchain '{name}' is already being installed by another rustup process; \
+                 wait for it to finish and retry"
+            ),
+            Err(fs::TryLockError::Error(error)) => {
+                return Err(error).with_context(|| {
+                    format!("failed to lock staging directory {}", root.display())
+                });
             }
         }
+
+        // This process owns the stage: clear anything left over from an
+        // interrupted attempt so installation starts from a clean prefix.
+        let prefix = root.join("toolchain");
+        if utils::path_exists(&prefix) {
+            utils::remove_dir("staging toolchain", &prefix)?;
+        }
+        utils::ensure_file_removed("staging update hash", &root.join(STAGING_HASH_FILE))?;
+
+        Ok(Self {
+            root,
+            prefix,
+            lock: Some(lock),
+        })
     }
 
     fn prefix(&self) -> &Path {
         &self.prefix
     }
 
+    /// Path of the update hash tracked next to the stage. The hash under
+    /// `$RUSTUP_HOME/update-hashes` is alias-scoped metadata and must not be
+    /// touched before the staged toolchain is published.
+    fn update_hash(&self) -> PathBuf {
+        self.root.join(STAGING_HASH_FILE)
+    }
+
     fn publish(self, destination: &Path) -> Result<()> {
-        // Staging is a child of the destination directory, so publication must
-        // be a same-filesystem rename. Never permit the copy-and-delete fallback.
-        utils::rename("toolchain", &self.prefix, destination, false)
+        // Staging is a sibling of the destination inside `toolchains/`, so
+        // publication must be a same-filesystem rename. Never permit the
+        // copy-and-delete fallback.
+        match utils::rename("toolchain", &self.prefix, destination, false) {
+            Err(error) if utils::path_exists(destination) => Err(error).with_context(|| {
+                format!(
+                    "toolchain directory {} was created by another process \
+                     while this installation was in progress",
+                    destination.display()
+                )
+            }),
+            result => result,
+        }
     }
 }
 
 impl Drop for StagedToolchain {
     fn drop(&mut self) {
+        // Release the lock before removing the stage: an open handle inside
+        // the directory can prevent its removal on Windows.
+        drop(self.lock.take());
         if utils::path_exists(&self.root)
             && let Err(error) = utils::remove_dir("staging toolchain", &self.root)
         {
@@ -114,12 +157,7 @@ impl InstallMethod<'_, '_> {
 
         let destination = self.dest_path();
         debug!("toolchain directory: {}", destination.display());
-        let updated = match &self {
-            InstallMethod::Dist(DistOptions { exists: false, .. }) => {
-                self.run_staged_dist(&destination, manifest).await?
-            }
-            _ => self.run(&destination, manifest).await?,
-        };
+        let updated = self.run(&destination, manifest).await?;
 
         let status = match updated {
             false => {
@@ -167,54 +205,50 @@ impl InstallMethod<'_, '_> {
                 utils::symlink_dir(src, path)?;
                 Ok(true)
             }
-            InstallMethod::Dist(opts) => {
+            // Updates modify the published toolchain in place, while fresh
+            // installs are staged and only published once complete.
+            InstallMethod::Dist(opts) if opts.exists => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = opts
+                let Some(hash) = opts
                     .install_into(prefix, &opts.update_hash, manifest)
-                    .await?;
+                    .await?
+                else {
+                    return Ok(false);
+                };
 
-                if let Some(hash) = maybe_new_hash {
-                    utils::write_file("update hash", &opts.update_hash, &hash)?;
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
+                utils::write_file("update hash", &opts.update_hash, &hash)?;
+                Ok(true)
             }
+            InstallMethod::Dist(opts) => Self::run_staged_dist(opts, path, manifest).await,
         }
     }
 
+    /// Constructs a fresh toolchain under a private stage and only publishes
+    /// it to `destination` once complete, so that an interruption can never
+    /// leave a partial toolchain behind at a selectable path.
     async fn run_staged_dist(
-        &self,
+        opts: &DistOptions<'_, '_>,
         destination: &Path,
         manifest: Option<ManifestWithHash>,
     ) -> Result<bool> {
-        let InstallMethod::Dist(opts) = self else {
-            unreachable!("only distribution installs can be staged");
-        };
-
-        if opts.update_hash.exists() {
-            warn!(
-                "removing stray hash file in order to continue: {}",
-                opts.update_hash.display()
-            );
-        }
-
         let staging = StagedToolchain::new(destination)?;
         let prefix = InstallPrefix::from(staging.prefix().to_owned());
-        // Installation must not touch alias-scoped metadata before the object
-        // is published, including a stale update hash from an earlier attempt.
-        let staging_hash = staging.root.join("update-hash");
+        // A stray alias-scoped update hash (e.g. left behind by an
+        // interrupted uninstall) is deliberately ignored rather than removed:
+        // the staged install only ever reads the staging-local hash, and the
+        // alias-scoped one is rewritten after publication.
+        let staging_hash = staging.update_hash();
         let Some(hash) = opts.install_into(&prefix, &staging_hash, manifest).await? else {
             return Ok(false);
         };
 
         #[cfg(feature = "test")]
-        checkpoint(opts.cfg.process, "install-before-publish");
+        checkpoint(opts.cfg.process, CHECKPOINT_INSTALL_BEFORE_PUBLISH);
 
         staging.publish(destination)?;
 
         #[cfg(feature = "test")]
-        checkpoint(opts.cfg.process, "install-after-publish");
+        checkpoint(opts.cfg.process, CHECKPOINT_INSTALL_AFTER_PUBLISH);
 
         utils::write_file("update hash", &opts.update_hash, &hash)?;
         Ok(true)
@@ -261,11 +295,31 @@ pub(crate) fn uninstall(path: &Path) -> Result<()> {
     utils::remove_dir("install", path)
 }
 
-// `+` is not valid at the start of a toolchain name, so abandoned stages are
-// identifiable and excluded by the existing toolchain enumeration.
-const STAGING_DIR_PREFIX: &str = "+rustup-staging-";
+/// Prefix of staging directory names inside `toolchains/`. `+` is not valid
+/// at the start of a toolchain name, so stages are identifiable and excluded
+/// by the existing toolchain enumeration.
+pub const STAGING_DIR_PREFIX: &str = "+rustup-staging-";
+
+/// Lock file inside a stage, held exclusively by the owning process.
+const STAGING_LOCK_FILE: &str = "lock";
+
+/// Update hash file inside a stage (see [`StagedToolchain::update_hash`]).
+const STAGING_HASH_FILE: &str = "update-hash";
+
+/// Checkpoint reached once a staged toolchain is complete, right before its
+/// publication.
+#[cfg(feature = "test")]
+pub const CHECKPOINT_INSTALL_BEFORE_PUBLISH: &str = "install-before-publish";
+
+/// Checkpoint reached right after publication, before the alias-scoped
+/// update hash is written.
+#[cfg(feature = "test")]
+pub const CHECKPOINT_INSTALL_AFTER_PUBLISH: &str = "install-after-publish";
 
 struct StagedToolchain {
     root: PathBuf,
     prefix: PathBuf,
+    /// Exclusive lock marking the stage as owned by a live process; `None`
+    /// only while dropping.
+    lock: Option<fs::File>,
 }
