@@ -1,5 +1,8 @@
 use std::{fs, path::PathBuf, process::Command, time::Duration};
 
+use rustup::install::{
+    CHECKPOINT_INSTALL_AFTER_PUBLISH, CHECKPOINT_INSTALL_BEFORE_PUBLISH, STAGING_DIR_PREFIX,
+};
 use rustup::test::{CliTestContext, Scenario, this_host_tuple};
 use wait_timeout::ChildExt;
 
@@ -28,6 +31,13 @@ fn nightly_update_hash_path(cx: &CliTestContext) -> PathBuf {
         .rustupdir
         .join("update-hashes")
         .join(format!("nightly-{}", this_host_tuple()))
+}
+
+fn nightly_staging_root(cx: &CliTestContext) -> PathBuf {
+    cx.config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("{STAGING_DIR_PREFIX}nightly-{}", this_host_tuple()))
 }
 
 fn staging_paths(cx: &CliTestContext) -> Vec<PathBuf> {
@@ -74,7 +84,7 @@ async fn assert_unpublished_install_can_be_retried(checkpoint: &str) {
         !nightly_path(&cx).exists(),
         "an interrupted staging operation published the toolchain"
     );
-    assert_eq!(staging_paths(&cx).len(), 1);
+    assert_eq!(staging_paths(&cx), vec![nightly_staging_root(&cx)]);
     cx.config
         .expect(["rustup", "toolchain", "list"])
         .await
@@ -94,7 +104,43 @@ async fn interrupted_install_can_be_retried() {
 
 #[tokio::test]
 async fn interrupted_install_before_publication_can_be_retried() {
-    assert_unpublished_install_can_be_retried(BEFORE_PUBLISH).await;
+    assert_unpublished_install_can_be_retried(CHECKPOINT_INSTALL_BEFORE_PUBLISH).await;
+}
+
+#[tokio::test]
+async fn interrupted_installs_do_not_accumulate_stages() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    for _ in 0..2 {
+        let command = cx.config.cmd("rustup", ["toolchain", "install", "nightly"]);
+        let status = cx.kill_at_checkpoint(command, CHECKPOINT_INSTALL_BEFORE_PUBLISH);
+        assert!(!status.success());
+        assert_eq!(staging_paths(&cx), vec![nightly_staging_root(&cx)]);
+    }
+
+    assert_completes_successfully(cx.config.cmd("rustup", ["toolchain", "install", "nightly"]));
+    assert!(staging_paths(&cx).is_empty());
+    assert_nightly_is_complete(&cx).await;
+}
+
+#[tokio::test]
+async fn stale_stage_is_reclaimed_by_the_next_install() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let junk = nightly_staging_root(&cx)
+        .join("toolchain")
+        .join("bin")
+        .join("stale-junk");
+    fs::create_dir_all(junk.parent().unwrap()).unwrap();
+    fs::write(&junk, "junk").unwrap();
+    fs::write(nightly_staging_root(&cx).join("update-hash"), "stale-hash").unwrap();
+
+    assert_completes_successfully(cx.config.cmd("rustup", ["toolchain", "install", "nightly"]));
+    assert!(staging_paths(&cx).is_empty());
+    assert!(
+        !nightly_path(&cx).join("bin").join("stale-junk").exists(),
+        "contents of a stale stage leaked into the published toolchain"
+    );
+    assert_nightly_is_complete(&cx).await;
 }
 
 #[tokio::test]
@@ -105,7 +151,7 @@ async fn unpublished_install_does_not_change_update_hash() {
     fs::write(&update_hash, "stale-hash").unwrap();
 
     let command = cx.config.cmd("rustup", ["toolchain", "install", "nightly"]);
-    let status = cx.kill_at_checkpoint(command, BEFORE_PUBLISH);
+    let status = cx.kill_at_checkpoint(command, CHECKPOINT_INSTALL_BEFORE_PUBLISH);
 
     assert!(!status.success());
     assert_eq!(fs::read_to_string(update_hash).unwrap(), "stale-hash");
@@ -117,7 +163,7 @@ async fn interrupted_install_after_publication_is_complete() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let command = cx.config.cmd("rustup", ["toolchain", "install", "nightly"]);
 
-    let status = cx.kill_at_checkpoint(command, AFTER_PUBLISH);
+    let status = cx.kill_at_checkpoint(command, CHECKPOINT_INSTALL_AFTER_PUBLISH);
     assert!(!status.success());
     assert!(nightly_path(&cx).is_dir());
     assert!(staging_paths(&cx).is_empty());
@@ -172,7 +218,6 @@ async fn interrupted_update_can_be_retried() {
     assert_nightly_is_complete(&cx).await;
 }
 
+// TODO(rust-lang/rustup#4966): import this from `manifestation` once the
+// checkpoint constants are exported next to their checkpoint sites.
 const BEFORE_METADATA: &str = "manifestation-update-before-metadata";
-const BEFORE_PUBLISH: &str = "install-before-publish";
-const AFTER_PUBLISH: &str = "install-after-publish";
-const STAGING_DIR_PREFIX: &str = "+rustup-staging-";
