@@ -30,7 +30,7 @@
 </tspan>
     <tspan x="10px" y="100px"><tspan class="fg-bright-green bold">Arguments:</tspan>
 </tspan>
-    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-cyan">&lt;SHELL&gt;</tspan><tspan>    [possible values: bash, elvish, fish, powershell, zsh]</tspan>
+    <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-cyan">&lt;SHELL&gt;</tspan><tspan>    [possible values: bash, elvish, fish, nushell, power-shell, zsh]</tspan>
 </tspan>
     <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-cyan">[COMMAND]</tspan><tspan>  [default: rustup] [possible values: rustup, cargo]</tspan>
 </tspan>
