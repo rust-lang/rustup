@@ -17,7 +17,7 @@ use itertools::Itertools;
 use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::{
     config::Cfg,
@@ -939,17 +939,10 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     pub(crate) async fn install_into(
         &self,
         prefix: &InstallPrefix,
+        update_hash: &Path,
         manifest: Option<ManifestWithHash>,
     ) -> Result<Option<String>> {
         let fresh_install = !prefix.path().exists();
-        // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
-        if fresh_install && self.update_hash.exists() {
-            warn!(
-                "removing stray hash file in order to continue: {}",
-                self.update_hash.display()
-            );
-            std::fs::remove_file(&self.update_hash)?;
-        }
 
         let mut fetched = String::new();
         let mut first_err = None;
@@ -1002,7 +995,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         let res = loop {
             let result = try_update_from_dist_(
                 &self.dl_cfg,
-                &self.update_hash,
+                update_hash,
                 &toolchain,
                 match self.exists {
                     false => Some(self.profile),
