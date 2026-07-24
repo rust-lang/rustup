@@ -21,8 +21,6 @@ use futures_util::{
 use tokio::task::{JoinHandle, spawn_blocking};
 use tracing::{debug, info, warn};
 
-#[cfg(feature = "test")]
-use crate::test::checkpoint;
 use crate::{
     diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram},
     dist::{
@@ -294,7 +292,9 @@ impl Manifestation {
         }
 
         #[cfg(feature = "test")]
-        checkpoint(download_cfg.process, "manifestation-update-before-metadata");
+        download_cfg
+            .process
+            .checkpoint(CHECKPOINT_UPDATE_BEFORE_METADATA);
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify()?;
@@ -884,3 +884,6 @@ impl ComponentInstall {
         tx
     }
 }
+
+#[cfg(feature = "test")]
+pub const CHECKPOINT_UPDATE_BEFORE_METADATA: &str = "update-before-metadata";
