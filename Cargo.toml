@@ -50,7 +50,7 @@ clap-cargo = "0.18.3"
 clap_complete = "4"
 console = "0.16"
 effective-limits = "0.5.5"
-enum-map = "2.5.0"
+enum-map = "3.0.0"
 env_proxy = { version = "0.4.1", optional = true }
 faster-hex = "0.10.0"
 flate2 = { version = "1.1.1", default-features = false, features = ["zlib-rs"] }
@@ -140,7 +140,7 @@ version = "0.61"
 libz-sys = "=1.1.24"
 
 [dev-dependencies]
-enum-map = "2.5.0"
+enum-map = "3.0.0"
 http-body-util = "0.1.0"
 hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.1", features = ["tokio"] }
