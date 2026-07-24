@@ -69,7 +69,6 @@ use crate::{
     process::Process,
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
-        ToolchainName,
     },
     utils::{self, ExitCode},
 };
@@ -252,7 +251,8 @@ impl InstallOpts<'_> {
 
         let (components, targets) = (self.components, self.targets);
         let toolchain = self.select_toolchain(cfg)?;
-        if let Some(desc) = toolchain {
+        if let Some(partial_desc) = toolchain {
+            let desc = partial_desc.clone().resolve(&cfg.default_host_tuple()?)?;
             let options =
                 DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, cfg)?;
             let status = if Toolchain::exists(cfg, &desc.clone().into())? {
@@ -272,7 +272,7 @@ impl InstallOpts<'_> {
 
             check_proxy_sanity(cfg.process, components, &desc)?;
 
-            cfg.set_default(Some(&desc.clone().into()))?;
+            cfg.set_default(Some(&partial_desc.into()))?;
             writeln!(cfg.process.stdout().lock())?;
             common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
         }
@@ -284,7 +284,7 @@ impl InstallOpts<'_> {
     /// This function first initializes the default profile and default host tuple in the
     /// configuration, then returns the toolchain that should be installed, or `None` if none is
     /// specified by the user.
-    fn select_toolchain(self, cfg: &mut Cfg<'_>) -> Result<Option<ToolchainDesc>> {
+    fn select_toolchain(self, cfg: &mut Cfg<'_>) -> Result<Option<PartialToolchainDesc>> {
         let Self {
             default_host_tuple,
             default_toolchain,
@@ -342,18 +342,14 @@ impl InstallOpts<'_> {
                         MaybeOfficialToolchainName::None => unreachable!(),
                         MaybeOfficialToolchainName::Some(n) => n,
                     };
-                    Some(toolchain_name.resolve(&cfg.default_host_tuple()?)?)
+                    Some(toolchain_name)
                 }
-                None => match cfg.get_default()? {
+                None => match cfg.get_default_resolvable()? {
                     // Default is installable
-                    Some(ToolchainName::Official(t)) => Some(t),
+                    Some(ResolvableToolchainName::Official(t)) => Some(t),
                     // Default is custom, presumably from a prior install. Do nothing.
-                    Some(ToolchainName::Custom(_)) => None,
-                    None => Some(
-                        "stable"
-                            .parse::<PartialToolchainDesc>()?
-                            .resolve(&cfg.default_host_tuple()?)?,
-                    ),
+                    Some(ResolvableToolchainName::Custom(_)) => None,
+                    None => Some(PartialToolchainDesc::from_str("stable")?),
                 },
             })
         } else {
@@ -1376,11 +1372,7 @@ mod tests {
             };
 
             assert_eq!(
-                "stable"
-                    .parse::<PartialToolchainDesc>()
-                    .unwrap()
-                    .resolve(&cfg.default_host_tuple().unwrap())
-                    .unwrap(),
+                "stable".parse::<PartialToolchainDesc>().unwrap(),
                 opts.select_toolchain(&mut cfg)
                     .unwrap() // result
                     .unwrap() // option

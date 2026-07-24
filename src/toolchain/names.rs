@@ -304,6 +304,17 @@ impl ResolvableLocalToolchainName {
     }
 }
 
+from_variant!(
+    PartialToolchainDesc,
+    ResolvableToolchainName,
+    ResolvableToolchainName::Official
+);
+from_variant!(
+    CustomToolchainName,
+    ResolvableToolchainName,
+    ResolvableToolchainName::Custom
+);
+
 try_from_str!(ResolvableLocalToolchainName);
 
 impl Display for ResolvableLocalToolchainName {

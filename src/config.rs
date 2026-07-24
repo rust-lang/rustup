@@ -384,7 +384,7 @@ impl<'a> Cfg<'a> {
         Ok(cfg)
     }
 
-    pub(crate) fn set_default(&self, toolchain: Option<&ToolchainName>) -> Result<()> {
+    pub(crate) fn set_default(&self, toolchain: Option<&ResolvableToolchainName>) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = toolchain.map(|t| t.to_string());
             Ok(())
@@ -904,6 +904,16 @@ impl<'a> Cfg<'a> {
     /// If none is configured, returns None
     /// If a bad toolchain name is configured, errors.
     pub(crate) fn get_default(&self) -> Result<Option<ToolchainName>> {
+        let Some(toolchain) = self.get_default_resolvable()? else {
+            return Ok(None);
+        };
+        Ok(Some(toolchain.resolve(&self.default_host_tuple()?)?))
+    }
+
+    /// Gets the configured default toolchain.
+    /// If none is configured, returns None
+    /// If a bad toolchain name is configured, errors.
+    pub(crate) fn get_default_resolvable(&self) -> Result<Option<ResolvableToolchainName>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
         let toolchain_maybe_str = if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
@@ -913,11 +923,10 @@ impl<'a> Cfg<'a> {
         } else {
             user_opt
         }?;
-        toolchain_maybe_str
-            .map(ResolvableToolchainName::try_from)
-            .transpose()?
-            .map(|t| t.resolve(&self.default_host_tuple()?))
-            .transpose()
+        let Some(toolchain) = toolchain_maybe_str else {
+            return Ok(None);
+        };
+        Ok(Some(ResolvableToolchainName::try_from(toolchain)?))
     }
 
     /// List all the installed toolchains: that is paths in the toolchain dir
