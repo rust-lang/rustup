@@ -3968,6 +3968,68 @@ error: rustup could not choose a version of rustc to run, because one wasn't spe
         .is_ok();
 }
 
+#[tokio::test]
+async fn rust_toolchain_toml_warns_on_unknown_keys() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    let cwd = cx.config.current_dir();
+    let toolchain_file = cwd.join("rust-toolchain.toml");
+
+    raw::write_file(
+        &toolchain_file,
+        "[toolchain]\nchannel = \"nightly\"\nchannnel = \"stable\"",
+    )
+    .unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain"])
+        .await
+        .extend_redactions([("[CWD]", &cwd)])
+        .with_stdout(snapbox::str![[r#"
+nightly-[HOST_TUPLE] (overridden by '[CWD]/rust-toolchain.toml')
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+warn: unknown key `toolchain.channnel` in '[CWD]/rust-toolchain.toml'; it is currently ignored, but will become an error in a future release
+
+"#]])
+        .is_ok();
+
+    raw::write_file(
+        &toolchain_file,
+        "[toolchain]\nchannel = \"nightly\"\n\n[future]\nkey = \"value\"",
+    )
+    .unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain"])
+        .await
+        .extend_redactions([("[CWD]", &cwd)])
+        .with_stdout(snapbox::str![[r#"
+nightly-[HOST_TUPLE] (overridden by '[CWD]/rust-toolchain.toml')
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+warn: unknown key `future` in '[CWD]/rust-toolchain.toml'; it is currently ignored, but will become an error in a future release
+
+"#]])
+        .is_ok();
+
+    raw::write_file(&toolchain_file, "[toolchain]\nchannnel = \"nightly\"").unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain"])
+        .await
+        .extend_redactions([("[CWD]", &cwd)])
+        .with_stdout(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+warn: unknown key `toolchain.channnel` in '[CWD]/rust-toolchain.toml'; it is currently ignored, but will become an error in a future release
+error: could not parse override file: '[CWD]/rust-toolchain.toml': missing toolchain properties in toolchain override file
+
+"#]])
+        .is_err();
+}
+
 /// Ensures that `rust-toolchain.toml` files (with `.toml` extension) only allow TOML contents
 #[tokio::test]
 async fn only_toml_in_rust_toolchain_toml() {

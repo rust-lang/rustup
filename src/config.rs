@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use std::fmt::{self, Debug, Display};
 use std::io;
 use std::io::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -290,6 +292,7 @@ pub(crate) struct Cfg<'a> {
     pub quiet: bool,
     pub current_dir: PathBuf,
     pub process: &'a Process,
+    warned_unknown_toolchain_keys: Mutex<HashSet<(PathBuf, String)>>,
 
     /// Allows the auto-installation of the active toolchain when it is missing.
     ///
@@ -370,6 +373,7 @@ impl<'a> Cfg<'a> {
             quiet,
             current_dir,
             process,
+            warned_unknown_toolchain_keys: Mutex::new(HashSet::new()),
             allow_auto_install,
         };
 
@@ -688,13 +692,37 @@ impl<'a> Cfg<'a> {
             if let Ok(contents) = contents {
                 // XXX Should not return the unvalidated contents; but a new
                 // internal only safe struct
-                let override_file =
-                    Cfg::parse_override_file(contents, parse_mode).with_context(|| {
+                let (override_file, unknown_keys) = Cfg::parse_override_file_with_unknown_keys(
+                    contents, parse_mode,
+                )
+                .with_context(|| RustupError::ParsingFile {
+                    name: "override",
+                    path: toolchain_file.clone(),
+                })?;
+                {
+                    let mut warned_unknown_toolchain_keys = self
+                        .warned_unknown_toolchain_keys
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    for key in unknown_keys {
+                        if warned_unknown_toolchain_keys
+                            .insert((toolchain_file.clone(), key.clone()))
+                        {
+                            warn!(
+                                "unknown key `{key}` in '{}'; it is currently ignored, but will become an error in a future release",
+                                toolchain_file.display()
+                            );
+                        }
+                    }
+                }
+                if override_file.is_empty() {
+                    return Err(anyhow!(OverrideFileConfigError::Invalid)).with_context(|| {
                         RustupError::ParsingFile {
                             name: "override",
                             path: toolchain_file.clone(),
                         }
-                    })?;
+                    });
+                }
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
                     let toolchain_name = ResolvableToolchainName::try_from(
                         toolchain_name_str.as_str(),
@@ -744,10 +772,23 @@ impl<'a> Cfg<'a> {
         Ok(None)
     }
 
+    #[cfg(test)]
     fn parse_override_file<S: AsRef<str>>(
         contents: S,
         parse_mode: ParseMode,
     ) -> Result<OverrideFile> {
+        let (override_file, _) = Self::parse_override_file_with_unknown_keys(contents, parse_mode)?;
+        if override_file.is_empty() {
+            Err(anyhow!(OverrideFileConfigError::Invalid))
+        } else {
+            Ok(override_file)
+        }
+    }
+
+    fn parse_override_file_with_unknown_keys<S: AsRef<str>>(
+        contents: S,
+        parse_mode: ParseMode,
+    ) -> Result<(OverrideFile, Vec<String>)> {
         let contents = contents.as_ref();
 
         match (contents.lines().count(), parse_mode) {
@@ -758,18 +799,20 @@ impl<'a> Cfg<'a> {
                 if channel.is_empty() {
                     Err(anyhow!(OverrideFileConfigError::Empty))
                 } else {
-                    Ok(channel.into())
+                    Ok((channel.into(), Vec::new()))
                 }
             }
             _ => {
-                let override_file = toml::from_str::<OverrideFile>(contents)
+                let deserializer = toml::Deserializer::parse(contents)
+                    .context(OverrideFileConfigError::Parsing)?;
+                let mut unknown_keys = Vec::new();
+                let override_file: OverrideFile =
+                    serde_ignored::deserialize(deserializer, |path| {
+                        unknown_keys.push(path.to_string());
+                    })
                     .context(OverrideFileConfigError::Parsing)?;
 
-                if override_file.is_empty() {
-                    Err(anyhow!(OverrideFileConfigError::Invalid))
-                } else {
-                    Ok(override_file)
-                }
+                Ok((override_file, unknown_keys))
             }
         }
     }
@@ -1095,6 +1138,7 @@ impl Debug for Cfg<'_> {
             quiet,
             current_dir,
             allow_auto_install,
+            warned_unknown_toolchain_keys: _,
             process: _,
         } = self;
 
