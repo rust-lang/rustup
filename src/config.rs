@@ -1021,9 +1021,13 @@ impl<'a> Cfg<'a> {
 
         let default_host = self.default_host_tuple()?;
         let stable_desc = PartialToolchainDesc::from_str("stable")?.resolve(&default_host)?;
-        let distributable = DistributableToolchain::new(self, stable_desc)
-            .map_err(|e| anyhow!("stable toolchain unavailable: {e}"))?;
-        let release_date_str = match distributable.get_manifestation() {
+        let stable = match DistributableToolchain::new(self, stable_desc) {
+            Ok(stable) => stable,
+            // If the `stable` toolchain is not installed, we don't notify the user.
+            Err(RustupError::ToolchainNotInstalled { .. }) => return Ok(()),
+            Err(e) => return Err(anyhow!(e).context("while looking for local stable toolchain")),
+        };
+        let release_date_str = match stable.get_manifestation() {
             Ok(manifestation) => match manifestation.load_manifest() {
                 Ok(Some(manifest)) => manifest.date,
                 Ok(None) | Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
