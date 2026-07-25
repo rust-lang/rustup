@@ -106,7 +106,9 @@ async fn run_rustup_inner(
             // rustup deletes its own exe
             cfg_select! {
                 windows => self_update::complete_windows_uninstall(process),
-                _ => unreachable!("Attempted to use Windows-specific code on a non-Windows platform. Aborting."),
+                _ => unreachable!(
+                    "Attempted to use Windows-specific code on a non-Windows platform. Aborting."
+                ),
             }
         }
         Some(n) => {
