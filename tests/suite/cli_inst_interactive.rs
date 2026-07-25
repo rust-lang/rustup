@@ -5,7 +5,9 @@ use std::fs;
 use std::io::Write;
 use std::process::Stdio;
 
-use rustup::test::{Assert, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple};
+use rustup::test::{
+    Assert, CROSS_ARCH1, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple,
+};
 use rustup::utils::raw;
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> Assert {
@@ -717,4 +719,71 @@ Current installation options:
 
     assert!(!settings_file.exists());
     assert!(!rustupdir.exists());
+}
+
+// https://github.com/rust-lang/rustup/issues/3651#issuecomment-5058868560
+#[tokio::test]
+async fn install_defaults_to_default_host() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let redactions = [("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())];
+
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain=beta",
+        ])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [HOST_TUPLE]
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
+
+    cx.config
+        .expect(["rustup", "set", "default-host", CROSS_ARCH1])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#""#]]);
+
+    cx.config
+        .expect_with_env(["rustup", "show"], [("RUSTUP_AUTO_INSTALL", "0")])
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [CROSS_ARCH_I]
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
 }

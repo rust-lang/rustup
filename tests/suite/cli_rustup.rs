@@ -4264,3 +4264,195 @@ fn nightly_manifest_path(cx: &CliTestContext) -> PathBuf {
         .join("rustlib")
         .join("multirust-channel-manifest.toml")
 }
+
+// https://github.com/rust-lang/rustup/issues/3651#issuecomment-5058814392
+#[tokio::test]
+async fn default_stores_qualified_toolchains() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let mut toml_redactions = snapbox::Redactions::new();
+    toml_redactions
+        .insert("[HOST_TUPLE]", this_host_tuple())
+        .unwrap();
+    toml_redactions
+        .insert("[CROSS_ARCH_I]", CROSS_ARCH1)
+        .unwrap();
+    let toml_assert = snapbox::Assert::new()
+        .action_env(snapbox::assert::DEFAULT_ACTION_ENV)
+        .redact_with(toml_redactions);
+
+    let redactions = [("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())];
+
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+
+    let settings_file = &cx.config.rustupdir.join("settings.toml");
+    toml_assert.eq(
+        fs::read_to_string(settings_file).unwrap(),
+        snapbox::str![[r#"
+...
+default_host_tuple = "[HOST_TUPLE]"
+default_toolchain = "beta-[HOST_TUPLE]"
+...
+"#]],
+    );
+
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [HOST_TUPLE]
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
+
+    cx.config
+        .expect(["rustup", "set", "default-host", CROSS_ARCH1])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#""#]]);
+
+    toml_assert.eq(
+        fs::read_to_string(settings_file).unwrap(),
+        snapbox::str![[r#"
+...
+default_host_tuple = "[CROSS_ARCH_I]"
+default_toolchain = "beta-[HOST_TUPLE]"
+...
+"#]],
+    );
+
+    cx.config
+        .expect_with_env(["rustup", "show"], [("RUSTUP_AUTO_INSTALL", "0")])
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [CROSS_ARCH_I]
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
+}
+
+// When running `rustup default` with a fully qualified toolchain name, the resolution of the
+// default toolchain will not be influenced by the change in the default host tuple.
+// See: https://github.com/rust-lang/rustup/pull/4947#issuecomment-5255553287
+#[tokio::test]
+async fn default_stores_qualified_toolchains_on_demand() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let mut toml_redactions = snapbox::Redactions::new();
+    toml_redactions
+        .insert("[HOST_TUPLE]", this_host_tuple())
+        .unwrap();
+    toml_redactions
+        .insert("[CROSS_ARCH_I]", CROSS_ARCH1)
+        .unwrap();
+    let toml_assert = snapbox::Assert::new()
+        .action_env(snapbox::assert::DEFAULT_ACTION_ENV)
+        .redact_with(toml_redactions);
+
+    let redactions = [("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())];
+
+    cx.config
+        .expect(["rustup", "default", for_host!("beta-{}")])
+        .await
+        .is_ok();
+
+    let settings_file = &cx.config.rustupdir.join("settings.toml");
+    toml_assert.eq(
+        fs::read_to_string(settings_file).unwrap(),
+        snapbox::str![[r#"
+...
+default_host_tuple = "[HOST_TUPLE]"
+default_toolchain = "beta-[HOST_TUPLE]"
+...
+"#]],
+    );
+
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [HOST_TUPLE]
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
+
+    cx.config
+        .expect(["rustup", "set", "default-host", CROSS_ARCH1])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#""#]]);
+
+    toml_assert.eq(
+        fs::read_to_string(settings_file).unwrap(),
+        snapbox::str![[r#"
+...
+default_host_tuple = "[CROSS_ARCH_I]"
+default_toolchain = "beta-[HOST_TUPLE]"
+...
+"#]],
+    );
+
+    cx.config
+        .expect_with_env(["rustup", "show"], [("RUSTUP_AUTO_INSTALL", "0")])
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [CROSS_ARCH_I]
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
+}
