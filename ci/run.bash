@@ -19,10 +19,16 @@ if [ -n "$INSTALL_BINDGEN" ]; then
   export PATH="$CARGO_HOME/bin/bindgen-cli:$PATH"
 fi
 
-FEATURES=('--no-default-features' '--features' 'reqwest-native-tls')
-case "$(uname -s)" in
-  *NT* ) ;; # Windows NT
-  * ) FEATURES+=('--features' 'vendored-openssl') ;;
+FEATURES=('--no-default-features')
+case "$TARGET" in
+  *-linux-android*) ;;
+  *)
+    FEATURES+=('--features' 'reqwest-native-tls')
+    case "$(uname -s)" in
+      *NT* ) ;; # Windows NT
+      * ) FEATURES+=('--features' 'vendored-openssl') ;;
+    esac
+    ;;
 esac
 
 case "$TARGET" in
