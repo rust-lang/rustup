@@ -214,11 +214,12 @@ hr {
 }
 
 div.copy-icon {
-    transform: translateX(3px);
+    transform: translateX(2px);
 }
 
 div.copy-icon svg {
     fill: var(--body-color);
+    display: block;
 }
 
 button.copy-button:hover svg {
