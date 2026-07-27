@@ -20,10 +20,16 @@ if [ -n "$INSTALL_BINDGEN" ]; then
 fi
 
 
-FEATURES=('--no-default-features' '--features' 'curl-backend,reqwest-native-tls')
-case "$(uname -s)" in
-  *NT* ) ;; # Windows NT
-  * ) FEATURES+=('--features' 'vendored-openssl') ;;
+FEATURES=('--no-default-features')
+case "$TARGET" in
+  *-linux-android*) ;;
+  *)
+    FEATURES+=('--features' 'curl-backend,reqwest-native-tls')
+    case "$(uname -s)" in
+      *NT* ) ;; # Windows NT
+      * ) FEATURES+=('--features' 'vendored-openssl') ;;
+    esac
+    ;;
 esac
 
 case "$TARGET" in
