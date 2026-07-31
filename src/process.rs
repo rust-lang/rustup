@@ -12,6 +12,7 @@ use std::{
     io::Cursor,
     path::Path,
     sync::{Arc, Mutex},
+    time::{Duration, Instant},
 };
 use std::{env, thread};
 
@@ -257,9 +258,14 @@ impl Process {
         fs::write(checkpoint_path(test_root, name), name)
             .expect("failed to write test checkpoint marker");
 
-        loop {
-            thread::park();
+        let start_time = Instant::now();
+        let max_wait = Duration::from_mins(5);
+        while start_time.elapsed() < max_wait {
+            thread::sleep(Duration::from_secs(10));
         }
+        panic!(
+            "test checkpoint '{name}' timed out after {max_wait:?} without being killed by the test driver",
+        );
     }
 }
 
