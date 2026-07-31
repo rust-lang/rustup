@@ -252,6 +252,11 @@ enum RustupSubcmd {
         #[arg(long)]
         path: bool,
 
+        /// Serve the documentation over a local HTTP server instead of
+        /// opening it directly as a `file://` URL
+        #[arg(long, conflicts_with = "path")]
+        serve: bool,
+
         #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
 
@@ -817,10 +822,11 @@ pub async fn main(
         RustupSubcmd::Which { command, toolchain } => which(cfg, &command, toolchain).await,
         RustupSubcmd::Doc {
             path,
+            serve,
             toolchain,
             topic,
             page,
-        } => docs::doc(cfg, path, toolchain, topic.as_deref(), &page).await,
+        } => docs::doc(cfg, path, serve, toolchain, topic.as_deref(), &page).await,
         #[cfg(not(windows))]
         RustupSubcmd::Man { command, toolchain } => docs::man(cfg, &command, toolchain).await,
         RustupSubcmd::Self_ { subcmd } => match subcmd {

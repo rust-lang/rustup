@@ -232,7 +232,11 @@ pub(crate) fn doc_help() -> String {
   the default browser.
 
   By default, it opens the documentation index. Use the various
-  flags to open specific pieces of documentation."
+  flags to open specific pieces of documentation.
+
+  If your browser is sandboxed (e.g. installed via Snap or Flatpak) it
+  may be unable to open `file://` URLs under `~/.rustup`. Pass `--serve`
+  to serve the documentation over a local HTTP server instead."
     )
 }
 
