@@ -58,6 +58,9 @@ fs_at = "0.2.1"
 futures-util = "0.3.31"
 git-testament = "0.2"
 home = "0.5.4"
+http-body-util = "0.1.0"
+hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
+hyper-util = { version = "0.1.1", features = ["tokio"] }
 indicatif = "0.18"
 itertools = "0.15"
 libc = "0.2"
@@ -141,9 +144,6 @@ libz-sys = "=1.1.24"
 
 [dev-dependencies]
 enum-map = "3.0.0"
-http-body-util = "0.1.0"
-hyper = { version = "1.0", default-features = false, features = ["server", "http1"] }
-hyper-util = { version = "0.1.1", features = ["tokio"] }
 proptest = "1.1.0"
 rustls-webpki = { version = "0.103.3" }
 tokio-rustls = "0.26.4"
