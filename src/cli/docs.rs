@@ -1,19 +1,41 @@
 //! `rustup doc` and `rustup man`: opening toolchain documentation and man pages.
+//!
+//! `rustup doc --serve` serves the documentation over a local HTTP server
+//! instead of opening it directly as a `file://` URL. Some browsers (e.g.
+//! Snap/Flatpak builds of Firefox or Brave) run in a sandbox that can't
+//! access `file://` URLs under `~/.rustup`; serving the same static files
+//! over `http://127.0.0.1` sidesteps that restriction entirely.
+//!
+//! The server binds to `127.0.0.1` only (never exposed on the network) and
+//! rejects any request path that would resolve outside the served directory.
 
 use std::{
     borrow::Cow,
+    convert::Infallible,
     io::Write as _,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
+    sync::Arc,
 };
 
 use anyhow::{Context, Result, anyhow};
 use clap::Args;
+use http_body_util::Full;
+use hyper::{
+    Request, Response, StatusCode,
+    body::{Bytes, Incoming},
+    header::{CONTENT_LENGTH, CONTENT_TYPE},
+    server::conn::http1,
+    service::service_fn,
+};
+use hyper_util::rt::TokioIo;
+use tokio::net::TcpListener;
 use tracing::info;
 
 use super::topical_doc;
 use crate::{
     config::{ActiveSource, Cfg},
     dist::{PartialToolchainDesc, manifest::ComponentStatus},
+    process::Process,
     toolchain::DistributableToolchain,
     utils::{self, ExitCode},
 };
@@ -162,6 +184,7 @@ impl DocPage {
 pub(crate) async fn doc(
     cfg: &Cfg<'_>,
     path_only: bool,
+    serve: bool,
     toolchain: Option<PartialToolchainDesc>,
     mut topic: Option<&str>,
     doc_page: &DocPage,
@@ -212,6 +235,12 @@ pub(crate) async fn doc(
         return Ok(ExitCode::SUCCESS);
     }
 
+    if serve {
+        let root = toolchain.doc_path("")?;
+        serve_and_open(root, &doc_path, fragment, cfg.process).await?;
+        return Ok(ExitCode::SUCCESS);
+    }
+
     if let Some(name) = topic {
         writeln!(
             cfg.process.stderr().lock(),
@@ -246,4 +275,107 @@ pub(crate) async fn man(
         .status()
         .expect("failed to open man page");
     Ok(ExitCode::SUCCESS)
+}
+
+/// Blocks forever, accepting and serving connections until the process is
+/// killed by Ctrl-C.
+async fn serve_and_open(
+    root: PathBuf,
+    initial_path: &Path,
+    fragment: Option<&str>,
+    process: &Process,
+) -> Result<()> {
+    let listener = TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .context("failed to bind local documentation server")?;
+    let addr = listener
+        .local_addr()
+        .context("failed to read local address")?;
+    let root = Arc::<Path>::from(root);
+
+    let mut url = format!(
+        "http://{addr}/{}",
+        initial_path.to_string_lossy().replace('\\', "/")
+    );
+    if let Some(fragment) = fragment {
+        url.push('#');
+        url.push_str(fragment);
+    }
+
+    writeln!(
+        process.stderr().lock(),
+        "Serving docs at {url} (press Ctrl-C to stop)"
+    )?;
+    utils::open_browser(&url)?;
+
+    loop {
+        let (stream, _) = match listener.accept().await {
+            Ok(accepted) => accepted,
+            Err(err) => {
+                tracing::warn!("doc server: failed to accept connection: {err}");
+                continue;
+            }
+        };
+        let io = TokioIo::new(stream);
+        let root = root.clone();
+        let svc = service_fn(move |req| serve(req, root.clone()));
+
+        tokio::spawn(async move {
+            if let Err(err) = http1::Builder::new().serve_connection(io, svc).await {
+                tracing::warn!("doc server: connection error: {err}");
+            }
+        });
+    }
+}
+
+async fn serve(
+    req: Request<Incoming>,
+    root: Arc<Path>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
+    let request_path = req.uri().path().trim_start_matches('/');
+    let mut path = root.to_path_buf();
+    for segment in Path::new(request_path).components() {
+        match segment {
+            Component::Normal(part) => path.push(part),
+            _ => return Ok(not_found()),
+        }
+    }
+    if !path.starts_with(&root) {
+        return Ok(not_found());
+    }
+    if path.is_dir() {
+        path.push("index.html");
+    }
+
+    let Ok(contents) = tokio::fs::read(&path).await else {
+        return Ok(not_found());
+    };
+
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(
+            CONTENT_TYPE,
+            match path.extension().and_then(|ext| ext.to_str()) {
+                Some("html") => "text/html; charset=utf-8",
+                Some("css") => "text/css",
+                Some("js") => "text/javascript",
+                Some("svg") => "image/svg+xml",
+                Some("png") => "image/png",
+                Some("jpg" | "jpeg") => "image/jpeg",
+                Some("woff2") => "font/woff2",
+                Some("txt") => "text/plain; charset=utf-8",
+                _ => "application/octet-stream",
+            },
+        )
+        .header(CONTENT_LENGTH, contents.len())
+        .body(Full::new(Bytes::from(contents)))
+        .expect("building a static response can't fail");
+    Ok(response)
+}
+
+fn not_found() -> Response<Full<Bytes>> {
+    Response::builder()
+        .status(StatusCode::NOT_FOUND)
+        .body(Full::new(Bytes::from_static(b"404 not found")))
+        .expect("building a static response can't fail")
 }
