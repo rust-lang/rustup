@@ -306,6 +306,80 @@ nightly-[HOST_TUPLE] - update available: 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-n
 }
 
 #[tokio::test]
+async fn update_check_no_updates() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "add", "stable"])
+        .await
+        .is_ok();
+    // Updating an already-current toolchain with --check should return 0
+    cx.config
+        .expect(["rustup", "update", "--check", "stable"])
+        .await
+        .is_ok();
+}
+
+#[tokio::test]
+async fn update_check_with_updates() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    // Updating an outdated toolchain with --check should return 100
+    cx.config
+        .expect(["rustup", "update", "--check", "stable"])
+        .await
+        .has_code(100);
+}
+
+#[tokio::test]
+async fn update_without_check_always_succeeds() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    // Without --check, update should return 0 even when updates occurred
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
+}
+
+#[tokio::test]
+async fn update_check_all_channels() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable", "beta", "nightly"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    // update --check with no specific toolchain updates all and returns 100
+    cx.config
+        .expect(["rustup", "update", "--check"])
+        .await
+        .has_code(100);
+}
+
+#[tokio::test]
 async fn default() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

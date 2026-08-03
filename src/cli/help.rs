@@ -62,7 +62,12 @@ pub(crate) fn update_help() -> String {
   If given a toolchain argument then `update` updates that
   toolchain, the same as `rustup toolchain install`.
 
-{TOOLCHAIN_INSTALL_HINT}"
+{TOOLCHAIN_INSTALL_HINT}
+
+{HEADER}Exit status (with --check):{HEADER:#}
+  {LITERAL}0{LITERAL:#}   No updates were applied; everything was already up to date.
+  {LITERAL}100{LITERAL:#} At least one toolchain was updated.
+  {LITERAL}1{LITERAL:#}   An error occurred."
     )
 }
 

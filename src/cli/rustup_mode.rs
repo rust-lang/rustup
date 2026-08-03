@@ -193,6 +193,10 @@ enum RustupSubcmd {
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
         force_non_host: bool,
+
+        /// Set exit code to indicate whether udpates were applied
+        #[arg(long)]
+        check: bool,
     },
 
     /// Check for updates to Rust toolchains and rustup
@@ -728,7 +732,7 @@ pub async fn main(
 
     let exit_code = match subcmd {
         RustupSubcmd::DumpTestament => common::dump_testament(process),
-        RustupSubcmd::Install { opts } => update(cfg, opts, true).await,
+        RustupSubcmd::Install { opts } => update(cfg, opts, true, false).await,
         RustupSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
         RustupSubcmd::Show { verbose, subcmd } => handle_epipe(match subcmd {
             None => show(cfg, verbose).await,
@@ -746,6 +750,7 @@ pub async fn main(
             no_self_update,
             force,
             force_non_host,
+            check,
         } => {
             update(
                 cfg,
@@ -757,11 +762,12 @@ pub async fn main(
                     ..UpdateOpts::default()
                 },
                 false,
+                check,
             )
             .await
         }
         RustupSubcmd::Toolchain { subcmd } => match subcmd {
-            ToolchainSubcmd::Install { opts } => update(cfg, opts, true).await,
+            ToolchainSubcmd::Install { opts } => update(cfg, opts, true, false).await,
             ToolchainSubcmd::List { verbose, quiet } => {
                 handle_epipe(common::list_toolchains(cfg, verbose, quiet).await)
             }
@@ -1062,8 +1068,10 @@ async fn update(
     cfg: &mut Cfg<'_>,
     opts: UpdateOpts,
     ensure_active_toolchain: bool,
+    check: bool,
 ) -> Result<ExitCode> {
     let mut exit_code = ExitCode::SUCCESS;
+    let mut any_updated = false;
 
     common::warn_if_host_is_emulated(cfg.process);
     let self_update_mode = SelfUpdateMode::from_cfg(cfg)?;
@@ -1120,6 +1128,10 @@ async fn update(
                 Err(e) => Err(e)?,
             };
 
+            if matches!(status, UpdateStatus::Installed | UpdateStatus::Updated(_)) {
+                any_updated = true;
+            }
+
             writeln!(cfg.process.stdout().lock())?;
             common::show_channel_update(
                 cfg,
@@ -1144,12 +1156,20 @@ async fn update(
         info!("it's active because: {}", source.to_reason());
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
     } else {
-        exit_code &= common::update_all_channels(cfg, opts.force).await?;
+        let (channels_exit, channels_updated) =
+            common::update_all_channels(cfg, opts.force).await?;
+        exit_code &= channels_exit;
+        any_updated = channels_updated;
+
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
 
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents_following_links(&cfg.download_dir);
         dl_cfg.tmp_cx.clean();
+    }
+
+    if check && exit_code == ExitCode::SUCCESS && any_updated {
+        return Ok(ExitCode::UPDATES_AVAILABLE);
     }
 
     Ok(exit_code)

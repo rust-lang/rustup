@@ -212,7 +212,10 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Result<ExitCode> {
+pub(crate) async fn update_all_channels(
+    cfg: &Cfg<'_>,
+    force_update: bool,
+) -> Result<(ExitCode, bool)> {
     let profile = cfg.get_profile()?;
     let channels = cfg.list_channels()?;
 
@@ -249,6 +252,13 @@ pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Re
         ExitCode::SUCCESS
     };
 
+    let any_updates = toolchains.iter().any(|(_, r)| {
+        matches!(
+            r,
+            Ok(UpdateStatus::Installed) | Ok(UpdateStatus::Updated(_))
+        )
+    });
+
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
     }
@@ -263,7 +273,7 @@ pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Re
         show_channel_updates(cfg, t)?;
     }
 
-    Ok(exit_code)
+    Ok((exit_code, any_updates))
 }
 
 /// Print a list of items (targets or components) to stdout.
