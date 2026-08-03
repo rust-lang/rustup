@@ -71,37 +71,6 @@ pub enum InvalidName {
     PlusPrefix(String),
 }
 
-macro_rules! try_from_str {
-    ($to:ident) => {
-        try_from_str!(&str, $to);
-
-        impl TryFrom<String> for $to {
-            type Error = InvalidName;
-
-            fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
-                $to::validate(&value)
-            }
-        }
-
-        impl FromStr for $to {
-            type Err = InvalidName;
-
-            fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
-                $to::validate(value)
-            }
-        }
-    };
-    ($from:ty, $to:ident) => {
-        impl TryFrom<$from> for $to {
-            type Error = InvalidName;
-
-            fn try_from(value: $from) -> std::result::Result<Self, Self::Error> {
-                $to::validate(value)
-            }
-        }
-    };
-}
-
 /// Common validate rules for all sorts of toolchain names
 fn validate(candidate: &str) -> Result<&str, InvalidName> {
     if let Some(without_plus) = candidate.strip_prefix('+') {
@@ -139,14 +108,20 @@ impl ResolvableToolchainName {
             return Ok(Self::Official(desc));
         }
 
-        match CustomToolchainName::try_from(candidate) {
+        match CustomToolchainName::from_str(candidate) {
             Ok(custom) => Ok(Self::Custom(custom)),
             Err(_) => Err(InvalidName::ToolchainName(candidate.into())),
         }
     }
 }
 
-try_from_str!(ResolvableToolchainName);
+impl FromStr for ResolvableToolchainName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::validate(value)
+    }
+}
 
 impl From<&PartialToolchainDesc> for ResolvableToolchainName {
     fn from(value: &PartialToolchainDesc) -> Self {
@@ -183,7 +158,13 @@ impl MaybeResolvableToolchainName {
     }
 }
 
-try_from_str!(MaybeResolvableToolchainName);
+impl FromStr for MaybeResolvableToolchainName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::validate(value)
+    }
+}
 
 impl Display for MaybeResolvableToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -214,7 +195,13 @@ impl MaybeOfficialToolchainName {
     }
 }
 
-try_from_str!(MaybeOfficialToolchainName);
+impl FromStr for MaybeOfficialToolchainName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::validate(value)
+    }
+}
 
 impl Display for MaybeOfficialToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -242,7 +229,7 @@ impl ToolchainName {
             return Ok(Self::Official(desc));
         }
 
-        match CustomToolchainName::try_from(candidate) {
+        match CustomToolchainName::from_str(candidate) {
             Ok(custom) => Ok(Self::Custom(custom)),
             Err(_) => Err(InvalidName::ToolchainName(candidate.into())),
         }
@@ -261,7 +248,13 @@ impl From<CustomToolchainName> for ToolchainName {
     }
 }
 
-try_from_str!(ToolchainName);
+impl FromStr for ToolchainName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::validate(value)
+    }
+}
 
 impl Display for ToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -293,7 +286,7 @@ impl ResolvableLocalToolchainName {
     /// Validates if the string is a resolvable toolchain, or a path based toolchain.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
         let candidate = validate(candidate)?;
-        if let Ok(name) = ResolvableToolchainName::try_from(candidate) {
+        if let Ok(name) = ResolvableToolchainName::from_str(candidate) {
             return Ok(Self::Named(name));
         }
 
@@ -303,7 +296,13 @@ impl ResolvableLocalToolchainName {
     }
 }
 
-try_from_str!(ResolvableLocalToolchainName);
+impl FromStr for ResolvableLocalToolchainName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::validate(value)
+    }
+}
 
 impl Display for ResolvableLocalToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -395,7 +394,13 @@ impl Deref for CustomToolchainName {
     }
 }
 
-try_from_str!(CustomToolchainName);
+impl FromStr for CustomToolchainName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::validate(value)
+    }
+}
 
 impl Display for CustomToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -526,12 +531,12 @@ mod tests {
 
         #[test]
         fn test_parse_custom(name in arb_custom_name()) {
-            CustomToolchainName::try_from(name).unwrap();
+            CustomToolchainName::from_str(&name).unwrap();
         }
 
         #[test]
         fn test_parse_resolvable_name(name in arb_resolvable_name()) {
-            ResolvableToolchainName::try_from(name).unwrap();
+            ResolvableToolchainName::from_str(&name).unwrap();
         }
 
         // TODO: This needs some thought
@@ -568,7 +573,7 @@ mod tests {
             "this.is.not-a+semver",
         ]
         .into_iter()
-        .map(|s| ToolchainName::try_from(s).unwrap())
+        .map(|s| ToolchainName::from_str(s).unwrap())
         .collect::<Vec<_>>();
 
         let mut v = vec![
@@ -593,7 +598,7 @@ mod tests {
             "the cake is a lie",
         ]
         .into_iter()
-        .map(|s| ToolchainName::try_from(s).unwrap())
+        .map(|s| ToolchainName::from_str(s).unwrap())
         .collect::<Vec<_>>();
 
         v.sort();
