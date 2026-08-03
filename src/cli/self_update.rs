@@ -382,14 +382,16 @@ impl InstallOpts<'_> {
             process,
         )?);
 
-        self.default_toolchain = Some(MaybeOfficialToolchainName::try_from(common::question_str(
-            "Default toolchain? (stable/beta/nightly/none)",
-            &match &self.default_toolchain {
-                Some(name) => name.to_string(),
-                None => "stable".to_owned(),
-            },
-            process,
-        )?)?);
+        self.default_toolchain = Some(MaybeOfficialToolchainName::from_str(
+            &common::question_str(
+                "Default toolchain? (stable/beta/nightly/none)",
+                &match &self.default_toolchain {
+                    Some(name) => name.to_string(),
+                    None => "stable".to_owned(),
+                },
+                process,
+            )?,
+        )?);
 
         self.profile = <Profile as FromStr>::from_str(&common::question_str(
             &format!(
@@ -416,7 +418,7 @@ impl InstallOpts<'_> {
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process));
         let partial_channel = match &self.default_toolchain {
             None | Some(MaybeOfficialToolchainName::None) => {
-                ResolvableToolchainName::try_from("stable")?
+                ResolvableToolchainName::from_str("stable")?
             }
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
