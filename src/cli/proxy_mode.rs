@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::ExitStatus};
+use std::{path::PathBuf, process::ExitStatus, str::FromStr};
 
 use anyhow::Result;
 
@@ -23,7 +23,7 @@ pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result
         .as_ref()
         .map(|arg| arg.to_string_lossy())
         .filter(|arg| arg.starts_with('+'))
-        .map(|name| ResolvableLocalToolchainName::try_from(&name.as_ref()[1..]))
+        .map(|name| ResolvableLocalToolchainName::from_str(&name[1..]))
         .transpose()?;
 
     // Build command args now while we know whether or not to skip arg 1.

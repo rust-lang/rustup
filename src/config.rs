@@ -197,7 +197,7 @@ impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
             (Some(name), None) => {
-                ResolvableToolchainName::try_from(name)?.resolve(&cfg.default_host_tuple()?)?
+                ResolvableToolchainName::from_str(&name)?.resolve(&cfg.default_host_tuple()?)?
             }
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
@@ -353,8 +353,8 @@ impl<'a> Cfg<'a> {
         // Figure out default_host_tuple before Config is populated
         let default_host = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
         // Environment override
-        let env_override = match process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(ResolvableLocalToolchainName::try_from(tc)?.resolve(&default_host)?),
+        let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
+            Some(tc) => Some(ResolvableLocalToolchainName::from_str(tc)?.resolve(&default_host)?),
             None => None,
         };
 
@@ -382,7 +382,7 @@ impl<'a> Cfg<'a> {
         // Run some basic checks against the constructed configuration
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
-        ResolvableToolchainName::try_from("stable")?.resolve(
+        ResolvableToolchainName::from_str("stable")?.resolve(
             &cfg.default_host_tuple()
                 .context("Unable parse configuration")?,
         )?;
@@ -637,7 +637,7 @@ impl<'a> Cfg<'a> {
                 // However, settings.toml could conceivably be hand edited to
                 // have an unresolved name. I'm just preserving pre-existing
                 // behaviour by choosing ResolvableToolchainName here.
-                let toolchain_name = ResolvableToolchainName::try_from(name)?
+                let toolchain_name = ResolvableToolchainName::from_str(&name)?
                     .resolve(&default_host_tuple(settings, self.process))?;
                 let override_cfg = toolchain_name.into();
                 return Ok(Some((override_cfg, source)));
@@ -689,7 +689,7 @@ impl<'a> Cfg<'a> {
                         }
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
-                    let toolchain_name = ResolvableToolchainName::try_from(
+                    let toolchain_name = ResolvableToolchainName::from_str(
                         toolchain_name_str.as_str(),
                     )
                     .map_err(|_| {
@@ -707,7 +707,7 @@ impl<'a> Cfg<'a> {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
                         // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
                         // the base name in the error to help users)
-                        let resolved_name = &ToolchainName::try_from(toolchain_name_str.as_str())?;
+                        let resolved_name = &ToolchainName::from_str(toolchain_name_str)?;
                         if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
                             return Err(anyhow!(format!("target tuple in channel name '{name}'")));
                         }
@@ -907,7 +907,7 @@ impl<'a> Cfg<'a> {
             user_opt
         }?;
         toolchain_maybe_str
-            .map(ResolvableToolchainName::try_from)
+            .map(|s| ResolvableToolchainName::from_str(&s))
             .transpose()?
             .map(|t| t.resolve(&self.default_host_tuple()?))
             .transpose()
@@ -928,7 +928,7 @@ impl<'a> Cfg<'a> {
                 .filter_map(io::Result::ok)
                 .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
                 .filter_map(|e| e.file_name().into_string().ok())
-                .filter_map(|n| ToolchainName::try_from(n).ok())
+                .filter_map(|n| ToolchainName::from_str(&n).ok())
                 .collect();
 
             toolchains.sort();

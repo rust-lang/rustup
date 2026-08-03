@@ -111,7 +111,7 @@ struct Rustup {
 fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolchainName> {
     use clap::{Error, error::ErrorKind};
     if let Some(stripped) = s.strip_prefix('+') {
-        ResolvableToolchainName::try_from(stripped)
+        ResolvableToolchainName::from_str(stripped)
             .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
     } else {
         Err(Error::raw(
@@ -1822,7 +1822,7 @@ async fn display_version(current_dir: PathBuf, process: &Process) -> Result<()> 
     cfg.toolchain_override = cfg
         .process
         .args()
-        .find_map(|arg| arg.strip_prefix('+').map(ResolvableToolchainName::try_from))
+        .find_map(|arg| arg.strip_prefix('+').map(ResolvableToolchainName::from_str))
         .transpose()?;
 
     match cfg.maybe_ensure_active_toolchain(None).await {
