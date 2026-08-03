@@ -71,16 +71,6 @@ pub enum InvalidName {
     PlusPrefix(String),
 }
 
-macro_rules! from_variant {
-    ($from:ident, $to:ident, $variant:expr) => {
-        impl From<$from> for $to {
-            fn from(value: $from) -> Self {
-                $variant(value)
-            }
-        }
-    };
-}
-
 macro_rules! try_from_str {
     ($to:ident) => {
         try_from_str!(&str, $to);
@@ -259,8 +249,17 @@ impl ToolchainName {
     }
 }
 
-from_variant!(ToolchainDesc, ToolchainName, ToolchainName::Official);
-from_variant!(CustomToolchainName, ToolchainName, ToolchainName::Custom);
+impl From<ToolchainDesc> for ToolchainName {
+    fn from(value: ToolchainDesc) -> Self {
+        Self::Official(value)
+    }
+}
+
+impl From<CustomToolchainName> for ToolchainName {
+    fn from(value: CustomToolchainName) -> Self {
+        Self::Custom(value)
+    }
+}
 
 try_from_str!(ToolchainName);
 
@@ -326,6 +325,18 @@ pub(crate) enum LocalToolchainName {
     Path(PathBasedToolchainName),
 }
 
+impl From<ToolchainName> for LocalToolchainName {
+    fn from(value: ToolchainName) -> Self {
+        Self::Named(value)
+    }
+}
+
+impl From<PathBasedToolchainName> for LocalToolchainName {
+    fn from(value: PathBasedToolchainName) -> Self {
+        Self::Path(value)
+    }
+}
+
 impl From<ToolchainDesc> for LocalToolchainName {
     fn from(value: ToolchainDesc) -> Self {
         ToolchainName::Official(value).into()
@@ -337,13 +348,6 @@ impl From<CustomToolchainName> for LocalToolchainName {
         ToolchainName::Custom(value).into()
     }
 }
-
-from_variant!(ToolchainName, LocalToolchainName, LocalToolchainName::Named);
-from_variant!(
-    PathBasedToolchainName,
-    LocalToolchainName,
-    LocalToolchainName::Path
-);
 
 impl PartialEq<ToolchainName> for LocalToolchainName {
     fn eq(&self, other: &ToolchainName) -> bool {
