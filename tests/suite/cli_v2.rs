@@ -1932,6 +1932,32 @@ warn: removing the last target; no build targets will be available
 }
 
 #[tokio::test]
+async fn install_forwards_cache_home() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let cache_home_env = cache_home.to_str().unwrap();
+    let env = [
+        ("RUSTUP_CACHE_HOME", cache_home_env),
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+    ];
+
+    cx.config
+        .expect_with_env(["rustup", "toolchain", "install", "stable"], env)
+        .await
+        .is_ok();
+
+    let rustc = cx
+        .config
+        .expect_with_env(
+            ["rustc", "+stable", "--echo-env", "RUSTUP_CACHE_HOME"],
+            env,
+        )
+        .await;
+    rustc.is_ok();
+    assert_eq!(rustc.output.stderr.trim(), cache_home.to_string_lossy());
+}
+
+#[tokio::test]
 // Issue #304
 async fn remove_target_missing_update_hash() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;

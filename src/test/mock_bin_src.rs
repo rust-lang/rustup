@@ -100,6 +100,7 @@ fn main() {
         Some("--echo-current-exe") => {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::current_exe().unwrap().display()).unwrap();
+
         }
         arg => panic!("bad mock proxy commandline: {:?}", arg),
     }
