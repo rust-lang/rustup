@@ -59,7 +59,7 @@ receive log lines only from `rustup` itself with a max verbosity of `DEBUG`.
 ## Opentelemetry tracing
 
 The feature `otel` can be used when building rustup to turn on Opentelemetry
-tracing with an OLTP GRPC exporter.
+tracing with an OTLP gRPC exporter.
 
 This can be very useful for diagnosing performance or correctness issues in more
 complicated scenarios.
@@ -118,6 +118,6 @@ Some good general heuristics:
   as these tend to help figure the puzzle of what-is-happening
 - Default to not instrumenting thin shim functions (or at least, only instrument
   them temporarily while figuring out the shape of a problem)
-- Be way of debug build timing - release optimisations make a huge difference,
+- Be wary of debug build timing - release optimisations make a huge difference,
   though debug is a lot faster to iterate on. If something isn't a problem in
   release don't pay it too much heed in debug.
