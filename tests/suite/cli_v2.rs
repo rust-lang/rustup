@@ -1932,29 +1932,55 @@ warn: removing the last target; no build targets will be available
 }
 
 #[tokio::test]
-async fn install_forwards_cache_home() {
+async fn install_update_hash_uses_cache_home_and_forwards_it() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cache_home = cx.config.current_dir().join("relative/cache");
     let cache_home_env = cache_home.to_str().unwrap();
-    let env = [
-        ("RUSTUP_CACHE_HOME", cache_home_env),
-        ("RUSTUP_USE_CATEGORY_HOME", "1"),
-    ];
+    let toolchain = format!("stable-{}", this_host_tuple());
 
     cx.config
-        .expect_with_env(["rustup", "toolchain", "install", "stable"], env)
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
         .await
         .is_ok();
+
+    assert!(cache_home.join("update-hashes").join(&toolchain).is_file());
+    assert!(
+        !cx.config
+            .rustupdir
+            .has(format!("update-hashes/{toolchain}"))
+    );
+    assert!(cx.config.rustupdir.has(format!("toolchains/{toolchain}")));
 
     let rustc = cx
         .config
         .expect_with_env(
             ["rustc", "+stable", "--echo-env", "RUSTUP_CACHE_HOME"],
-            env,
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
         )
         .await;
     rustc.is_ok();
     assert_eq!(rustc.output.stderr.trim(), cache_home.to_string_lossy());
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "remove", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+    assert!(!cache_home.join("update-hashes").join(&toolchain).is_file());
 }
 
 #[tokio::test]

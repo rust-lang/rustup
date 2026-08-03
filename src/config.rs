@@ -318,7 +318,6 @@ pub(crate) struct Cfg<'a> {
     state_file: StateFile,
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
-    update_hash_dir: PathBuf,
     pub rustup_cache_dir: PathBuf,
     pub download_dir: PathBuf,
     pub toolchain_override: Option<ResolvableToolchainName>,
@@ -379,7 +378,6 @@ impl<'a> Cfg<'a> {
         let fallback_settings = None;
 
         let toolchains_dir = rustup_dir.join("toolchains");
-        let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
 
         // Environment override
@@ -398,7 +396,6 @@ impl<'a> Cfg<'a> {
             state_file,
             fallback_settings,
             toolchains_dir,
-            update_hash_dir,
             rustup_cache_dir,
             download_dir,
             toolchain_override: None,
@@ -528,11 +525,12 @@ impl<'a> Cfg<'a> {
         toolchain: &ToolchainDesc,
         create_parent: bool,
     ) -> anyhow::Result<PathBuf> {
+        let update_hash_dir = self.rustup_cache_dir.join("update-hashes");
         if create_parent {
-            utils::ensure_dir_exists("update-hash", &self.update_hash_dir)?;
+            utils::ensure_dir_exists("update-hash", &update_hash_dir)?;
         }
 
-        Ok(self.update_hash_dir.join(toolchain.to_string()))
+        Ok(update_hash_dir.join(toolchain.to_string()))
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
@@ -561,7 +559,10 @@ impl<'a> Cfg<'a> {
                 }
 
                 // Also delete the update hashes
-                let files = utils::read_dir("update hashes", &self.update_hash_dir)?;
+                let files = utils::read_dir(
+                    "update hashes",
+                    &self.rustup_cache_dir.join("update-hashes"),
+                )?;
                 for file in files {
                     let file = file.context("IO Error reading update hashes")?;
                     utils::remove_file("update hash", &file.path())?;
@@ -1153,7 +1154,6 @@ impl Debug for Cfg<'_> {
             state_file,
             fallback_settings,
             toolchains_dir,
-            update_hash_dir,
             rustup_cache_dir,
             download_dir,
             toolchain_override,
@@ -1173,7 +1173,6 @@ impl Debug for Cfg<'_> {
             .field("state_file", state_file)
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
-            .field("update_hash_dir", update_hash_dir)
             .field("rustup_cache_dir", rustup_cache_dir)
             .field("download_dir", download_dir)
             .field("toolchain_override", toolchain_override)
