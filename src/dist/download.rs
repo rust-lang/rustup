@@ -35,7 +35,7 @@ impl<'a> DownloadCfg<'a> {
     pub(crate) fn new(cfg: &'a Cfg<'a>) -> Self {
         DownloadCfg {
             tmp_cx: Arc::new(temp::Context::new(
-                cfg.rustup_dir.join("tmp"),
+                cfg.rustup_cache_dir.join("tmp"),
                 cfg.dist_root_server.as_str(),
             )),
             download_dir: &cfg.download_dir,

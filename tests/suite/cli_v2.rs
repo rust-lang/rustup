@@ -1932,7 +1932,7 @@ warn: removing the last target; no build targets will be available
 }
 
 #[tokio::test]
-async fn install_update_hash_uses_cache_home_and_forwards_it() {
+async fn install_uses_cache_home_and_forwards_it() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let cache_home = cx.config.current_dir().join("relative/cache");
     let cache_home_env = cache_home.to_str().unwrap();
@@ -1948,6 +1948,9 @@ async fn install_update_hash_uses_cache_home_and_forwards_it() {
         )
         .await
         .is_ok();
+
+    assert!(cache_home.join("tmp").is_dir());
+    assert!(!cx.config.rustupdir.has("tmp"));
 
     assert!(cache_home.join("update-hashes").join(&toolchain).is_file());
     assert!(
