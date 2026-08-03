@@ -323,6 +323,7 @@ pub(crate) struct Cfg<'a> {
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
+    pub rustup_cache_dir: PathBuf,
     pub download_dir: PathBuf,
     pub toolchain_override: Option<Override<ResolvableLocalToolchainName>>,
     env_override: Option<Override<ResolvableLocalToolchainName>>,
@@ -350,6 +351,7 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
+        let rustup_cache_dir = process.home_dirs()?.cache;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
 
@@ -401,6 +403,7 @@ impl<'a> Cfg<'a> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            rustup_cache_dir,
             download_dir,
             toolchain_override: None,
             env_override,
@@ -1185,6 +1188,7 @@ impl Debug for Cfg<'_> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            rustup_cache_dir,
             download_dir,
             toolchain_override,
             env_override,
@@ -1204,6 +1208,7 @@ impl Debug for Cfg<'_> {
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
+            .field("rustup_cache_dir", rustup_cache_dir)
             .field("download_dir", download_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
