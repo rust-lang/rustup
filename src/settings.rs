@@ -38,25 +38,18 @@ impl SettingsFile {
     }
 
     fn read_settings(&self) -> Result<()> {
-        let mut needs_save = false;
-        {
-            let b = self.cache.borrow();
-            if b.is_none() {
-                drop(b);
-                *self.cache.borrow_mut() = Some(if utils::is_file(&self.path) {
-                    let content = utils::read_locked_file("settings", &self.path)?;
-                    Settings::parse(&content).with_context(|| RustupError::ParsingFile {
-                        name: "settings",
-                        path: self.path.clone(),
-                    })?
-                } else {
-                    needs_save = true;
-                    Default::default()
-                });
-            }
-        }
-        if needs_save {
-            self.write_settings()?;
+        let b = self.cache.borrow();
+        if b.is_none() {
+            drop(b);
+            *self.cache.borrow_mut() = Some(if utils::is_file(&self.path) {
+                let content = utils::read_locked_file("settings", &self.path)?;
+                Settings::parse(&content).with_context(|| RustupError::ParsingFile {
+                    name: "settings",
+                    path: self.path.clone(),
+                })?
+            } else {
+                Settings::default()
+            });
         }
         Ok(())
     }

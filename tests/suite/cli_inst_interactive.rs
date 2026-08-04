@@ -720,6 +720,6 @@ Current installation options:
 "#]])
         .is_ok();
 
-    assert!(settings_file.exists());
+    assert!(!settings_file.exists());
     assert!(rustupdir.exists());
 }
