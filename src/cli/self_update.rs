@@ -107,6 +107,7 @@ pub(crate) struct InstallOpts<'a> {
     pub no_update_toolchain: bool,
     pub components: &'a [&'a str],
     pub targets: &'a [&'a str],
+    pub process: &'a Process,
 }
 
 impl InstallOpts<'_> {
@@ -116,46 +117,52 @@ impl InstallOpts<'_> {
     /// - Copying the running binary to the binary directory.
     /// - Hard-linking the various Rust tools to that copied binary.
     /// - Adding the binary directory to the `$PATH` unless `no_modify_path` is set.
-    pub(crate) async fn install(mut self, no_prompt: bool, cfg: &mut Cfg<'_>) -> Result<ExitCode> {
+    pub(crate) async fn install(
+        mut self,
+        current_dir: PathBuf,
+        no_prompt: bool,
+        quiet: bool,
+    ) -> Result<ExitCode> {
         #[cfg_attr(not(unix), allow(unused_mut))]
         let mut exit_code = ExitCode::SUCCESS;
 
-        self.validate(cfg.process).map_err(|e| {
+        let process = self.process;
+
+        self.validate(process).map_err(|e| {
             anyhow!(
                 "Pre-checks for host and toolchain failed: {e}\n\
             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
             Valid host tuples look something like: {}",
-                TargetTuple::from_host_or_build(cfg.process)
+                TargetTuple::from_host_or_build(process)
             )
         })?;
 
-        if cfg
-            .process
+        if process
             .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
             .is_none_or(|s| s != "yes")
         {
-            check_existence_of_rustc_or_cargo_in_path(no_prompt, cfg.process)?;
-            check_existence_of_settings_file(cfg.process)?;
+            check_existence_of_rustc_or_cargo_in_path(no_prompt, process)?;
+            check_existence_of_settings_file(process)?;
         }
 
         #[cfg(unix)]
         {
-            exit_code &= unix::do_anti_sudo_check(no_prompt, cfg.process)?;
+            exit_code &= unix::do_anti_sudo_check(no_prompt, process)?;
         }
 
-        let mut term = cfg.process.stdout();
+        let mut term = process.stdout();
 
         #[cfg(windows)]
-        windows::maybe_install_msvc(&mut term, no_prompt, &self, &*cfg).await?;
+        windows::maybe_install_msvc(&mut term, no_prompt, quiet, &self, process).await?;
 
         if !no_prompt {
-            let msg = pre_install_msg(self.no_modify_path, cfg.process)?;
+            let msg = pre_install_msg(self.no_modify_path, process)?;
 
             md(&mut term, msg);
             let mut customized_install = false;
             loop {
-                md(&mut term, current_install_opts(&self, cfg.process));
-                match common::confirm_advanced(customized_install, cfg.process)? {
+                md(&mut term, current_install_opts(&self));
+                match common::confirm_advanced(customized_install, process)? {
                     Confirm::No => {
                         info!("aborting installation");
                         return Ok(ExitCode::SUCCESS);
@@ -163,15 +170,15 @@ impl InstallOpts<'_> {
                     Confirm::Yes => break,
                     Confirm::Advanced => {
                         customized_install = true;
-                        self.customize(cfg.process)?;
+                        self.customize(process)?;
                     }
                 }
             }
         }
 
         let no_modify_path = self.no_modify_path;
-        if let Err(e) = self.install_rust(cfg).await {
-            report_error(&e, cfg.process);
+        if let Err(e) = self.install_rust(current_dir, quiet).await {
+            report_error(&e, process);
 
             // On windows, where installation happens in a console
             // that may have opened just for this purpose, give
@@ -179,13 +186,13 @@ impl InstallOpts<'_> {
             // window closes.
             #[cfg(windows)]
             if !no_prompt {
-                windows::ensure_prompt(cfg.process)?;
+                windows::ensure_prompt(process)?;
             }
 
             return Ok(ExitCode::FAILURE);
         }
 
-        let cargo_home = canonical_cargo_home(cfg.process)?;
+        let cargo_home = canonical_cargo_home(process)?;
         #[cfg(windows)]
         let cargo_home = cargo_home.replace('\\', r"\\");
         #[cfg(windows)]
@@ -198,7 +205,7 @@ impl InstallOpts<'_> {
             format!(post_install_msg_win!(), cargo_home = cargo_home)
         };
         #[cfg(not(windows))]
-        let source_env_lines = shell::build_source_env_lines(cfg.process);
+        let source_env_lines = shell::build_source_env_lines(process);
         #[cfg(not(windows))]
         let msg = if no_modify_path {
             format!(
@@ -216,33 +223,33 @@ impl InstallOpts<'_> {
         md(&mut term, msg);
 
         #[cfg(unix)]
-        warn_if_default_linker_missing(cfg.process);
+        warn_if_default_linker_missing(process);
 
         #[cfg(windows)]
         if !no_prompt {
             // On windows, where installation happens in a console
             // that may have opened just for this purpose, require
             // the user to press a key to continue.
-            windows::ensure_prompt(cfg.process)?;
+            windows::ensure_prompt(process)?;
         }
 
         Ok(exit_code)
     }
 
     /// Installs the rustup binary and proxies, and installs a toolchain if specified.
-    async fn install_rust(self, cfg: &mut Cfg<'_>) -> Result<()> {
-        install_bins(cfg.process)?;
+    async fn install_rust(self, current_dir: PathBuf, quiet: bool) -> Result<()> {
+        install_bins(self.process)?;
 
         #[cfg(unix)]
-        unix::do_write_env_files(cfg.process)?;
+        unix::do_write_env_files(self.process)?;
 
         if !self.no_modify_path {
-            do_add_to_path(cfg.process)?;
+            do_add_to_path(self.process)?;
         }
 
         // If RUSTUP_HOME is not set, make sure it exists
-        if cfg.process.var_os("RUSTUP_HOME").is_none() {
-            let home = cfg
+        if self.process.var_os("RUSTUP_HOME").is_none() {
+            let home = self
                 .process
                 .home_dir()
                 .map(|p| p.join(".rustup"))
@@ -251,19 +258,21 @@ impl InstallOpts<'_> {
             fs::create_dir_all(home).context("unable to create ~/.rustup")?;
         }
 
+        let mut cfg = Cfg::from_env(current_dir, quiet, false, self.process)?;
+
         let (components, targets) = (self.components, self.targets);
-        let toolchain = self.select_toolchain(cfg)?;
+        let toolchain = self.select_toolchain(&mut cfg)?;
         if let Some(desc) = toolchain {
             let options =
-                DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, cfg)?;
-            let status = if Toolchain::exists(cfg, &desc.clone().into())? {
+                DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, &cfg)?;
+            let status = if Toolchain::exists(&cfg, &desc.clone().into())? {
                 warn!("Updating existing toolchain, profile choice will be ignored");
                 // If we have a partial install we might not be able to read content here. We could:
                 // - fail and folk have to delete the partially present toolchain to recover
                 // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
                 // - delete the partial install and start over
                 // For now, we error.
-                let toolchain = DistributableToolchain::new(cfg, desc.clone())?;
+                let toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
                 InstallMethod::Dist(options.for_update(&toolchain, false))
                     .install(None)
                     .await?
@@ -275,7 +284,7 @@ impl InstallOpts<'_> {
 
             cfg.set_default(Some(&desc.clone().into()))?;
             writeln!(cfg.process.stdout().lock())?;
-            common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
+            common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
         }
         Ok(())
     }
@@ -294,6 +303,7 @@ impl InstallOpts<'_> {
             no_update_toolchain,
             components,
             targets,
+            ..
         } = self;
 
         cfg.set_profile(profile)?;
@@ -690,7 +700,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> Result<String> {
     }
 }
 
-fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
+fn current_install_opts(opts: &InstallOpts<'_>) -> String {
     format!(
         r"Current installation options:
 
@@ -702,7 +712,7 @@ fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
         opts.default_host_tuple
             .as_ref()
             .map(TargetTuple::new)
-            .unwrap_or_else(|| TargetTuple::from_host_or_build(process)),
+            .unwrap_or_else(|| TargetTuple::from_host_or_build(opts.process)),
         match &opts.default_toolchain {
             Some(name) => name.to_string(),
             None => "stable (default)".to_owned(),
@@ -1375,6 +1385,7 @@ mod tests {
                 components: &[],
                 targets: &[],
                 no_update_toolchain: false,
+                process: &tp.process,
             };
 
             assert_eq!(
