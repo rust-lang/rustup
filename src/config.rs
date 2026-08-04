@@ -1051,7 +1051,7 @@ impl Debug for Cfg<'_> {
     }
 }
 
-fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple {
+pub(crate) fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple {
     s.default_host_tuple
         .as_ref()
         .map(TargetTuple::new)
