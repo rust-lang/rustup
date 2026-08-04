@@ -15,7 +15,7 @@ use crate::utils;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettingsFile {
-    path: PathBuf,
+    pub(crate) path: PathBuf,
     cache: RefCell<Option<Settings>>,
 }
 
