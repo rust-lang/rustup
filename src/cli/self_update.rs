@@ -58,7 +58,7 @@ use crate::{
         errors::CliError,
         markdown::md,
     },
-    config::Cfg,
+    config::{Cfg, default_host_tuple},
     dist::{
         DistOptions, PartialToolchainDesc, Profile, TargetTuple, ToolchainDesc,
         download::DownloadCfg,
@@ -67,6 +67,7 @@ use crate::{
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
+    settings::SettingsFile,
     toolchain::{
         DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
         ToolchainName,
@@ -134,7 +135,7 @@ impl InstallOpts<'_> {
             .is_none_or(|s| s != "yes")
         {
             check_existence_of_rustc_or_cargo_in_path(no_prompt, cfg.process)?;
-            check_existence_of_settings_file(cfg)?;
+            check_existence_of_settings_file(cfg.process)?;
         }
 
         #[cfg(unix)]
@@ -625,23 +626,22 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
     Ok(())
 }
 
-fn check_existence_of_settings_file(cfg: &Cfg<'_>) -> Result<()> {
-    let rustup_dir = cfg.process.rustup_home()?;
-    let settings_file_path = rustup_dir.join("settings.toml");
-    if !utils::path_exists(&settings_file_path) {
+fn check_existence_of_settings_file(process: &Process) -> Result<()> {
+    let rustup_dir = process.rustup_home()?;
+    let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+    if !utils::path_exists(&settings_file.path) {
         return Ok(());
     }
-    let settings_toolchain = cfg
-        .settings_file
-        .with(|s| Ok(s.default_toolchain.clone()))?;
+    let settings_toolchain = settings_file.with(|s| Ok(s.default_toolchain.clone()))?;
     // If there is already a non-empty `settings.toml` file (e.g., not a fresh install),
     // then we warn the user that there was an already configured default toolchain.
     let Some(default_toolchain) = settings_toolchain else {
         return Ok(());
     };
     warn!("it looks like you have an existing rustup settings file at:");
-    warn!("{}", settings_file_path.display());
-    let inferred = PartialToolchainDesc::from_str("stable")?.resolve(&cfg.default_host_tuple()?)?;
+    warn!("{}", settings_file.path.display());
+    let default_host_tuple = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
+    let inferred = PartialToolchainDesc::from_str("stable")?.resolve(&default_host_tuple)?;
     if default_toolchain != inferred.to_string() {
         warn!("rustup will install the default toolchain as specified in the settings file,");
         warn!("instead of the one inferred from the default host tuple.");
