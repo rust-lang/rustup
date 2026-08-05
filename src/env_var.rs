@@ -54,8 +54,6 @@ mod tests {
     use std::ffi::{OsStr, OsString};
 
     use super::*;
-    #[cfg(windows)]
-    use crate::cli::self_update::{RegistryGuard, USER_PATH};
     use crate::process::TestProcess;
     use crate::test::Env;
 
@@ -67,8 +65,6 @@ mod tests {
             env::join_paths(["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
         );
         let tp = TestProcess::with_vars(vars);
-        #[cfg(windows)]
-        let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
         let mut path_entries = vec![];
         let mut cmd = Command::new("test");
 
@@ -115,8 +111,6 @@ mod tests {
             env::join_paths(["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
         );
         let tp = TestProcess::with_vars(vars);
-        #[cfg(windows)]
-        let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
         #[track_caller]
         fn check(tp: &TestProcess, path_entries: Vec<PathBuf>, append: &str, expected: &[&str]) {

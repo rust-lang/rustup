@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -5,8 +6,6 @@ use std::io::Write;
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
-#[cfg(any(test, feature = "test"))]
-use std::sync::{LockResult, Mutex, MutexGuard};
 
 use anyhow::{Context, Result, anyhow};
 use tracing::{info, warn};
@@ -450,10 +449,10 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 
 pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
-    _apply_new_path(new_path)
+    _apply_new_path(new_path, process)
 }
 
-fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
+fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> Result<()> {
     use std::ptr;
     use windows_sys::Win32::Foundation::{LPARAM, WPARAM};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -464,7 +463,7 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
         return Ok(()); // No need to set the path
     };
 
-    let environment = CURRENT_USER.create("Environment")?;
+    let environment = process.registry_environment_key()?;
 
     if new_path.is_empty() {
         environment.remove_value("PATH")?;
@@ -492,9 +491,9 @@ fn _apply_new_path(new_path: Option<HSTRING>) -> Result<()> {
 // Get the windows PATH variable out of the registry as a String. If
 // this returns None then the PATH variable is not a string and we
 // should not mess with it.
-fn get_windows_path_var() -> Result<Option<HSTRING>> {
-    let environment = CURRENT_USER
-        .create("Environment")
+fn get_windows_path_var(process: &Process) -> Result<Option<HSTRING>> {
+    let environment = process
+        .registry_environment_key()
         .context("Failed opening Environment key")?;
 
     let reg_value = environment.get_hstring("PATH");
@@ -558,7 +557,7 @@ fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> Result<Option<HSTRIN
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
-    let windows_path = get_windows_path_var()?;
+    let windows_path = get_windows_path_var(process)?;
     let mut path_str = process.cargo_home()?;
     path_str.push("bin");
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
@@ -566,19 +565,46 @@ where
 
 pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
-    _apply_new_path(new_path)
+    _apply_new_path(new_path, process)
 }
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
 
-fn rustup_uninstall_reg_key() -> Result<Key> {
-    CURRENT_USER
-        .create(RUSTUP_UNINSTALL_ENTRY)
+impl Process {
+    fn registry_sub_key_path<'a>(&self, sub_key: &'a str) -> Cow<'a, str> {
+        #[cfg(any(test, feature = "test"))]
+        if let Ok(test_id) = self.var(RUSTUP_REGISTRY_TEST_ID) {
+            return Cow::Owned(format!(r"RustupTest-{test_id}\{sub_key}"));
+        }
+
+        Cow::Borrowed(sub_key)
+    }
+
+    fn registry_key(&self, sub_key: &str, parent: &Key) -> windows_registry::Result<Key> {
+        let mut options = parent.options();
+        options.read().write().create();
+
+        #[cfg(any(test, feature = "test"))]
+        if self.var(RUSTUP_REGISTRY_TEST_ID).is_ok() {
+            options.volatile();
+        }
+
+        options.open(self.registry_sub_key_path(sub_key))
+    }
+
+    fn registry_environment_key(&self) -> windows_registry::Result<Key> {
+        self.registry_key("Environment", CURRENT_USER)
+    }
+}
+
+fn rustup_uninstall_reg_key(process: &Process) -> Result<Key> {
+    process
+        .registry_key(RUSTUP_UNINSTALL_ENTRY, CURRENT_USER)
         .context("Failed creating uninstall key")
 }
 
-pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
-    rustup_uninstall_reg_key()?
+pub(crate) fn do_update_programs_display_version(version: &str, process: &Process) -> Result<()> {
+    rustup_uninstall_reg_key(process)?
         .set_string("DisplayVersion", version)
         .context("Failed to set `DisplayVersion`")
 }
@@ -586,7 +612,7 @@ pub(crate) fn do_update_programs_display_version(version: &str) -> Result<()> {
 pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
     use std::path::PathBuf;
 
-    let key = rustup_uninstall_reg_key()?;
+    let key = rustup_uninstall_reg_key(process)?;
 
     // Don't overwrite registry if Rustup is already installed
     let prev = key.get_hstring("UninstallString");
@@ -608,20 +634,20 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
         .context("Failed to set `UninstallString`")?;
     key.set_string("DisplayName", "Rustup: the Rust toolchain installer")
         .context("Failed to set `DisplayName`")?;
-    do_update_programs_display_version(env!("CARGO_PKG_VERSION"))?;
+    do_update_programs_display_version(env!("CARGO_PKG_VERSION"), process)?;
 
     Ok(())
 }
 
-pub(crate) fn do_remove_from_programs() -> Result<()> {
-    match CURRENT_USER.remove_tree(RUSTUP_UNINSTALL_ENTRY) {
+pub(crate) fn do_remove_from_programs(process: &Process) -> Result<()> {
+    match CURRENT_USER.remove_tree(process.registry_sub_key_path(RUSTUP_UNINSTALL_ENTRY)) {
         Ok(()) => Ok(()),
         Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
         Err(e) => Err(anyhow!(e)),
     }
 }
 
-pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path, process: &Process) -> Result<utils::ExitCode> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
@@ -631,7 +657,7 @@ pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
         warn!("failed to get the new rustup version in order to update `DisplayVersion`");
         return Ok(utils::ExitCode(1));
     };
-    do_update_programs_display_version(&version)?;
+    do_update_programs_display_version(&version, process)?;
 
     Ok(utils::ExitCode(0))
 }
@@ -753,38 +779,14 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> Res
 // so we use env var here, notifying it if we need to remove $CARGO_HOME/bin from $PATH
 const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
+/// Environment variable carrying the per-test registry ID.
 #[cfg(any(test, feature = "test"))]
-pub fn get_path() -> Result<Option<Value>> {
-    USER_PATH.get()
-}
+pub const RUSTUP_REGISTRY_TEST_ID: &str = "RUSTUP_REGISTRY_TEST_ID";
 
 #[cfg(any(test, feature = "test"))]
-pub struct RegistryGuard<'a> {
-    _locked: LockResult<MutexGuard<'a, ()>>,
-    id: &'static RegistryValueId,
-    prev: Option<Value>,
+pub fn get_path(test_id: &str) -> Result<Option<Value>> {
+    USER_PATH.get(test_id, CURRENT_USER)
 }
-
-#[cfg(any(test, feature = "test"))]
-impl RegistryGuard<'_> {
-    pub fn new(id: &'static RegistryValueId) -> Result<Self> {
-        Ok(Self {
-            _locked: REGISTRY_LOCK.lock(),
-            id,
-            prev: id.get()?,
-        })
-    }
-}
-
-#[cfg(any(test, feature = "test"))]
-impl Drop for RegistryGuard<'_> {
-    fn drop(&mut self) {
-        self.id.set(self.prev.as_ref()).unwrap();
-    }
-}
-
-#[cfg(any(test, feature = "test"))]
-static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
 
 #[cfg(any(test, feature = "test"))]
 pub const USER_PATH: RegistryValueId = RegistryValueId {
@@ -800,8 +802,10 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    pub fn get(&self) -> Result<Option<Value>> {
-        let sub_key = CURRENT_USER.create(self.sub_key)?;
+    pub fn get(&self, test_id: &str, parent: &Key) -> Result<Option<Value>> {
+        let mut options = parent.options();
+        options.read().write().create().volatile();
+        let sub_key = options.open(format!(r"RustupTest-{test_id}\{}", self.sub_key))?;
         match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
             Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(None),
@@ -809,23 +813,109 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set(&self, new: Option<&Value>) -> Result<()> {
-        let sub_key = CURRENT_USER.create(self.sub_key)?;
+    pub fn set(&self, new: Option<&Value>, test_id: &str, parent: &Key) -> Result<()> {
+        let mut options = parent.options();
+        options.read().write().create().volatile();
+        let sub_key = options.open(format!(r"RustupTest-{test_id}\{}", self.sub_key))?;
         match new {
             Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
-            None => Ok(sub_key.remove_value(self.value_name)?),
+            None => match sub_key.remove_value(self.value_name) {
+                Ok(()) => Ok(()),
+                Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
+                Err(e) => Err(e.into()),
+            },
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::os::windows::ffi::OsStringExt;
 
     use windows_registry::Type;
 
     use super::*;
     use crate::process::TestProcess;
+    use crate::test::test_id;
+
+    fn test_process(test_id: &str) -> TestProcess {
+        let vars: HashMap<String, String> = [
+            ("HOME".to_string(), "/unused".to_string()),
+            (RUSTUP_REGISTRY_TEST_ID.to_string(), test_id.to_owned()),
+        ]
+        .into_iter()
+        .collect();
+        TestProcess::with_vars(vars)
+    }
+
+    fn clear_path(environment: &Key) {
+        match environment.remove_value("PATH") {
+            Ok(()) => {}
+            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+            Err(e) => panic!("failed to clear PATH: {e}"),
+        }
+    }
+
+    #[test]
+    fn windows_registry_isolated_per_test_id() {
+        let first_id = test_id();
+        let second_id = test_id();
+        let first = test_process(&first_id);
+        let second = test_process(&second_id);
+        let first_value = Value::from("first");
+        let second_value = Value::from("second");
+
+        USER_PATH
+            .set(Some(&first_value), &first_id, CURRENT_USER)
+            .unwrap();
+        USER_PATH
+            .set(Some(&second_value), &second_id, CURRENT_USER)
+            .unwrap();
+
+        assert_eq!(
+            first
+                .process
+                .registry_environment_key()
+                .unwrap()
+                .get_hstring("PATH")
+                .unwrap(),
+            HSTRING::from("first")
+        );
+        assert_eq!(
+            second
+                .process
+                .registry_environment_key()
+                .unwrap()
+                .get_hstring("PATH")
+                .unwrap(),
+            HSTRING::from("second")
+        );
+
+        let programs_version = RegistryValueId {
+            sub_key: RUSTUP_UNINSTALL_ENTRY,
+            value_name: "DisplayVersion",
+        };
+        programs_version
+            .set(Some(&first_value), &first_id, CURRENT_USER)
+            .unwrap();
+        assert_eq!(
+            programs_version.get(&first_id, CURRENT_USER).unwrap(),
+            Some(first_value)
+        );
+        assert_eq!(
+            programs_version.get(&second_id, CURRENT_USER).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn windows_registry_cleanup_is_idempotent() {
+        let test_id = test_id();
+        let tp = test_process(&test_id);
+
+        do_remove_from_programs(&tp.process).unwrap();
+    }
 
     #[test]
     fn windows_install_does_not_add_path_twice() {
@@ -863,16 +953,20 @@ mod tests {
     #[test]
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
-        environment.remove_value("PATH").unwrap();
+        let test_id = test_id();
+        let tp = test_process(&test_id);
+        let environment = tp.process.registry_environment_key().unwrap();
+        clear_path(&environment);
 
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), _apply_new_path(Some(HSTRING::from("foo"))).unwrap());
+            assert_eq!(
+                (),
+                _apply_new_path(Some(HSTRING::from("foo")), &tp.process).unwrap()
+            );
         }
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let environment = tp.process.registry_environment_key().unwrap();
         let path = environment.get_value("PATH").unwrap();
         let path_hstring = environment.get_hstring("PATH").unwrap();
         assert_eq!(path.ty(), Type::ExpandString);
@@ -883,8 +977,9 @@ mod tests {
     fn windows_path_delete_key_when_empty() {
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let test_id = test_id();
+        let tp = test_process(&test_id);
+        let environment = tp.process.registry_environment_key().unwrap();
         environment
             .set_expand_hstring("PATH", &HSTRING::from("foo"))
             .unwrap();
@@ -892,7 +987,10 @@ mod tests {
         {
             // Can't compare the Results as Eq isn't derived; thanks error-chain.
             #![allow(clippy::unit_cmp)]
-            assert_eq!((), _apply_new_path(Some(HSTRING::new())).unwrap());
+            assert_eq!(
+                (),
+                _apply_new_path(Some(HSTRING::new()), &tp.process).unwrap()
+            );
         }
         let reg_value = environment.get_value("PATH");
         match reg_value {
@@ -904,16 +1002,11 @@ mod tests {
 
     #[test]
     fn windows_doesnt_mess_with_a_non_string_path() {
+        let test_id = test_id();
         // This writes an error, so we want a sink for it.
-        let tp = TestProcess::with_vars(
-            [("HOME".to_string(), "/unused".to_string())]
-                .iter()
-                .cloned()
-                .collect(),
-        );
+        let tp = test_process(&test_id);
 
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
+        let environment = tp.process.registry_environment_key().unwrap();
         environment
             .set_bytes("PATH", Type::Bytes, &[0x12, 0x34])
             .unwrap();
@@ -933,11 +1026,15 @@ mod tests {
     #[test]
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
-        let _guard = RegistryGuard::new(&USER_PATH);
-        let environment = CURRENT_USER.create("Environment").unwrap();
-        environment.remove_value("PATH").unwrap();
+        let test_id = test_id();
+        let tp = test_process(&test_id);
+        let environment = tp.process.registry_environment_key().unwrap();
+        clear_path(&environment);
 
-        assert_eq!(Some(HSTRING::new()), get_windows_path_var().unwrap());
+        assert_eq!(
+            Some(HSTRING::new()),
+            get_windows_path_var(&tp.process).unwrap()
+        );
     }
 
     #[test]

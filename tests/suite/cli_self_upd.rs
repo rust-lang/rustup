@@ -13,16 +13,16 @@ use retry::{
     delay::{Fibonacci, jitter},
     retry,
 };
+#[cfg(windows)]
+use rustup::test::RegistryValueId;
 use rustup::test::{
     CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash, output_release_file,
     this_host_tuple,
 };
-#[cfg(windows)]
-use rustup::test::{RegistryGuard, RegistryValueId, USER_PATH};
 use rustup::utils::{self, raw};
 use rustup::{DUP_TOOLS, TOOLS};
 #[cfg(windows)]
-use windows_registry::Value;
+use windows_registry::{CURRENT_USER, Value};
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -58,8 +58,6 @@ async fn setup_installed() -> CliTestContext {
 #[tokio::test]
 async fn install_bins_to_cargo_home() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -102,8 +100,6 @@ info: default toolchain set to stable-[HOST_TUPLE]
 #[tokio::test]
 async fn proxies_are_relative_symlinks() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -142,8 +138,6 @@ info: default toolchain set to stable-[HOST_TUPLE]
 #[tokio::test]
 async fn install_twice() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    #[cfg(windows)]
-    let _path_guard = RegistryGuard::new(&USER_PATH).unwrap();
 
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
@@ -495,18 +489,25 @@ async fn update_overwrites_programs_display_version() {
     let version = env!("CARGO_PKG_VERSION");
 
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    let _guard = RegistryGuard::new(&USER_RUSTUP_VERSION).unwrap();
+    let test_id = &cx.config.test_registry_id;
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
         .is_ok();
 
     USER_RUSTUP_VERSION
-        .set(Some(&Value::from(PLACEHOLDER_VERSION)))
+        .set(
+            Some(&Value::from(PLACEHOLDER_VERSION)),
+            test_id,
+            CURRENT_USER,
+        )
         .unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert_eq!(
-        USER_RUSTUP_VERSION.get().unwrap().unwrap(),
+        USER_RUSTUP_VERSION
+            .get(test_id, CURRENT_USER)
+            .unwrap()
+            .unwrap(),
         Value::from(version)
     );
 }
