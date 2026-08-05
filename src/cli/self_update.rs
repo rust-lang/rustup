@@ -93,7 +93,7 @@ mod windows;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
-pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
+pub use windows::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
 use windows::{delete_rustup_and_cargo_home, do_add_to_path, do_remove_from_path};
 #[cfg(windows)]
@@ -536,7 +536,7 @@ impl SelfUpdateMode {
         let setup_path = prepare_update(dl_cfg).await?;
 
         if let Some(setup_path) = &setup_path {
-            return run_update(setup_path);
+            return run_update(setup_path, dl_cfg.process);
         } else {
             // Try again in case we emitted "tool `{}` is already installed" last time.
             install_proxies(dl_cfg.process)?;
@@ -1121,7 +1121,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
                 PackageUpdate::Rustup,
                 Ok(UpdateStatus::Updated(version)),
             );
-            return run_update(&setup_path);
+            return run_update(&setup_path, cfg.process);
         }
         None => {
             let _ = common::show_channel_update(
