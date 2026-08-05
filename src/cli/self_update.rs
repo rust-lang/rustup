@@ -95,7 +95,7 @@ pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{do_add_to_path, do_remove_from_path, do_remove_from_programs};
+use windows::{do_add_to_path, do_add_to_programs, do_remove_from_path, do_remove_from_programs};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -248,6 +248,8 @@ impl InstallOpts<'_> {
 
         if !self.no_modify_path {
             do_add_to_path(process)?;
+            #[cfg(windows)]
+            do_add_to_programs(process)?;
         }
 
         // If RUSTUP_HOME is not set, make sure it exists
