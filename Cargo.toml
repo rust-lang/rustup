@@ -101,6 +101,7 @@ tracing = "0.1"
 tracing-log = "0.2"
 tracing-opentelemetry = { version = "0.33", optional = true }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+unicode-security = "0.1"
 url = "2.4"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
