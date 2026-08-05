@@ -248,9 +248,10 @@ impl InstallOpts<'_> {
 
         if !self.no_modify_path {
             do_add_to_path(process)?;
-            #[cfg(windows)]
-            do_add_to_programs(process)?;
         }
+
+        #[cfg(windows)]
+        do_add_to_programs(process)?;
 
         // If RUSTUP_HOME is not set, make sure it exists
         if process.var_os("RUSTUP_HOME").is_none() {
@@ -1028,6 +1029,9 @@ fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
 
     utils::remove_file("rustup_bin", &rustup_path)?;
 
+    #[cfg(windows)]
+    do_remove_from_programs()?;
+
     let cargo_bin_display = cargo_bin.display();
     info!("removing empty cargo bin directory `{cargo_bin_display}`");
 
@@ -1043,8 +1047,6 @@ fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
         Ok(()) if !no_modify_path => {
             info!("removing cargo bin directory `{cargo_bin_display}` from $PATH");
             do_remove_from_path(process)?;
-            #[cfg(windows)]
-            do_remove_from_programs()?;
         }
         Ok(()) => {}
     }
