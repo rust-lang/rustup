@@ -347,17 +347,6 @@ pub(crate) fn open_browser(path: impl AsRef<OsStr>) -> Result<()> {
     opener::open_browser(path).context("couldn't open browser")
 }
 
-#[cfg(not(windows))]
-fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
-    fs::set_permissions(path, perms).map_err(|e| {
-        RustupError::SettingPermissions {
-            p: PathBuf::from(path),
-            source: e,
-        }
-        .into()
-    })
-}
-
 pub fn file_size(path: &Path) -> Result<u64> {
     Ok(fs::metadata(path)
         .with_context(|| RustupError::ReadingFile {
@@ -374,13 +363,10 @@ pub(crate) fn make_executable(path: &Path) -> Result<()> {
         Ok(())
     }
     #[cfg(not(windows))]
-    fn inner(path: &Path) -> Result<()> {
+    fn inner(path: &Path) -> io::Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
-        let metadata = fs::metadata(path).map_err(|e| RustupError::SettingPermissions {
-            p: PathBuf::from(path),
-            source: e,
-        })?;
+        let metadata = fs::metadata(path)?;
         let mut perms = metadata.permissions();
         let mode = perms.mode();
         let new_mode = (mode & !0o777) | 0o755;
@@ -391,10 +377,46 @@ pub(crate) fn make_executable(path: &Path) -> Result<()> {
         }
 
         perms.set_mode(new_mode);
-        set_permissions(path, perms)
+        fs::set_permissions(path, perms)
     }
 
-    inner(path)
+    #[cfg(windows)]
+    {
+        inner(path)
+    }
+
+    #[cfg(not(windows))]
+    {
+        retry_set_permissions(|| inner(path)).map_err(|source| {
+            RustupError::SettingPermissions {
+                p: PathBuf::from(path),
+                source,
+            }
+            .into()
+        })
+    }
+}
+
+#[cfg(not(windows))]
+fn retry_set_permissions(mut operation: impl FnMut() -> io::Result<()>) -> io::Result<()> {
+    retry(
+        Fibonacci::from_millis(10).map(jitter).take(10),
+        || match operation() {
+            Ok(()) => OperationResult::Ok(()),
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::NotFound
+                        | io::ErrorKind::PermissionDenied
+                        | io::ErrorKind::ResourceBusy
+                ) =>
+            {
+                OperationResult::Retry(e)
+            }
+            Err(e) => OperationResult::Err(e),
+        },
+    )
+    .map_err(|e| e.error)
 }
 
 pub fn current_exe() -> Result<PathBuf> {
@@ -567,5 +589,23 @@ mod tests {
 
         assert!(!f_path.exists());
         assert!(ensure_file_removed("f", &f_path).is_ok());
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn retry_set_permissions_after_transient_errors() {
+        let mut attempts = 0;
+
+        retry_set_permissions(|| {
+            attempts += 1;
+            if attempts < 3 {
+                Err(io::Error::from(io::ErrorKind::NotFound))
+            } else {
+                Ok(())
+            }
+        })
+        .unwrap();
+
+        assert_eq!(attempts, 3);
     }
 }
