@@ -71,19 +71,6 @@ pub enum InvalidName {
     PlusPrefix(String),
 }
 
-/// Common validate rules for all sorts of toolchain names
-fn validate(candidate: &str) -> Result<&str, InvalidName> {
-    if let Some(without_plus) = candidate.strip_prefix('+') {
-        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
-    }
-    let normalized_name = candidate.trim_end_matches('/');
-    if normalized_name.is_empty() {
-        Err(InvalidName::ToolchainName(candidate.into()))
-    } else {
-        Ok(normalized_name)
-    }
-}
-
 /// A toolchain name from user input.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {
@@ -103,7 +90,7 @@ impl ResolvableToolchainName {
     // If candidate could be resolved, return a ready to resolve version of it.
     // Otherwise error.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
+        let candidate = normalize_name(candidate)?;
         if let Ok(desc) = PartialToolchainDesc::from_str(candidate) {
             return Ok(Self::Official(desc));
         }
@@ -151,7 +138,7 @@ impl MaybeResolvableToolchainName {
     // If candidate could be resolved, return a ready to resolve version of it.
     // Otherwise error.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        Ok(match validate(candidate)? {
+        Ok(match normalize_name(candidate)? {
             "none" => Self::None,
             candidate => Self::Some(ResolvableToolchainName::validate(candidate)?),
         })
@@ -185,7 +172,7 @@ pub(crate) enum MaybeOfficialToolchainName {
 
 impl MaybeOfficialToolchainName {
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        Ok(match validate(candidate)? {
+        Ok(match normalize_name(candidate)? {
             "none" => Self::None,
             candidate => Self::Some(
                 PartialToolchainDesc::from_str(candidate)
@@ -224,7 +211,7 @@ pub enum ToolchainName {
 impl ToolchainName {
     /// If the string is already resolved, allow direct conversion
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
+        let candidate = normalize_name(candidate)?;
         if let Ok(desc) = ToolchainDesc::from_str(candidate) {
             return Ok(Self::Official(desc));
         }
@@ -285,7 +272,7 @@ impl ResolvableLocalToolchainName {
 
     /// Validates if the string is a resolvable toolchain, or a path based toolchain.
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
+        let candidate = normalize_name(candidate)?;
         if let Ok(name) = ResolvableToolchainName::from_str(candidate) {
             return Ok(Self::Named(name));
         }
@@ -373,7 +360,7 @@ pub struct CustomToolchainName(String);
 
 impl CustomToolchainName {
     fn validate(candidate: &str) -> Result<Self, InvalidName> {
-        let candidate = validate(candidate)?;
+        let candidate = normalize_name(candidate)?;
         if candidate.parse::<PartialToolchainDesc>().is_ok()
             || candidate == "none"
             || candidate.contains('/')
@@ -460,6 +447,23 @@ impl Deref for PathBasedToolchainName {
 
     fn deref(&self) -> &PathBuf {
         &self.0
+    }
+}
+
+/// Normalization shared by all sorts of toolchain names.
+///
+/// Strips the trailing slashes a shell may have completed onto a toolchain
+/// directory, and rejects the `+toolchain` argument form along with names that
+/// are empty once normalized.
+fn normalize_name(candidate: &str) -> Result<&str, InvalidName> {
+    if let Some(without_plus) = candidate.strip_prefix('+') {
+        return Err(InvalidName::PlusPrefix(without_plus.to_string()));
+    }
+    let normalized_name = candidate.trim_end_matches('/');
+    if normalized_name.is_empty() {
+        Err(InvalidName::ToolchainName(candidate.into()))
+    } else {
+        Ok(normalized_name)
     }
 }
 
