@@ -1,6 +1,7 @@
 //! Tests of the interactive console installer
 
 use std::env::consts::EXE_SUFFIX;
+use std::fs;
 use std::io::Write;
 use std::process::Stdio;
 
@@ -684,4 +685,41 @@ warn: no default linker ([CC_TOOL]) was found in your PATH
 warn: many Rust crates require a system C toolchain to build
 ...
 "#]]);
+}
+
+#[tokio::test]
+async fn install_rejection_leaves_rustupdir_untouched() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let rustupdir = &cx.config.rustupdir.rustupdir;
+    let settings_file = &rustupdir.join("settings.toml");
+    fs::remove_dir_all(rustupdir).unwrap();
+
+    run_input(&cx.config, &["rustup-init", "--no-modify-path"], "3\n")
+        .with_stdout(snapbox::str![[r#"
+...
+This path needs to be in your PATH environment variable,
+but will not be added automatically.
+
+You can uninstall at any time with rustup self uninstall and
+these changes will be reverted.
+
+Current installation options:
+
+
+    default host tuple: [HOST_TUPLE]
+     default toolchain: stable (default)
+               profile: default
+  modify PATH variable: no
+
+1) Proceed with standard installation (default - just press enter)
+2) Customize installation
+3) Cancel installation
+>
+
+"#]])
+        .is_ok();
+
+    assert!(settings_file.exists());
+    assert!(rustupdir.exists());
 }
