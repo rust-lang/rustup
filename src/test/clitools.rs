@@ -33,6 +33,9 @@ use crate::test::tempdir_in_with_prefix;
 use crate::test::this_host_tuple;
 use crate::utils;
 
+#[cfg(windows)]
+use crate::{cli::self_update::RUSTUP_REGISTRY_TEST_ID, test::test_id};
+
 use super::{
     CHECKPOINT_ENV, CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, checkpoint_path,
     dist::{MockDistServer, MockManifestVersion, Release, RlsStatus, change_channel_date},
@@ -64,6 +67,9 @@ pub struct Config {
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
     test_root_dir: PathBuf,
+    /// Per-test Windows registry ID.
+    #[cfg(windows)]
+    pub test_registry_id: String,
 }
 
 /// Helper type to simplify assertions of a command's output.
@@ -324,6 +330,9 @@ impl Config {
         if let Some(root) = self.rustup_update_root.as_ref() {
             cmd.env("RUSTUP_UPDATE_ROOT", root);
         }
+
+        #[cfg(windows)]
+        cmd.env(RUSTUP_REGISTRY_TEST_ID, &self.test_registry_id);
     }
 
     /// Returns an [`Assert`] object to check the output of running the command
@@ -826,6 +835,8 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
         test_root_dir: test_dir.path().to_path_buf(),
+        #[cfg(windows)]
+        test_registry_id: test_id(),
     };
 
     let build_path = built_exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
