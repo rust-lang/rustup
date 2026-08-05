@@ -23,8 +23,13 @@ use sha2::{Digest, Sha256};
 use crate::dist::TargetTuple;
 use crate::process::TestProcess;
 
+#[cfg(all(windows, any(test, feature = "test")))]
+pub(crate) fn test_id() -> String {
+    crate::utils::raw::random_string(8)
+}
+
 #[cfg(windows)]
-pub use crate::cli::self_update::{RegistryGuard, RegistryValueId, USER_PATH, get_path};
+pub use crate::cli::self_update::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
 
 mod clitools;
 pub use clitools::{
