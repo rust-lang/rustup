@@ -57,6 +57,14 @@ local builds of the Rust toolchain. To teach `rustup` about your build, run:
 $ rustup toolchain link my-toolchain path/to/my/toolchain/sysroot
 ```
 
+Custom toolchain names may contain any character that [UTS #39] allows in an
+identifier, except for `:` and `'`. In practice that means letters and digits
+in any script, along with `.`, `_`, and `-`; whitespace, most punctuation,
+emoji, and invisible or direction-altering characters are rejected. A name may
+not start with `-`, which would be read as an argument, nor be `.` or `..`.
+
+[UTS #39]: https://www.unicode.org/reports/tr39/#Identifier_Status_and_Type
+
 For example, on Ubuntu you might clone `rust-lang/rust` into `~/rust`, build
 it, and then run:
 
