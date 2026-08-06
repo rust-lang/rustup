@@ -159,7 +159,7 @@ impl InstallOpts<'_> {
             md(&mut term, msg);
             let mut customized_install = false;
             loop {
-                md(&mut term, current_install_opts(&self, process));
+                md(&mut term, self.display(process));
                 match common::confirm_advanced(customized_install, process)? {
                     Confirm::No => {
                         info!("aborting installation");
@@ -438,6 +438,28 @@ impl InstallOpts<'_> {
         trace!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     }
+
+    fn display(&self, process: &Process) -> String {
+        format!(
+            r"Current installation options:
+
+- `  `default host tuple: `{}`
+- `   `default toolchain: `{}`
+- `             `profile: `{}`
+- modify PATH variable: `{}`
+",
+            self.default_host_tuple.as_ref().map_or_else(
+                || TargetTuple::from_host_or_build(process),
+                TargetTuple::new,
+            ),
+            match &self.default_toolchain {
+                Some(name) => name.to_string(),
+                None => "stable (default)".to_owned(),
+            },
+            self.profile,
+            if !self.no_modify_path { "yes" } else { "no" }
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -699,28 +721,6 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> Result<String> {
             rustup_home = rustup_home.display(),
         ))
     }
-}
-
-fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
-    format!(
-        r"Current installation options:
-
-- `  `default host tuple: `{}`
-- `   `default toolchain: `{}`
-- `             `profile: `{}`
-- modify PATH variable: `{}`
-",
-        opts.default_host_tuple
-            .as_ref()
-            .map(TargetTuple::new)
-            .unwrap_or_else(|| TargetTuple::from_host_or_build(process)),
-        match &opts.default_toolchain {
-            Some(name) => name.to_string(),
-            None => "stable (default)".to_owned(),
-        },
-        opts.profile,
-        if !opts.no_modify_path { "yes" } else { "no" }
-    )
 }
 
 #[cfg(unix)]
