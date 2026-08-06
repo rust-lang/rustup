@@ -107,7 +107,6 @@ pub(crate) struct InstallOpts<'a> {
     pub no_update_toolchain: bool,
     pub components: &'a [&'a str],
     pub targets: &'a [&'a str],
-    pub process: &'a Process,
 }
 
 impl InstallOpts<'_> {
@@ -122,11 +121,10 @@ impl InstallOpts<'_> {
         current_dir: PathBuf,
         no_prompt: bool,
         quiet: bool,
+        process: &Process,
     ) -> Result<ExitCode> {
         #[cfg_attr(not(unix), allow(unused_mut))]
         let mut exit_code = ExitCode::SUCCESS;
-
-        let process = self.process;
 
         self.validate(process).map_err(|e| {
             anyhow!(
@@ -161,7 +159,7 @@ impl InstallOpts<'_> {
             md(&mut term, msg);
             let mut customized_install = false;
             loop {
-                md(&mut term, current_install_opts(&self));
+                md(&mut term, current_install_opts(&self, process));
                 match common::confirm_advanced(customized_install, process)? {
                     Confirm::No => {
                         info!("aborting installation");
@@ -177,7 +175,7 @@ impl InstallOpts<'_> {
         }
 
         let no_modify_path = self.no_modify_path;
-        if let Err(e) = self.install_rust(current_dir, quiet).await {
+        if let Err(e) = self.install_rust(current_dir, quiet, process).await {
             report_error(&e, process);
 
             // On windows, where installation happens in a console
@@ -237,20 +235,24 @@ impl InstallOpts<'_> {
     }
 
     /// Installs the rustup binary and proxies, and installs a toolchain if specified.
-    async fn install_rust(self, current_dir: PathBuf, quiet: bool) -> Result<()> {
-        install_bins(self.process)?;
+    async fn install_rust(
+        self,
+        current_dir: PathBuf,
+        quiet: bool,
+        process: &Process,
+    ) -> Result<()> {
+        install_bins(process)?;
 
         #[cfg(unix)]
-        unix::do_write_env_files(self.process)?;
+        unix::do_write_env_files(process)?;
 
         if !self.no_modify_path {
-            do_add_to_path(self.process)?;
+            do_add_to_path(process)?;
         }
 
         // If RUSTUP_HOME is not set, make sure it exists
-        if self.process.var_os("RUSTUP_HOME").is_none() {
-            let home = self
-                .process
+        if process.var_os("RUSTUP_HOME").is_none() {
+            let home = process
                 .home_dir()
                 .map(|p| p.join(".rustup"))
                 .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
@@ -258,7 +260,7 @@ impl InstallOpts<'_> {
             fs::create_dir_all(home).context("unable to create ~/.rustup")?;
         }
 
-        let mut cfg = Cfg::from_env(current_dir, quiet, false, self.process)?;
+        let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
 
         let (components, targets) = (self.components, self.targets);
         let toolchain = self.select_toolchain(&mut cfg)?;
@@ -303,7 +305,6 @@ impl InstallOpts<'_> {
             no_update_toolchain,
             components,
             targets,
-            ..
         } = self;
 
         cfg.set_profile(profile)?;
@@ -700,7 +701,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> Result<String> {
     }
 }
 
-fn current_install_opts(opts: &InstallOpts<'_>) -> String {
+fn current_install_opts(opts: &InstallOpts<'_>, process: &Process) -> String {
     format!(
         r"Current installation options:
 
@@ -712,7 +713,7 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
         opts.default_host_tuple
             .as_ref()
             .map(TargetTuple::new)
-            .unwrap_or_else(|| TargetTuple::from_host_or_build(opts.process)),
+            .unwrap_or_else(|| TargetTuple::from_host_or_build(process)),
         match &opts.default_toolchain {
             Some(name) => name.to_string(),
             None => "stable (default)".to_owned(),
@@ -1385,7 +1386,6 @@ mod tests {
                 components: &[],
                 targets: &[],
                 no_update_toolchain: false,
-                process: &tp.process,
             };
 
             assert_eq!(
