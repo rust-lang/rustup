@@ -445,7 +445,7 @@ pub(crate) fn wait_for_parent() -> Result<()> {
 pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
     _apply_new_path(new_path, process)?;
-    do_add_to_programs(process)
+    add_uninstall_registry_entry(process)
 }
 
 fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> Result<()> {
@@ -562,7 +562,7 @@ where
 pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
     _apply_new_path(new_path, process)?;
-    do_remove_from_programs(process)
+    remove_uninstall_registry_entry(process)
 }
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
@@ -594,22 +594,25 @@ impl Process {
     }
 }
 
-fn rustup_uninstall_reg_key(process: &Process) -> Result<Key> {
+fn rustup_uninstall_registry_key(process: &Process) -> Result<Key> {
     process
         .registry_key(RUSTUP_UNINSTALL_ENTRY, CURRENT_USER)
         .context("Failed creating uninstall key")
 }
 
-pub(crate) fn do_update_programs_display_version(version: &str, process: &Process) -> Result<()> {
-    rustup_uninstall_reg_key(process)?
+pub(crate) fn update_uninstall_registry_display_version(
+    version: &str,
+    process: &Process,
+) -> Result<()> {
+    rustup_uninstall_registry_key(process)?
         .set_string("DisplayVersion", version)
         .context("Failed to set `DisplayVersion`")
 }
 
-pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
+pub(crate) fn add_uninstall_registry_entry(process: &Process) -> Result<()> {
     use std::path::PathBuf;
 
-    let key = rustup_uninstall_reg_key(process)?;
+    let key = rustup_uninstall_registry_key(process)?;
 
     // Don't overwrite registry if Rustup is already installed
     let prev = key.get_hstring("UninstallString");
@@ -631,12 +634,12 @@ pub(crate) fn do_add_to_programs(process: &Process) -> Result<()> {
         .context("Failed to set `UninstallString`")?;
     key.set_string("DisplayName", "Rustup: the Rust toolchain installer")
         .context("Failed to set `DisplayName`")?;
-    do_update_programs_display_version(env!("CARGO_PKG_VERSION"), process)?;
+    update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)?;
 
     Ok(())
 }
 
-pub(crate) fn do_remove_from_programs(process: &Process) -> Result<()> {
+pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> Result<()> {
     match CURRENT_USER.remove_tree(process.registry_sub_key_path(RUSTUP_UNINSTALL_ENTRY)) {
         Ok(()) => Ok(()),
         Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
@@ -654,7 +657,7 @@ pub(crate) fn run_update(setup_path: &Path, process: &Process) -> Result<utils::
         warn!("failed to get the new rustup version in order to update `DisplayVersion`");
         return Ok(utils::ExitCode(1));
     };
-    do_update_programs_display_version(&version, process)?;
+    update_uninstall_registry_display_version(&version, process)?;
 
     Ok(utils::ExitCode(0))
 }
@@ -906,7 +909,7 @@ mod tests {
         let test_id = test_id();
         let tp = test_process(&test_id);
 
-        do_remove_from_programs(&tp.process).unwrap();
+        remove_uninstall_registry_entry(&tp.process).unwrap();
     }
 
     #[test]
