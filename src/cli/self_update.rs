@@ -95,7 +95,10 @@ pub use windows::complete_windows_uninstall;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{do_add_to_path, do_add_to_programs, do_remove_from_path, do_remove_from_programs};
+use windows::{
+    add_uninstall_registry_entry, do_add_to_path, do_remove_from_path,
+    remove_uninstall_registry_entry,
+};
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
 
@@ -251,7 +254,7 @@ impl InstallOpts<'_> {
         }
 
         #[cfg(windows)]
-        do_add_to_programs(process)?;
+        add_uninstall_registry_entry(process)?;
 
         // If RUSTUP_HOME is not set, make sure it exists
         if process.var_os("RUSTUP_HOME").is_none() {
@@ -1030,7 +1033,7 @@ fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
     utils::remove_file("rustup_bin", &rustup_path)?;
 
     #[cfg(windows)]
-    do_remove_from_programs(process)?;
+    remove_uninstall_registry_entry(process)?;
 
     let cargo_bin_display = cargo_bin.display();
     info!("removing empty cargo bin directory `{cargo_bin_display}`");
