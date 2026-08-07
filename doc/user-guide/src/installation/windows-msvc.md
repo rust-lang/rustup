@@ -9,6 +9,8 @@ If you don't have Visual Studio already installed then [rustup-init] will offer 
 Doing so means you can skip the rest of this page.
 However, it installs Visual Studio Community edition which may not be appropriate for all users.
 It is free for individuals, academic and open source use, but not for other uses, such as in proprietary enterprise software.
+For CI machines or a smaller install footprint, prefer **Build Tools for Visual Studio** with the
+“Desktop development with C++” workload (MSVC + Windows SDK) instead of the full Community IDE.
 Users should ask their organisation which edition is right for them.
 See [licensing terms][vs licences] for more details.
 

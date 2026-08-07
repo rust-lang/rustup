@@ -88,8 +88,19 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 profile = "minimal"
 ```
 
+A minimal pin that only selects the channel is also valid:
+
+``` toml
+[toolchain]
+channel = "1.85.0"
+```
+
 The `[toolchain]` section is mandatory, and at least one property must be
 specified. `channel` and `path` are mutually exclusive.
+
+On Windows, prefer the UTF-8 **`rust-toolchain.toml`** name. If you use a
+BOM-less legacy `rust-toolchain` file with only a channel name, save it as
+US-ASCII without a UTF-8 BOM (editors on Windows sometimes insert one).
 
 For backwards compatibility, `rust-toolchain` files also support a legacy
 format that only contains a toolchain name without any TOML encoding, e.g.
