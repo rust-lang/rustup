@@ -1949,9 +1949,11 @@ async fn remove_target_missing_update_hash() {
         .is_ok();
 }
 
-// Issue #1777
+// Issue #1777: a stray hash file must not prevent installation. Staged
+// installs never consult the alias-scoped hash, so it is silently refreshed
+// after publication rather than removed up front.
 #[tokio::test]
-async fn warn_about_and_remove_stray_hash() {
+async fn stray_hash_is_ignored_and_refreshed() {
     let mut cx = CliTestContext::new(Scenario::None).await;
     let mut hash_path = cx.config.rustupdir.join("update-hashes");
     fs::create_dir_all(&hash_path).expect("Unable to make the update-hashes directory");
@@ -1965,12 +1967,13 @@ async fn warn_about_and_remove_stray_hash() {
     cx.config
         .expect(["rustup", "toolchain", "install", "nightly"])
         .await
-        .with_stderr(snapbox::str![[r#"
-...
-warn: removing stray hash file in order to continue: [..]/update-hashes/nightly-[HOST_TUPLE]
-...
-"#]])
         .is_ok();
+
+    let refreshed = fs::read_to_string(&hash_path).expect("Unable to read update-hash file");
+    assert_ne!(
+        refreshed, "LEGITHASH",
+        "stray hash file was not refreshed after installation"
+    );
 }
 
 fn make_component_unavailable(config: &Config, name: &str, target: String) {
