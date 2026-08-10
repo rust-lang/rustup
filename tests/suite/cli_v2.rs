@@ -2467,7 +2467,8 @@ async fn test_warn_if_complete_profile_is_used() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: downloading with complete profile isn't recommended unless you are a developer of the rust language
+warn: downloading with the `complete` profile is deprecated
+help: consider switching to the `default` profile with `rustup set profile default`
 ...
 "#]])
         .is_err();

@@ -25,7 +25,9 @@ use crate::{
     utils::{self, ExitCode},
 };
 
-pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
+pub(crate) const WARN_COMPLETE_PROFILE: &str = "\
+downloading with the `complete` profile is deprecated
+help: consider switching to the `default` profile with `rustup set profile default`";
 
 pub(crate) fn confirm(question: &str, default: bool, process: &Process) -> Result<bool> {
     write!(process.stdout().lock(), "{question} ")?;
