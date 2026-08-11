@@ -22,7 +22,7 @@ fi
 FEATURES=('--no-default-features' '--features' 'reqwest-native-tls')
 case "$(uname -s)" in
   *NT* ) ;; # Windows NT
-  * ) FEATURES+=('--features' 'vendored-openssl') ;;
+  * ) FEATURES+=('--features' 'vendored-openssl'); export OPENSSL_SRC_PERL="$PWD/ci/openssl-configure.sh" ;;
 esac
 
 case "$TARGET" in
