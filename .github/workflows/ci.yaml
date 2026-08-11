@@ -641,6 +641,7 @@ jobs:
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu
+          - x86_64-linux-android           # skip-main
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
@@ -1001,7 +1002,7 @@ jobs:
           - sparcv9-sun-solaris            # skip-pr skip-main
           - arm-linux-androideabi          # skip-pr skip-main
           - armv7-linux-androideabi        # skip-pr skip-main
-          - x86_64-linux-android           # skip-pr skip-main
+          - x86_64-linux-android           # skip-main
           - riscv64gc-unknown-linux-gnu    # skip-pr skip-main
           - riscv64gc-unknown-linux-musl   # skip-pr skip-main
           - loongarch64-unknown-linux-gnu  # skip-pr skip-main
