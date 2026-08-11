@@ -212,7 +212,7 @@ pub(crate) fn run_help() -> String {
 
     {LITERAL}$ cargo +nightly build{LITERAL:#}
 
-    {LITERAL}$ rustup run nightly cargo build{LITERAL:#}"
+    {LITERAL}$ rustup run --install nightly cargo build{LITERAL:#}"
     )
 }
 
