@@ -72,7 +72,7 @@
 </tspan>
     <tspan x="10px" y="478px">
 </tspan>
-    <tspan x="10px" y="496px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup run nightly cargo build</tspan>
+    <tspan x="10px" y="496px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup run --install nightly cargo build</tspan>
 </tspan>
     <tspan x="10px" y="514px">
 </tspan>
