@@ -35,7 +35,6 @@ use super::topical_doc;
 use crate::{
     config::{ActiveSource, Cfg},
     dist::{PartialToolchainDesc, manifest::ComponentStatus},
-    process::Process,
     toolchain::DistributableToolchain,
     utils::{self, ExitCode},
 };
@@ -237,17 +236,14 @@ pub(crate) async fn doc(
 
     if serve {
         let root = toolchain.doc_path("")?;
-        serve_and_open(root, &doc_path, fragment, cfg.process).await?;
+        serve_and_open(root, &doc_path, fragment).await?;
         return Ok(ExitCode::SUCCESS);
     }
 
     if let Some(name) = topic {
-        writeln!(
-            cfg.process.stderr().lock(),
-            "Opening docs named `{name}` in your browser"
-        )?;
+        info!("opening docs named `{name}` in your browser");
     } else {
-        writeln!(cfg.process.stderr().lock(), "Opening docs in your browser")?;
+        info!("opening docs in your browser");
     }
     toolchain.open_docs(&doc_path, fragment)?;
     Ok(ExitCode::SUCCESS)
@@ -279,12 +275,7 @@ pub(crate) async fn man(
 
 /// Blocks forever, accepting and serving connections until the process is
 /// killed by Ctrl-C.
-async fn serve_and_open(
-    root: PathBuf,
-    initial_path: &Path,
-    fragment: Option<&str>,
-    process: &Process,
-) -> Result<()> {
+async fn serve_and_open(root: PathBuf, initial_path: &Path, fragment: Option<&str>) -> Result<()> {
     let listener = TcpListener::bind(("127.0.0.1", 0))
         .await
         .context("failed to bind local documentation server")?;
@@ -302,10 +293,7 @@ async fn serve_and_open(
         url.push_str(fragment);
     }
 
-    writeln!(
-        process.stderr().lock(),
-        "Serving docs at {url} (press Ctrl-C to stop)"
-    )?;
+    info!("serving docs at {url} (press Ctrl-C to stop)");
     utils::open_browser(&url)?;
 
     loop {
