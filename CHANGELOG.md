@@ -1,28 +1,38 @@
 # Changelog
 
-## [1.29.1] - 2026-XX-YY
+## [1.29.1] - 2026-08-13
 
 This new patch release has brought some minor improvements and fixes over the previous one.
 
 The headlines of this release are:
 
-- Concurrency in certain `rustup` operations has been further improved:
+- Concurrency in certain `rustup` operations has been improved:
   - When running `rustup update`, rustup will first check for possible updates in parallel. [pr#4752]
   - When running `rustup component add` with multiple components, they will be installed concurrently. [pr#4790]
 
 - Implicit installation of the active toolchain in `rustup-init` and `rustup` invocations has
-  been deprecated when deemed unnecessary and will now produce a warning. [pr#4840]
+  been deprecated where deemed unnecessary and will now produce a warning. [pr#4840]
   - Please see our
     [blog post](https://blog.rust-lang.org/inside-rust/2026/07/03/rustup-update-1.30/#refining-the-implicit-installation-behavior)
     for more details regarding this change.
 
-- Installing `i686-pc-windows-*` host toolchain on 64-bit Windows now requires `--force-non-host`. [pr#4935]
+- `rustup doc` now supports the `--serve` flag which allows serving the docs over local HTTP.
+  This should help users with containerized browser and/or rustup setups. [pr#4986]
 
-- A bug has been fixed which might cause Windows installation to fail when using `rustup-init.sh`. [pr#4756]
+- Installing `i686-pc-windows-*` host toolchains on 64-bit Windows now requires `--force-non-host`.
+  [pr#4935]
+
+- `rustup-init` will no longer leave unexpected files on disk after cancelled installations. [pr#4996]
+  [pr#4935]
+
+- A bug has been fixed which might cause Windows installation to fail when using `rustup-init.sh`.
+  [pr#4756]
 
 - "Target **triple**" has been renamed to "target **tuple**" across the project to reflect the
   [new terminology](https://github.com/rust-lang/rust/pull/125579/changes/a26450cf81d67d68d3c6157579f8d968349129e7).
   [pr#4743] [pr#4827] [pr#4834]
+  - Please note that this is not a breaking change in the CLI since the existing
+    options such as `--target` are not using this terminology.
 
 In addition, rustup now officially supports `aarch64-pc-windows-gnullvm` as a host platform. [pr#4523]
 
@@ -36,6 +46,8 @@ In addition, rustup now officially supports `aarch64-pc-windows-gnullvm` as a ho
 [pr#4834]: https://github.com/rust-lang/rustup/pull/4834
 [pr#4840]: https://github.com/rust-lang/rustup/pull/4840
 [pr#4935]: https://github.com/rust-lang/rustup/pull/4935
+[pr#4986]: https://github.com/rust-lang/rustup/pull/4986
+[pr#4996]: https://github.com/rust-lang/rustup/pull/4996
 
 ### Detailed changes
 
@@ -63,6 +75,7 @@ In addition, rustup now officially supports `aarch64-pc-windows-gnullvm` as a ho
 * chore(deps): update `curl` by @rami3l in https://github.com/rust-lang/rustup/pull/4928
 * dist(release/1.29): backport patches, pt. 2 by @rami3l in https://github.com/rust-lang/rustup/pull/4927
 * dist(release/1.29): backport patches, pt. 3 by @rami3l in https://github.com/rust-lang/rustup/pull/4939
+* dist(release/1.29): backport patches, pt. 4 by @rami3l in https://github.com/rust-lang/rustup/pull/4964
 
 ## [1.29.0] - 2026-03-05
 
