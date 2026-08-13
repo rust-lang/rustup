@@ -1,295 +1,309 @@
 @font-face {
-    font-family: 'Fira Sans';
-    font-style: normal;
-    font-weight: 300;
-    src: local('Fira Sans Light'), url("fonts/FiraSans-Light.woff") format('woff');
+  font-family: "Fira Sans";
+  font-style: normal;
+  font-weight: 300;
+  src:
+    local("Fira Sans Light"),
+    url("fonts/FiraSans-Light.woff") format("woff");
 }
 @font-face {
-    font-family: 'Fira Sans';
-    font-style: normal;
-    font-weight: 400;
-    src: local('Fira Sans'), url("fonts/FiraSans-Regular.woff") format('woff');
+  font-family: "Fira Sans";
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local("Fira Sans"),
+    url("fonts/FiraSans-Regular.woff") format("woff");
 }
 @font-face {
-    font-family: 'Fira Sans';
-    font-style: normal;
-    font-weight: 500;
-    src: local('Fira Sans Medium'), url("fonts/FiraSans-Medium.woff") format('woff');
-}
-
-@font-face {
-    font-family: 'Fira Mono';
-    font-style: normal;
-    font-weight: 400;
-    src: local('Fira Mono'), url("fonts/FiraMono-Regular.ttf") format('truetype');
-}
-
-@font-face {
-    font-family: 'Work Sans';
-    font-style: normal;
-    font-weight: 500;
-    src: local('Work Sans Medium'), url("fonts/WorkSans-Medium.ttf") format('truetype');
+  font-family: "Fira Sans";
+  font-style: normal;
+  font-weight: 500;
+  src:
+    local("Fira Sans Medium"),
+    url("fonts/FiraSans-Medium.woff") format("woff");
 }
 
 @font-face {
-    font-family: 'Alfa Slab One';
-    font-style: normal;
-    font-weight: 400;
-    src: local('Alfa Slab One'),
-        url("fonts/AlfaSlabOne-Regular.woff2") format('woff2'),
-        url("fonts/AlfaSlabOne-Regular.woff") format('woff');
+  font-family: "Fira Mono";
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local("Fira Mono"),
+    url("fonts/FiraMono-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Work Sans";
+  font-style: normal;
+  font-weight: 500;
+  src:
+    local("Work Sans Medium"),
+    url("fonts/WorkSans-Medium.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Alfa Slab One";
+  font-style: normal;
+  font-weight: 400;
+  src:
+    local("Alfa Slab One"),
+    url("fonts/AlfaSlabOne-Regular.woff2") format("woff2"),
+    url("fonts/AlfaSlabOne-Regular.woff") format("woff");
 }
 
 :root {
-    --rustup-teal: #0b7261;
-    --rustup-teal-hover: #0d8b75;
-    --gray: #515151;
-    --white: white;
-    --black: black;
+  --rustup-teal: #0b7261;
+  --rustup-teal-hover: #0d8b75;
+  --gray: #515151;
+  --white: white;
+  --black: black;
 
-    --body-background-color: var(--white);
+  --body-background-color: var(--white);
+  --body-color: var(--gray);
+  --heading-color: var(--black);
+  --code-color: var(--black);
+  --code-shadow-color: #f1eeee;
+  --link-color: var(--rustup-teal);
+  --link-color-hover: var(--rustup-teal-hover);
+  --hr-color: var(--rustup-teal);
+  --platform-button-background-color: var(--gray);
+  --platform-button-color: var(--white);
+  --copy-button-text-color: var(--rustup-teal);
+  --rust-logo-filter: initial;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rustup-teal: #2d9b8e;
+    --rustup-teal-hover: #4aad9f;
+    --gray: #e8e6e3;
+    --white: white;
+    --black: #181a1b;
+
+    --body-background-color: var(--black);
     --body-color: var(--gray);
-    --heading-color: var(--black);
-    --code-color: var(--black);
-    --code-shadow-color: #f1eeee;
+    --heading-color: var(--white);
+    --code-color: var(--white);
+    --code-shadow-color: rgba(213, 203, 198, 0.1);
     --link-color: var(--rustup-teal);
     --link-color-hover: var(--rustup-teal-hover);
     --hr-color: var(--rustup-teal);
     --platform-button-background-color: var(--gray);
-    --platform-button-color: var(--white);
+    --platform-button-color: var(--black);
     --copy-button-text-color: var(--rustup-teal);
-    --rust-logo-filter: initial;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --rustup-teal: #2d9b8e;
-        --rustup-teal-hover: #4aad9f;
-        --gray: #e8e6e3;
-        --white: white;
-        --black: #181a1b;
-
-        --body-background-color: var(--black);
-        --body-color: var(--gray);
-        --heading-color: var(--white);
-        --code-color: var(--white);
-        --code-shadow-color: rgba(213, 203, 198, 0.1);
-        --link-color: var(--rustup-teal);
-        --link-color-hover: var(--rustup-teal-hover);
-        --hr-color: var(--rustup-teal);
-        --platform-button-background-color: var(--gray);
-        --platform-button-color: var(--black);
-        --copy-button-text-color: var(--rustup-teal);
-        --rust-logo-filter: drop-shadow(1px 0 0px #fff) drop-shadow(0 1px 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 -1px 0 #fff);
-    }
+    --rust-logo-filter: drop-shadow(1px 0 0px #fff) drop-shadow(0 1px 0 #fff)
+      drop-shadow(-1px 0 0 #fff) drop-shadow(0 -1px 0 #fff);
+  }
 }
 
 body {
-    margin-top: 2em;
-    background-color: var(--body-background-color);
-    color: var(--body-color);
-    font-family: "Fira Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-weight: 300;
-    font-size: 25px;
+  margin-top: 2em;
+  background-color: var(--body-background-color);
+  color: var(--body-color);
+  font-family: "Fira Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 300;
+  font-size: 25px;
 }
 
 pre {
-    font-family: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-weight: 400;
+  font-family:
+    "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-weight: 400;
 }
 
 header > div {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 header > div > h1 {
-    font-family: "Alfa Slab One", serif;
-    color: var(--heading-color);
-    font-size: 4rem;
-    margin-bottom: 0;
-    margin-top: 1rem;
-    line-height: 1;
-    font-weight: 300;
-    letter-spacing: 1px;
+  font-family: "Alfa Slab One", serif;
+  color: var(--heading-color);
+  font-size: 4rem;
+  margin-bottom: 0;
+  margin-top: 1rem;
+  line-height: 1;
+  font-weight: 300;
+  letter-spacing: 1px;
 }
 
 header > div > h2 {
-    color: var(--heading-color);
-    font-size: 2rem;
-    font-weight: 300;
+  color: var(--heading-color);
+  font-size: 2rem;
+  font-weight: 300;
 }
 
 a {
-    color: var(--link-color);
-    text-decoration: underline;
+  color: var(--link-color);
+  text-decoration: underline;
 }
 
 a:hover {
-    color: var(--link-color-hover);
-    text-decoration: underline;
+  color: var(--link-color-hover);
+  text-decoration: underline;
 }
 
 main {
-    width: 80%;
-    max-width: 1200px;
-    padding: 0 20px;
-    margin-left: auto;
-    margin-right: auto;
+  width: 80%;
+  max-width: 1200px;
+  padding: 0 20px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 body#idx p {
-    margin-top: 2em;
-    margin-bottom: 2em;
+  margin-top: 2em;
+  margin-bottom: 2em;
 }
 
 body#idx p.other-platforms-help {
-    font-size: 0.6em;
+  font-size: 0.6em;
 }
 
 .instructions {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    border-radius: 3px;
-    border: 1px solid rgb(204, 204, 204);
-    box-shadow: 0px 1px 4px 0px rgb(204, 204, 204);
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  border-radius: 3px;
+  border: 1px solid rgb(204, 204, 204);
+  box-shadow: 0px 1px 4px 0px rgb(204, 204, 204);
 }
 
 .instructions > * {
-    margin-left: auto;
-    margin-right: auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 hr {
-    border-color: var(--hr-color);
-    margin-top: 2em;
-    margin-bottom: 2em;
+  border-color: var(--hr-color);
+  margin-top: 2em;
+  margin-bottom: 2em;
 }
 
 .instructions > p {
-    width: 80%;
+  width: 80%;
 }
 
 .rustup-command::before {
-    color: var(--code-color);
-    content: " $ ";
-    margin-left: 15px;
+  color: var(--code-color);
+  content: " $ ";
+  margin-left: 15px;
 }
 
 .rustup-command {
-    color: var(--code-color);
-    padding: 1rem 1rem 1rem 0;
-    height: auto;
-    text-align: center;
-    border-radius: 3px 0 0 3px;
-    box-shadow: inset 0px 0px 20px 0px var(--code-shadow-color);
-    overflow: hidden;
-    font-size: 0.6em;
-    white-space: nowrap;
-    height: 26px;
-    line-height: 26px;
-    overflow-x: auto;
+  color: var(--code-color);
+  padding: 1rem 1rem 1rem 0;
+  height: auto;
+  text-align: center;
+  border-radius: 3px 0 0 3px;
+  box-shadow: inset 0px 0px 20px 0px var(--code-shadow-color);
+  overflow: hidden;
+  font-size: 0.6em;
+  white-space: nowrap;
+  height: 26px;
+  line-height: 26px;
+  overflow-x: auto;
 }
 
 .instructions div.copy-container {
-    display: flex;
-    align-items: center;
-    width: 90%;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  width: 90%;
+  justify-content: center;
 }
 
 .instructions button.copy-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    aspect-ratio: 51 / 58;
-    height: 58px;
-    margin: 0;
-    border-width: 0px;
-    cursor: pointer;
-    background-color: var(--code-shadow-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  aspect-ratio: 51 / 58;
+  height: 58px;
+  margin: 0;
+  border-width: 0px;
+  cursor: pointer;
+  background-color: var(--code-shadow-color);
 }
 
 div.copy-icon {
-    transform: translateX(2px);
+  transform: translateX(2px);
 }
 
 div.copy-icon svg {
-    fill: var(--body-color);
-    display: block;
+  fill: var(--body-color);
+  display: block;
 }
 
 button.copy-button:hover svg {
-    fill: var(--rustup-teal);
+  fill: var(--rustup-teal);
 }
 
 .instructions div.copy-button-text {
-    transition: opacity 0.2s ease-in-out;
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 8px;
-    color: var(--rustup-teal);
-    font-size: 14px;
-    opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  color: var(--rustup-teal);
+  font-size: 14px;
+  opacity: 0;
 }
 
 .instructions a.windows-download {
-    display: block;
-    padding-top: 0.4rem;
-    padding-bottom: 0.6rem;
-    font-family: "Work Sans", "Fira Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-weight: 500;
-    letter-spacing: 0.1rem;
+  display: block;
+  padding-top: 0.4rem;
+  padding-bottom: 0.6rem;
+  font-family: "Work Sans", "Fira Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.1rem;
 }
 
 /* This is the box that prints navigator.platform, navigator.appVersion values */
 #platform-instructions-unknown > div:first-of-type {
-    font-size: 16px;
-    line-height: 2rem;
+  font-size: 16px;
+  line-height: 2rem;
 }
 
 #help {
-    font-size: 20px;
-    text-align: center;
+  font-size: 20px;
+  text-align: center;
 }
 
 #about {
-    font-size: 16px;
-    line-height: 2em;
-    text-align: center;
+  font-size: 16px;
+  line-height: 2em;
+  text-align: center;
 }
 
 #about > img {
-    width: 30px;
-    height: 30px;
-    transform: translateY(11px);
+  width: 30px;
+  height: 30px;
+  transform: translateY(11px);
 }
 
 #platform-button {
-    background-color: var(--platform-button-background-color);
-    color: var(--platform-button-color);
-    margin-left: auto;
-    margin-right: auto;
-    padding: 1em;
+  background-color: var(--platform-button-background-color);
+  color: var(--platform-button-color);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1em;
 }
 
 .display-none {
-    display: none;
+  display: none;
 }
 
 .display-block {
-    display: block;
+  display: block;
 }
 
 .display-inline {
-    display: inline;
+  display: inline;
 }
 
 .rust-logo {
-    filter: var(--rust-logo-filter);
+  filter: var(--rust-logo-filter);
 }

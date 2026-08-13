@@ -1,56 +1,37 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": [
-        "config:recommended",
-        "customManagers:githubActionsVersions"
-    ],
-    "labels": [
-        "dependencies"
-    ],
-    "lockFileMaintenance": {
-        "enabled": true,
-        "automerge": false,
-        "schedule": "before 4am on Monday"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "customManagers:githubActionsVersions"],
+  "labels": ["dependencies"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": false,
+    "schedule": "before 4am on Monday"
+  },
+  "prCreation": "immediate",
+  "rangeStrategy": "update-lockfile",
+  "minimumReleaseAge": "3 days",
+  "github-actions": {
+    "managerFilePatterns": ["/^ci\\/.*/[^/]+\\.ya?ml$/"]
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["patch"],
+      "enabled": false
     },
-    "prCreation": "immediate",
-    "rangeStrategy": "update-lockfile",
-    "minimumReleaseAge": "3 days",
-    "github-actions": {
-        "managerFilePatterns": [
-            "/^ci\\/.*/[^/]+\\.ya?ml$/"
-        ]
+    {
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "!/^0/",
+      "enabled": false
     },
-    "packageRules": [
-        {
-            "matchManagers": [
-                "cargo"
-            ],
-            "matchUpdateTypes": [
-                "patch"
-            ],
-            "enabled": false
-        },
-        {
-            "matchManagers": [
-                "cargo"
-            ],
-            "matchUpdateTypes": [
-                "minor"
-            ],
-            "matchCurrentVersion": "!/^0/",
-            "enabled": false
-        },
-        {
-            "groupName": "opentelemetry",
-            "matchPackageNames": [
-                "/opentelemetry/"
-            ]
-        },
-        {
-            "groupName": "windows-rs",
-            "matchPackageNames": [
-                "/^windows-/"
-            ]
-        }
-    ]
+    {
+      "groupName": "opentelemetry",
+      "matchPackageNames": ["/opentelemetry/"]
+    },
+    {
+      "groupName": "windows-rs",
+      "matchPackageNames": ["/^windows-/"]
+    }
+  ]
 }
