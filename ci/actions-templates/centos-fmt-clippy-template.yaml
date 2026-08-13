@@ -64,11 +64,14 @@ jobs: # skip-all
           shellcheck -x -s dash -- rustup-init.sh
           git ls-files -- '*.sh' | xargs shellcheck -x -s dash
           git ls-files -- '*.bash' | xargs shellcheck -x -s bash
-      - name: Install taplo
+      - name: Install external formatters
         uses: taiki-e/install-action@v2
         with:
-          tool: taplo
+          tool: taplo,oxfmt
           fallback: none
+      - name: Run frontend formatting checks
+        run: |
+          oxfmt .
       - name: Run TOML formatting checks
         run: |
           taplo fmt
