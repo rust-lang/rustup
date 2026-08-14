@@ -66,8 +66,8 @@ your own words. This includes the pull request body and responses to questions. 
 reviewed the PR yourself before submitting it for review to the maintainers. Do not copy responses
 from the AI when replying to questions from maintainers. As an exception, issues marked as `E-easy`
 are meant for new contributors as a learning opportunity; the use of an LLM when submitting PR for
-such issues is disallowed except without explicit permission from the team. Failure to comply may
-result in the PR being closed directly without further notice.
+such issues is only allowed with explicit permission from the team. Failure to comply may result
+in the PR being closed directly without further notice.
 
 If you wish to include context from an interaction with AI in your comments, it must be in a
 quote block (using `>`) and disclosed as such. It must be accompanied by human commentary
