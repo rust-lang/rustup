@@ -798,6 +798,8 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         // trait-controllable, but it does honour the terminal. To avoid testing
         // claps code, lie about whatever terminal this process was started under.
         env::set_var("TERM", "dumb");
+        // Removed to avoid leaking the developer's environment into the test
+        env::remove_var("XDG_CONFIG_HOME");
 
         match env::var("RUSTUP_BACKTRACE") {
             Ok(val) => env::set_var("RUST_BACKTRACE", val),
