@@ -39,9 +39,9 @@ Otherwise Rustup can update itself. It is possible to control Rustup's automatic
 self update mechanism with the `auto-self-update` configuration variable. This
 setting supports three values: `enable` and `disable` and `check-only`.
 
-* `disable` will ensure that no automatic self updating actions are taken.
-* `enable` will mean that `rustup update` and similar commands will also check for, and install, any update to Rustup.
-* `check-only` will cause any automatic self update to check and report on any updates, but not to automatically install them.
+- `disable` will ensure that no automatic self updating actions are taken.
+- `enable` will mean that `rustup update` and similar commands will also check for, and install, any update to Rustup.
+- `check-only` will cause any automatic self update to check and report on any updates, but not to automatically install them.
 
 Whether `auto-self-update` is `enable` or not, you can request that Rustup
 update itself to the latest version of `rustup` by running `rustup self update`.
@@ -54,8 +54,9 @@ info: downloading self-update
 ```
 
 ### Disabling self updates on a per-invocation basis
+
 > Self updates can also be suppressed on individual invocations of `rustup` by
-> passing the argument `--no-self-update`  when running `rustup update` or
+> passing the argument `--no-self-update` when running `rustup update` or
 > `rustup toolchain install`.
 
 ## Help system
@@ -66,4 +67,3 @@ help for each subcommand is also available. For example, run `rustup toolchain
 install --help` for specifics on installing [toolchains].
 
 [toolchains]: concepts/toolchains.md
-

@@ -1,8 +1,8 @@
 # Toolchains
 
-Many `rustup` commands deal with *toolchains*, a single installation of the
+Many `rustup` commands deal with _toolchains_, a single installation of the
 Rust compiler. `rustup` supports multiple types of toolchains. The most basic
-track the official release [channels]: *stable*, *beta* and *nightly*; but
+track the official release [channels]: _stable_, _beta_ and _nightly_; but
 `rustup` can also install toolchains from the official archives, for alternate
 host platforms, and from local builds.
 
@@ -77,7 +77,7 @@ Now you can name `my-toolchain` as any other `rustup` toolchain. Create a
 `rustup` toolchain for each of your `rust-lang/rust` workspaces and test them
 easily with `rustup run my-toolchain rustc`.
 
-Because the `rust-lang/rust` tree does not include Cargo, *when `cargo` is
+Because the `rust-lang/rust` tree does not include Cargo, _when `cargo` is
 invoked for a custom toolchain and it is not available, `rustup` will attempt
-to use `cargo` from one of the release channels*, preferring 'nightly', then
+to use `cargo` from one of the release channels_, preferring 'nightly', then
 'beta' or 'stable'.

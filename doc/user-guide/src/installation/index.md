@@ -9,7 +9,7 @@ Windows at `%USERPROFILE%\.cargo\bin`. This is the same directory that `cargo
 install` will install Rust programs and Cargo plugins.
 
 This directory will be in your `$PATH` environment variable, which means you
-can run them from the shell without further configuration. Open a *new* shell
+can run them from the shell without further configuration. Open a _new_ shell
 and type the following:
 
 ```console

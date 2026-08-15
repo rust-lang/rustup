@@ -19,7 +19,7 @@
   instead use a local mirror, or to test the binaries from the staging
   directory.
 
-- ~~`RUSTUP_DIST_ROOT`~~ *deprecated* (default: `https://static.rust-lang.org/dist`).
+- ~~`RUSTUP_DIST_ROOT`~~ _deprecated_ (default: `https://static.rust-lang.org/dist`).
   Use `RUSTUP_DIST_SERVER` instead.
 
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`). Sets
@@ -28,12 +28,12 @@
 - `RUSTUP_VERSION` (default: none). Overrides the rustup version (e.g. `1.27.1`)
   to be downloaded when executing `rustup-init.sh` or `rustup self update`.
 
-- `RUSTUP_IO_THREADS` *unstable* (default: reported cpu count, max 8). Sets the
+- `RUSTUP_IO_THREADS` _unstable_ (default: reported cpu count, max 8). Sets the
   number of threads to perform close IO in. Set to `1` to force
   single-threaded IO for troubleshooting, or an arbitrary number to override
   automatic detection.
 
-- `RUSTUP_TRACE_DIR` *unstable* (default: no tracing). Enables tracing and
+- `RUSTUP_TRACE_DIR` _unstable_ (default: no tracing). Enables tracing and
   determines the directory that traces will be written too. Traces are of the
   form PID.trace. Traces can be read by the Catapult project [tracing viewer].
 
@@ -41,13 +41,13 @@
   Set to `auto` to use colors only in tty streams, to `always` to always enable colors,
   or to `never` to disable colors.
 
-- `RUSTUP_UNPACK_RAM` *unstable* (default: free memory or 500MiB if unable to tell, min 210MiB). Caps the amount of
+- `RUSTUP_UNPACK_RAM` _unstable_ (default: free memory or 500MiB if unable to tell, min 210MiB). Caps the amount of
   RAM (in bytes) `rustup` will use for IO tasks while unpacking.
 
 - `RUSTUP_NO_BACKTRACE`. Disables backtraces on non-panic errors even when
   `RUST_BACKTRACE` is set.
 
-- `RUSTUP_PERMIT_COPY_RENAME` *unstable*. When set, allows rustup to fall-back
+- `RUSTUP_PERMIT_COPY_RENAME` _unstable_. When set, allows rustup to fall-back
   to copying files if attempts to `rename` result in cross-device link
   errors. These errors occur on OverlayFS, which is used by [Docker][dc]. This
   feature sacrifices some transactions protections and may be removed at any
@@ -57,7 +57,7 @@
   toolchain when it is absent. Set this value to `0` to disable automatic
   installation.
 
-- `RUSTUP_HARDLINK_PROXIES` *unstable*. When set, rustup will not attempt to
+- `RUSTUP_HARDLINK_PROXIES` _unstable_. When set, rustup will not attempt to
   symlink proxies and instead always use hardlinks. If you find this fixes
   a problem, then please report the issue on the [rustup issue tracker].
 
@@ -66,13 +66,13 @@
 
 - `RUSTUP_TERM_WIDTH` (default: none). Allows to override the terminal width for progress bars.
 
-- `RUSTUP_DOWNLOAD_TIMEOUT` *unstable* (default: 180). Allows to override the default
+- `RUSTUP_DOWNLOAD_TIMEOUT` _unstable_ (default: 180). Allows to override the default
   timeout (in seconds) for downloading components.
 
-- `RUSTUP_CONCURRENT_DOWNLOADS` *unstable* (default: 2). Controls the number of
+- `RUSTUP_CONCURRENT_DOWNLOADS` _unstable_ (default: 2). Controls the number of
   downloads made concurrently.
 
-- `RUSTUP_TOOLCHAIN_SOURCE` *unstable*. Set by rustup to tell proxied tools how `RUSTUP_TOOLCHAIN` was determined. Non-rustup tools should not set this environment variable, except insofar as to mirror an earlier invocation from rustup.
+- `RUSTUP_TOOLCHAIN_SOURCE` _unstable_. Set by rustup to tell proxied tools how `RUSTUP_TOOLCHAIN` was determined. Non-rustup tools should not set this environment variable, except insofar as to mirror an earlier invocation from rustup.
 
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
