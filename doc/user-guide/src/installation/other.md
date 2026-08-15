@@ -3,7 +3,7 @@
 The primary installation method, as described at <https://rustup.rs>, differs
 by platform:
 
-* On Windows, download and run the `rustup-init.exe` built for the
+- On Windows, download and run the `rustup-init.exe` built for the
   [`x86_64-pc-windows-msvc`] or [`aarch64-pc-windows-msvc`] target,
   depending on your OS architecture. In general, this is the build of
   `rustup` one should install on Windows. This will require [MSVC prerequisites].
@@ -11,7 +11,7 @@ by platform:
   toolchains by default this can be modified at install time, either
   interactively, with the `--default-host` flag, or after installation
   via `rustup set default-host`.
-* On Unix, run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` in your shell. This
+- On Unix, run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` in your shell. This
   downloads and runs [`rustup-init.sh`], which in turn downloads and runs the
   correct version of the `rustup-init` executable for your platform.
 
@@ -30,7 +30,6 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain nightly
 ```
-
 
 ## Using a package manager
 
@@ -96,8 +95,9 @@ in this `rustup` distribution
 (see [homebrew-core#177582](https://github.com/Homebrew/homebrew-core/pull/177582) for more details).
 You might want to add `$(brew --prefix rustup)/bin` to `$PATH` to make them easier to access.
 
-[^not-rust]: This is not to be confused with the `rust` package,
-which is a `brew`-managed `rust` toolchain installation.
+[^not-rust]:
+    This is not to be confused with the `rust` package,
+    which is a `brew`-managed `rust` toolchain installation.
 
 ## Manual installation
 
@@ -199,13 +199,15 @@ To get a previous version, use
 
 SHA-256 checksums are also available by appending `.sha256` to the link.
 
-[^msys2]: Windows GNU builds require no additional software for basic use.
+[^msys2]:
+    Windows GNU builds require no additional software for basic use.
     However, many library crates will not be able to compile until
     the full [MSYS2] with MinGW has been installed.
 
 [MSYS2]: https://www.msys2.org/
 
-[^msvc]: MSVC builds of `rustup` additionally require an [installation of
+[^msvc]:
+    MSVC builds of `rustup` additionally require an [installation of
     Visual Studio 2019 or the Visual C++ Build Tools 2019][vs]. For Visual
     Studio, make sure to check the "C++ tools" and "Windows 10 SDK" option.
 

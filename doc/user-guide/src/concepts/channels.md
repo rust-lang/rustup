@@ -101,13 +101,13 @@ check if a required or previously installed component is missing. If it is
 missing, `rustup` will automatically search for an older release that contains
 the required components. There are several ways to change this behavior:
 
-* Use the `--force` flag to `rustup toolchain install` to force it to install
+- Use the `--force` flag to `rustup toolchain install` to force it to install
   the most recent version even if there is a missing component.
-* Use the `--profile` flag to `rustup toolchain install` to use a different
+- Use the `--profile` flag to `rustup toolchain install` to use a different
   profile that does not contain the missing component. For example,
   `--profile=minimal` should always work, as the minimal set is required to
   exist. See the [Profiles] chapter for more detail.
-* Install a specific date that contains the components you need. For example,
+- Install a specific date that contains the components you need. For example,
   `rustup toolchain install nightly-2020-07-27`. You can then use [overrides]
   to pin to that specific release.
 

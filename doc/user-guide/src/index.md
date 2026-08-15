@@ -1,6 +1,6 @@
 # Introduction
 
-*rustup* installs [The Rust Programming Language][rustlang] from the official
+_rustup_ installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta, and
 nightly compilers and keep them updated. It makes cross-compiling simpler with
 binary builds of the standard library for common platforms. And it runs on all

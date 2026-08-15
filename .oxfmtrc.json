@@ -1,3 +1,3 @@
 {
-  "ignorePatterns": [".github/workflows/ci.yaml", "**/*.toml", "**/*.md"]
+  "ignorePatterns": [".github/workflows/ci.yaml", "**/*.toml"]
 }

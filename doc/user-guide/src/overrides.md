@@ -5,7 +5,7 @@ installed commands like `rustc` is executed. There are several ways to control
 and override which toolchain is used:
 
 1. A [toolchain override shorthand] used on the command-line, such as `cargo
-   +beta`.
++beta`.
 2. The `RUSTUP_TOOLCHAIN` environment variable.
 3. A [directory override], set with the `rustup override` command.
 4. The [`rust-toolchain.toml`] file.
@@ -80,7 +80,7 @@ a directory, the latter is used for backwards compatibility. The files use the
 
 [TOML]: https://toml.io/
 
-``` toml
+```toml
 [toolchain]
 channel = "nightly-2020-07-10"
 components = [ "rustfmt", "rustc-dev" ]

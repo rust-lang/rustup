@@ -46,7 +46,7 @@ Pick the Id with the latest version and install that via `winget install`.
 For example, to install `Microsoft.WindowsSDK.10.0.26100` run:
 
 ```
-winget install --source winget --id Microsoft.WindowsSDK.10.0.26100 
+winget install --source winget --id Microsoft.WindowsSDK.10.0.26100
 ```
 
 [WinGet]: https://learn.microsoft.com/en-us/windows/package-manager/winget/
@@ -83,8 +83,8 @@ This will includes all needed components for Rust:
 
 If you'd like a more minimal install (and won't be doing C++ development) then you can use the "Individual Components" tab to select just the essentials, which are:
 
-* MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
-* Windows 11 SDK (10.0.22621.0)
+- MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
+- Windows 11 SDK (10.0.22621.0)
 
 Note that the specific version of the Windows SDK doesn't matter for pure Rust code but if using C++ as well you'll likely want either the latest or whichever version is required by the C++ project (or both).
 
