@@ -14,7 +14,7 @@
 # mksh has this alias by default.
 has_local() {
     # shellcheck disable=SC2034  # deliberately unused
-    local _has_local
+    PATH= local _has_local
 }
 
 has_local 2>/dev/null || alias local=typeset
