@@ -7,6 +7,7 @@ use std::{
 };
 
 use rustup::{
+    env_var::RUST_RECURSION_COUNT_MAX,
     for_host,
     test::{
         CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
@@ -710,6 +711,23 @@ async fn recursive_cargo() {
 
 "#]])
         .is_ok();
+
+    // If we have set the current recursion count to the maximum while doing
+    // another recursion, then rustup should bail out warning about it.
+    cx.config
+        .expect_with_env(
+            ["cargo", "--recursive-cargo-subcommand"],
+            [(
+                "RUST_RECURSION_COUNT",
+                &*RUST_RECURSION_COUNT_MAX.to_string(),
+            )],
+        )
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: infinite recursion detected
+...
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
