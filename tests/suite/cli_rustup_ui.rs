@@ -536,6 +536,11 @@ fn rustup_upgrade_cmd_help_flag() {
 }
 
 #[test]
+fn rustup_ci_cmd_help_flag() {
+    test_help("rustup_ci_cmd_help_flag", &["ci", "--help"]);
+}
+
+#[test]
 fn rustup_which_cmd_help_flag() {
     test_help("rustup_which_cmd_help_flag", &["which", "--help"]);
 }
