@@ -944,7 +944,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     pub(crate) async fn install_into(
         &self,
         prefix: &InstallPrefix,
-        manifest: Option<ManifestWithHash>,
+        mut prefetched_manifest: Option<ManifestWithHash>,
     ) -> Result<Option<String>> {
         let fresh_install = !prefix.path().exists();
         // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
@@ -1003,16 +1003,12 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         };
 
         let mut toolchain = self.toolchain.clone();
-        let mut prefetched_manifest = manifest;
         let res = loop {
             let result = try_update_from_dist_(
                 &self.dl_cfg,
                 &self.update_hash,
                 &toolchain,
-                match self.exists {
-                    false => Some(self.profile),
-                    true => None,
-                },
+                (!self.exists).then_some(self.profile),
                 prefix,
                 self.force,
                 self.components,
@@ -1083,14 +1079,13 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                 .unwrap();
 
             if try_next < last_manifest {
-                // Wouldn't be an update if we go further back than the user's current nightly.
-                if let Some(e) = first_err {
-                    break Err(e);
-                } else {
+                break match first_err {
+                    // Wouldn't be an update if we go further back than the currently installed toolchain.
+                    Some(e) => Err(e),
                     // In this case, all newer nightlies are missing, which means there are no
                     // updates, so the user is already at the latest nightly.
-                    break Ok(None);
-                }
+                    None => Ok(None),
+                };
             }
 
             toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
