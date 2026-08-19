@@ -1103,21 +1103,9 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
         // TODO: Add a notification about which manifest version is going to be used
         info!("syncing channel updates for {toolchain_str}");
-        let manifest_result = if prefetched_manifest.is_some() {
-            Ok(prefetched_manifest)
-        } else {
-            download
-                .dl_v2_manifest(
-                    // Skip the update hash when the installed manifest is missing or when components
-                    // or targets were requested, since either case still requires the channel manifest.
-                    (prefix.dist_manifest().is_some()
-                        && self.components.is_empty()
-                        && self.targets.is_empty())
-                    .then_some(&self.update_hash),
-                    toolchain,
-                    self.cfg,
-                )
-                .await
+        let manifest_result = match prefetched_manifest {
+            Some(m) => Ok(Some(m)),
+            None => self.dl_v2_manifest(prefix, toolchain).await,
         };
         match manifest_result {
             Ok(Some(ManifestWithHash { manifest: m, hash })) => {
@@ -1255,6 +1243,25 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         }
 
         result
+    }
+
+    async fn dl_v2_manifest(
+        &self,
+        prefix: &InstallPrefix,
+        toolchain: &ToolchainDesc,
+    ) -> Result<Option<ManifestWithHash>> {
+        self.dl_cfg
+            .dl_v2_manifest(
+                // Skip the update hash when the installed manifest is missing or when components
+                // or targets were requested, since either case still requires the channel manifest.
+                (prefix.dist_manifest().is_some()
+                    && self.components.is_empty()
+                    && self.targets.is_empty())
+                .then_some(&self.update_hash),
+                toolchain,
+                self.cfg,
+            )
+            .await
     }
 }
 
