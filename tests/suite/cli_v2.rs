@@ -2620,6 +2620,58 @@ error: component 'rls' for target '[HOST_TUPLE]' is unavailable for download for
 }
 
 #[tokio::test]
+async fn update_allow_downgrade() {
+    let cx = CliTestContext::new(Scenario::MissingComponent).await;
+
+    cx.config.set_current_dist_date("2019-09-14");
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.37.0 (hash-nightly-3)
+
+"#]])
+        .is_ok();
+
+    cx.config.set_current_dist_date("2019-09-13");
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.37.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+
+    cx.config
+        .expect([
+            "rustup",
+            "toolchain",
+            "install",
+            "nightly",
+            "--allow-downgrade",
+        ])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.37.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn regression_2601() {
     // We're checking that we don't regress per #2601
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
