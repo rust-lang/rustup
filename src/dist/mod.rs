@@ -999,15 +999,16 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
         let mut toolchain = self.toolchain.clone();
         let res = loop {
-            let result = self
-                .try_update(
-                    Some(&toolchain),
-                    prefix,
-                    &mut fetched,
-                    prefetched_manifest.take(),
-                )
-                .await;
+            // TODO: Add a notification about which manifest version is going to be used
+            info!("syncing channel updates for {toolchain}");
+            let manifest_result = match prefetched_manifest.take() {
+                Some(manifest) => Ok(Some(manifest)),
+                None => self.dl_v2_manifest(prefix, &toolchain).await,
+            };
 
+            let result = self
+                .try_update(Some(&toolchain), prefix, &mut fetched, manifest_result)
+                .await;
             let e = match result {
                 Ok(v) => break Ok(v),
                 Err(e) if !backtrack => break Err(e),
@@ -1094,19 +1095,12 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         toolchain: Option<&ToolchainDesc>,
         prefix: &InstallPrefix,
         fetched: &mut String,
-        prefetched_manifest: Option<ManifestWithHash>,
+        manifest_result: Result<Option<ManifestWithHash>>,
     ) -> Result<Option<String>> {
         let download = &self.dl_cfg;
         let toolchain = toolchain.unwrap_or(self.toolchain);
-        let toolchain_str = toolchain.to_string();
         let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
-        // TODO: Add a notification about which manifest version is going to be used
-        info!("syncing channel updates for {toolchain_str}");
-        let manifest_result = match prefetched_manifest {
-            Some(m) => Ok(Some(m)),
-            None => self.dl_v2_manifest(prefix, toolchain).await,
-        };
         match manifest_result {
             Ok(Some(ManifestWithHash { manifest: m, hash })) => {
                 match m.get_rust_version() {
@@ -1238,14 +1232,14 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             && let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>()
         {
             return result.with_context(|| {
-                format!("could not download nonexistent rust version `{toolchain_str}`")
+                format!("could not download nonexistent rust version `{toolchain}`")
             });
         }
 
         result
     }
 
-    async fn dl_v2_manifest(
+    pub(crate) async fn dl_v2_manifest(
         &self,
         prefix: &InstallPrefix,
         toolchain: &ToolchainDesc,
