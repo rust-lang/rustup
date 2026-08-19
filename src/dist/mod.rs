@@ -951,7 +951,6 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             std::fs::remove_file(&self.update_hash)?;
         }
 
-        let mut fetched = String::new();
         let mut first_err = None;
         let backtrack = self.toolchain.channel == Channel::Nightly && self.toolchain.date.is_none();
         // We want to limit backtracking if we do not already have a toolchain
@@ -1035,7 +1034,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             }
 
             let result = self
-                .try_update(Some(&toolchain), prefix, &mut fetched, manifest_result)
+                .try_update(Some(&toolchain), prefix, manifest_result)
                 .await;
             let e = match result {
                 Ok(v) => break Ok(v),
@@ -1110,7 +1109,6 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         &self,
         toolchain: Option<&ToolchainDesc>,
         prefix: &InstallPrefix,
-        fetched: &mut String,
         manifest_result: Result<Option<ManifestWithHash>>,
     ) -> Result<Option<String>> {
         let download = &self.dl_cfg;
@@ -1175,9 +1173,6 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                     explicit_add_components,
                     remove_components: Vec::new(),
                 };
-
-                fetched.clone_from(&m.date);
-
                 return match manifestation
                     .update(m, changes, self.force, download, toolchain, true)
                     .await

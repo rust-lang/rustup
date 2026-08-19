@@ -1535,14 +1535,13 @@ async fn v2_manifest_checksum_mismatch_surfaces_error() {
     let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], vars, "");
     let cfg = Cfg::from_env(tp.process.current_dir().unwrap(), false, true, &tp.process).unwrap();
 
-    let mut fetched = String::new();
     let dist_opts =
         DistOptions::new(&[], &[], &cx.toolchain, Profile::Default, false, &cfg).unwrap();
     let manifest_result = dist_opts
         .dl_v2_manifest(&cx.prefix, dist_opts.toolchain)
         .await;
     let err = dist_opts
-        .try_update(None, &cx.prefix, &mut fetched, manifest_result)
+        .try_update(None, &cx.prefix, manifest_result)
         .await
         .unwrap_err();
 
