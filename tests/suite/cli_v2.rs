@@ -2646,7 +2646,7 @@ async fn update_allow_downgrade() {
         .expect(["rustc", "--version"])
         .await
         .with_stdout(snapbox::str![[r#"
-1.37.0 (hash-nightly-2)
+1.37.0 (hash-nightly-3)
 
 "#]])
         .is_ok();

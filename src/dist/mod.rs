@@ -1006,6 +1006,34 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                 None => self.dl_v2_manifest(prefix, &toolchain).await,
             };
 
+            let try_date_str = match (&toolchain.date, &manifest_result) {
+                (Some(date), _) => Some(date),
+                (None, Ok(Some(m))) => Some(&m.manifest.date),
+                _ => None,
+            };
+
+            let try_date = match try_date_str {
+                Some(s) if let Some(d) = date_from_manifest_date(s) => Ok(d),
+                // Parsing error can only be a problem if we enter backtracking, so we delay the
+                // error until we actually need to try another date.
+                Some(s) => Err(format!("malformed manifest date `{s}`")),
+                None => Err(format!(
+                    "manifest date not found for toolchain `{toolchain}`"
+                )),
+            };
+
+            // Skip installation when the toolchain to be installed comes with a valid manifest date
+            // that is older than the oldest acceptable date.
+            if try_date.as_ref().is_ok_and(|date| date < &last_manifest) {
+                break match first_err {
+                    // Wouldn't be an update if we go further back than the currently installed toolchain.
+                    Some(e) => Err(e),
+                    // In this case, all newer nightlies are missing, which means there are no
+                    // updates, so the user is already at the latest nightly.
+                    None => Ok(None),
+                };
+            }
+
             let result = self
                 .try_update(Some(&toolchain), prefix, &mut fetched, manifest_result)
                 .await;
@@ -1062,22 +1090,10 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             // the components that the user currently has installed. Let's try the previous
             // nightlies in reverse chronological order until we find a nightly that does,
             // starting at one date earlier than the current manifest's date.
-            let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
-            let try_next = date_from_manifest_date(toolchain_date)
-                .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
+            let try_next = try_date
+                .unwrap_or_else(|e| panic!("{e}"))
                 .pred_opt()
                 .unwrap();
-
-            if try_next < last_manifest {
-                break match first_err {
-                    // Wouldn't be an update if we go further back than the currently installed toolchain.
-                    Some(e) => Err(e),
-                    // In this case, all newer nightlies are missing, which means there are no
-                    // updates, so the user is already at the latest nightly.
-                    None => Ok(None),
-                };
-            }
-
             toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
         };
 
