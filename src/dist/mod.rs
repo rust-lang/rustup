@@ -1,12 +1,7 @@
 //! Installation from a Rust distribution server
 
 use std::{
-    collections::HashSet,
-    env, fmt,
-    io::Write,
-    ops::Deref,
-    path::{Path, PathBuf},
-    str::FromStr,
+    collections::HashSet, env, fmt, io::Write, ops::Deref, path::PathBuf, str::FromStr,
     sync::LazyLock,
 };
 
@@ -1004,20 +999,14 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
         let mut toolchain = self.toolchain.clone();
         let res = loop {
-            let result = try_update_from_dist_(
-                &self.dl_cfg,
-                &self.update_hash,
-                &toolchain,
-                (!self.exists).then_some(self.profile),
-                prefix,
-                self.force,
-                self.components,
-                self.targets,
-                &mut fetched,
-                self.cfg,
-                prefetched_manifest.take(),
-            )
-            .await;
+            let result = self
+                .try_update(
+                    Some(&toolchain),
+                    prefix,
+                    &mut fetched,
+                    prefetched_manifest.take(),
+                )
+                .await;
 
             let e = match result {
                 Ok(v) => break Ok(v),
@@ -1099,177 +1088,183 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
         res
     }
-}
 
-#[allow(clippy::too_many_arguments)]
-async fn try_update_from_dist_(
-    download: &DownloadCfg<'_>,
-    update_hash: &Path,
-    toolchain: &ToolchainDesc,
-    profile: Option<Profile>,
-    prefix: &InstallPrefix,
-    force_update: bool,
-    components: &[&str],
-    targets: &[&str],
-    fetched: &mut String,
-    cfg: &Cfg<'_>,
-    prefetched_manifest: Option<ManifestWithHash>,
-) -> Result<Option<String>> {
-    let toolchain_str = toolchain.to_string();
-    let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
+    pub(crate) async fn try_update(
+        &self,
+        toolchain: Option<&ToolchainDesc>,
+        prefix: &InstallPrefix,
+        fetched: &mut String,
+        prefetched_manifest: Option<ManifestWithHash>,
+    ) -> Result<Option<String>> {
+        let download = &self.dl_cfg;
+        let toolchain = toolchain.unwrap_or(self.toolchain);
+        let toolchain_str = toolchain.to_string();
+        let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
-    // TODO: Add a notification about which manifest version is going to be used
-    info!("syncing channel updates for {toolchain_str}");
-    let manifest_result = if prefetched_manifest.is_some() {
-        Ok(prefetched_manifest)
-    } else {
-        download
-            .dl_v2_manifest(
-                // Skip the update hash when the installed manifest is missing or when components
-                // or targets were requested, since either case still requires the channel manifest.
-                if prefix.dist_manifest().is_some() && components.is_empty() && targets.is_empty() {
-                    Some(update_hash)
-                } else {
-                    None
-                },
-                toolchain,
-                cfg,
-            )
-            .await
-    };
-    match manifest_result {
-        Ok(Some(ManifestWithHash { manifest: m, hash })) => {
-            match m.get_rust_version() {
-                Ok(version) => info!("latest update on {} for version {version}", m.date),
-                Err(_) => info!("latest update on {}", m.date),
-            }
-
-            let profile_components = match profile {
-                Some(profile) => m.get_profile_components(profile, &toolchain.target)?,
-                None => Vec::new(),
-            };
-
-            let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
-
-            let rust_package = m.get_package("rust")?;
-            let rust_target_package = rust_package.get_target(Some(&toolchain.target.clone()))?;
-
-            for component in components {
-                let mut component =
-                    Component::new(component.to_string(), Some(toolchain.target.clone()), false);
-                if let Some(renamed) = m.rename_component(&component) {
-                    component = renamed;
-                }
-                // Look up the newly constructed/renamed component and ensure that
-                // if it's a wildcard component we note such, otherwise we end up
-                // exacerbating the problem we thought we'd fixed with #2087 and #2115
-                if let Some(c) = rust_target_package
-                    .components
-                    .iter()
-                    .find(|c| c.short_name() == component.short_name())
-                    && c.target.is_none()
-                {
-                    component = component.wildcard();
-                }
-                all_components.insert(component);
-            }
-
-            for &target in targets {
-                let tuple = TargetTuple::new(target);
-                all_components.insert(Component::new("rust-std".to_string(), Some(tuple), false));
-            }
-
-            let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
-            explicit_add_components.sort();
-
-            let changes = Changes {
-                explicit_add_components,
-                remove_components: Vec::new(),
-            };
-
-            fetched.clone_from(&m.date);
-
-            return match manifestation
-                .update(m, changes, force_update, download, toolchain, true)
+        // TODO: Add a notification about which manifest version is going to be used
+        info!("syncing channel updates for {toolchain_str}");
+        let manifest_result = if prefetched_manifest.is_some() {
+            Ok(prefetched_manifest)
+        } else {
+            download
+                .dl_v2_manifest(
+                    // Skip the update hash when the installed manifest is missing or when components
+                    // or targets were requested, since either case still requires the channel manifest.
+                    (prefix.dist_manifest().is_some()
+                        && self.components.is_empty()
+                        && self.targets.is_empty())
+                    .then_some(&self.update_hash),
+                    toolchain,
+                    self.cfg,
+                )
                 .await
-            {
-                Ok(status) => match status {
-                    UpdateStatus::Unchanged => Ok(None),
-                    UpdateStatus::Changed => Ok(Some(hash)),
-                },
-                // Check for the variant by reference before we downcast with ownership,
-                // otherwise we'll drop implicit context bundled up in the original anyhow::Error.
-                Err(err) => match err.downcast_ref::<RustupError>() {
-                    Some(RustupError::RequestedComponentsUnavailable { .. }) => {
-                        let Ok(RustupError::RequestedComponentsUnavailable {
-                            components,
-                            manifest,
-                            toolchain,
-                        }) = err.downcast::<RustupError>()
-                        else {
-                            unreachable!()
-                        };
-
-                        Err(anyhow!(DistError::ToolchainComponentsMissing(
-                            components, manifest, toolchain,
-                        )))
-                    }
-                    Some(_) | None => Err(err),
-                },
-            };
-        }
-        Ok(None) => return Ok(None),
-        Err(err) => {
-            match err.downcast_ref::<RustupError>() {
-                Some(RustupError::DownloadNotExists { .. }) => {
-                    // Proceed to try v1 as a fallback
-                    debug!("manifest not found; trying legacy manifest");
+        };
+        match manifest_result {
+            Ok(Some(ManifestWithHash { manifest: m, hash })) => {
+                match m.get_rust_version() {
+                    Ok(version) => info!("latest update on {} for version {version}", m.date),
+                    Err(_) => info!("latest update on {}", m.date),
                 }
-                // Includes `ChecksumFailed`: if the v2 manifest exists but its
-                // contents do not match the published `.sha256`, surface the
-                // integrity failure as an error rather than silently treating
-                // the toolchain as up to date. The v1 fallback path below
-                // already does the same.
-                _ => return Err(err),
+
+                let profile_components = match self.exists {
+                    true => Vec::new(),
+                    false => m.get_profile_components(self.profile, &toolchain.target)?,
+                };
+
+                let mut all_components: HashSet<Component> =
+                    profile_components.into_iter().collect();
+
+                let rust_package = m.get_package("rust")?;
+                let rust_target_package =
+                    rust_package.get_target(Some(&toolchain.target.clone()))?;
+
+                for &component in self.components {
+                    let mut component = Component::new(
+                        component.to_string(),
+                        Some(toolchain.target.clone()),
+                        false,
+                    );
+                    if let Some(renamed) = m.rename_component(&component) {
+                        component = renamed;
+                    }
+                    // Look up the newly constructed/renamed component and ensure that
+                    // if it's a wildcard component we note such, otherwise we end up
+                    // exacerbating the problem we thought we'd fixed with #2087 and #2115
+                    if let Some(c) = rust_target_package
+                        .components
+                        .iter()
+                        .find(|c| c.short_name() == component.short_name())
+                        && c.target.is_none()
+                    {
+                        component = component.wildcard();
+                    }
+                    all_components.insert(component);
+                }
+
+                for &target in self.targets {
+                    let tuple = TargetTuple::new(target);
+                    all_components.insert(Component::new(
+                        "rust-std".to_string(),
+                        Some(tuple),
+                        false,
+                    ));
+                }
+
+                let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
+                explicit_add_components.sort();
+
+                let changes = Changes {
+                    explicit_add_components,
+                    remove_components: Vec::new(),
+                };
+
+                fetched.clone_from(&m.date);
+
+                return match manifestation
+                    .update(m, changes, self.force, download, toolchain, true)
+                    .await
+                {
+                    Ok(status) => match status {
+                        UpdateStatus::Unchanged => Ok(None),
+                        UpdateStatus::Changed => Ok(Some(hash)),
+                    },
+                    // Check for the variant by reference before we downcast with ownership,
+                    // otherwise we'll drop implicit context bundled up in the original anyhow::Error.
+                    Err(err) => match err.downcast_ref::<RustupError>() {
+                        Some(RustupError::RequestedComponentsUnavailable { .. }) => {
+                            let Ok(RustupError::RequestedComponentsUnavailable {
+                                components,
+                                manifest,
+                                toolchain,
+                            }) = err.downcast::<RustupError>()
+                            else {
+                                unreachable!()
+                            };
+
+                            Err(anyhow!(DistError::ToolchainComponentsMissing(
+                                components, manifest, toolchain,
+                            )))
+                        }
+                        Some(_) | None => Err(err),
+                    },
+                };
+            }
+            Ok(None) => return Ok(None),
+            Err(err) => {
+                match err.downcast_ref::<RustupError>() {
+                    Some(RustupError::DownloadNotExists { .. }) => {
+                        // Proceed to try v1 as a fallback
+                        debug!("manifest not found; trying legacy manifest");
+                    }
+                    // Includes `ChecksumFailed`: if the v2 manifest exists but its
+                    // contents do not match the published `.sha256`, surface the
+                    // integrity failure as an error rather than silently treating
+                    // the toolchain as up to date. The v1 fallback path below
+                    // already does the same.
+                    _ => return Err(err),
+                }
             }
         }
-    }
 
-    // If the v2 manifest is not found then try v1
-    let manifest = match download.dl_v1_manifest(&cfg.dist_root_url, toolchain).await {
-        Ok(m) => m,
-        Err(err) => match err.downcast_ref::<RustupError>() {
-            Some(RustupError::ChecksumFailed { .. }) => return Err(err),
-            Some(RustupError::DownloadNotExists { .. }) => {
-                bail!(DistError::MissingReleaseForToolchain(
-                    toolchain.manifest_name()
-                ));
-            }
-            _ => {
-                return Err(err).with_context(|| {
-                    format!(
-                        "failed to download manifest for '{}'",
+        // If the v2 manifest is not found then try v1
+        let manifest = match download
+            .dl_v1_manifest(&self.cfg.dist_root_url, toolchain)
+            .await
+        {
+            Ok(m) => m,
+            Err(err) => match err.downcast_ref::<RustupError>() {
+                Some(RustupError::ChecksumFailed { .. }) => return Err(err),
+                Some(RustupError::DownloadNotExists { .. }) => {
+                    bail!(DistError::MissingReleaseForToolchain(
                         toolchain.manifest_name()
-                    )
-                });
-            }
-        },
-    };
+                    ));
+                }
+                _ => {
+                    return Err(err).with_context(|| {
+                        format!(
+                            "failed to download manifest for '{}'",
+                            toolchain.manifest_name()
+                        )
+                    });
+                }
+            },
+        };
 
-    let result = manifestation
-        .update_v1(&manifest, update_hash, download)
-        .await;
+        let result = manifestation
+            .update_v1(&manifest, &self.update_hash, download)
+            .await;
 
-    // inspect, determine what context to add, then process afterwards.
-    if let Err(e) = &result
-        && let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>()
-    {
-        return result.with_context(|| {
-            format!("could not download nonexistent rust version `{toolchain_str}`")
-        });
+        // inspect, determine what context to add, then process afterwards.
+        if let Err(e) = &result
+            && let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>()
+        {
+            return result.with_context(|| {
+                format!("could not download nonexistent rust version `{toolchain_str}`")
+            });
+        }
+
+        result
     }
-
-    result
 }
 
 fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {

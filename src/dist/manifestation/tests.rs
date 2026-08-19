@@ -17,7 +17,7 @@ use url::Url;
 use crate::{
     config::Cfg,
     dist::{
-        DEFAULT_DIST_SERVER, Profile, TargetTuple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, DistOptions, Profile, TargetTuple, ToolchainDesc,
         download::{DownloadCfg, DownloadTracker},
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
@@ -1534,25 +1534,13 @@ async fn v2_manifest_checksum_mismatch_surfaces_error() {
 
     let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], vars, "");
     let cfg = Cfg::from_env(tp.process.current_dir().unwrap(), false, true, &tp.process).unwrap();
-    let dl_cfg = DownloadCfg::new(&cfg);
-    let update_hash = cfg.get_hash_file(&cx.toolchain, true).unwrap();
-    let mut fetched = String::new();
 
-    let err = super::super::try_update_from_dist_(
-        &dl_cfg,
-        &update_hash,
-        &cx.toolchain,
-        Some(Profile::Default),
-        &cx.prefix,
-        false,
-        &[],
-        &[],
-        &mut fetched,
-        &cfg,
-        None,
-    )
-    .await
-    .unwrap_err();
+    let mut fetched = String::new();
+    let err = DistOptions::new(&[], &[], &cx.toolchain, Profile::Default, false, &cfg)
+        .unwrap()
+        .try_update(None, &cx.prefix, &mut fetched, None)
+        .await
+        .unwrap_err();
 
     match err.downcast_ref::<RustupError>() {
         Some(RustupError::ChecksumFailed { .. }) => {}
