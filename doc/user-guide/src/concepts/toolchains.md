@@ -42,6 +42,19 @@ inferred, so the above could be written:
 $ rustup toolchain install stable-msvc
 ```
 
+Elements that are still missing are taken from the default host, which is
+detected at installation time and can be changed with `rustup set
+default-host`. Since that setting lives in `rustup`'s [configuration], it is
+shared by every environment using the same `RUSTUP_HOME`; where the host ABI is
+instead a property of the current shell environment, as with the [MSYS2]
+environments on Windows, the [`RUSTUP_DEFAULT_HOST`] environment variable can
+override it. Either way, a host named in the toolchain specification wins.
+`rustup show` reports the default host in use and where it was taken from.
+
+[configuration]: ../configuration.md
+[MSYS2]: https://www.msys2.org/
+[`RUSTUP_DEFAULT_HOST`]: ../environment-variables.md
+
 Toolchain names that don't name a channel instead can be used to name [custom
 toolchains].
 

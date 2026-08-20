@@ -57,7 +57,8 @@ mean a download is tried a total of four times before failing out.
 ## `RUSTUP_BACKTRACE`
 
 By default while running tests, we unset some environment variables that will
-break our testing (like `RUSTUP_TOOLCHAIN`, `SHELL`, `ZDOTDIR`, `RUST_BACKTRACE`).
+break our testing (like `RUSTUP_TOOLCHAIN`, `RUSTUP_DEFAULT_HOST`, `SHELL`,
+`ZDOTDIR`, `RUST_BACKTRACE`).
 But if you want to debug locally, you may need backtrace. `RUSTUP_BACKTRACE`
 is used like `RUST_BACKTRACE` to enable backtraces of failed tests.
 

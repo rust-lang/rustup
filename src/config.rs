@@ -125,6 +125,28 @@ impl Display for ActiveSource {
     }
 }
 
+// Represents the source that determined the default host tuple.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DefaultHostSource {
+    /// Detected from the running process, falling back to rustup's own build target.
+    Detected,
+    /// The `RUSTUP_DEFAULT_HOST` environment variable.
+    Environment,
+    /// The `default_host_tuple` setting, written by `rustup set default-host`
+    /// or at installation time.
+    Settings,
+}
+
+impl DefaultHostSource {
+    pub(crate) fn to_reason(self) -> &'static str {
+        match self {
+            Self::Detected => "detected",
+            Self::Environment => "from env var RUSTUP_DEFAULT_HOST",
+            Self::Settings => "from settings.toml in rustup home",
+        }
+    }
+}
+
 /// Represents the result of an operation that may ensure the installation of a certain toolchain.
 #[derive(Clone, Debug)]
 pub(crate) struct EnsureInstalled<T> {
@@ -999,8 +1021,14 @@ impl<'a> Cfg<'a> {
 
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn default_host_tuple(&self) -> Result<TargetTuple> {
+        Ok(self.default_host_tuple_with_source()?.0)
+    }
+
+    pub(crate) fn default_host_tuple_with_source(
+        &self,
+    ) -> Result<(TargetTuple, DefaultHostSource)> {
         self.settings_file
-            .with(|s| Ok(default_host_tuple(s, self.process)))
+            .with(|s| Ok(default_host_tuple_with_source(s, self.process)))
     }
 
     /// The path on disk of any concrete toolchain
@@ -1191,11 +1219,32 @@ impl State {
     }
 }
 
+/// The host tuple used to complete toolchain names that don't specify one.
 pub(crate) fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple {
-    s.default_host_tuple
-        .as_ref()
-        .map(TargetTuple::new)
-        .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
+    default_host_tuple_with_source(s, process).0
+}
+
+/// The host tuple used to complete toolchain names that don't specify one,
+/// along with the source it was taken from.
+///
+/// The `RUSTUP_DEFAULT_HOST` environment variable takes precedence over the
+/// `default_host_tuple` setting, so that an execution environment (e.g. an
+/// MSYS2 shell) can select a host ABI without changing the configuration
+/// shared with the other environments using the same `RUSTUP_HOME`.
+pub(crate) fn default_host_tuple_with_source(
+    s: &Settings,
+    process: &Process,
+) -> (TargetTuple, DefaultHostSource) {
+    if let Ok(tuple) = process.var("RUSTUP_DEFAULT_HOST") {
+        (TargetTuple::new(tuple), DefaultHostSource::Environment)
+    } else if let Some(tuple) = &s.default_host_tuple {
+        (TargetTuple::new(tuple), DefaultHostSource::Settings)
+    } else {
+        (
+            TargetTuple::from_host_or_build(process),
+            DefaultHostSource::Detected,
+        )
+    }
 }
 
 fn no_toolchain_error(process: &Process) -> anyhow::Error {

@@ -792,6 +792,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::remove_var("RUSTUP_AUTO_INSTALL");
         env::remove_var("RUSTUP_UPDATE_ROOT");
         env::remove_var("RUSTUP_TOOLCHAIN");
+        env::remove_var("RUSTUP_DEFAULT_HOST");
         env::remove_var("SHELL");
         env::remove_var("ZDOTDIR");
         // clap does its own terminal colour probing, and that isn't

@@ -838,9 +838,7 @@ pub async fn main(
             SelfSubcmd::UpgradeData => cfg.upgrade_data().map(|_| ExitCode::SUCCESS),
         },
         RustupSubcmd::Set { subcmd } => match subcmd {
-            SetSubcmd::DefaultHost { host_tuple } => cfg
-                .set_default_host_tuple(host_tuple)
-                .map(|_| ExitCode::SUCCESS),
+            SetSubcmd::DefaultHost { host_tuple } => set_default_host(cfg, host_tuple),
             SetSubcmd::Profile { profile_name } => {
                 cfg.set_profile(profile_name).map(|_| ExitCode::SUCCESS)
             }
@@ -1211,11 +1209,12 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
 
     let t = cfg.process.stdout();
 
-    // Print host tuple
+    // Print host tuple and where it came from
+    let (default_host, default_host_source) = cfg.default_host_tuple_with_source()?;
     writeln!(
         t.lock(),
-        "{HEADER}Default host: {HEADER:#}{}",
-        cfg.default_host_tuple()?
+        "{HEADER}Default host: {HEADER:#}{default_host} ({})",
+        default_host_source.to_reason()
     )?;
 
     // Print rustup home directory
@@ -1743,6 +1742,16 @@ fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Res
                 );
             }
         }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn set_default_host(cfg: &Cfg<'_>, host_tuple: String) -> Result<ExitCode> {
+    cfg.set_default_host_tuple(host_tuple)?;
+    if let Ok(env_host) = cfg.process.var("RUSTUP_DEFAULT_HOST") {
+        warn!(
+            "`RUSTUP_DEFAULT_HOST` is set to `{env_host}`: the default host setting will not have any effect while it remains set"
+        );
     }
     Ok(ExitCode::SUCCESS)
 }

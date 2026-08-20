@@ -31,6 +31,17 @@ For example, to choose the 64 bit GNU toolchain:
 $ rustup set default-host x86_64-pc-windows-gnu
 ```
 
+That setting is stored in `rustup`'s configuration and is therefore shared by
+every environment using the same `RUSTUP_HOME`. [MSYS2] instead provides
+several environments that expect different ABIs (e.g. `x86_64-pc-windows-gnu`
+in UCRT64 and `x86_64-pc-windows-gnullvm` in CLANG64) while sharing one home
+directory, so such an environment can set the [`RUSTUP_DEFAULT_HOST`]
+environment variable during its initialization to select its own default host:
+
+```console
+$ export RUSTUP_DEFAULT_HOST=x86_64-pc-windows-gnullvm
+```
+
 Since the MSVC ABI provides the best interoperation with other Windows
 software it is recommended for most purposes. The GNU toolchain is always
 available, even if you don't use it by default. Just install it with `rustup
@@ -58,6 +69,7 @@ targets with the same compiler.
 [Visual Studio]: https://visualstudio.microsoft.com/
 [GCC toolchain]: https://gcc.gnu.org/
 [MSYS2]: https://www.msys2.org/
+[`RUSTUP_DEFAULT_HOST`]: ../environment-variables.md
 [msvc-toolchain]: https://www.rust-lang.org/tools/install?platform_override=win
 [toolchain specification]: ../concepts/toolchains.md#toolchain-specification
 [msvc install]: windows-msvc.html

@@ -14,6 +14,25 @@
   or invocations will fail. This can specify custom toolchains, installable
   toolchains, or the absolute path to a toolchain.
 
+- `RUSTUP_DEFAULT_HOST` (default: none). If set, overrides the configured
+  [default host] when a toolchain specification doesn't name a host, e.g. when
+  `1.87` is resolved to `1.87-x86_64-pc-windows-gnu`. Unlike `RUSTUP_TOOLCHAIN`,
+  this doesn't [override] the selected toolchain, so a `rust-toolchain.toml`
+  file that pins a channel keeps its say over the version. This is useful for
+  environments such as the [MSYS2] shells, which share a single `RUSTUP_HOME`
+  while requiring different host ABIs. While it is set, the configured default
+  host isn't consulted, so `rustup set default-host` warns that what it writes
+  won't take effect. `rustup show` reports which of the two is in use.
+
+  This variable only completes a toolchain name that doesn't already specify a
+  host. It has no effect on the [default toolchain] if that name specifies a
+  host explicitly, as it always did before rustup 1.30 (e.g.
+  `1.87-x86_64-pc-windows-msvc` rather than `1.87`) and may still if it was set
+  by an older rustup or with an explicit host on the command line. Run `rustup
+  default` to check: it prints the resolved name, so if the host shown doesn't
+  match this variable, run `rustup default <channel>` with a bare channel to
+  store it without one.
+
 - `RUSTUP_DIST_SERVER` (default: `https://static.rust-lang.org`). Sets the root
   URL for downloading static resources related to Rust. You can change this to
   instead use a local mirror, or to test the binaries from the staging
@@ -76,6 +95,9 @@
 
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 [dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
+[default host]: concepts/toolchains.md#toolchain-specification
+[default toolchain]: overrides.md#default-toolchain
+[MSYS2]: https://www.msys2.org/
 [override]: overrides.md
 [tracing viewer]: https://github.com/catapult-project/catapult/blob/master/tracing/README.md
 [rustup issue tracker]: https://github.com/rust-lang/rustup/issues

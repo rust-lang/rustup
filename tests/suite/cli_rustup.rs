@@ -739,7 +739,7 @@ async fn show_toolchain_none() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -770,7 +770,7 @@ async fn show_toolchain_default() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -864,7 +864,7 @@ async fn show_multiple_toolchains() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -948,7 +948,7 @@ async fn show_multiple_targets() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1002,7 +1002,7 @@ async fn show_multiple_toolchains_and_targets() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1133,7 +1133,7 @@ async fn show_toolchain_override() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1174,7 +1174,7 @@ async fn show_toolchain_toolchain_file_override() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1224,7 +1224,7 @@ async fn show_toolchain_version_nested_file_override() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1268,7 +1268,7 @@ async fn show_toolchain_toolchain_file_override_not_installed() {
             ("[TOOLCHAIN_FILE]", &toolchain_file),
         ])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1304,7 +1304,7 @@ async fn show_toolchain_override_not_installed() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1381,7 +1381,7 @@ async fn show_toolchain_env() {
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1413,7 +1413,7 @@ async fn show_toolchain_env_not_installed() {
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1468,7 +1468,7 @@ async fn show_with_verbose() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -1642,7 +1642,7 @@ async fn set_default_host() {
         .await
         .with_stdout(snapbox::str![[r#"
 ...
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 ...
 "#]])
         .is_ok();
@@ -4123,7 +4123,7 @@ async fn show_custom_toolchain() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -4173,7 +4173,7 @@ async fn show_custom_toolchain_without_components_file() {
         .await
         .extend_redactions([("[RUSTUP_DIR]", cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -4305,7 +4305,7 @@ default_toolchain = "beta"
         .extend_redactions(redactions)
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -4343,7 +4343,7 @@ default_toolchain = "beta"
         .extend_redactions(redactions)
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [CROSS_ARCH_I]
+Default host: [CROSS_ARCH_I] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -4400,7 +4400,7 @@ default_toolchain = "beta-[HOST_TUPLE]"
         .extend_redactions(redactions)
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -4438,7 +4438,7 @@ default_toolchain = "beta-[HOST_TUPLE]"
         .extend_redactions(redactions)
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [CROSS_ARCH_I]
+Default host: [CROSS_ARCH_I] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -4453,4 +4453,187 @@ installed targets:
   [HOST_TUPLE]
 
 "#]]);
+}
+
+// The `RUSTUP_DEFAULT_HOST` environment variable overrides the `default_host_tuple`
+// setting when completing a toolchain name that doesn't specify a host, without
+// modifying the settings shared with other environments.
+// See: https://github.com/rust-lang/rustup/issues/5024
+#[tokio::test]
+async fn default_host_env_completes_unqualified_toolchains() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let mut toml_redactions = snapbox::Redactions::new();
+    toml_redactions
+        .insert("[HOST_TUPLE]", this_host_tuple())
+        .unwrap();
+    let toml_assert = snapbox::Assert::new()
+        .action_env(snapbox::assert::DEFAULT_ACTION_ENV)
+        .redact_with(toml_redactions);
+
+    let redactions = [
+        ("[RUSTUP_DIR]", cx.config.rustupdir.to_string()),
+        ("[CROSS_ARCH_I]", CROSS_ARCH1.to_owned()),
+    ];
+
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "show"],
+            [
+                ("RUSTUP_DEFAULT_HOST", CROSS_ARCH1),
+                ("RUSTUP_AUTO_INSTALL", "0"),
+            ],
+        )
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [CROSS_ARCH_I] (from env var RUSTUP_DEFAULT_HOST)
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE]
+
+active toolchain
+----------------
+name: beta-[CROSS_ARCH_I]
+active because: it's the default toolchain
+
+"#]]);
+
+    // The override is not persisted, so other environments are unaffected.
+    let settings_file = &cx.config.rustupdir.join("settings.toml");
+    toml_assert.eq(
+        fs::read_to_string(settings_file).unwrap(),
+        snapbox::str![[r#"
+...
+default_host_tuple = "[HOST_TUPLE]"
+default_toolchain = "beta"
+...
+"#]],
+    );
+}
+
+// A toolchain name that specifies a host stays authoritative, so `RUSTUP_DEFAULT_HOST`
+// doesn't affect it.
+#[tokio::test]
+async fn default_host_env_doesnt_affect_qualified_toolchains() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let redactions = [
+        ("[RUSTUP_DIR]", cx.config.rustupdir.to_string()),
+        ("[CROSS_ARCH_I]", CROSS_ARCH1.to_owned()),
+    ];
+
+    cx.config
+        .expect(["rustup", "default", for_host!("beta-{}")])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "show"],
+            [
+                ("RUSTUP_DEFAULT_HOST", CROSS_ARCH1),
+                ("RUSTUP_AUTO_INSTALL", "0"),
+            ],
+        )
+        .await
+        .extend_redactions(redactions)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [CROSS_ARCH_I] (from env var RUSTUP_DEFAULT_HOST)
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+beta-[HOST_TUPLE] (active, default)
+
+active toolchain
+----------------
+name: beta-[HOST_TUPLE]
+active because: it's the default toolchain
+installed targets:
+  [HOST_TUPLE]
+
+"#]]);
+}
+
+// A `rust-toolchain.toml` file that pins a channel without a host is completed
+// with `RUSTUP_DEFAULT_HOST`.
+#[tokio::test]
+async fn default_host_env_completes_toolchain_file() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
+    raw::write_file(&toolchain_file, "[toolchain]\nchannel = \"nightly\"\n").unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "show"],
+            [
+                ("RUSTUP_DEFAULT_HOST", CROSS_ARCH1),
+                ("RUSTUP_AUTO_INSTALL", "0"),
+            ],
+        )
+        .await
+        .extend_redactions([
+            ("[RUSTUP_DIR]", cx.config.rustupdir.to_string()),
+            ("[CROSS_ARCH_I]", CROSS_ARCH1.to_owned()),
+        ])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+Default host: [CROSS_ARCH_I] (from env var RUSTUP_DEFAULT_HOST)
+rustup home:  [RUSTUP_DIR]
+
+installed toolchains
+--------------------
+
+active toolchain
+----------------
+name: nightly-[CROSS_ARCH_I]
+active because: overridden by '[..]/rust-toolchain.toml'
+
+"#]]);
+}
+
+// While `RUSTUP_DEFAULT_HOST` is set, `rustup set default-host` writes a setting that
+// won't be consulted, so it says so.
+#[tokio::test]
+async fn set_default_host_warns_while_env_is_set() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "set", "default-host", &this_host_tuple()],
+            [("RUSTUP_DEFAULT_HOST", CROSS_ARCH1)],
+        )
+        .await
+        .extend_redactions([("[CROSS_ARCH_I]", CROSS_ARCH1)])
+        .is_ok()
+        .with_stderr(snapbox::str![[r#"
+warn: `RUSTUP_DEFAULT_HOST` is set to `[CROSS_ARCH_I]`: the default host setting will not have any effect while it remains set
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
+
+"#]]);
+}
+
+// `RUSTUP_DEFAULT_HOST` must name a host that can be resolved against.
+#[tokio::test]
+async fn default_host_env_invalid_tuple() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_with_env(["rustup", "show"], [("RUSTUP_DEFAULT_HOST", "foo")])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: Provided host 'foo' couldn't be converted to partial tuple
+
+"#]])
+        .is_err();
 }

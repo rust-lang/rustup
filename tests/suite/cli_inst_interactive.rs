@@ -743,7 +743,7 @@ async fn install_defaults_to_default_host() {
         .extend_redactions(redactions)
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [HOST_TUPLE]
+Default host: [HOST_TUPLE] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
@@ -771,7 +771,7 @@ installed targets:
         .extend_redactions(redactions)
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-Default host: [CROSS_ARCH_I]
+Default host: [CROSS_ARCH_I] (from settings.toml in rustup home)
 rustup home:  [RUSTUP_DIR]
 
 installed toolchains
