@@ -663,8 +663,7 @@ fn check_existence_of_rustc_or_cargo_in_path(
 }
 
 fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
-    let rustup_dir = process.rustup_home()?;
-    let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+    let settings_file = SettingsFile::new(process.home_dirs()?.config.join("settings.toml"));
     if !utils::path_exists(&settings_file.path) {
         return Ok(());
     }

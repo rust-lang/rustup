@@ -352,8 +352,9 @@ impl<'a> Cfg<'a> {
         let rustup_config_dir = home_dirs.config;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
+        utils::ensure_dir_exists("config home", &rustup_config_dir)?;
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(rustup_config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {

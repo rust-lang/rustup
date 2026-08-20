@@ -626,8 +626,12 @@ async fn install_warns_about_existing_settings_file() {
         .prefix("fakehome")
         .tempdir()
         .unwrap();
+    let config_dir = tempfile::Builder::new()
+        .prefix("fakeconfig")
+        .tempdir()
+        .unwrap();
     // Create `settings.toml`
-    let settings_file = temp_dir.path().join("settings.toml");
+    let settings_file = config_dir.path().join("settings.toml");
     raw::write_file(
         &settings_file,
         &format!(
@@ -639,6 +643,7 @@ version = "12""#,
     )
     .unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
+    let config_dir_path = config_dir.path().to_str().unwrap();
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -647,6 +652,8 @@ version = "12""#,
             [
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("RUSTUP_HOME", temp_dir_path),
+                ("RUSTUP_CONFIG_HOME", config_dir_path),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
             ],
         )
         .await
