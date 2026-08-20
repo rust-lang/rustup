@@ -378,7 +378,7 @@ impl<'a> Cfg<'a> {
         let fallback_settings = None;
 
         let toolchains_dir = rustup_dir.join("toolchains");
-        let download_dir = rustup_dir.join("downloads");
+        let download_dir = rustup_cache_dir.join("downloads");
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {

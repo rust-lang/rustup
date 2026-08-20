@@ -1951,6 +1951,8 @@ async fn install_uses_cache_home_and_forwards_it() {
 
     assert!(cache_home.join("tmp").is_dir());
     assert!(!cx.config.rustupdir.has("tmp"));
+    assert!(cache_home.join("downloads").is_dir());
+    assert!(!cx.config.rustupdir.has("downloads"));
 
     assert!(cache_home.join("update-hashes").join(&toolchain).is_file());
     assert!(
