@@ -797,6 +797,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::remove_var("RUSTUP_CACHE_HOME");
         env::remove_var("RUSTUP_CONFIG_HOME");
         env::remove_var("RUSTUP_DATA_HOME");
+        env::remove_var("RUSTUP_STATE_HOME");
         env::remove_var("RUSTUP_TOOLCHAIN");
         env::remove_var("SHELL");
         env::remove_var("ZDOTDIR");
