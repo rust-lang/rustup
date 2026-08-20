@@ -320,6 +320,7 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     pub rustup_cache_dir: PathBuf,
     pub rustup_config_dir: PathBuf,
+    pub rustup_data_dir: PathBuf,
     pub download_dir: PathBuf,
     pub toolchain_override: Option<ResolvableToolchainName>,
     env_override: Option<ResolvableLocalToolchainName>,
@@ -350,6 +351,7 @@ impl<'a> Cfg<'a> {
         let home_dirs = process.home_dirs()?;
         let rustup_cache_dir = home_dirs.cache;
         let rustup_config_dir = home_dirs.config;
+        let rustup_data_dir = home_dirs.data;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
         utils::ensure_dir_exists("config home", &rustup_config_dir)?;
@@ -402,6 +404,7 @@ impl<'a> Cfg<'a> {
             toolchains_dir,
             rustup_cache_dir,
             rustup_config_dir,
+            rustup_data_dir,
             download_dir,
             toolchain_override: None,
             env_override,
@@ -1161,6 +1164,7 @@ impl Debug for Cfg<'_> {
             toolchains_dir,
             rustup_cache_dir,
             rustup_config_dir,
+            rustup_data_dir,
             download_dir,
             toolchain_override,
             env_override,
@@ -1181,6 +1185,7 @@ impl Debug for Cfg<'_> {
             .field("toolchains_dir", toolchains_dir)
             .field("rustup_cache_dir", rustup_cache_dir)
             .field("rustup_config_dir", rustup_config_dir)
+            .field("rustup_data_dir", rustup_data_dir)
             .field("download_dir", download_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
