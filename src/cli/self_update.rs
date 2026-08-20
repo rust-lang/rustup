@@ -677,7 +677,36 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
     let cargo_home = process.cargo_home()?;
     let cargo_home_bin = cargo_home.join("bin");
-    let rustup_home = process.rustup_home()?;
+    let home_dirs = process.home_dirs()?;
+    let rustup_home_message = if !process.use_category_home() {
+        // In legacy mode, all four category homes equal the resolved RUSTUP_HOME.
+        format!(
+            concat!(
+                "Rustup metadata and toolchains will be installed into the Rustup\n",
+                "home directory, located at:\n\n",
+                "    {}\n\n",
+                "This can be modified with the RUSTUP_HOME environment variable."
+            ),
+            home_dirs.data.display()
+        )
+    } else {
+        format!(
+            concat!(
+                "Rustup will use these directories:\n\n",
+                "      config: {}\n",
+                "      state:  {}\n",
+                "      data:   {}\n",
+                "      cache:  {}\n\n",
+                "They can be modified individually with\n",
+                "RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and\n",
+                "RUSTUP_CACHE_HOME."
+            ),
+            home_dirs.config.display(),
+            home_dirs.state.display(),
+            home_dirs.data.display(),
+            home_dirs.cache.display(),
+        )
+    };
 
     if !no_modify_path {
         // Brittle code warning: some duplication in unix::do_add_to_path
@@ -695,7 +724,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
                 cargo_home_bin = cargo_home_bin.display(),
                 plural = plural,
                 rcfiles = rcfiles,
-                rustup_home = rustup_home.display(),
+                rustup_home_message = rustup_home_message,
             ))
         }
         #[cfg(windows)]
@@ -703,14 +732,14 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
             pre_install_msg_win!(),
             cargo_home = cargo_home.display(),
             cargo_home_bin = cargo_home_bin.display(),
-            rustup_home = rustup_home.display(),
+            rustup_home_message = rustup_home_message,
         ))
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
             cargo_home = cargo_home.display(),
             cargo_home_bin = cargo_home_bin.display(),
-            rustup_home = rustup_home.display(),
+            rustup_home_message = rustup_home_message,
         ))
     }
 }
