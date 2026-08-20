@@ -10,12 +10,7 @@ macro_rules! pre_install_msg_template {
 This will download and install the official compiler for the Rust
 programming language, and its package manager, Cargo.
 
-Rustup metadata and toolchains will be installed into the Rustup
-home directory, located at:
-
-    {rustup_home}
-
-This can be modified with the RUSTUP_HOME environment variable.
+{rustup_home_message}
 
 The Cargo home directory is located at:
 
