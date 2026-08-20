@@ -181,6 +181,7 @@ impl<'a> Toolchain<'a> {
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
         cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
         cmd.env("RUSTUP_CACHE_HOME", &self.cfg.rustup_cache_dir);
+        cmd.env("RUSTUP_CONFIG_HOME", &self.cfg.rustup_config_dir);
     }
 
     /// Apply the appropriate LD path for a command being run from a toolchain.
