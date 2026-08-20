@@ -383,7 +383,7 @@ impl<'a> Cfg<'a> {
         #[cfg(windows)]
         let fallback_settings = None;
 
-        let toolchains_dir = rustup_dir.join("toolchains");
+        let toolchains_dir = rustup_data_dir.join("toolchains");
         let download_dir = rustup_cache_dir.join("downloads");
 
         // Environment override
