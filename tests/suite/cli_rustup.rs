@@ -916,18 +916,24 @@ installed targets:
 }
 
 #[tokio::test]
-async fn notify_release_hint_at_most_once_per_day() {
+async fn notify_release_hint_uses_state_home_at_most_once_per_day() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let state_home = cx.config.current_dir().join("relative/state");
+    let state_home_env = state_home.to_str().unwrap();
+    let state_env = [
+        ("RUSTUP_STATE_HOME", state_home_env),
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+    ];
     cx.config
-        .expect(["rustup", "set", "release-hint", "enable"])
+        .expect_with_env(["rustup", "set", "release-hint", "enable"], state_env)
         .await
         .is_ok();
     cx.config
-        .expect(["rustup", "update", "stable"])
+        .expect_with_env(["rustup", "update", "stable"], state_env)
         .await
         .is_ok();
     cx.config
-        .expect(["rustup", "show"])
+        .expect_with_env(["rustup", "show"], state_env)
         .await
         .with_stderr(snapbox::str![[r#"
 hint: a new stable Rust release is available, run `rustup update stable` to install it
@@ -935,10 +941,22 @@ hint: a new stable Rust release is available, run `rustup update stable` to inst
 "#]])
         .is_ok();
     cx.config
-        .expect(["rustup", "show"])
+        .expect_with_env(["rustup", "show"], state_env)
         .await
         .with_stderr(snapbox::str![[""]])
         .is_ok();
+    assert!(state_home.join("state.toml").is_file());
+    assert!(!cx.config.rustupdir.has("state.toml"));
+
+    let rustc = cx
+        .config
+        .expect_with_env(
+            ["rustc", "+stable", "--echo-env", "RUSTUP_STATE_HOME"],
+            state_env,
+        )
+        .await;
+    rustc.is_ok();
+    assert_eq!(rustc.output.stderr.trim(), state_home.to_string_lossy());
 }
 
 #[tokio::test]

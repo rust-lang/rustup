@@ -260,6 +260,28 @@ no active toolchain
 }
 
 #[tokio::test]
+async fn install_with_split_homes_does_not_create_legacy_home() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let mut cmd = cx.config.cmd(
+        "rustup-init",
+        ["-y", "--no-modify-path", "--default-toolchain", "none"],
+    );
+    cmd.env_remove("RUSTUP_HOME");
+    cmd.env("RUSTUP_CONFIG_HOME", "relative/config");
+    cmd.env("RUSTUP_STATE_HOME", "relative/state");
+    cmd.env("RUSTUP_DATA_HOME", "relative/data");
+    cmd.env("RUSTUP_CACHE_HOME", "relative/cache");
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    assert!(cmd.output().unwrap().status.success());
+
+    assert!(!cx.config.homedir.join(".rustup").exists());
+    assert!(config_home.is_dir());
+    assert!(state_home.is_dir());
+}
+
+#[tokio::test]
 async fn with_no_toolchain_doesnt_hang() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     run_input(

@@ -355,8 +355,8 @@ impl<'a> Cfg<'a> {
         let rustup_data_dir = home_dirs.data;
         let rustup_state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
         utils::ensure_dir_exists("config home", &rustup_config_dir)?;
+        utils::ensure_dir_exists("state home", &rustup_state_dir)?;
 
         let settings_file = SettingsFile::new(rustup_config_dir.join("settings.toml"));
         settings_file.with(|s| {
@@ -370,7 +370,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(rustup_state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
