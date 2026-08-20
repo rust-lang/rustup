@@ -190,6 +190,10 @@ enum RustupSubcmd {
         #[arg(long)]
         no_self_update: bool,
 
+        /// Allow downgrading the toolchain
+        #[arg(long)]
+        allow_downgrade: bool,
+
         /// Force an update, even if some components are missing
         #[arg(long)]
         force: bool,
@@ -750,6 +754,7 @@ pub async fn main(
         RustupSubcmd::Update {
             toolchain,
             no_self_update,
+            allow_downgrade,
             force,
             force_non_host,
         } => {
@@ -758,6 +763,7 @@ pub async fn main(
                 UpdateOpts {
                     toolchain,
                     no_self_update,
+                    allow_downgrade,
                     force,
                     force_non_host,
                     ..UpdateOpts::default()
