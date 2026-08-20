@@ -61,7 +61,15 @@ async fn smoke_case_install_no_modify_path() {
     // output on stderr, then an explicit blank line on stdout
     // before printing $toolchain installed
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n")
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
+...
+Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+  [RUSTUP_DIR]
+
+This can be modified with the RUSTUP_HOME environment variable.
 ...
 This path needs to be in your PATH environment variable,
 but will not be added automatically.
@@ -278,6 +286,85 @@ async fn install_with_split_homes_does_not_create_legacy_home() {
     assert!(!cx.config.homedir.join(".rustup").exists());
     assert!(config_home.is_dir());
     assert!(state_home.is_dir());
+}
+
+#[tokio::test]
+async fn install_displays_split_homes() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let data_home = cx.config.current_dir().join("relative/data");
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let redactions = [
+        ("[CONFIG_HOME]", config_home.clone()),
+        ("[STATE_HOME]", state_home.clone()),
+        ("[DATA_HOME]", data_home.clone()),
+        ("[CACHE_HOME]", cache_home.clone()),
+    ];
+
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+            ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+            ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+            ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ],
+    )
+    .extend_redactions(redactions)
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [CONFIG_HOME]
+    state:  [STATE_HOME]
+    data:   [DATA_HOME]
+    cache:  [CACHE_HOME]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
+}
+
+#[tokio::test]
+async fn install_displays_category_overrides_when_homes_match_legacy() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let home = cx.config.rustupdir.to_string();
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_HOME", &home),
+            ("RUSTUP_CONFIG_HOME", &home),
+            ("RUSTUP_STATE_HOME", &home),
+            ("RUSTUP_DATA_HOME", &home),
+            ("RUSTUP_CACHE_HOME", &home),
+        ],
+    )
+    .extend_redactions([("[RUSTUP_DIR]", &home)])
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [RUSTUP_DIR]
+    state:  [RUSTUP_DIR]
+    data:   [RUSTUP_DIR]
+    cache:  [RUSTUP_DIR]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
 }
 
 #[tokio::test]
