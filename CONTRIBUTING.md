@@ -2,7 +2,7 @@
 
 Contributing documentation has moved to the **[rustup dev guide]**.
 
-[rustup dev guide]: https://rust-lang.github.io/rustup/dev-guide)
+[rustup dev guide]: https://rust-lang.github.io/rustup/dev-guide
 
 ## Before hacking on rustup
 
