@@ -15,7 +15,7 @@
   - [Proxies](concepts/proxies.md)
 - [Basic usage](basics.md)
 - [Overrides](overrides.md)
-- [Cross-compilation](cross-compilation.md)
+- [Targets and cross-compilation](cross-compilation.md)
 - [Environment variables](environment-variables.md)
 - [Configuration](configuration.md)
 - [Network proxies](network-proxies.md)
