@@ -1,10 +1,4 @@
-use std::ffi::OsString;
-use std::fmt::Debug;
-use std::io;
-use std::io::IsTerminal;
-use std::num::NonZero;
-use std::path::PathBuf;
-use std::str::FromStr;
+
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
@@ -14,7 +8,16 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use std::{env, thread};
+use std::{
+    env,
+    ffi::{OsStr, OsString},
+    fmt::Debug,
+    io::{self, IsTerminal},
+    num::NonZero,
+    path::PathBuf,
+    str::FromStr,
+    thread,
+};
 
 use anstream::ColorChoice;
 use anyhow::{Context, bail};
@@ -58,7 +61,7 @@ impl Process {
 
         arg0.as_ref()
             .and_then(|a| a.file_stem())
-            .and_then(std::ffi::OsStr::to_str)
+            .and_then(OsStr::to_str)
             .map(String::from)
     }
 
