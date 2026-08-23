@@ -23,7 +23,7 @@
 //!
 //! During uninstall (`rustup self uninstall`):
 //!
-//! * Delete `$RUSTUP_HOME`.
+//! * Delete all resolved Rustup homes.
 //! * Delete all entries in `$CARGO_HOME` except `bin`.
 //! * Delete rustup tool links and binary from `$CARGO_HOME/bin`.
 //! * Delete `$CARGO_HOME/bin` if it is empty after uninstall.
@@ -970,7 +970,7 @@ fn check_proxy_sanity(
 
 /// Uninstall process:
 /// 1. Remove all installed toolchains.
-/// 2. Remove rustup home.
+/// 2. Remove all resolved Rustup homes.
 /// 3. Remove all entries in `$CARGO_HOME` except `bin`.
 /// 4. Remove rustup tool links and binary.
 /// 5. Try to remove $CARGO_HOME/bin directory if it's empty.
@@ -1018,10 +1018,19 @@ pub(crate) fn uninstall(
 
     info!("removing rustup home");
 
-    // Delete RUSTUP_HOME
-    let rustup_dir = process.rustup_home()?;
-    if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", &rustup_dir)?;
+    // Delete the legacy Rustup home and all resolved category homes.
+    let legacy_home = process.rustup_home()?;
+
+    for (name, rustup_dir) in [
+        ("rustup home", &legacy_home),
+        ("rustup cache home", &cfg.rustup_cache_dir),
+        ("rustup config home", &cfg.rustup_config_dir),
+        ("rustup data home", &cfg.rustup_data_dir),
+        ("rustup state home", &cfg.rustup_state_dir),
+    ] {
+        if rustup_dir.try_exists()? {
+            utils::remove_dir(name, rustup_dir)?;
+        }
     }
 
     // Delete rustup.
