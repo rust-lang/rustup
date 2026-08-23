@@ -84,7 +84,6 @@ impl Process {
     /// non-empty `RUSTUP_HOME`, then the platform default.
     /// Legacy mode uses the resolved Rustup home for all four categories.
     /// See [`home`] for platform defaults and path rules.
-    #[allow(dead_code, reason = "split-home interface is not consumed yet")]
     pub(crate) fn home_dirs(&self) -> io::Result<HomeDirs> {
         if self.use_category_home() {
             Ok(HomeDirs {

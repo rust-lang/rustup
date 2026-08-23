@@ -266,6 +266,37 @@ async fn uninstall_deletes_rustup_home() {
 }
 
 #[tokio::test]
+async fn uninstall_deletes_split_rustup_homes() {
+    let cx = setup_empty_installed().await;
+    let split_home = cx.config.homedir.join("split-home");
+    let homes = [
+        ("RUSTUP_CACHE_HOME", split_home.join("cache")),
+        ("RUSTUP_CONFIG_HOME", split_home.join("config")),
+        ("RUSTUP_DATA_HOME", split_home.join("data")),
+        ("RUSTUP_STATE_HOME", split_home.join("state")),
+    ];
+
+    for (_, home) in &homes {
+        fs::create_dir_all(home).unwrap();
+        fs::write(home.join("marker"), "").unwrap();
+    }
+
+    let mut cmd = cx
+        .config
+        .cmd("rustup", ["self", "uninstall", "-y", "--no-modify-path"]);
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    for (variable, home) in &homes {
+        cmd.env(variable, home);
+    }
+
+    assert!(cmd.output().unwrap().status.success());
+    assert!(!cx.config.rustupdir.has("."));
+    for (_, home) in homes {
+        assert!(!home.exists());
+    }
+}
+
+#[tokio::test]
 async fn uninstall_works_if_rustup_home_doesnt_exist() {
     let cx = setup_empty_installed().await;
     cx.config.rustupdir.remove().unwrap();
