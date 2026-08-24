@@ -1245,10 +1245,28 @@ async fn nightly_backtrack_skips_missing() {
 #[tokio::test]
 async fn completion_rustup() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    cx.config
+    let output = cx
+        .config
         .expect(["rustup", "completions", "bash", "rustup"])
-        .await
-        .is_ok();
+        .await;
+    output.is_ok();
+    assert!(output.output.stdout.contains("_rustup()"));
+    assert!(!output.output.stdout.contains("RUSTUP_COMPLETE"));
+}
+
+#[tokio::test]
+async fn dynamic_completion_rustup() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let output = cx
+        .config
+        .cmd("rustup", std::iter::empty::<&str>())
+        .env("RUSTUP_COMPLETE", "bash")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("RUSTUP_COMPLETE=\"bash\""));
+    assert!(stdout.contains("_clap_complete_rustup()"));
 }
 
 #[tokio::test]

@@ -47,7 +47,7 @@ cc = "1"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help", "string"] }
 clap-cargo = "0.19.0"
-clap_complete = "4"
+clap_complete = { version = "4", features = ["unstable-dynamic"] }
 console = "0.16"
 effective-limits = "0.5.5"
 enum-map = "3.0.0"
