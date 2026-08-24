@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     env::consts::EXE_SUFFIX,
+    ffi::OsStr,
     fmt,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -18,7 +19,10 @@ use clap::{
     builder::{PossibleValue, ValueHint},
 };
 use clap_cargo::style::{CONTEXT, ERROR, GOOD, HEADER, TRANSIENT, WARN};
-use clap_complete::Shell;
+use clap_complete::{
+    Shell,
+    engine::{ArgValueCompleter, CompletionCandidate},
+};
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
@@ -673,6 +677,11 @@ pub async fn main(
     console_filter: Handle<EnvFilter, Registry>,
 ) -> Result<ExitCode> {
     let cfg = &mut Cfg::from_env(current_dir, true, false, process)?;
+    clap_complete::CompleteEnv::with_factory(|| completion_command(cfg))
+        .var("RUSTUP_COMPLETE")
+        .bin("rustup")
+        .complete();
+
     self_update::cleanup_self_updater(process)?;
 
     use clap::error::ErrorKind::*;
@@ -865,6 +874,26 @@ pub async fn main(
     }
 
     Ok(exit_code)
+}
+
+fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
+    let toolchains = cfg.list_toolchains().unwrap_or_default();
+    Rustup::command().mut_arg("+toolchain", move |arg| {
+        arg.add(ArgValueCompleter::new(move |current: &OsStr| {
+            let Some(prefix) = current.to_str() else {
+                return Vec::new();
+            };
+            toolchains
+                .iter()
+                .filter_map(|toolchain| {
+                    let candidate = format!("+{toolchain}");
+                    candidate
+                        .starts_with(prefix)
+                        .then(|| CompletionCandidate::new(candidate))
+                })
+                .collect()
+        }))
+    })
 }
 
 async fn default_(
@@ -1859,4 +1888,77 @@ async fn display_version(cfg: &mut Cfg<'_>) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(all(test, feature = "test"))]
+mod tests {
+    use std::{
+        collections::{HashMap, HashSet},
+        ffi::OsString,
+        fs,
+    };
+
+    use super::completion_command;
+    use crate::{config::Cfg, process::TestProcess};
+
+    fn complete(cfg: &Cfg<'_>, args: &[&str], index: usize) -> Vec<String> {
+        let mut command = completion_command(cfg);
+        clap_complete::engine::complete(
+            &mut command,
+            args.iter().map(OsString::from).collect(),
+            index,
+            Some(&cfg.current_dir),
+        )
+        .unwrap()
+        .into_iter()
+        .map(|candidate| candidate.get_value().to_string_lossy().into_owned())
+        .collect()
+    }
+
+    #[test]
+    fn dynamic_completion_distinguishes_toolchains_and_subcommands() {
+        let rustup_home = tempfile::tempdir().unwrap();
+        fs::create_dir_all(rustup_home.path().join("toolchains/custom")).unwrap();
+        let vars = HashMap::from([
+            (
+                "RUSTUP_HOME".to_owned(),
+                rustup_home.path().display().to_string(),
+            ),
+            (
+                "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS".to_owned(),
+                rustup_home
+                    .path()
+                    .join("missing-settings.toml")
+                    .display()
+                    .to_string(),
+            ),
+        ]);
+        let process = TestProcess::new(rustup_home.path(), &["rustup"], vars, "").process;
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        assert_eq!(complete(&cfg, &["rustup", "+cus"], 1), ["+custom"]);
+
+        for (args, index) in [
+            (&["rustup", "component", ""][..], 2),
+            (&["rustup", "+custom", "component", ""][..], 3),
+        ] {
+            let candidates = complete(&cfg, args, index);
+            let candidates = candidates
+                .iter()
+                .map(String::as_str)
+                .collect::<HashSet<_>>();
+            let expected = HashSet::from(["list", "add", "remove"]);
+            assert!(
+                candidates.is_superset(&expected),
+                "missing component subcommands for {args:?}: {:?}",
+                expected.difference(&candidates).collect::<Vec<_>>()
+            );
+            let root_only = HashSet::from(["install", "toolchain", "show"]);
+            assert!(
+                candidates.is_disjoint(&root_only),
+                "unexpected root-only subcommands for {args:?}: {:?}",
+                candidates.intersection(&root_only).collect::<Vec<_>>()
+            );
+        }
+    }
 }
