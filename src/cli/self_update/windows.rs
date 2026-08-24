@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    env::{consts::EXE_SUFFIX, split_paths},
+    env::{split_paths, temp_dir},
     ffi::{OsStr, OsString},
     fmt,
     io::Write,
@@ -685,8 +685,8 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
-//   CARGO_HOME/../rustup-gc-$random.exe.
+// - Copy the running rustup.exe to a temporary file in
+//   the system temporary directory as rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
@@ -709,7 +709,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
     use std::{io, ptr, thread, time::Duration};
 
     use windows_sys::Win32::{
@@ -721,22 +721,23 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         },
     };
 
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = process.cargo_home()?;
     // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
+    let rustup_path = utils::current_exe()?;
 
-    // The directory containing CARGO_HOME
-    let work_path = cargo_home
-        .parent()
-        .expect("CARGO_HOME doesn't have a parent?");
+    // Place the GC executable in the system temporary directory.
+    let work_path = temp_dir();
 
-    // Generate a unique name for the files we're about to move out
-    // of CARGO_HOME.
+    // Generate a unique name for the GC executable.
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
+    // Copy the executable contents so the GC path is a regular file.
+    std::fs::copy(&rustup_path, &gc_exe).with_context(|| {
+        format!(
+            "could not copy running rustup from '{}' to '{}'",
+            rustup_path.display(),
+            gc_exe.display()
+        )
+    })?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
     // Make the sub-process opened by gc exe inherit its attribute.
