@@ -1041,7 +1041,7 @@ pub(crate) fn uninstall(
     // the process exits.
     // see: windows::{complete_windows_uninstall,spawn_uninstall_gc}
     #[cfg(windows)]
-    windows::spawn_uninstall_gc(no_modify_path, process)?;
+    windows::spawn_uninstall_gc(no_modify_path)?;
 
     info!("rustup is uninstalled");
 
