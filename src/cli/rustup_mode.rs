@@ -672,6 +672,7 @@ pub async fn main(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
 ) -> Result<ExitCode> {
+    let cfg = &mut Cfg::from_env(current_dir, true, false, process)?;
     self_update::cleanup_self_updater(process)?;
 
     use clap::error::ErrorKind::*;
@@ -683,7 +684,7 @@ pub async fn main(
         }
         Err(err) if err.kind() == DisplayVersion => {
             write!(process.stdout().lock(), "{}", err.render().ansi())?;
-            display_version(&mut Cfg::from_env(current_dir, true, false, process)?).await?;
+            display_version(cfg).await?;
             return Ok(ExitCode::SUCCESS);
         }
         Err(err) => {
@@ -710,12 +711,8 @@ pub async fn main(
         return Ok(ExitCode::FAILURE);
     };
 
-    let cfg = &mut Cfg::from_env(
-        current_dir,
-        matches.quiet,
-        subcmd.allow_auto_install(),
-        process,
-    )?;
+    cfg.quiet = matches.quiet;
+    cfg.allow_auto_install = subcmd.allow_auto_install();
     cfg.toolchain_override = matches.plus_toolchain;
 
     let should_warn = subcmd.should_warn_empty_setup();
