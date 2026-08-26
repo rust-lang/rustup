@@ -5,7 +5,7 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use chrono::NaiveDate;
 use clap::{ValueEnum, builder::PossibleValue};
 use itertools::Itertools;
@@ -1227,28 +1227,19 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         }
 
         // If the v2 manifest is not found then try v1
-        let manifest = match download
+        let manifest = download
             .dl_v1_manifest(&self.cfg.dist_root_url, toolchain)
             .await
-        {
-            Ok(m) => m,
-            Err(err) => match err.downcast_ref::<RustupError>() {
-                Some(RustupError::ChecksumFailed { .. }) => return Err(err),
+            .map_err(|err| match err.downcast_ref::<RustupError>() {
+                Some(RustupError::ChecksumFailed { .. }) => err,
                 Some(RustupError::DownloadNotExists { .. }) => {
-                    bail!(DistError::MissingReleaseForToolchain(
-                        toolchain.manifest_name()
-                    ));
+                    DistError::MissingReleaseForToolchain(toolchain.manifest_name()).into()
                 }
-                _ => {
-                    return Err(err).with_context(|| {
-                        format!(
-                            "failed to download manifest for '{}'",
-                            toolchain.manifest_name()
-                        )
-                    });
-                }
-            },
-        };
+                _ => err.context(format!(
+                    "failed to download manifest for '{}'",
+                    toolchain.manifest_name()
+                )),
+            })?;
 
         let result = manifestation
             .update_v1(&manifest, &self.update_hash, download)
