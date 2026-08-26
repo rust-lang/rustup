@@ -303,7 +303,7 @@ pub(crate) async fn try_install_msvc(
 
     info!("downloading Visual Studio installer");
     DownloadOptions::try_from(process)?
-        .start(&visual_studio_url, &visual_studio)
+        .start(&visual_studio_url, &visual_studio, None)
         .download()
         .await?;
 

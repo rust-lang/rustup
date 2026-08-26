@@ -94,6 +94,7 @@ use unix::{add_to_path, remove_from_path, run_update};
 
 #[cfg(windows)]
 mod windows;
+use crate::tuf::TufMode;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 #[cfg(windows)]
@@ -590,6 +591,15 @@ fn update_root(process: &Process) -> String {
         .var("RUSTUP_UPDATE_ROOT")
         .inspect(|url| trace!("`RUSTUP_UPDATE_ROOT` has been set to `{url}`"))
         .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
+}
+
+fn tuf_mode(process: &Process) -> TufMode {
+    process
+        .var("RUSTUP_TUF_ENABLE")
+        .inspect(|mode| trace!("`RUSTUP_TUF_ENABLE` has been set to `{mode}`"))
+        .ok()
+        .and_then(|mode| mode.parse().ok())
+        .unwrap_or_default()
 }
 
 /// Displays an installation path with a platform-specific home abbreviation.
@@ -1251,8 +1261,19 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
         return Ok(None);
     }
 
-    // Get download URL
-    let url = format!("{update_root}/archive/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}");
+    // Get the TUF mode
+    let tuf_mode = tuf_mode(dl_cfg.process);
+
+    // In the case of uitlizing TUF, we need to change our paths here. We assume dist
+    // is always the latest version
+    let url = match tuf_mode {
+        TufMode::Off => {
+            format!("{update_root}/archive/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}")
+        }
+        TufMode::Warn | TufMode::On => {
+            format!("{update_root}/dist/{tuple}/rustup-init{EXE_SUFFIX}")
+        }
+    };
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
@@ -1262,7 +1283,7 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     // Download new version
     info!("downloading self-update (new version: {available_version})");
     DownloadOptions::try_from(dl_cfg.process)?
-        .start(&download_url, setup_path)
+        .start(&download_url, setup_path, Some(dl_cfg.tuf))
         .download()
         .await?;
 
@@ -1287,7 +1308,7 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> anyhow::Resul
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
     DownloadOptions::try_from(dl_cfg.process)?
-        .start(&release_file_url, &release_file)
+        .start(&release_file_url, &release_file, Some(dl_cfg.tuf))
         .download()
         .await?;
 

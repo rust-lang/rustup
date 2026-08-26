@@ -415,7 +415,7 @@ impl Manifestation {
         let component_name = "rust";
         let status = dl_cfg.status_for(component_name, component_name.len());
         let dl = dl_cfg
-            .download_and_check(&url, Some(update_hash), Some(&status), ".tar.gz")
+            .download_and_check(&url, Some(update_hash), Some(&status), ".tar.gz", None)
             .await?;
         if dl.is_none() {
             return Ok(None);

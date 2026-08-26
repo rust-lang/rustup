@@ -117,7 +117,7 @@ mod reqwest {
 
         let from_url = Url::from_file_path(&from_path).unwrap();
         OPTIONS
-            .start(&from_url, &target_path)
+            .start(&from_url, &target_path, None)
             .with_resume()
             .download()
             .await
@@ -137,7 +137,7 @@ mod reqwest {
         let from_url = format!("http://{addr}").parse().unwrap();
 
         OPTIONS
-            .start(&from_url, &target_path)
+            .start(&from_url, &target_path, None)
             .with_resume()
             .download()
             .await
@@ -161,7 +161,7 @@ mod reqwest {
             tls: DOWNLOAD_BACKEND,
             timeout: Duration::from_secs(1),
         }
-        .start(&from_url, &target_path)
+        .start(&from_url, &target_path, None)
         .with_resume()
         .download()
         .await

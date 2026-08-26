@@ -27,7 +27,12 @@ use url::Url;
 
 #[cfg(all(feature = "reqwest-rustls-tls", not(target_os = "android")))]
 use crate::anchors::RUSTUP_TRUST_ANCHORS;
-use crate::{dist::download::DownloadStatus, errors::RustupError, process::Process};
+use crate::{
+    dist::download::DownloadStatus,
+    errors::RustupError,
+    process::Process,
+    tuf::{TufConfig, Verification},
+};
 
 #[cfg(test)]
 mod tests;
@@ -39,10 +44,16 @@ pub struct DownloadOptions {
 }
 
 impl DownloadOptions {
-    pub fn start<'a>(&self, url: &'a Url, path: &'a Path) -> Download<'a> {
+    pub fn start<'a>(
+        &self,
+        url: &'a Url,
+        path: &'a Path,
+        tuf: Option<&'a TufConfig>,
+    ) -> Download<'a> {
         Download {
             url,
             path,
+            tuf,
             hasher: None,
             status: None,
             resume: false,
@@ -107,6 +118,7 @@ impl TryFrom<&Process> for DownloadOptions {
 pub struct Download<'a> {
     url: &'a Url,
     path: &'a Path,
+    tuf: Option<&'a TufConfig>,
     hasher: Option<&'a mut Sha256>,
     status: Option<&'a DownloadStatus>,
     resume: bool,
@@ -130,7 +142,11 @@ impl<'a> Download<'a> {
     }
 
     pub(crate) async fn download(&mut self) -> anyhow::Result<()> {
-        debug!(url = %self.url, "downloading file");
+        debug!(
+            url = %self.url,
+            tuf_mode = ?self.tuf.map(|tuf| tuf.mode),
+            "downloading file"
+        );
 
         let Err(err) = self.download_impl().await else {
             if let Some(status) = self.status {
@@ -182,6 +198,12 @@ impl<'a> Download<'a> {
     }
 
     async fn download_impl(&mut self) -> anyhow::Result<()> {
+        if let Some(tuf) = self.tuf
+            && tuf.enabled()
+        {
+            return self.download_via_tuf(tuf).await;
+        }
+
         let (mut file, resume_from) = if self.resume {
             // TODO: blocking call
             let possible_partial = OpenOptions::new().read(true).open(self.path);
@@ -324,6 +346,68 @@ impl<'a> Download<'a> {
         Ok(())
     }
 
+    /// Fetches the target through the TUF client instead of plain HTTP, so the
+    /// bytes written to disk are the ones the repository's metadata vouches for.
+    ///
+    /// The repository's own fetches go through [`Download`] with no TUF config,
+    /// so this never re-enters itself. Resume is not supported here: the whole
+    /// target is verified in memory and written out at once.
+    async fn download_via_tuf(&mut self, tuf: &TufConfig) -> anyhow::Result<()> {
+        // Created first so that every failure below is cleaned up by `download`
+        // the same way the HTTP path's failures are.
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(self.path)
+            .context("error creating file for download")?;
+
+        let target = self.tuf_target()?;
+        debug!(url = %self.url, target, "fetching download through TUF");
+
+        let bytes = {
+            let mut repo = tuf
+                .repository(self.options)
+                .await
+                .map_err(DownloadError::Tuf)?;
+            let (bytes, verification) = repo
+                .fetch_target(&target)
+                .await
+                .map_err(DownloadError::Tuf)?;
+            match verification {
+                Verification::Verified => debug!(target, "TUF verification passed"),
+                Verification::Skipped => warn!(target, "TUF verification skipped"),
+            }
+            bytes
+        };
+
+        if let Some(status) = self.status {
+            status.received_length(bytes.len() as u64);
+        }
+        file.write_all(&bytes)
+            .context("unable to write download to disk")?;
+        self.data_received(&bytes);
+        file.sync_data()
+            .context("unable to sync download to disk")?;
+        Ok(())
+    }
+
+    /// The TUF target name for this download: its URL path, on the assumption
+    /// that the repository names targets exactly as the server lays files out.
+    fn tuf_target(&self) -> Result<String, DownloadError> {
+        let path = self.url.path().trim_start_matches('/');
+        // TEMPORARY: BACK-COMPAT FOR OLD PATHS. Existing repositories name
+        // dist targets without the leading `dist/` directory.
+        let path = path.strip_prefix("dist/").unwrap_or(path);
+        match path {
+            "" => Err(DownloadError::Tuf(anyhow!(
+                "'{}' has no path, so it has no TUF target",
+                self.url
+            ))),
+            target => Ok(target.to_owned()),
+        }
+    }
+
     fn data_received(&mut self, data: &[u8]) {
         if let Some(hasher) = &mut self.hasher {
             hasher.update(data);
@@ -435,7 +519,7 @@ fn native_tls_client(timeout: Duration) -> Result<&'static Client, DownloadError
 static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
 
 #[derive(Debug, Error)]
-enum DownloadError {
+pub(crate) enum DownloadError {
     #[error("http request returned an unsuccessful status code: {0}")]
     HttpStatus(u32),
     #[error("file not found")]
@@ -450,4 +534,6 @@ enum DownloadError {
     #[cfg(feature = "reqwest-rustls-tls")]
     #[error("failed to initialize platform verifier")]
     PlatformVerifierInit(#[source] rustls::Error),
+    #[error(transparent)]
+    Tuf(anyhow::Error),
 }

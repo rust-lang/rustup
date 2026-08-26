@@ -81,6 +81,7 @@ mod settings;
 #[cfg(feature = "test")]
 pub mod test;
 mod toolchain;
+pub mod tuf;
 pub mod utils;
 
 #[cfg(test)]

@@ -24,6 +24,7 @@ use crate::{
     download::{DownloadOptions, is_network_failure},
     errors::RustupError,
     process::Process,
+    tuf::TufConfig,
     utils,
 };
 
@@ -35,6 +36,7 @@ pub struct DownloadCfg<'a> {
     pub(super) tracker: DownloadTracker,
     pub(super) permit_copy_rename: bool,
     pub process: &'a Process,
+    pub(crate) tuf: &'a TufConfig,
 }
 
 impl<'a> DownloadCfg<'a> {
@@ -49,6 +51,7 @@ impl<'a> DownloadCfg<'a> {
             tracker: DownloadTracker::new(!cfg.quiet, cfg.process),
             permit_copy_rename: cfg.process.permit_copy_rename(),
             process: cfg.process,
+            tuf: &cfg.tuf,
         }
     }
 
@@ -56,6 +59,10 @@ impl<'a> DownloadCfg<'a> {
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
+    ///
+    /// TUF: This is how artifacts arrive. They are not TUF targets: they
+    /// come straight from the dist server and are trusted through `hash`, which
+    /// the caller took from a manifest that TUF vouched for.
     pub(crate) async fn download(
         &self,
         url: &Url,
@@ -64,12 +71,22 @@ impl<'a> DownloadCfg<'a> {
     ) -> anyhow::Result<File> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
+        debug!(
+            url = url.as_ref(),
+            via = "direct",
+            expected_sha256 = hash,
+            "downloading component; verification is the sha256 from the manifest"
+        );
 
         if target_file.exists() {
             let cached_result = file_hash(&target_file)?;
             if hash == cached_result {
-                debug!("reusing previously downloaded file");
-                debug!(url = url.as_ref(), "checksum passed");
+                debug!(
+                    url = url.as_ref(),
+                    via = "cache",
+                    sha256 = cached_result,
+                    "reusing previously downloaded file, cached sha256 matches manifest"
+                );
                 return Ok(File { path: target_file });
             } else {
                 warn!("bad checksum for cached download");
@@ -90,7 +107,7 @@ impl<'a> DownloadCfg<'a> {
 
         let mut hasher = Sha256::new();
         let mut download = DownloadOptions::try_from(self.process)?
-            .start(url, &partial_file_path)
+            .start(url, &partial_file_path, None)
             .with_hasher(&mut hasher)
             .with_status(status)
             .with_resume();
@@ -121,7 +138,12 @@ impl<'a> DownloadCfg<'a> {
                 .into())
             }
         } else {
-            debug!(url = url.as_ref(), "checksum passed");
+            debug!(
+                url = url.as_ref(),
+                via = "direct",
+                sha256 = actual_hash,
+                "checksum passed against manifest sha256"
+            );
             utils::rename(
                 "downloaded",
                 &partial_file_path,
@@ -142,25 +164,21 @@ impl<'a> DownloadCfg<'a> {
         Ok(())
     }
 
-    async fn download_hash(&self, url: &str) -> anyhow::Result<String> {
-        let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
-        let hash_file = self.tmp_cx.new_file()?;
-        DownloadOptions::try_from(self.process)?
-            .start(&hash_url, &hash_file)
-            .download()
-            .await?;
-        utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
-    }
-
     pub(crate) async fn dl_v2_manifest(
         &self,
         update_hash: Option<&Path>,
         toolchain: &ChannelToolchainName,
         cfg: &Cfg<'_>,
     ) -> anyhow::Result<Option<ManifestWithHash>> {
-        let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, self.process);
+        // TUF
+        let manifest_url = if self.tuf.enabled() {
+            toolchain.manifest_v3_url(&cfg.dist_root_url, cfg.process)?
+        } else {
+            toolchain.manifest_v2_url(&cfg.dist_root_url, self.process)
+        };
+
         match self
-            .download_and_check(&manifest_url, update_hash, None, ".toml")
+            .download_and_check(&manifest_url, update_hash, None, ".toml", Some(self.tuf))
             .await
         {
             Ok(manifest_dl) => {
@@ -221,7 +239,7 @@ impl<'a> DownloadCfg<'a> {
 
         let manifest_url = toolchain.manifest_v1_url(dist_root, self.process);
         let manifest_dl = self
-            .download_and_check(&manifest_url, None, None, "")
+            .download_and_check(&manifest_url, None, None, "", None)
             .await?;
         let (manifest_file, _) = manifest_dl.unwrap();
         let manifest_str = utils::read_file("manifest", &manifest_file)?;
@@ -233,45 +251,112 @@ impl<'a> DownloadCfg<'a> {
         Ok(urls)
     }
 
-    /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.
-    /// If `update_hash` is present, then that will be compared to the downloaded hash,
-    /// and if they match, the download is skipped.
-    /// Verifies the signature found at the same url with a `.asc` suffix, and prints a
-    /// warning when the signature does not verify, or is not found.
+    /// Downloads `url_str` into a fresh temp file with the extension `ext` and
+    /// returns it together with the truncated sha256 of its contents.
+    ///
+    /// If `update_hash` names a file holding that same truncated hash, nothing
+    /// has changed since the last update: `None` is returned instead.
+    ///
+    /// optional `tuf` argument defines whether TUF is used for a given download -
+    /// on `None` we attempt to use the legacy sha256 sidecars. With `tuf`, we skip
+    /// the hash verification and download and utilize TUF entirely for verification
     pub(crate) async fn download_and_check(
         &self,
         url_str: &str,
         update_hash: Option<&Path>,
         status: Option<&DownloadStatus>,
         ext: &str,
+        tuf: Option<&TufConfig>,
     ) -> anyhow::Result<Option<(temp::File, String)>> {
-        let hash = self.download_hash(url_str).await?;
-        let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
-
-        if let Some(hash_file) = update_hash {
-            if utils::is_file(hash_file) {
-                if let Ok(contents) = utils::read_file("update hash", hash_file) {
-                    if contents == partial_hash {
-                        // Skip download, update hash matches
-                        return Ok(None);
-                    }
-                } else {
-                    warn!(
-                        "can't read update hash {}, can't skip update",
-                        hash_file.display()
-                    );
-                }
-            } else {
-                debug!(file = %hash_file.display(), "no update hash file found");
+        if let Some(tuf) = tuf
+            && tuf.enabled()
+        {
+            debug!(
+                url = url_str,
+                via = "tuf",
+                mode = %tuf.mode,
+                "downloading through TUF; no .sha256 sidecar check, verification is the TUF metadata"
+            );
+            let (file, hash) = self
+                .download_hashed(url_str, status, ext, Some(tuf))
+                .await?;
+            let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
+            debug!(
+                url = url_str,
+                via = "tuf",
+                sha256 = hash,
+                "hash taken from TUF-verified bytes"
+            );
+            if self.update_hash_matches(update_hash, &partial_hash) {
+                return Ok(None);
             }
+            return Ok(Some((file, partial_hash)));
         }
 
+        debug!(
+            url = url_str,
+            via = "direct",
+            tuf = tuf.map(|tuf| tuf.mode.as_str()).unwrap_or("not a target"),
+            "downloading directly; verification is the .sha256 sidecar"
+        );
+
+        let hash = self.download_hash(url_str).await?;
+        let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
+        debug!(
+            url = url_str,
+            expected_sha256 = hash,
+            "fetched .sha256 sidecar"
+        );
+        if self.update_hash_matches(update_hash, &partial_hash) {
+            return Ok(None);
+        }
+
+        let (file, actual_hash) = self.download_hashed(url_str, status, ext, None).await?;
+        if hash != actual_hash {
+            // Incorrect hash
+            debug!(
+                url = url_str,
+                expected_sha256 = hash,
+                actual_sha256 = actual_hash,
+                "checksum failed against .sha256 sidecar"
+            );
+            return Err(RustupError::ChecksumFailed {
+                url: url_str.to_owned(),
+                expected: hash,
+                calculated: actual_hash,
+            }
+            .into());
+        }
+        debug!(
+            url = url_str,
+            via = "direct",
+            sha256 = actual_hash,
+            "checksum passed against .sha256 sidecar"
+        );
+
+        Ok(Some((file, partial_hash)))
+    }
+
+    /// Downloads `url_str` into a fresh temp file, returning it with the full
+    /// sha256 of its contents. Goes through TUF when `tuf` is given and enabled.
+    async fn download_hashed(
+        &self,
+        url_str: &str,
+        status: Option<&DownloadStatus>,
+        ext: &str,
+        tuf: Option<&TufConfig>,
+    ) -> anyhow::Result<(temp::File, String)> {
         let url = utils::parse_url(url_str)?;
         let file = self.tmp_cx.new_file_with_ext("", ext)?;
+        let via = match tuf {
+            Some(tuf) if tuf.enabled() => "tuf",
+            _ => "direct",
+        };
+        debug!(url = url_str, via, path = %file.display(), "downloading to temp file");
 
         let mut hasher = Sha256::new();
         let download = DownloadOptions::try_from(self.process)?
-            .start(&url, &file)
+            .start(&url, &file, tuf)
             .with_hasher(&mut hasher);
 
         let mut download = match status {
@@ -280,21 +365,48 @@ impl<'a> DownloadCfg<'a> {
         };
 
         download.download().await?;
-        let actual_hash = faster_hex::hex_string(&hasher.finalize());
+        let sha256 = faster_hex::hex_string(&hasher.finalize());
+        debug!(url = url_str, via, sha256, "download finished");
+        Ok((file, sha256))
+    }
 
-        if hash != actual_hash {
-            // Incorrect hash
-            return Err(RustupError::ChecksumFailed {
-                url: url_str.to_owned(),
-                expected: hash,
-                calculated: actual_hash,
-            }
-            .into());
-        } else {
-            debug!(url = url_str, "checksum passed");
+    /// Fetches the `.sha256` sidecar for `url` and returns the hash it holds.
+    /// Only used with TUF disabled; the sidecars are not TUF targets.
+    async fn download_hash(&self, url: &str) -> anyhow::Result<String> {
+        let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
+        let hash_file = self.tmp_cx.new_file()?;
+        debug!(url = %hash_url, via = "direct", "fetching .sha256 sidecar");
+        DownloadOptions::try_from(self.process)?
+            .start(&hash_url, &hash_file, None)
+            .download()
+            .await?;
+        utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
+    }
+
+    /// Whether `update_hash` names a file already holding `partial_hash`,
+    /// meaning nothing has changed since the last update.
+    fn update_hash_matches(&self, update_hash: Option<&Path>, partial_hash: &str) -> bool {
+        let Some(hash_file) = update_hash else {
+            return false;
+        };
+        if !utils::is_file(hash_file) {
+            debug!(file = %hash_file.display(), "no update hash file found");
+            return false;
         }
-
-        Ok(Some((file, partial_hash)))
+        match utils::read_file("update hash", hash_file) {
+            Ok(contents) if contents == partial_hash => {
+                debug!(file = %hash_file.display(), "update hash matches, nothing to update");
+                true
+            }
+            Ok(_) => false,
+            Err(_) => {
+                warn!(
+                    "can't read update hash {}, can't skip update",
+                    hash_file.display()
+                );
+                false
+            }
+        }
     }
 
     pub(crate) fn status_for(

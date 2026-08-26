@@ -33,6 +33,7 @@ use crate::{
         mock::{MockComponentBuilder, MockFile, MockInstallerBuilder},
         test_dir,
     },
+    tuf::TufConfig,
     utils::{self, raw as utils_raw},
 };
 
@@ -415,6 +416,7 @@ struct TestContext {
     download_dir: PathBuf,
     tp: TestProcess,
     tmp_cx: Arc<temp::Context>,
+    tuf: TufConfig,
     _tempdirs: Vec<tempfile::TempDir>,
 }
 
@@ -460,6 +462,7 @@ impl TestContext {
         let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], env, "");
 
         Self {
+            tuf: TufConfig::from_env(prefix.path(), &tp.process),
             url,
             toolchain,
             download_dir: prefix.path().join("downloads"),
@@ -489,13 +492,14 @@ impl TestContext {
             tracker: DownloadTracker::new(false, &self.tp.process),
             permit_copy_rename: self.tp.process.permit_copy_rename(),
             process: &self.tp.process,
+            tuf: &self.tuf,
         };
 
         // Download the dist manifest and place it into the installation prefix
         let manifest_url = make_manifest_url(&self.url, &self.toolchain)?;
         let manifest_file = self.tmp_cx.new_file()?;
         DownloadOptions::try_from(dl_cfg.process)?
-            .start(&manifest_url, &manifest_file)
+            .start(&manifest_url, &manifest_file, Some(dl_cfg.tuf))
             .download()
             .await?;
         let manifest_str = utils::read_file("manifest", &manifest_file)?;

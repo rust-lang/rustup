@@ -105,6 +105,9 @@ wait-timeout = "0.2"
 xz2 = "0.1.3"
 zstd = { version = "0.14", default-features = false }
 
+# TUF
+tuf = { git = "https://github.com/rf-signing-experiment/rust-tuf", rev = "9e7e8e4989863193de272d6e5a6a698618e6f856" }
+
 # test only (depends on `test` feature)
 snapbox = { version = "1", features = ["term-svg"], optional = true }
 walkdir = { version = "2", optional = true }
