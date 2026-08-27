@@ -97,29 +97,9 @@ fn main() {
             });
             eprintln!("{value}");
         }
-        Some("--echo-path") => {
-            let mut out = io::stderr();
-            writeln!(out, "{}", std::env::var("PATH").unwrap()).unwrap();
-        }
-        Some("--echo-cargo-env") => {
-            let mut out = io::stderr();
-            if let Ok(cargo) = std::env::var("CARGO") {
-                writeln!(out, "{cargo}").unwrap();
-            } else {
-                panic!("CARGO environment variable not set");
-            }
-        }
         Some("--echo-current-exe") => {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::current_exe().unwrap().display()).unwrap();
-        }
-        Some("--echo-rustup-toolchain-source") => {
-            let mut out = io::stderr();
-            if let Ok(rustup_toolchain_source) = std::env::var("RUSTUP_TOOLCHAIN_SOURCE") {
-                writeln!(out, "{rustup_toolchain_source}").unwrap();
-            } else {
-                panic!("RUSTUP_TOOLCHAIN_SOURCE environment variable not set");
-            }
         }
         arg => panic!("bad mock proxy commandline: {:?}", arg),
     }

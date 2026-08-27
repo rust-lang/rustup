@@ -3372,7 +3372,7 @@ async fn rustup_toolchain_source_cli() {
         .await
         .is_ok();
     cx.config
-        .expect(["cargo", "+nightly", "--echo-rustup-toolchain-source"])
+        .expect(["cargo", "+nightly", "--echo-env", "RUSTUP_TOOLCHAIN_SOURCE"])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
@@ -3386,7 +3386,7 @@ async fn rustup_toolchain_source_env() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect_with_env(
-            ["cargo", "--echo-rustup-toolchain-source"],
+            ["cargo", "--echo-env", "RUSTUP_TOOLCHAIN_SOURCE"],
             [("RUSTUP_TOOLCHAIN", "nightly")],
         )
         .await
@@ -3405,7 +3405,7 @@ async fn rustup_toolchain_source_path_override() {
         .await
         .is_ok();
     cx.config
-        .expect(["cargo", "--echo-rustup-toolchain-source"])
+        .expect(["cargo", "--echo-env", "RUSTUP_TOOLCHAIN_SOURCE"])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
@@ -3420,7 +3420,7 @@ async fn rustup_toolchain_source_toolchain_file() {
     let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(&toolchain_file, "[toolchain]\nchannel='nightly'").unwrap();
     cx.config
-        .expect(["cargo", "--echo-rustup-toolchain-source"])
+        .expect(["cargo", "--echo-env", "RUSTUP_TOOLCHAIN_SOURCE"])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
@@ -3437,7 +3437,7 @@ async fn rustup_toolchain_source_default() {
         .await
         .is_ok();
     cx.config
-        .expect(["cargo", "--echo-rustup-toolchain-source"])
+        .expect(["cargo", "--echo-env", "RUSTUP_TOOLCHAIN_SOURCE"])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
