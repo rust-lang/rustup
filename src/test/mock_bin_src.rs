@@ -90,6 +90,13 @@ fn main() {
                 writeln!(out, "{}", arg.to_string_lossy()).unwrap();
             }
         }
+        Some("--echo-env") => {
+            let name = args.next().expect("--echo-env requires a variable name");
+            let value = env::var(&name).unwrap_or_else(|_| {
+                panic!("{} environment variable not set", name.to_string_lossy())
+            });
+            eprintln!("{value}");
+        }
         Some("--echo-path") => {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::var("PATH").unwrap()).unwrap();
