@@ -523,11 +523,21 @@ impl<'a> Toolchain<'a> {
         fragment: Option<&str>,
     ) -> anyhow::Result<()> {
         let relative = relative.as_ref();
-        let mut doc_url = Url::from_file_path(self.doc_path(relative)?)
-            .ok()
-            .with_context(|| anyhow!("invalid doc file absolute path `{}`", relative.display()))?;
-        doc_url.set_fragment(fragment);
-        utils::open_browser(doc_url.to_string())
+        let doc_path = self.doc_path(relative)?;
+        // HACK: If a fragment is needed then turn the path into a url
+        // We avoid doing this if a fragment isn't needed because
+        // `open_browser` can call `ShellExecuteW` on Windows which doesn't
+        // handle urls very well. See #5035.
+        if fragment.is_some() {
+            let mut doc_url = Url::from_file_path(&doc_path).ok().with_context(|| {
+                anyhow!("invalid doc file absolute path `{}`", relative.display())
+            })?;
+            doc_url.set_fragment(fragment);
+            utils::open_browser(doc_url.to_string())
+        } else {
+            // Otherwise use the filesystem path.
+            utils::open_browser(&doc_path)
+        }
     }
 
     /// Remove the toolchain from disk
