@@ -422,7 +422,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
     let cargo_home_bin = cx.config.cargodir.join("bin");
     assert_ok_with_paths(
         cx.config
-            .expect(["cargo", "--echo-path"])
+            .expect(["cargo", "--echo-env", "PATH"])
             .await
             .extend_redactions([("[CARGO_HOME_BIN]", &cargo_home_bin)]),
         snapbox::str![[r#"
@@ -433,7 +433,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
 
     assert_ok_with_paths(
         cx.config
-            .expect_with_env(["cargo", "--echo-path"], [("PATH", "")])
+            .expect_with_env(["cargo", "--echo-env", "PATH"], [("PATH", "")])
             .await
             .extend_redactions([("[CARGO_HOME_BIN]", &cargo_home_bin)]),
         snapbox::str![[r#"
@@ -446,7 +446,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
     assert_ok_with_paths(
         cx.config
             .expect_with_env(
-                ["cargo", "--echo-path"],
+                ["cargo", "--echo-env", "PATH"],
                 [("PATH", &*cx.config.exedir.display().to_string())],
             )
             .await
@@ -466,7 +466,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
     assert_ok_with_paths(
         cx.config
             .expect_with_env(
-                ["cargo", "--echo-path"],
+                ["cargo", "--echo-env", "PATH"],
                 [(
                     "PATH",
                     std::env::join_paths([&cx.config.exedir, &cargo_home_bin])
@@ -1682,7 +1682,7 @@ async fn rustup_updates_cargo_env_if_proxy() {
 
     // If CARGO isn't set then we should not set it.
     cx.config
-        .expect(["cargo", "--echo-cargo-env"])
+        .expect(["cargo", "--echo-env", "CARGO"])
         .await
         .with_stderr(snapbox::str![[r#"
 ...
@@ -1694,7 +1694,7 @@ CARGO environment variable not set[..]
     // If CARGO is set to a proxy then change it to the real CARGO path
     cx.config
         .expect_with_env(
-            ["cargo", "--echo-cargo-env"],
+            ["cargo", "--echo-env", "CARGO"],
             [("CARGO", &*proxy_path.display().to_string())],
         )
         .await
