@@ -14,6 +14,7 @@
 # mksh has this alias by default.
 has_local() {
     # shellcheck disable=SC2034  # deliberately unused
+    # shellcheck disable=SC1007  # PATH= is an intentional command prefix, not a bare assignment
     PATH= local _has_local
 }
 
