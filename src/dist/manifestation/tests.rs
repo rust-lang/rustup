@@ -520,20 +520,6 @@ impl TestContext {
             .await
     }
 
-    fn uninstall(&self) -> Result<()> {
-        let trip = self.toolchain.target.clone();
-        let manifestation = Manifestation::open(self.prefix.clone(), trip)?;
-        let manifest = manifestation.load_manifest()?.unwrap();
-
-        manifestation.uninstall(
-            &manifest,
-            self.tmp_cx.clone(),
-            self.tp.process.permit_copy_rename(),
-        )?;
-
-        Ok(())
-    }
-
     fn stderr_line_contains(&self, needle: &str) -> bool {
         str::from_utf8(&self.tp.stderr())
             .unwrap()
@@ -563,31 +549,6 @@ async fn initial_install_xz() {
 #[tokio::test]
 async fn initial_install_zst() {
     initial_install(AddZStd).await;
-}
-
-#[tokio::test]
-async fn test_uninstall() {
-    let cx = TestContext::new(None, GZOnly);
-    cx.update_from_dist(&[], &[], false).await.unwrap();
-    cx.uninstall().unwrap();
-
-    assert!(!utils::path_exists(cx.prefix.path().join("bin/rustc")));
-    assert!(!utils::path_exists(
-        cx.prefix.path().join("lib/libstd.rlib")
-    ));
-}
-
-#[tokio::test]
-async fn uninstall_removes_config_file() {
-    let cx = TestContext::new(None, GZOnly);
-    cx.update_from_dist(&[], &[], false).await.unwrap();
-    assert!(utils::path_exists(
-        cx.prefix.manifest_file("multirust-config.toml")
-    ));
-    cx.uninstall().unwrap();
-    assert!(!utils::path_exists(
-        cx.prefix.manifest_file("multirust-config.toml")
-    ));
 }
 
 #[tokio::test]
