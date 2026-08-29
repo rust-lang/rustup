@@ -323,35 +323,6 @@ impl Manifestation {
         Ok(UpdateStatus::Changed)
     }
 
-    #[cfg(test)]
-    pub(crate) fn uninstall(
-        &self,
-        manifest: &Manifest,
-        tmp_cx: Arc<temp::Context>,
-        permit_copy_rename: bool,
-    ) -> Result<()> {
-        let prefix = self.installation.prefix();
-
-        let mut tx = Transaction::new(prefix.clone(), tmp_cx, permit_copy_rename);
-
-        // Read configuration and delete it
-        let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let abs_config_path = prefix.path().join(&rel_config_path);
-        let config_str = utils::read_file("dist config", &abs_config_path)?;
-        let config = Config::parse(&config_str).with_context(|| RustupError::ParsingFile {
-            name: "config",
-            path: abs_config_path,
-        })?;
-        tx.remove_file("dist config", rel_config_path)?;
-
-        for component in config.components {
-            tx = self.uninstall_component(component, manifest, tx)?;
-        }
-        tx.commit();
-
-        Ok(())
-    }
-
     fn uninstall_component(
         &self,
         component: Component,
