@@ -384,6 +384,12 @@ impl Display for CustomToolchainName {
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PathBasedToolchainName(PathBuf, String);
 
+impl From<PathBasedToolchainName> for PathBuf {
+    fn from(value: PathBasedToolchainName) -> Self {
+        value.0
+    }
+}
+
 impl Display for PathBasedToolchainName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0.display())

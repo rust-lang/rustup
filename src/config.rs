@@ -14,7 +14,10 @@ use tracing::{debug, info, trace, warn};
 
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
-    dist::{self, DistOptions, PartialToolchainDesc, Profile, Switch, TargetTuple, ToolchainDesc},
+    dist::{
+        self, DistOptions, PartialTargetTuple, PartialToolchainDesc, Profile, Switch, TargetTuple,
+        ToolchainDesc,
+    },
     errors::RustupError,
     fallback_settings::FallbackSettings,
     install::{InstallMethod, UpdateStatus},
@@ -39,9 +42,9 @@ enum OverrideFileConfigError {
     Parsing,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
-struct OverrideFile {
-    toolchain: ToolchainSection,
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub(crate) struct OverrideFile {
+    pub toolchain: ToolchainSection,
 }
 
 impl OverrideFile {
@@ -50,12 +53,17 @@ impl OverrideFile {
     }
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
-struct ToolchainSection {
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub(crate) struct ToolchainSection {
+    #[serde(skip_serializing_if = "Option::is_none")]
     channel: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     path: Option<PathBuf>,
-    components: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub components: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     targets: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     profile: Option<String>,
 }
 
@@ -172,7 +180,7 @@ impl<T> Deref for EnsureInstalled<T> {
 // include components and targets from a rust-toolchain.toml that should be
 // downloaded and installed.
 #[derive(Clone, Debug)]
-enum OverrideCfg {
+pub(crate) enum OverrideCfg {
     PathBased(PathBasedToolchainName),
     Custom(CustomToolchainName),
     Official {
@@ -247,6 +255,12 @@ impl OverrideCfg {
             Self::Official { toolchain, .. } => toolchain.resolve(host_tuple)?.into(),
         })
     }
+
+    pub(crate) fn qualify(&mut self, host_tuple: &TargetTuple) {
+        if let Self::Official { toolchain, .. } = self {
+            toolchain.target = PartialTargetTuple::new(host_tuple).unwrap();
+        }
+    }
 }
 
 impl From<ResolvableToolchainName> for OverrideCfg {
@@ -269,6 +283,28 @@ impl From<ResolvableLocalToolchainName> for OverrideCfg {
             ResolvableLocalToolchainName::Named(name) => Self::from(name),
             ResolvableLocalToolchainName::Path(path_name) => Self::PathBased(path_name),
         }
+    }
+}
+
+impl From<OverrideCfg> for OverrideFile {
+    fn from(value: OverrideCfg) -> Self {
+        let mut ts = ToolchainSection::default();
+        match value {
+            OverrideCfg::PathBased(path) => ts.path = Some(path.into()),
+            OverrideCfg::Custom(name) => ts.channel = Some(name.to_string()),
+            OverrideCfg::Official {
+                toolchain,
+                components,
+                targets,
+                profile,
+            } => {
+                ts.channel = Some(toolchain.to_string());
+                ts.components = components;
+                ts.targets = targets;
+                ts.profile = profile.map(|p| p.to_string());
+            }
+        };
+        Self { toolchain: ts }
     }
 }
 
@@ -603,7 +639,9 @@ impl<'a> Cfg<'a> {
         )
     }
 
-    fn find_override_config(&self) -> anyhow::Result<Option<(OverrideCfg, ActiveSource)>> {
+    pub(crate) fn find_override_config(
+        &self,
+    ) -> anyhow::Result<Option<(OverrideCfg, ActiveSource)>> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {

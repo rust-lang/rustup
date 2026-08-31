@@ -1,4 +1,4 @@
-<svg width="751px" height="1064px" xmlns="http://www.w3.org/2000/svg">
+<svg width="751px" height="1082px" xmlns="http://www.w3.org/2000/svg">
   <style>
     .fg { fill: #AAAAAA }
     .bg { fill: #000000 }
@@ -38,103 +38,105 @@
 </tspan>
     <tspan x="10px" y="172px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">link</tspan><tspan>       Create a custom toolchain by symlinking to a directory</tspan>
 </tspan>
-    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">help</tspan><tspan>       Print this message or the help of the given subcommand(s)</tspan>
+    <tspan x="10px" y="190px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">pin</tspan><tspan>        Write the active toolchain as an override file</tspan>
 </tspan>
-    <tspan x="10px" y="208px">
+    <tspan x="10px" y="208px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">help</tspan><tspan>       Print this message or the help of the given subcommand(s)</tspan>
 </tspan>
-    <tspan x="10px" y="226px"><tspan class="fg-bright-green bold">Options:</tspan>
+    <tspan x="10px" y="226px">
 </tspan>
-    <tspan x="10px" y="244px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>  Print help</tspan>
+    <tspan x="10px" y="244px"><tspan class="fg-bright-green bold">Options:</tspan>
 </tspan>
-    <tspan x="10px" y="262px">
+    <tspan x="10px" y="262px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">-h</tspan><tspan>, </tspan><tspan class="fg-bright-cyan bold">--help</tspan><tspan>  Print help</tspan>
 </tspan>
-    <tspan x="10px" y="280px"><tspan class="fg-bright-green bold">Discussion:</tspan>
+    <tspan x="10px" y="280px">
 </tspan>
-    <tspan x="10px" y="298px"><tspan>  Many `rustup` commands deal with *toolchains*, a single</tspan>
+    <tspan x="10px" y="298px"><tspan class="fg-bright-green bold">Discussion:</tspan>
 </tspan>
-    <tspan x="10px" y="316px"><tspan>  installation of the Rust compiler. `rustup` supports multiple</tspan>
+    <tspan x="10px" y="316px"><tspan>  Many `rustup` commands deal with *toolchains*, a single</tspan>
 </tspan>
-    <tspan x="10px" y="334px"><tspan>  types of toolchains. The most basic track the official release</tspan>
+    <tspan x="10px" y="334px"><tspan>  installation of the Rust compiler. `rustup` supports multiple</tspan>
 </tspan>
-    <tspan x="10px" y="352px"><tspan>  channels: 'stable', 'beta' and 'nightly'; but `rustup` can also</tspan>
+    <tspan x="10px" y="352px"><tspan>  types of toolchains. The most basic track the official release</tspan>
 </tspan>
-    <tspan x="10px" y="370px"><tspan>  install specific toolchains from the official archives, toolchains for</tspan>
+    <tspan x="10px" y="370px"><tspan>  channels: 'stable', 'beta' and 'nightly'; but `rustup` can also</tspan>
 </tspan>
-    <tspan x="10px" y="388px"><tspan>  alternate host platforms, and from local builds ('custom toolchains').</tspan>
+    <tspan x="10px" y="388px"><tspan>  install specific toolchains from the official archives, toolchains for</tspan>
 </tspan>
-    <tspan x="10px" y="406px">
+    <tspan x="10px" y="406px"><tspan>  alternate host platforms, and from local builds ('custom toolchains').</tspan>
 </tspan>
-    <tspan x="10px" y="424px"><tspan>  Standard release channel toolchain names have the following form:</tspan>
+    <tspan x="10px" y="424px">
 </tspan>
-    <tspan x="10px" y="442px">
+    <tspan x="10px" y="442px"><tspan>  Standard release channel toolchain names have the following form:</tspan>
 </tspan>
-    <tspan x="10px" y="460px"><tspan>    </tspan><tspan class="fg-cyan">&lt;channel&gt;[-&lt;date&gt;][-&lt;host&gt;]</tspan>
+    <tspan x="10px" y="460px">
 </tspan>
-    <tspan x="10px" y="478px">
+    <tspan x="10px" y="478px"><tspan>    </tspan><tspan class="fg-cyan">&lt;channel&gt;[-&lt;date&gt;][-&lt;host&gt;]</tspan>
 </tspan>
-    <tspan x="10px" y="496px"><tspan>    </tspan><tspan class="fg-cyan">&lt;channel&gt;       = stable|beta|nightly|&lt;versioned&gt;[-&lt;prerelease&gt;]</tspan>
+    <tspan x="10px" y="496px">
 </tspan>
-    <tspan x="10px" y="514px"><tspan>    </tspan><tspan class="fg-cyan">&lt;versioned&gt;     = &lt;major.minor&gt;|&lt;major.minor.patch&gt;</tspan>
+    <tspan x="10px" y="514px"><tspan>    </tspan><tspan class="fg-cyan">&lt;channel&gt;       = stable|beta|nightly|&lt;versioned&gt;[-&lt;prerelease&gt;]</tspan>
 </tspan>
-    <tspan x="10px" y="532px"><tspan>    </tspan><tspan class="fg-cyan">&lt;prerelease&gt;    = beta[.&lt;number&gt;]</tspan>
+    <tspan x="10px" y="532px"><tspan>    </tspan><tspan class="fg-cyan">&lt;versioned&gt;     = &lt;major.minor&gt;|&lt;major.minor.patch&gt;</tspan>
 </tspan>
-    <tspan x="10px" y="550px"><tspan>    </tspan><tspan class="fg-cyan">&lt;date&gt;          = YYYY-MM-DD</tspan>
+    <tspan x="10px" y="550px"><tspan>    </tspan><tspan class="fg-cyan">&lt;prerelease&gt;    = beta[.&lt;number&gt;]</tspan>
 </tspan>
-    <tspan x="10px" y="568px"><tspan>    </tspan><tspan class="fg-cyan">&lt;host&gt;          = &lt;target-tuple&gt;</tspan>
+    <tspan x="10px" y="568px"><tspan>    </tspan><tspan class="fg-cyan">&lt;date&gt;          = YYYY-MM-DD</tspan>
 </tspan>
-    <tspan x="10px" y="586px">
+    <tspan x="10px" y="586px"><tspan>    </tspan><tspan class="fg-cyan">&lt;host&gt;          = &lt;target-tuple&gt;</tspan>
 </tspan>
-    <tspan x="10px" y="604px"><tspan>  'channel' is a named release channel, a major and minor version</tspan>
+    <tspan x="10px" y="604px">
 </tspan>
-    <tspan x="10px" y="622px"><tspan>  number such as `1.42`, or a fully specified version number, such</tspan>
+    <tspan x="10px" y="622px"><tspan>  'channel' is a named release channel, a major and minor version</tspan>
 </tspan>
-    <tspan x="10px" y="640px"><tspan>  as `1.42.0`. Channel names can be optionally appended with an</tspan>
+    <tspan x="10px" y="640px"><tspan>  number such as `1.42`, or a fully specified version number, such</tspan>
 </tspan>
-    <tspan x="10px" y="658px"><tspan>  archive date, as in `nightly-2014-12-18`, in which case the</tspan>
+    <tspan x="10px" y="658px"><tspan>  as `1.42.0`. Channel names can be optionally appended with an</tspan>
 </tspan>
-    <tspan x="10px" y="676px"><tspan>  toolchain is downloaded from the archive for that date.</tspan>
+    <tspan x="10px" y="676px"><tspan>  archive date, as in `nightly-2014-12-18`, in which case the</tspan>
 </tspan>
-    <tspan x="10px" y="694px">
+    <tspan x="10px" y="694px"><tspan>  toolchain is downloaded from the archive for that date.</tspan>
 </tspan>
-    <tspan x="10px" y="712px"><tspan>  The host may be specified as a target tuple. This is most useful</tspan>
+    <tspan x="10px" y="712px">
 </tspan>
-    <tspan x="10px" y="730px"><tspan>  for installing a 32-bit compiler on a 64-bit platform, or for</tspan>
+    <tspan x="10px" y="730px"><tspan>  The host may be specified as a target tuple. This is most useful</tspan>
 </tspan>
-    <tspan x="10px" y="748px"><tspan>  installing the [MSVC-based toolchain] on Windows. For example:</tspan>
+    <tspan x="10px" y="748px"><tspan>  for installing a 32-bit compiler on a 64-bit platform, or for</tspan>
 </tspan>
-    <tspan x="10px" y="766px">
+    <tspan x="10px" y="766px"><tspan>  installing the [MSVC-based toolchain] on Windows. For example:</tspan>
 </tspan>
-    <tspan x="10px" y="784px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable-x86_64-pc-windows-msvc</tspan>
+    <tspan x="10px" y="784px">
 </tspan>
-    <tspan x="10px" y="802px">
+    <tspan x="10px" y="802px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable-x86_64-pc-windows-msvc</tspan>
 </tspan>
-    <tspan x="10px" y="820px"><tspan>  For convenience, omitted elements of the target tuple will be</tspan>
+    <tspan x="10px" y="820px">
 </tspan>
-    <tspan x="10px" y="838px"><tspan>  inferred, so the above could be written:</tspan>
+    <tspan x="10px" y="838px"><tspan>  For convenience, omitted elements of the target tuple will be</tspan>
 </tspan>
-    <tspan x="10px" y="856px">
+    <tspan x="10px" y="856px"><tspan>  inferred, so the above could be written:</tspan>
 </tspan>
-    <tspan x="10px" y="874px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable-msvc</tspan>
+    <tspan x="10px" y="874px">
 </tspan>
-    <tspan x="10px" y="892px">
+    <tspan x="10px" y="892px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup toolchain install stable-msvc</tspan>
 </tspan>
-    <tspan x="10px" y="910px"><tspan>  The `rustup default` command may be used to both install and set</tspan>
+    <tspan x="10px" y="910px">
 </tspan>
-    <tspan x="10px" y="928px"><tspan>  the desired toolchain as default in a single command:</tspan>
+    <tspan x="10px" y="928px"><tspan>  The `rustup default` command may be used to both install and set</tspan>
 </tspan>
-    <tspan x="10px" y="946px">
+    <tspan x="10px" y="946px"><tspan>  the desired toolchain as default in a single command:</tspan>
 </tspan>
-    <tspan x="10px" y="964px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup default stable-msvc</tspan>
+    <tspan x="10px" y="964px">
 </tspan>
-    <tspan x="10px" y="982px">
+    <tspan x="10px" y="982px"><tspan>    </tspan><tspan class="fg-bright-cyan bold">$ rustup default stable-msvc</tspan>
 </tspan>
-    <tspan x="10px" y="1000px"><tspan>  rustup can also manage symlinked local toolchain builds, which are</tspan>
+    <tspan x="10px" y="1000px">
 </tspan>
-    <tspan x="10px" y="1018px"><tspan>  often used for developing Rust itself. For more information see</tspan>
+    <tspan x="10px" y="1018px"><tspan>  rustup can also manage symlinked local toolchain builds, which are</tspan>
 </tspan>
-    <tspan x="10px" y="1036px"><tspan>  `rustup toolchain help link`.</tspan>
+    <tspan x="10px" y="1036px"><tspan>  often used for developing Rust itself. For more information see</tspan>
 </tspan>
-    <tspan x="10px" y="1054px">
+    <tspan x="10px" y="1054px"><tspan>  `rustup toolchain help link`.</tspan>
+</tspan>
+    <tspan x="10px" y="1072px">
 </tspan>
   </text>
 

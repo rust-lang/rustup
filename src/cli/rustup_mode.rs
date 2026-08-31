@@ -13,7 +13,7 @@ use std::{
 
 use anstream::ColorChoice;
 use anstyle::Style;
-use anyhow::{Error, anyhow};
+use anyhow::{Context as _, Error, anyhow};
 use clap::{
     Args, CommandFactory, Parser, Subcommand, ValueEnum,
     builder::{PossibleValue, ValueHint},
@@ -26,6 +26,7 @@ use clap_complete::{
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
+use serde::Serialize;
 use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -46,7 +47,7 @@ use crate::{
         self_update::{self, SelfUpdateMode, check_rustup_update},
     },
     command, component_for_bin,
-    config::{ActiveSource, Cfg},
+    config::{ActiveSource, Cfg, OverrideCfg, OverrideFile},
     dist::{
         DistOptions, PartialToolchainDesc, Profile, Switch, TargetTuple,
         download::DownloadCfg,
@@ -430,6 +431,13 @@ enum ToolchainSubcmd {
         /// Path to the directory
         path: PathBuf,
     },
+
+    /// Write the active toolchain as an override file
+    Pin {
+        /// Write the toolchain name with host tuple
+        #[arg(long)]
+        qualified: bool,
+    },
 }
 
 #[derive(Debug, Default, Args)]
@@ -781,6 +789,7 @@ pub async fn main(
                 toolchain_link(cfg, &toolchain, &path).await
             }
             ToolchainSubcmd::Uninstall { opts } => toolchain_remove(cfg, opts).await,
+            ToolchainSubcmd::Pin { qualified } => pin_active_toolchain(qualified, cfg),
         },
         RustupSubcmd::Check { opts } => check_updates(cfg, opts).await,
         RustupSubcmd::Default {
@@ -1715,6 +1724,70 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<
 
         Toolchain::ensure_removed(cfg, toolchain_name.into())?;
     }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
+    let default_host = cfg.default_host_tuple()?;
+
+    let (mut r#override, backfill_components) = match cfg.find_override_config()? {
+        Some((o, _)) => (o, None),
+        None => {
+            let default = cfg
+                .get_default_resolvable()?
+                .context("no default toolchain to pin")?;
+            let components = match &default {
+                ResolvableToolchainName::Official(desc) => {
+                    let tc =
+                        DistributableToolchain::new(cfg, desc.clone().resolve(&default_host)?)?;
+                    let manifest = tc.get_manifest()?;
+
+                    Some(
+                        tc.components()?
+                            .into_iter()
+                            .filter_map(|c| {
+                                (c.available && c.installed)
+                                    .then(|| manifest.display_name(&c.component, &default_host))
+                            })
+                            .collect(),
+                    )
+                }
+                ResolvableToolchainName::Custom(_) => None,
+            };
+            (OverrideCfg::from(default), components)
+        }
+    };
+    if qualified {
+        r#override.qualify(&default_host);
+    }
+
+    let mut r#override = OverrideFile::from(r#override);
+    if backfill_components.is_some() {
+        r#override.toolchain.components = backfill_components;
+    }
+
+    let rel_path = "rust-toolchain.toml";
+    let path = cfg.process.current_dir()?.join(rel_path);
+    if path
+        .try_exists()
+        .context("failed to check for existing override file")?
+    {
+        return Err(anyhow!(
+            "found existing override file at '{rel_path}', refusing to overwrite"
+        ));
+    }
+
+    let mut toml_buf = toml::ser::Buffer::new();
+    r#override
+        .serialize(toml::Serializer::new(&mut toml_buf))
+        .context("failed to serialize override file to TOML")?;
+    utils::write_file(
+        "override file",
+        &path,
+        &format!(
+            "# Check the docs at https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file\n\n{toml_buf}",
+        ),
+    )?;
     Ok(ExitCode::SUCCESS)
 }
 
