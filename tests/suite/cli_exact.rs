@@ -352,7 +352,7 @@ async fn override_again() {
         .is_ok()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-info: override toolchain for [CWD] set to nightly-[HOST_TUPLE]
+info: override toolchain for [CWD] set to nightly
 
 "#]]);
 }
@@ -526,7 +526,7 @@ async fn list_overrides() {
         .extend_redactions([("[CWD]", cwd_formatted)])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[CWD]	nightly-[HOST_TUPLE]
+[CWD]	nightly             
 
 "#]])
         .with_stderr(snapbox::str![[""]]);
@@ -563,7 +563,7 @@ async fn list_overrides_with_nonexistent() {
         .extend_redactions([("[PATH]", path_formatted + " (not a directory)")])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[PATH]	nightly-[HOST_TUPLE]
+[PATH]	nightly             
 
 
 "#]])

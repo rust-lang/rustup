@@ -1361,7 +1361,7 @@ async fn override_set_unset_with_path() {
         .await
         .extend_redactions([("[CWD]", cwd_str.to_string())])
         .with_stdout(snapbox::str![[r#"
-[CWD]	nightly-[HOST_TUPLE]
+[CWD]	nightly             
 
 "#]])
         .with_stderr(snapbox::str![[""]])
@@ -1387,7 +1387,7 @@ no overrides
 }
 
 #[tokio::test]
-async fn override_set_unqualified_doesnt_depend_on_default_host() {
+async fn override_set_unqualified_depends_on_default_host() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
     cx.config
@@ -1418,7 +1418,7 @@ active because: directory override for '[..]'
 ...
 active toolchain
 ----------------
-name: nightly-[HOST_TUPLE]
+name: nightly-[CROSS_ARCH_I]
 active because: directory override for '[..]'
 ...
 "#]])

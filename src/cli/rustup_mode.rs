@@ -1160,7 +1160,7 @@ async fn update(
             )?;
 
             if opts.r#override {
-                cfg.make_override(&cfg.current_dir, &desc.clone().into())?;
+                cfg.make_override(&cfg.current_dir, &name.clone().into())?;
             }
 
             if opts.default
@@ -1719,7 +1719,7 @@ async fn override_add(
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
 ) -> Result<ExitCode> {
-    let toolchain_name = toolchain.resolve(&cfg.default_host_tuple()?)?;
+    let toolchain_name = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
     match Toolchain::new(cfg, toolchain_name.clone().into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
@@ -1738,7 +1738,7 @@ async fn override_add(
         Err(e) => Err(e)?,
     }
 
-    cfg.make_override(path.unwrap_or(&cfg.current_dir), &toolchain_name)?;
+    cfg.make_override(path.unwrap_or(&cfg.current_dir), &toolchain)?;
     Ok(ExitCode::SUCCESS)
 }
 

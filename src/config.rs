@@ -636,12 +636,6 @@ impl<'a> Cfg<'a> {
             // First check the override database
             if let Some(name) = settings.dir_override(d) {
                 let source = ActiveSource::OverrideDb(d.to_owned());
-                // Note that `rustup override set` fully resolves it's input
-                // before writing to settings.toml, so resolving here may not
-                // be strictly necessary (could instead model as ToolchainName).
-                // However, settings.toml could conceivably be hand edited to
-                // have an unresolved name. I'm just preserving pre-existing
-                // behaviour by choosing ResolvableToolchainName here.
                 return Ok(Some((
                     ResolvableToolchainName::from_str(&name)?.into(),
                     source,
@@ -980,7 +974,11 @@ impl<'a> Cfg<'a> {
     }
 
     /// Create an override for a toolchain
-    pub(crate) fn make_override(&self, path: &Path, toolchain: &ToolchainName) -> Result<()> {
+    pub(crate) fn make_override(
+        &self,
+        path: &Path,
+        toolchain: &ResolvableToolchainName,
+    ) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.add_override(path, toolchain.to_string());
             Ok(())
