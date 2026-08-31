@@ -368,18 +368,18 @@ impl Component {
         };
         for part in self.parts()?.into_iter().rev() {
             match part.kind {
-                ComponentPartKind::File => tx.remove_file(&self.name, part.path.clone())?,
-                ComponentPartKind::Dir => tx.remove_dir(&self.name, part.path.clone())?,
+                ComponentPartKind::File => tx.remove_file(part.path.clone())?,
+                ComponentPartKind::Dir => tx.remove_dir(part.path.clone())?,
                 _ => return Err(RustupError::CorruptComponent(self.name.clone()).into()),
             }
             pset.seen(part.path);
         }
         for empty_dir in pset {
-            tx.remove_dir(&self.name, empty_dir)?;
+            tx.remove_dir(empty_dir)?;
         }
 
         // Remove component manifest
-        tx.remove_file(&self.name, self.rel_manifest_file())?;
+        tx.remove_file(self.rel_manifest_file())?;
 
         Ok(tx)
     }

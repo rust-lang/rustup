@@ -181,7 +181,7 @@ fn remove_file() {
     let filepath = cx.prefix.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_file("c", PathBuf::from("foo")).unwrap();
+    tx.remove_file(PathBuf::from("foo")).unwrap();
     tx.commit();
 
     assert!(!utils::is_file(filepath));
@@ -195,7 +195,7 @@ fn remove_file_then_rollback() {
     let filepath = cx.prefix.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_file("c", PathBuf::from("foo")).unwrap();
+    tx.remove_file(PathBuf::from("foo")).unwrap();
     drop(tx);
 
     assert!(utils::is_file(filepath));
@@ -206,15 +206,7 @@ fn remove_file_that_not_exists() {
     let cx = DistContext::new(None).unwrap();
     let mut tx = cx.transaction();
 
-    let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
-
-    match err.downcast_ref::<RustupError>() {
-        Some(RustupError::ComponentMissingFile { name, path }) => {
-            assert_eq!(name, "c");
-            assert_eq!(path.clone(), PathBuf::from("foo"));
-        }
-        _ => panic!(),
-    }
+    tx.remove_file(PathBuf::from("foo")).unwrap();
 }
 
 #[test]
@@ -226,7 +218,7 @@ fn remove_dir() {
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_dir("c", PathBuf::from("foo")).unwrap();
+    tx.remove_dir(PathBuf::from("foo")).unwrap();
     tx.commit();
 
     assert!(!utils::path_exists(filepath.parent().unwrap()));
@@ -241,7 +233,7 @@ fn remove_dir_then_rollback() {
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_dir("c", PathBuf::from("foo")).unwrap();
+    tx.remove_dir(PathBuf::from("foo")).unwrap();
     drop(tx);
 
     assert!(utils::path_exists(filepath.parent().unwrap()));
@@ -252,15 +244,7 @@ fn remove_dir_that_not_exists() {
     let cx = DistContext::new(None).unwrap();
     let mut tx = cx.transaction();
 
-    let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
-
-    match err.downcast_ref::<RustupError>() {
-        Some(RustupError::ComponentMissingDir { name, path }) => {
-            assert_eq!(name, "c");
-            assert_eq!(path.clone(), PathBuf::from("foo"));
-        }
-        _ => panic!(),
-    }
+    tx.remove_dir(PathBuf::from("foo")).unwrap();
 }
 
 #[test]
@@ -429,11 +413,11 @@ fn do_multiple_op_transaction(rollback: bool) {
 
     fs::create_dir_all(path7.parent().unwrap()).unwrap();
     utils_raw::write_file(&path7, "").unwrap();
-    tx.remove_file("", relpath7).unwrap();
+    tx.remove_file(relpath7).unwrap();
 
     fs::create_dir_all(path8.parent().unwrap()).unwrap();
     utils_raw::write_file(&path8, "").unwrap();
-    tx.remove_dir("", PathBuf::from("olddoc")).unwrap();
+    tx.remove_dir(PathBuf::from("olddoc")).unwrap();
 
     if !rollback {
         tx.commit();
