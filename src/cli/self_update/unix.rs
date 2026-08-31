@@ -53,12 +53,11 @@ pub(crate) fn do_anti_sudo_check(
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let env_home = process.rustup_env_home()?;
+pub(crate) fn do_remove_from_path(process: &Process, env_home: &Path) -> anyhow::Result<()> {
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
         let source_bytes =
-            format!("{}\n", sh.source_string(&env_home, home_dir.as_deref())?).into_bytes();
+            format!("{}\n", sh.source_string(env_home, home_dir.as_deref())?).into_bytes();
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rcfiles(process).iter().filter(|rc| rc.is_file()) {
