@@ -359,7 +359,8 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
     let cargo_home = process.cargo_home()?;
-    super::clean_cargo_home(no_modify_path, process, &cargo_home)?;
+    let category_bin = process.rustup_bin_home()?;
+    super::clean_cargo_home(no_modify_path, process, &cargo_home, &category_bin)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc

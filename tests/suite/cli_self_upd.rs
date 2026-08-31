@@ -255,6 +255,85 @@ async fn uninstall_works_if_some_bins_dont_exist() {
     assert!(!rust_gdbgui.exists());
 }
 
+#[tokio::test]
+async fn uninstall_deletes_category_only_binaries() {
+    let cx = setup_empty_installed().await;
+    let legacy_bin = cx.config.cargodir.join("bin");
+    let category_bin = cx.config.homedir.join("category-bin");
+    fs::create_dir_all(&category_bin).unwrap();
+
+    let rustup_exe = format!("rustup{EXE_SUFFIX}");
+    let legacy_rustup = legacy_bin.join(&rustup_exe);
+    let category_rustup = category_bin.join(&rustup_exe);
+    let category_proxy = category_bin.join(format!("rustc{EXE_SUFFIX}"));
+    fs::copy(&legacy_rustup, &category_rustup).unwrap();
+    fs::hard_link(&category_rustup, &category_proxy).unwrap();
+    remove_dir_all(&cx.config.cargodir).unwrap();
+
+    let mut cmd = cx
+        .config
+        .cmd("rustup", ["self", "uninstall", "-y", "--no-modify-path"]);
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    cmd.env("RUSTUP_BIN_HOME", &category_bin);
+
+    assert!(cmd.output().unwrap().status.success());
+    let removed_paths = [&category_rustup, &category_proxy, &category_bin];
+    #[cfg(unix)]
+    for path in removed_paths {
+        assert!(!path.exists(), "path still exists: {}", path.display());
+    }
+    #[cfg(windows)]
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+        if let Some(path) = removed_paths.iter().find(|path| path.exists()) {
+            Err(format!("path still exists: {}", path.display()))
+        } else {
+            Ok(())
+        }
+    })
+    .unwrap();
+}
+
+#[tokio::test]
+async fn uninstall_deletes_legacy_and_category_binaries() {
+    let cx = setup_empty_installed().await;
+    let legacy_bin = cx.config.cargodir.join("bin");
+    let category_bin = cx.config.cargodir.join("category-bin");
+    fs::create_dir_all(&category_bin).unwrap();
+
+    let rustup_exe = format!("rustup{EXE_SUFFIX}");
+    let legacy_rustup = legacy_bin.join(&rustup_exe);
+    let category_rustup = category_bin.join(&rustup_exe);
+    let category_proxy = category_bin.join(format!("rustc{EXE_SUFFIX}"));
+    let custom_tool = category_bin.join("custom-tool");
+    fs::copy(&legacy_rustup, &category_rustup).unwrap();
+    fs::hard_link(&category_rustup, &category_proxy).unwrap();
+    fs::write(&custom_tool, "").unwrap();
+
+    let mut cmd = cx
+        .config
+        .cmd("rustup", ["self", "uninstall", "-y", "--no-modify-path"]);
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    cmd.env("RUSTUP_BIN_HOME", &category_bin);
+
+    assert!(cmd.output().unwrap().status.success());
+    let removed_paths = [&legacy_rustup, &category_rustup, &category_proxy];
+    #[cfg(not(windows))]
+    for path in removed_paths {
+        assert!(!path.exists(), "path still exists: {}", path.display());
+    }
+    #[cfg(windows)]
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+        if let Some(path) = removed_paths.iter().find(|path| path.exists()) {
+            Err(format!("path still exists: {}", path.display()))
+        } else {
+            Ok(())
+        }
+    })
+    .unwrap();
+    assert!(custom_tool.exists());
+    assert!(category_bin.exists());
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn uninstall_reuses_paths_after_removing_command_cwd() {
@@ -577,7 +656,7 @@ async fn update_but_not_installed() {
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-error: rustup is not installed at '[CARGO_DIR]'
+error: rustup is not installed at '[CARGO_DIR]/bin'
 
 "#]]);
 }

@@ -996,8 +996,14 @@ pub(crate) fn uninstall(
 
     let process = cfg.process;
     let cargo_home = process.cargo_home()?;
-
-    if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
+    let legacy_bin = cargo_home.join("bin");
+    let category_bin = process.rustup_bin_home()?;
+    let rustup_exe = format!("rustup{EXE_SUFFIX}");
+    let legacy_rustup = legacy_bin.join(&rustup_exe);
+    let category_rustup = category_bin.join(rustup_exe);
+    let rustup_is_self_installed = legacy_rustup.try_exists()?
+        || (category_bin != legacy_bin && category_rustup.try_exists()?);
+    if !rustup_is_self_installed {
         return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
     }
 
@@ -1042,7 +1048,7 @@ pub(crate) fn uninstall(
 
     // Delete rustup.
     #[cfg(unix)]
-    clean_cargo_home(no_modify_path, process, &cargo_home)?;
+    clean_cargo_home(no_modify_path, process, &cargo_home, &category_bin)?;
     // NOTE: On windows, this is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
@@ -1056,80 +1062,76 @@ pub(crate) fn uninstall(
 }
 
 /// Remove rustup-owned cargo-home state.
-/// This removes non-`bin` entries in `$CARGO_HOME`, removes rustup tool links and executable from
-/// `$CARGO_HOME/bin`, then removes `$CARGO_HOME/bin` and `$CARGO_HOME` only if they are empty.
+/// This removes non-`bin` entries in `$CARGO_HOME`, removes rustup-owned binaries from
+/// both legacy and resolved bin directories, then removes directories only if they are empty.
 /// Nonempty directories are left in place.
 fn clean_cargo_home(
     no_modify_path: bool,
     process: &Process,
     cargo_home: &Path,
+    category_bin: &Path,
 ) -> anyhow::Result<()> {
-    let cargo_bin = cargo_home.join("bin");
+    let legacy_bin = cargo_home.join("bin");
 
     info!("removing cargo home");
 
-    // Delete everything in CARGO_HOME except the bin directory first.
-    let diriter = fs::read_dir(cargo_home).map_err(|e| CliError::ReadDirError {
-        p: cargo_home.to_owned(),
-        source: e,
-    })?;
-    for dirent in diriter {
-        let dirent = dirent.map_err(|e| CliError::ReadDirError {
-            p: cargo_home.to_owned(),
-            source: e,
-        })?;
-        if dirent.file_name().to_str() != Some("bin") {
-            if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path())?;
-            } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
+    // Delete everything in CARGO_HOME except the legacy bin directory and any
+    // subtree containing the resolved category bin.
+    match fs::read_dir(cargo_home) {
+        Ok(diriter) => {
+            for dirent in diriter {
+                let dirent = dirent.map_err(|source| CliError::ReadDirError {
+                    p: cargo_home.to_owned(),
+                    source,
+                })?;
+                if dirent.file_name().to_str() == Some("bin") {
+                    continue;
+                }
+                let path = dirent.path();
+                if category_bin == cargo_home || category_bin.starts_with(&path) {
+                    continue;
+                }
+
+                if path.is_dir() {
+                    utils::remove_dir("cargo_home", &path)?;
+                } else {
+                    utils::remove_file("cargo_home", &path)?;
+                }
             }
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(source) => {
+            return Err(CliError::ReadDirError {
+                p: cargo_home.to_owned(),
+                source,
+            }
+            .into());
         }
     }
 
     info!("removing rustup tool links and binary");
 
-    let rustup_path = cargo_bin.join(format!("rustup{EXE_SUFFIX}"));
-
-    let proxy_paths = TOOLS
-        .iter()
-        .chain(DUP_TOOLS.iter())
-        .map(|tool| cargo_bin.join(format!("{tool}{EXE_SUFFIX}")));
-
-    for proxy_path in proxy_paths {
-        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
-            utils::remove_file("rustup tool proxy", &proxy_path)?;
-        }
+    let legacy_bin_removed = clean_rustup_binaries(&legacy_bin)?;
+    if category_bin != legacy_bin {
+        clean_rustup_binaries(category_bin)?;
     }
-
-    utils::remove_file("rustup_bin", &rustup_path)?;
 
     #[cfg(windows)]
     remove_uninstall_registry_entry(process)?;
 
-    let cargo_bin_display = cargo_bin.display();
-    info!("removing empty cargo bin directory `{cargo_bin_display}`");
-
-    match fs::remove_dir(&cargo_bin) {
-        Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
-            warn!("keeping non-empty cargo bin directory `{cargo_bin_display}`")
-        }
-        Err(e) => {
-            return Err(e).with_context(|| {
-                format!("failed to remove cargo bin directory `{cargo_bin_display}`")
-            });
-        }
-        Ok(()) if !no_modify_path => {
-            info!("removing cargo bin directory `{cargo_bin_display}` from $PATH");
-            do_remove_from_path(process)?;
-        }
-        Ok(()) => {}
+    if legacy_bin_removed && !no_modify_path {
+        info!(
+            "removing cargo bin directory `{}` from $PATH",
+            legacy_bin.display()
+        );
+        do_remove_from_path(process)?;
     }
 
     let cargo_home_display = cargo_home.display();
     info!("removing empty cargo home directory `{cargo_home_display}`");
 
     match fs::remove_dir(cargo_home) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
         Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
             warn!("keeping non-empty cargo home directory `{cargo_home_display}`");
         }
@@ -1142,6 +1144,42 @@ fn clean_cargo_home(
     }
 
     Ok(())
+}
+
+/// Remove rustup-owned binaries from a bin directory.
+///
+/// Returns whether the directory was removed after becoming empty.
+fn clean_rustup_binaries(bin_dir: &Path) -> anyhow::Result<bool> {
+    let rustup_path = bin_dir.join(format!("rustup{EXE_SUFFIX}"));
+    if !rustup_path.try_exists()? {
+        return Ok(false);
+    }
+
+    let proxy_paths = TOOLS
+        .iter()
+        .chain(DUP_TOOLS.iter())
+        .map(|tool| bin_dir.join(format!("{tool}{EXE_SUFFIX}")));
+
+    for proxy_path in proxy_paths {
+        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
+            utils::remove_file("rustup tool proxy", &proxy_path)?;
+        }
+    }
+
+    utils::remove_file("rustup_bin", &rustup_path)?;
+
+    let bin_dir_display = bin_dir.display();
+    info!("removing empty cargo bin directory `{bin_dir_display}`");
+
+    match fs::remove_dir(bin_dir) {
+        Ok(()) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::DirectoryNotEmpty => {
+            warn!("keeping non-empty cargo bin directory `{bin_dir_display}`");
+            Ok(false)
+        }
+        Err(error) => Err(error)
+            .with_context(|| format!("failed to remove cargo bin directory `{bin_dir_display}`")),
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
