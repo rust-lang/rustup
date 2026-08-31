@@ -1042,13 +1042,13 @@ pub(crate) fn uninstall(
 
     // Delete rustup.
     #[cfg(unix)]
-    clean_cargo_home(no_modify_path, process)?;
+    clean_cargo_home(no_modify_path, process, &cargo_home)?;
     // NOTE: On windows, this is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
     // see: windows::{complete_windows_uninstall,spawn_uninstall_gc}
     #[cfg(windows)]
-    windows::spawn_uninstall_gc(no_modify_path, process)?;
+    windows::spawn_uninstall_gc(no_modify_path, &cargo_home)?;
 
     info!("rustup is uninstalled");
 
@@ -1059,20 +1059,23 @@ pub(crate) fn uninstall(
 /// This removes non-`bin` entries in `$CARGO_HOME`, removes rustup tool links and executable from
 /// `$CARGO_HOME/bin`, then removes `$CARGO_HOME/bin` and `$CARGO_HOME` only if they are empty.
 /// Nonempty directories are left in place.
-fn clean_cargo_home(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+fn clean_cargo_home(
+    no_modify_path: bool,
+    process: &Process,
+    cargo_home: &Path,
+) -> anyhow::Result<()> {
     let cargo_bin = cargo_home.join("bin");
 
     info!("removing cargo home");
 
     // Delete everything in CARGO_HOME except the bin directory first.
-    let diriter = fs::read_dir(&cargo_home).map_err(|e| CliError::ReadDirError {
-        p: cargo_home.clone(),
+    let diriter = fs::read_dir(cargo_home).map_err(|e| CliError::ReadDirError {
+        p: cargo_home.to_owned(),
         source: e,
     })?;
     for dirent in diriter {
         let dirent = dirent.map_err(|e| CliError::ReadDirError {
-            p: cargo_home.clone(),
+            p: cargo_home.to_owned(),
             source: e,
         })?;
         if dirent.file_name().to_str() != Some("bin") {
@@ -1126,7 +1129,7 @@ fn clean_cargo_home(no_modify_path: bool, process: &Process) -> anyhow::Result<(
     let cargo_home_display = cargo_home.display();
     info!("removing empty cargo home directory `{cargo_home_display}`");
 
-    match fs::remove_dir(&cargo_home) {
+    match fs::remove_dir(cargo_home) {
         Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
             warn!("keeping non-empty cargo home directory `{cargo_home_display}`");
         }

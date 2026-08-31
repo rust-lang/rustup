@@ -358,7 +358,8 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
     let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
-    super::clean_cargo_home(no_modify_path, process)?;
+    let cargo_home = process.cargo_home()?;
+    super::clean_cargo_home(no_modify_path, process, &cargo_home)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -702,7 +703,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> anyhow::Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
@@ -713,8 +714,6 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, OPEN_EXISTING,
     };
 
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = process.cargo_home()?;
     // The rustup.exe bin
     let rustup_path = utils::current_exe()?;
 

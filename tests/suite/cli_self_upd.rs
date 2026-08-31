@@ -255,6 +255,24 @@ async fn uninstall_works_if_some_bins_dont_exist() {
     assert!(!rust_gdbgui.exists());
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn uninstall_reuses_paths_after_removing_command_cwd() {
+    let mut cx = setup_empty_installed().await;
+    let removed_cwd = cx.config.cargodir.join("removed-cwd");
+    fs::create_dir_all(&removed_cwd).unwrap();
+    let cx = cx.change_dir(&removed_cwd);
+
+    let mut cmd = cx
+        .config
+        .cmd("rustup", ["self", "uninstall", "-y", "--no-modify-path"]);
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    cmd.env("RUSTUP_CACHE_HOME", &removed_cwd);
+
+    assert!(cmd.output().unwrap().status.success());
+    assert!(!cx.config.cargodir.exists());
+}
+
 #[tokio::test]
 async fn uninstall_deletes_rustup_home() {
     let cx = setup_empty_installed().await;
