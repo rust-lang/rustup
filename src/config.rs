@@ -177,8 +177,12 @@ enum OverrideCfg {
     Custom(CustomToolchainName),
     Official {
         toolchain: PartialToolchainDesc,
-        components: Vec<String>,
-        targets: Vec<String>,
+        // To ensure preservation of the user's original intent in an override file, the below
+        // values are semantically different for `components` and `targets`:
+        // - `None` means that the user has specified no override.
+        // - `Some(_)` means that the user has set the override list (which may be empty).
+        components: Option<Vec<String>>,
+        targets: Option<Vec<String>>,
         profile: Option<Profile>,
     },
 }
@@ -218,21 +222,17 @@ impl OverrideCfg {
                 .ok_or_else(|| no_toolchain_error(cfg.process))?,
         };
         Ok(match toolchain_name {
-            ResolvableToolchainName::Official(desc) => {
-                let components = file.toolchain.components.unwrap_or_default();
-                let targets = file.toolchain.targets.unwrap_or_default();
-                Self::Official {
-                    toolchain: desc,
-                    components,
-                    targets,
-                    profile: file
-                        .toolchain
-                        .profile
-                        .as_deref()
-                        .map(Profile::from_str)
-                        .transpose()?,
-                }
-            }
+            ResolvableToolchainName::Official(desc) => Self::Official {
+                toolchain: desc,
+                components: file.toolchain.components,
+                targets: file.toolchain.targets,
+                profile: file
+                    .toolchain
+                    .profile
+                    .as_deref()
+                    .map(Profile::from_str)
+                    .transpose()?,
+            },
             ResolvableToolchainName::Custom(name) => Self::Custom(name),
         })
     }
@@ -251,8 +251,8 @@ impl From<ResolvableToolchainName> for OverrideCfg {
         match value {
             ResolvableToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
-                components: vec![],
-                targets: vec![],
+                components: None,
+                targets: None,
                 profile: None,
             },
             ResolvableToolchainName::Custom(name) => Self::Custom(name),
@@ -814,8 +814,8 @@ impl<'a> Cfg<'a> {
             {
                 self.ensure_installed(
                     &toolchain.resolve(&default_host)?,
-                    components,
-                    targets,
+                    components.unwrap_or_default(),
+                    targets.unwrap_or_default(),
                     profile,
                     force_non_host,
                     verbose,
