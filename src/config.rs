@@ -176,7 +176,7 @@ enum OverrideCfg {
     PathBased(PathBasedToolchainName),
     Custom(CustomToolchainName),
     Official {
-        toolchain: ToolchainDesc,
+        toolchain: PartialToolchainDesc,
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
@@ -186,9 +186,7 @@ enum OverrideCfg {
 impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
-            (Some(name), None) => {
-                ResolvableToolchainName::from_str(&name)?.resolve(&cfg.default_host_tuple()?)?
-            }
+            (Some(name), None) => ResolvableToolchainName::from_str(&name)?,
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
                     || file.toolchain.components.is_some()
@@ -216,11 +214,11 @@ impl OverrideCfg {
                 )
             }
             (None, None) => cfg
-                .get_default()?
+                .get_default_resolvable()?
                 .ok_or_else(|| no_toolchain_error(cfg.process))?,
         };
         Ok(match toolchain_name {
-            ToolchainName::Official(desc) => {
+            ResolvableToolchainName::Official(desc) => {
                 let components = file.toolchain.components.unwrap_or_default();
                 let targets = file.toolchain.targets.unwrap_or_default();
                 Self::Official {
@@ -235,38 +233,38 @@ impl OverrideCfg {
                         .transpose()?,
                 }
             }
-            ToolchainName::Custom(name) => Self::Custom(name),
+            ResolvableToolchainName::Custom(name) => Self::Custom(name),
         })
     }
 
-    fn into_local_toolchain_name(self) -> LocalToolchainName {
-        match self {
+    fn into_local_toolchain_name(self, host_tuple: &TargetTuple) -> Result<LocalToolchainName> {
+        Ok(match self {
             Self::PathBased(path_based_name) => path_based_name.into(),
             Self::Custom(custom_name) => custom_name.into(),
-            Self::Official { toolchain, .. } => toolchain.into(),
-        }
+            Self::Official { toolchain, .. } => toolchain.resolve(host_tuple)?.into(),
+        })
     }
 }
 
-impl From<ToolchainName> for OverrideCfg {
-    fn from(value: ToolchainName) -> Self {
+impl From<ResolvableToolchainName> for OverrideCfg {
+    fn from(value: ResolvableToolchainName) -> Self {
         match value {
-            ToolchainName::Official(desc) => Self::Official {
+            ResolvableToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
                 components: vec![],
                 targets: vec![],
                 profile: None,
             },
-            ToolchainName::Custom(name) => Self::Custom(name),
+            ResolvableToolchainName::Custom(name) => Self::Custom(name),
         }
     }
 }
 
-impl From<LocalToolchainName> for OverrideCfg {
-    fn from(value: LocalToolchainName) -> Self {
+impl From<ResolvableLocalToolchainName> for OverrideCfg {
+    fn from(value: ResolvableLocalToolchainName) -> Self {
         match value {
-            LocalToolchainName::Named(name) => Self::from(name),
-            LocalToolchainName::Path(path_name) => Self::PathBased(path_name),
+            ResolvableLocalToolchainName::Named(name) => Self::from(name),
+            ResolvableLocalToolchainName::Path(path_name) => Self::PathBased(path_name),
         }
     }
 }
@@ -284,7 +282,7 @@ pub(crate) struct Cfg<'a> {
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
     pub toolchain_override: Option<ResolvableToolchainName>,
-    env_override: Option<LocalToolchainName>,
+    env_override: Option<ResolvableLocalToolchainName>,
     pub(crate) dist_root_server: String,
     pub dist_root_url: String,
     pub quiet: bool,
@@ -343,11 +341,9 @@ impl<'a> Cfg<'a> {
         let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
 
-        // Figure out default_host_tuple before Config is populated
-        let default_host = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(ResolvableLocalToolchainName::from_str(tc)?.resolve(&default_host)?),
+            Some(tc) => Some(ResolvableLocalToolchainName::from_str(tc)?),
             None => None,
         };
 
@@ -588,7 +584,10 @@ impl<'a> Cfg<'a> {
     pub(crate) fn active_toolchain(&self) -> Result<Option<(LocalToolchainName, ActiveSource)>> {
         Ok(
             if let Some((override_config, source)) = self.find_override_config()? {
-                Some((override_config.into_local_toolchain_name(), source))
+                Some((
+                    override_config.into_local_toolchain_name(&self.default_host_tuple()?)?,
+                    source,
+                ))
             } else {
                 self.get_default()?
                     .map(|x| (x.into(), ActiveSource::Default))
@@ -600,8 +599,7 @@ impl<'a> Cfg<'a> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
-                let override_config = name.clone().resolve(&self.default_host_tuple()?)?.into();
-                Some((override_config, ActiveSource::CommandLine))
+                Some((name.clone().into(), ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
             else if let Some(name) = &self.env_override {
@@ -644,10 +642,10 @@ impl<'a> Cfg<'a> {
                 // However, settings.toml could conceivably be hand edited to
                 // have an unresolved name. I'm just preserving pre-existing
                 // behaviour by choosing ResolvableToolchainName here.
-                let toolchain_name = ResolvableToolchainName::from_str(&name)?
-                    .resolve(&default_host_tuple(settings, self.process))?;
-                let override_cfg = toolchain_name.into();
-                return Ok(Some((override_cfg, source)));
+                return Ok(Some((
+                    ResolvableToolchainName::from_str(&name)?.into(),
+                    source,
+                )));
             }
 
             // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
@@ -803,7 +801,10 @@ impl<'a> Cfg<'a> {
         verbose: bool,
     ) -> Result<(EnsureInstalled<LocalToolchainName>, ActiveSource)> {
         if let Some((override_config, source)) = self.find_override_config()? {
-            let toolchain = override_config.clone().into_local_toolchain_name();
+            let default_host = self.default_host_tuple()?;
+            let toolchain = override_config
+                .clone()
+                .into_local_toolchain_name(&default_host)?;
             let status = if let OverrideCfg::Official {
                 toolchain,
                 components,
@@ -812,7 +813,7 @@ impl<'a> Cfg<'a> {
             } = override_config
             {
                 self.ensure_installed(
-                    &toolchain,
+                    &toolchain.resolve(&default_host)?,
                     components,
                     targets,
                     profile,
