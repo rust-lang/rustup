@@ -471,6 +471,14 @@ fn rustup_toolchain_cmd_uninstall_cmd_help_flag() {
 }
 
 #[test]
+fn rustup_toolchain_cmd_pin_cmd_help_flag() {
+    test_help(
+        "rustup_toolchain_cmd_pin_cmd_help_flag",
+        &["toolchain", "pin", "--help"],
+    );
+}
+
+#[test]
 fn rustup_up_cmd_help_flag() {
     test_help("rustup_up_cmd_help_flag", &["up", "--help"]);
 }
