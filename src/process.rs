@@ -147,6 +147,11 @@ impl Process {
     #[cfg(target_os = "linux")]
     pub fn permit_copy_rename(&self) -> bool {
         match self {
+            // HACK: On Linux CI machines, rustup is sometimes installed in a Docker image and we
+            // may hit OverlayFS restrictions that prevent renaming. Thus, we allow falling back to
+            // copying to avoid this issue.
+            // See: <https://github.com/dtolnay/rust-toolchain/pull/177>
+            _ if self.is_ci() => true,
             Self::OsProcess(_) => env::var_os("RUSTUP_PERMIT_COPY_RENAME").is_some(),
             #[cfg(feature = "test")]
             Self::TestProcess(p) => p.vars.contains_key("RUSTUP_PERMIT_COPY_RENAME"),
