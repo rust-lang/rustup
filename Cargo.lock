@@ -2077,7 +2077,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.29.1"
+version = "1.29.2"
 dependencies = [
  "anstream",
  "anstyle",
