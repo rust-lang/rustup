@@ -126,6 +126,19 @@ impl Process {
         }
     }
 
+    /// Determines if the current process is running in a CI environment.
+    ///
+    /// # Note
+    ///
+    /// This function returns true iff the `CI` environment variable is set _and_ `RUSTUP_CI` is
+    /// not set.
+    ///
+    /// The `RUSTUP_CI` bit is required because it is set by rustup itself in test suites in
+    /// order to reproduce normal behavior even in a CI environment.
+    pub fn is_ci(&self) -> bool {
+        self.var("CI").is_ok() && self.var("RUSTUP_CI").is_err()
+    }
+
     #[cfg(not(target_os = "linux"))]
     pub fn permit_copy_rename(&self) -> bool {
         false
