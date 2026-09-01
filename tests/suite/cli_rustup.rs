@@ -1387,6 +1387,84 @@ no overrides
 }
 
 #[tokio::test]
+async fn override_set_unqualified_doesnt_depend_on_default_host() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "override", "set", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+active toolchain
+----------------
+name: nightly-[HOST_TUPLE]
+active because: directory override for '[..]'
+...
+"#]])
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "set", "default-host", CROSS_ARCH1])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+active toolchain
+----------------
+name: nightly-[HOST_TUPLE]
+active because: directory override for '[..]'
+...
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn override_set_qualified_doesnt_depend_on_default_host() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "override", "set", for_host!("nightly-{}")])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+active toolchain
+----------------
+name: nightly-[HOST_TUPLE]
+active because: directory override for '[..]'
+...
+"#]])
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "set", "default-host", CROSS_ARCH1])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+active toolchain
+----------------
+name: nightly-[HOST_TUPLE]
+active because: directory override for '[..]'
+...
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn show_toolchain_env() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
