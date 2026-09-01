@@ -28,12 +28,14 @@ mod reqwest {
     use reqwest::{Client, Proxy};
     use url::Url;
 
-    use super::{scrub_env, serve_file, tmp_dir, write_file};
+    use super::{scrub_env, serve_file, serve_file_with_header_verification, tmp_dir, write_file};
     use crate::download::{DownloadOptions, Tls};
 
     const OPTIONS: DownloadOptions = DownloadOptions {
         tls: DOWNLOAD_BACKEND,
         timeout: Duration::from_secs(180),
+        authorization_header: None,
+        proxy_authorization_header: None,
     };
 
     #[cfg(feature = "reqwest-rustls-tls")]
@@ -158,6 +160,8 @@ mod reqwest {
         DownloadOptions {
             tls: DOWNLOAD_BACKEND,
             timeout: Duration::from_secs(1),
+            authorization_header: None,
+            proxy_authorization_header: None,
         }
         .start(&from_url, &target_path)
         .with_resume()
@@ -167,6 +171,136 @@ mod reqwest {
 
         assert!(target_path.exists(), "partial file should not be deleted");
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "123");
+    }
+
+    #[tokio::test]
+    async fn authorization_header() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded");
+
+        // Bearer token: ghp_1234567890abcdef follows the typical format of
+        // a GitHub Personal Access Token, which is commonly used as a
+        // Bearer token in CI/CD environments.
+        let bearer_token = "Bearer ghp_1234567890abcdef";
+        let addr = serve_file_with_header_verification(vec![("Authorization", bearer_token)]);
+        let from_url = format!("http://{addr}").parse().unwrap();
+
+        let options = DownloadOptions {
+            tls: DOWNLOAD_BACKEND,
+            timeout: Duration::from_secs(180),
+            authorization_header: Some(bearer_token.to_string()),
+            proxy_authorization_header: None,
+        };
+
+        options
+            .start(&from_url, &target_path)
+            .download()
+            .await
+            .expect("Test download failed");
+
+        assert!(target_path.exists());
+        assert_eq!(
+            std::fs::read_to_string(&target_path).unwrap().trim(),
+            "test content for header verification"
+        );
+    }
+
+    #[tokio::test]
+    async fn proxy_authorization_header() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded");
+
+        // Basic auth value for username 'test' and password '123?45>6'; the
+        // password contains special characters (? and >) that are common in
+        // real-world passwords.
+        // Shell command: echo -n 'test:123?45>6' | base64
+        // Result: dGVzdDoxMjM/NDU+Ng==
+        let basic_auth = "Basic dGVzdDoxMjM/NDU+Ng==";
+        let addr = serve_file_with_header_verification(vec![("Proxy-Authorization", basic_auth)]);
+        let from_url = format!("http://{addr}").parse().unwrap();
+
+        let options = DownloadOptions {
+            tls: DOWNLOAD_BACKEND,
+            timeout: Duration::from_secs(180),
+            authorization_header: None,
+            proxy_authorization_header: Some(basic_auth.to_string()),
+        };
+
+        options
+            .start(&from_url, &target_path)
+            .download()
+            .await
+            .expect("Test download failed");
+
+        assert!(target_path.exists());
+        assert_eq!(
+            std::fs::read_to_string(&target_path).unwrap().trim(),
+            "test content for header verification"
+        );
+    }
+
+    #[tokio::test]
+    async fn both_authorization_headers() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded");
+
+        // Both Authorization and Proxy-Authorization headers
+        let addr = serve_file_with_header_verification(vec![
+            ("Authorization", "Bearer combined-token"),
+            ("Proxy-Authorization", "Basic dGVzdDoxMjM/NDU+Ng=="),
+        ]);
+        let from_url = format!("http://{addr}").parse().unwrap();
+
+        let options = DownloadOptions {
+            tls: DOWNLOAD_BACKEND,
+            timeout: Duration::from_secs(180),
+            authorization_header: Some("Bearer combined-token".to_string()),
+            proxy_authorization_header: Some("Basic dGVzdDoxMjM/NDU+Ng==".to_string()),
+        };
+
+        options
+            .start(&from_url, &target_path)
+            .download()
+            .await
+            .expect("Test download failed");
+
+        assert!(target_path.exists());
+        assert_eq!(
+            std::fs::read_to_string(&target_path).unwrap().trim(),
+            "test content for header verification"
+        );
+    }
+
+    #[tokio::test]
+    async fn no_authorization_headers() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded");
+        // Use the standard serve_file, which does not check for any headers
+        let addr = serve_file(b"test content for no headers".to_vec(), false);
+        let from_url = format!("http://{addr}").parse().unwrap();
+
+        let options = DownloadOptions {
+            tls: DOWNLOAD_BACKEND,
+            timeout: Duration::from_secs(180),
+            authorization_header: None,
+            proxy_authorization_header: None,
+        };
+
+        options
+            .start(&from_url, &target_path)
+            .download()
+            .await
+            .expect("Test download failed");
+
+        assert!(target_path.exists());
+        assert_eq!(
+            std::fs::read_to_string(&target_path).unwrap().trim(),
+            "test content for no headers"
+        );
     }
 }
 
@@ -309,4 +443,77 @@ async fn scrub_env() -> tokio::sync::MutexGuard<'static, ()> {
     }
 
     guard
+}
+
+/// A server that verifies the given request headers match the expected values.
+fn serve_file_with_header_verification(headers: Vec<(&str, &str)>) -> SocketAddr {
+    let addr: SocketAddr = ([127, 0, 0, 1], 0).into();
+    let (addr_tx, addr_rx) = channel();
+    let headers: Vec<(String, String)> = headers
+        .into_iter()
+        .map(|(name, value)| (name.to_string(), value.to_string()))
+        .collect();
+
+    thread::spawn(move || {
+        let contents = b"test content for header verification".to_vec();
+
+        let svc = service_fn(move |req: Request<hyper::body::Incoming>| {
+            let contents = contents.clone();
+            let headers = headers.clone();
+            async move {
+                let res = serve_contents_with_header_verification(req, contents, &headers);
+                Ok::<_, Infallible>(res)
+            }
+        });
+
+        let rt = tokio::runtime::Runtime::new().expect("could not create Runtime");
+        rt.block_on(async {
+            let listener = tokio::net::TcpListener::bind(addr)
+                .await
+                .expect("cannot bind");
+            let local_addr = listener.local_addr().unwrap();
+            addr_tx.send(local_addr).unwrap();
+
+            loop {
+                let (stream, _) = listener
+                    .accept()
+                    .await
+                    .expect("could not accept connection");
+                let io = hyper_util::rt::TokioIo::new(stream);
+                let svc_ref = svc.clone();
+
+                if let Err(err) = http1::Builder::new().serve_connection(io, svc_ref).await {
+                    eprintln!("failed to serve connection: {err:?}");
+                }
+            }
+        });
+    });
+
+    addr_rx.recv().unwrap()
+}
+
+fn serve_contents_with_header_verification(
+    req: Request<hyper::body::Incoming>,
+    contents: Vec<u8>,
+    headers: &[(String, String)],
+) -> hyper::Response<Full<Bytes>> {
+    // Verify all headers are present and have the expected values
+    for (header_name, expected_value) in headers {
+        let actual_value = req
+            .headers()
+            .get(header_name.as_str())
+            .map(|v| v.to_str().unwrap_or(""));
+        if actual_value != Some(expected_value.as_str()) {
+            return hyper::Response::builder()
+                .status(hyper::StatusCode::UNAUTHORIZED)
+                .body(Full::new(Bytes::from("Unauthorized")))
+                .unwrap();
+        }
+    }
+
+    hyper::Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header(hyper::header::CONTENT_LENGTH, contents.len())
+        .body(Full::new(Bytes::from(contents)))
+        .unwrap()
 }
