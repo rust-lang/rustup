@@ -37,6 +37,7 @@ fn main() -> Result<ExitCode> {
     pre_rustup_main_init();
 
     let process = Process::os();
+    process.load_dotenv()?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .worker_threads(process.io_thread_count()?.into())

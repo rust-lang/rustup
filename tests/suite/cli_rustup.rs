@@ -4,14 +4,15 @@ use std::{
     env::consts::EXE_SUFFIX,
     fs,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use rustup::{
     env_var::RUST_RECURSION_COUNT_MAX,
     for_host,
     test::{
-        CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
-        topical_doc_data,
+        Assert, CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, SanitizedOutput, Scenario,
+        this_host_tuple, topical_doc_data,
     },
     utils::raw,
 };
@@ -1414,6 +1415,64 @@ installed targets:
   [HOST_TUPLE]
 
 "#]]);
+}
+
+fn run_active_toolchain_subprocess(mut command: Command) -> Assert {
+    let output = command.output().unwrap();
+    Assert::new(SanitizedOutput {
+        status: output.status.code(),
+        stdout: String::from_utf8(output.stdout).unwrap(),
+        stderr: String::from_utf8(output.stderr).unwrap(),
+    })
+}
+
+#[tokio::test]
+async fn show_toolchain_env_from_dotenv() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly", "beta"])
+        .await
+        .is_ok();
+    fs::write(
+        cx.config.rustupdir.join(".env"),
+        "RUSTUP_TOOLCHAIN=nightly\n",
+    )
+    .unwrap();
+
+    let mut command = cx.config.cmd("rustup", ["show", "active-toolchain"]);
+    command.env_remove("RUSTUP_TOOLCHAIN");
+    run_active_toolchain_subprocess(command)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+nightly-[HOST_TUPLE] (overridden by environment variable RUSTUP_TOOLCHAIN)
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+
+    let mut command = cx.config.cmd("rustup", ["show", "active-toolchain"]);
+    command.env("RUSTUP_TOOLCHAIN", "beta");
+    run_active_toolchain_subprocess(command)
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+beta-[HOST_TUPLE] (overridden by environment variable RUSTUP_TOOLCHAIN)
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+}
+
+#[tokio::test]
+async fn invalid_dotenv_is_reported() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    fs::write(cx.config.rustupdir.join(".env"), "invalid line\n").unwrap();
+
+    let mut command = cx.config.cmd("rustup", ["--version"]);
+    command.env_remove("RUSTUP_TOOLCHAIN");
+    let output = command.output().unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+
+    assert!(!output.status.success());
+    assert!(stderr.contains("failed to load environment file"));
+    assert!(stderr.contains(".env"));
 }
 
 #[tokio::test]
