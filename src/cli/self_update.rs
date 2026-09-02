@@ -785,7 +785,14 @@ fn install_bins(process: &Process) -> Result<()> {
 }
 
 pub(crate) fn install_proxies(process: &Process) -> Result<()> {
-    install_proxies_with_opts(process, process.var_os("RUSTUP_HARDLINK_PROXIES").is_some())
+    install_proxies_with_opts(
+        process,
+        // HACK: On Windows CI machines, some Docker setups don't like symlinks, so we force hard
+        // links in this case.
+        // See: <https://github.com/rust-lang/rustup/issues/4291>
+        (cfg!(windows) && process.is_ci())
+            || process.var_os("RUSTUP_FORCE_HARDLINK_PROXIES").is_some(),
+    )
 }
 
 fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> Result<()> {
