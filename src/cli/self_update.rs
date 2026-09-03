@@ -43,7 +43,7 @@ use std::{
 };
 
 use anstyle::Style;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use clap::{ValueEnum, builder::PossibleValue};
 use clap_cargo::style::{GOOD, WARN};
 use itertools::Itertools;
@@ -124,7 +124,7 @@ impl InstallOpts<'_> {
         no_prompt: bool,
         quiet: bool,
         process: &Process,
-    ) -> Result<ExitCode> {
+    ) -> anyhow::Result<ExitCode> {
         #[cfg_attr(not(unix), allow(unused_mut))]
         let mut exit_code = ExitCode::SUCCESS;
 
@@ -242,7 +242,7 @@ impl InstallOpts<'_> {
         current_dir: PathBuf,
         quiet: bool,
         process: &Process,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         install_bins(process)?;
 
         #[cfg(unix)]
@@ -302,7 +302,7 @@ impl InstallOpts<'_> {
     /// This function first initializes the default profile and default host tuple in the
     /// configuration, then returns the toolchain that should be installed, or `None` if none is
     /// specified by the user.
-    fn select_toolchain(self, cfg: &mut Cfg<'_>) -> Result<Option<PartialToolchainDesc>> {
+    fn select_toolchain(self, cfg: &mut Cfg<'_>) -> anyhow::Result<Option<PartialToolchainDesc>> {
         let Self {
             default_host_tuple,
             default_toolchain,
@@ -378,7 +378,7 @@ impl InstallOpts<'_> {
     }
 
     // Interactive editing of the install options
-    fn customize(&mut self, process: &Process) -> Result<()> {
+    fn customize(&mut self, process: &Process) -> anyhow::Result<()> {
         writeln!(
             process.stdout().lock(),
             "I'm going to ask you the value of each of these installation options.\n\
@@ -422,7 +422,7 @@ impl InstallOpts<'_> {
         Ok(())
     }
 
-    fn validate(&self, process: &Process) -> Result<()> {
+    fn validate(&self, process: &Process) -> anyhow::Result<()> {
         common::warn_if_host_is_emulated(process);
 
         let host_tuple = self
@@ -474,7 +474,7 @@ pub enum SelfUpdateMode {
 }
 
 impl SelfUpdateMode {
-    pub(crate) fn from_cfg(cfg: &Cfg<'_>) -> Result<Self> {
+    pub(crate) fn from_cfg(cfg: &Cfg<'_>) -> anyhow::Result<Self> {
         if cfg.process.is_ci() {
             return Ok(Self::Disable);
         }
@@ -508,7 +508,7 @@ impl SelfUpdateMode {
         &self,
         should_self_update: bool,
         dl_cfg: &DownloadCfg<'_>,
-    ) -> Result<ExitCode> {
+    ) -> anyhow::Result<ExitCode> {
         if cfg!(feature = "no-self-update") {
             info!("self-update is disabled for this build of rustup");
             info!("any updates to rustup will need to be fetched with your system package manager");
@@ -563,7 +563,7 @@ impl ValueEnum for SelfUpdateMode {
 impl FromStr for SelfUpdateMode {
     type Err = anyhow::Error;
 
-    fn from_str(mode: &str) -> Result<Self> {
+    fn from_str(mode: &str) -> anyhow::Result<Self> {
         match mode {
             "enable" => Ok(Self::Enable),
             "disable" => Ok(Self::Disable),
@@ -594,7 +594,7 @@ fn update_root(process: &Process) -> String {
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
-fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
+fn canonical_cargo_home(process: &Process) -> anyhow::Result<Cow<'static, str>> {
     let path = process.cargo_home()?;
 
     let default_cargo_home = process
@@ -611,7 +611,7 @@ fn canonical_cargo_home(process: &Process) -> Result<Cow<'static, str>> {
     })
 }
 
-fn rustc_or_cargo_exists_in_path(process: &Process) -> Result<()> {
+fn rustc_or_cargo_exists_in_path(process: &Process) -> anyhow::Result<()> {
     // Ignore rustc and cargo if present in $HOME/.cargo/bin or a few other directories
     #[allow(clippy::ptr_arg)]
     fn ignore_paths(path: &PathBuf) -> bool {
@@ -635,7 +635,10 @@ fn rustc_or_cargo_exists_in_path(process: &Process) -> Result<()> {
     Ok(())
 }
 
-fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process) -> Result<()> {
+fn check_existence_of_rustc_or_cargo_in_path(
+    no_prompt: bool,
+    process: &Process,
+) -> anyhow::Result<()> {
     // Only the test runner should set this
     let skip_check = process.var_os("RUSTUP_INIT_SKIP_PATH_CHECK");
 
@@ -659,7 +662,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool, process: &Process)
     Ok(())
 }
 
-fn check_existence_of_settings_file(process: &Process) -> Result<()> {
+fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
     let rustup_dir = process.rustup_home()?;
     let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
     if !utils::path_exists(&settings_file.path) {
@@ -682,7 +685,7 @@ fn check_existence_of_settings_file(process: &Process) -> Result<()> {
     Ok(())
 }
 
-fn pre_install_msg(no_modify_path: bool, process: &Process) -> Result<String> {
+fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
     let cargo_home = process.cargo_home()?;
     let cargo_home_bin = cargo_home.join("bin");
     let rustup_home = home::rustup_home()?;
@@ -768,7 +771,7 @@ fn warn_if_default_linker_missing(process: &Process) {
     }
 }
 
-fn install_bins(process: &Process) -> Result<()> {
+fn install_bins(process: &Process) -> anyhow::Result<()> {
     let bin_path = process.cargo_home()?.join("bin");
     let this_exe_path = utils::current_exe()?;
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
@@ -784,7 +787,7 @@ fn install_bins(process: &Process) -> Result<()> {
     install_proxies(process)
 }
 
-pub(crate) fn install_proxies(process: &Process) -> Result<()> {
+pub(crate) fn install_proxies(process: &Process) -> anyhow::Result<()> {
     install_proxies_with_opts(
         process,
         // HACK: On Windows CI machines, some Docker setups don't like symlinks, so we force hard
@@ -795,7 +798,7 @@ pub(crate) fn install_proxies(process: &Process) -> Result<()> {
     )
 }
 
-fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> Result<()> {
+fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> anyhow::Result<()> {
     let bin_path = process.cargo_home()?.join("bin");
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
@@ -897,7 +900,11 @@ fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> Resul
     Ok(())
 }
 
-fn check_proxy_sanity(process: &Process, components: &[&str], desc: &ToolchainDesc) -> Result<()> {
+fn check_proxy_sanity(
+    process: &Process,
+    components: &[&str],
+    desc: &ToolchainDesc,
+) -> anyhow::Result<()> {
     let bin_path = process.cargo_home()?.join("bin");
 
     // Sometimes linking a proxy produces an unpredictable result, where the proxy
@@ -928,7 +935,11 @@ fn check_proxy_sanity(process: &Process, components: &[&str], desc: &ToolchainDe
 /// 5. Try to remove $CARGO_HOME/bin directory if it's empty.
 /// 6. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
 /// 7. Try to remove $CARGO_HOME directory if it's empty.
-pub(crate) fn uninstall(no_prompt: bool, no_modify_path: bool, cfg: &Cfg<'_>) -> Result<ExitCode> {
+pub(crate) fn uninstall(
+    no_prompt: bool,
+    no_modify_path: bool,
+    cfg: &Cfg<'_>,
+) -> anyhow::Result<ExitCode> {
     if cfg!(feature = "no-self-update") {
         error!("self-uninstall is disabled for this build of rustup");
         error!("you should probably use your system package manager to uninstall rustup");
@@ -991,7 +1002,7 @@ pub(crate) fn uninstall(no_prompt: bool, no_modify_path: bool, cfg: &Cfg<'_>) ->
 /// This removes non-`bin` entries in `$CARGO_HOME`, removes rustup tool links and executable from
 /// `$CARGO_HOME/bin`, then removes `$CARGO_HOME/bin` and `$CARGO_HOME` only if they are empty.
 /// Nonempty directories are left in place.
-fn clean_cargo_home(no_modify_path: bool, process: &Process) -> Result<()> {
+fn clean_cargo_home(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
     let cargo_home = process.cargo_home()?;
     let cargo_bin = cargo_home.join("bin");
 
@@ -1082,12 +1093,12 @@ pub(crate) enum SelfUpdatePermission {
 }
 
 #[cfg(windows)]
-pub(crate) fn self_update_permitted(_explicit: bool) -> Result<SelfUpdatePermission> {
+pub(crate) fn self_update_permitted(_explicit: bool) -> anyhow::Result<SelfUpdatePermission> {
     Ok(SelfUpdatePermission::Permit)
 }
 
 #[cfg(not(windows))]
-pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
+pub(crate) fn self_update_permitted(explicit: bool) -> anyhow::Result<SelfUpdatePermission> {
     // Detect if rustup is not meant to self-update
     let current_exe = env::current_exe()?;
     let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
@@ -1125,7 +1136,7 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `$CARGO_HOME/bin`, and then deleted next
 /// time rustup runs.
-pub(crate) async fn update(cfg: &Cfg<'_>) -> Result<ExitCode> {
+pub(crate) async fn update(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     use SelfUpdatePermission::*;
@@ -1202,7 +1213,7 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<PathBuf>> {
+pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<PathBuf>> {
     let cargo_home = dl_cfg.process.cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
     let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
@@ -1267,7 +1278,7 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> Result<Option<Pa
     Ok(Some(setup_path))
 }
 
-async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> Result<String> {
+async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<String> {
     let update_root = update_root(dl_cfg.process);
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
@@ -1330,7 +1341,7 @@ impl fmt::Display for SchemaVersion {
 }
 
 /// Returns whether an update was available
-pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> Result<bool> {
+pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<bool> {
     let t = dl_cfg.process.stdout();
     let mut t = t.lock();
     // Get current rustup version
@@ -1358,7 +1369,7 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> Result<bool
 }
 
 #[tracing::instrument(level = "trace")]
-pub(crate) fn cleanup_self_updater(process: &Process) -> Result<()> {
+pub(crate) fn cleanup_self_updater(process: &Process) -> anyhow::Result<()> {
     let cargo_home = process.cargo_home()?;
     let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 

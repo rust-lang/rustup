@@ -5,7 +5,7 @@
 ))]
 #![recursion_limit = "1024"]
 
-use anyhow::{Result, anyhow};
+use anyhow::anyhow;
 use errors::RustupError;
 use itertools::{Itertools, chain};
 
@@ -32,7 +32,7 @@ pub static TOOLS: &[&str] = &[
 pub static DUP_TOOLS: &[&str] = &["rust-analyzer", "rustfmt", "cargo-fmt"];
 
 // If the given name is one of the tools we proxy.
-pub fn is_proxyable_tools(tool: &str) -> Result<()> {
+pub fn is_proxyable_tools(tool: &str) -> anyhow::Result<()> {
     if chain!(TOOLS, DUP_TOOLS).contains(&tool) {
         Ok(())
     } else {

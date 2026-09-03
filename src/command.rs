@@ -5,7 +5,7 @@ use std::{
     process::{self, Command, ExitStatus},
 };
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 
 use crate::errors::RustupError;
 
@@ -14,7 +14,7 @@ pub(crate) fn run_command_for_dir<S: AsRef<OsStr> + Debug>(
     mut cmd: Command,
     arg0: &str,
     args: &[S],
-) -> Result<ExitStatus> {
+) -> anyhow::Result<ExitStatus> {
     cmd.args(args);
 
     // FIXME rust-lang/rust#32254. It's not clear to me

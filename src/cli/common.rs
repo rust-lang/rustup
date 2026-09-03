@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 use std::{cmp, env};
 
 use anstyle::Style;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use clap_cargo::style::{CONTEXT, ERROR, UPDATE_ADDED, UPDATE_UNCHANGED, UPDATE_UPGRADED};
 use futures_util::future::join_all;
 use git_testament::{git_testament, render_testament};
@@ -29,7 +29,7 @@ pub(crate) const WARN_COMPLETE_PROFILE: &str = "\
 downloading with the `complete` profile is deprecated
 help: consider switching to the `default` profile with `rustup set profile default`";
 
-pub(crate) fn confirm(question: &str, default: bool, process: &Process) -> Result<bool> {
+pub(crate) fn confirm(question: &str, default: bool, process: &Process) -> anyhow::Result<bool> {
     write!(process.stdout().lock(), "{question} ")?;
     let _ = std::io::stdout().flush();
     let input = read_line(process)?;
@@ -52,7 +52,10 @@ pub(crate) enum Confirm {
     Advanced,
 }
 
-pub(crate) fn confirm_advanced(customized_install: bool, process: &Process) -> Result<Confirm> {
+pub(crate) fn confirm_advanced(
+    customized_install: bool,
+    process: &Process,
+) -> anyhow::Result<Confirm> {
     writeln!(process.stdout().lock())?;
     let first_option = match customized_install {
         true => "1) Proceed with selected options (default - just press enter)",
@@ -77,7 +80,11 @@ pub(crate) fn confirm_advanced(customized_install: bool, process: &Process) -> R
     Ok(r)
 }
 
-pub(crate) fn question_str(question: &str, default: &str, process: &Process) -> Result<String> {
+pub(crate) fn question_str(
+    question: &str,
+    default: &str,
+    process: &Process,
+) -> anyhow::Result<String> {
     writeln!(process.stdout().lock(), "{question} [{default}]")?;
     let _ = std::io::stdout().flush();
     let input = read_line(process)?;
@@ -91,7 +98,11 @@ pub(crate) fn question_str(question: &str, default: &str, process: &Process) -> 
     }
 }
 
-pub(crate) fn question_bool(question: &str, default: bool, process: &Process) -> Result<bool> {
+pub(crate) fn question_bool(
+    question: &str,
+    default: bool,
+    process: &Process,
+) -> anyhow::Result<bool> {
     let default_text = if default { "(Y/n)" } else { "(y/N)" };
     writeln!(process.stdout().lock(), "{question} {default_text}")?;
 
@@ -111,7 +122,7 @@ pub(crate) fn question_bool(question: &str, default: bool, process: &Process) ->
     }
 }
 
-pub(crate) fn read_line(process: &Process) -> Result<String> {
+pub(crate) fn read_line(process: &Process) -> anyhow::Result<String> {
     let stdin = process.stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
@@ -126,8 +137,8 @@ pub(crate) fn read_line(process: &Process) -> Result<String> {
 pub(crate) fn show_channel_update(
     cfg: &Cfg<'_>,
     name: PackageUpdate,
-    updated: Result<UpdateStatus>,
-) -> Result<()> {
+    updated: anyhow::Result<UpdateStatus>,
+) -> anyhow::Result<()> {
     show_channel_updates(cfg, vec![(name, updated)])
 }
 
@@ -147,8 +158,8 @@ impl Display for PackageUpdate {
 
 fn show_channel_updates(
     cfg: &Cfg<'_>,
-    updates: Vec<(PackageUpdate, Result<UpdateStatus>)>,
-) -> Result<()> {
+    updates: Vec<(PackageUpdate, anyhow::Result<UpdateStatus>)>,
+) -> anyhow::Result<()> {
     let data = updates.into_iter().map(|(pkg, result)| {
         let (banner, style) = match &result {
             Ok(UpdateStatus::Installed) => ("installed", UPDATE_ADDED),
@@ -195,7 +206,7 @@ fn show_channel_updates(
     let t = cfg.process.stdout();
     let mut t = t.lock();
 
-    let data: Vec<_> = data.collect::<Result<_>>()?;
+    let data = data.collect::<anyhow::Result<Vec<_>>>()?;
     let max_width = data
         .iter()
         .fold(0, |a, &(_, _, width, _, _, _)| cmp::max(a, width));
@@ -214,7 +225,10 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub(crate) async fn update_all_channels(cfg: &Cfg<'_>, force_update: bool) -> Result<ExitCode> {
+pub(crate) async fn update_all_channels(
+    cfg: &Cfg<'_>,
+    force_update: bool,
+) -> anyhow::Result<ExitCode> {
     let profile = cfg.get_profile()?;
     let channels = cfg.list_channels()?;
 
@@ -277,7 +291,7 @@ pub(super) fn list_items(
     installed_only: bool,
     quiet: bool,
     process: &Process,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let t = process.stdout();
     let mut t = t.lock();
     let bold = Style::new().bold();
@@ -291,7 +305,11 @@ pub(super) fn list_items(
     Ok(ExitCode::SUCCESS)
 }
 
-pub(crate) async fn list_toolchains(cfg: &Cfg<'_>, verbose: bool, quiet: bool) -> Result<ExitCode> {
+pub(crate) async fn list_toolchains(
+    cfg: &Cfg<'_>,
+    verbose: bool,
+    quiet: bool,
+) -> anyhow::Result<ExitCode> {
     let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         writeln!(cfg.process.stdout().lock(), "no installed toolchains")?;
@@ -329,7 +347,7 @@ pub(crate) async fn list_toolchains(cfg: &Cfg<'_>, verbose: bool, quiet: bool) -
         is_active: bool,
         verbose: bool,
         quiet: bool,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         if quiet {
             writeln!(cfg.process.stdout().lock(), "{toolchain}")?;
             return Ok(());
@@ -364,7 +382,7 @@ pub(crate) async fn list_toolchains(cfg: &Cfg<'_>, verbose: bool, quiet: bool) -
     Ok(ExitCode::SUCCESS)
 }
 
-pub(crate) fn list_overrides(cfg: &Cfg<'_>) -> Result<ExitCode> {
+pub(crate) fn list_overrides(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
 
     if overrides.is_empty() {
@@ -405,7 +423,7 @@ pub(crate) fn version() -> &'static str {
     &RENDERED
 }
 
-pub(crate) fn dump_testament(process: &Process) -> Result<ExitCode> {
+pub(crate) fn dump_testament(process: &Process) -> anyhow::Result<ExitCode> {
     use git_testament::GitModification::*;
     writeln!(
         process.stdout().lock(),
@@ -493,7 +511,7 @@ pub(crate) fn ignorable_error(
     error: &'static str,
     no_prompt: bool,
     process: &Process,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let error = anyhow!(error);
     report_error(&error, process);
     if no_prompt {
@@ -515,7 +533,7 @@ pub(crate) fn check_non_host_toolchain(
     host_arch: &TargetTuple,
     target_tuple: &TargetTuple,
     force_non_host: bool,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     if force_non_host || host_arch.can_run(target_tuple)? {
         return Ok(());
     }

@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 
 struct DocData<'a> {
     topic: &'a str,
@@ -18,14 +18,14 @@ fn index_html(doc: &DocData<'_>, wpath: &Path) -> Option<PathBuf> {
     }
 }
 
-fn dir_into_vec(dir: &Path) -> Result<Vec<OsString>> {
+fn dir_into_vec(dir: &Path) -> anyhow::Result<Vec<OsString>> {
     fs::read_dir(dir)
         .with_context(|| format!("Failed to read_dir {dir:?}"))?
         .map(|f| Ok(f?.file_name()))
         .collect()
 }
 
-fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<PathBuf> {
+fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> anyhow::Result<PathBuf> {
     let dir = &doc.root.join(wpath);
     if dir.is_dir() {
         let entries = dir_into_vec(dir)?;
@@ -39,7 +39,7 @@ fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<Pat
     Err(anyhow!(format!("No document for '{}'", doc.topic)))
 }
 
-pub(crate) fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
+pub(crate) fn local_path(root: &Path, topic: &str) -> anyhow::Result<PathBuf> {
     // The ORDER of keywords_top is used for the default search and should not
     // be changed.
     // https://github.com/rust-lang/rustup/issues/2076#issuecomment-546613036

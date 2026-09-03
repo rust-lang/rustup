@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::{Result, format_err};
+use anyhow::format_err;
 use clap::Parser;
 use tracing::warn;
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
@@ -79,7 +79,7 @@ pub async fn main(
     current_dir: PathBuf,
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
-) -> Result<utils::ExitCode> {
+) -> anyhow::Result<utils::ExitCode> {
     use clap::error::ErrorKind;
 
     let RustupInit {

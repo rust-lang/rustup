@@ -17,7 +17,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use clap::Args;
 use http_body_util::Full;
 use hyper::{
@@ -187,7 +187,7 @@ pub(crate) async fn doc(
     toolchain: Option<PartialToolchainDesc>,
     mut topic: Option<&str>,
     doc_page: &DocPage,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
 
@@ -254,7 +254,7 @@ pub(crate) async fn man(
     cfg: &Cfg<'_>,
     command: &str,
     toolchain: Option<PartialToolchainDesc>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
     let path = toolchain.man_path();
@@ -275,7 +275,11 @@ pub(crate) async fn man(
 
 /// Blocks forever, accepting and serving connections until the process is
 /// killed by Ctrl-C.
-async fn serve_and_open(root: PathBuf, initial_path: &Path, fragment: Option<&str>) -> Result<()> {
+async fn serve_and_open(
+    root: PathBuf,
+    initial_path: &Path,
+    fragment: Option<&str>,
+) -> anyhow::Result<()> {
     let listener = TcpListener::bind(("127.0.0.1", 0))
         .await
         .context("failed to bind local documentation server")?;
@@ -319,7 +323,7 @@ async fn serve_and_open(root: PathBuf, initial_path: &Path, fragment: Option<&st
 async fn serve(
     req: Request<Incoming>,
     root: Arc<Path>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
+) -> anyhow::Result<Response<Full<Bytes>>, Infallible> {
     let request_path = req.uri().path().trim_start_matches('/');
     let mut path = root.to_path_buf();
     for segment in Path::new(request_path).components() {

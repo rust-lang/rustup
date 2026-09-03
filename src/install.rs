@@ -2,7 +2,6 @@
 //! toolchains
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
 use tracing::debug;
 
 use crate::{
@@ -37,7 +36,10 @@ pub(crate) enum InstallMethod<'cfg, 'a> {
 impl InstallMethod<'_, '_> {
     // Install a toolchain
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
-    pub(crate) async fn install(self, manifest: Option<ManifestWithHash>) -> Result<UpdateStatus> {
+    pub(crate) async fn install(
+        self,
+        manifest: Option<ManifestWithHash>,
+    ) -> anyhow::Result<UpdateStatus> {
         // Initialize rayon for use by the remove_dir_all crate limiting the number of threads.
         // This will error if rayon is already initialized but it's fine to ignore that.
         let _ = rayon::ThreadPoolBuilder::new()
@@ -82,7 +84,7 @@ impl InstallMethod<'_, '_> {
         }
     }
 
-    async fn run(&self, path: &Path, manifest: Option<ManifestWithHash>) -> Result<bool> {
+    async fn run(&self, path: &Path, manifest: Option<ManifestWithHash>) -> anyhow::Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -153,6 +155,6 @@ impl InstallMethod<'_, '_> {
     }
 }
 
-pub(crate) fn uninstall(path: &Path) -> Result<()> {
+pub(crate) fn uninstall(path: &Path) -> anyhow::Result<()> {
     utils::remove_dir("install", path)
 }
