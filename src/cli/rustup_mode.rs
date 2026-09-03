@@ -202,6 +202,10 @@ enum RustupSubcmd {
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
         force_non_host: bool,
+
+        /// Indicate update status via exit code
+        #[arg(long)]
+        check: bool,
     },
 
     /// Check for updates to Rust toolchains and rustup
@@ -493,6 +497,10 @@ struct UpdateOpts {
     /// Set the installed toolchain as the default toolchain
     #[arg(long)]
     default: bool,
+
+    /// Indicate update status via exit code
+    #[arg(long)]
+    check: bool,
 }
 
 #[derive(Debug, Default, Args)]
@@ -765,6 +773,7 @@ pub async fn main(
             allow_downgrade,
             force,
             force_non_host,
+            check,
         } => {
             update(
                 cfg,
@@ -774,6 +783,7 @@ pub async fn main(
                     allow_downgrade,
                     force,
                     force_non_host,
+                    check,
                     ..UpdateOpts::default()
                 },
                 false,
@@ -1185,7 +1195,7 @@ async fn update(
         info!("it's active because: {}", source.to_reason());
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
     } else {
-        exit_code &= common::update_all_channels(cfg, opts.force).await?;
+        exit_code &= common::update_all_channels(cfg, opts.force, opts.check).await?;
         exit_code &= self_update_mode.update(should_self_update, &dl_cfg).await?;
 
         info!("cleaning up downloads & tmp directories");
