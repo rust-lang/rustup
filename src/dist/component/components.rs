@@ -32,10 +32,7 @@ impl Components {
         if let Some(v) = c.read_version()?
             && v != INSTALLER_VERSION
         {
-            bail!(
-                "unsupported metadata version in existing installation: {}",
-                v
-            );
+            bail!("unsupported metadata version in existing installation: {v}");
         }
 
         Ok(c)
