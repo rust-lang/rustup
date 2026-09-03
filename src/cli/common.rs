@@ -241,7 +241,8 @@ pub(crate) async fn update_all_channels(
     }))
     .await;
 
-    let mut toolchains = Vec::new();
+    let mut toolchains = Vec::with_capacity(channels_with_manifests.len());
+    let mut has_update_error = false;
     for (desc, distributable, manifest) in channels_with_manifests {
         let result = if force_update || manifest.is_some() {
             let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
@@ -252,13 +253,13 @@ pub(crate) async fn update_all_channels(
         };
 
         if let Err(e) = &result {
+            has_update_error = true;
             error!("{e}");
         }
 
         toolchains.push((desc, result));
     }
 
-    let has_update_error = toolchains.iter().any(|(_, r)| r.is_err());
     let exit_code = if has_update_error {
         ExitCode::FAILURE
     } else {
