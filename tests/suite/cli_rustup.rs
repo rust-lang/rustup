@@ -17,6 +17,57 @@ use rustup::{
 };
 
 #[tokio::test]
+async fn update_check_no_updates() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "add", "stable"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "update", "--check"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+
+  stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+
+
+"#]]);
+}
+
+#[tokio::test]
+async fn update_check_with_partial_updates() {
+    let mut cx = CliTestContext::new(Scenario::None).await;
+
+    {
+        let cx = cx.with_dist_dir(Scenario::ArchivesV2_2015_01_01);
+        cx.config
+            .expect(["rustup", "toolchain", "add", "stable"])
+            .await
+            .is_ok();
+    }
+
+    let cx = cx.with_dist_dir(Scenario::SimpleV2);
+    cx.config
+        .expect(["rustup", "toolchain", "add", "beta"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "update", "--check"])
+        .await
+        .has_code(100)
+        .with_stdout(snapbox::str![[r#"
+
+  stable-[HOST_TUPLE] updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
+  beta-[HOST_TUPLE] unchanged - 1.2.0 (hash-beta-1.2.0)
+
+
+"#]]);
+}
+
+#[tokio::test]
 async fn rustup_stable() {
     let mut cx = CliTestContext::new(Scenario::None).await;
 

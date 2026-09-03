@@ -228,6 +228,7 @@ fn show_channel_updates(
 pub(crate) async fn update_all_channels(
     cfg: &Cfg<'_>,
     force_update: bool,
+    check: bool,
 ) -> anyhow::Result<ExitCode> {
     let profile = cfg.get_profile()?;
     let channels = cfg.list_channels()?;
@@ -243,6 +244,7 @@ pub(crate) async fn update_all_channels(
 
     let mut toolchains = Vec::with_capacity(channels_with_manifests.len());
     let mut has_update_error = false;
+    let mut has_update = false;
     for (desc, distributable, manifest) in channels_with_manifests {
         let result = if force_update || manifest.is_some() {
             let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
@@ -252,9 +254,13 @@ pub(crate) async fn update_all_channels(
             Ok(UpdateStatus::Unchanged)
         };
 
-        if let Err(e) = &result {
-            has_update_error = true;
-            error!("{e}");
+        match &result {
+            Ok(UpdateStatus::Updated(_)) | Ok(UpdateStatus::Installed) => has_update = true,
+            Err(e) => {
+                has_update_error = true;
+                error!("{e}");
+            }
+            _ => (),
         }
 
         toolchains.push((desc, result));
@@ -262,6 +268,8 @@ pub(crate) async fn update_all_channels(
 
     let exit_code = if has_update_error {
         ExitCode::FAILURE
+    } else if check && has_update {
+        ExitCode::UPDATES_AVAILABLE
     } else {
         ExitCode::SUCCESS
     };
