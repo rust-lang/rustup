@@ -13,7 +13,7 @@ use std::{
 
 use anstream::ColorChoice;
 use anstyle::Style;
-use anyhow::{Error, Result, anyhow};
+use anyhow::{Error, anyhow};
 use clap::{
     Args, CommandFactory, Parser, Subcommand, ValueEnum,
     builder::{PossibleValue, ValueHint},
@@ -66,7 +66,7 @@ use crate::{
 const TOOLCHAIN_OVERRIDE_ERROR: &str = "To override the toolchain using the 'rustup +toolchain' syntax, \
                         make sure to prefix the toolchain override with a '+'";
 
-fn handle_epipe(res: Result<ExitCode>) -> Result<ExitCode> {
+fn handle_epipe(res: anyhow::Result<ExitCode>) -> anyhow::Result<ExitCode> {
     match res {
         Err(e) => {
             let root = e.root_cause();
@@ -306,7 +306,7 @@ enum RustupSubcmd {
     },
 }
 
-fn update_toolchain_value_parser(s: &str) -> Result<PartialToolchainDesc> {
+fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialToolchainDesc> {
     PartialToolchainDesc::from_str(s).inspect_err(|_| {
         if s == "self" {
             info!("if you meant to update rustup itself, use `rustup self update`");
@@ -679,7 +679,7 @@ pub async fn main(
     current_dir: PathBuf,
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let cfg = &mut Cfg::from_env(current_dir, true, false, process)?;
     clap_complete::CompleteEnv::with_factory(|| completion_command(cfg))
         .var("RUSTUP_COMPLETE")
@@ -906,7 +906,7 @@ async fn default_(
     cfg: &Cfg<'_>,
     toolchain: Option<MaybeResolvableToolchainName>,
     force_non_host: bool,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     if let Some(toolchain) = toolchain {
@@ -951,7 +951,7 @@ async fn default_(
     Ok(ExitCode::SUCCESS)
 }
 
-async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> Result<ExitCode> {
+async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> anyhow::Result<ExitCode> {
     let t = cfg.process.stdout();
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
@@ -1094,7 +1094,7 @@ async fn update(
     cfg: &mut Cfg<'_>,
     opts: UpdateOpts,
     ensure_active_toolchain: bool,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let mut exit_code = ExitCode::SUCCESS;
 
     common::warn_if_host_is_emulated(cfg.process);
@@ -1192,7 +1192,7 @@ async fn run(
     toolchain: ResolvableLocalToolchainName,
     command: Vec<String>,
     install: bool,
-) -> Result<ExitStatus> {
+) -> anyhow::Result<ExitStatus> {
     let toolchain = toolchain.resolve(&cfg.default_host_tuple()?)?;
     let toolchain = Toolchain::from_local(toolchain, install, cfg).await?;
     let cmd = toolchain.command(&command[0])?;
@@ -1203,7 +1203,7 @@ async fn which(
     cfg: &Cfg<'_>,
     binary: &str,
     toolchain: Option<ResolvableToolchainName>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
@@ -1238,7 +1238,7 @@ async fn which(
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
+async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     let t = cfg.process.stdout();
@@ -1372,7 +1372,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode> {
+async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     match cfg.maybe_ensure_active_toolchain(None).await? {
         Some((toolchain_name, source)) => {
             let toolchain = Toolchain::with_source(cfg, toolchain_name, &source)?;
@@ -1403,7 +1403,7 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> Result<ExitCode>
 }
 
 #[tracing::instrument(level = "trace", skip_all)]
-fn show_rustup_home(cfg: &Cfg<'_>) -> Result<ExitCode> {
+fn show_rustup_home(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     writeln!(cfg.process.stdout().lock(), "{}", cfg.rustup_dir.display())?;
     Ok(ExitCode::SUCCESS)
 }
@@ -1413,7 +1413,7 @@ async fn target_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
 
     // If a toolchain is Distributable, we can assume it has a manifest and thus print all possible targets and the installed ones.
@@ -1447,7 +1447,7 @@ async fn target_add(
     cfg: &Cfg<'_>,
     mut targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
     // isn't a feature yet.
@@ -1506,7 +1506,7 @@ async fn target_remove(
     cfg: &Cfg<'_>,
     targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
         cfg,
@@ -1547,7 +1547,7 @@ async fn component_list(
     toolchain: Option<PartialToolchainDesc>,
     installed_only: bool,
     quiet: bool,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
 
     // downcasting required because the toolchain files can name any toolchain
@@ -1580,7 +1580,7 @@ async fn component_add(
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
         cfg,
@@ -1594,7 +1594,7 @@ async fn component_add(
             components
                 .into_iter()
                 .map(|component| Component::try_new(&component, &distributable, target.as_ref()))
-                .collect::<Result<_>>()?,
+                .collect::<anyhow::Result<_>>()?,
         )
         .await?;
 
@@ -1615,7 +1615,7 @@ async fn component_remove(
     components: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
     target: Option<String>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
@@ -1623,7 +1623,7 @@ async fn component_remove(
     let parsed_components = components
         .iter()
         .map(|component| Component::try_new(component, &distributable, target.as_ref()))
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<anyhow::Result<Vec<_>>>()?;
 
     let mut unknown_components = Vec::new();
 
@@ -1653,7 +1653,11 @@ async fn component_remove(
     }
 }
 
-async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -> Result<ExitCode> {
+async fn toolchain_link(
+    cfg: &Cfg<'_>,
+    dest: &CustomToolchainName,
+    src: &Path,
+) -> anyhow::Result<ExitCode> {
     cfg.ensure_toolchains_dir()?;
     let mut pathbuf = PathBuf::from(src);
 
@@ -1680,7 +1684,7 @@ async fn toolchain_link(cfg: &Cfg<'_>, dest: &CustomToolchainName, src: &Path) -
     Ok(ExitCode::SUCCESS)
 }
 
-async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> Result<ExitCode> {
+async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<ExitCode> {
     let default_toolchain = cfg.get_default().ok().flatten();
     let active_toolchain = cfg
         .maybe_ensure_active_toolchain(Some(false))
@@ -1718,7 +1722,7 @@ async fn override_add(
     cfg: &Cfg<'_>,
     toolchain: ResolvableToolchainName,
     path: Option<&Path>,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     let toolchain_name = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
     match Toolchain::new(cfg, toolchain_name.clone().into()) {
         Ok(_) => {}
@@ -1742,7 +1746,11 @@ async fn override_add(
     Ok(ExitCode::SUCCESS)
 }
 
-fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Result<ExitCode> {
+fn override_remove(
+    cfg: &Cfg<'_>,
+    path: Option<&Path>,
+    nonexistent: bool,
+) -> anyhow::Result<ExitCode> {
     let paths = if nonexistent {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
@@ -1779,7 +1787,10 @@ fn override_remove(cfg: &Cfg<'_>, path: Option<&Path>, nonexistent: bool) -> Res
     Ok(ExitCode::SUCCESS)
 }
 
-fn set_auto_self_update(cfg: &Cfg<'_>, auto_self_update_mode: SelfUpdateMode) -> Result<ExitCode> {
+fn set_auto_self_update(
+    cfg: &Cfg<'_>,
+    auto_self_update_mode: SelfUpdateMode,
+) -> anyhow::Result<ExitCode> {
     if cfg!(feature = "no-self-update") {
         let mut args = cfg.process.args_os();
         let arg0 = args.next().map(PathBuf::from);
@@ -1828,7 +1839,7 @@ fn output_completion_script(
     shell: Shell,
     command: CompletionCommand,
     process: &Process,
-) -> Result<ExitCode> {
+) -> anyhow::Result<ExitCode> {
     match command {
         CompletionCommand::Rustup => {
             clap_complete::generate(
@@ -1867,7 +1878,7 @@ fn output_completion_script(
     Ok(ExitCode::SUCCESS)
 }
 
-async fn display_version(cfg: &mut Cfg<'_>) -> Result<()> {
+async fn display_version(cfg: &mut Cfg<'_>) -> anyhow::Result<()> {
     info!("this is the version for the rustup toolchain manager, not the rustc compiler");
     cfg.toolchain_override = cfg
         .process

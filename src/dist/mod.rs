@@ -5,7 +5,7 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use chrono::NaiveDate;
 use clap::{ValueEnum, builder::PossibleValue};
 use itertools::Itertools;
@@ -134,7 +134,7 @@ struct ParsedToolchainDesc {
 
 impl FromStr for ParsedToolchainDesc {
     type Err = anyhow::Error;
-    fn from_str(desc: &str) -> Result<Self> {
+    fn from_str(desc: &str) -> anyhow::Result<Self> {
         // Note this regex gives you a guaranteed match of the channel (1)
         // and an optional match of the date (2) and target (3)
         static TOOLCHAIN_CHANNEL_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -201,7 +201,7 @@ pub struct PartialToolchainDesc {
 
 impl PartialToolchainDesc {
     /// Create a toolchain desc using input_host to fill in missing fields
-    pub(crate) fn resolve(self, input_host: &TargetTuple) -> Result<ToolchainDesc> {
+    pub(crate) fn resolve(self, input_host: &TargetTuple) -> anyhow::Result<ToolchainDesc> {
         let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
                 "Provided host '{}' couldn't be converted to partial tuple",
@@ -248,7 +248,7 @@ impl PartialToolchainDesc {
 
 impl FromStr for PartialToolchainDesc {
     type Err = anyhow::Error;
-    fn from_str(name: &str) -> Result<Self> {
+    fn from_str(name: &str) -> anyhow::Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
         let target = PartialTargetTuple::new(parsed.target.as_deref().unwrap_or(""));
 
@@ -339,7 +339,7 @@ impl ToolchainDesc {
 
 impl FromStr for ToolchainDesc {
     type Err = anyhow::Error;
-    fn from_str(name: &str) -> Result<Self> {
+    fn from_str(name: &str) -> anyhow::Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
 
         if parsed.target.is_none() {
@@ -388,7 +388,7 @@ impl fmt::Display for Channel {
 
 impl FromStr for Channel {
     type Err = anyhow::Error;
-    fn from_str(chan: &str) -> Result<Self> {
+    fn from_str(chan: &str) -> anyhow::Result<Self> {
         match chan {
             "stable" => Ok(Self::Stable),
             "beta" => Ok(Self::Beta),
@@ -426,7 +426,7 @@ impl fmt::Display for PartialVersion {
 
 impl FromStr for PartialVersion {
     type Err = anyhow::Error;
-    fn from_str(ver: &str) -> Result<Self> {
+    fn from_str(ver: &str) -> anyhow::Result<Self> {
         // `semver::Comparator::from_str` supports an optional operator
         // (e.g. `=`, `>`, `>=`, `<`, `<=`, `~`, `^`, `*`) before the
         // partial version, so we should exclude that case first.
@@ -649,7 +649,7 @@ impl TargetTuple {
         Self::from_host(process).unwrap_or_else(Self::from_build)
     }
 
-    pub(crate) fn can_run(&self, other: &Self) -> Result<bool> {
+    pub(crate) fn can_run(&self, other: &Self) -> anyhow::Result<bool> {
         // Most trivial shortcut of all
         if self == other {
             return Ok(true);
@@ -788,7 +788,7 @@ impl ValueEnum for Profile {
 impl FromStr for Profile {
     type Err = anyhow::Error;
 
-    fn from_str(name: &str) -> Result<Self> {
+    fn from_str(name: &str) -> anyhow::Result<Self> {
         match name {
             "minimal" | "m" => Ok(Self::Minimal),
             "default" | "d" | "" => Ok(Self::Default),
@@ -842,7 +842,7 @@ impl ValueEnum for Switch {
 impl FromStr for Switch {
     type Err = anyhow::Error;
 
-    fn from_str(mode: &str) -> Result<Self> {
+    fn from_str(mode: &str) -> anyhow::Result<Self> {
         match mode {
             "enable" => Ok(Self::Enable),
             "disable" => Ok(Self::Disable),
@@ -889,7 +889,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         profile: Profile,
         force: bool,
         cfg: &'cfg Cfg<'cfg>,
-    ) -> Result<Self> {
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             cfg,
             toolchain,
@@ -940,7 +940,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         &self,
         prefix: &InstallPrefix,
         mut prefetched_manifest: Option<ManifestWithHash>,
-    ) -> Result<Option<String>> {
+    ) -> anyhow::Result<Option<String>> {
         let fresh_install = !prefix.path().exists();
         // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
         if fresh_install && self.update_hash.exists() {
@@ -1109,8 +1109,8 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         &self,
         toolchain: Option<&ToolchainDesc>,
         prefix: &InstallPrefix,
-        manifest_result: Result<Option<ManifestWithHash>>,
-    ) -> Result<Option<String>> {
+        manifest_result: anyhow::Result<Option<ManifestWithHash>>,
+    ) -> anyhow::Result<Option<String>> {
         let download = &self.dl_cfg;
         let toolchain = toolchain.unwrap_or(self.toolchain);
         let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
@@ -1254,7 +1254,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         &self,
         prefix: &InstallPrefix,
         toolchain: &ToolchainDesc,
-    ) -> Result<Option<ManifestWithHash>> {
+    ) -> anyhow::Result<Option<ManifestWithHash>> {
         self.dl_cfg
             .dl_v2_manifest(
                 // Skip the update hash when the installed manifest is missing or when components
@@ -1398,7 +1398,7 @@ mod tests {
     }
 
     #[test]
-    fn partial_version_from_str() -> Result<()> {
+    fn partial_version_from_str() -> anyhow::Result<()> {
         assert_eq!(
             PartialVersion::from_str("0.12")?,
             PartialVersion {

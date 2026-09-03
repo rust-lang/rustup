@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use indicatif::{MultiProgress, ProgressBar, ProgressBarIter, ProgressDrawTarget, ProgressStyle};
 use sha2::{Digest, Sha256};
 use tracing::{debug, info, warn};
@@ -54,7 +54,7 @@ impl<'a> DownloadCfg<'a> {
         url: &Url,
         hash: &str,
         status: &DownloadStatus,
-    ) -> Result<File> {
+    ) -> anyhow::Result<File> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
 
@@ -125,7 +125,7 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
-    pub(crate) fn clean(&self, hashes: &[impl AsRef<Path>]) -> Result<()> {
+    pub(crate) fn clean(&self, hashes: &[impl AsRef<Path>]) -> anyhow::Result<()> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
             if self.download_dir.join(&used_file).exists() {
@@ -135,7 +135,7 @@ impl<'a> DownloadCfg<'a> {
         Ok(())
     }
 
-    async fn download_hash(&self, url: &str) -> Result<String> {
+    async fn download_hash(&self, url: &str) -> anyhow::Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
         DownloadOptions::try_from(self.process)?
@@ -150,7 +150,7 @@ impl<'a> DownloadCfg<'a> {
         update_hash: Option<&Path>,
         toolchain: &ToolchainDesc,
         cfg: &Cfg<'_>,
-    ) -> Result<Option<ManifestWithHash>> {
+    ) -> anyhow::Result<Option<ManifestWithHash>> {
         let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, self.process);
         match self
             .download_and_check(&manifest_url, update_hash, None, ".toml")
@@ -203,7 +203,7 @@ impl<'a> DownloadCfg<'a> {
         &self,
         dist_root: &str,
         toolchain: &ToolchainDesc,
-    ) -> Result<Vec<String>> {
+    ) -> anyhow::Result<Vec<String>> {
         let root_url = toolchain.package_dir(dist_root);
 
         if let Channel::Version(ver) = &toolchain.channel {
@@ -238,7 +238,7 @@ impl<'a> DownloadCfg<'a> {
         update_hash: Option<&Path>,
         status: Option<&DownloadStatus>,
         ext: &str,
-    ) -> Result<Option<(temp::File, String)>> {
+    ) -> anyhow::Result<Option<(temp::File, String)>> {
         let hash = self.download_hash(url_str).await?;
         let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 
@@ -314,7 +314,7 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
-    pub(crate) fn url(&self, url: &str) -> Result<Url> {
+    pub(crate) fn url(&self, url: &str) -> anyhow::Result<Url> {
         match &*self.tmp_cx.dist_server {
             server if server != DEFAULT_DIST_SERVER => utils::parse_url(
                 &url.replace(DEFAULT_DIST_SERVER, self.tmp_cx.dist_server.as_str()),
@@ -444,7 +444,7 @@ impl DownloadStatus {
     }
 }
 
-fn file_hash(path: &Path) -> Result<String> {
+fn file_hash(path: &Path) -> anyhow::Result<String> {
     let mut hasher = Sha256::new();
     let mut downloaded = utils::buffered(path)?;
     let mut buf = vec![0; 32768];

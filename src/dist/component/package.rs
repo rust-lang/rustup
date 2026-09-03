@@ -8,7 +8,7 @@ use std::mem;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, anyhow, bail};
 use tar::EntryType;
 use tracing::warn;
 
@@ -37,7 +37,7 @@ impl DirectoryPackage<temp::Dir> {
         kind: CompressionKind,
         temp_dir: temp::Dir,
         io_executor: Box<dyn Executor>,
-    ) -> Result<Self> {
+    ) -> anyhow::Result<Self> {
         match kind {
             CompressionKind::GZip => Self::from_tar(
                 flate2::bufread::GzDecoder::new(stream),
@@ -59,7 +59,7 @@ impl DirectoryPackage<temp::Dir> {
         stream: impl Read,
         temp_dir: temp::Dir,
         io_executor: Box<dyn Executor>,
-    ) -> Result<Self> {
+    ) -> anyhow::Result<Self> {
         let mut archive = tar::Archive::new(stream);
 
         // The rust-installer packages unpack to a directory called
@@ -73,7 +73,7 @@ impl DirectoryPackage<temp::Dir> {
 }
 
 impl<P: Deref<Target = Path>> DirectoryPackage<P> {
-    pub fn new(path: P, copy: bool) -> Result<Self> {
+    pub fn new(path: P, copy: bool) -> anyhow::Result<Self> {
         let file = utils::read_file("installer version", &path.join(VERSION_FILE))?;
         let v = file.trim();
         if v != INSTALLER_VERSION {
@@ -104,7 +104,7 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
         name: &str,
         short_name: Option<&str>,
         tx: Transaction,
-    ) -> Result<Transaction> {
+    ) -> anyhow::Result<Transaction> {
         let actual_name = if self.components.contains(name) {
             name
         } else if let Some(n) = short_name {
@@ -189,7 +189,7 @@ fn trigger_children(
     io_executor: &dyn Executor,
     directories: &mut HashMap<PathBuf, DirStatus>,
     op: CompletedIo,
-) -> Result<usize> {
+) -> anyhow::Result<usize> {
     let mut result = 0;
     if let CompletedIo::Item(item) = op
         && let Kind::Directory = item.kind
@@ -227,7 +227,7 @@ fn unpack_without_first_dir<R: Read>(
     archive: &mut tar::Archive<R>,
     path: &Path,
     mut io_executor: Box<dyn Executor>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let entries = archive.entries()?;
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
@@ -279,7 +279,7 @@ fn unpack_without_first_dir<R: Read>(
             directories: &mut HashMap<PathBuf, DirStatus>,
             mut sender_entry: Option<&mut SenderEntry<'_, R>>,
             full_path: P,
-        ) -> Result<bool> {
+        ) -> anyhow::Result<bool> {
             let mut result = sender_entry.is_none();
             for mut op in io_executor.completed().collect::<Vec<_>>() {
                 // TODO capture metrics

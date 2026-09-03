@@ -1,7 +1,5 @@
 use std::{path::PathBuf, process::ExitStatus, str::FromStr};
 
-use anyhow::Result;
-
 use crate::{
     cli::{job, self_update},
     command::run_command_for_dir,
@@ -11,7 +9,11 @@ use crate::{
 };
 
 #[tracing::instrument(level = "trace", skip(process))]
-pub async fn main(arg0: &str, current_dir: PathBuf, process: &Process) -> Result<ExitStatus> {
+pub async fn main(
+    arg0: &str,
+    current_dir: PathBuf,
+    process: &Process,
+) -> anyhow::Result<ExitStatus> {
     self_update::cleanup_self_updater(process)?;
 
     let _setup = job::setup();

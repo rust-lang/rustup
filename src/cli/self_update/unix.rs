@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, bail};
 use tracing::{error, warn};
 
 use super::install_bins;
@@ -12,7 +12,10 @@ use crate::utils;
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
-pub(crate) fn do_anti_sudo_check(no_prompt: bool, process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn do_anti_sudo_check(
+    no_prompt: bool,
+    process: &Process,
+) -> anyhow::Result<utils::ExitCode> {
     pub(crate) fn home_mismatch(process: &Process) -> (bool, PathBuf, PathBuf) {
         let fallback = || (false, PathBuf::new(), PathBuf::new());
         // test runner should set this, nothing else
@@ -47,7 +50,7 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool, process: &Process) -> Result<u
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
+pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_bytes = format!("{}\n", sh.source_string(process)?).into_bytes();
 
@@ -71,7 +74,7 @@ pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
+pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_cmd = sh.source_string(process)?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
@@ -100,7 +103,7 @@ pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_write_env_files(process: &Process) -> Result<()> {
+pub(crate) fn do_write_env_files(process: &Process) -> anyhow::Result<()> {
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
@@ -117,7 +120,7 @@ pub(crate) fn do_write_env_files(process: &Process) -> Result<()> {
 
 /// Tell the upgrader to replace the rustup bins, then delete
 /// itself.
-pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()
@@ -133,13 +136,13 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> Result<utils:
 /// This function is as the final step of a self-upgrade. It replaces
 /// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
 /// links to it.
-pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     install_bins(process)?;
 
     Ok(utils::ExitCode(0))
 }
 
-fn remove_legacy_source_command(source_cmd: String, process: &Process) -> Result<()> {
+fn remove_legacy_source_command(source_cmd: String, process: &Process) -> anyhow::Result<()> {
     let cmd_bytes = source_cmd.into_bytes();
     for rc in shell::legacy_paths(process).filter(|rc| rc.is_file()) {
         let file = utils::read_file("rcfile", &rc)?;
@@ -166,7 +169,7 @@ fn find_exact_line(file: &[u8], line: &[u8]) -> Option<usize> {
         })
 }
 
-fn remove_legacy_paths(process: &Process) -> Result<()> {
+fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
     // Before the work to support more kinds of shells, which was released in
     // version 1.23.0 of Rustup, we always inserted this line instead, which is
     // now considered legacy

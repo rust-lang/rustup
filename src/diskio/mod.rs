@@ -59,7 +59,6 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
-use anyhow::Result;
 use tracing::{error, trace, warn};
 
 use crate::diskio::immediate::{FileState, IncrementalFileWriter};
@@ -238,7 +237,7 @@ impl Item {
         full_path: PathBuf,
         mode: u32,
         state: IncrementalFileState,
-    ) -> Result<(Self, Box<dyn ChunkWriter>)> {
+    ) -> anyhow::Result<(Self, Box<dyn ChunkWriter>)> {
         let (chunk_submit, content_callback) = state.incremental_file_channel(&full_path, mode)?;
         let result = Self {
             full_path,
@@ -270,7 +269,7 @@ impl IncrementalFileState {
         &self,
         path: &Path,
         mode: u32,
-    ) -> Result<(Box<dyn ChunkWriter>, IncrementalFile)> {
+    ) -> anyhow::Result<(Box<dyn ChunkWriter>, IncrementalFile)> {
         match self {
             Self::Threaded => {
                 let (tx, rx) = mpsc::channel::<FileBuffer>();

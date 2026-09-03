@@ -13,7 +13,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use tracing::{error, info};
 
 use crate::dist::prefix::InstallPrefix;
@@ -66,7 +66,7 @@ impl Transaction {
     /// Add a file at a relative path to the install prefix. Returns a
     /// `File` that may be used to subsequently write the
     /// contents.
-    pub fn add_file(&mut self, component: &str, relpath: PathBuf) -> Result<File> {
+    pub fn add_file(&mut self, component: &str, relpath: PathBuf) -> anyhow::Result<File> {
         assert!(relpath.is_relative());
         let (item, file) = ChangedItem::add_file(&self.prefix, component, relpath)?;
         self.changes.push(item);
@@ -74,7 +74,12 @@ impl Transaction {
     }
 
     /// Copy a file to a relative path of the install prefix.
-    pub fn copy_file(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+    pub fn copy_file(
+        &mut self,
+        component: &str,
+        relpath: PathBuf,
+        src: &Path,
+    ) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::copy_file(src, &abs_path)?;
@@ -83,7 +88,12 @@ impl Transaction {
     }
 
     /// Recursively copy a directory to a relative path of the install prefix.
-    pub fn copy_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+    pub fn copy_dir(
+        &mut self,
+        component: &str,
+        relpath: PathBuf,
+        src: &Path,
+    ) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::copy_dir(src, &abs_path)?;
@@ -92,7 +102,7 @@ impl Transaction {
     }
 
     /// Remove a file from a relative path to the install prefix.
-    pub fn remove_file(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
+    pub fn remove_file(&mut self, component: &str, relpath: PathBuf) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = self.tmp_cx.new_file()?;
@@ -111,7 +121,7 @@ impl Transaction {
 
     /// Recursively remove a directory from a relative path of the
     /// install prefix.
-    pub fn remove_dir(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
+    pub fn remove_dir(&mut self, component: &str, relpath: PathBuf) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = self.tmp_cx.new_directory()?;
@@ -135,7 +145,12 @@ impl Transaction {
 
     /// Create a new file with string contents at a relative path to
     /// the install prefix.
-    pub fn write_file(&mut self, component: &str, relpath: PathBuf, content: String) -> Result<()> {
+    pub fn write_file(
+        &mut self,
+        component: &str,
+        relpath: PathBuf,
+        content: String,
+    ) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let (item, mut file) = ChangedItem::add_file(&self.prefix, component, relpath.clone())?;
         utils::write_str(
@@ -152,7 +167,7 @@ impl Transaction {
     /// to it exists so that subsequent calls to `File::create` will succeed.
     ///
     /// This is used for arbitrarily manipulating a file.
-    pub fn modify_file(&mut self, relpath: PathBuf) -> Result<()> {
+    pub fn modify_file(&mut self, relpath: PathBuf) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = if utils::is_file(&abs_path) {
@@ -177,7 +192,7 @@ impl Transaction {
         component: &str,
         relpath: PathBuf,
         src: &Path,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::rename("component", src, &abs_path, self.permit_copy_rename)?;
@@ -186,7 +201,12 @@ impl Transaction {
     }
 
     /// Recursively move a directory to a relative path of the install prefix.
-    pub(crate) fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn move_dir(
+        &mut self,
+        component: &str,
+        relpath: PathBuf,
+        src: &Path,
+    ) -> anyhow::Result<()> {
         assert!(relpath.is_relative());
         let abs_path = ChangedItem::dest_abs_path(&self.prefix, component, &relpath)?;
         utils::rename("component", src, &abs_path, self.permit_copy_rename)?;
@@ -231,7 +251,7 @@ enum ChangedItem {
 }
 
 impl ChangedItem {
-    fn roll_back(&self, prefix: &InstallPrefix, permit_copy_rename: bool) -> Result<()> {
+    fn roll_back(&self, prefix: &InstallPrefix, permit_copy_rename: bool) -> anyhow::Result<()> {
         use self::ChangedItem::*;
         match self {
             AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
@@ -254,7 +274,11 @@ impl ChangedItem {
         }
         Ok(())
     }
-    fn dest_abs_path(prefix: &InstallPrefix, component: &str, relpath: &Path) -> Result<PathBuf> {
+    fn dest_abs_path(
+        prefix: &InstallPrefix,
+        component: &str,
+        relpath: &Path,
+    ) -> anyhow::Result<PathBuf> {
         let abs_path = prefix.abs_path(relpath);
         if utils::path_exists(&abs_path) {
             Err(anyhow!(RustupError::ComponentConflict {
@@ -268,7 +292,11 @@ impl ChangedItem {
             Ok(abs_path)
         }
     }
-    fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
+    fn add_file(
+        prefix: &InstallPrefix,
+        component: &str,
+        relpath: PathBuf,
+    ) -> anyhow::Result<(Self, File)> {
         let abs_path = Self::dest_abs_path(prefix, component, &relpath)?;
         let file = File::create(&abs_path)
             .with_context(|| format!("error creating file '{}'", abs_path.display()))?;

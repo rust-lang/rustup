@@ -7,7 +7,7 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 use tracing::{info, warn};
 #[cfg(any(test, feature = "test"))]
 use windows_registry::Value;
@@ -24,14 +24,14 @@ use crate::download::DownloadOptions;
 use crate::process::{ColorableTerminal, Process};
 use crate::utils;
 
-pub(crate) fn ensure_prompt(process: &Process) -> Result<()> {
+pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
     writeln!(process.stdout().lock(),)?;
     writeln!(process.stdout().lock(), "Press the Enter key to continue.")?;
     common::read_line(process)?;
     Ok(())
 }
 
-fn choice(max: u8, process: &Process) -> Result<Option<u8>> {
+fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
     write!(process.stdout().lock(), ">")?;
 
     let _ = std::io::stdout().flush();
@@ -46,7 +46,7 @@ fn choice(max: u8, process: &Process) -> Result<Option<u8>> {
     Ok(r)
 }
 
-pub(crate) fn choose_vs_install(process: &Process) -> Result<Option<VsInstallPlan>> {
+pub(crate) fn choose_vs_install(process: &Process) -> anyhow::Result<Option<VsInstallPlan>> {
     writeln!(
         process.stdout().lock(),
         "\n1) Quick install via the Visual Studio Community installer"
@@ -92,7 +92,7 @@ pub(super) async fn maybe_install_msvc(
     quiet: bool,
     opts: &InstallOpts<'_>,
     process: &Process,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let Some(plan) = do_msvc_check(opts, process) else {
         return Ok(());
     };
@@ -259,7 +259,7 @@ pub(crate) enum ContinueInstall {
 pub(crate) async fn try_install_msvc(
     opts: &InstallOpts<'_>,
     process: &Process,
-) -> Result<ContinueInstall> {
+) -> anyhow::Result<ContinueInstall> {
     // download the installer
     let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
 
@@ -350,7 +350,7 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
 #[tracing::instrument(level = "trace")]
-pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> {
+pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
     use std::process::Stdio;
 
     wait_for_parent()?;
@@ -375,7 +375,7 @@ pub fn complete_windows_uninstall(process: &Process) -> Result<utils::ExitCode> 
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn wait_for_parent() -> Result<()> {
+pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
     use std::io;
     use std::mem;
     use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
@@ -447,12 +447,12 @@ pub(crate) fn wait_for_parent() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_add_to_path(process: &Process) -> Result<()> {
+pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
     _apply_new_path(new_path, process)
 }
 
-fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> Result<()> {
+fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> anyhow::Result<()> {
     use std::ptr;
     use windows_sys::Win32::Foundation::{LPARAM, WPARAM};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -491,7 +491,7 @@ fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> Result<()> {
 // Get the windows PATH variable out of the registry as a String. If
 // this returns None then the PATH variable is not a string and we
 // should not mess with it.
-fn get_windows_path_var(process: &Process) -> Result<Option<HSTRING>> {
+fn get_windows_path_var(process: &Process) -> anyhow::Result<Option<HSTRING>> {
     let environment = process
         .registry_environment_key()
         .context("Failed opening Environment key")?;
@@ -553,7 +553,7 @@ fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     Some(HSTRING::from_wide(&new_path))
 }
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> Result<Option<HSTRING>>
+fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
@@ -563,7 +563,7 @@ where
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
 }
 
-pub(crate) fn do_remove_from_path(process: &Process) -> Result<()> {
+pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
     _apply_new_path(new_path, process)
 }
@@ -597,7 +597,7 @@ impl Process {
     }
 }
 
-fn rustup_uninstall_registry_key(process: &Process) -> Result<Key> {
+fn rustup_uninstall_registry_key(process: &Process) -> anyhow::Result<Key> {
     process
         .registry_key(RUSTUP_UNINSTALL_ENTRY, CURRENT_USER)
         .context("Failed creating uninstall key")
@@ -606,13 +606,13 @@ fn rustup_uninstall_registry_key(process: &Process) -> Result<Key> {
 pub(crate) fn update_uninstall_registry_display_version(
     version: &str,
     process: &Process,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     rustup_uninstall_registry_key(process)?
         .set_string("DisplayVersion", version)
         .context("Failed to set `DisplayVersion`")
 }
 
-pub(crate) fn add_uninstall_registry_entry(process: &Process) -> Result<()> {
+pub(crate) fn add_uninstall_registry_entry(process: &Process) -> anyhow::Result<()> {
     use std::path::PathBuf;
 
     let key = rustup_uninstall_registry_key(process)?;
@@ -642,7 +642,7 @@ pub(crate) fn add_uninstall_registry_entry(process: &Process) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> Result<()> {
+pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> anyhow::Result<()> {
     match CURRENT_USER.remove_tree(process.registry_sub_key_path(RUSTUP_UNINSTALL_ENTRY)) {
         Ok(()) => Ok(()),
         Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
@@ -650,7 +650,7 @@ pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> Result<()> {
     }
 }
 
-pub(crate) fn run_update(setup_path: &Path, process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path, process: &Process) -> anyhow::Result<utils::ExitCode> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
@@ -665,7 +665,7 @@ pub(crate) fn run_update(setup_path: &Path, process: &Process) -> Result<utils::
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
+pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
     install_bins(process)?;
 
@@ -702,7 +702,7 @@ pub(crate) fn self_replace(process: &Process) -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
@@ -787,7 +787,7 @@ const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 pub const RUSTUP_REGISTRY_TEST_ID: &str = "RUSTUP_REGISTRY_TEST_ID";
 
 #[cfg(any(test, feature = "test"))]
-pub fn get_path(test_id: &str) -> Result<Option<Value>> {
+pub fn get_path(test_id: &str) -> anyhow::Result<Option<Value>> {
     USER_PATH.get(test_id, CURRENT_USER)
 }
 
@@ -805,7 +805,7 @@ pub struct RegistryValueId {
 
 #[cfg(any(test, feature = "test"))]
 impl RegistryValueId {
-    pub fn get(&self, test_id: &str, parent: &Key) -> Result<Option<Value>> {
+    pub fn get(&self, test_id: &str, parent: &Key) -> anyhow::Result<Option<Value>> {
         let mut options = parent.options();
         options.read().write().create().volatile();
         let sub_key = options.open(format!(r"RustupTest-{test_id}\{}", self.sub_key))?;
@@ -816,7 +816,7 @@ impl RegistryValueId {
         }
     }
 
-    pub fn set(&self, new: Option<&Value>, test_id: &str, parent: &Key) -> Result<()> {
+    pub fn set(&self, new: Option<&Value>, test_id: &str, parent: &Key) -> anyhow::Result<()> {
         let mut options = parent.options();
         options.read().write().create().volatile();
         let sub_key = options.open(format!(r"RustupTest-{test_id}\{}", self.sub_key))?;

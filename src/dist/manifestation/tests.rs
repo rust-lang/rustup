@@ -11,7 +11,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Result, anyhow};
+use anyhow::anyhow;
 use url::Url;
 
 use crate::{
@@ -381,7 +381,7 @@ async fn rename_component_new() {
     assert!(utils::path_exists(cx.prefix.path().join("bin/bonus")));
 }
 
-fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url> {
+fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> anyhow::Result<Url> {
     let url = format!(
         "{}/dist/channel-rust-{}.toml",
         dist_server, toolchain.channel
@@ -482,7 +482,7 @@ impl TestContext {
         add: &[Component],
         remove: &[Component],
         force: bool,
-    ) -> Result<UpdateStatus> {
+    ) -> anyhow::Result<UpdateStatus> {
         let dl_cfg = DownloadCfg {
             tmp_cx: self.tmp_cx.clone(),
             download_dir: &self.download_dir,

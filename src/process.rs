@@ -17,7 +17,7 @@ use std::{
 use std::{env, thread};
 
 use anstream::ColorChoice;
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, bail};
 use indicatif::ProgressDrawTarget;
 #[cfg(feature = "test")]
 use tracing::subscriber::DefaultGuard;
@@ -66,15 +66,15 @@ impl Process {
         home::env::home_dir_with_env(self)
     }
 
-    pub(crate) fn cargo_home(&self) -> Result<PathBuf> {
+    pub(crate) fn cargo_home(&self) -> anyhow::Result<PathBuf> {
         home::env::cargo_home_with_env(self).context("failed to determine cargo home")
     }
 
-    pub(crate) fn rustup_home(&self) -> Result<PathBuf> {
+    pub(crate) fn rustup_home(&self) -> anyhow::Result<PathBuf> {
         home::env::rustup_home_with_env(self).context("failed to determine rustup home dir")
     }
 
-    pub fn io_thread_count(&self) -> Result<IoThreadCount> {
+    pub fn io_thread_count(&self) -> anyhow::Result<IoThreadCount> {
         if let Ok(n) = self.var("RUSTUP_IO_THREADS") {
             let threads = usize::from_str(&n).context(
                 "invalid value in RUSTUP_IO_THREADS -- must be a natural number greater than zero",
@@ -95,14 +95,14 @@ impl Process {
         Ok(IoThreadCount::Default(count))
     }
 
-    pub(crate) fn unpack_ram(&self) -> Result<Option<usize>, env::VarError> {
+    pub(crate) fn unpack_ram(&self) -> anyhow::Result<Option<usize>, env::VarError> {
         Ok(match self.var_opt("RUSTUP_UNPACK_RAM")? {
             Some(budget) => usize::from_str(&budget).ok(),
             None => None,
         })
     }
 
-    pub fn var_opt(&self, key: &str) -> Result<Option<String>, env::VarError> {
+    pub fn var_opt(&self, key: &str) -> anyhow::Result<Option<String>, env::VarError> {
         match self.var(key) {
             Ok(val) => Ok(Some(val)),
             Err(env::VarError::NotPresent) => Ok(None),

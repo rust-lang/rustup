@@ -13,7 +13,7 @@ use std::{
     vec,
 };
 
-use anyhow::{Context as _, Result, anyhow, bail};
+use anyhow::{Context as _, anyhow, bail};
 use futures_util::{
     Stream,
     stream::{FuturesUnordered, StreamExt},
@@ -55,7 +55,7 @@ impl Changes {
         self.explicit_add_components.iter()
     }
 
-    fn check_invariants(&self, config: &Option<Config>) -> Result<()> {
+    fn check_invariants(&self, config: &Option<Config>) -> anyhow::Result<()> {
         for component_to_add in self.iter_add_components() {
             if self.remove_components.contains(component_to_add) {
                 bail!("can't both add and remove components");
@@ -86,7 +86,7 @@ impl Manifestation {
     /// it will be created as needed. If there's an existing install
     /// then the rust-install installation format will be verified. A
     /// bad installer version is the only reason this will fail.
-    pub fn open(prefix: InstallPrefix, target_tuple: TargetTuple) -> Result<Self> {
+    pub fn open(prefix: InstallPrefix, target_tuple: TargetTuple) -> anyhow::Result<Self> {
         // TODO: validate the tuple with the existing install as well
         // as the metadata format of the existing install
         Ok(Self {
@@ -121,7 +121,7 @@ impl Manifestation {
         download_cfg: &DownloadCfg<'_>,
         toolchain: &ToolchainDesc,
         implicit_modify: bool,
-    ) -> Result<UpdateStatus> {
+    ) -> anyhow::Result<UpdateStatus> {
         // Some vars we're going to need a few times
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
@@ -188,7 +188,7 @@ impl Manifestation {
                     &toolchain.target,
                 )
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<anyhow::Result<Vec<_>>>()?;
 
         const DEFAULT_CONCURRENT_DOWNLOADS: usize = 2;
         let concurrent_downloads = download_cfg
@@ -328,7 +328,7 @@ impl Manifestation {
         component: Component,
         manifest: &Manifest,
         mut tx: Transaction,
-    ) -> Result<Transaction> {
+    ) -> anyhow::Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -351,7 +351,7 @@ impl Manifestation {
 
     // Read the config file. Config files are presently only created
     // for v2 installations.
-    pub(crate) fn read_config(&self) -> Result<Option<Config>> {
+    pub(crate) fn read_config(&self) -> anyhow::Result<Option<Config>> {
         let prefix = self.installation.prefix();
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(rel_config_path);
@@ -369,7 +369,7 @@ impl Manifestation {
     }
 
     #[tracing::instrument(level = "trace")]
-    pub fn load_manifest(&self) -> Result<Option<Manifest>> {
+    pub fn load_manifest(&self) -> anyhow::Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
         if let Some(old_manifest_path) = prefix.dist_manifest() {
             let manifest_str = utils::read_file("installed manifest", &old_manifest_path)?;
@@ -390,7 +390,7 @@ impl Manifestation {
         new_manifest: &[String],
         update_hash: &Path,
         dl_cfg: &DownloadCfg<'_>,
-    ) -> Result<Option<String>> {
+    ) -> anyhow::Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
             return Err(anyhow!(
@@ -461,7 +461,7 @@ impl Manifestation {
         &self,
         config: &Option<Config>,
         mut tx: Transaction,
-    ) -> Result<Transaction> {
+    ) -> anyhow::Result<Transaction> {
         let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
@@ -482,7 +482,7 @@ struct InstallEvents<'a, F> {
     components: vec::IntoIter<ComponentBinary<'a>>,
     cleanup_downloads: Vec<&'a str>,
     install_queue: VecDeque<ComponentInstall>,
-    installing: Option<JoinHandle<Result<Transaction>>>,
+    installing: Option<JoinHandle<anyhow::Result<Transaction>>>,
     downloads: FuturesUnordered<F>,
 }
 
@@ -519,8 +519,10 @@ impl<'a, F> InstallEvents<'a, F> {
     }
 }
 
-impl<'a, F: Future<Output = Result<(ComponentInstall, &'a str)>>> Stream for InstallEvents<'a, F> {
-    type Item = Result<Transaction>;
+impl<'a, F: Future<Output = anyhow::Result<(ComponentInstall, &'a str)>>> Stream
+    for InstallEvents<'a, F>
+{
+    type Item = anyhow::Result<Transaction>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut this = self.as_mut();
@@ -576,7 +578,7 @@ impl Update {
         new_manifest: &Manifest,
         changes: &Changes,
         config: &Option<Config>,
-    ) -> Result<Self> {
+    ) -> anyhow::Result<Self> {
         // The package to install.
         let rust_package = new_manifest.get_package("rust")?;
         let rust_target_package = rust_package.get_target(Some(&manifestation.target_tuple))?;
@@ -703,7 +705,7 @@ impl Update {
         &self,
         new_manifest: &Manifest,
         toolchain: &ToolchainDesc,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         let mut unavailable_components: Vec<Component> = self
             .components_to_install
             .iter()
@@ -751,7 +753,7 @@ impl<'a> ComponentBinary<'a> {
         download_cfg: &'a DownloadCfg<'a>,
         name_width: usize,
         host_toolchain_target: &TargetTuple,
-    ) -> Option<Result<Self>> {
+    ) -> Option<anyhow::Result<Self>> {
         Some(Ok(ComponentBinary {
             binary: match manifest.binary(&component) {
                 Ok(Some(b)) => b,
@@ -768,7 +770,7 @@ impl<'a> ComponentBinary<'a> {
         }))
     }
 
-    async fn download(self, max_retries: usize) -> Result<(ComponentInstall, &'a str)> {
+    async fn download(self, max_retries: usize) -> anyhow::Result<(ComponentInstall, &'a str)> {
         use tokio_retry::{RetryIf, strategy::FixedInterval};
 
         let url = self.download_cfg.url(&self.binary.url)?;
@@ -823,7 +825,11 @@ struct ComponentInstall {
 }
 
 impl ComponentInstall {
-    fn install(self, tx: Transaction, manifestation: Arc<Manifestation>) -> Result<Transaction> {
+    fn install(
+        self,
+        tx: Transaction,
+        manifestation: Arc<Manifestation>,
+    ) -> anyhow::Result<Transaction> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the

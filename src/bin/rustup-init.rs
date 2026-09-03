@@ -15,7 +15,7 @@
 
 use std::process::ExitCode;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, anyhow};
 // Public macros require availability of the internal symbols
 use rs_tracing::{
     close_trace_file, close_trace_file_internal, open_trace_file, trace_to_file_internal,
@@ -32,7 +32,7 @@ use rustup::is_proxyable_tools;
 use rustup::process::Process;
 use rustup::utils;
 
-fn main() -> Result<ExitCode> {
+fn main() -> anyhow::Result<ExitCode> {
     #[cfg(windows)]
     pre_rustup_main_init();
 
@@ -65,7 +65,7 @@ fn main() -> Result<ExitCode> {
 async fn run_rustup(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
-) -> Result<utils::ExitCode> {
+) -> anyhow::Result<utils::ExitCode> {
     if let Ok(dir) = process.var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
     }
@@ -80,7 +80,7 @@ async fn run_rustup(
 async fn run_rustup_inner(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
-) -> Result<utils::ExitCode> {
+) -> anyhow::Result<utils::ExitCode> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard(process)?;
@@ -124,7 +124,7 @@ async fn run_rustup_inner(
     }
 }
 
-fn do_recursion_guard(process: &Process) -> Result<()> {
+fn do_recursion_guard(process: &Process) -> anyhow::Result<()> {
     let recursion_count = process
         .var("RUST_RECURSION_COUNT")
         .ok()
