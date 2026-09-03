@@ -74,7 +74,7 @@ async fn store_static_roots() -> anyhow::Result<()> {
         for chunk in root_cert.chunks(20) {
             code.push_str("        ");
             for byte in chunk {
-                code.push_str(&format!("\\x{:02x}", byte));
+                code.push_str(&format!("\\x{byte:02x}"));
             }
             code.push_str("\\\n");
         }
