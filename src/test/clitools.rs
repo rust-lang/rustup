@@ -187,19 +187,22 @@ impl Assert {
     }
 
     /// Asserts that the command exited with an ok status.
+    #[track_caller]
     pub fn is_ok(&self) -> &Self {
         self.has_code(0)
     }
 
     /// Asserts that the command exited with an error.
+    #[track_caller]
     pub fn is_err(&self) -> &Self {
-        assert_ne!(self.output.status, Some(0));
+        assert_ne!(self.output.status, Some(0), "unexpected command success");
         self
     }
 
     /// Asserts that the command exited with the specific code.
+    #[track_caller]
     pub fn has_code(&self, code: i32) -> &Self {
-        assert_eq!(self.output.status, Some(code));
+        assert_eq!(self.output.status, Some(code), "unexpected command failure");
         self
     }
 
