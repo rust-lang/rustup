@@ -448,7 +448,8 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
+    let cargo_bin = process.cargo_home()?.join("bin");
+    let new_path = _with_path(_add_to_path, &cargo_bin, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -553,18 +554,17 @@ fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     Some(HSTRING::from_wide(&new_path))
 }
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
+fn _with_path<F>(f: F, path: &Path, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
     let windows_path = get_windows_path_var(process)?;
-    let mut path_str = process.cargo_home()?;
-    path_str.push("bin");
-    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
+    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path))))
 }
 
 pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
+    let cargo_bin = process.cargo_home()?.join("bin");
+    let new_path = _with_path(_remove_from_path, &cargo_bin, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -1016,7 +1016,7 @@ mod tests {
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
-            _with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+            _with_path(|_, _| panic!("called"), Path::new("ignored"), &tp.process).unwrap()
         );
 
         assert_eq!(

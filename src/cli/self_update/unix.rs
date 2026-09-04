@@ -173,20 +173,12 @@ fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
     // Before the work to support more kinds of shells, which was released in
     // version 1.23.0 of Rustup, we always inserted this line instead, which is
     // now considered legacy
-    remove_legacy_source_command(
-        format!(
-            "export PATH=\"{}/bin:$PATH\"\n",
-            Posix.cargo_home_str(process)?
-        ),
-        process,
-    )?;
+    let cargo_home = Posix.format_path(process.cargo_home()?, process)?;
+    remove_legacy_source_command(format!("export PATH=\"{cargo_home}/bin:$PATH\"\n"), process)?;
     // Unfortunately in 1.23, we accidentally used `source` rather than `.`
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
-    remove_legacy_source_command(
-        format!("source \"{}/env\"\n", Posix.cargo_home_str(process)?),
-        process,
-    )?;
+    remove_legacy_source_command(format!("source \"{cargo_home}/env\"\n"), process)?;
 
     Ok(())
 }
