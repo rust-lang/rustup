@@ -1,4 +1,3 @@
-
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
@@ -109,12 +108,24 @@ impl Process {
     /// Category mode uses a non-empty `RUSTUP_BIN_HOME`, then a non-empty
     /// `CARGO_HOME` with `bin` appended, then the platform default, then
     /// `~/.cargo/bin`. Legacy mode appends `bin` to the resolved Cargo home.
-    #[allow(dead_code, reason = "split-home interface is not consumed yet")]
     pub(crate) fn rustup_bin_home(&self) -> io::Result<PathBuf> {
         if self.use_category_home() {
             home::env::rustup_bin_home_with_env(self)
         } else {
             Ok(home::env::cargo_home_with_env(self)?.join("bin"))
+        }
+    }
+
+    /// Returns the directory containing Rustup's shell environment scripts.
+    /// Uses the config home in category mode, or the Cargo home in legacy mode.
+    #[cfg(any(unix, test))]
+    pub(crate) fn rustup_env_home(&self) -> io::Result<PathBuf> {
+        if self.use_category_home() {
+            // TODO: should this be in config home or state config home?
+            // Or we should just remove this once category mode is shipped
+            home::category_home(home::HomeCategory::Config, self)
+        } else {
+            home::env::cargo_home_with_env(self)
         }
     }
 
@@ -529,6 +540,7 @@ mod tests {
             }
         );
         assert_eq!(process.rustup_bin_home()?, Path::new("/home/.cargo/bin"));
+        assert_eq!(process.rustup_env_home()?, Path::new("/home/.cargo"));
 
         vars.env("RUSTUP_HOME", Path::new("/legacy"));
         vars.env("CARGO_HOME", Path::new("/cargo"));
@@ -543,6 +555,7 @@ mod tests {
             }
         );
         assert_eq!(process.rustup_bin_home()?, Path::new("/cargo/bin"));
+        assert_eq!(process.rustup_env_home()?, Path::new("/cargo"));
         Ok(())
     }
 
@@ -582,10 +595,12 @@ mod tests {
         let mut vars = HashMap::new();
         vars.env("RUSTUP_USE_CATEGORY_HOME", "1");
         vars.env("RUSTUP_BIN_HOME", "bin");
+        vars.env("RUSTUP_CONFIG_HOME", "config");
         vars.env("CARGO_HOME", "cargo");
 
         let process = test_process(cwd, vars.clone());
         assert_eq!(process.rustup_bin_home()?, Path::new("bin"));
+        assert_eq!(process.rustup_env_home()?, Path::new("config"));
 
         vars.env("RUSTUP_BIN_HOME", "");
         assert_eq!(

@@ -525,7 +525,7 @@ async fn update_but_not_installed() {
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-error: rustup is not installed at '[CARGO_DIR]'
+error: rustup is not installed at '[CARGO_DIR]/bin'
 
 "#]]);
 }
