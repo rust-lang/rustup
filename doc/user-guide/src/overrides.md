@@ -114,6 +114,14 @@ issues with dependencies.
 
 ### Toolchain file settings
 
+| Setting | Supported since |
+|---------|-----------------|
+| `channel` | rustup 1.23.0 |
+| `components` | rustup 1.23.0 |
+| `targets` | rustup 1.23.0 |
+| `path` | rustup 1.24.0 |
+| `profile` | rustup 1.24.0 |
+
 #### channel
 
 The `channel` setting specifies which [toolchain] to use. The value is a
