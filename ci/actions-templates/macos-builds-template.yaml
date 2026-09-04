@@ -128,9 +128,11 @@ jobs: # skip-x86_64 skip-aarch64
         env:
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
+        shell: bash
         run: |
-          cargo install cargo-cache --no-default-features --features ci-autoclean
-          cargo-cache
+          CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          rm -rf -- "$CARGO_HOME/registry/src"
+          rm -rf -- "$CARGO_HOME/git/checkouts"
       - name: Flush cache
         # This is a workaround for a bug with GitHub Actions Cache that causes
         # corrupt cache entries (particularly in the target directory). See
