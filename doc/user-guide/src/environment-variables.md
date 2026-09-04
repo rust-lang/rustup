@@ -1,8 +1,6 @@
 # Environment variables
 
-Rustup loads environment variables from an optional `${RUSTUP_HOME}/.env`
-file before it initializes. Variables inherited from the invoking process take
-precedence over values in this file, so they can be used for one-off overrides.
+Rustup loads environment variables from an optional `${RUSTUP_HOME}/.env`.
 For example:
 
 ```dotenv

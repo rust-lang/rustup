@@ -49,10 +49,6 @@ impl Process {
         Self::OsProcess(OsProcess::new())
     }
 
-    /// Loads environment variables from the rustup configuration directory.
-    ///
-    /// This must be called before starting any threads because the process
-    /// environment is mutated by `dotenvy`.
     pub fn load_dotenv(&self) -> Result<()> {
         let path = self.rustup_home()?.join(".env");
         match dotenvy::from_path(&path) {
