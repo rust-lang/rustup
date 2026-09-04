@@ -1464,7 +1464,7 @@ async fn target_list(
 
 async fn target_add(
     cfg: &Cfg<'_>,
-    mut targets: Vec<String>,
+    targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> anyhow::Result<ExitCode> {
     // XXX: long term move this error to cli ? the normal .into doesn't work
@@ -1487,20 +1487,14 @@ async fn target_add(
     }
 
     if all {
-        targets.clear();
-        for component in distributable.components()? {
-            if component.component.short_name() == "rust-std"
-                && component.available
-                && !component.installed
-            {
-                let target = component
-                    .component
-                    .target
-                    .as_ref()
-                    .expect("rust-std should have a target");
-                targets.push(target.to_string());
-            }
-        }
+        distributable
+            .add_components(distributable.components()?.into_iter().filter_map(|c| {
+                (c.available && !c.installed && c.component.short_name() == "rust-std")
+                    .then_some(c.component)
+            }))
+            .await?;
+
+        return Ok(ExitCode::SUCCESS);
     }
 
     distributable
