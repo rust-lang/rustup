@@ -1494,18 +1494,13 @@ async fn target_add(
     }
 
     distributable
-        .add_components(
-            targets
-                .into_iter()
-                .map(|target| {
-                    Component::new(
-                        "rust-std".to_string(),
-                        Some(TargetTuple::new(target)),
-                        false,
-                    )
-                })
-                .collect(),
-        )
+        .add_components(targets.into_iter().map(|target| {
+            Component::new(
+                "rust-std".to_string(),
+                Some(TargetTuple::new(target)),
+                false,
+            )
+        }))
         .await?;
 
     Ok(ExitCode::SUCCESS)
@@ -1603,7 +1598,8 @@ async fn component_add(
             components
                 .into_iter()
                 .map(|component| Component::try_new(&component, &distributable, target.as_ref()))
-                .collect::<anyhow::Result<_>>()?,
+                .collect::<anyhow::Result<Vec<_>>>()?
+                .into_iter(),
         )
         .await?;
 
