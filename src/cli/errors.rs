@@ -1,9 +1,6 @@
-#![allow(clippy::large_enum_variant)]
 #![allow(dead_code)]
 
-use std::io;
-use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::{io, path::PathBuf, sync::LazyLock};
 
 use regex::Regex;
 use strsim::damerau_levenshtein;

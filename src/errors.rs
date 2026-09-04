@@ -1,10 +1,11 @@
 #![allow(clippy::large_enum_variant)]
 
-use std::ffi::OsString;
-use std::fmt::{Debug, Write as FmtWrite};
-use std::io;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{
+    ffi::OsString,
+    fmt::{Debug, Write as FmtWrite},
+    io::{self, Write},
+    path::PathBuf,
+};
 
 use platforms::Platform;
 use thiserror::Error as ThisError;
