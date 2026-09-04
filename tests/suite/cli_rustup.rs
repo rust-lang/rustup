@@ -309,6 +309,40 @@ rustc-[HOST_TUPLE]
 }
 
 #[tokio::test]
+async fn default_typo_guess() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "fable"])
+        .await
+        .is_err()
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'fable' is not installed
+help: did you mean 'stable'?
+
+"#]]);
+
+    cx.config
+        .expect(["rustup", "default", "1.23.4."])
+        .await
+        .is_err()
+        .with_stderr(snapbox::str![[r#"
+error: toolchain '1.23.4.' is not installed
+help: official versioned channels take the form X.Y or X.Y.Z
+
+"#]]);
+
+    cx.config
+        .expect(["rustup", "default", "invalid-toolchain"])
+        .await
+        .is_err()
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'invalid-toolchain' is not installed
+help: maybe you have mistyped the toolchain name?
+
+"#]]);
+}
+
+#[tokio::test]
 async fn default_override() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

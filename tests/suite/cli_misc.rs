@@ -1554,7 +1554,7 @@ active because: overridden by +toolchain on the command line
         .await
         .with_stderr(snapbox::str![[r#"
 error:[..] toolchain 'foo' is not installed[..]
-
+...
 "#]])
         .is_err();
     cx.config

@@ -617,7 +617,7 @@ async fn default_custom_not_installed_toolchain() {
         .is_err()
         .with_stderr(snapbox::str![[r#"
 error: toolchain 'nightly-2016-03-1' is not installed
-
+...
 "#]]);
 }
 
@@ -823,7 +823,7 @@ async fn undefined_linked_toolchain() {
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
 error: toolchain 'bogus' is not installed
-
+...
 "#]]);
 }
 
