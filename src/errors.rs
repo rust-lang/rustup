@@ -1,6 +1,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use std::{
+    borrow::Cow,
     ffi::OsString,
     fmt::{Debug, Write as FmtWrite},
     io::{self, Write},
@@ -120,11 +121,14 @@ pub enum RustupError {
     ToolchainNotInstallable(String),
     #[error(
         "toolchain '{name}' is not installed{}",
-        if let ToolchainName::Official(t) = name {
-            let t = if *is_active { "" } else { &format!(" {t}") };
-            format!("\nhelp: run `rustup toolchain install{t}` to install it")
-        } else {
-            String::new()
+        match name {
+            ToolchainName::Official(t) => {
+                let t = if *is_active { "" } else { &format!(" {t}") };
+                Cow::Owned(format!(
+                    "\nhelp: run `rustup toolchain install{t}` to install it",
+                ))
+            }
+            ToolchainName::Custom(t) => maybe_suggest_toolchain(t),
         },
     )]
     ToolchainNotInstalled {
@@ -189,6 +193,30 @@ fn suggest_message(suggestion: &Option<String>) -> String {
         format!("; did you mean '{suggestion}'?")
     } else {
         String::new()
+    }
+}
+
+fn maybe_suggest_toolchain(bad_name: &str) -> Cow<'static, str> {
+    if bad_name.bytes().all(|b| b".0123456789".contains(&b)) {
+        return Cow::Borrowed("\nhelp: official versioned channels take the form X.Y or X.Y.Z");
+    }
+
+    // Suggest only for very small differences
+    // High number can result in inaccurate suggestions for short queries e.g. `rls`
+    const MAX_DISTANCE: usize = 3;
+
+    let bad_name = &bad_name.to_lowercase();
+    let suggestion = ["stable", "beta", "nightly"]
+        .into_iter()
+        .filter_map(|s| {
+            let distance = strsim::damerau_levenshtein(bad_name, s);
+            (distance <= MAX_DISTANCE).then_some((distance, s))
+        })
+        .max();
+
+    match suggestion {
+        Some((_, s)) => Cow::Owned(format!("\nhelp: did you mean '{s}'?")),
+        None => Cow::Borrowed("\nhelp: maybe you have mistyped the toolchain name?"),
     }
 }
 
