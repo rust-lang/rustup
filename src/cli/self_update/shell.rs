@@ -71,7 +71,7 @@ fn enumerate_shells() -> Vec<Shell> {
 /// shells that are available on the current system. Shells sharing the same
 /// env file are grouped onto one line (e.g. sh/bash/zsh all use `env`).
 pub(crate) fn build_source_env_lines(process: &Process) -> String {
-    let Ok(env_home) = process.cargo_home() else {
+    let Ok(env_home) = process.rustup_env_home() else {
         return String::new();
     };
     let mut groups = Vec::<(_, Vec<_>)>::new();
@@ -140,13 +140,14 @@ pub(crate) trait UnixShell {
     }
 
     fn write_script(&self, script: &ShellScript, process: &Process) -> anyhow::Result<()> {
-        let env_home = process.cargo_home()?;
-        let bin_home = env_home.join("bin");
-        let cargo_bin = bin_home.to_str().context("Non-Unicode path!")?;
+        let env_home = process.rustup_env_home()?;
+        let bin_home = process.rustup_bin_home()?;
+        let rustup_bin = bin_home.to_str().context("Non-Unicode path!")?;
+        utils::ensure_dir_exists("env file home", &env_home)?;
         utils::write_file(
             script.name,
             &env_home.join(script.name),
-            &script.content.replace("{cargo_bin}", cargo_bin),
+            &script.content.replace("{rustup_bin}", rustup_bin),
         )
     }
 }

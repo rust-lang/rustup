@@ -1,1 +1,1 @@
-$PATH.append(_cargo_bin) if (_cargo_bin := '{cargo_bin}') not in $PATH else None
+$PATH.append(_rustup_bin) if (_rustup_bin := '{rustup_bin}') not in $PATH else None
