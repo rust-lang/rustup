@@ -1468,17 +1468,17 @@ async fn target_add(
     )
     .await?;
 
-    let components = distributable.components()?;
-    if targets.contains(&"all".to_string()) {
-        if targets.len() != 1 {
-            return Err(anyhow!(
-                "`rustup target add {}` includes `all`",
-                targets.join(" ")
-            ));
-        }
+    let all = targets.iter().any(|it| it == "all");
+    if all && targets.len() != 1 {
+        return Err(anyhow!(
+            "`rustup target add {}` includes `all`",
+            targets.join(" ")
+        ));
+    }
 
+    if all {
         targets.clear();
-        for component in components {
+        for component in distributable.components()? {
             if component.component.short_name() == "rust-std"
                 && component.available
                 && !component.installed
