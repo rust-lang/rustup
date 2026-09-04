@@ -680,13 +680,25 @@ impl<'a> Cfg<'a> {
             if let Ok(contents) = contents {
                 // XXX Should not return the unvalidated contents; but a new
                 // internal only safe struct
-                let override_file =
-                    Cfg::parse_override_file(contents, parse_mode).with_context(|| {
+                let (override_file, unknown_keys) = Cfg::parse_override_file(contents, parse_mode)
+                    .with_context(|| RustupError::ParsingFile {
+                        name: "override",
+                        path: toolchain_file.clone(),
+                    })?;
+                for key in unknown_keys {
+                    warn!(
+                        "unknown key `{key}` in '{}'; it is currently ignored, but will become an error in a future release",
+                        toolchain_file.display()
+                    );
+                }
+                if override_file.is_empty() {
+                    return Err(anyhow!(OverrideFileConfigError::Invalid)).with_context(|| {
                         RustupError::ParsingFile {
                             name: "override",
                             path: toolchain_file.clone(),
                         }
-                    })?;
+                    });
+                }
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
                     let toolchain_name = ResolvableToolchainName::from_str(
                         toolchain_name_str.as_str(),
@@ -739,7 +751,7 @@ impl<'a> Cfg<'a> {
     fn parse_override_file<S: AsRef<str>>(
         contents: S,
         parse_mode: ParseMode,
-    ) -> Result<OverrideFile> {
+    ) -> Result<(OverrideFile, Vec<String>)> {
         let contents = contents.as_ref();
 
         match (contents.lines().count(), parse_mode) {
@@ -750,18 +762,20 @@ impl<'a> Cfg<'a> {
                 if channel.is_empty() {
                     Err(anyhow!(OverrideFileConfigError::Empty))
                 } else {
-                    Ok(channel.into())
+                    Ok((channel.into(), Vec::new()))
                 }
             }
             _ => {
-                let override_file = toml::from_str::<OverrideFile>(contents)
+                let deserializer = toml::Deserializer::parse(contents)
+                    .context(OverrideFileConfigError::Parsing)?;
+                let mut unknown_keys = Vec::new();
+                let override_file: OverrideFile =
+                    serde_ignored::deserialize(deserializer, |path| {
+                        unknown_keys.push(path.to_string());
+                    })
                     .context(OverrideFileConfigError::Parsing)?;
 
-                if override_file.is_empty() {
-                    Err(anyhow!(OverrideFileConfigError::Invalid))
-                } else {
-                    Ok(override_file)
-                }
+                Ok((override_file, unknown_keys))
             }
         }
     }
@@ -1235,7 +1249,7 @@ mod tests {
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some(contents.into()),
@@ -1259,7 +1273,7 @@ profile = "default"
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -1283,7 +1297,7 @@ channel = "nightly-2020-07-10"
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -1304,7 +1318,7 @@ path = "foobar"
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: None,
@@ -1326,7 +1340,7 @@ components = []
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -1348,7 +1362,7 @@ targets = []
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -1369,7 +1383,7 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
-            result.unwrap(),
+            result.unwrap().0,
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: None,
@@ -1388,11 +1402,23 @@ components = [ "rustfmt" ]
 [toolchain]
 "#;
 
-        let result = Cfg::parse_override_file(contents, ParseMode::Both);
-        assert!(matches!(
-            result.unwrap_err().downcast::<OverrideFileConfigError>(),
-            Ok(OverrideFileConfigError::Invalid)
-        ));
+        let (override_file, unknown_keys) =
+            Cfg::parse_override_file(contents, ParseMode::Both).unwrap();
+        assert!(override_file.is_empty());
+        assert!(unknown_keys.is_empty());
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_collects_unknown_keys() {
+        let contents = r#"[toolchain]
+channel = "nightly"
+channnel = "stable"
+"#;
+
+        let (override_file, unknown_keys) =
+            Cfg::parse_override_file(contents, ParseMode::Both).unwrap();
+        assert_eq!(override_file.toolchain.channel.as_deref(), Some("nightly"));
+        assert_eq!(unknown_keys, ["toolchain.channnel"]);
     }
 
     #[test]

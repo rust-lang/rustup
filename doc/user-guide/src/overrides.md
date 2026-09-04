@@ -114,6 +114,11 @@ issues with dependencies.
 
 ### Toolchain file settings
 
+Rustup reports unrecognized settings as warnings. It ignores them when other
+valid settings are present, so these warnings can indicate a misspelling that
+would otherwise leave part of the requested configuration unapplied. A future
+rustup release will reject unrecognized settings.
+
 #### channel
 
 The `channel` setting specifies which [toolchain] to use. The value is a
