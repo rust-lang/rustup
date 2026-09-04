@@ -92,16 +92,13 @@ impl Transaction {
     }
 
     /// Remove a file from a relative path to the install prefix.
-    pub fn remove_file(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
+    pub fn remove_file(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = self.tmp_cx.new_file()?;
         if !utils::path_exists(&abs_path) {
-            return Err(RustupError::ComponentMissingFile {
-                name: component.to_owned(),
-                path: relpath,
-            }
-            .into());
+            // If the file doesn't exist, that's fine, since we would just be deleting it anyway
+            return Ok(());
         }
 
         utils::rename("component", &abs_path, &backup, self.permit_copy_rename)?;
@@ -111,16 +108,13 @@ impl Transaction {
 
     /// Recursively remove a directory from a relative path of the
     /// install prefix.
-    pub fn remove_dir(&mut self, component: &str, relpath: PathBuf) -> Result<()> {
+    pub fn remove_dir(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = self.tmp_cx.new_directory()?;
         if !utils::path_exists(&abs_path) {
-            return Err(RustupError::ComponentMissingDir {
-                name: component.to_owned(),
-                path: relpath,
-            }
-            .into());
+            // If the dir doesn't exist, that's fine, since we would just be deleting it anyway
+            return Ok(());
         }
 
         utils::rename(
