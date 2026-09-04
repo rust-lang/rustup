@@ -199,6 +199,8 @@ jobs: # skip-main skip-pr skip-stable
         env:
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
+        shell: bash
         run: |
-          cargo install cargo-cache --no-default-features --features ci-autoclean
-          cargo-cache
+          CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          rm -rf -- "$CARGO_HOME/registry/src"
+          rm -rf -- "$CARGO_HOME/git/checkouts"
