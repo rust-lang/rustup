@@ -274,6 +274,10 @@ impl Config {
         }
         cmd.env("PATH", new_path);
         self.rustupdir.apply(cmd);
+        // Keep category mode and its bin override independent of the developer's environment.
+        // Individual tests can override these defaults after constructing the command.
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "");
+        cmd.env("RUSTUP_BIN_HOME", "");
         let distdir = match (&self.distdir, &self.const_dist_dir) {
             (None, None) => Path::new("no-such-distdir"),
             // mutable takes precedence
@@ -804,6 +808,9 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::set_var("TERM", "dumb");
         // Removed to avoid leaking the developer's environment into the test
         env::remove_var("XDG_CONFIG_HOME");
+        env::remove_var("XDG_CACHE_HOME");
+        env::remove_var("XDG_DATA_HOME");
+        env::remove_var("XDG_STATE_HOME");
 
         match env::var("RUSTUP_BACKTRACE") {
             Ok(val) => env::set_var("RUST_BACKTRACE", val),

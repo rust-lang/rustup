@@ -7,7 +7,7 @@ const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"
 
 #[cfg(unix)]
 mod unix {
-    use std::{fmt::Display, fs, path::PathBuf};
+    use std::{env, ffi::OsStr, fmt::Display, fs, path::PathBuf, process::Command};
 
     use rustup::{
         test::{CliTestContext, Scenario},
@@ -67,6 +67,47 @@ export PATH="$HOME/apple/bin"
             let new_profile = fs::read_to_string(rc).unwrap();
             assert_eq!(new_profile, expected);
         }
+    }
+
+    #[tokio::test]
+    async fn category_mode_uses_rustup_homes_for_path_setup() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let dirs = tempfile::tempdir().unwrap();
+        let bin_home = dirs.path().join("bin");
+        let config_home = dirs.path().join("config");
+        let profile = cx.config.homedir.join(".profile");
+        raw::write_file(&profile, FAKE_RC).unwrap();
+
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        cmd.env("RUSTUP_BIN_HOME", &bin_home);
+        cmd.env("RUSTUP_CONFIG_HOME", &config_home);
+        assert!(cmd.output().unwrap().status.success());
+
+        assert!(bin_home.join("rustup").is_file());
+        assert!(!cx.config.cargodir.join("bin/rustup").exists());
+        let env_file = config_home.join("env");
+        let source_env = |path: &OsStr| {
+            Command::new("/bin/sh")
+                .arg("-c")
+                .arg(format!(r#". "{}"; printf %s "$PATH""#, env_file.display()))
+                .env("PATH", path)
+                .output()
+                .unwrap()
+        };
+        let output = source_env(OsStr::new("/usr/bin"));
+        assert!(output.status.success());
+        let expected_path = env::join_paths([bin_home.clone(), PathBuf::from("/usr/bin")]).unwrap();
+        assert_eq!(output.stdout, expected_path.as_encoded_bytes());
+
+        let existing_path = env::join_paths([PathBuf::from("/usr/bin"), bin_home.clone()]).unwrap();
+        let output = source_env(&existing_path);
+        assert!(output.status.success());
+        assert_eq!(output.stdout, existing_path.as_encoded_bytes());
+        assert_eq!(
+            fs::read_to_string(profile).unwrap(),
+            FAKE_RC.to_owned() + &source(config_home.display(), POSIX_SH)
+        );
     }
 
     #[tokio::test]
@@ -149,12 +190,7 @@ error: could not amend shell profile[..]
     #[tokio::test]
     async fn install_with_zdotdir_from_calling_zsh() {
         // This test requires that zsh is callable.
-        if std::process::Command::new("zsh")
-            .arg("-c")
-            .arg("true")
-            .status()
-            .is_err()
-        {
+        if Command::new("zsh").arg("-c").arg("true").status().is_err() {
             return;
         }
 

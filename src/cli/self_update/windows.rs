@@ -458,8 +458,8 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_bin = process.cargo_home()?.join("bin");
-    let new_path = _with_path(_add_to_path, &cargo_bin, process)?;
+    let rustup_bin_home = process.rustup_bin_home()?;
+    let new_path = _with_path(_add_to_path, &rustup_bin_home, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -635,8 +635,7 @@ pub(crate) fn add_uninstall_registry_entry(process: &Process) -> anyhow::Result<
         }
     }
 
-    let mut path = process.cargo_home()?;
-    path.push("bin\\rustup.exe");
+    let path = process.rustup_bin_home()?.join("rustup.exe");
     let mut uninstall_cmd = OsString::from("\"");
     uninstall_cmd.push(path);
     uninstall_cmd.push("\" self uninstall");
@@ -864,6 +863,47 @@ mod tests {
             Ok(()) => {}
             Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
+        }
+    }
+
+    #[test]
+    fn uninstall_registry_uses_resolved_bin_home() {
+        for category in [false, true] {
+            let id = test_id();
+            let dirs = tempfile::tempdir().unwrap();
+            let cargo_home = dirs.path().join("cargo home");
+            let bin_home = dirs.path().join("category bin");
+            let tp = TestProcess::with_vars(HashMap::from([
+                (RUSTUP_REGISTRY_TEST_ID.to_owned(), id),
+                (
+                    "CARGO_HOME".to_owned(),
+                    cargo_home.to_str().unwrap().to_owned(),
+                ),
+                (
+                    "RUSTUP_BIN_HOME".to_owned(),
+                    bin_home.to_str().unwrap().to_owned(),
+                ),
+                (
+                    "RUSTUP_USE_CATEGORY_HOME".to_owned(),
+                    if category { "1" } else { "0" }.to_owned(),
+                ),
+            ]));
+            add_uninstall_registry_entry(&tp.process).unwrap();
+            let expected = if category {
+                bin_home
+            } else {
+                cargo_home.join("bin")
+            };
+            assert_eq!(
+                rustup_uninstall_registry_key(&tp.process)
+                    .unwrap()
+                    .get_string("UninstallString")
+                    .unwrap(),
+                format!(
+                    "\"{}\" self uninstall",
+                    expected.join("rustup.exe").display()
+                )
+            );
         }
     }
 

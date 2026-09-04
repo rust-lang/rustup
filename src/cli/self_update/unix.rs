@@ -54,7 +54,7 @@ pub(crate) fn do_anti_sudo_check(
 }
 
 pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let env_home = process.cargo_home()?;
+    let env_home = process.rustup_env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
         let source_bytes =
@@ -81,7 +81,7 @@ pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
-    let env_home = process.cargo_home()?;
+    let env_home = process.rustup_env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
         let source_cmd = sh.source_string(&env_home, home_dir.as_deref())?;
@@ -141,9 +141,8 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Resul
     Ok(utils::ExitCode(0))
 }
 
-/// This function is as the final step of a self-upgrade. It replaces
-/// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
-/// links to it.
+/// This function is the final step of a self-upgrade. It replaces Rustup in
+/// the Rustup bin home and updates the proxy links.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     install_bins(process)?;
 
