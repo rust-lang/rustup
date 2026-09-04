@@ -448,8 +448,8 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_bin = process.cargo_home()?.join("bin");
-    let new_path = _with_path(_add_to_path, &cargo_bin, process)?;
+    let rustup_bin_home = process.rustup_bin_home()?;
+    let new_path = _with_path(_add_to_path, &rustup_bin_home, process)?;
     _apply_new_path(new_path, process)
 }
 

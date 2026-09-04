@@ -129,16 +129,20 @@ pub(crate) trait UnixShell {
         format_path_with_home("$HOME", path, process)
     }
 
+    fn env_home_str(&self, process: &Process) -> anyhow::Result<String> {
+        self.format_path(process.rustup_env_home()?, process)
+    }
+
     fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        let cargo_home = self.format_path(process.cargo_home()?, process)?;
-        Ok(format!(r#". "{cargo_home}/env""#))
+        Ok(format!(r#". "{}/env""#, self.env_home_str(process)?))
     }
 
     fn write_script(&self, script: &ShellScript, process: &Process) -> anyhow::Result<()> {
-        let home = process.cargo_home()?;
-        let cargo_bin = self.format_path(home.join("bin"), process)?;
+        let home = process.rustup_env_home()?;
+        let rustup_bin = self.format_path(process.rustup_bin_home()?, process)?;
+        utils::ensure_dir_exists("env file home", &home)?;
         let env_name = home.join(script.name);
-        let env_file = script.content.replace("{cargo_bin}", &cargo_bin);
+        let env_file = script.content.replace("{rustup_bin}", &rustup_bin);
         utils::write_file(script.name, &env_name, &env_file)?;
         Ok(())
     }
@@ -301,8 +305,10 @@ impl UnixShell for Fish {
     }
 
     fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        let cargo_home = self.format_path(process.cargo_home()?, process)?;
-        Ok(format!(r#"source "{cargo_home}/env.fish""#))
+        Ok(format!(
+            r#"source "{}/env.fish""#,
+            self.env_home_str(process)?
+        ))
     }
 }
 
@@ -351,8 +357,10 @@ impl UnixShell for Nu {
     }
 
     fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        let cargo_home = self.format_path(process.cargo_home()?, process)?;
-        Ok(format!(r#"source "{cargo_home}/env.nu""#))
+        Ok(format!(
+            r#"source "{}/env.nu""#,
+            self.env_home_str(process)?
+        ))
     }
 
     fn format_path(&self, path: PathBuf, process: &Process) -> anyhow::Result<String> {
@@ -406,8 +414,10 @@ impl UnixShell for Tcsh {
     }
 
     fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        let cargo_home = self.format_path(process.cargo_home()?, process)?;
-        Ok(format!(r#"source "{cargo_home}/env.tcsh""#))
+        Ok(format!(
+            r#"source "{}/env.tcsh""#,
+            self.env_home_str(process)?
+        ))
     }
 }
 
@@ -487,8 +497,7 @@ impl UnixShell for Pwsh {
     }
 
     fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        let cargo_home = self.format_path(process.cargo_home()?, process)?;
-        Ok(format!(r#". "{cargo_home}/env.ps1""#))
+        Ok(format!(r#". "{}/env.ps1""#, self.env_home_str(process)?))
     }
 }
 
@@ -540,8 +549,10 @@ impl UnixShell for Xonsh {
     }
 
     fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        let cargo_home = self.format_path(process.cargo_home()?, process)?;
-        Ok(format!(r#"source "{cargo_home}/env.xsh""#))
+        Ok(format!(
+            r#"source "{}/env.xsh""#,
+            self.env_home_str(process)?
+        ))
     }
 }
 

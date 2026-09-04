@@ -133,9 +133,8 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Resul
     Ok(utils::ExitCode(0))
 }
 
-/// This function is as the final step of a self-upgrade. It replaces
-/// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
-/// links to it.
+/// This function is the final step of a self-upgrade. It replaces Rustup in
+/// the Rustup bin home and updates the proxy links.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     install_bins(process)?;
 

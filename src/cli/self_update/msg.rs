@@ -12,16 +12,13 @@ programming language, and its package manager, Cargo.
 
 {rustup_home_message}
 
-The Cargo home directory is located at:
-
-    {cargo_home}
-
-This can be modified with the CARGO_HOME environment variable.
-
 The `cargo`, `rustc`, `rustup` and other commands will be added to
-Cargo's bin directory, located at:
+Rustup's bin directory, located at:
 
-    {cargo_home_bin}
+    {rustup_bin_home}
+
+In category home mode this can be modified with RUSTUP_BIN_HOME;
+otherwise it follows CARGO_HOME.
 
 ",
             $platform_msg,
@@ -72,12 +69,10 @@ macro_rules! post_install_msg_unix {
 
 To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
-Cargo's bin directory ({cargo_home}/bin).
+Rustup's bin directory ({rustup_bin_home}).
 
-To configure your current shell, you need to source the
-corresponding `env` file under {cargo_home}.
-
-Consider running the right command for your shell (note the leading DOT):
+To configure your current shell, run the right command below
+(note the leading DOT):
 {source_env_lines}"
     };
 }
@@ -90,7 +85,7 @@ macro_rules! post_install_msg_win {
 
 To get started you may need to restart your current shell.
 This would reload its `PATH` environment variable to include
-Cargo's bin directory ({cargo_home}\\bin).
+Rustup's bin directory ({rustup_bin_home}).
 "
     };
 }
@@ -100,13 +95,11 @@ macro_rules! post_install_msg_unix_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
-environment variable. This has not been done automatically.
+To get started you need Rustup's bin directory ({rustup_bin_home}) in your
+`PATH` environment variable. This has not been done automatically.
 
-To configure your current shell, you need to source
-the corresponding `env` file under {cargo_home}.
-
-Consider running the right command for your shell (note the leading DOT):
+To configure your current shell, run the right command below
+(note the leading DOT):
 {source_env_lines}"
     };
 }
@@ -116,8 +109,8 @@ macro_rules! post_install_msg_win_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ({cargo_home}\\bin) in your `PATH`
-environment variable. This has not been done automatically.
+To get started you need Rustup's bin directory ({rustup_bin_home}) in your
+`PATH` environment variable. This has not been done automatically.
 "
     };
 }
