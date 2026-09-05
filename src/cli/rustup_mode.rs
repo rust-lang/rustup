@@ -1464,7 +1464,7 @@ async fn target_list(
 
 async fn target_add(
     cfg: &Cfg<'_>,
-    mut targets: Vec<String>,
+    targets: Vec<String>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> anyhow::Result<ExitCode> {
     // XXX: long term move this error to cli ? the normal .into doesn't work
@@ -1478,44 +1478,33 @@ async fn target_add(
     )
     .await?;
 
-    let components = distributable.components()?;
-    if targets.contains(&"all".to_string()) {
-        if targets.len() != 1 {
-            return Err(anyhow!(
-                "`rustup target add {}` includes `all`",
-                targets.join(" ")
-            ));
-        }
+    let all = targets.iter().any(|it| it == "all");
+    if all && targets.len() != 1 {
+        return Err(anyhow!(
+            "`rustup target add {}` includes `all`",
+            targets.join(" ")
+        ));
+    }
 
-        targets.clear();
-        for component in components {
-            if component.component.short_name() == "rust-std"
-                && component.available
-                && !component.installed
-            {
-                let target = component
-                    .component
-                    .target
-                    .as_ref()
-                    .expect("rust-std should have a target");
-                targets.push(target.to_string());
-            }
-        }
+    if all {
+        distributable
+            .add_components(distributable.components()?.into_iter().filter_map(|c| {
+                (c.available && !c.installed && c.component.short_name() == "rust-std")
+                    .then_some(c.component)
+            }))
+            .await?;
+
+        return Ok(ExitCode::SUCCESS);
     }
 
     distributable
-        .add_components(
-            targets
-                .into_iter()
-                .map(|target| {
-                    Component::new(
-                        "rust-std".to_string(),
-                        Some(TargetTuple::new(target)),
-                        false,
-                    )
-                })
-                .collect(),
-        )
+        .add_components(targets.into_iter().map(|target| {
+            Component::new(
+                "rust-std".to_string(),
+                Some(TargetTuple::new(target)),
+                false,
+            )
+        }))
         .await?;
 
     Ok(ExitCode::SUCCESS)
@@ -1613,7 +1602,8 @@ async fn component_add(
             components
                 .into_iter()
                 .map(|component| Component::try_new(&component, &distributable, target.as_ref()))
-                .collect::<anyhow::Result<_>>()?,
+                .collect::<anyhow::Result<Vec<_>>>()?
+                .into_iter(),
         )
         .await?;
 
