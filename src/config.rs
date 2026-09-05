@@ -318,7 +318,10 @@ pub(crate) struct Cfg<'a> {
     state_file: StateFile,
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
-    update_hash_dir: PathBuf,
+    pub rustup_cache_dir: PathBuf,
+    pub rustup_config_dir: PathBuf,
+    pub rustup_data_dir: PathBuf,
+    pub rustup_state_dir: PathBuf,
     pub download_dir: PathBuf,
     pub toolchain_override: Option<ResolvableToolchainName>,
     env_override: Option<ResolvableLocalToolchainName>,
@@ -346,10 +349,16 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
+        let home_dirs = process.home_dirs()?;
+        let rustup_cache_dir = home_dirs.cache;
+        let rustup_config_dir = home_dirs.config;
+        let rustup_data_dir = home_dirs.data;
+        let rustup_state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
+        utils::ensure_dir_exists("config home", &rustup_config_dir)?;
+        utils::ensure_dir_exists("state home", &rustup_state_dir)?;
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(rustup_config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
@@ -361,7 +370,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(rustup_state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
@@ -376,9 +385,8 @@ impl<'a> Cfg<'a> {
         #[cfg(windows)]
         let fallback_settings = None;
 
-        let toolchains_dir = rustup_dir.join("toolchains");
-        let update_hash_dir = rustup_dir.join("update-hashes");
-        let download_dir = rustup_dir.join("downloads");
+        let toolchains_dir = rustup_data_dir.join("toolchains");
+        let download_dir = rustup_cache_dir.join("downloads");
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
@@ -396,7 +404,10 @@ impl<'a> Cfg<'a> {
             state_file,
             fallback_settings,
             toolchains_dir,
-            update_hash_dir,
+            rustup_cache_dir,
+            rustup_config_dir,
+            rustup_data_dir,
+            rustup_state_dir,
             download_dir,
             toolchain_override: None,
             env_override,
@@ -525,11 +536,12 @@ impl<'a> Cfg<'a> {
         toolchain: &ToolchainDesc,
         create_parent: bool,
     ) -> anyhow::Result<PathBuf> {
+        let update_hash_dir = self.rustup_cache_dir.join("update-hashes");
         if create_parent {
-            utils::ensure_dir_exists("update-hash", &self.update_hash_dir)?;
+            utils::ensure_dir_exists("update-hash", &update_hash_dir)?;
         }
 
-        Ok(self.update_hash_dir.join(toolchain.to_string()))
+        Ok(update_hash_dir.join(toolchain.to_string()))
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
@@ -558,7 +570,10 @@ impl<'a> Cfg<'a> {
                 }
 
                 // Also delete the update hashes
-                let files = utils::read_dir("update hashes", &self.update_hash_dir)?;
+                let files = utils::read_dir(
+                    "update hashes",
+                    &self.rustup_cache_dir.join("update-hashes"),
+                )?;
                 for file in files {
                     let file = file.context("IO Error reading update hashes")?;
                     utils::remove_file("update hash", &file.path())?;
@@ -1150,7 +1165,10 @@ impl Debug for Cfg<'_> {
             state_file,
             fallback_settings,
             toolchains_dir,
-            update_hash_dir,
+            rustup_cache_dir,
+            rustup_config_dir,
+            rustup_data_dir,
+            rustup_state_dir,
             download_dir,
             toolchain_override,
             env_override,
@@ -1169,7 +1187,10 @@ impl Debug for Cfg<'_> {
             .field("state_file", state_file)
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
-            .field("update_hash_dir", update_hash_dir)
+            .field("rustup_cache_dir", rustup_cache_dir)
+            .field("rustup_config_dir", rustup_config_dir)
+            .field("rustup_data_dir", rustup_data_dir)
+            .field("rustup_state_dir", rustup_state_dir)
             .field("download_dir", download_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)

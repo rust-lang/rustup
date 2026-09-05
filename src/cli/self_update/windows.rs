@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::env::{consts::EXE_SUFFIX, split_paths};
+use std::env::split_paths;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::io::Write;
@@ -358,7 +358,9 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
     let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
-    super::clean_cargo_home(no_modify_path, process)?;
+    let cargo_home = process.cargo_home()?;
+    let category_bin = process.rustup_bin_home()?;
+    super::clean_cargo_home(no_modify_path, process, &cargo_home, &category_bin)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -448,7 +450,8 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
+    let rustup_bin_home = process.rustup_bin_home()?;
+    let new_path = _with_path(_add_to_path, &rustup_bin_home, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -553,18 +556,17 @@ fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     Some(HSTRING::from_wide(&new_path))
 }
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
+fn _with_path<F>(f: F, path: &Path, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
     let windows_path = get_windows_path_var(process)?;
-    let mut path_str = process.cargo_home()?;
-    path_str.push("bin");
-    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
+    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path))))
 }
 
 pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
+    let cargo_bin = process.cargo_home()?.join("bin");
+    let new_path = _with_path(_remove_from_path, &cargo_bin, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -678,7 +680,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
+// - Copy the running rustup.exe to a temporary file in
 //   CARGO_HOME/../rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
@@ -702,7 +704,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> anyhow::Result<()> {
     use std::io;
     use std::ptr;
     use std::thread;
@@ -713,10 +715,8 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, OPEN_EXISTING,
     };
 
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = process.cargo_home()?;
     // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
+    let rustup_path = utils::current_exe()?;
 
     // The directory containing CARGO_HOME
     let work_path = cargo_home
@@ -727,8 +727,14 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
     // of CARGO_HOME.
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
+    // Copy the executable contents so the GC path is a regular file.
+    std::fs::copy(&rustup_path, &gc_exe).with_context(|| {
+        format!(
+            "could not copy running rustup from '{}' to '{}'",
+            rustup_path.display(),
+            gc_exe.display()
+        )
+    })?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
     // Make the sub-process opened by gc exe inherit its attribute.
@@ -1016,7 +1022,7 @@ mod tests {
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
-            _with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+            _with_path(|_, _| panic!("called"), Path::new("ignored"), &tp.process).unwrap()
         );
 
         assert_eq!(

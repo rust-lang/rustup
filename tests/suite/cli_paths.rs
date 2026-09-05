@@ -7,9 +7,7 @@ const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"
 
 #[cfg(unix)]
 mod unix {
-    use std::fmt::Display;
-    use std::fs;
-    use std::path::PathBuf;
+    use std::{env, ffi::OsStr, fmt::Display, fs, path::PathBuf, process::Command};
 
     use super::INIT_NONE;
     use rustup::test::{CliTestContext, Scenario};
@@ -66,6 +64,88 @@ export PATH="$HOME/apple/bin"
             let new_profile = fs::read_to_string(rc).unwrap();
             assert_eq!(new_profile, expected);
         }
+    }
+
+    #[tokio::test]
+    async fn category_mode_uses_rustup_homes_for_path_setup() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let dirs = tempfile::tempdir().unwrap();
+        let bin_home = dirs.path().join("bin");
+        let config_home = dirs.path().join("config");
+        let profile = cx.config.homedir.join(".profile");
+        raw::write_file(&profile, FAKE_RC).unwrap();
+
+        let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        cmd.env("RUSTUP_BIN_HOME", &bin_home);
+        cmd.env("RUSTUP_CONFIG_HOME", &config_home);
+        assert!(cmd.output().unwrap().status.success());
+
+        assert!(bin_home.join("rustup").is_file());
+        assert!(!cx.config.cargodir.join("bin/rustup").exists());
+        let env_file = config_home.join("env");
+        let source_env = |path: &OsStr| {
+            Command::new("sh")
+                .arg("-c")
+                .arg(format!(r#". "{}"; printf %s "$PATH""#, env_file.display()))
+                .env("PATH", path)
+                .output()
+                .unwrap()
+        };
+        let output = source_env(OsStr::new("/usr/bin"));
+        assert!(output.status.success());
+        assert_eq!(
+            env::split_paths(&String::from_utf8(output.stdout).unwrap()).next(),
+            Some(bin_home.clone())
+        );
+
+        let existing_path = env::join_paths([PathBuf::from("/usr/bin"), bin_home.clone()]).unwrap();
+        let output = source_env(&existing_path);
+        assert!(output.status.success());
+        assert_eq!(output.stdout, existing_path.as_encoded_bytes());
+        assert_eq!(
+            fs::read_to_string(profile).unwrap(),
+            FAKE_RC.to_owned() + &source(config_home.display(), POSIX_SH)
+        );
+    }
+
+    #[tokio::test]
+    async fn install_uses_platform_homes_over_legacy_overrides() {
+        let cx = CliTestContext::new(Scenario::SimpleV2).await;
+        let xdg_home = cx.config.homedir.join("xdg");
+        let config_home = xdg_home.join("config/rustup");
+        let state_home = xdg_home.join("state/rustup");
+        let data_home = xdg_home.join("data/rustup");
+        let cache_home = xdg_home.join("cache/rustup");
+        let bin_home = cx.config.homedir.join(".local/bin");
+        let legacy_marker = cx.config.rustupdir.join("legacy-marker");
+        fs::write(&legacy_marker, "legacy installation").unwrap();
+
+        let mut cmd = cx.config.cmd("rustup-init", ["-y", "--no-modify-path"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        for (category, directory) in [
+            ("CACHE", "cache"),
+            ("CONFIG", "config"),
+            ("DATA", "data"),
+            ("STATE", "state"),
+        ] {
+            cmd.env_remove(format!("RUSTUP_{category}_HOME"));
+            cmd.env(format!("XDG_{category}_HOME"), xdg_home.join(directory));
+        }
+        let output = cmd.output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+
+        assert!(config_home.join("settings.toml").is_file());
+        assert!(config_home.join("env").is_file());
+        assert!(state_home.is_dir());
+        assert!(data_home.join("toolchains").is_dir());
+        assert!(cache_home.join("downloads").is_dir());
+        assert!(cache_home.join("update-hashes").is_dir());
+        assert!(bin_home.join("rustup").is_file());
+        assert!(bin_home.join("rustc").is_file());
+        assert!(legacy_marker.is_file());
+        assert!(!cx.config.rustupdir.has("toolchains"));
+        assert!(!cx.config.cargodir.join("bin/rustup").exists());
     }
 
     #[tokio::test]
@@ -148,12 +228,7 @@ error: could not amend shell profile[..]
     #[tokio::test]
     async fn install_with_zdotdir_from_calling_zsh() {
         // This test requires that zsh is callable.
-        if std::process::Command::new("zsh")
-            .arg("-c")
-            .arg("true")
-            .status()
-            .is_err()
-        {
+        if Command::new("zsh").arg("-c").arg("true").status().is_err() {
             return;
         }
 

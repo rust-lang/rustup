@@ -1932,6 +1932,99 @@ warn: removing the last target; no build targets will be available
 }
 
 #[tokio::test]
+async fn install_uses_cache_home_and_forwards_it() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let cache_home_env = cache_home.to_str().unwrap();
+    let toolchain = format!("stable-{}", this_host_tuple());
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(cache_home.join("tmp").is_dir());
+    assert!(!cx.config.rustupdir.has("tmp"));
+    assert!(cache_home.join("downloads").is_dir());
+    assert!(!cx.config.rustupdir.has("downloads"));
+
+    assert!(cache_home.join("update-hashes").join(&toolchain).is_file());
+    assert!(
+        !cx.config
+            .rustupdir
+            .has(format!("update-hashes/{toolchain}"))
+    );
+    assert!(cx.config.rustupdir.has(format!("toolchains/{toolchain}")));
+
+    let rustc = cx
+        .config
+        .expect_with_env(
+            ["rustc", "+stable", "--echo-env", "RUSTUP_CACHE_HOME"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await;
+    rustc.is_ok();
+    assert_eq!(rustc.output.stderr.trim(), cache_home.to_string_lossy());
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "remove", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+    assert!(!cache_home.join("update-hashes").join(&toolchain).is_file());
+}
+
+#[tokio::test]
+async fn install_uses_data_home_and_forwards_it() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let toolchain = format!("stable-{}", this_host_tuple());
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(data_home.join("toolchains").join(&toolchain).is_dir());
+    assert!(!cx.config.rustupdir.has(format!("toolchains/{toolchain}")));
+
+    // Test `toolchain::set_env` forward to sub process is working
+    let rustc = cx
+        .config
+        .expect_with_env(
+            ["rustc", "+stable", "--echo-env", "RUSTUP_DATA_HOME"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await;
+    rustc.is_ok();
+    assert_eq!(rustc.output.stderr.trim(), data_home.to_string_lossy());
+}
+
+#[tokio::test]
 // Issue #304
 async fn remove_target_missing_update_hash() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;

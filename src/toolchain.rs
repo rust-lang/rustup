@@ -180,6 +180,10 @@ impl<'a> Toolchain<'a> {
 
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
         cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
+        cmd.env("RUSTUP_CACHE_HOME", &self.cfg.rustup_cache_dir);
+        cmd.env("RUSTUP_CONFIG_HOME", &self.cfg.rustup_config_dir);
+        cmd.env("RUSTUP_DATA_HOME", &self.cfg.rustup_data_dir);
+        cmd.env("RUSTUP_STATE_HOME", &self.cfg.rustup_state_dir);
     }
 
     /// Apply the appropriate LD path for a command being run from a toolchain.
@@ -227,13 +231,13 @@ impl<'a> Toolchain<'a> {
 
         env_var::insert_path(sysenv::LOADER_PATH, new_path, None, cmd, self.cfg.process);
 
-        // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
+        // Prepend the Rustup bin home to PATH so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
         // proxy bins don't exist. We'll just be running whatever happens to
         // be on the PATH.
         let mut path_entries = vec![];
-        if let Ok(cargo_home) = self.cfg.process.cargo_home() {
-            path_entries.push(cargo_home.join("bin"));
+        if let Ok(rustup_bin_home) = self.cfg.process.rustup_bin_home() {
+            path_entries.push(rustup_bin_home);
         }
 
         // On Windows, we append the "bin" directory to PATH by default.

@@ -62,7 +62,15 @@ async fn smoke_case_install_no_modify_path() {
     // output on stderr, then an explicit blank line on stdout
     // before printing $toolchain installed
     run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n")
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
         .with_stdout(snapbox::str![[r#"
+...
+Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+  [RUSTUP_DIR]
+
+This can be modified with the RUSTUP_HOME environment variable.
 ...
 This path needs to be in your PATH environment variable,
 but will not be added automatically.
@@ -257,6 +265,93 @@ no active toolchain
 ...
 "#]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn install_with_split_homes_does_not_create_legacy_home() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let mut cmd = cx.config.cmd(
+        "rustup-init",
+        ["-y", "--no-modify-path", "--default-toolchain", "none"],
+    );
+    cmd.env_remove("RUSTUP_HOME");
+    cmd.env("RUSTUP_CONFIG_HOME", "relative/config");
+    cmd.env("RUSTUP_STATE_HOME", "relative/state");
+    cmd.env("RUSTUP_DATA_HOME", "relative/data");
+    cmd.env("RUSTUP_CACHE_HOME", "relative/cache");
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    assert!(cmd.output().unwrap().status.success());
+
+    assert!(!cx.config.homedir.join(".rustup").exists());
+    assert!(config_home.is_dir());
+    assert!(state_home.is_dir());
+}
+
+#[tokio::test]
+async fn install_displays_split_homes() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let data_home = cx.config.current_dir().join("relative/data");
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let redactions = [
+        ("[CONFIG_HOME]", config_home.clone()),
+        ("[STATE_HOME]", state_home.clone()),
+        ("[DATA_HOME]", data_home.clone()),
+        ("[CACHE_HOME]", cache_home.clone()),
+    ];
+
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+            ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+            ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+            ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ],
+    )
+    .extend_redactions(redactions)
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [CONFIG_HOME]
+    state:  [STATE_HOME]
+    data:   [DATA_HOME]
+    cache:  [CACHE_HOME]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
+}
+
+#[tokio::test]
+async fn install_displays_category_overrides_when_homes_match_legacy() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[("RUSTUP_USE_CATEGORY_HOME", "1")],
+    )
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+...
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
 }
 
 #[tokio::test]
@@ -626,8 +721,12 @@ async fn install_warns_about_existing_settings_file() {
         .prefix("fakehome")
         .tempdir()
         .unwrap();
+    let config_dir = tempfile::Builder::new()
+        .prefix("fakeconfig")
+        .tempdir()
+        .unwrap();
     // Create `settings.toml`
-    let settings_file = temp_dir.path().join("settings.toml");
+    let settings_file = config_dir.path().join("settings.toml");
     raw::write_file(
         &settings_file,
         &format!(
@@ -639,6 +738,7 @@ version = "12""#,
     )
     .unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
+    let config_dir_path = config_dir.path().to_str().unwrap();
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -647,6 +747,8 @@ version = "12""#,
             [
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("RUSTUP_HOME", temp_dir_path),
+                ("RUSTUP_CONFIG_HOME", config_dir_path),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
             ],
         )
         .await

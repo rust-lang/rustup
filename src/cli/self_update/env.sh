@@ -2,10 +2,10 @@
 # rustup shell setup
 # affix colons on either side of $PATH to simplify matching
 case ":${PATH}:" in
-    *:"{cargo_bin}":*)
+    *:"{rustup_bin}":*)
         ;;
     *)
         # Prepending path in case a system-installed rustc needs to be overridden
-        export PATH="{cargo_bin}:$PATH"
+        export PATH="{rustup_bin}:$PATH"
         ;;
 esac
