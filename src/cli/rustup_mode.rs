@@ -33,6 +33,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     cli::{
+        ci,
         common::{self, PackageUpdate, update_console_filter},
         docs,
         errors::CliError,
@@ -309,6 +310,13 @@ enum RustupSubcmd {
         #[arg(default_value = "rustup")]
         command: CompletionCommand,
     },
+
+    /// Generate CI-specific configurations
+    #[command(hide = true)]
+    Ci {
+        #[command(subcommand)]
+        subcmd: CiSubcmd,
+    },
 }
 
 fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialToolchainDesc> {
@@ -331,6 +339,7 @@ impl RustupSubcmd {
             // These subcommands don't require the active toolchain, so auto-installing it should be
             // disabled to avoid surprises.
             Self::Check { .. }
+            | Self::Ci { .. }
             | Self::Completions { .. }
             | Self::Component { .. }
             | Self::Default { .. }
@@ -352,7 +361,10 @@ impl RustupSubcmd {
     fn should_warn_empty_setup(&self) -> bool {
         match self {
             // These subcommands are not about toolchains, so the hint would be noise.
-            Self::Completions { .. } | Self::DumpTestament | Self::Self_ { .. } => false,
+            Self::Ci { .. }
+            | Self::Completions { .. }
+            | Self::DumpTestament
+            | Self::Self_ { .. } => false,
 
             // For all other subcommands, the hint may be useful if rustup is still unusable after
             // the command has completed.
@@ -690,6 +702,17 @@ enum SetSubcmd {
     },
 }
 
+#[derive(Debug, Subcommand)]
+#[command(arg_required_else_help = true, subcommand_required = true)]
+enum CiSubcmd {
+    /// Show the example problem matcher for the given CI flavor
+    #[command(alias = "matcher")]
+    ProblemMatcher {
+        #[arg(value_enum)]
+        flavor: ci::Flavor,
+    },
+}
+
 #[tracing::instrument(level = "trace", fields(args = format!("{:?}", process.args_os().collect::<Vec<_>>())), skip(process, console_filter))]
 pub async fn main(
     current_dir: PathBuf,
@@ -888,6 +911,9 @@ pub async fn main(
         RustupSubcmd::Completions { shell, command } => {
             output_completion_script(shell, command, process)
         }
+        RustupSubcmd::Ci { subcmd } => match subcmd {
+            CiSubcmd::ProblemMatcher { flavor } => ci::problem_matcher(flavor, cfg),
+        },
     }?;
 
     if should_warn && cfg.list_toolchains()?.is_empty() && cfg.get_default()?.is_none() {
