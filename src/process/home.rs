@@ -7,9 +7,7 @@
 //! In category mode, cache, config, data, and state each resolve independently:
 //!
 //! 1. Use a non-empty `RUSTUP_<CATEGORY>_HOME` as the complete directory path.
-//! 2. Otherwise, use a non-empty `RUSTUP_HOME`, resolving relative paths against
-//!    the current directory.
-//! 3. Otherwise, use the platform's category directory with `rustup` appended.
+//! 2. Otherwise, use the platform's category directory with `rustup` appended.
 //!
 //! On Unix, the platform directory comes from an absolute `XDG_<CATEGORY>_HOME`,
 //! or defaults to `~/.cache`, `~/.config`, `~/.local/share`, or `~/.local/state`.
@@ -17,11 +15,11 @@
 //! does not consult XDG variables.
 //!
 //! The bin directory uses a non-empty `RUSTUP_BIN_HOME`, otherwise `~/.local/bin`
-//! (currently `%USERPROFILE%/.local/bin` on Windows). No `rustup` suffix is added,
-//! and the bin resolver does not fall back to `CARGO_HOME`.
-//! Explicit category and bin overrides are used as supplied, including relative
-//! paths.
+//! (currently `%USERPROFILE%/.local/bin` on Windows). No `rustup` suffix is added.
+//! Explicit Rustup overrides are used as supplied, including relative paths.
 //!
+//! Category mode does not fall back to `RUSTUP_HOME` or `CARGO_HOME`, even if a
+//! platform directory cannot be resolved; resolution errors are returned instead.
 //! When category mode is disabled, `Process` uses the re-exported `home` crate
 //! APIs: `RUSTUP_HOME` or `~/.rustup` for all four categories, and `CARGO_HOME/bin`
 //! or `~/.cargo/bin` for binaries. Category overrides have no effect in that mode.
@@ -82,14 +80,6 @@ impl HomeCategory {
 pub(super) fn category_home(category: HomeCategory, env: &impl Env) -> io::Result<PathBuf> {
     if let Some(path) = path_from_env(category.override_env_var(), env) {
         return Ok(path);
-    }
-    if let Some(path) = path_from_env("RUSTUP_HOME", env) {
-        if path.is_absolute() {
-            return Ok(path);
-        }
-        let mut cwd = env.current_dir()?;
-        cwd.push(path);
-        return Ok(cwd);
     }
     let mut path = platform_dir::category_home_with_env(category, env)?;
     path.push("rustup");

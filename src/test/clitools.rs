@@ -277,6 +277,19 @@ impl Config {
         }
         cmd.env("PATH", new_path);
         self.rustupdir.apply(cmd);
+        // Category mode no longer falls back to RUSTUP_HOME. Keep every category
+        // inside the test root, including on Windows where Known Folders are
+        // independent of HOME and USERPROFILE. Tests can override these paths.
+        for variable in [
+            "RUSTUP_CACHE_HOME",
+            "RUSTUP_CONFIG_HOME",
+            "RUSTUP_DATA_HOME",
+            "RUSTUP_STATE_HOME",
+        ] {
+            cmd.env(variable, &self.rustupdir.rustupdir);
+        }
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "");
+        cmd.env("RUSTUP_BIN_HOME", "");
         let distdir = match (&self.distdir, &self.const_dist_dir) {
             (None, None) => Path::new("no-such-distdir"),
             // mutable takes precedence
@@ -807,6 +820,9 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::set_var("TERM", "dumb");
         // Removed to avoid leaking the developer's environment into the test
         env::remove_var("XDG_CONFIG_HOME");
+        env::remove_var("XDG_CACHE_HOME");
+        env::remove_var("XDG_DATA_HOME");
+        env::remove_var("XDG_STATE_HOME");
 
         match env::var("RUSTUP_BACKTRACE") {
             Ok(val) => env::set_var("RUST_BACKTRACE", val),

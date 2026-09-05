@@ -325,7 +325,28 @@ Rustup will use these directories:
     data:   [DATA_HOME]
     cache:  [CACHE_HOME]
 
-They can be modified together with RUSTUP_HOME or individually with
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
+}
+
+#[tokio::test]
+async fn install_displays_category_overrides_when_homes_match_legacy() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[("RUSTUP_USE_CATEGORY_HOME", "1")],
+    )
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+...
+They can be modified individually with
 RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
 RUSTUP_CACHE_HOME.
 ...

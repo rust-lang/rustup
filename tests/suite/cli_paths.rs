@@ -110,6 +110,45 @@ export PATH="$HOME/apple/bin"
     }
 
     #[tokio::test]
+    async fn install_uses_platform_homes_over_legacy_overrides() {
+        let cx = CliTestContext::new(Scenario::SimpleV2).await;
+        let xdg_home = cx.config.homedir.join("xdg");
+        let config_home = xdg_home.join("config/rustup");
+        let state_home = xdg_home.join("state/rustup");
+        let data_home = xdg_home.join("data/rustup");
+        let cache_home = xdg_home.join("cache/rustup");
+        let bin_home = cx.config.homedir.join(".local/bin");
+        let legacy_marker = cx.config.rustupdir.join("legacy-marker");
+        fs::write(&legacy_marker, "legacy installation").unwrap();
+
+        let mut cmd = cx.config.cmd("rustup-init", ["-y", "--no-modify-path"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        for (category, directory) in [
+            ("CACHE", "cache"),
+            ("CONFIG", "config"),
+            ("DATA", "data"),
+            ("STATE", "state"),
+        ] {
+            cmd.env_remove(format!("RUSTUP_{category}_HOME"));
+            cmd.env(format!("XDG_{category}_HOME"), xdg_home.join(directory));
+        }
+        let output = cmd.output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+
+        assert!(config_home.join("settings.toml").is_file());
+        assert!(config_home.join("env").is_file());
+        assert!(state_home.is_dir());
+        assert!(data_home.join("toolchains").is_dir());
+        assert!(cache_home.join("downloads").is_dir());
+        assert!(cache_home.join("update-hashes").is_dir());
+        assert!(bin_home.join("rustup").is_file());
+        assert!(bin_home.join("rustc").is_file());
+        assert!(legacy_marker.is_file());
+        assert!(!cx.config.rustupdir.has("toolchains"));
+        assert!(!cx.config.cargodir.join("bin/rustup").exists());
+    }
+
+    #[tokio::test]
     async fn install_updates_bash_rcs() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]

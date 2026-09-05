@@ -702,17 +702,8 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
 
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
     let rustup_bin_home = process.rustup_bin_home()?;
-    let rustup_home = process.rustup_home()?;
     let home_dirs = process.home_dirs()?;
-    let rustup_home_message = if [
-        &home_dirs.cache,
-        &home_dirs.config,
-        &home_dirs.data,
-        &home_dirs.state,
-    ]
-    .into_iter()
-    .all(|home| *home == rustup_home)
-    {
+    let rustup_home_message = if !process.use_category_home() {
         format!(
             concat!(
                 "Rustup metadata and toolchains will be installed into the Rustup\n",
@@ -720,7 +711,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
                 "    {}\n\n",
                 "This can be modified with the RUSTUP_HOME environment variable."
             ),
-            rustup_home.display()
+            home_dirs.config.display()
         )
     } else {
         format!(
@@ -730,7 +721,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
                 "      state:  {}\n",
                 "      data:   {}\n",
                 "      cache:  {}\n\n",
-                "They can be modified together with RUSTUP_HOME or individually with\n",
+                "They can be modified individually with\n",
                 "RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and\n",
                 "RUSTUP_CACHE_HOME."
             ),
