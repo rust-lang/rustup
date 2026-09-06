@@ -113,8 +113,8 @@ walkdir = { version = "2", optional = true }
 
 [target."cfg(windows)".dependencies]
 scopeguard = "1"
-windows-registry = "0.6"
-windows-result = "0.4"
+windows-registry = "0.100"
+windows-result = "0.100"
 
 [target."cfg(windows)".dependencies.windows-sys]
 features = [
