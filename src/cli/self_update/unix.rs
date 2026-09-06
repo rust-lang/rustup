@@ -6,10 +6,7 @@ use std::{
 use anyhow::{Context, bail};
 use tracing::{error, warn};
 
-use super::{
-    install_bins,
-    shell::{self, Posix, UnixShell},
-};
+use super::{install_bins, shell};
 use crate::{process::Process, utils};
 
 // If the user is trying to install with sudo, on some systems this will
@@ -54,19 +51,27 @@ pub(crate) fn do_anti_sudo_check(
 }
 
 pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
+    let env_home = process.cargo_home()?;
+    let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_bytes = format!("{}\n", sh.source_string(process)?).into_bytes();
+        let commands = [
+            sh.source_string(&env_home)?,
+            sh.legacy_source_string(&env_home, home_dir.as_deref())?,
+        ];
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rcfiles(process).iter().filter(|rc| rc.is_file()) {
             let file = utils::read_file("rcfile", rc)?;
-            let file_bytes = file.into_bytes();
             // FIXME: This is whitespace sensitive where it should not be.
-            if let Some(idx) = find_exact_line(&file_bytes, &source_bytes) {
-                // Here we rewrite the file without the offending line.
-                let mut new_bytes = file_bytes[..idx].to_vec();
-                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
-                let new_file = String::from_utf8(new_bytes).unwrap();
+            let new_file: String = file
+                .split_inclusive('\n')
+                .filter(|line| {
+                    !commands
+                        .iter()
+                        .any(|cmd| line.trim_end_matches(['\r', '\n']) == cmd)
+                })
+                .collect();
+            if new_file != file {
                 utils::write_file("rcfile", rc, &new_file)?;
             }
         }
@@ -78,13 +83,22 @@ pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
+    let env_home = process.cargo_home()?;
+    let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(process)?;
+        let source_cmd = sh.source_string(&env_home)?;
+        let legacy_cmd = sh.legacy_source_string(&env_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.update_rcs(process) {
             let cmd_to_write = match utils::read_file("rcfile", &rc) {
-                Ok(contents) if contents.contains(&source_cmd) => continue,
+                Ok(contents)
+                    if contents
+                        .lines()
+                        .any(|line| line == source_cmd || line == legacy_cmd) =>
+                {
+                    continue;
+                }
                 Ok(contents) if !contents.ends_with('\n') => &source_cmd_with_newline,
                 _ => &source_cmd,
             };
@@ -176,20 +190,14 @@ fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
     // Before the work to support more kinds of shells, which was released in
     // version 1.23.0 of Rustup, we always inserted this line instead, which is
     // now considered legacy
-    remove_legacy_source_command(
-        format!(
-            "export PATH=\"{}/bin:$PATH\"\n",
-            Posix.cargo_home_str(process)?
-        ),
-        process,
-    )?;
+    let cargo_home = process.cargo_home()?;
+    let cargo_home =
+        shell::legacy_env_home(&cargo_home, process.home_dir().as_deref(), "$HOME/.cargo")?;
+    remove_legacy_source_command(format!("export PATH=\"{cargo_home}/bin:$PATH\"\n"), process)?;
     // Unfortunately in 1.23, we accidentally used `source` rather than `.`
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
-    remove_legacy_source_command(
-        format!("source \"{}/env\"\n", Posix.cargo_home_str(process)?),
-        process,
-    )?;
+    remove_legacy_source_command(format!("source \"{cargo_home}/env\"\n"), process)?;
 
     Ok(())
 }
