@@ -54,8 +54,11 @@ pub(crate) fn do_anti_sudo_check(
 }
 
 pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
+    let env_home = process.cargo_home()?;
+    let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_bytes = format!("{}\n", sh.source_string(process)?).into_bytes();
+        let source_bytes =
+            format!("{}\n", sh.source_string(&env_home, home_dir.as_deref())?).into_bytes();
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rcfiles(process).iter().filter(|rc| rc.is_file()) {
@@ -78,8 +81,10 @@ pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
+    let env_home = process.cargo_home()?;
+    let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(process)?;
+        let source_cmd = sh.source_string(&env_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.update_rcs(process) {
@@ -176,20 +181,13 @@ fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
     // Before the work to support more kinds of shells, which was released in
     // version 1.23.0 of Rustup, we always inserted this line instead, which is
     // now considered legacy
-    remove_legacy_source_command(
-        format!(
-            "export PATH=\"{}/bin:$PATH\"\n",
-            Posix.cargo_home_str(process)?
-        ),
-        process,
-    )?;
+    let cargo_home = process.cargo_home()?;
+    let cargo_home = Posix.format_path(&cargo_home, process.home_dir().as_deref())?;
+    remove_legacy_source_command(format!("export PATH=\"{cargo_home}/bin:$PATH\"\n"), process)?;
     // Unfortunately in 1.23, we accidentally used `source` rather than `.`
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
-    remove_legacy_source_command(
-        format!("source \"{}/env\"\n", Posix.cargo_home_str(process)?),
-        process,
-    )?;
+    remove_legacy_source_command(format!("source \"{cargo_home}/env\"\n"), process)?;
 
     Ok(())
 }
