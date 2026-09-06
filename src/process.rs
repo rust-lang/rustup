@@ -1,4 +1,5 @@
 
+
 #[cfg(feature = "test")]
 use std::{
     collections::HashMap,
@@ -121,7 +122,7 @@ impl Process {
 
     /// Category mode is enabled when `RUSTUP_USE_CATEGORY_HOME` is non-empty
     /// and not "0"; values such as "false" also enable it.
-    fn use_category_home(&self) -> bool {
+    pub(crate) fn use_category_home(&self) -> bool {
         self.var_os("RUSTUP_USE_CATEGORY_HOME")
             .is_some_and(|value| value != "0")
     }
