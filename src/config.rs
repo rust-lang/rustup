@@ -314,7 +314,6 @@ pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
 pub(crate) struct Cfg<'a> {
     pub profile_override: Option<Profile>,
-    pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
     state_file: StateFile,
     fallback_settings: Option<FallbackSettings>,
@@ -349,7 +348,6 @@ impl<'a> Cfg<'a> {
         process: &'a Process,
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
-        let rustup_dir = process.rustup_home()?;
         let home_dirs = process.home_dirs()?;
         let rustup_cache_dir = home_dirs.cache;
         let rustup_config_dir = home_dirs.config;
@@ -404,7 +402,6 @@ impl<'a> Cfg<'a> {
 
         let cfg = Self {
             profile_override: None,
-            rustup_dir,
             settings_file,
             state_file,
             fallback_settings,
@@ -1193,7 +1190,6 @@ impl Debug for Cfg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self {
             profile_override,
-            rustup_dir,
             settings_file,
             state_file,
             fallback_settings,
@@ -1215,7 +1211,6 @@ impl Debug for Cfg<'_> {
 
         f.debug_struct("Cfg")
             .field("profile_override", profile_override)
-            .field("rustup_dir", rustup_dir)
             .field("settings_file", settings_file)
             .field("state_file", state_file)
             .field("fallback_settings", fallback_settings)
@@ -1329,6 +1324,24 @@ const FALLBACK_RELEASE_DATE: &str = "2026-04-17";
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    #[test]
+    fn category_config_does_not_require_legacy_home() {
+        let root = tempfile::tempdir().unwrap();
+        let mut vars = std::collections::HashMap::new();
+        vars.insert("RUSTUP_USE_CATEGORY_HOME".to_owned(), "1".to_owned());
+        for category in ["CONFIG", "CACHE", "DATA", "STATE"] {
+            vars.insert(
+                format!("RUSTUP_{category}_HOME"),
+                root.path().join(category).display().to_string(),
+            );
+        }
+        let process = crate::process::TestProcess::with_vars(vars);
+        assert!(process.process.rustup_home().is_err());
+        let cfg = Cfg::from_env(root.path().to_owned(), false, false, &process.process).unwrap();
+        assert_eq!(cfg.rustup_config_dir, root.path().join("CONFIG"));
+    }
+
     use super::*;
 
     #[test]

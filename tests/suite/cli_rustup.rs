@@ -830,6 +830,104 @@ error: infinite recursion detected
 }
 
 #[tokio::test]
+async fn category_child_preserves_legacy_home_without_resolving_it() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    for legacy in [Some("relative-legacy"), None] {
+        let mut cmd = cx.config.cmd("rustc", ["--echo-env", "RUSTUP_HOME"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        for category in ["CONFIG", "CACHE", "DATA", "STATE"] {
+            cmd.env(
+                format!("RUSTUP_{category}_HOME"),
+                cx.config.rustupdir.to_string(),
+            );
+        }
+        match legacy {
+            Some(value) => {
+                cmd.env("RUSTUP_HOME", value);
+            }
+            None => {
+                cmd.env_remove("RUSTUP_HOME");
+            }
+        }
+        let output = cmd.output().unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        match legacy {
+            Some(value) => {
+                assert!(output.status.success(), "{stderr}");
+                assert_eq!(stderr.trim(), value);
+            }
+            None => {
+                assert!(!output.status.success());
+                assert!(
+                    stderr.contains("RUSTUP_HOME environment variable not set"),
+                    "{stderr}"
+                );
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn child_cargo_home_preserves_legacy_compatibility() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    for (mode, cargo_home, expected) in [
+        ("0", None, Some(cx.config.homedir.join(".cargo"))),
+        ("1", None, None),
+        ("1", Some(""), Some(PathBuf::new())),
+        (
+            "1",
+            Some("relative-cargo"),
+            Some(cx.config.current_dir().join("relative-cargo")),
+        ),
+    ] {
+        let mut cmd = cx.config.cmd("rustc", ["--echo-env", "CARGO_HOME"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", mode);
+        match cargo_home {
+            Some(value) => {
+                cmd.env("CARGO_HOME", value);
+            }
+            None => {
+                cmd.env_remove("CARGO_HOME");
+            }
+        }
+        let output = cmd.output().unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        match expected {
+            Some(path) => {
+                assert!(
+                    output.status.success(),
+                    "mode={mode}, CARGO_HOME={cargo_home:?}: {stderr}"
+                );
+                assert_eq!(
+                    stderr.trim(),
+                    path.to_string_lossy(),
+                    "mode={mode}, CARGO_HOME={cargo_home:?}"
+                );
+            }
+            None => {
+                assert!(
+                    !output.status.success(),
+                    "mode={mode}, CARGO_HOME={cargo_home:?}: {stderr}"
+                );
+                assert!(
+                    stderr.contains("CARGO_HOME environment variable not set"),
+                    "{stderr}"
+                );
+            }
+        }
+    }
+}
+
+#[tokio::test]
 async fn show_home() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
