@@ -171,15 +171,22 @@ impl<'a> Toolchain<'a> {
         // cargo home. Rustup does not read HOME on Windows whereas the older
         // versions of Cargo did. Rustup and Cargo should be in sync now (both
         // using the same `home` crate), but this is retained to ensure cargo
-        // and rustup agree in older versions.
-        if let Ok(cargo_home) = self.cfg.process.cargo_home() {
+        // and rustup agree in older versions in legacy mode. In category mode,
+        // only resolve a non-empty CARGO_HOME; otherwise leave the inherited
+        // environment unchanged so Cargo can choose its own default.
+        if (!self.cfg.process.use_category_home()
+            || self.cfg.process.var_os("CARGO_HOME").is_some())
+            && let Ok(cargo_home) = self.cfg.process.cargo_home()
+        {
             cmd.env("CARGO_HOME", &cargo_home);
         }
 
         env_var::inc("RUST_RECURSION_COUNT", cmd, self.cfg.process);
 
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
-        cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
+        if !self.cfg.process.use_category_home() {
+            cmd.env("RUSTUP_HOME", &self.cfg.rustup_data_dir);
+        }
         cmd.env("RUSTUP_CACHE_HOME", &self.cfg.rustup_cache_dir);
         cmd.env("RUSTUP_CONFIG_HOME", &self.cfg.rustup_config_dir);
         cmd.env("RUSTUP_DATA_HOME", &self.cfg.rustup_data_dir);
