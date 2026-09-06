@@ -387,7 +387,7 @@ enum ShowSubcmd {
         verbose: bool,
     },
 
-    /// Display the computed value of RUSTUP_HOME
+    /// Display resolved Rustup home directories
     Home,
 
     /// Show the default profile used for the `rustup install` command
@@ -1270,14 +1270,27 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
         cfg.default_host_tuple()?
     )?;
 
-    // Print rustup home directory
     {
         let mut t = t.lock();
-        writeln!(
-            t,
-            "{HEADER}rustup home:  {HEADER:#}{}",
-            cfg.rustup_data_dir.display()
-        )?;
+        if cfg.process.use_category_home() {
+            writeln!(t, "{HEADER}rustup homes:{HEADER:#}")?;
+            for (name, home) in [
+                ("config", &cfg.rustup_config_dir),
+                ("state", &cfg.rustup_state_dir),
+                ("data", &cfg.rustup_data_dir),
+                ("cache", &cfg.rustup_cache_dir),
+                ("bin", &cfg.process.rustup_bin_home()?),
+            ] {
+                writeln!(t, "  {name}: {}", home.display())?;
+            }
+        } else {
+            // In legacy mode, all four category homes equal the resolved RUSTUP_HOME.
+            writeln!(
+                t,
+                "{HEADER}rustup home:  {HEADER:#}{}",
+                cfg.rustup_data_dir.display()
+            )?;
+        }
         writeln!(t)?;
     }
 
@@ -1425,11 +1438,20 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<E
 
 #[tracing::instrument(level = "trace", skip_all)]
 fn show_rustup_home(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
-    writeln!(
-        cfg.process.stdout().lock(),
-        "{}",
-        cfg.rustup_data_dir.display()
-    )?;
+    let mut stdout = cfg.process.stdout().lock();
+    if cfg.process.use_category_home() {
+        for (name, home) in [
+            ("config", &cfg.rustup_config_dir),
+            ("state", &cfg.rustup_state_dir),
+            ("data", &cfg.rustup_data_dir),
+            ("cache", &cfg.rustup_cache_dir),
+        ] {
+            writeln!(stdout, "{name}: {}", home.display())?;
+        }
+    } else {
+        // In legacy mode, all four category homes equal the resolved RUSTUP_HOME.
+        writeln!(stdout, "{}", cfg.rustup_data_dir.display())?;
+    }
     Ok(ExitCode::SUCCESS)
 }
 

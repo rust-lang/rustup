@@ -928,6 +928,78 @@ async fn child_cargo_home_preserves_legacy_compatibility() {
 }
 
 #[tokio::test]
+async fn show_category_homes() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let dirs = tempfile::tempdir().unwrap();
+    let categories = ["config", "cache", "data", "state", "bin"];
+    let configure = |cmd: &mut std::process::Command| {
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        for category in categories {
+            cmd.env(
+                format!("RUSTUP_{}_HOME", category.to_uppercase()),
+                dirs.path().join(format!("{category} home")),
+            );
+        }
+    };
+    let mut cmd = cx.config.cmd("rustup", ["show", "home"]);
+    configure(&mut cmd);
+    let output = cmd.output().unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let expected = ["config", "state", "data", "cache"]
+        .map(|category| {
+            format!(
+                "{category}: {}\n",
+                dirs.path().join(format!("{category} home")).display()
+            )
+        })
+        .concat();
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+
+    let mut cmd = cx.config.cmd("rustup", ["show"]);
+    configure(&mut cmd);
+    let output = cmd.output().unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let start = stdout.find("rustup homes:").unwrap();
+    let expected = ["config", "state", "data", "cache", "bin"]
+        .map(|category| {
+            format!(
+                "  {category}: {}\n",
+                dirs.path().join(format!("{category} home")).display()
+            )
+        })
+        .concat();
+    assert!(
+        stdout[start..].starts_with(&format!("rustup homes:\n{expected}")),
+        "{stdout}"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn show_category_platform_defaults() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let mut cmd = cx.config.cmd("rustup", ["show", "home"]);
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1")
+        .env_remove("RUSTUP_HOME");
+    for name in ["CONFIG", "CACHE", "DATA", "STATE", "BIN"] {
+        cmd.env_remove(format!("RUSTUP_{name}_HOME"))
+            .env_remove(format!("XDG_{name}_HOME"));
+    }
+    let output = cmd.output().unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let expected = [
+        ("config", ".config/rustup"),
+        ("state", ".local/state/rustup"),
+        ("data", ".local/share/rustup"),
+        ("cache", ".cache/rustup"),
+    ]
+    .map(|(category, subdir)| format!("{category}: {}\n", cx.config.homedir.join(subdir).display()))
+    .concat();
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+}
+
+#[tokio::test]
 async fn show_home() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
