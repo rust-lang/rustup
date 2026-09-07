@@ -1159,11 +1159,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
                 for &target in self.targets {
                     let tuple = TargetTuple::new(target);
-                    all_components.insert(Component::new(
-                        "rust-std".to_string(),
-                        Some(tuple),
-                        false,
-                    ));
+                    all_components.insert(Component::std(tuple));
                 }
 
                 let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
