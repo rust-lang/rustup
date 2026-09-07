@@ -4,9 +4,7 @@ version = "1.30.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Manage multiple rust installations with ease"
-homepage = "https://github.com/rust-lang/rustup"
 keywords = ["rustup", "multirust", "install", "proxy"]
-readme = "README.md"
 repository = "https://github.com/rust-lang/rustup"
 build = "build.rs"
 

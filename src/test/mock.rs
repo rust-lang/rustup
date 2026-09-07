@@ -160,7 +160,7 @@ impl MockInstallerBuilder {
             let mut comp_file = OpenOptions::new()
                 .append(true)
                 .create(true)
-                .open(comp_file.clone())
+                .open(comp_file)
                 .unwrap();
             writeln!(comp_file, "{}", component.name).unwrap();
 
