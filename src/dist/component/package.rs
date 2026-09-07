@@ -128,16 +128,16 @@ impl<P: Deref<Target = Path>> DirectoryPackage<P> {
             match part.kind {
                 ComponentPartKind::File => {
                     if self.copy {
-                        builder.copy_file(path.clone(), &src_path)?
+                        builder.copy_file(path, &src_path)?
                     } else {
-                        builder.move_file(path.clone(), &src_path)?
+                        builder.move_file(path, &src_path)?
                     }
                 }
                 ComponentPartKind::Dir => {
                     if self.copy {
-                        builder.copy_dir(path.clone(), &src_path)?
+                        builder.copy_dir(path, &src_path)?
                     } else {
-                        builder.move_dir(path.clone(), &src_path)?
+                        builder.move_dir(path, &src_path)?
                     }
                 }
                 _ => return Err(RustupError::CorruptComponent(name.to_owned()).into()),
