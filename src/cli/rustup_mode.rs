@@ -1498,13 +1498,11 @@ async fn target_add(
     }
 
     distributable
-        .add_components(targets.into_iter().map(|target| {
-            Component::new(
-                "rust-std".to_string(),
-                Some(TargetTuple::new(target)),
-                false,
-            )
-        }))
+        .add_components(
+            targets
+                .into_iter()
+                .map(|target| Component::std(TargetTuple::new(target))),
+        )
         .await?;
 
     Ok(ExitCode::SUCCESS)
@@ -1543,8 +1541,9 @@ async fn target_remove(
         if has_at_most_one_target {
             warn!("removing the last target; no build targets will be available");
         }
-        let new_component = Component::new("rust-std".to_string(), Some(target), false);
-        distributable.remove_component(new_component).await?;
+        distributable
+            .remove_component(Component::std(target))
+            .await?;
     }
 
     Ok(ExitCode::SUCCESS)

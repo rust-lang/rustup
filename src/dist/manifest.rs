@@ -552,6 +552,10 @@ impl Component {
         }
     }
 
+    pub fn std(target: TargetTuple) -> Self {
+        Self::new("rust-std".to_string(), Some(target), false)
+    }
+
     pub(crate) fn try_new(
         name: &str,
         distributable: &DistributableToolchain<'_>,
