@@ -504,6 +504,8 @@ error: could not amend shell profile[..]
 
 #[cfg(windows)]
 mod windows {
+    use std::ffi::OsStr;
+
     use retry::delay::{Fibonacci, jitter};
     use retry::{OperationResult, retry};
 
@@ -518,12 +520,12 @@ mod windows {
     async fn install_uninstall_affect_path() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let test_id = &cx.config.test_registry_id;
-        let cfg_path = cx.config.cargodir.join("bin").display().to_string();
-        let read_path = |test_id: &str| -> Option<String> {
+        let cfg_path = cx.config.cargodir.join("bin").into_os_string();
+        let read_path = |test_id: &str| -> Option<_> {
             retry(
                 Fibonacci::from_millis(1).map(jitter).take(21),
                 || match get_path(test_id).unwrap() {
-                    Some(v) => OperationResult::Ok(HSTRING::try_from(v).unwrap().to_string()),
+                    Some(v) => OperationResult::Ok(HSTRING::try_from(v).unwrap().to_os_string()),
                     None => OperationResult::Retry(()),
                 },
             )
@@ -533,8 +535,8 @@ mod windows {
         cx.config.expect(&INIT_NONE).await.is_ok();
         let after_install = read_path(test_id).unwrap_or_default();
         assert!(
-            after_install.contains(cfg_path.trim_matches('"')),
-            "`{cfg_path}` not in `{after_install}`",
+            os_str_contains(&after_install, &cfg_path),
+            "`{cfg_path:?}` not in `{after_install:?}`",
         );
 
         cx.config
@@ -542,18 +544,21 @@ mod windows {
             .await
             .is_ok();
         let after_uninstall = read_path(test_id).unwrap_or_default();
-        assert!(!after_uninstall.contains(&cfg_path));
+        assert!(
+            !os_str_contains(&after_uninstall, &cfg_path),
+            "`{cfg_path:?}` in `{after_uninstall:?}`",
+        );
     }
 
     #[tokio::test]
     async fn uninstall_keeps_path_when_cargo_bin_is_non_empty() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let test_id = &cx.config.test_registry_id;
-        let cfg_path = cx.config.cargodir.join("bin").display().to_string();
+        let cfg_path = cx.config.cargodir.join("bin").into_os_string();
         let get_path_ = || {
             HSTRING::try_from(get_path(test_id).unwrap().unwrap())
                 .unwrap()
-                .to_string()
+                .to_os_string()
         };
 
         cx.config.expect(&INIT_NONE).await.is_ok();
@@ -562,11 +567,10 @@ mod windows {
             .expect(&["rustup", "self", "uninstall", "-y"])
             .await
             .is_ok();
+        let after_uninstall = get_path_();
         assert!(
-            get_path_().contains(cfg_path.trim_matches('"')),
-            "`{}` not in `{}`",
-            cfg_path,
-            get_path_()
+            os_str_contains(&after_uninstall, &cfg_path),
+            "`{cfg_path:?}` not in `{after_uninstall:?}`",
         );
     }
 
@@ -574,11 +578,11 @@ mod windows {
     async fn uninstall_doesnt_affect_path_with_no_modify_path() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let test_id = &cx.config.test_registry_id;
-        let cfg_path = cx.config.cargodir.join("bin").display().to_string();
+        let cfg_path = cx.config.cargodir.join("bin").into_os_string();
         let get_path_ = || {
             HSTRING::try_from(get_path(test_id).unwrap().unwrap())
                 .unwrap()
-                .to_string()
+                .to_os_string()
         };
 
         cx.config.expect(&INIT_NONE).await.is_ok();
@@ -586,11 +590,10 @@ mod windows {
             .expect(&["rustup", "self", "uninstall", "-y", "--no-modify-path"])
             .await
             .is_ok();
+        let after_uninstall = get_path_();
         assert!(
-            get_path_().contains(cfg_path.trim_matches('"')),
-            "`{}` not in `{}`",
-            cfg_path,
-            get_path_()
+            os_str_contains(&after_uninstall, &cfg_path),
+            "`{cfg_path:?}` not in `{after_uninstall:?}`",
         );
     }
 
@@ -637,5 +640,15 @@ mod windows {
             .await
             .is_ok();
         assert_eq!(get_path(test_id).unwrap().unwrap(), reg_value);
+    }
+
+    // HACK: Below is a low-efficiency stand-in of `OsStr::contains` which should be replaced
+    // with a more efficient implementation once it is available in `std`.
+    fn os_str_contains(haystack: &OsStr, needle: &OsStr) -> bool {
+        let needle = needle.as_encoded_bytes();
+        haystack
+            .as_encoded_bytes()
+            .windows(needle.len())
+            .any(|win| win == needle)
     }
 }
