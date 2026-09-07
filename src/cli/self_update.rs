@@ -744,6 +744,7 @@ fn warn_if_default_linker_missing(process: &Process) {
         // Fill in some dummy settings for `Build`/`Tool` to be able to properly
         // give us the metadata we want
         cc::Build::new()
+            .cargo_metadata(false)
             .opt_level(0)
             .target(&tuple)
             .host(&tuple)
