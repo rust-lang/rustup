@@ -1,14 +1,13 @@
 //! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-use std::fs;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{fs, io::Write, path::PathBuf};
 
-use rustup::dist::TargetTuple;
-use rustup::dist::manifest::Manifest;
-use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_tuple,
+use rustup::{
+    dist::{TargetTuple, manifest::Manifest},
+    test::{
+        CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_tuple,
+    },
 };
 
 #[tokio::test]

@@ -272,9 +272,10 @@ impl Component {
         // and the version file.
 
         // Track visited directories
-        use std::collections::HashSet;
-        use std::collections::hash_set::IntoIter;
-        use std::fs::read_dir;
+        use std::{
+            collections::{HashSet, hash_set::IntoIter},
+            fs::read_dir,
+        };
 
         // dirs will contain the set of longest disjoint directory paths seen
         // ancestors help in filtering seen paths and constructing dirs

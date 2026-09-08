@@ -1,15 +1,20 @@
 #[cfg(not(windows))]
 use std::env;
-use std::fs;
-use std::fs::File;
-use std::io;
-use std::io::{Read, Seek, SeekFrom, Write};
-use std::path::Path;
-use std::str;
+use std::{
+    fs,
+    fs::File,
+    io,
+    io::{Read, Seek, SeekFrom, Write},
+    path::Path,
+    str,
+};
 
 use rand::RngExt;
-use retry::delay::{Fibonacci, jitter};
-use retry::{OperationResult, retry};
+use retry::{
+    OperationResult,
+    delay::{Fibonacci, jitter},
+    retry,
+};
 
 #[cfg(not(windows))]
 use crate::process::Process;
@@ -36,8 +41,7 @@ pub fn is_file<P: AsRef<Path>>(path: P) -> bool {
 
 #[cfg(windows)]
 pub fn open_dir_following_links(p: &Path) -> io::Result<File> {
-    use std::fs::OpenOptions;
-    use std::os::windows::fs::OpenOptionsExt;
+    use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt};
 
     use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_BACKUP_SEMANTICS;
 
@@ -182,16 +186,19 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 #[cfg(windows)]
 #[allow(non_snake_case)]
 fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
-    use std::os::windows::ffi::OsStrExt;
-    use std::ptr;
-    use windows_sys::Win32::Foundation::GENERIC_WRITE;
-    use windows_sys::Win32::Storage::FileSystem::{
-        CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_DELETE,
-        FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+    use std::{os::windows::ffi::OsStrExt, ptr};
+
+    use windows_sys::Win32::{
+        Foundation::GENERIC_WRITE,
+        Storage::FileSystem::{
+            CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+            FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+        },
+        System::{
+            IO::DeviceIoControl, Ioctl::FSCTL_SET_REPARSE_POINT,
+            SystemServices::IO_REPARSE_TAG_MOUNT_POINT,
+        },
     };
-    use windows_sys::Win32::System::IO::DeviceIoControl;
-    use windows_sys::Win32::System::Ioctl::FSCTL_SET_REPARSE_POINT;
-    use windows_sys::Win32::System::SystemServices::IO_REPARSE_TAG_MOUNT_POINT;
 
     const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: usize = 16 * 1024;
 
@@ -364,9 +371,7 @@ pub(crate) fn find_cmd<'a>(cmds: &[&'a str], process: &Process) -> Option<&'a st
 
 #[cfg(windows)]
 pub(crate) mod windows {
-    use std::ffi::OsStr;
-    use std::io;
-    use std::os::windows::ffi::OsStrExt;
+    use std::{ffi::OsStr, io, os::windows::ffi::OsStrExt};
 
     pub(crate) fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
         fn inner(s: &OsStr) -> io::Result<Vec<u16>> {

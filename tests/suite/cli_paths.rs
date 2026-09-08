@@ -7,13 +7,14 @@ const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"
 
 #[cfg(unix)]
 mod unix {
-    use std::fmt::Display;
-    use std::fs;
-    use std::path::PathBuf;
+    use std::{fmt::Display, fs, path::PathBuf};
+
+    use rustup::{
+        test::{CliTestContext, Scenario},
+        utils::raw,
+    };
 
     use super::INIT_NONE;
-    use rustup::test::{CliTestContext, Scenario};
-    use rustup::utils::raw;
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -506,14 +507,15 @@ error: could not amend shell profile[..]
 mod windows {
     use std::ffi::OsStr;
 
-    use retry::delay::{Fibonacci, jitter};
-    use retry::{OperationResult, retry};
+    use retry::{
+        OperationResult,
+        delay::{Fibonacci, jitter},
+        retry,
+    };
+    use rustup::test::{CliTestContext, Scenario, USER_PATH, get_path};
+    use windows_registry::{CURRENT_USER, HSTRING, Value};
 
     use super::INIT_NONE;
-    use rustup::test::{CliTestContext, Scenario};
-    use rustup::test::{USER_PATH, get_path};
-
-    use windows_registry::{CURRENT_USER, HSTRING, Value};
 
     #[tokio::test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.

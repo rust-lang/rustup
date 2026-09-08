@@ -20,17 +20,17 @@ use anyhow::{Context, anyhow};
 use rs_tracing::{
     close_trace_file, close_trace_file_internal, open_trace_file, trace_to_file_internal,
 };
-use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
-
-use rustup::cli::errors::CliError;
 #[cfg(windows)]
 use rustup::cli::self_update;
-use rustup::cli::{common, log, proxy_mode, rustup_mode, setup_mode};
-use rustup::env_var::RUST_RECURSION_COUNT_MAX;
-use rustup::errors::RustupError;
-use rustup::is_proxyable_tools;
-use rustup::process::Process;
-use rustup::utils;
+use rustup::{
+    cli::{common, errors::CliError, log, proxy_mode, rustup_mode, setup_mode},
+    env_var::RUST_RECURSION_COUNT_MAX,
+    errors::RustupError,
+    is_proxyable_tools,
+    process::Process,
+    utils,
+};
+use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 fn main() -> anyhow::Result<ExitCode> {
     #[cfg(windows)]

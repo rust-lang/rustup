@@ -1,21 +1,25 @@
 //!  Utility functions for Rustup
 
-use std::env;
-use std::ffi::OsStr;
-use std::fs::{self, File};
-use std::io::{self, BufReader, Write};
-use std::ops::{BitAnd, BitAndAssign};
-use std::path::{Path, PathBuf};
-use std::process::ExitStatus;
+use std::{
+    env,
+    ffi::OsStr,
+    fs::{self, File},
+    io::{self, BufReader, Write},
+    ops::{BitAnd, BitAndAssign},
+    path::{Path, PathBuf},
+    process::ExitStatus,
+};
 
 use anyhow::{Context, anyhow};
-use retry::delay::{Fibonacci, jitter};
-use retry::{OperationResult, retry};
+use retry::{
+    OperationResult,
+    delay::{Fibonacci, jitter},
+    retry,
+};
 use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::errors::RustupError;
-
 #[cfg(not(windows))]
 pub(crate) use crate::utils::raw::find_cmd;
 pub(crate) use crate::utils::raw::is_directory;
@@ -509,10 +513,12 @@ pub(crate) fn buffered(path: &Path) -> anyhow::Result<BufReader<File>> {
 // search user database to get home dir of euid user
 #[cfg(unix)]
 pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
-    use std::ffi::{CStr, OsString};
-    use std::mem::MaybeUninit;
-    use std::os::unix::ffi::OsStringExt;
-    use std::ptr;
+    use std::{
+        ffi::{CStr, OsString},
+        mem::MaybeUninit,
+        os::unix::ffi::OsStringExt,
+        ptr,
+    };
     unsafe {
         let init_size = match libc::sysconf(libc::_SC_GETPW_R_SIZE_MAX) {
             -1 => 1024,

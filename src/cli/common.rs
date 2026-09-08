@@ -1,11 +1,13 @@
 //! Just a dumping ground for cli stuff
 
-use std::fmt::Display;
-use std::fs;
-use std::io::{BufRead, Write};
-use std::path::Path;
-use std::sync::LazyLock;
-use std::{cmp, env};
+use std::{
+    cmp, env,
+    fmt::Display,
+    fs,
+    io::{BufRead, Write},
+    path::Path,
+    sync::LazyLock,
+};
 
 use anstyle::Style;
 use anyhow::{Context, anyhow};

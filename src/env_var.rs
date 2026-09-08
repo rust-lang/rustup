@@ -1,7 +1,4 @@
-use std::collections::VecDeque;
-use std::env;
-use std::path::PathBuf;
-use std::process::Command;
+use std::{collections::VecDeque, env, path::PathBuf, process::Command};
 
 use crate::process::Process;
 
@@ -50,12 +47,13 @@ pub(crate) fn inc(name: &str, cmd: &mut Command, process: &Process) {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::ffi::{OsStr, OsString};
+    use std::{
+        collections::HashMap,
+        ffi::{OsStr, OsString},
+    };
 
     use super::*;
-    use crate::process::TestProcess;
-    use crate::test::Env;
+    use crate::{process::TestProcess, test::Env};
 
     #[test]
     fn prepend_unique_path() {

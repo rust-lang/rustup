@@ -23,8 +23,7 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
-use std::borrow::Cow;
-use std::path::PathBuf;
+use std::{borrow::Cow, path::PathBuf};
 
 use anyhow::bail;
 
@@ -206,8 +205,7 @@ struct Zsh;
 
 impl Zsh {
     fn zdotdir(process: &Process) -> anyhow::Result<PathBuf> {
-        use std::ffi::OsStr;
-        use std::os::unix::ffi::OsStrExt;
+        use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 
         if matches!(process.var("SHELL"), Ok(sh) if sh.contains("zsh")) {
             match process.var("ZDOTDIR") {

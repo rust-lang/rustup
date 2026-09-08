@@ -1,14 +1,13 @@
 //! Tests of the interactive console installer
 
-use std::env::consts::EXE_SUFFIX;
-use std::fs;
-use std::io::Write;
-use std::process::Stdio;
+use std::{env::consts::EXE_SUFFIX, fs, io::Write, process::Stdio};
 
-use rustup::test::{
-    Assert, CROSS_ARCH1, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple,
+use rustup::{
+    test::{
+        Assert, CROSS_ARCH1, CliTestContext, Config, SanitizedOutput, Scenario, this_host_tuple,
+    },
+    utils::raw,
 };
-use rustup::utils::raw;
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> Assert {
     run_input_with_env(config, args, input, &[])

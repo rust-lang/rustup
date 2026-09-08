@@ -1,11 +1,13 @@
-use std::borrow::Cow;
-use std::env::{consts::EXE_SUFFIX, split_paths};
-use std::ffi::{OsStr, OsString};
-use std::fmt;
-use std::io::Write;
-use std::os::windows::ffi::OsStrExt;
-use std::path::Path;
-use std::process::Command;
+use std::{
+    borrow::Cow,
+    env::{consts::EXE_SUFFIX, split_paths},
+    ffi::{OsStr, OsString},
+    fmt,
+    io::Write,
+    os::windows::ffi::OsStrExt,
+    path::Path,
+    process::Command,
+};
 
 use anyhow::{Context, anyhow};
 use tracing::{info, warn};
@@ -15,14 +17,18 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
-use super::super::errors::CliError;
-use super::common;
-use super::{InstallOpts, install_bins, report_error};
-use crate::cli::markdown::md;
-use crate::dist::TargetTuple;
-use crate::download::DownloadOptions;
-use crate::process::{ColorableTerminal, Process};
-use crate::utils;
+use crate::{
+    cli::{
+        common,
+        errors::CliError,
+        markdown::md,
+        self_update::{InstallOpts, install_bins, report_error},
+    },
+    dist::TargetTuple,
+    download::DownloadOptions,
+    process::{ColorableTerminal, Process},
+    utils,
+};
 
 pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
     writeln!(process.stdout().lock(),)?;
@@ -376,15 +382,18 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
 }
 
 pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
-    use std::io;
-    use std::mem;
-    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0};
-    use windows_sys::Win32::Storage::FileSystem::SYNCHRONIZE;
-    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
-        CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next, TH32CS_SNAPPROCESS,
-    };
-    use windows_sys::Win32::System::Threading::{
-        GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject,
+    use std::{io, mem};
+
+    use windows_sys::Win32::{
+        Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0},
+        Storage::FileSystem::SYNCHRONIZE,
+        System::{
+            Diagnostics::ToolHelp::{
+                CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next,
+                TH32CS_SNAPPROCESS,
+            },
+            Threading::{GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject},
+        },
     };
 
     unsafe {
@@ -454,9 +463,12 @@ pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
 
 fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> anyhow::Result<()> {
     use std::ptr;
-    use windows_sys::Win32::Foundation::{LPARAM, WPARAM};
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
+
+    use windows_sys::Win32::{
+        Foundation::{LPARAM, WPARAM},
+        UI::WindowsAndMessaging::{
+            HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
+        },
     };
 
     let Some(new_path) = new_path else {
@@ -705,14 +717,15 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    use std::io;
-    use std::ptr;
-    use std::thread;
-    use std::time::Duration;
-    use windows_sys::Win32::Foundation::{CloseHandle, GENERIC_READ, INVALID_HANDLE_VALUE};
-    use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
-    use windows_sys::Win32::Storage::FileSystem::{
-        CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, OPEN_EXISTING,
+    use std::{io, ptr, thread, time::Duration};
+
+    use windows_sys::Win32::{
+        Foundation::{CloseHandle, GENERIC_READ, INVALID_HANDLE_VALUE},
+        Security::SECURITY_ATTRIBUTES,
+        Storage::FileSystem::{
+            CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
+            OPEN_EXISTING,
+        },
     };
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
@@ -835,14 +848,12 @@ impl RegistryValueId {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::os::windows::ffi::OsStringExt;
+    use std::{collections::HashMap, os::windows::ffi::OsStringExt};
 
     use windows_registry::Type;
 
     use super::*;
-    use crate::process::TestProcess;
-    use crate::test::test_id;
+    use crate::{process::TestProcess, test::test_id};
 
     fn test_process(test_id: &str) -> TestProcess {
         let vars: HashMap<String, String> = [

@@ -1,10 +1,12 @@
-use std::fmt::{self, Debug, Display};
-use std::io;
-use std::io::Write;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    fmt::{self, Debug, Display},
+    io,
+    io::Write,
+    ops::Deref,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use anyhow::{Context, anyhow, bail};
 use chrono::{DateTime, NaiveDate};

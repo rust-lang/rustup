@@ -1,28 +1,30 @@
-use std::convert::Infallible;
-use std::env::remove_var;
-use std::fs;
-use std::io;
-use std::net::SocketAddr;
-use std::path::Path;
-use std::sync::LazyLock;
-use std::sync::mpsc::{Sender, channel};
-use std::thread;
+use std::{
+    convert::Infallible,
+    env::remove_var,
+    fs, io,
+    net::SocketAddr,
+    path::Path,
+    sync::{
+        LazyLock,
+        mpsc::{Sender, channel},
+    },
+    thread,
+};
 
 use http_body_util::Full;
-use hyper::Request;
-use hyper::body::Bytes;
-use hyper::server::conn::http1;
-use hyper::service::service_fn;
+use hyper::{Request, body::Bytes, server::conn::http1, service::service_fn};
 use tempfile::TempDir;
 
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 mod reqwest {
-    use std::env::set_var;
-    use std::error::Error;
-    use std::net::TcpListener;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::thread;
-    use std::time::Duration;
+    use std::{
+        env::set_var,
+        error::Error,
+        net::TcpListener,
+        sync::atomic::{AtomicUsize, Ordering},
+        thread,
+        time::Duration,
+    };
 
     use env_proxy::for_url;
     use reqwest::{Client, Proxy};

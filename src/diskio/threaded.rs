@@ -5,10 +5,14 @@
 /// very low latency per file, which even a few ms per syscall per file
 /// will cause minutes of wall clock time.
 use std::cell::{Cell, RefCell};
-use std::fmt;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::{
+    fmt,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+        mpsc::{Receiver, Sender, channel},
+    },
+};
 
 use enum_map::{Enum, EnumMap, enum_map};
 use sharded_slab::pool::{OwnedRef, OwnedRefMut};

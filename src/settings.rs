@@ -1,17 +1,21 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-use std::fmt;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::{
+    cell::RefCell,
+    collections::BTreeMap,
+    fmt,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::cli::self_update::SelfUpdateMode;
-use crate::dist::{Profile, Switch};
-use crate::errors::RustupError;
-use crate::utils;
+use crate::{
+    cli::self_update::SelfUpdateMode,
+    dist::{Profile, Switch},
+    errors::RustupError,
+    utils,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettingsFile {
