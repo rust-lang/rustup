@@ -2,20 +2,28 @@
 //! `Components` and `DirectoryPackage` are the two sides of the
 //! installation / uninstallation process.
 
-use std::borrow::Cow;
-use std::convert::Infallible;
-use std::fmt;
-use std::io::BufWriter;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::{
+    borrow::Cow,
+    convert::Infallible,
+    fmt,
+    io::BufWriter,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use anyhow::bail;
 
-use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
-use crate::dist::component::transaction::Transaction;
-use crate::dist::prefix::InstallPrefix;
-use crate::errors::RustupError;
-use crate::utils;
+use crate::{
+    dist::{
+        component::{
+            package::{INSTALLER_VERSION, VERSION_FILE},
+            transaction::Transaction,
+        },
+        prefix::InstallPrefix,
+    },
+    errors::RustupError,
+    utils,
+};
 
 const COMPONENTS_FILE: &str = "components";
 

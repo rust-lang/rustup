@@ -1,10 +1,12 @@
-use std::borrow::Cow;
-use std::fs;
-use std::io::Read;
-use std::ops;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::{
+    borrow::Cow,
+    fs,
+    io::Read,
+    ops,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
 use anyhow::{Context, anyhow};
 use indicatif::{MultiProgress, ProgressBar, ProgressBarIter, ProgressDrawTarget, ProgressStyle};
@@ -12,13 +14,18 @@ use sha2::{Digest, Sha256};
 use tracing::{debug, info, warn};
 use url::Url;
 
-use crate::config::Cfg;
-use crate::dist::manifest::{Manifest, ManifestWithHash};
-use crate::dist::{Channel, DEFAULT_DIST_SERVER, ToolchainDesc, temp};
-use crate::download::{DownloadOptions, is_network_failure};
-use crate::errors::RustupError;
-use crate::process::Process;
-use crate::utils;
+use crate::{
+    config::Cfg,
+    dist::{
+        Channel, DEFAULT_DIST_SERVER, ToolchainDesc,
+        manifest::{Manifest, ManifestWithHash},
+        temp,
+    },
+    download::{DownloadOptions, is_network_failure},
+    errors::RustupError,
+    process::Process,
+    utils,
+};
 
 const UPDATE_HASH_LEN: usize = 20;
 
