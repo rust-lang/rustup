@@ -103,7 +103,7 @@ unicode-security = "0.1"
 url = "2.4"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
-zstd = { version = "0.13", default-features = false }
+zstd = { version = "0.14", default-features = false }
 
 # test only (depends on `test` feature)
 snapbox = { version = "1", features = ["term-svg"], optional = true }
