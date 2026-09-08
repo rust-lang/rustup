@@ -1,10 +1,10 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
-use rustup::test::{
-    CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple,
+use rustup::{
+    test::{CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple},
+    utils::raw,
 };
-use rustup::utils::raw;
 
 #[tokio::test]
 async fn update_once() {

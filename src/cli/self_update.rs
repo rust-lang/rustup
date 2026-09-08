@@ -1385,11 +1385,14 @@ pub(crate) fn cleanup_self_updater(process: &Process) -> anyhow::Result<()> {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::cli::self_update::InstallOpts;
-    use crate::config::Cfg;
-    use crate::dist::{PartialToolchainDesc, Profile};
-    use crate::test::{Env, test_dir, with_rustup_home};
-    use crate::{for_host, process::TestProcess};
+    use crate::{
+        cli::self_update::InstallOpts,
+        config::Cfg,
+        dist::{PartialToolchainDesc, Profile},
+        for_host,
+        process::TestProcess,
+        test::{Env, test_dir, with_rustup_home},
+    };
 
     #[test]
     fn default_toolchain_is_stable() {

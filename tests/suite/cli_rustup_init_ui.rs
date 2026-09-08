@@ -1,8 +1,6 @@
-use std::fs::create_dir_all;
-use std::path::Path;
+use std::{fs::create_dir_all, path::Path};
 
-use snapbox::Data;
-use snapbox::cmd::Command;
+use snapbox::{Data, cmd::Command};
 
 #[track_caller]
 fn test_help(name: &str, args: &[&str]) {

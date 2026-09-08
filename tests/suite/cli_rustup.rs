@@ -3899,8 +3899,7 @@ async fn docs_custom() {
 #[cfg(unix)]
 #[tokio::test]
 async fn non_utf8_arg() {
-    use std::ffi::OsStr;
-    use std::os::unix::ffi::OsStrExt;
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -3927,8 +3926,7 @@ echoed non-utf8 arg:
 #[cfg(windows)]
 #[tokio::test]
 async fn non_utf8_arg() {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
+    use std::{ffi::OsString, os::windows::ffi::OsStringExt};
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -3955,8 +3953,7 @@ echoed non-utf8 arg:
 #[cfg(unix)]
 #[tokio::test]
 async fn non_utf8_toolchain() {
-    use std::ffi::OsStr;
-    use std::os::unix::ffi::OsStrExt;
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -3979,8 +3976,7 @@ error: invalid toolchain name '�('
 #[cfg(windows)]
 #[tokio::test]
 async fn non_utf8_toolchain() {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
+    use std::{ffi::OsString, os::windows::ffi::OsStringExt};
 
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

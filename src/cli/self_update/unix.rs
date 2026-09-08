@@ -1,13 +1,16 @@
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use anyhow::{Context, bail};
 use tracing::{error, warn};
 
-use super::install_bins;
-use super::shell::{self, Posix, UnixShell};
-use crate::process::Process;
-use crate::utils;
+use super::{
+    install_bins,
+    shell::{self, Posix, UnixShell},
+};
+use crate::{process::Process, utils};
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because

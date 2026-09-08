@@ -1,10 +1,13 @@
-use std::fs::File;
-use std::io::Write;
+use std::{fs::File, io::Write};
 
-use rustup::dist::component::{Components, DirectoryPackage, Transaction};
-use rustup::dist::prefix::InstallPrefix;
-use rustup::test::{DistContext, MockComponentBuilder, MockFile, MockInstallerBuilder};
-use rustup::utils;
+use rustup::{
+    dist::{
+        component::{Components, DirectoryPackage, Transaction},
+        prefix::InstallPrefix,
+    },
+    test::{DistContext, MockComponentBuilder, MockFile, MockInstallerBuilder},
+    utils,
+};
 
 // Just testing that the mocks work
 #[test]

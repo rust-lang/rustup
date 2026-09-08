@@ -1,15 +1,17 @@
 //! Easy file downloading
 
-use std::fs::{self, OpenOptions, remove_file};
-use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::num::NonZero;
-use std::path::Path;
-use std::str::FromStr;
 #[cfg(feature = "reqwest-rustls-tls")]
 use std::sync::Arc;
 #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
 use std::sync::OnceLock;
-use std::time::Duration;
+use std::{
+    fs::{self, OpenOptions, remove_file},
+    io::{self, Read, Seek, SeekFrom, Write},
+    num::NonZero,
+    path::Path,
+    str::FromStr,
+    time::Duration,
+};
 
 use anyhow::{Context, anyhow};
 use reqwest::{Client, ClientBuilder, Proxy, header};

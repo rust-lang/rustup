@@ -7,6 +7,10 @@ use anyhow::Context;
 use anyhow::anyhow;
 use platforms::Platform;
 
+use super::{
+    Toolchain,
+    names::{LocalToolchainName, ToolchainName},
+};
 use crate::{
     RustupError, component_for_bin,
     config::{ActiveSource, Cfg, EnsureInstalled},
@@ -18,14 +22,8 @@ use crate::{
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
+    errors::UnknownComponentInfo,
     install::InstallMethod,
-};
-
-use crate::errors::UnknownComponentInfo;
-
-use super::{
-    Toolchain,
-    names::{LocalToolchainName, ToolchainName},
 };
 
 /// An official toolchain installed on the local disk

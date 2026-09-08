@@ -1,13 +1,8 @@
 //! Testing self install, uninstall and update
 
-use std::env;
-use std::env::consts::EXE_SUFFIX;
-use std::fs;
-use std::path::Path;
-use std::process::Command;
+use std::{env, env::consts::EXE_SUFFIX, fs, path::Path, process::Command};
 
 use remove_dir_all::remove_dir_all;
-
 #[cfg(windows)]
 use retry::{
     delay::{Fibonacci, jitter},
@@ -15,12 +10,14 @@ use retry::{
 };
 #[cfg(windows)]
 use rustup::test::RegistryValueId;
-use rustup::test::{
-    CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash, output_release_file,
-    this_host_tuple,
+use rustup::{
+    DUP_TOOLS, TOOLS,
+    test::{
+        CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash,
+        output_release_file, this_host_tuple,
+    },
+    utils::{self, raw},
 };
-use rustup::utils::{self, raw};
-use rustup::{DUP_TOOLS, TOOLS};
 #[cfg(windows)]
 use windows_registry::{CURRENT_USER, Value};
 

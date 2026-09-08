@@ -501,10 +501,16 @@ impl TargetTuple {
             /// it is only available on Windows 10 1511+, so we use `GetProcAddress`
             /// to maintain backward compatibility with older Windows versions.
             fn arch_primary() -> Option<&'static str> {
-                use windows_sys::Win32::Foundation::HANDLE;
-                use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
-                use windows_sys::Win32::System::Threading::GetCurrentProcess;
-                use windows_sys::core::{BOOL, s};
+                use windows_sys::{
+                    Win32::{
+                        Foundation::HANDLE,
+                        System::{
+                            LibraryLoader::{GetModuleHandleA, GetProcAddress},
+                            Threading::GetCurrentProcess,
+                        },
+                    },
+                    core::{BOOL, s},
+                };
 
                 const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
                 const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
@@ -570,8 +576,7 @@ impl TargetTuple {
 
         #[cfg(not(windows))]
         fn inner() -> Option<TargetTuple> {
-            use std::ffi::CStr;
-            use std::mem;
+            use std::{ffi::CStr, mem};
 
             let mut sys_info;
             let (sysname, machine) = unsafe {
@@ -732,8 +737,10 @@ static TUPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuab
 /// rustup-init.sh also relies on checking /bin/sh for bitness.
 #[cfg(not(windows))]
 fn is_32bit_userspace() -> bool {
-    use std::fs;
-    use std::io::{self, Read};
+    use std::{
+        fs,
+        io::{self, Read},
+    };
 
     // inner function is to simplify error handling.
     fn inner() -> io::Result<bool> {

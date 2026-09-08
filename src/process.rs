@@ -441,8 +441,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::process::TestProcess;
-    use crate::test::Env;
+    use crate::{process::TestProcess, test::Env};
 
     #[test]
     fn term_color_choice() {

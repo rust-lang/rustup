@@ -52,18 +52,25 @@
 // f) data gathering: record (name, bytes, start, duration)
 //    write to disk afterwards as a csv file?
 use std::io::{self, Write};
-use std::ops::{Deref, DerefMut};
-use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Receiver};
-use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant};
-use std::{fmt::Debug, fs::OpenOptions};
+use std::{
+    fmt::Debug,
+    fs::OpenOptions,
+    ops::{Deref, DerefMut},
+    path::{Path, PathBuf},
+    sync::{
+        Arc, Mutex, OnceLock,
+        mpsc::{self, Receiver},
+    },
+    time::{Duration, Instant},
+};
 
 use tracing::{error, trace, warn};
 
-use crate::diskio::immediate::{FileState, IncrementalFileWriter};
-use crate::process::IoThreadCount;
-use crate::utils::units::Size;
+use crate::{
+    diskio::immediate::{FileState, IncrementalFileWriter},
+    process::IoThreadCount,
+    utils::units::Size,
+};
 
 mod immediate;
 #[cfg(test)]

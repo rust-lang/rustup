@@ -1,15 +1,14 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-use std::fs;
-use std::str;
-use std::{env::consts::EXE_SUFFIX, path::Path};
+use std::{env::consts::EXE_SUFFIX, fs, path::Path, str};
 
 use itertools::Itertools;
-use rustup::test::Assert;
-use rustup::test::{CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple};
-use rustup::utils;
-use rustup::utils::raw::symlink_dir;
+use rustup::{
+    test::{Assert, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple},
+    utils,
+    utils::raw::symlink_dir,
+};
 
 #[tokio::test]
 async fn smoke_test() {
