@@ -9,17 +9,20 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use anyhow::{Context, anyhow};
 use tracing::{error, info};
 
-use crate::dist::prefix::InstallPrefix;
-use crate::dist::temp;
-use crate::errors::RustupError;
-use crate::utils;
+use crate::{
+    dist::{prefix::InstallPrefix, temp},
+    errors::RustupError,
+    utils,
+};
 
 /// A Transaction tracks changes to the file system, allowing them to
 /// be rolled back in case of an error. Instead of deleting or

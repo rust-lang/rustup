@@ -1,10 +1,10 @@
-use std::fs;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{fs, io::Write, path::PathBuf};
 
-use crate::errors::RustupError;
-use crate::test::DistContext;
-use crate::utils::{self, raw as utils_raw};
+use crate::{
+    errors::RustupError,
+    test::DistContext,
+    utils::{self, raw as utils_raw},
+};
 
 #[test]
 fn add_file() {

@@ -1,28 +1,33 @@
 //! Tools for building and working with the filesystem of a mock Rust
 //! distribution server, with v1 and v2 manifests.
 
-use std::collections::{BTreeMap, HashMap};
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs::{self, File},
+    io::{self, Read, Write},
+    path::{Path, PathBuf},
+    sync::{Arc, LazyLock, Mutex},
+};
 
 use url::Url;
 
-use super::clitools::hard_link;
-use super::mock::MockInstallerBuilder;
-use super::{CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, create_hash, this_host_tuple};
-use crate::dist::{
-    DEFAULT_DIST_SERVER, Profile, TargetTuple,
-    component::{Components, DirectoryPackage, Transaction},
-    manifest::{
-        Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package,
-        PackageTargets, Renamed, TargetedPackage,
-    },
-    prefix::InstallPrefix,
-    temp,
+use super::{
+    CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, clitools::hard_link, create_hash,
+    mock::MockInstallerBuilder, this_host_tuple,
 };
-use crate::process::TestProcess;
+use crate::{
+    dist::{
+        DEFAULT_DIST_SERVER, Profile, TargetTuple,
+        component::{Components, DirectoryPackage, Transaction},
+        manifest::{
+            Component, CompressionKind, HashedBinary, Manifest, ManifestVersion, Package,
+            PackageTargets, Renamed, TargetedPackage,
+        },
+        prefix::InstallPrefix,
+        temp,
+    },
+    process::TestProcess,
+};
 
 pub struct DistContext {
     pub pkg_dir: tempfile::TempDir,

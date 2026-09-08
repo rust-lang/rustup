@@ -297,8 +297,9 @@ impl Hash for Component {
 }
 
 mod component_target {
-    use super::TargetTuple;
     use serde::{Deserialize, Deserializer, Serializer};
+
+    use super::TargetTuple;
 
     pub fn serialize<S: Serializer>(
         target: &Option<TargetTuple>,
@@ -660,9 +661,10 @@ impl fmt::Display for ManifestVersion {
 
 #[cfg(test)]
 mod tests {
-    use crate::RustupError;
-    use crate::dist::TargetTuple;
-    use crate::dist::manifest::Manifest;
+    use crate::{
+        RustupError,
+        dist::{TargetTuple, manifest::Manifest},
+    };
 
     // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
     static EXAMPLE: &str = include_str!("manifest/tests/channel-rust-nightly-example.toml");

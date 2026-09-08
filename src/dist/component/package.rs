@@ -2,23 +2,31 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
-use std::collections::{HashMap, HashSet};
-use std::io::{self, BufRead, ErrorKind as IOErrorKind, Read};
-use std::mem;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    io::{self, BufRead, ErrorKind as IOErrorKind, Read},
+    mem,
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, anyhow, bail};
 use tar::EntryType;
 use tracing::warn;
 
-use crate::diskio::{ChunkWriter, CompletedIo, Executor, IO_CHUNK_SIZE, Item, Kind};
-use crate::dist::component::components::{ComponentPart, ComponentPartKind, Components};
-use crate::dist::component::transaction::Transaction;
-use crate::dist::manifest::CompressionKind;
-use crate::dist::temp;
-use crate::errors::RustupError;
-use crate::utils;
+use crate::{
+    diskio::{ChunkWriter, CompletedIo, Executor, IO_CHUNK_SIZE, Item, Kind},
+    dist::{
+        component::{
+            components::{ComponentPart, ComponentPartKind, Components},
+            transaction::Transaction,
+        },
+        manifest::CompressionKind,
+        temp,
+    },
+    errors::RustupError,
+    utils,
+};
 
 /// The current metadata revision used by rust-installer
 pub(crate) const INSTALLER_VERSION: &str = "3";
