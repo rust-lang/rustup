@@ -48,7 +48,7 @@ jobs: # skip-all
           restore-keys: ${{ github.base_ref }}-${{ runner.os }}-cargo-clippy-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
-          sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -c=rustfmt -c=clippy -y
+          sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -c=clippy -y
       - name: Run the centos check within the docker image
         run: |
           docker run \
@@ -78,7 +78,8 @@ jobs: # skip-all
           git diff --exit-code
       - name: Run Rust formatting checks
         run: |
-          cargo fmt --all --check
+          rustup toolchain install nightly --profile=minimal -c=rustfmt
+          cargo +nightly xfmt --check
       - name: Run cargo check and clippy
         run: |
           cargo check --all --all-targets --features test
