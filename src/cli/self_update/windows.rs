@@ -10,6 +10,7 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
+use itertools::Itertools;
 use tracing::{info, warn};
 #[cfg(any(test, feature = "test"))]
 use windows_registry::Value;
@@ -531,7 +532,7 @@ fn _add_to_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     if old_path.is_empty() {
         Some(path_str)
     } else if old_path
-        .windows(path_str.len())
+        .split(|&c| c == PATH_SEPARATOR)
         .any(|path| *path == *path_str)
     {
         None
@@ -543,29 +544,22 @@ fn _add_to_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
     }
 }
 
-// Returns None if the existing old_path does not need changing
+// Returns the updated PATH string with empty entries and all entries equal to
+// path_str removed, or None if the contents are unchanged.
 fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
-    let idx = old_path
-        .windows(path_str.len())
-        .position(|path| *path == *path_str)?;
-    // If there's a trailing semicolon (likely, since we probably added one
-    // during install), include that in the substring to remove. We don't search
-    // for that to find the string, because if it's the last string in the path,
-    // there may not be.
-    let mut len = path_str.len();
-    if old_path.get(idx + path_str.len()) == Some(&(b';' as u16)) {
-        len += 1;
-    }
-
-    let mut new_path = old_path[..idx].to_owned();
-    new_path.extend_from_slice(&old_path[idx + len..]);
-    // Don't leave a trailing ; though, we don't want an empty string in the
-    // path.
-    if new_path.last() == Some(&(b';' as u16)) {
-        new_path.pop();
-    }
-    Some(HSTRING::from_wide(&new_path))
+    let new_path = Itertools::intersperse(
+        old_path
+            .split(|&c| c == PATH_SEPARATOR)
+            .filter(|path| !path.is_empty() && **path != *path_str),
+        &[PATH_SEPARATOR],
+    )
+    .flatten()
+    .copied()
+    .collect::<Vec<_>>();
+    (new_path != *old_path).then(|| HSTRING::from_wide(&new_path))
 }
+
+const PATH_SEPARATOR: u16 = b';' as u16;
 
 fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
@@ -942,6 +936,44 @@ mod tests {
                 HSTRING::from(r"c:\users\example\.cargo\bin")
             )
         );
+    }
+
+    #[test]
+    fn windows_path_does_not_match_similar_entries() {
+        let target = HSTRING::from(r"C:\tools\bin");
+        let similar_paths = HSTRING::from(r"C:\first;C:\tools\bin-extra;XC:\tools\bin;C:\last");
+        assert_eq!(
+            Some(HSTRING::from(
+                r"C:\tools\bin;C:\first;C:\tools\bin-extra;XC:\tools\bin;C:\last"
+            )),
+            _add_to_path(similar_paths.clone(), target.clone())
+        );
+        assert_eq!(
+            None,
+            _remove_from_path(similar_paths.clone(), target.clone())
+        );
+
+        let old_path =
+            HSTRING::from(r"C:\first;C:\tools\bin-extra;XC:\tools\bin;C:\tools\bin;C:\last");
+        assert_eq!(None, _add_to_path(old_path.clone(), target.clone()));
+        assert_eq!(Some(similar_paths), _remove_from_path(old_path, target));
+    }
+
+    #[test]
+    fn windows_uninstall_removes_empty_path_entries() {
+        for (old_path, expected) in [
+            ("foo;", Some("")),
+            (";foo;bar;", Some("bar")),
+            ("first;;foo;;last", Some("first;last")),
+            (";bar;", Some("bar")),
+            ("", None),
+        ] {
+            assert_eq!(
+                expected.map(HSTRING::from),
+                _remove_from_path(HSTRING::from(old_path), HSTRING::from("foo")),
+                "PATH: {old_path}"
+            );
+        }
     }
 
     #[test]
