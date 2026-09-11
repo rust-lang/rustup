@@ -979,11 +979,12 @@ impl<'a> Cfg<'a> {
         Ok(Some(ResolvableToolchainName::from_str(toolchain)?))
     }
 
-    /// List all the installed toolchains: that is paths in the toolchain dir
-    /// that are:
-    /// - not files
-    /// - named with a valid resolved toolchain name
-    /// Currently no notification of incorrect names or entry type is done.
+    /// Lists all the installed toolchains.
+    ///
+    /// # Note
+    ///
+    /// This function returns every valid toolchain name that has a corresponding non-file entry in
+    /// the toolchains directory. These names may be returned in any order.
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn list_toolchains(&self, quiet: bool) -> anyhow::Result<Vec<ToolchainName>> {
         if !utils::is_directory(&self.toolchains_dir) {
@@ -1026,30 +1027,27 @@ impl<'a> Cfg<'a> {
             }
         }
 
-        toolchains.sort();
-
         Ok(toolchains)
     }
 
     pub(crate) fn list_channels(
         &self,
     ) -> anyhow::Result<Vec<(ToolchainDesc, DistributableToolchain<'_>)>> {
-        self.list_toolchains(true)?
+        let mut channels = self
+            .list_toolchains(true)?
             .into_iter()
-            .filter_map(|t| {
-                if let ToolchainName::Official(desc) = t {
-                    Some(desc)
-                } else {
-                    None
+            .filter_map(|t| match t {
+                ToolchainName::Official(n) if n.is_tracking() => {
+                    Some(DistributableToolchain::new(self, n.clone()).map(|t| (n, t)))
                 }
+                _ => None,
             })
-            .filter(ToolchainDesc::is_tracking)
-            .map(|n| {
-                DistributableToolchain::new(self, n.clone())
-                    .map_err(Into::into)
-                    .map(|t| (n.clone(), t))
-            })
-            .collect::<anyhow::Result<Vec<_>>>()
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // HACK: `.sort_by_key()` is impossible here without cloning.
+        // See: <https://users.rust-lang.org/t/cannot-call-vec-sort-by-key-without-cloning-data/60455/4>
+        channels.sort_by(|(n, _), (m, _)| n.cmp(m));
+        Ok(channels)
     }
 
     /// Create an override for a toolchain

@@ -321,7 +321,7 @@ pub(crate) async fn list_toolchains(
     verbose: bool,
     quiet: bool,
 ) -> anyhow::Result<ExitCode> {
-    let toolchains = cfg.list_toolchains(quiet)?;
+    let mut toolchains = cfg.list_toolchains(quiet)?;
     if toolchains.is_empty() {
         writeln!(cfg.process.stdout().lock(), "no installed toolchains")?;
     } else {
@@ -335,6 +335,7 @@ pub(crate) async fn list_toolchains(
                 None
             };
 
+        toolchains.sort();
         for toolchain in toolchains {
             let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain);
             let is_active_toolchain = active_toolchain_name.as_ref() == Some(&toolchain);
