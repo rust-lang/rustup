@@ -286,6 +286,30 @@ nightly-[HOST_TUPLE] (active, default)
 }
 
 #[tokio::test]
+async fn list_toolchains_with_illegal_names() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "update", "nightly"])
+        .await
+        .is_ok();
+
+    fs::create_dir(cx.config.rustupdir.join("toolchains/--illegal-name")).unwrap();
+
+    cx.config
+        .expect(["rustup", "toolchain", "list"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+nightly-[HOST_TUPLE] (active, default)
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+warn: ignoring invalid toolchain: invalid toolchain name '--illegal-name'; valid toolchain names do not start with '-'
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn list_toolchains_with_none() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

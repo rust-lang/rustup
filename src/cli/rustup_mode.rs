@@ -890,7 +890,7 @@ pub async fn main(
         }
     }?;
 
-    if should_warn && cfg.list_toolchains()?.is_empty() && cfg.get_default()?.is_none() {
+    if should_warn && cfg.list_toolchains(true)?.is_empty() && cfg.get_default()?.is_none() {
         warn!("no toolchain installed and no default toolchain set\n{DEFAULT_STABLE_HINT}");
     }
 
@@ -902,7 +902,7 @@ pub async fn main(
 }
 
 fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
-    let toolchains = cfg.list_toolchains().unwrap_or_default();
+    let toolchains = cfg.list_toolchains(true).unwrap_or_default();
     Rustup::command().mut_arg("+toolchain", move |arg| {
         arg.add(ArgValueCompleter::new(move |current: &OsStr| {
             let Some(prefix) = current.to_str() else {
@@ -1280,7 +1280,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
         writeln!(t)?;
     }
 
-    let installed_toolchains = cfg.list_toolchains()?;
+    let installed_toolchains = cfg.list_toolchains(cfg.quiet)?;
     let active_toolchain_and_source: Option<(ToolchainName, ActiveSource)> =
         if let Ok(Some((LocalToolchainName::Named(toolchain_name), source))) =
             cfg.maybe_ensure_active_toolchain(None).await

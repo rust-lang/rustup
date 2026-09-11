@@ -321,7 +321,7 @@ pub(crate) async fn list_toolchains(
     verbose: bool,
     quiet: bool,
 ) -> anyhow::Result<ExitCode> {
-    let toolchains = cfg.list_toolchains()?;
+    let toolchains = cfg.list_toolchains(quiet)?;
     if toolchains.is_empty() {
         writeln!(cfg.process.stdout().lock(), "no installed toolchains")?;
     } else {
