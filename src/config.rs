@@ -1,6 +1,5 @@
 use std::{
     fmt::{self, Debug, Display},
-    io,
     io::Write,
     ops::Deref,
     path::{Path, PathBuf},
@@ -755,7 +754,11 @@ impl<'a> Cfg<'a> {
                         // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
                         // the base name in the error to help users)
                         let resolved_name = &ToolchainName::from_str(toolchain_name_str)?;
-                        if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
+                        if !self
+                            .list_toolchains(true)?
+                            .iter()
+                            .any(|s| s == resolved_name)
+                        {
                             return Err(anyhow!(format!("target tuple in channel name '{name}'")));
                         }
                     }
@@ -982,20 +985,46 @@ impl<'a> Cfg<'a> {
     /// - named with a valid resolved toolchain name
     /// Currently no notification of incorrect names or entry type is done.
     #[tracing::instrument(level = "trace", skip_all)]
-    pub(crate) fn list_toolchains(&self) -> anyhow::Result<Vec<ToolchainName>> {
+    pub(crate) fn list_toolchains(&self, quiet: bool) -> anyhow::Result<Vec<ToolchainName>> {
         if !utils::is_directory(&self.toolchains_dir) {
             return Ok(vec![]);
         }
 
-        let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
-            // TODO: this discards errors reading the directory, is that
-            // correct? could we get a short-read and report less toolchains
-            // than exist?
-            .filter_map(io::Result::ok)
-            .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
-            .filter_map(|e| e.file_name().into_string().ok())
-            .filter_map(|n| ToolchainName::from_str(&n).ok())
-            .collect();
+        let mut toolchains = vec![];
+        for entry in utils::read_dir("toolchains", &self.toolchains_dir)? {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(e) => {
+                    if !quiet {
+                        warn!("failed to read toolchain FS entry: {e}");
+                    }
+                    continue;
+                }
+            };
+            if !entry.file_type().is_ok_and(|t| !t.is_file()) {
+                continue;
+            }
+            let tc = match entry.file_name().into_string() {
+                Ok(tc) => tc,
+                Err(e) => {
+                    if !quiet {
+                        warn!(
+                            "ignoring invalid potential toolchain name `{}`",
+                            e.display()
+                        );
+                    }
+                    continue;
+                }
+            };
+            match ToolchainName::from_str(&tc) {
+                Ok(tc) => toolchains.push(tc),
+                Err(e) => {
+                    if !quiet {
+                        warn!("ignoring invalid toolchain: {e}")
+                    }
+                }
+            }
+        }
 
         toolchains.sort();
 
@@ -1005,7 +1034,7 @@ impl<'a> Cfg<'a> {
     pub(crate) fn list_channels(
         &self,
     ) -> anyhow::Result<Vec<(ToolchainDesc, DistributableToolchain<'_>)>> {
-        self.list_toolchains()?
+        self.list_toolchains(true)?
             .into_iter()
             .filter_map(|t| {
                 if let ToolchainName::Official(desc) = t {

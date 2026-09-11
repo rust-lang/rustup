@@ -972,7 +972,7 @@ pub(crate) fn uninstall(
     }
 
     info!("removing toolchains");
-    for toolchain in cfg.list_toolchains()? {
+    for toolchain in cfg.list_toolchains(true)? {
         Toolchain::ensure_removed(cfg, toolchain.into())?;
     }
 
