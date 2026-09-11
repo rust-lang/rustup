@@ -902,7 +902,8 @@ pub async fn main(
 }
 
 fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
-    let toolchains = cfg.list_toolchains(true).unwrap_or_default();
+    let mut toolchains = cfg.list_toolchains(true).unwrap_or_default();
+    toolchains.sort();
     Rustup::command().mut_arg("+toolchain", move |arg| {
         arg.add(ArgValueCompleter::new(move |current: &OsStr| {
             let Some(prefix) = current.to_str() else {
@@ -1280,7 +1281,8 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
         writeln!(t)?;
     }
 
-    let installed_toolchains = cfg.list_toolchains(cfg.quiet)?;
+    let mut installed_toolchains = cfg.list_toolchains(cfg.quiet)?;
+    installed_toolchains.sort();
     let active_toolchain_and_source: Option<(ToolchainName, ActiveSource)> =
         if let Ok(Some((LocalToolchainName::Named(toolchain_name), source))) =
             cfg.maybe_ensure_active_toolchain(None).await
