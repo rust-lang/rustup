@@ -983,23 +983,23 @@ impl<'a> Cfg<'a> {
     /// Currently no notification of incorrect names or entry type is done.
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn list_toolchains(&self) -> anyhow::Result<Vec<ToolchainName>> {
-        if utils::is_directory(&self.toolchains_dir) {
-            let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
-                // TODO: this discards errors reading the directory, is that
-                // correct? could we get a short-read and report less toolchains
-                // than exist?
-                .filter_map(io::Result::ok)
-                .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
-                .filter_map(|e| e.file_name().into_string().ok())
-                .filter_map(|n| ToolchainName::from_str(&n).ok())
-                .collect();
-
-            toolchains.sort();
-
-            Ok(toolchains)
-        } else {
-            Ok(Vec::new())
+        if !utils::is_directory(&self.toolchains_dir) {
+            return Ok(vec![]);
         }
+
+        let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
+            // TODO: this discards errors reading the directory, is that
+            // correct? could we get a short-read and report less toolchains
+            // than exist?
+            .filter_map(io::Result::ok)
+            .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
+            .filter_map(|e| e.file_name().into_string().ok())
+            .filter_map(|n| ToolchainName::from_str(&n).ok())
+            .collect();
+
+        toolchains.sort();
+
+        Ok(toolchains)
     }
 
     pub(crate) fn list_channels(
