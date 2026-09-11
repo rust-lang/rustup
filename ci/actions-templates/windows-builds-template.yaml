@@ -152,17 +152,23 @@ jobs: # skip-main skip-pr skip-stable
         run: bash ci/run.bash
       - name: Run cargo check
         if: matrix.mode != 'release'
+        # `bash` on Windows uses Git's Perl, which breaks the OpenSSL build.
+        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
         # os-specific code leads to lints escaping if we only run this in one target
         run: |
+          # Abort on the first nonzero exit code so a failure isn't masked by the next command.
+          $PSNativeCommandUseErrorActionPreference = $true
           cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
       - name: Run cargo clippy
         if: matrix.mode != 'release' && matrix.mingwdir == ''
+        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
