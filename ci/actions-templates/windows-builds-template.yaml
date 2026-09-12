@@ -8,6 +8,10 @@ jobs: # skip-main skip-pr skip-stable
     if: ${{ contains(fromJSON('["pull_request", "merge_group"]'), github.event_name) }} # skip-main skip-stable
     if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }} # skip-pr skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' || contains(fromJSON('["schedule", "workflow_dispatch"]'), github.event_name) }} # skip-pr skip-main
+    defaults:
+      run:
+        # Keep Git's Perl out of the OpenSSL build and stop on native command failures.
+        shell: pwsh -Command $ErrorActionPreference='stop'; $PSNativeCommandUseErrorActionPreference=$true; & '{0}'
     env:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
@@ -64,7 +68,6 @@ jobs: # skip-main skip-pr skip-stable
         run: |
           New-Item "${env:USERPROFILE}\.cargo\registry" -ItemType Directory -Force
           New-Item "${env:USERPROFILE}\.cargo\git" -ItemType Directory -Force
-        shell: powershell
       - name: Install NASM
         # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
         # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
@@ -76,7 +79,6 @@ jobs: # skip-main skip-pr skip-stable
         with:
           architecture: ${{ matrix.arch }}
       - name: Install llvm-mingw
-        shell: powershell
         if: matrix.llvm_mingw_version != ''
         run: |
           $version = "${{ matrix.llvm_mingw_version }}"
@@ -97,7 +99,6 @@ jobs: # skip-main skip-pr skip-stable
           "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Verify mingw gcc installation
-        shell: powershell
         if: matrix.gcc != ''
         run: |
           Get-Command ${{ matrix.gcc }}
@@ -138,10 +139,8 @@ jobs: # skip-main skip-pr skip-stable
           Invoke-WebRequest "https://win.rustup.rs/${env:RUSTUP_ARCH}" -OutFile rustup-init.exe
           .\rustup-init.exe -y --default-host=${env:RUSTUP_ARCH}-pc-windows-msvc --profile=minimal
           del rustup-init.exe
-        shell: powershell
       - name: Ensure stable toolchain is up to date
         run: rustup update stable
-        shell: bash
       - name: Install the target
         run: |
           rustup target install ${{ matrix.target }}
@@ -152,25 +151,19 @@ jobs: # skip-main skip-pr skip-stable
         run: bash ci/run.bash
       - name: Run cargo check
         if: matrix.mode != 'release'
-        # `bash` on Windows uses Git's Perl, which breaks the OpenSSL build.
-        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
         # os-specific code leads to lints escaping if we only run this in one target
         run: |
-          # Abort on the first nonzero exit code so a failure isn't masked by the next command.
-          $PSNativeCommandUseErrorActionPreference = $true
           cargo check --all --all-targets --features test
           git -c core.quotePath=false ls-files -- '*.rs' | ForEach-Object {
             (Get-Item -LiteralPath $_).LastWriteTime = Get-Date
           }
       - name: Run cargo clippy
         if: matrix.mode != 'release' && matrix.mingwdir == ''
-        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          $PSNativeCommandUseErrorActionPreference = $true
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
@@ -190,7 +183,6 @@ jobs: # skip-main skip-pr skip-stable
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
         run: |
           .\ci\prepare-deploy.ps1
-        shell: powershell
       - name: Deploy build to dev-static dist tree for release team
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
