@@ -161,7 +161,9 @@ jobs: # skip-main skip-pr skip-stable
           # Abort on the first nonzero exit code so a failure isn't masked by the next command.
           $PSNativeCommandUseErrorActionPreference = $true
           cargo check --all --all-targets --features test
-          git ls-files -- '*.rs' | xargs touch
+          git -c core.quotePath=false ls-files -- '*.rs' | ForEach-Object {
+            (Get-Item -LiteralPath $_).LastWriteTime = Get-Date
+          }
       - name: Run cargo clippy
         if: matrix.mode != 'release' && matrix.mingwdir == ''
         shell: pwsh
