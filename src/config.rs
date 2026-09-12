@@ -25,11 +25,51 @@ use crate::{
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, LocalToolchainName, PathBasedToolchainName,
-        ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain, ToolchainName,
+        CustomToolchainName, DistributableToolchain, LocalToolchainName,
+        MaybeResolvableToolchainName, PathBasedToolchainName, ResolvableLocalToolchainName,
+        ResolvableToolchainName, Toolchain, ToolchainAlias, ToolchainName, ToolchainOverride,
     },
     utils,
 };
+
+impl ToolchainOverride<ResolvableToolchainName> {
+    pub fn resolve(self, cfg: &Cfg<'_>) -> anyhow::Result<ResolvableToolchainName> {
+        match self {
+            Self::Alias(ToolchainAlias::Default) => cfg
+                .get_default_resolvable()?
+                .ok_or_else(|| no_toolchain_error(cfg.process)),
+            Self::Explicit(r) => Ok(r),
+        }
+    }
+}
+
+impl ToolchainOverride<ResolvableLocalToolchainName> {
+    pub fn resolve(self, cfg: &Cfg<'_>) -> anyhow::Result<ResolvableLocalToolchainName> {
+        match self {
+            Self::Alias(ToolchainAlias::Default) => {
+                let default = cfg
+                    .get_default_resolvable()?
+                    .ok_or_else(|| no_toolchain_error(cfg.process))?;
+                Ok(ResolvableLocalToolchainName::Named(default))
+            }
+            Self::Explicit(r) => Ok(r),
+        }
+    }
+}
+
+impl ToolchainOverride<MaybeResolvableToolchainName> {
+    pub fn resolve(self, cfg: &Cfg<'_>) -> anyhow::Result<MaybeResolvableToolchainName> {
+        match self {
+            Self::Alias(ToolchainAlias::Default) => {
+                let default = cfg
+                    .get_default_resolvable()?
+                    .ok_or_else(|| anyhow::anyhow!("no default toolchain is configured"))?;
+                Ok(MaybeResolvableToolchainName::Some(default))
+            }
+            Self::Explicit(r) => Ok(r),
+        }
+    }
+}
 
 #[derive(Debug, ThisError)]
 enum OverrideFileConfigError {
@@ -199,7 +239,7 @@ pub(crate) enum OverrideCfg {
 impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> anyhow::Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
-            (Some(name), None) => ResolvableToolchainName::from_str(&name)?,
+            (Some(name), None) => ToolchainOverride::<ResolvableToolchainName>::from_str(&name)?,
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
                     || file.toolchain.components.is_some()
@@ -226,10 +266,12 @@ impl OverrideCfg {
                     path.display()
                 )
             }
-            (None, None) => cfg
-                .get_default_resolvable()?
-                .ok_or_else(|| no_toolchain_error(cfg.process))?,
+            (None, None) => ToolchainOverride::Explicit(
+                cfg.get_default_resolvable()?
+                    .ok_or_else(|| no_toolchain_error(cfg.process))?,
+            ),
         };
+        let toolchain_name = toolchain_name.resolve(cfg)?;
         Ok(match toolchain_name {
             ResolvableToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
@@ -321,8 +363,8 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub toolchain_override: Option<ResolvableToolchainName>,
-    env_override: Option<ResolvableLocalToolchainName>,
+    pub toolchain_override: Option<ToolchainOverride<ResolvableLocalToolchainName>>,
+    env_override: Option<ToolchainOverride<ResolvableLocalToolchainName>>,
     pub(crate) dist_root_server: String,
     pub dist_root_url: String,
     pub quiet: bool,
@@ -383,7 +425,9 @@ impl<'a> Cfg<'a> {
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(ResolvableLocalToolchainName::from_str(tc)?),
+            Some(tc) => Some(ToolchainOverride::<ResolvableLocalToolchainName>::from_str(
+                tc,
+            )?),
             None => None,
         };
 
@@ -646,7 +690,7 @@ impl<'a> Cfg<'a> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
-                Some((name.clone().into(), ActiveSource::CommandLine))
+                Some((name.clone().resolve(self)?.into(), ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
             else if let Some(name) = &self.env_override {
@@ -654,7 +698,7 @@ impl<'a> Cfg<'a> {
                 // custom, distributable, and absolute path toolchains otherwise
                 // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
                 // error when a nested rustup invocation occurs
-                Some((name.clone().into(), ActiveSource::Environment))
+                Some((name.clone().resolve(self)?.into(), ActiveSource::Environment))
             }
             // Then walk up the directory tree from 'path' looking for either the
             // directory in the override database, or a `rust-toolchain{.toml}` file,
@@ -669,7 +713,11 @@ impl<'a> Cfg<'a> {
                 None
             };
 
-        Ok(override_config)
+        let Some((override_cfg, source)) = override_config else {
+            return Ok(None);
+        };
+
+        Ok(Some((override_cfg, source)))
     }
 
     fn find_override_from_dir_walk(
@@ -684,7 +732,9 @@ impl<'a> Cfg<'a> {
             if let Some(name) = settings.dir_override(d) {
                 let source = ActiveSource::OverrideDb(d.to_owned());
                 return Ok(Some((
-                    ResolvableToolchainName::from_str(&name)?.into(),
+                    ToolchainOverride::<ResolvableToolchainName>::from_str(&name)?
+                        .resolve(self)?
+                        .into(),
                     source,
                 )));
             }
@@ -735,44 +785,49 @@ impl<'a> Cfg<'a> {
                         }
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
-                    let toolchain_name = ResolvableToolchainName::from_str(
-                        toolchain_name_str.as_str(),
-                    )
-                    .map_err(|_| {
-                        anyhow!(
-                            "invalid toolchain name detected in override file '{}'",
-                            toolchain_file.display()
+                    let toolchain_override =
+                        ToolchainOverride::<ResolvableToolchainName>::from_str(
+                            toolchain_name_str.as_str(),
                         )
-                    })?;
-                    let default_host = default_host_tuple(settings, self.process);
-                    // Do not permit architecture/os selection in channels as
-                    // these are host specific and toolchain files are portable.
-                    if let ResolvableToolchainName::Official(name) = &toolchain_name
-                        && !name.target.is_empty()
-                    {
-                        // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
-                        // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
-                        // the base name in the error to help users)
-                        let resolved_name = &ToolchainName::from_str(toolchain_name_str)?;
-                        if !self
-                            .list_toolchains(true)?
-                            .iter()
-                            .any(|s| s == resolved_name)
+                        .map_err(|_| {
+                            anyhow!(
+                                "invalid toolchain name detected in override file '{}'",
+                                toolchain_file.display()
+                            )
+                        })?;
+                    if let ToolchainOverride::Explicit(toolchain_name) = toolchain_override {
+                        let default_host = default_host_tuple(settings, self.process);
+                        // Do not permit architecture/os selection in channels as
+                        // these are host specific and toolchain files are portable.
+                        if let ResolvableToolchainName::Official(name) = &toolchain_name
+                            && !name.target.is_empty()
                         {
-                            return Err(anyhow!(format!("target tuple in channel name '{name}'")));
+                            // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
+                            // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
+                            // the base name in the error to help users)
+                            let resolved_name = &ToolchainName::from_str(toolchain_name_str)?;
+                            if !self
+                                .list_toolchains(true)?
+                                .iter()
+                                .any(|s| s == resolved_name)
+                            {
+                                return Err(anyhow!(format!(
+                                    "target tuple in channel name '{name}'"
+                                )));
+                            }
                         }
-                    }
 
-                    // XXX: this awkwardness deals with settings file being locked already
-                    let toolchain_name = toolchain_name.resolve(&default_host)?;
-                    if !Toolchain::exists(self, &toolchain_name.clone().into())?
-                        && matches!(toolchain_name, ToolchainName::Custom(_))
-                    {
-                        bail!(
-                            "custom toolchain '{}' specified in override file '{}' is not installed",
-                            toolchain_name,
-                            toolchain_file.display()
-                        )
+                        // XXX: this awkwardness deals with settings file being locked already
+                        let toolchain_name = toolchain_name.resolve(&default_host)?;
+                        if !Toolchain::exists(self, &toolchain_name.clone().into())?
+                            && matches!(toolchain_name, ToolchainName::Custom(_))
+                        {
+                            bail!(
+                                "custom toolchain '{}' specified in override file '{}' is not installed",
+                                toolchain_name,
+                                toolchain_file.display()
+                            )
+                        }
                     }
                 }
 
@@ -1054,7 +1109,7 @@ impl<'a> Cfg<'a> {
     pub(crate) fn make_override(
         &self,
         path: &Path,
-        toolchain: &ResolvableToolchainName,
+        toolchain: &impl Display,
     ) -> anyhow::Result<()> {
         self.settings_file.with_mut(|s| {
             s.add_override(path, toolchain.to_string());
@@ -1274,7 +1329,7 @@ pub(crate) fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple
         .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
 }
 
-fn no_toolchain_error(process: &Process) -> anyhow::Error {
+pub(crate) fn no_toolchain_error(process: &Process) -> anyhow::Error {
     RustupError::ToolchainNotSelected(process.name().unwrap_or_else(|| "Rust".into())).into()
 }
 

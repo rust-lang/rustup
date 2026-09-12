@@ -367,6 +367,7 @@ impl InstallOpts<'_> {
                     Some(ResolvableToolchainName::Official(t)) => Some(t),
                     // Default is custom, presumably from a prior install. Do nothing.
                     Some(ResolvableToolchainName::Custom(_)) => None,
+                    // The configured default cannot itself be the default alias.
                     None => Some(PartialToolchainDesc::from_str("stable")?),
                 },
             })

@@ -74,6 +74,67 @@ pub enum InvalidName {
     DashPrefix(String),
 }
 
+/// An alias for a toolchain name.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ToolchainAlias {
+    Default,
+}
+
+impl FromStr for ToolchainAlias {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if value == "default" {
+            Ok(Self::Default)
+        } else {
+            Err(InvalidName::ToolchainName(value.into()))
+        }
+    }
+}
+
+impl Display for ToolchainAlias {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Default => write!(f, "default"),
+        }
+    }
+}
+
+/// A wrapper for types that can be overridden by an alias.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ToolchainOverride<T> {
+    Alias(ToolchainAlias),
+    Explicit(T),
+}
+
+impl<T: FromStr> FromStr for ToolchainOverride<T>
+where
+    T::Err: Into<InvalidName>,
+{
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if let Ok(candidate) = validate_name(value)
+            && let Ok(alias) = ToolchainAlias::from_str(candidate)
+        {
+            return Ok(Self::Alias(alias));
+        }
+        match T::from_str(value) {
+            Ok(t) => Ok(Self::Explicit(t)),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
+impl<T: Display> Display for ToolchainOverride<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Alias(a) => write!(f, "{a}"),
+            Self::Explicit(t) => write!(f, "{t}"),
+        }
+    }
+}
+
 /// A toolchain name from user input.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {
