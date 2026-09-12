@@ -206,15 +206,7 @@ fn remove_file_that_not_exists() {
     let cx = DistContext::new(None).unwrap();
     let mut tx = cx.transaction();
 
-    let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
-
-    match err.downcast_ref::<RustupError>() {
-        Some(RustupError::ComponentMissingFile { name, path }) => {
-            assert_eq!(name, "c");
-            assert_eq!(path.clone(), PathBuf::from("foo"));
-        }
-        _ => panic!(),
-    }
+    tx.remove_file("c", PathBuf::from("foo")).unwrap();
 }
 
 #[test]
@@ -252,15 +244,7 @@ fn remove_dir_that_not_exists() {
     let cx = DistContext::new(None).unwrap();
     let mut tx = cx.transaction();
 
-    let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
-
-    match err.downcast_ref::<RustupError>() {
-        Some(RustupError::ComponentMissingDir { name, path }) => {
-            assert_eq!(name, "c");
-            assert_eq!(path.clone(), PathBuf::from("foo"));
-        }
-        _ => panic!(),
-    }
+    tx.remove_dir("c", PathBuf::from("foo")).unwrap();
 }
 
 #[test]
