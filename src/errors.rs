@@ -42,10 +42,6 @@ pub enum RustupError {
     IncompletePartialFile,
     #[error("component download failed for {0}")]
     ComponentDownloadFailed(String),
-    #[error("failure removing component '{name}', directory does not exist: '{}'", .path.display())]
-    ComponentMissingDir { name: String, path: PathBuf },
-    #[error("failure removing component '{name}', directory does not exist: '{}'", .path.display())]
-    ComponentMissingFile { name: String, path: PathBuf },
     #[error("could not create {name} directory: '{}'", .path.display())]
     CreatingDirectory { name: &'static str, path: PathBuf },
     #[error("invalid toolchain name: '{0}'")]

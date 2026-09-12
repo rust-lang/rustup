@@ -16,7 +16,7 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::{
     dist::{prefix::InstallPrefix, temp},
@@ -110,11 +110,11 @@ impl Transaction {
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = self.tmp_cx.new_file()?;
         if !utils::path_exists(&abs_path) {
-            return Err(RustupError::ComponentMissingFile {
-                name: component.to_owned(),
-                path: relpath,
-            }
-            .into());
+            // If the file doesn't exist, that's fine, since we would just be deleting it anyway
+            warn!(
+                "failure removing component '{component}', directory does not exist: '{relpath:?}'",
+            );
+            return Ok(());
         }
 
         utils::rename("component", &abs_path, &backup, self.permit_copy_rename)?;
@@ -129,11 +129,11 @@ impl Transaction {
         let abs_path = self.prefix.abs_path(&relpath);
         let backup = self.tmp_cx.new_directory()?;
         if !utils::path_exists(&abs_path) {
-            return Err(RustupError::ComponentMissingDir {
-                name: component.to_owned(),
-                path: relpath,
-            }
-            .into());
+            // If the dir doesn't exist, that's fine, since we would just be deleting it anyway
+            warn!(
+                "failure removing component '{component}', directory does not exist: '{relpath:?}'",
+            );
+            return Ok(());
         }
 
         utils::rename(
