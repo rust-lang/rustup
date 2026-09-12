@@ -118,6 +118,7 @@ pub static LIST_OSES: &[&str] = &[
     "pc-windows",
     "risc0-zkvm",
     "rtems-eabihf",
+    "sony-ps3",
     "sony-psp",
     "sony-psx",
     "sony-vita",
