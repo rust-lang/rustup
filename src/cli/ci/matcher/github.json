@@ -1,0 +1,44 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "rust-compiler",
+      "pattern": [
+        {
+          "regexp": "^(?:\\x1B\\[[0-9;]*[a-zA-Z])*(warning|warn|error)(\\[(\\S*)\\])?(?:\\x1B\\[[0-9;]*[a-zA-Z])*: (.*?)(?:\\x1B\\[[0-9;]*[a-zA-Z])*$",
+          "severity": 1,
+          "message": 4,
+          "code": 3
+        },
+        {
+          "regexp": "^(?:\\x1B\\[[0-9;]*[a-zA-Z])*\\s+(?:\\x1B\\[[0-9;]*[a-zA-Z])*-->\\s(?:\\x1B\\[[0-9;]*[a-zA-Z])*(\\S+):(\\d+):(\\d+)(?:\\x1B\\[[0-9;]*[a-zA-Z])*$",
+          "file": 1,
+          "line": 2,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "owner": "rust-formatter",
+      "pattern": [
+        {
+          "regexp": "^(Diff in (\\S+)) at line (\\d+):",
+          "message": 1,
+          "file": 2,
+          "line": 3
+        }
+      ]
+    },
+    {
+      "owner": "rust-panic",
+      "pattern": [
+        {
+          "regexp": "^.*panicked\\s+at\\s+'(.*)',\\s+(.*):(\\d+):(\\d+)$",
+          "message": 1,
+          "file": 2,
+          "line": 3,
+          "column": 4
+        }
+      ]
+    }
+  ]
+}
