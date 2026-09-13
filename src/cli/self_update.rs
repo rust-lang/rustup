@@ -1392,6 +1392,9 @@ pub(crate) fn cleanup_self_updater(bin_path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "test")]
+pub const CHECKPOINT_SELF_REPLACE_READY: &str = "self-replace-ready";
+
 #[cfg(test)]
 mod tests {
     use std::{collections::HashMap, path::Path};
