@@ -262,7 +262,7 @@ impl Process {
 
     /// Registers a testing checkpoint with the given name and parks the current thread.
     ///
-    /// Usually, the current process will be killed by the test driver.
+    /// The test driver can either remove the marker to resume or kill the process.
     #[cfg(feature = "test")]
     pub(crate) fn checkpoint(&self, name: &str) {
         if self.var(CHECKPOINT_ENV).as_deref() != Ok(name) {
@@ -275,13 +275,16 @@ impl Process {
         let test_root = rustup_home
             .parent()
             .expect("test RUSTUP_HOME must be inside the test root");
-        fs::write(checkpoint_path(test_root, name), name)
-            .expect("failed to write test checkpoint marker");
+        let marker = checkpoint_path(test_root, name);
+        fs::write(&marker, name).expect("failed to write test checkpoint marker");
 
         let start_time = Instant::now();
         let max_wait = Duration::from_mins(5);
         while start_time.elapsed() < max_wait {
-            thread::sleep(Duration::from_secs(10));
+            if !marker.exists() {
+                return;
+            }
+            thread::sleep(Duration::from_millis(10));
         }
         panic!(
             "test checkpoint '{name}' timed out after {max_wait:?} without being killed by the test driver",
