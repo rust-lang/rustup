@@ -8,6 +8,8 @@ use retry::{
     delay::{Fibonacci, jitter},
     retry,
 };
+#[cfg(unix)]
+use rustup::cli::self_update::CHECKPOINT_SELF_REPLACE_READY;
 #[cfg(windows)]
 use rustup::test::RegistryValueId;
 use rustup::{
@@ -20,8 +22,6 @@ use rustup::{
 };
 #[cfg(windows)]
 use windows_registry::{CURRENT_USER, Value};
-
-const TEST_VERSION: &str = "1.1.1";
 
 /// Empty dist server, rustup installed with no toolchain
 async fn setup_empty_installed() -> CliTestContext {
@@ -546,6 +546,30 @@ async fn update_but_delete_existing_updater_first() {
 
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     assert!(rustup.exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn self_update_replacement_races_proxy_cleanup() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let _update_server = cx.with_update_server(TEST_VERSION);
+    cx.config
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+
+    let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+    let parked = cx.spawn_at(CHECKPOINT_SELF_REPLACE_READY, ["rustup", "self", "update"]);
+
+    // The proxy's startup cleanup deletes `$CARGO_HOME/bin/rustup-init`,
+    // which is the parked replacer's own executable.
+    cx.config.expect(["rustc", "--version"]).await.is_ok();
+
+    // The replacer unlinks the installed rustup before copying itself over
+    // it, so it fails and leaves no rustup behind.
+    let status = parked.resume();
+    assert!(!status.success());
+    assert!(!rustup.exists());
 }
 
 #[tokio::test]
@@ -1217,3 +1241,5 @@ async fn install_minimal_profile() {
     cx.config.expect_component_executable("rustc").await;
     cx.config.expect_component_not_executable("cargo").await;
 }
+
+const TEST_VERSION: &str = "1.1.1";

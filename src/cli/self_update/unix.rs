@@ -133,6 +133,8 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Resul
 /// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
 /// links to it.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
+    #[cfg(feature = "test")]
+    process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
     install_bins(
         &process.cargo_home()?.join("bin"),
         super::force_hard_links(process),
