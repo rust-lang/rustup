@@ -72,6 +72,14 @@
 - `RUSTUP_CONCURRENT_DOWNLOADS` _unstable_ (default: 2). Controls the number of
   downloads made concurrently.
 
+- `RUSTUP_AUTHORIZATION_HEADER` (default: none). Sets the `Authorization` HTTP request header
+  that will be included in all downloads from the rustup distribution server. Useful for
+  authenticated downloads when using a private package index.
+
+- `RUSTUP_PROXY_AUTHORIZATION_HEADER` (default: none). Sets the `Proxy-Authorization` HTTP request header
+  that will be included in all downloads from the rustup distribution server that are made
+  through a proxy. Useful for authenticated proxy connections.
+
 - `RUSTUP_TOOLCHAIN_SOURCE` _unstable_. Set by rustup to tell proxied tools how `RUSTUP_TOOLCHAIN` was determined. Non-rustup tools should not set this environment variable, except insofar as to mirror an earlier invocation from rustup.
 
 [directive syntax]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
