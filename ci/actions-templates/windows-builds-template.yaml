@@ -150,7 +150,7 @@ jobs: # skip-main skip-pr skip-stable
           BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Run cargo clippy
-        if: matrix.mode != 'release' && matrix.mingwdir == ''
+        if: matrix.mode == 'release' && matrix.mingwdir == ''
         env:
           TARGET: ${{ matrix.target }}
         # os-specific code leads to lints escaping if we only run this in one target
