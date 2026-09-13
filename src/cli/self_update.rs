@@ -1381,6 +1381,9 @@ pub(crate) fn cleanup_self_updater(process: &Process) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "test")]
+pub const CHECKPOINT_SELF_REPLACE_READY: &str = "self-replace-ready";
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
