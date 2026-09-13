@@ -1,8 +1,8 @@
 # rustup environment for tcsh
 if ( $?PATH ) then
-    if ( "$PATH" !~ *{cargo_bin}* ) then
-        setenv PATH "{cargo_bin}:$PATH"
+    if ( "$PATH" !~ *{rustup_bin}* ) then
+        setenv PATH "{rustup_bin}:$PATH"
     endif
 else
-    setenv PATH "{cargo_bin}"
+    setenv PATH "{rustup_bin}"
 endif

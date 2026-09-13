@@ -314,12 +314,14 @@ pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
 pub(crate) struct Cfg<'a> {
     pub profile_override: Option<Profile>,
-    pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
     state_file: StateFile,
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
-    update_hash_dir: PathBuf,
+    pub rustup_cache_dir: PathBuf,
+    pub rustup_config_dir: PathBuf,
+    pub rustup_data_dir: PathBuf,
+    pub rustup_state_dir: PathBuf,
     pub download_dir: PathBuf,
     pub toolchain_override: Option<ResolvableToolchainName>,
     env_override: Option<ResolvableLocalToolchainName>,
@@ -346,11 +348,20 @@ impl<'a> Cfg<'a> {
         process: &'a Process,
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
-        let rustup_dir = process.rustup_home()?;
+        let home_dirs = process.home_dirs()?;
+        let rustup_cache_dir = home_dirs.cache;
+        let rustup_config_dir = home_dirs.config;
+        let rustup_data_dir = home_dirs.data;
+        let rustup_state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
+        if process.use_category_home() {
+            utils::ensure_dir_exists("config home", &rustup_config_dir)?;
+            utils::ensure_dir_exists("state home", &rustup_state_dir)?;
+        } else {
+            utils::ensure_dir_exists("home", &rustup_config_dir)?;
+        }
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(rustup_config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
@@ -362,7 +373,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(rustup_state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
@@ -377,9 +388,8 @@ impl<'a> Cfg<'a> {
         #[cfg(windows)]
         let fallback_settings = None;
 
-        let toolchains_dir = rustup_dir.join("toolchains");
-        let update_hash_dir = rustup_dir.join("update-hashes");
-        let download_dir = rustup_dir.join("downloads");
+        let toolchains_dir = rustup_data_dir.join("toolchains");
+        let download_dir = rustup_cache_dir.join("downloads");
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
@@ -392,12 +402,14 @@ impl<'a> Cfg<'a> {
 
         let cfg = Self {
             profile_override: None,
-            rustup_dir,
             settings_file,
             state_file,
             fallback_settings,
             toolchains_dir,
-            update_hash_dir,
+            rustup_cache_dir,
+            rustup_config_dir,
+            rustup_data_dir,
+            rustup_state_dir,
             download_dir,
             toolchain_override: None,
             env_override,
@@ -526,11 +538,12 @@ impl<'a> Cfg<'a> {
         toolchain: &ToolchainDesc,
         create_parent: bool,
     ) -> anyhow::Result<PathBuf> {
+        let update_hash_dir = self.rustup_cache_dir.join("update-hashes");
         if create_parent {
-            utils::ensure_dir_exists("update-hash", &self.update_hash_dir)?;
+            utils::ensure_dir_exists("update-hash", &update_hash_dir)?;
         }
 
-        Ok(self.update_hash_dir.join(toolchain.to_string()))
+        Ok(update_hash_dir.join(toolchain.to_string()))
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
@@ -559,7 +572,10 @@ impl<'a> Cfg<'a> {
                 }
 
                 // Also delete the update hashes
-                let files = utils::read_dir("update hashes", &self.update_hash_dir)?;
+                let files = utils::read_dir(
+                    "update hashes",
+                    &self.rustup_cache_dir.join("update-hashes"),
+                )?;
                 for file in files {
                     let file = file.context("IO Error reading update hashes")?;
                     utils::remove_file("update hash", &file.path())?;
@@ -1174,12 +1190,14 @@ impl Debug for Cfg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self {
             profile_override,
-            rustup_dir,
             settings_file,
             state_file,
             fallback_settings,
             toolchains_dir,
-            update_hash_dir,
+            rustup_cache_dir,
+            rustup_config_dir,
+            rustup_data_dir,
+            rustup_state_dir,
             download_dir,
             toolchain_override,
             env_override,
@@ -1193,12 +1211,14 @@ impl Debug for Cfg<'_> {
 
         f.debug_struct("Cfg")
             .field("profile_override", profile_override)
-            .field("rustup_dir", rustup_dir)
             .field("settings_file", settings_file)
             .field("state_file", state_file)
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
-            .field("update_hash_dir", update_hash_dir)
+            .field("rustup_cache_dir", rustup_cache_dir)
+            .field("rustup_config_dir", rustup_config_dir)
+            .field("rustup_data_dir", rustup_data_dir)
+            .field("rustup_state_dir", rustup_state_dir)
             .field("download_dir", download_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
@@ -1304,6 +1324,24 @@ const FALLBACK_RELEASE_DATE: &str = "2026-04-17";
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    #[test]
+    fn category_config_does_not_require_legacy_home() {
+        let root = tempfile::tempdir().unwrap();
+        let mut vars = std::collections::HashMap::new();
+        vars.insert("RUSTUP_USE_CATEGORY_HOME".to_owned(), "1".to_owned());
+        for category in ["CONFIG", "CACHE", "DATA", "STATE"] {
+            vars.insert(
+                format!("RUSTUP_{category}_HOME"),
+                root.path().join(category).display().to_string(),
+            );
+        }
+        let process = crate::process::TestProcess::with_vars(vars);
+        assert!(process.process.rustup_home().is_err());
+        let cfg = Cfg::from_env(root.path().to_owned(), false, false, &process.process).unwrap();
+        assert_eq!(cfg.rustup_config_dir, root.path().join("CONFIG"));
+    }
+
     use super::*;
 
     #[test]
