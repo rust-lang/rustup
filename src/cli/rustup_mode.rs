@@ -59,7 +59,7 @@ use crate::{
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName,
         MaybeResolvableToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName,
-        Toolchain, ToolchainName,
+        Toolchain, ToolchainName, ToolchainOverride,
     },
     utils::{self, ExitCode},
 };
@@ -107,16 +107,18 @@ struct Rustup {
         value_parser = plus_toolchain_value_parser,
         value_hint = ValueHint::Other,
     )]
-    plus_toolchain: Option<ResolvableToolchainName>,
+    plus_toolchain: Option<ToolchainOverride<ResolvableLocalToolchainName>>,
 
     #[command(subcommand)]
     subcmd: Option<RustupSubcmd>,
 }
 
-fn plus_toolchain_value_parser(s: &str) -> clap::error::Result<ResolvableToolchainName> {
+fn plus_toolchain_value_parser(
+    s: &str,
+) -> clap::error::Result<ToolchainOverride<ResolvableLocalToolchainName>> {
     use clap::{Error, error::ErrorKind};
     if let Some(stripped) = s.strip_prefix('+') {
-        ResolvableToolchainName::from_str(stripped)
+        ToolchainOverride::<ResolvableLocalToolchainName>::from_str(stripped)
             .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
     } else {
         Err(Error::raw(
@@ -159,7 +161,7 @@ enum RustupSubcmd {
     #[command(after_help = default_help())]
     Default {
         #[arg(help = maybe_resolvable_toolchain_arg_help())]
-        toolchain: Option<MaybeResolvableToolchainName>,
+        toolchain: Option<ToolchainOverride<MaybeResolvableToolchainName>>,
 
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
@@ -613,7 +615,7 @@ enum OverrideSubcmd {
     #[command(alias = "add")]
     Set {
         #[arg(help = resolvable_toolchain_arg_help())]
-        toolchain: ResolvableToolchainName,
+        toolchain: ToolchainOverride<ResolvableToolchainName>,
 
         /// Path to the directory
         #[arg(long)]
@@ -924,13 +926,15 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
 
 async fn default_(
     cfg: &Cfg<'_>,
-    toolchain: Option<MaybeResolvableToolchainName>,
+    toolchain: Option<ToolchainOverride<MaybeResolvableToolchainName>>,
     force_non_host: bool,
 ) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     if let Some(toolchain) = toolchain {
-        match toolchain.to_owned() {
+        let toolchain = toolchain.resolve(cfg)?;
+
+        match toolchain {
             MaybeResolvableToolchainName::None => {
                 cfg.set_default(None)?;
             }
@@ -1180,7 +1184,7 @@ async fn update(
             )?;
 
             if opts.r#override {
-                cfg.make_override(&cfg.current_dir, &name.clone().into())?;
+                cfg.make_override(&cfg.current_dir, &name)?;
             }
 
             if opts.default
@@ -1794,10 +1798,13 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
 
 async fn override_add(
     cfg: &Cfg<'_>,
-    toolchain: ResolvableToolchainName,
+    toolchain: ToolchainOverride<ResolvableToolchainName>,
     path: Option<&Path>,
 ) -> anyhow::Result<ExitCode> {
-    let toolchain_name = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
+    let resolved_toolchain = toolchain.clone().resolve(cfg)?;
+    let toolchain_name = resolved_toolchain
+        .clone()
+        .resolve(&cfg.default_host_tuple()?)?;
     match Toolchain::new(cfg, toolchain_name.clone().into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
@@ -1955,7 +1962,10 @@ async fn display_version(cfg: &mut Cfg<'_>) -> anyhow::Result<()> {
     cfg.toolchain_override = cfg
         .process
         .args()
-        .find_map(|arg| arg.strip_prefix('+').map(ResolvableToolchainName::from_str))
+        .find_map(|arg| {
+            arg.strip_prefix('+')
+                .map(ToolchainOverride::<ResolvableLocalToolchainName>::from_str)
+        })
         .transpose()?;
 
     match cfg.maybe_ensure_active_toolchain(None).await {

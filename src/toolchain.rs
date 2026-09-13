@@ -39,7 +39,7 @@ mod names;
 pub(crate) use names::{
     CustomToolchainName, LocalToolchainName, MaybeOfficialToolchainName,
     MaybeResolvableToolchainName, PathBasedToolchainName, ResolvableLocalToolchainName,
-    ResolvableToolchainName, ToolchainName,
+    ResolvableToolchainName, ToolchainAlias, ToolchainName, ToolchainOverride,
 };
 
 /// A toolchain installed on the local disk

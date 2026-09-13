@@ -360,6 +360,82 @@ rustc-[HOST_TUPLE]
 }
 
 #[tokio::test]
+async fn default_alias_uses_configured_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "default"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "show"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+beta-[HOST_TUPLE] (active, default)
+...
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn proxy_default_alias_uses_configured_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "+default", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.2.0 (hash-beta-1.2.0)
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn default_alias_directory_override_follows_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "override", "set", "default"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.2.0 (hash-beta-1.2.0)
+
+"#]])
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "default", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn default_typo_guess() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -3602,6 +3678,24 @@ async fn env_override_beats_file_override() {
 }
 
 #[tokio::test]
+async fn env_override_default_uses_configured_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_TOOLCHAIN", "default")])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.1.0 (hash-stable-1.1.0)
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn plus_override_beats_file_override() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -4140,6 +4234,26 @@ error: rustup could not choose a version of rustc to run, because one wasn't spe
         .await
         .with_stdout(snapbox::str![[r#"
 1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn rust_toolchain_toml_default_uses_configured_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
+    raw::write_file(&toolchain_file, "[toolchain]\nchannel = \"default\"").unwrap();
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.1.0 (hash-stable-1.1.0)
 
 "#]])
         .is_ok();
