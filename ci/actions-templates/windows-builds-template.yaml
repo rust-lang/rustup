@@ -149,20 +149,11 @@ jobs: # skip-main skip-pr skip-stable
           TARGET: ${{ matrix.target }}
           BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
-      - name: Run cargo check
-        if: matrix.mode != 'release'
-        env:
-          TARGET: ${{ matrix.target }}
-        # os-specific code leads to lints escaping if we only run this in one target
-        run: |
-          cargo check --all --all-targets --features test
-          git -c core.quotePath=false ls-files -- '*.rs' | ForEach-Object {
-            (Get-Item -LiteralPath $_).LastWriteTime = Get-Date
-          }
       - name: Run cargo clippy
         if: matrix.mode != 'release' && matrix.mingwdir == ''
         env:
           TARGET: ${{ matrix.target }}
+        # os-specific code leads to lints escaping if we only run this in one target
         run: |
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings

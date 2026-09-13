@@ -80,8 +80,6 @@ jobs: # skip-all
         run: |
           rustup toolchain install nightly --profile=minimal -c=rustfmt
           cargo +nightly xfmt --check
-      - name: Run cargo check and clippy
+      - name: Run cargo clippy
         run: |
-          cargo check --all --all-targets --features test
-          git ls-files -- '*.rs' | xargs touch
           cargo clippy --all-targets --all-features -- -D warnings
