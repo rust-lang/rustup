@@ -509,12 +509,6 @@ async fn update_overwrites_programs_display_version() {
     );
 }
 
-#[cfg(windows)]
-const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
-    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
-    value_name: "DisplayVersion",
-};
-
 #[tokio::test]
 async fn update_but_not_installed() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
@@ -1252,3 +1246,8 @@ async fn install_minimal_profile() {
 }
 
 const TEST_VERSION: &str = "1.1.1";
+#[cfg(windows)]
+const USER_RUSTUP_VERSION: RegistryValueId = RegistryValueId {
+    sub_key: r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup",
+    value_name: "DisplayVersion",
+};
