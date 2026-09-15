@@ -1,5 +1,13 @@
 # Environment variables
 
+Rustup loads environment variables from an optional `${RUSTUP_HOME}/.env`.
+For example:
+
+```dotenv
+RUSTUP_DIST_SERVER=https://example.com/rust-static
+RUSTUP_TOOLCHAIN=stable
+```
+
 - `RUSTUP_LOG` (default: none). Enables Rustup's "custom logging mode". In this mode,
   the verbosity of Rustup's log lines can be specified with `tracing_subscriber`'s
   [directive syntax]. For example, set `RUSTUP_LOG=rustup=DEBUG` to receive log lines
