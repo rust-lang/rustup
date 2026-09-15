@@ -1679,17 +1679,13 @@ async fn toolchain_link(
     pathbuf.push(format!("rustc{EXE_SUFFIX}"));
     utils::assert_is_file(&pathbuf)?;
 
-    if true {
-        InstallMethod::Link {
-            src: &cfg.current_dir.join(src),
-            dest,
-            cfg,
-        }
-        .install(None)
-        .await?;
-    } else {
-        InstallMethod::Copy { src, dest, cfg }.install(None).await?;
+    InstallMethod::Link {
+        src: &cfg.current_dir.join(src),
+        dest,
+        cfg,
     }
+    .install(None)
+    .await?;
 
     Ok(ExitCode::SUCCESS)
 }
