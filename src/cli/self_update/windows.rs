@@ -44,13 +44,9 @@ use windows_sys::Win32::{
     },
 };
 
+use super::{InstallOpts, install_bins, report_error};
 use crate::{
-    cli::{
-        common,
-        errors::CliError,
-        markdown::md,
-        self_update::{InstallOpts, install_bins, report_error},
-    },
+    cli::{common, errors::CliError, markdown::md},
     dist::TargetTuple,
     download::DownloadOptions,
     process::{ColorableTerminal, Process},

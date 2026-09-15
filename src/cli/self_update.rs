@@ -579,8 +579,6 @@ impl fmt::Display for SelfUpdateMode {
     }
 }
 
-static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
-
 fn update_root(process: &Process) -> String {
     process
         .var("RUSTUP_UPDATE_ROOT")
@@ -1392,6 +1390,7 @@ pub(crate) fn cleanup_self_updater(bin_path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 #[cfg(feature = "test")]
 pub const CHECKPOINT_SELF_REPLACE_READY: &str = "self-replace-ready";
 
