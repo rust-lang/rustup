@@ -129,14 +129,7 @@ impl InstallMethod<'_, '_> {
     }
 
     fn dest_path(&self) -> PathBuf {
-        match self {
-            InstallMethod::Link { cfg, dest, .. } => cfg.toolchain_path(&(*dest).clone().into()),
-            InstallMethod::Dist(DistOptions {
-                cfg,
-                toolchain: desc,
-                ..
-            }) => cfg.toolchain_path(&(*desc).clone().into()),
-        }
+        self.cfg().toolchain_path(&self.local_name())
     }
 }
 
