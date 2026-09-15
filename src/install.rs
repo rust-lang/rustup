@@ -52,14 +52,8 @@ impl InstallMethod<'_, '_> {
 
         let dest_path = &self.dest_path();
         debug!("toolchain directory: {}", dest_path.display());
-        if dest_path.exists() {
-            // Don't uninstall first for Dist method
-            match self {
-                Self::Dist { .. } => {}
-                _ => {
-                    uninstall(dest_path)?;
-                }
-            }
+        if dest_path.exists() && !matches!(self, Self::Dist { .. }) {
+            uninstall(dest_path)?;
         }
 
         let updated = match &self {
