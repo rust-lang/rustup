@@ -8,7 +8,7 @@ use crate::{
     config::Cfg,
     dist::{DistOptions, manifest::ManifestWithHash, prefix::InstallPrefix},
     errors::RustupError,
-    toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
+    toolchain::{CustomToolchainName, Toolchain},
     utils,
 };
 
@@ -42,19 +42,25 @@ impl InstallMethod<'_, '_> {
             .build_global();
 
         let local_name = match &self {
-            Self::Link { dest, .. } => (*dest).clone().into(),
+            Self::Link { dest, .. } => {
+                let name = (*dest).clone().into();
+                debug!("linking toolchain {name}");
+                name
+            }
             Self::Dist(DistOptions {
-                toolchain: desc, ..
-            }) => (*desc).clone().into(),
-        };
-        match &self {
-            InstallMethod::Link { .. }
-            | InstallMethod::Dist(DistOptions {
-                old_date_version: None,
+                toolchain: desc,
+                old_date_version,
                 ..
-            }) => debug!("installing toolchain {local_name}",),
-            _ => debug!("updating existing install for '{local_name}'"),
-        }
+            }) => {
+                let name = (*desc).clone().into();
+                if old_date_version.is_some() {
+                    debug!("updating existing install for '{name}'");
+                } else {
+                    debug!("installing toolchain {name}");
+                }
+                name
+            }
+        };
 
         let dest_path = &self.cfg().toolchain_path(&local_name);
         debug!("toolchain directory: {}", dest_path.display());
