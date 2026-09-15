@@ -89,7 +89,7 @@ pub enum RustupError {
     RemovingDirectory { name: &'static str, path: PathBuf },
     #[error("could not remove '{name}' file: '{}'", .path.display())]
     RemovingFile { name: &'static str, path: PathBuf },
-    #[error("could not rename '{name}' file from '{src}' to '{dest}': {source}")]
+    #[error("could not rename '{name}' file from '{src}' to '{dest}'")]
     RenamingFile {
         name: &'static str,
         src: PathBuf,
