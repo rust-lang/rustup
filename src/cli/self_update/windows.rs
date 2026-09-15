@@ -2,10 +2,12 @@ use std::{
     borrow::Cow,
     env::{consts::EXE_SUFFIX, split_paths},
     ffi::{OsStr, OsString},
-    fmt,
+    fmt, fs,
     io::{self, Write},
     os::windows::ffi::OsStrExt,
+    path::Path,
     process::Command,
+    ptr::null,
 };
 
 use anyhow::{Context, anyhow};
@@ -15,7 +17,10 @@ use tracing::{info, warn};
 use windows_registry::Value;
 use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
-use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
+use windows_sys::Win32::{
+    Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA},
+    Storage::FileSystem::ReplaceFileW,
+};
 
 use super::{
     InstallOpts, report_error,
@@ -26,7 +31,7 @@ use crate::{
     dist::TargetTuple,
     download::DownloadOptions,
     process::{ColorableTerminal, Process},
-    utils,
+    utils::{self, raw::windows::to_u16s},
 };
 
 pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
@@ -684,6 +689,41 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
     result?;
 
     Ok(utils::ExitCode(0))
+}
+
+pub(super) fn replace_rustup_binary(replacement: &Path, rustup: &Path) -> anyhow::Result<()> {
+    match fs::symlink_metadata(rustup) {
+        Ok(_) => replace_existing_rustup(replacement, rustup),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::rename(replacement, rustup)
+            .with_context(|| {
+                format!(
+                    "failed to install rustup binary '{}' from '{}'",
+                    rustup.display(),
+                    replacement.display()
+                )
+            }),
+        Err(error) => Err(error).context("failed to inspect the installed rustup binary"),
+    }
+}
+
+fn replace_existing_rustup(replacement: &Path, rustup: &Path) -> anyhow::Result<()> {
+    let rustup = to_u16s(rustup)?;
+    let replacement = to_u16s(replacement)?;
+    let replaced = unsafe {
+        ReplaceFileW(
+            rustup.as_ptr(),
+            replacement.as_ptr(),
+            null(),
+            0,
+            null(),
+            null(),
+        )
+    };
+    if replaced == 0 {
+        return Err(io::Error::last_os_error()).context("failed to atomically replace rustup");
+    }
+
+    Ok(())
 }
 
 // Spawn a temporary rustup-gc-$random.exe to finish Windows uninstall

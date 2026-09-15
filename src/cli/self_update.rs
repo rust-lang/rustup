@@ -87,7 +87,7 @@ mod unix;
 #[cfg(unix)]
 pub(crate) use unix::self_replace;
 #[cfg(unix)]
-use unix::{do_add_to_path, do_remove_from_path, run_update};
+use unix::{do_add_to_path, do_remove_from_path, replace_rustup_binary, run_update};
 
 #[cfg(windows)]
 mod windows;
@@ -100,7 +100,7 @@ pub use windows::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path}
 #[cfg(windows)]
 use windows::{
     add_uninstall_registry_entry, do_add_to_path, do_remove_from_path,
-    remove_uninstall_registry_entry, run_update,
+    remove_uninstall_registry_entry, replace_rustup_binary, run_update,
 };
 
 pub(crate) struct InstallOpts<'a> {
@@ -1360,7 +1360,7 @@ pub const CHECKPOINT_SELF_REPLACE_READY: &str = "self-replace-ready";
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, env::consts::EXE_SUFFIX, fs};
 
     use crate::{
         cli::self_update::InstallOpts,
@@ -1420,5 +1420,30 @@ info: default host tuple is {0}
         let tp = TestProcess::with_vars(vars);
         super::install_bins(&tp.process).unwrap();
         assert!(cargo_home.exists());
+    }
+
+    #[test]
+    fn failed_atomic_replace_preserves_existing_rustup() {
+        let root_dir = test_dir().unwrap();
+        let rustup = root_dir.path().join(format!("rustup{EXE_SUFFIX}"));
+        fs::write(&rustup, "old rustup").unwrap();
+
+        super::replace_rustup_binary(&root_dir.path().join("missing"), &rustup).unwrap_err();
+
+        assert_eq!(fs::read_to_string(rustup).unwrap(), "old rustup");
+    }
+
+    #[test]
+    fn atomic_replace_publishes_pending_rustup() {
+        let root_dir = test_dir().unwrap();
+        let rustup = root_dir.path().join(format!("rustup{EXE_SUFFIX}"));
+        let pending = root_dir.path().join("pending");
+        fs::write(&rustup, "old rustup").unwrap();
+        fs::write(&pending, "new rustup").unwrap();
+
+        super::replace_rustup_binary(&pending, &rustup).unwrap();
+
+        assert_eq!(fs::read_to_string(rustup).unwrap(), "new rustup");
+        assert!(!pending.exists());
     }
 }

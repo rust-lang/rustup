@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    fs::{self, File},
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, bail};
 use tracing::{error, warn};
@@ -153,6 +156,22 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
     result?;
 
     Ok(utils::ExitCode(0))
+}
+
+pub(super) fn replace_rustup_binary(replacement: &Path, rustup: &Path) -> anyhow::Result<()> {
+    fs::rename(replacement, rustup).with_context(|| {
+        format!(
+            "failed to replace rustup binary '{}' with '{}'",
+            rustup.display(),
+            replacement.display()
+        )
+    })?;
+    let bin = rustup
+        .parent()
+        .context("installed rustup binary has no parent directory")?;
+    File::open(bin)
+        .and_then(|directory| directory.sync_all())
+        .context("failed to sync rustup binary directory")
 }
 
 fn remove_legacy_source_command(source_cmd: String, process: &Process) -> anyhow::Result<()> {
