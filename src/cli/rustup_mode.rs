@@ -1522,6 +1522,12 @@ async fn target_remove(
     )
     .await?;
 
+    if targets.contains(&cfg.default_host_tuple()?) {
+        warn!(
+            "removing the default host target; proc-macros and build scripts might no longer build"
+        );
+    }
+
     let mut remaining_targets = distributable.toolchain.installed_targets()?;
     remaining_targets.retain(|it| !targets.contains(it));
     if remaining_targets.is_empty() {
@@ -1529,13 +1535,6 @@ async fn target_remove(
     }
 
     for target in targets {
-        let default_target = cfg.default_host_tuple()?;
-        if target == default_target {
-            warn!(
-                "removing the default host target; proc-macros and build scripts might no longer build"
-            );
-        }
-
         distributable
             .remove_component(Component::std(target))
             .await?;
