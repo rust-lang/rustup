@@ -505,6 +505,7 @@ async fn update_overwrites_programs_display_version() {
         )
         .unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
+    wait_for_completed_update(&cx.config.rustupdir.rustupdir);
     assert_eq!(
         USER_RUSTUP_VERSION
             .get(test_id, CURRENT_USER)
