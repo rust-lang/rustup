@@ -659,16 +659,9 @@ pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> anyhow::Resu
 
 pub(super) fn run_update(
     prepared_updater: PreparedUpdater,
-    process: &Process,
+    _process: &Process,
 ) -> anyhow::Result<utils::ExitCode> {
-    let updater_path = prepared_updater.path().to_owned();
     prepared_updater.spawn_replacer()?;
-
-    let Some(version) = super::get_and_parse_new_rustup_version(&updater_path) else {
-        warn!("failed to get the new rustup version in order to update `DisplayVersion`");
-        return Ok(utils::ExitCode(1));
-    };
-    update_uninstall_registry_display_version(&version, process)?;
 
     Ok(utils::ExitCode(0))
 }
@@ -676,7 +669,9 @@ pub(super) fn run_update(
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
     let self_update_lock = SelfUpdateLock::acquire(process)?;
-    let result = self_update_lock.install_bins(process);
+    let result = self_update_lock.install_bins(process).and_then(|()| {
+        update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
+    });
     stage::mark_result(result.is_ok(), process);
     result?;
 
