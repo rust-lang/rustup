@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    env::{consts::EXE_SUFFIX, split_paths},
+    env::{split_paths, temp_dir},
     ffi::{OsStr, OsString},
     fmt,
     io::Write,
@@ -365,7 +365,9 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
     let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
-    super::clean_cargo_home(no_modify_path, process)?;
+    let cargo_home = process.cargo_home()?;
+    let category_bin = process.rustup_bin_home()?;
+    super::clean_cargo_home(no_modify_path, process, &cargo_home, &category_bin)?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -458,7 +460,8 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
+    let rustup_bin_home = process.rustup_bin_home()?;
+    let new_path = _with_path(_add_to_path, &rustup_bin_home, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -561,18 +564,16 @@ fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
 
 const PATH_SEPARATOR: u16 = b';' as u16;
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
+fn _with_path<F>(f: F, path: &Path, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
     let windows_path = get_windows_path_var(process)?;
-    let mut path_str = process.cargo_home()?;
-    path_str.push("bin");
-    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
+    Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path))))
 }
 
-pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
+pub(crate) fn do_remove_from_path(process: &Process, bin_home: &Path) -> anyhow::Result<()> {
+    let new_path = _with_path(_remove_from_path, bin_home, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -635,8 +636,7 @@ pub(crate) fn add_uninstall_registry_entry(process: &Process) -> anyhow::Result<
         }
     }
 
-    let mut path = process.cargo_home()?;
-    path.push("bin\\rustup.exe");
+    let path = process.rustup_bin_home()?.join("rustup.exe");
     let mut uninstall_cmd = OsString::from("\"");
     uninstall_cmd.push(path);
     uninstall_cmd.push("\" self uninstall");
@@ -686,8 +686,8 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
-//   CARGO_HOME/../rustup-gc-$random.exe.
+// - Copy the running rustup.exe to a temporary file in
+//   the system temporary directory as rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
@@ -710,7 +710,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
     use std::{io, ptr, thread, time::Duration};
 
     use windows_sys::Win32::{
@@ -722,22 +722,23 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         },
     };
 
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = process.cargo_home()?;
     // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
+    let rustup_path = utils::current_exe()?;
 
-    // The directory containing CARGO_HOME
-    let work_path = cargo_home
-        .parent()
-        .expect("CARGO_HOME doesn't have a parent?");
+    // Place the GC executable in the system temporary directory.
+    let work_path = temp_dir();
 
-    // Generate a unique name for the files we're about to move out
-    // of CARGO_HOME.
+    // Generate a unique name for the GC executable.
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
+    // Copy the executable contents so the GC path is a regular file.
+    std::fs::copy(&rustup_path, &gc_exe).with_context(|| {
+        format!(
+            "could not copy running rustup from '{}' to '{}'",
+            rustup_path.display(),
+            gc_exe.display()
+        )
+    })?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
     // Make the sub-process opened by gc exe inherit its attribute.
@@ -864,6 +865,47 @@ mod tests {
             Ok(()) => {}
             Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
+        }
+    }
+
+    #[test]
+    fn uninstall_registry_uses_resolved_bin_home() {
+        for category in [false, true] {
+            let id = test_id();
+            let dirs = tempfile::tempdir().unwrap();
+            let cargo_home = dirs.path().join("cargo home");
+            let bin_home = dirs.path().join("category bin");
+            let tp = TestProcess::with_vars(HashMap::from([
+                (RUSTUP_REGISTRY_TEST_ID.to_owned(), id),
+                (
+                    "CARGO_HOME".to_owned(),
+                    cargo_home.to_str().unwrap().to_owned(),
+                ),
+                (
+                    "RUSTUP_BIN_HOME".to_owned(),
+                    bin_home.to_str().unwrap().to_owned(),
+                ),
+                (
+                    "RUSTUP_USE_CATEGORY_HOME".to_owned(),
+                    if category { "1" } else { "0" }.to_owned(),
+                ),
+            ]));
+            add_uninstall_registry_entry(&tp.process).unwrap();
+            let expected = if category {
+                bin_home
+            } else {
+                cargo_home.join("bin")
+            };
+            assert_eq!(
+                rustup_uninstall_registry_key(&tp.process)
+                    .unwrap()
+                    .get_string("UninstallString")
+                    .unwrap(),
+                format!(
+                    "\"{}\" self uninstall",
+                    expected.join("rustup.exe").display()
+                )
+            );
         }
     }
 
@@ -1061,7 +1103,7 @@ mod tests {
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
-            _with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+            _with_path(|_, _| panic!("called"), Path::new("ignored"), &tp.process).unwrap()
         );
 
         assert_eq!(

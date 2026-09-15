@@ -1,2 +1,2 @@
 use std/util "path add"
-path add "{cargo_bin}"
+path add "{rustup_bin}"
