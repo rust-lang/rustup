@@ -42,7 +42,7 @@
 //! fallible ones otherwise.
 
 use std::{
-    fmt::Display,
+    fmt::{self, Display},
     ops::Deref,
     path::{Path, PathBuf},
     str::FromStr,
@@ -116,7 +116,7 @@ impl From<&PartialToolchainDesc> for ResolvableToolchainName {
 }
 
 impl Display for ResolvableToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(c) => write!(f, "{c}"),
             Self::Official(o) => write!(f, "{o}"),
@@ -147,7 +147,7 @@ impl FromStr for MaybeResolvableToolchainName {
 }
 
 impl Display for MaybeResolvableToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Some(t) => write!(f, "{t}"),
             Self::None => write!(f, "none"),
@@ -178,7 +178,7 @@ impl FromStr for MaybeOfficialToolchainName {
 }
 
 impl Display for MaybeOfficialToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::None => write!(f, "none"),
             Self::Some(t) => write!(f, "{t}"),
@@ -225,7 +225,7 @@ impl FromStr for ToolchainName {
 }
 
 impl Display for ToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(t) => write!(f, "{t}"),
             Self::Official(t) => write!(f, "{t}"),
@@ -285,7 +285,7 @@ impl FromStr for ResolvableLocalToolchainName {
 }
 
 impl Display for ResolvableLocalToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Named(t) => write!(f, "{t}"),
             Self::Path(t) => write!(f, "{t}"),
@@ -338,7 +338,7 @@ impl PartialEq<ToolchainName> for LocalToolchainName {
 }
 
 impl Display for LocalToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Named(t) => write!(f, "{t}"),
             Self::Path(t) => write!(f, "{t}"),
@@ -373,7 +373,7 @@ impl FromStr for CustomToolchainName {
 }
 
 impl Display for CustomToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -391,7 +391,7 @@ impl From<PathBasedToolchainName> for PathBuf {
 }
 
 impl Display for PathBasedToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.display())
     }
 }
