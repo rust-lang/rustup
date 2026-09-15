@@ -50,8 +50,35 @@ impl InstallMethod<'_, '_> {
             _ => debug!("updating existing install for '{local_name}'"),
         }
 
-        debug!("toolchain directory: {}", self.dest_path().display());
-        let updated = self.run(&self.dest_path(), manifest).await?;
+        let dest_path = &self.dest_path();
+        debug!("toolchain directory: {}", dest_path.display());
+        if dest_path.exists() {
+            // Don't uninstall first for Dist method
+            match self {
+                Self::Dist { .. } => {}
+                _ => {
+                    uninstall(dest_path)?;
+                }
+            }
+        }
+
+        let updated = match &self {
+            Self::Link { src, .. } => {
+                utils::symlink_dir(src, dest_path)?;
+                true
+            }
+            Self::Dist(opts) => {
+                let prefix = &InstallPrefix::from(dest_path.clone());
+                let maybe_new_hash = opts.install_into(prefix, manifest).await?;
+
+                if let Some(hash) = maybe_new_hash {
+                    utils::write_file("update hash", &opts.update_hash, &hash)?;
+                    true
+                } else {
+                    false
+                }
+            }
+        };
 
         let status = match updated {
             false => {
@@ -76,36 +103,6 @@ impl InstallMethod<'_, '_> {
         match Toolchain::exists(self.cfg(), &local_name)? {
             true => Ok(status),
             false => Err(RustupError::ToolchainNotInstallable(local_name.to_string()).into()),
-        }
-    }
-
-    async fn run(&self, path: &Path, manifest: Option<ManifestWithHash>) -> anyhow::Result<bool> {
-        if path.exists() {
-            // Don't uninstall first for Dist method
-            match self {
-                InstallMethod::Dist { .. } => {}
-                _ => {
-                    uninstall(path)?;
-                }
-            }
-        }
-
-        match self {
-            InstallMethod::Link { src, .. } => {
-                utils::symlink_dir(src, path)?;
-                Ok(true)
-            }
-            InstallMethod::Dist(opts) => {
-                let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = opts.install_into(prefix, manifest).await?;
-
-                if let Some(hash) = maybe_new_hash {
-                    utils::write_file("update hash", &opts.update_hash, &hash)?;
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
-            }
         }
     }
 
