@@ -42,7 +42,7 @@
 //! fallible ones otherwise.
 
 use std::{
-    fmt::Display,
+    fmt::{self, Display},
     ops::Deref,
     path::{Path, PathBuf},
     str::FromStr,
@@ -51,7 +51,10 @@ use std::{
 use thiserror::Error;
 use unicode_security::GeneralSecurityProfile;
 
-use crate::dist::{PartialToolchainDesc, TargetTuple, ToolchainDesc};
+use crate::{
+    config::{Cfg, no_toolchain_error},
+    dist::{PartialToolchainDesc, TargetTuple, ToolchainDesc},
+};
 
 /// Errors related to toolchains
 #[derive(Error, Debug)]
@@ -72,6 +75,82 @@ pub enum InvalidName {
     PlusPrefix(String),
     #[error("invalid toolchain name '-{0}'; valid toolchain names do not start with '-'")]
     DashPrefix(String),
+}
+
+/// An alias for a toolchain name.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ToolchainAlias {
+    /// Refers to rustup's configured default toolchain
+    Default,
+}
+
+impl FromStr for ToolchainAlias {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "default" => Ok(Self::Default),
+            _ => Err(InvalidName::ToolchainName(value.into())),
+        }
+    }
+}
+
+impl Display for ToolchainAlias {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Default => write!(f, "default"),
+        }
+    }
+}
+
+/// A wrapper for types that can be overridden by an alias.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Override<T> {
+    Aliased(ToolchainAlias),
+    Explicit(T),
+}
+
+impl<T: FromStr> FromStr for Override<T>
+where
+    T::Err: Into<InvalidName>,
+{
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if let Ok(alias) = ToolchainAlias::from_str(value) {
+            return Ok(Self::Aliased(alias));
+        }
+        match T::from_str(value) {
+            Ok(t) => Ok(Self::Explicit(t)),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
+impl<T: Display> Display for Override<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Aliased(a) => write!(f, "{a}"),
+            Self::Explicit(t) => write!(f, "{t}"),
+        }
+    }
+}
+
+impl<T> Override<T>
+where
+    T: From<ResolvableToolchainName>,
+{
+    pub(crate) fn resolve(self, cfg: &Cfg<'_>) -> anyhow::Result<T> {
+        match self {
+            Self::Aliased(ToolchainAlias::Default) => {
+                let default = cfg
+                    .get_default_resolvable()?
+                    .ok_or_else(|| no_toolchain_error(cfg.process))?;
+                Ok(T::from(default))
+            }
+            Self::Explicit(value) => Ok(value),
+        }
+    }
 }
 
 /// A toolchain name from user input.
@@ -116,7 +195,7 @@ impl From<&PartialToolchainDesc> for ResolvableToolchainName {
 }
 
 impl Display for ResolvableToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(c) => write!(f, "{c}"),
             Self::Official(o) => write!(f, "{o}"),
@@ -147,11 +226,17 @@ impl FromStr for MaybeResolvableToolchainName {
 }
 
 impl Display for MaybeResolvableToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Some(t) => write!(f, "{t}"),
             Self::None => write!(f, "none"),
         }
+    }
+}
+
+impl From<ResolvableToolchainName> for MaybeResolvableToolchainName {
+    fn from(value: ResolvableToolchainName) -> Self {
+        Self::Some(value)
     }
 }
 
@@ -178,7 +263,7 @@ impl FromStr for MaybeOfficialToolchainName {
 }
 
 impl Display for MaybeOfficialToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::None => write!(f, "none"),
             Self::Some(t) => write!(f, "{t}"),
@@ -225,7 +310,7 @@ impl FromStr for ToolchainName {
 }
 
 impl Display for ToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(t) => write!(f, "{t}"),
             Self::Official(t) => write!(f, "{t}"),
@@ -285,11 +370,17 @@ impl FromStr for ResolvableLocalToolchainName {
 }
 
 impl Display for ResolvableLocalToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Named(t) => write!(f, "{t}"),
             Self::Path(t) => write!(f, "{t}"),
         }
+    }
+}
+
+impl From<ResolvableToolchainName> for ResolvableLocalToolchainName {
+    fn from(value: ResolvableToolchainName) -> Self {
+        Self::Named(value)
     }
 }
 
@@ -338,7 +429,7 @@ impl PartialEq<ToolchainName> for LocalToolchainName {
 }
 
 impl Display for LocalToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Named(t) => write!(f, "{t}"),
             Self::Path(t) => write!(f, "{t}"),
@@ -373,7 +464,7 @@ impl FromStr for CustomToolchainName {
 }
 
 impl Display for CustomToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -391,7 +482,7 @@ impl From<PathBasedToolchainName> for PathBuf {
 }
 
 impl Display for PathBasedToolchainName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.display())
     }
 }

@@ -25,8 +25,9 @@ use crate::{
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, LocalToolchainName, PathBasedToolchainName,
-        ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain, ToolchainName,
+        CustomToolchainName, DistributableToolchain, LocalToolchainName, Override,
+        PathBasedToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain,
+        ToolchainName,
     },
     utils,
 };
@@ -199,7 +200,7 @@ pub(crate) enum OverrideCfg {
 impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> anyhow::Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
-            (Some(name), None) => ResolvableToolchainName::from_str(&name)?,
+            (Some(name), None) => Override::<ResolvableToolchainName>::from_str(&name)?,
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
                     || file.toolchain.components.is_some()
@@ -226,10 +227,12 @@ impl OverrideCfg {
                     path.display()
                 )
             }
-            (None, None) => cfg
-                .get_default_resolvable()?
-                .ok_or_else(|| no_toolchain_error(cfg.process))?,
+            (None, None) => Override::Explicit(
+                cfg.get_default_resolvable()?
+                    .ok_or_else(|| no_toolchain_error(cfg.process))?,
+            ),
         };
+        let toolchain_name = toolchain_name.resolve(cfg)?;
         Ok(match toolchain_name {
             ResolvableToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
@@ -321,8 +324,8 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub toolchain_override: Option<ResolvableToolchainName>,
-    env_override: Option<ResolvableLocalToolchainName>,
+    pub toolchain_override: Option<Override<ResolvableLocalToolchainName>>,
+    env_override: Option<Override<ResolvableLocalToolchainName>>,
     pub(crate) dist_root_server: String,
     pub dist_root_url: String,
     pub quiet: bool,
@@ -383,7 +386,7 @@ impl<'a> Cfg<'a> {
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(ResolvableLocalToolchainName::from_str(tc)?),
+            Some(tc) => Some(Override::<ResolvableLocalToolchainName>::from_str(tc)?),
             None => None,
         };
 
@@ -646,7 +649,7 @@ impl<'a> Cfg<'a> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
             if let Some(name) = &self.toolchain_override {
-                Some((name.clone().into(), ActiveSource::CommandLine))
+                Some((name.clone().resolve(self)?.into(), ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
             else if let Some(name) = &self.env_override {
@@ -654,7 +657,7 @@ impl<'a> Cfg<'a> {
                 // custom, distributable, and absolute path toolchains otherwise
                 // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
                 // error when a nested rustup invocation occurs
-                Some((name.clone().into(), ActiveSource::Environment))
+                Some((name.clone().resolve(self)?.into(), ActiveSource::Environment))
             }
             // Then walk up the directory tree from 'path' looking for either the
             // directory in the override database, or a `rust-toolchain{.toml}` file,
@@ -684,7 +687,9 @@ impl<'a> Cfg<'a> {
             if let Some(name) = settings.dir_override(d) {
                 let source = ActiveSource::OverrideDb(d.to_owned());
                 return Ok(Some((
-                    ResolvableToolchainName::from_str(&name)?.into(),
+                    Override::<ResolvableToolchainName>::from_str(&name)?
+                        .resolve(self)?
+                        .into(),
                     source,
                 )));
             }
@@ -735,15 +740,15 @@ impl<'a> Cfg<'a> {
                         }
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
-                    let toolchain_name = ResolvableToolchainName::from_str(
-                        toolchain_name_str.as_str(),
-                    )
-                    .map_err(|_| {
-                        anyhow!(
-                            "invalid toolchain name detected in override file '{}'",
-                            toolchain_file.display()
-                        )
-                    })?;
+                    let toolchain_override =
+                        Override::<ResolvableToolchainName>::from_str(toolchain_name_str.as_str())
+                            .map_err(|_| {
+                                anyhow!(
+                                    "invalid toolchain name detected in override file '{}'",
+                                    toolchain_file.display()
+                                )
+                            })?;
+                    let toolchain_name = toolchain_override.resolve(self)?;
                     let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
@@ -1054,7 +1059,7 @@ impl<'a> Cfg<'a> {
     pub(crate) fn make_override(
         &self,
         path: &Path,
-        toolchain: &ResolvableToolchainName,
+        toolchain: &impl Display,
     ) -> anyhow::Result<()> {
         self.settings_file.with_mut(|s| {
             s.add_override(path, toolchain.to_string());
@@ -1274,7 +1279,7 @@ pub(crate) fn default_host_tuple(s: &Settings, process: &Process) -> TargetTuple
         .unwrap_or_else(|| TargetTuple::from_host_or_build(process))
 }
 
-fn no_toolchain_error(process: &Process) -> anyhow::Error {
+pub(crate) fn no_toolchain_error(process: &Process) -> anyhow::Error {
     RustupError::ToolchainNotSelected(process.name().unwrap_or_else(|| "Rust".into())).into()
 }
 
