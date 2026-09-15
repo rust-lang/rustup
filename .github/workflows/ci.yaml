@@ -1544,7 +1544,7 @@ jobs:
           fallback: none
       - name: Run frontend formatting checks
         run: |
-          oxfmt .
+          oxfmt . --check
       - name: Run TOML formatting checks
         run: |
           taplo fmt
