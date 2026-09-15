@@ -3,7 +3,7 @@ use std::{
     env::{consts::EXE_SUFFIX, split_paths},
     ffi::{OsStr, OsString},
     fmt,
-    io::Write,
+    io::{self, Write},
     os::windows::ffi::OsStrExt,
     path::Path,
     process::Command,
@@ -18,13 +18,9 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
+use super::{InstallOpts, install_bins, report_error};
 use crate::{
-    cli::{
-        common,
-        errors::CliError,
-        markdown::md,
-        self_update::{InstallOpts, install_bins, report_error},
-    },
+    cli::{common, errors::CliError, markdown::md},
     dist::TargetTuple,
     download::DownloadOptions,
     process::{ColorableTerminal, Process},
@@ -41,7 +37,7 @@ pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
 fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
     write!(process.stdout().lock(), ">")?;
 
-    let _ = std::io::stdout().flush();
+    let _ = io::stdout().flush();
     let input = common::read_line(process)?;
 
     let r = match str::parse(&input) {
