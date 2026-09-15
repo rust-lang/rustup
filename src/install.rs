@@ -40,7 +40,13 @@ impl InstallMethod<'_, '_> {
         let _ = rayon::ThreadPoolBuilder::new()
             .num_threads(self.cfg().process.io_thread_count()?.into())
             .build_global();
-        let local_name = self.local_name();
+
+        let local_name = match &self {
+            Self::Link { dest, .. } => (*dest).clone().into(),
+            Self::Dist(DistOptions {
+                toolchain: desc, ..
+            }) => (*desc).clone().into(),
+        };
         match &self {
             InstallMethod::Link { .. }
             | InstallMethod::Dist(DistOptions {
@@ -50,7 +56,7 @@ impl InstallMethod<'_, '_> {
             _ => debug!("updating existing install for '{local_name}'"),
         }
 
-        let dest_path = &self.cfg().toolchain_path(&self.local_name());
+        let dest_path = &self.cfg().toolchain_path(&local_name);
         debug!("toolchain directory: {}", dest_path.display());
         if dest_path.exists() && !matches!(self, Self::Dist { .. }) {
             uninstall(dest_path)?;
@@ -96,15 +102,6 @@ impl InstallMethod<'_, '_> {
         match self {
             InstallMethod::Link { cfg, .. } => cfg,
             InstallMethod::Dist(DistOptions { cfg, .. }) => cfg,
-        }
-    }
-
-    fn local_name(&self) -> LocalToolchainName {
-        match self {
-            InstallMethod::Link { dest, .. } => (*dest).clone().into(),
-            InstallMethod::Dist(DistOptions {
-                toolchain: desc, ..
-            }) => (*desc).clone().into(),
         }
     }
 }
