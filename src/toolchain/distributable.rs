@@ -383,58 +383,70 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
-    pub(crate) async fn remove_component(&self, mut component: Component) -> anyhow::Result<()> {
-        // TODO: take multiple components?
+    pub(crate) async fn remove_components(
+        &self,
+        components: impl IntoIterator<Item = anyhow::Result<Component>>,
+    ) -> anyhow::Result<()> {
         let manifestation = self.get_manifestation()?;
         let config = manifestation.read_config()?.unwrap_or_default();
         let manifest = self.get_manifest()?;
 
-        // Rename the component if necessary.
-        if let Some(c) = manifest.rename_component(&component) {
-            component = c;
-        }
-
-        if !config.components.contains(&component) {
-            let wildcard_component = component.wildcard();
-            if config.components.contains(&wildcard_component) {
-                component = wildcard_component;
-            } else {
-                let suggestion =
-                    self.get_component_suggestion(&component, &config, &manifest, true);
-                // Check if the target is installed.
-                if !config
-                    .components
-                    .iter()
-                    .any(|c| c.target() == component.target())
-                {
-                    return Err(RustupError::TargetNotInstalled {
-                        desc: Box::new(self.desc.clone()),
-                        target: component.target.expect("component target should be known"),
-                        suggestion,
+        let components = components.into_iter();
+        let mut renamed_components = Vec::with_capacity(components.size_hint().0);
+        let mut unknown_components = vec![];
+        for component in components {
+            let mut component = component?;
+            if let Some(renamed) = manifest.rename_component(&component) {
+                component = renamed;
+            }
+            if !config.components.contains(&component) {
+                let wildcard_component = component.wildcard();
+                if config.components.contains(&wildcard_component) {
+                    component = wildcard_component;
+                } else {
+                    let suggestion =
+                        self.get_component_suggestion(&component, &config, &manifest, true);
+                    // Check if the target is installed.
+                    if !config
+                        .components
+                        .iter()
+                        .any(|c| c.target() == component.target())
+                    {
+                        return Err(RustupError::TargetNotInstalled {
+                            desc: Box::new(self.desc.clone()),
+                            target: component.target.expect("component target should be known"),
+                            suggestion,
+                        }
+                        .into());
                     }
-                    .into());
-                }
-                return Err(RustupError::UnknownComponents {
-                    desc: self.desc.clone(),
-                    components: vec![UnknownComponentInfo {
+                    unknown_components.push(UnknownComponentInfo {
                         name: manifest.short_name(&component).to_string(),
                         description: manifest.description(&component),
                         suggestion,
-                    }],
+                    });
+                    continue;
                 }
-                .into());
             }
+            renamed_components.push(component);
         }
 
         let changes = Changes {
             explicit_add_components: vec![],
-            remove_components: vec![component],
+            remove_components: renamed_components,
         };
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
             .update(manifest, changes, false, &download_cfg, &self.desc, false)
             .await?;
+
+        if !unknown_components.is_empty() {
+            return Err(RustupError::UnknownComponents {
+                desc: self.desc().clone(),
+                components: unknown_components,
+            }
+            .into());
+        }
 
         Ok(())
     }
