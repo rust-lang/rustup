@@ -2,11 +2,12 @@ use std::{
     borrow::Cow,
     env::{consts::EXE_SUFFIX, split_paths},
     ffi::{OsStr, OsString},
-    fmt,
-    io::Write,
+    fmt, fs,
+    io::{self, Write},
     os::windows::ffi::OsStrExt,
     path::Path,
     process::Command,
+    ptr::null,
 };
 
 use anyhow::{Context, anyhow};
@@ -16,19 +17,21 @@ use tracing::{info, warn};
 use windows_registry::Value;
 use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
-use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
+use windows_sys::Win32::{
+    Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA},
+    Storage::FileSystem::ReplaceFileW,
+};
 
+use super::{
+    InstallOpts, report_error,
+    stage::{self, PreparedUpdate, SelfUpdateLock},
+};
 use crate::{
-    cli::{
-        common,
-        errors::CliError,
-        markdown::md,
-        self_update::{InstallOpts, install_bins, report_error},
-    },
+    cli::{common, errors::CliError, markdown::md},
     dist::TargetTuple,
     download::DownloadOptions,
     process::{ColorableTerminal, Process},
-    utils,
+    utils::{self, raw::windows::to_u16s},
 };
 
 pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
@@ -41,7 +44,7 @@ pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
 fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
     write!(process.stdout().lock(), ">")?;
 
-    let _ = std::io::stdout().flush();
+    let _ = io::stdout().flush();
     let input = common::read_line(process)?;
 
     let r = match str::parse(&input) {
@@ -658,26 +661,65 @@ pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> anyhow::Resu
     }
 }
 
-pub(crate) fn run_update(setup_path: &Path, process: &Process) -> anyhow::Result<utils::ExitCode> {
-    Command::new(setup_path)
+pub(super) fn run_update(
+    prepared_update: PreparedUpdate,
+    _process: &Process,
+) -> anyhow::Result<utils::ExitCode> {
+    prepared_update
+        .replacer_command()?
         .arg("--self-replace")
         .spawn()
         .context("unable to run updater")?;
-
-    let Some(version) = super::get_and_parse_new_rustup_version(setup_path) else {
-        warn!("failed to get the new rustup version in order to update `DisplayVersion`");
-        return Ok(utils::ExitCode(1));
-    };
-    update_uninstall_registry_display_version(&version, process)?;
+    drop(prepared_update);
 
     Ok(utils::ExitCode(0))
 }
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
-    install_bins(process)?;
+    let self_update_lock = SelfUpdateLock::acquire(process)?;
+    let result = self_update_lock.install_bins(process).and_then(|()| {
+        update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
+    });
+    stage::mark_result(process, result.is_ok());
+    result?;
 
     Ok(utils::ExitCode(0))
+}
+
+pub(super) fn replace_rustup_binary(replacement: &Path, rustup: &Path) -> anyhow::Result<()> {
+    match fs::symlink_metadata(rustup) {
+        Ok(_) => replace_existing_rustup(replacement, rustup),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::rename(replacement, rustup)
+            .with_context(|| {
+                format!(
+                    "failed to install rustup binary '{}' from '{}'",
+                    rustup.display(),
+                    replacement.display()
+                )
+            }),
+        Err(error) => Err(error).context("failed to inspect the installed rustup binary"),
+    }
+}
+
+fn replace_existing_rustup(replacement: &Path, rustup: &Path) -> anyhow::Result<()> {
+    let rustup = to_u16s(rustup)?;
+    let replacement = to_u16s(replacement)?;
+    let replaced = unsafe {
+        ReplaceFileW(
+            rustup.as_ptr(),
+            replacement.as_ptr(),
+            null(),
+            0,
+            null(),
+            null(),
+        )
+    };
+    if replaced == 0 {
+        return Err(io::Error::last_os_error()).context("failed to atomically replace rustup");
+    }
+
+    Ok(())
 }
 
 // Spawn a temporary rustup-gc-$random.exe to finish Windows uninstall

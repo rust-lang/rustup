@@ -1,14 +1,14 @@
 use std::{
+    fs::{self, File},
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use anyhow::{Context, bail};
 use tracing::{error, warn};
 
 use super::{
-    install_bins,
     shell::{self, Posix, UnixShell},
+    stage::{self, PreparedUpdate, SelfUpdateLock},
 };
 use crate::{process::Process, utils};
 
@@ -121,13 +121,21 @@ pub(crate) fn do_write_env_files(process: &Process) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Tell the upgrader to replace the rustup bins, then delete
-/// itself.
-pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Result<utils::ExitCode> {
-    let status = Command::new(setup_path)
+pub(super) fn run_update(
+    prepared_update: PreparedUpdate,
+    _process: &Process,
+) -> anyhow::Result<utils::ExitCode> {
+    let setup_path = prepared_update.updater_path().to_owned();
+    let mut updater = prepared_update
+        .replacer_command()?
         .arg("--self-replace")
-        .status()
+        .spawn()
         .context(format!("unable to run updater ({})", setup_path.display()))?;
+    drop(prepared_update);
+    let status = updater.wait().context(format!(
+        "unable to wait for updater ({})",
+        setup_path.display()
+    ))?;
 
     if !status.success() {
         bail!("self-updated failed to replace rustup executable");
@@ -140,9 +148,30 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Resul
 /// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
 /// links to it.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    install_bins(process)?;
+    let self_update_lock = SelfUpdateLock::acquire(process)?;
+    #[cfg(feature = "test")]
+    process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
+    let result = self_update_lock.install_bins(process);
+    stage::mark_result(process, result.is_ok());
+    result?;
 
     Ok(utils::ExitCode(0))
+}
+
+pub(super) fn replace_rustup_binary(replacement: &Path, rustup: &Path) -> anyhow::Result<()> {
+    fs::rename(replacement, rustup).with_context(|| {
+        format!(
+            "failed to replace rustup binary '{}' with '{}'",
+            rustup.display(),
+            replacement.display()
+        )
+    })?;
+    let bin = rustup
+        .parent()
+        .context("installed rustup binary has no parent directory")?;
+    File::open(bin)
+        .and_then(|directory| directory.sync_all())
+        .context("failed to sync rustup binary directory")
 }
 
 fn remove_legacy_source_command(source_cmd: String, process: &Process) -> anyhow::Result<()> {
