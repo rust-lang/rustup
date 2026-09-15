@@ -1534,12 +1534,9 @@ async fn target_remove(
         warn!("removing the last target; no build targets will be available");
     }
 
-    for target in targets {
-        distributable
-            .remove_component(Component::std(target))
-            .await?;
-    }
-
+    distributable
+        .remove_components(targets.into_iter().map(|c| Ok(Component::std(c))))
+        .await?;
     Ok(ExitCode::SUCCESS)
 }
 
@@ -1630,7 +1627,7 @@ async fn component_remove(
     let mut unknown_components = Vec::new();
 
     for component in parsed_components {
-        let Err(err) = distributable.remove_component(component).await else {
+        let Err(err) = distributable.remove_components([Ok(component)]).await else {
             continue;
         };
 
