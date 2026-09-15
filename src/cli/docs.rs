@@ -29,7 +29,7 @@ use hyper::{
 };
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, warn};
 
 use super::topical_doc;
 use crate::{
@@ -304,7 +304,10 @@ async fn serve_and_open(
         let (stream, _) = match listener.accept().await {
             Ok(accepted) => accepted,
             Err(err) => {
-                tracing::warn!("doc server: failed to accept connection: {err}");
+                warn!(
+                    "{:#}",
+                    anyhow!(err).context("doc server: failed to accept connection")
+                );
                 continue;
             }
         };
@@ -314,7 +317,7 @@ async fn serve_and_open(
 
         tokio::spawn(async move {
             if let Err(err) = http1::Builder::new().serve_connection(io, svc).await {
-                tracing::warn!("doc server: connection error: {err}");
+                warn!("{:#}", anyhow!(err).context("doc server: connection error"));
             }
         });
     }

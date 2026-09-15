@@ -39,7 +39,7 @@ impl Drop for Dir {
                 Ok(()) => debug!(path = %self.path.display(), "deleted temp directory"),
                 Err(e) => {
                     warn!(
-                        "could not delete temp directory {} ({e})",
+                        "could not delete temp directory {}: {e}",
                         self.path.display()
                     )
                 }
@@ -67,7 +67,7 @@ impl Drop for File {
             match fs::remove_file(&self.path) {
                 Ok(()) => debug!(path = %self.path.display(), "deleted temp file"),
                 Err(e) => {
-                    warn!("could not delete temp file {} ({e})", self.path.display())
+                    warn!("could not delete temp file {}: {e}", self.path.display())
                 }
             }
         }

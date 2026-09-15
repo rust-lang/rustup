@@ -260,7 +260,7 @@ pub(crate) async fn update_all_channels(
             Ok(UpdateStatus::Updated(_)) | Ok(UpdateStatus::Installed) => has_update = true,
             Err(e) => {
                 has_update_error = true;
-                error!("{e}");
+                report_error(e, cfg.process);
             }
             _ => (),
         }
