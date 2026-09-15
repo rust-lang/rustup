@@ -75,29 +75,27 @@ impl InstallMethod<'_, '_> {
         };
 
         let status = match updated {
-            false => {
-                debug!("toolchain is already up to date");
-                UpdateStatus::Unchanged
-            }
-            true => {
-                debug!("toolchain {local_name} installed");
-                match &self {
-                    InstallMethod::Dist(DistOptions {
-                        old_date_version: Some((_, v)),
-                        ..
-                    }) => UpdateStatus::Updated(v.clone()),
-                    InstallMethod::Link { .. } | InstallMethod::Dist { .. } => {
-                        UpdateStatus::Installed
-                    }
-                }
-            }
+            false => UpdateStatus::Unchanged,
+            true => match &self {
+                InstallMethod::Dist(DistOptions {
+                    old_date_version: Some((_, v)),
+                    ..
+                }) => UpdateStatus::Updated(v.clone()),
+                InstallMethod::Link { .. } | InstallMethod::Dist { .. } => UpdateStatus::Installed,
+            },
         };
 
         // Final check, to ensure we're installed
-        match Toolchain::exists(self.cfg(), &local_name)? {
-            true => Ok(status),
-            false => Err(RustupError::ToolchainNotInstallable(local_name.to_string()).into()),
+        if !Toolchain::exists(self.cfg(), &local_name)? {
+            return Err(RustupError::ToolchainNotInstallable(local_name.to_string()).into());
         }
+
+        match &status {
+            UpdateStatus::Unchanged => debug!("toolchain is already up to date"),
+            _ => debug!("toolchain {local_name} installed"),
+        };
+
+        Ok(status)
     }
 
     fn cfg(&self) -> &Cfg<'_> {
