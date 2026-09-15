@@ -1,6 +1,6 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use tracing::debug;
 
@@ -50,7 +50,7 @@ impl InstallMethod<'_, '_> {
             _ => debug!("updating existing install for '{local_name}'"),
         }
 
-        let dest_path = &self.dest_path();
+        let dest_path = &self.cfg().toolchain_path(&self.local_name());
         debug!("toolchain directory: {}", dest_path.display());
         if dest_path.exists() && !matches!(self, Self::Dist { .. }) {
             uninstall(dest_path)?;
@@ -106,10 +106,6 @@ impl InstallMethod<'_, '_> {
                 toolchain: desc, ..
             }) => (*desc).clone().into(),
         }
-    }
-
-    fn dest_path(&self) -> PathBuf {
-        self.cfg().toolchain_path(&self.local_name())
     }
 }
 
