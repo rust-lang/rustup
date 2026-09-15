@@ -1002,7 +1002,7 @@ impl<'a> Cfg<'a> {
                 Ok(entry) => entry,
                 Err(e) => {
                     if !quiet {
-                        warn!("failed to read toolchain FS entry: {e}");
+                        warn!("failed to read toolchain FS entry: {e:#}");
                     }
                     continue;
                 }
@@ -1134,7 +1134,7 @@ impl<'a> Cfg<'a> {
             .date_naive();
 
         let release_date = NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d")
-            .map_err(|e| anyhow!("could not parse release date '{release_date_str}': {e}"))?;
+            .map_err(|e| anyhow!(e).context("could not parse release date '{release_date_str}'"))?;
 
         // Skip the hint if fewer than 6 weeks have passed since the last known release.
         if (today - release_date).num_days() < RELEASE_CYCLE_DAYS {

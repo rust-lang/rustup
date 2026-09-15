@@ -229,11 +229,9 @@ impl Drop for Transaction {
         if !self.committed {
             info!("rolling back changes");
             for item in self.changes.iter().rev() {
-                // ok_ntfy!(self.notify_handler,
-                //          Notification::NonFatalError,
                 match item.roll_back(&self.prefix, self.permit_copy_rename) {
                     Ok(()) => {}
-                    Err(e) => error!("{e}"),
+                    Err(e) => error!("{e:#}"),
                 }
             }
         }

@@ -51,10 +51,10 @@
 //    loss or errors in this model.
 // f) data gathering: record (name, bytes, start, duration)
 //    write to disk afterwards as a csv file?
-use std::io::{self, Write};
 use std::{
     fmt::Debug,
     fs::OpenOptions,
+    io::{self, Write},
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::{
@@ -64,6 +64,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::anyhow;
 use tracing::{error, trace, warn};
 
 use crate::{
@@ -497,8 +498,8 @@ pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
             effective as usize - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
         }
         Ok(_) => minimum_ram,
-        Err(error) => {
-            error!("can't determine memory limit: {error}");
+        Err(e) => {
+            error!("{:#}", anyhow!(e).context("can't determine memory limit"));
             minimum_ram
         }
     };

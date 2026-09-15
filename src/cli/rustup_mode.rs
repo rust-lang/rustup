@@ -28,12 +28,12 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use serde::Serialize;
 use tokio::sync::Semaphore;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     cli::{
-        common::{self, PackageUpdate, update_console_filter},
+        common::{self, PackageUpdate, report_error, update_console_filter},
         docs,
         errors::CliError,
         help::{
@@ -1974,10 +1974,16 @@ async fn display_version(cfg: &mut Cfg<'_>) -> anyhow::Result<()> {
             }) => {
                 info!("the active toolchain `{name}` is not installed");
             }
-            Err(err) => error!("failed to display the current `rustc` version: {err}"),
+            Err(err) => report_error(
+                &anyhow!(err).context("failed to display the current `rustc` version"),
+                cfg.process,
+            ),
         },
         Ok(None) => info!("no `rustc` is currently active"),
-        Err(err) => error!("failed to display the current `rustc` version: {err}"),
+        Err(err) => report_error(
+            &err.context("failed to display the current `rustc` version"),
+            cfg.process,
+        ),
     }
 
     Ok(())
