@@ -386,9 +386,7 @@ fn rustls_client(timeout: Duration) -> Result<&'static Client, DownloadError> {
         Verifier::new_with_extra_roots(RUSTUP_TRUST_ANCHORS.iter().cloned(), provider.clone());
     #[cfg(target_os = "android")]
     let result = Verifier::new(provider.clone());
-    let verifier = result.map_err(|err| {
-        DownloadError::Message(format!("failed to initialize platform verifier: {err}"))
-    })?;
+    let verifier = result.map_err(DownloadError::PlatformVerifierInit)?;
 
     let mut tls_config = rustls::ClientConfig::builder_with_provider(provider)
         .with_safe_default_protocol_versions()
@@ -448,5 +446,8 @@ enum DownloadError {
     IoError(#[from] io::Error),
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
     #[error(transparent)]
-    Reqwest(#[from] ::reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
+    #[cfg(feature = "reqwest-rustls-tls")]
+    #[error("failed to initialize platform verifier")]
+    PlatformVerifierInit(#[source] rustls::Error),
 }
