@@ -1619,37 +1619,14 @@ async fn component_remove(
     let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
-    let parsed_components = components
-        .iter()
-        .map(|component| Component::try_new(component, &distributable, target.as_ref()))
-        .collect::<anyhow::Result<Vec<_>>>()?;
-
-    let mut unknown_components = Vec::new();
-
-    for component in parsed_components {
-        let Err(err) = distributable.remove_components([Ok(component)]).await else {
-            continue;
-        };
-
-        if let Some(RustupError::UnknownComponents { components, .. }) =
-            err.downcast_ref::<RustupError>()
-        {
-            unknown_components.extend(components.iter().cloned());
-            continue;
-        }
-
-        return Err(err);
-    }
-
-    if unknown_components.is_empty() {
-        Ok(ExitCode::SUCCESS)
-    } else {
-        Err(RustupError::UnknownComponents {
-            desc: distributable.desc().clone(),
-            components: unknown_components,
-        }
-        .into())
-    }
+    distributable
+        .remove_components(
+            components
+                .iter()
+                .map(|component| Component::try_new(component, &distributable, target.as_ref())),
+        )
+        .await?;
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn toolchain_link(
