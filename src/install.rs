@@ -35,10 +35,14 @@ impl InstallMethod<'_, '_> {
         self,
         manifest: Option<ManifestWithHash>,
     ) -> anyhow::Result<UpdateStatus> {
+        let cfg = match self {
+            Self::Link { cfg, .. } | Self::Dist(DistOptions { cfg, .. }) => cfg,
+        };
+
         // Initialize rayon for use by the remove_dir_all crate limiting the number of threads.
         // This will error if rayon is already initialized but it's fine to ignore that.
         let _ = rayon::ThreadPoolBuilder::new()
-            .num_threads(self.cfg().process.io_thread_count()?.into())
+            .num_threads(cfg.process.io_thread_count()?.into())
             .build_global();
 
         let local_name = match &self {
@@ -62,7 +66,7 @@ impl InstallMethod<'_, '_> {
             }
         };
 
-        let dest_path = &self.cfg().toolchain_path(&local_name);
+        let dest_path = &cfg.toolchain_path(&local_name);
         debug!("toolchain directory: {}", dest_path.display());
         if dest_path.exists() && !matches!(self, Self::Dist { .. }) {
             uninstall(dest_path)?;
@@ -92,7 +96,7 @@ impl InstallMethod<'_, '_> {
         };
 
         // Final check, to ensure we're installed
-        if !Toolchain::exists(self.cfg(), &local_name)? {
+        if !Toolchain::exists(cfg, &local_name)? {
             return Err(RustupError::ToolchainNotInstallable(local_name.to_string()).into());
         }
 
@@ -102,13 +106,6 @@ impl InstallMethod<'_, '_> {
         };
 
         Ok(status)
-    }
-
-    fn cfg(&self) -> &Cfg<'_> {
-        match self {
-            InstallMethod::Link { cfg, .. } => cfg,
-            InstallMethod::Dist(DistOptions { cfg, .. }) => cfg,
-        }
     }
 }
 
