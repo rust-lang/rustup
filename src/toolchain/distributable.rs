@@ -398,35 +398,36 @@ impl<'a> DistributableToolchain<'a> {
             if let Some(renamed) = manifest.rename_component(&component) {
                 component = renamed;
             }
-            if !config.components.contains(&component) {
-                let wildcard_component = component.wildcard();
-                if config.components.contains(&wildcard_component) {
-                    component = wildcard_component;
-                } else {
-                    let suggestion =
-                        self.get_component_suggestion(&component, &config, &manifest, true);
-                    // Check if the target is installed.
-                    if !config
-                        .components
-                        .iter()
-                        .any(|c| c.target() == component.target())
-                    {
-                        return Err(RustupError::TargetNotInstalled {
-                            desc: Box::new(self.desc.clone()),
-                            target: component.target.expect("component target should be known"),
-                            suggestion,
-                        }
-                        .into());
-                    }
-                    unknown_components.push(UnknownComponentInfo {
-                        name: manifest.short_name(&component).to_string(),
-                        description: manifest.description(&component),
-                        suggestion,
-                    });
-                    continue;
-                }
+            if config.components.contains(&component) {
+                renamed_components.push(component);
+                continue;
             }
-            renamed_components.push(component);
+
+            let wildcard_component = component.wildcard();
+            if config.components.contains(&wildcard_component) {
+                renamed_components.push(wildcard_component);
+                continue;
+            }
+
+            let suggestion = self.get_component_suggestion(&component, &config, &manifest, true);
+            // Check if the target is installed.
+            if !config
+                .components
+                .iter()
+                .any(|c| c.target() == component.target())
+            {
+                return Err(RustupError::TargetNotInstalled {
+                    desc: Box::new(self.desc.clone()),
+                    target: component.target.expect("component target should be known"),
+                    suggestion,
+                }
+                .into());
+            }
+            unknown_components.push(UnknownComponentInfo {
+                name: manifest.short_name(&component).to_string(),
+                description: manifest.description(&component),
+                suggestion,
+            });
         }
 
         let changes = Changes {
