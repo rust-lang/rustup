@@ -40,13 +40,14 @@ impl InstallMethod<'_, '_> {
         let _ = rayon::ThreadPoolBuilder::new()
             .num_threads(self.cfg().process.io_thread_count()?.into())
             .build_global();
+        let local_name = self.local_name();
         match &self {
             InstallMethod::Link { .. }
             | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
-            }) => debug!("installing toolchain {}", self.dest_basename()),
-            _ => debug!("updating existing install for '{}'", self.dest_basename()),
+            }) => debug!("installing toolchain {local_name}",),
+            _ => debug!("updating existing install for '{local_name}'"),
         }
 
         debug!("toolchain directory: {}", self.dest_path().display());
@@ -58,7 +59,7 @@ impl InstallMethod<'_, '_> {
                 UpdateStatus::Unchanged
             }
             true => {
-                debug!("toolchain {} installed", self.dest_basename());
+                debug!("toolchain {local_name} installed");
                 match &self {
                     InstallMethod::Dist(DistOptions {
                         old_date_version: Some((_, v)),
@@ -72,9 +73,9 @@ impl InstallMethod<'_, '_> {
         };
 
         // Final check, to ensure we're installed
-        match Toolchain::exists(self.cfg(), &self.local_name())? {
+        match Toolchain::exists(self.cfg(), &local_name)? {
             true => Ok(status),
-            false => Err(RustupError::ToolchainNotInstallable(self.dest_basename()).into()),
+            false => Err(RustupError::ToolchainNotInstallable(local_name.to_string()).into()),
         }
     }
 
@@ -122,10 +123,6 @@ impl InstallMethod<'_, '_> {
                 toolchain: desc, ..
             }) => (*desc).clone().into(),
         }
-    }
-
-    fn dest_basename(&self) -> String {
-        self.local_name().to_string()
     }
 
     fn dest_path(&self) -> PathBuf {
