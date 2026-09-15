@@ -56,32 +56,26 @@ impl InstallMethod<'_, '_> {
             uninstall(dest_path)?;
         }
 
-        let updated = match &self {
+        let status = match &self {
             Self::Link { src, .. } => {
                 utils::symlink_dir(src, dest_path)?;
-                true
+                UpdateStatus::Installed
             }
-            Self::Dist(opts) => {
-                let prefix = &InstallPrefix::from(dest_path.clone());
-                let maybe_new_hash = opts.install_into(prefix, manifest).await?;
-
-                if let Some(hash) = maybe_new_hash {
+            Self::Dist(opts) => match opts
+                .install_into(&InstallPrefix::from(dest_path.clone()), manifest)
+                .await?
+            {
+                None => UpdateStatus::Unchanged,
+                Some(hash) => {
                     utils::write_file("update hash", &opts.update_hash, &hash)?;
-                    true
-                } else {
-                    false
+                    match opts {
+                        DistOptions {
+                            old_date_version: Some((_, v)),
+                            ..
+                        } => UpdateStatus::Updated(v.clone()),
+                        _ => UpdateStatus::Installed,
+                    }
                 }
-            }
-        };
-
-        let status = match updated {
-            false => UpdateStatus::Unchanged,
-            true => match &self {
-                InstallMethod::Dist(DistOptions {
-                    old_date_version: Some((_, v)),
-                    ..
-                }) => UpdateStatus::Updated(v.clone()),
-                InstallMethod::Link { .. } | InstallMethod::Dist { .. } => UpdateStatus::Installed,
             },
         };
 
