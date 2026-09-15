@@ -1,6 +1,7 @@
 /// The CLI specific code lives in the cli module and sub-modules.
 #[macro_use]
 pub mod log;
+mod ci;
 pub mod common;
 mod docs;
 pub mod errors;
