@@ -25,7 +25,6 @@ use clap_complete::{
 };
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use itertools::Itertools;
 use serde::Serialize;
 use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
@@ -1520,34 +1519,26 @@ async fn target_remove(
         cfg,
     )
     .await?;
+    let targets = targets
+        .into_iter()
+        .map(TargetTuple::new)
+        .collect::<Vec<_>>();
 
-    for target in targets {
-        let target = TargetTuple::new(target);
-        let default_target = cfg.default_host_tuple()?;
-        if target == default_target {
-            warn!(
-                "removing the default host target; proc-macros and build scripts might no longer build"
-            );
-        }
-        // Whether we have at most 1 component target that is not `None` (wildcard).
-        let has_at_most_one_target = distributable
-            .components()?
-            .into_iter()
-            .filter_map(|c| match (c.installed, c.component.target) {
-                (true, Some(t)) => Some(t),
-                _ => None,
-            })
-            .unique()
-            .at_most_one()
-            .is_ok();
-        if has_at_most_one_target {
-            warn!("removing the last target; no build targets will be available");
-        }
-        distributable
-            .remove_component(Component::std(target))
-            .await?;
+    if targets.contains(&cfg.default_host_tuple()?) {
+        warn!(
+            "removing the default host target; proc-macros and build scripts might no longer build"
+        );
     }
 
+    let mut remaining_targets = distributable.toolchain.installed_targets()?;
+    remaining_targets.retain(|it| !targets.contains(it));
+    if remaining_targets.is_empty() {
+        warn!("removing the last target; no build targets will be available");
+    }
+
+    distributable
+        .remove_components(targets.into_iter().map(Component::std))
+        .await?;
     Ok(ExitCode::SUCCESS)
 }
 
@@ -1635,32 +1626,8 @@ async fn component_remove(
         .map(|component| Component::try_new(component, &distributable, target.as_ref()))
         .collect::<anyhow::Result<Vec<_>>>()?;
 
-    let mut unknown_components = Vec::new();
-
-    for component in parsed_components {
-        let Err(err) = distributable.remove_component(component).await else {
-            continue;
-        };
-
-        if let Some(RustupError::UnknownComponents { components, .. }) =
-            err.downcast_ref::<RustupError>()
-        {
-            unknown_components.extend(components.iter().cloned());
-            continue;
-        }
-
-        return Err(err);
-    }
-
-    if unknown_components.is_empty() {
-        Ok(ExitCode::SUCCESS)
-    } else {
-        Err(RustupError::UnknownComponents {
-            desc: distributable.desc().clone(),
-            components: unknown_components,
-        }
-        .into())
-    }
+    distributable.remove_components(parsed_components).await?;
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn toolchain_link(
