@@ -20,11 +20,6 @@ pub(crate) enum UpdateStatus {
 }
 
 pub(crate) enum InstallMethod<'cfg, 'a> {
-    Copy {
-        src: &'a Path,
-        dest: &'a CustomToolchainName,
-        cfg: &'cfg Cfg<'cfg>,
-    },
     Link {
         src: &'a Path,
         dest: &'a CustomToolchainName,
@@ -46,8 +41,7 @@ impl InstallMethod<'_, '_> {
             .num_threads(self.cfg().process.io_thread_count()?.into())
             .build_global();
         match &self {
-            InstallMethod::Copy { .. }
-            | InstallMethod::Link { .. }
+            InstallMethod::Link { .. }
             | InstallMethod::Dist(DistOptions {
                 old_date_version: None,
                 ..
@@ -70,9 +64,9 @@ impl InstallMethod<'_, '_> {
                         old_date_version: Some((_, v)),
                         ..
                     }) => UpdateStatus::Updated(v.clone()),
-                    InstallMethod::Copy { .. }
-                    | InstallMethod::Link { .. }
-                    | InstallMethod::Dist { .. } => UpdateStatus::Installed,
+                    InstallMethod::Link { .. } | InstallMethod::Dist { .. } => {
+                        UpdateStatus::Installed
+                    }
                 }
             }
         };
@@ -96,10 +90,6 @@ impl InstallMethod<'_, '_> {
         }
 
         match self {
-            InstallMethod::Copy { src, .. } => {
-                utils::copy_dir(src, path)?;
-                Ok(true)
-            }
             InstallMethod::Link { src, .. } => {
                 utils::symlink_dir(src, path)?;
                 Ok(true)
@@ -120,7 +110,6 @@ impl InstallMethod<'_, '_> {
 
     fn cfg(&self) -> &Cfg<'_> {
         match self {
-            InstallMethod::Copy { cfg, .. } => cfg,
             InstallMethod::Link { cfg, .. } => cfg,
             InstallMethod::Dist(DistOptions { cfg, .. }) => cfg,
         }
@@ -128,9 +117,7 @@ impl InstallMethod<'_, '_> {
 
     fn local_name(&self) -> LocalToolchainName {
         match self {
-            InstallMethod::Copy { dest, .. } | InstallMethod::Link { dest, .. } => {
-                (*dest).clone().into()
-            }
+            InstallMethod::Link { dest, .. } => (*dest).clone().into(),
             InstallMethod::Dist(DistOptions {
                 toolchain: desc, ..
             }) => (*desc).clone().into(),
@@ -143,9 +130,7 @@ impl InstallMethod<'_, '_> {
 
     fn dest_path(&self) -> PathBuf {
         match self {
-            InstallMethod::Copy { cfg, dest, .. } | InstallMethod::Link { cfg, dest, .. } => {
-                cfg.toolchain_path(&(*dest).clone().into())
-            }
+            InstallMethod::Link { cfg, dest, .. } => cfg.toolchain_path(&(*dest).clone().into()),
             InstallMethod::Dist(DistOptions {
                 cfg,
                 toolchain: desc,
