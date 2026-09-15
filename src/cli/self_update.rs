@@ -130,7 +130,7 @@ impl InstallOpts<'_> {
 
         self.validate(process).map_err(|e| {
             anyhow!(
-                "Pre-checks for host and toolchain failed: {e}\n\
+                "Pre-checks for host and toolchain failed: {e:#}\n\
             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
             Valid host tuples look something like: {}",
                 TargetTuple::from_host_or_build(process)

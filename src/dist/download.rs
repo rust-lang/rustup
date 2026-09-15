@@ -177,12 +177,11 @@ impl<'a> DownloadCfg<'a> {
 
                 Ok(Some(ManifestWithHash { manifest, hash }))
             }
-            Err(any) => {
-                if let Some(err @ RustupError::ChecksumFailed { .. }) =
-                    any.downcast_ref::<RustupError>()
+            Err(err) => {
+                if let Some(RustupError::ChecksumFailed { .. }) = err.downcast_ref::<RustupError>()
                 {
                     // Manifest checksum mismatched.
-                    warn!("{err}");
+                    warn!("{err:#}");
 
                     if cfg.dist_root_url.starts_with(DEFAULT_DIST_SERVER) {
                         info!(
@@ -201,7 +200,7 @@ impl<'a> DownloadCfg<'a> {
                         );
                     }
                 }
-                Err(any)
+                Err(err)
             }
         }
     }
