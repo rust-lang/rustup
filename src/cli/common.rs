@@ -323,7 +323,7 @@ pub(crate) async fn list_toolchains(
 ) -> anyhow::Result<ExitCode> {
     let mut toolchains = cfg.list_toolchains(quiet)?;
     if toolchains.is_empty() {
-        writeln!(cfg.process.stdout().lock(), "no installed toolchains")?;
+        info!("no installed toolchains");
     } else {
         let default_toolchain_name = cfg.get_default()?;
         let active_toolchain_name: Option<ToolchainName> =
