@@ -25,7 +25,6 @@ use clap_complete::{
 };
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use itertools::Itertools;
 use serde::Serialize;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
@@ -1523,6 +1522,12 @@ async fn target_remove(
     )
     .await?;
 
+    let mut remaining_targets = distributable.toolchain.installed_targets()?;
+    remaining_targets.retain(|it| !targets.contains(it));
+    if remaining_targets.is_empty() {
+        warn!("removing the last target; no build targets will be available");
+    }
+
     for target in targets {
         let default_target = cfg.default_host_tuple()?;
         if target == default_target {
@@ -1530,20 +1535,7 @@ async fn target_remove(
                 "removing the default host target; proc-macros and build scripts might no longer build"
             );
         }
-        // Whether we have at most 1 component target that is not `None` (wildcard).
-        let has_at_most_one_target = distributable
-            .components()?
-            .into_iter()
-            .filter_map(|c| match (c.installed, c.component.target) {
-                (true, Some(t)) => Some(t),
-                _ => None,
-            })
-            .unique()
-            .at_most_one()
-            .is_ok();
-        if has_at_most_one_target {
-            warn!("removing the last target; no build targets will be available");
-        }
+
         distributable
             .remove_component(Component::std(target))
             .await?;
