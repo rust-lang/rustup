@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    env::{consts::EXE_SUFFIX, split_paths},
+    env::split_paths,
     ffi::{OsStr, OsString},
     fmt,
     io::Write,
@@ -687,7 +687,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
+// - Copy the running rustup.exe to a temporary file in
 //   CARGO_HOME/../rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
@@ -723,10 +723,9 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
     };
 
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
+    // Copy the running executable so GC does not depend on the installed copy.
+    let rustup_path = utils::current_exe()?;
     let cargo_home = process.cargo_home()?;
-    // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
 
     // The directory containing CARGO_HOME
     let work_path = cargo_home
