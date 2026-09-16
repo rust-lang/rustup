@@ -1493,7 +1493,7 @@ async fn target_add(
         distributable
             .add_components(distributable.components()?.into_iter().filter_map(|c| {
                 (c.available && !c.installed && c.component.short_name() == "rust-std")
-                    .then_some(c.component)
+                    .then_some(Ok(c.component))
             }))
             .await?;
 
@@ -1504,7 +1504,7 @@ async fn target_add(
         .add_components(
             targets
                 .into_iter()
-                .map(|target| Component::std(TargetTuple::new(target))),
+                .map(|target| Ok(Component::std(TargetTuple::new(target)))),
         )
         .await?;
 
@@ -1591,9 +1591,7 @@ async fn component_add(
         .add_components(
             components
                 .into_iter()
-                .map(|component| Component::try_new(&component, &distributable, target.as_ref()))
-                .collect::<anyhow::Result<Vec<_>>>()?
-                .into_iter(),
+                .map(|component| Component::try_new(&component, &distributable, target.as_ref())),
         )
         .await?;
 

@@ -65,7 +65,7 @@ impl<'a> DistributableToolchain<'a> {
 
     pub(crate) async fn add_components(
         &self,
-        components: impl Iterator<Item = Component>,
+        components: impl IntoIterator<Item = anyhow::Result<Component>>,
     ) -> anyhow::Result<()> {
         let manifestation = self.get_manifestation()?;
         let manifest = self.get_manifest()?;
@@ -79,9 +79,11 @@ impl<'a> DistributableToolchain<'a> {
             .get(&self.desc.target)
             .expect("installed manifest should have a known target");
 
+        let components = components.into_iter();
         let mut validated_components = Vec::with_capacity(components.size_hint().0);
 
-        for mut component in components {
+        for component in components {
+            let mut component = component?;
             if let Some(c) = manifest.rename_component(&component) {
                 component = c;
             }
