@@ -711,7 +711,13 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    use std::{fs::OpenOptions, io, os::windows::fs::OpenOptionsExt, thread, time::Duration};
+    use std::{
+        fs::{File, OpenOptions},
+        io,
+        os::windows::fs::OpenOptionsExt,
+        thread,
+        time::Duration,
+    };
 
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
@@ -727,14 +733,20 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         .parent()
         .expect("CARGO_HOME doesn't have a parent?");
 
-    let gc_exe = tempfile::Builder::new()
+    let mut source = File::open(&rustup_path)
+        .with_context(|| format!("could not open rustup '{}'", rustup_path.display()))?;
+    let mut gc_file = tempfile::Builder::new()
         .prefix("rustup-gc-")
         .suffix(".exe")
-        .make_in(work_path, |path| {
-            utils::copy_file_symlink_to_source(&rustup_path, path).map_err(io::Error::other)
-        })
-        .context("error creating temporary GC executable")?
-        .into_temp_path();
+        .tempfile_in(work_path)
+        .context("error creating temporary GC executable")?;
+    // copy_file_symlink_to_source would create a link when the source is a
+    // symlink. io::copy writes its contents into this independent regular file,
+    // so DELETE_ON_CLOSE applies to the GC copy rather than the source target.
+    io::copy(&mut source, gc_file.as_file_mut())
+        .with_context(|| format!("could not copy rustup from '{}'", rustup_path.display()))?;
+    // Close the write handle before opening the executable for reading.
+    let gc_exe = gc_file.into_temp_path();
     // OpenOptions preserves the read, sharing and delete-on-close flags while
     // letting File own the handle until it is passed to Command below.
     let gc_handle = OpenOptions::new()
