@@ -711,7 +711,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt, thread, time::Duration};
+    use std::{fs::OpenOptions, io, os::windows::fs::OpenOptionsExt, thread, time::Duration};
 
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
@@ -727,12 +727,14 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         .parent()
         .expect("CARGO_HOME doesn't have a parent?");
 
-    // Generate a unique name for the files we're about to move out
-    // of CARGO_HOME.
-    let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
+    let gc_exe = tempfile::Builder::new()
+        .prefix("rustup-gc-")
+        .suffix(".exe")
+        .make_in(work_path, |path| {
+            utils::copy_file_symlink_to_source(&rustup_path, path).map_err(io::Error::other)
+        })
+        .context("error creating temporary GC executable")?
+        .into_temp_path();
     // OpenOptions preserves the read, sharing and delete-on-close flags while
     // letting File own the handle until it is passed to Command below.
     let gc_handle = OpenOptions::new()
@@ -741,6 +743,10 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
         .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
         .open(&gc_exe)
         .context(CliError::WindowsUninstallMadness)?;
+
+    // Transfer cleanup to Windows only after the DELETE_ON_CLOSE handle is
+    // open. Until then, TempPath attempts cleanup if preparation fails.
+    let gc_exe = gc_exe.keep()?;
 
     // Pass the file as GC stdin so the standard library manages inheritance.
     // Command retains the parent handle after spawn; keep it alive through the sleep.
