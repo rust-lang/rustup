@@ -688,7 +688,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // Here's what we're going to do:
 // - Copy the running rustup.exe to a temporary file in
-//   CARGO_HOME/../rustup-gc-$random.exe.
+//   the system temporary directory as rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
@@ -710,7 +710,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
     use std::{
         fs::{File, OpenOptions},
         io,
@@ -725,19 +725,14 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> any
 
     // Copy the running executable so GC does not depend on the installed copy.
     let rustup_path = utils::current_exe()?;
-    let cargo_home = process.cargo_home()?;
-
-    // The directory containing CARGO_HOME
-    let work_path = cargo_home
-        .parent()
-        .expect("CARGO_HOME doesn't have a parent?");
-
     let mut source = File::open(&rustup_path)
         .with_context(|| format!("could not open rustup '{}'", rustup_path.display()))?;
+    // Use the system temporary directory so GC creation does not require
+    // write access to CARGO_HOME's parent.
     let mut gc_file = tempfile::Builder::new()
         .prefix("rustup-gc-")
         .suffix(".exe")
-        .tempfile_in(work_path)
+        .tempfile()
         .context("error creating temporary GC executable")?;
     // copy_file_symlink_to_source would create a link when the source is a
     // symlink. io::copy writes its contents into this independent regular file,
