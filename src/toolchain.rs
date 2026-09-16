@@ -171,15 +171,26 @@ impl<'a> Toolchain<'a> {
         // cargo home. Rustup does not read HOME on Windows whereas the older
         // versions of Cargo did. Rustup and Cargo should be in sync now (both
         // using the same `home` crate), but this is retained to ensure cargo
-        // and rustup agree in older versions.
-        if let Ok(cargo_home) = self.cfg.process.cargo_home() {
+        // and rustup agree in older versions in legacy mode. In category mode,
+        // only resolve a non-empty CARGO_HOME; otherwise leave the inherited
+        // environment unchanged so Cargo can choose its own default.
+        if (!self.cfg.process.use_category_home()
+            || self.cfg.process.var_os("CARGO_HOME").is_some())
+            && let Ok(cargo_home) = self.cfg.process.cargo_home()
+        {
             cmd.env("CARGO_HOME", &cargo_home);
         }
 
         env_var::inc("RUST_RECURSION_COUNT", cmd, self.cfg.process);
 
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
-        cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
+        if !self.cfg.process.use_category_home() {
+            cmd.env("RUSTUP_HOME", &self.cfg.rustup_data_dir);
+        }
+        cmd.env("RUSTUP_CACHE_HOME", &self.cfg.rustup_cache_dir);
+        cmd.env("RUSTUP_CONFIG_HOME", &self.cfg.rustup_config_dir);
+        cmd.env("RUSTUP_DATA_HOME", &self.cfg.rustup_data_dir);
+        cmd.env("RUSTUP_STATE_HOME", &self.cfg.rustup_state_dir);
     }
 
     /// Apply the appropriate LD path for a command being run from a toolchain.
@@ -227,13 +238,13 @@ impl<'a> Toolchain<'a> {
 
         env_var::insert_path(sysenv::LOADER_PATH, new_path, None, cmd, self.cfg.process);
 
-        // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
+        // Prepend the Rustup bin home to PATH so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
         // proxy bins don't exist. We'll just be running whatever happens to
         // be on the PATH.
         let mut path_entries = vec![];
-        if let Ok(cargo_home) = self.cfg.process.cargo_home() {
-            path_entries.push(cargo_home.join("bin"));
+        if let Ok(rustup_bin_home) = self.cfg.process.rustup_bin_home() {
+            path_entries.push(rustup_bin_home);
         }
 
         // On Windows, we append the "bin" directory to PATH by default.
