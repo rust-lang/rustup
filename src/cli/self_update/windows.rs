@@ -380,25 +380,28 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    wait_for_parent()?;
+    let uninstall = wait_for_parent().and_then(|()| {
+        let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
-    let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
-
-    // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
-    let cargo_home = process.cargo_home()?;
-    super::clean_cargo_home(no_modify_path, process, &cargo_home)?;
+        // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
+        let cargo_home = process.cargo_home()?;
+        super::clean_cargo_home(no_modify_path, process, &cargo_home)
+    });
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
-    // exe when it exits.
+    // exe when it exits. Do this even if uninstalling failed.
     // Leave stdin inherited so the standard library passes GC's delete-on-close
     // handle to the cleanup child without raw handle APIs.
-    Command::new("net")
+    let cleanup = Command::new("net")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .context(CliError::WindowsUninstallMadness)?;
+        .context(CliError::WindowsUninstallMadness);
 
+    // Preserve the original uninstall error if starting cleanup also failed.
+    uninstall?;
+    cleanup?;
     Ok(utils::ExitCode(0))
 }
 
