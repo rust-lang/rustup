@@ -315,8 +315,11 @@ async fn list_toolchains_with_none() {
     cx.config
         .expect(["rustup", "toolchain", "list"])
         .await
-        .with_stdout(snapbox::str![[r#"
-no installed toolchains
+        .with_stdout("")
+        .with_stderr(snapbox::str![[r#"
+info: no installed toolchains
+warn: no toolchain installed and no default toolchain set
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
 
 "#]])
         .is_ok();
@@ -345,8 +348,9 @@ warn: removing the default toolchain; proc-macros and build scripts might no lon
     cx.config
         .expect(["rustup", "toolchain", "list"])
         .await
-        .with_stdout(snapbox::str![[r#"
-no installed toolchains
+        .with_stdout("")
+        .with_stderr(snapbox::str![[r#"
+info: no installed toolchains
 
 "#]])
         .is_ok();
@@ -461,16 +465,18 @@ nightly-[HOST_TUPLE]
         cx.config
             .expect(["rustup", "toolchain", "list"])
             .await
-            .with_stdout(snapbox::str![[r#"
-no installed toolchains
+            .with_stdout("")
+            .with_stderr(snapbox::str![[r#"
+info: no installed toolchains
 
 "#]])
             .is_ok();
         cx.config
             .expect(["rustup", "toolchain", "list"])
             .await
-            .with_stdout(snapbox::str![[r#"
-no installed toolchains
+            .with_stdout("")
+            .with_stderr(snapbox::str![[r#"
+info: no installed toolchains
 
 "#]])
             .is_ok();

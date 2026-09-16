@@ -978,8 +978,9 @@ nightly[..]
     cx.config
         .expect(["rustup", "toolchain", "list"])
         .await
-        .with_stdout(snapbox::str![[r#"
-no installed toolchains
+        .with_stdout("")
+        .with_stderr(snapbox::str![[r#"
+info: no installed toolchains
 
 "#]])
         .is_ok();
