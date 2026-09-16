@@ -551,7 +551,7 @@ enum TargetSubcmd {
     Remove {
         /// List of targets to uninstall
         #[arg(required = true, num_args = 1..)]
-        target: Vec<String>,
+        target: Vec<TargetTuple>,
 
         #[arg(long, help = official_toolchain_arg_help())]
         toolchain: Option<PartialToolchainDesc>,
@@ -1514,7 +1514,7 @@ async fn target_add(
 
 async fn target_remove(
     cfg: &Cfg<'_>,
-    targets: Vec<String>,
+    targets: Vec<TargetTuple>,
     toolchain: Option<PartialToolchainDesc>,
 ) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
@@ -1524,7 +1524,6 @@ async fn target_remove(
     .await?;
 
     for target in targets {
-        let target = TargetTuple::new(target);
         let default_target = cfg.default_host_tuple()?;
         if target == default_target {
             warn!(

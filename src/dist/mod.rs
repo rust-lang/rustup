@@ -678,6 +678,12 @@ impl TargetTuple {
     }
 }
 
+impl From<String> for TargetTuple {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
 impl fmt::Display for TargetTuple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
