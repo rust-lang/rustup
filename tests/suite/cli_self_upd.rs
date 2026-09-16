@@ -380,53 +380,41 @@ async fn uninstall_self_delete_works() {
 }
 
 // On windows rustup self uninstall temporarily puts a rustup-gc-$randomnumber.exe
-// file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
+// file in the system temporary directory; check that it is cleaned up.
 #[tokio::test]
 #[cfg(windows)]
 async fn uninstall_doesnt_leave_gc_file() {
     let cx = setup_empty_installed().await;
+    let gc_dir = tempfile::tempdir().unwrap();
+    let gc_path = gc_dir.path().to_str().unwrap();
     cx.config
-        .expect(["rustup", "self", "uninstall", "-y"])
+        .expect_with_env(
+            ["rustup", "self", "uninstall", "-y"],
+            [("TMP", gc_path), ("TEMP", gc_path), ("SystemTemp", gc_path)],
+        )
         .await
         .is_ok();
-    let parent = cx.config.cargodir.parent().unwrap();
 
     // The gc removal happens after rustup terminates. Typically under
     // 100ms, but during the contention of test suites can be substantially
     // longer while still succeeding.
 
-    let check = || ensure_empty(parent);
+    let check = || {
+        let garbage = fs::read_dir(gc_dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect::<Vec<_>>();
+        if garbage.is_empty() {
+            Ok(())
+        } else {
+            Err(format!("garbage remaining: {garbage:?}"))
+        }
+    };
     match retry(Fibonacci::from_millis(1).map(jitter).take(23), check) {
         Ok(_) => (),
         Err(e) => panic!("{e}"),
     }
 }
-
-#[cfg(windows)]
-fn ensure_empty(dir: &Path) -> Result<(), GcErr> {
-    let garbage = fs::read_dir(dir)
-        .unwrap()
-        .filter_map(|entry| {
-            let path = entry.unwrap().path();
-            let name = path.file_name()?.to_str()?;
-            // On Windows, this binary is cleaned up on exit
-            if !(name.starts_with("rustup-gc-") && name.ends_with(EXE_SUFFIX)) {
-                return None;
-            }
-            Some(path.to_string_lossy().to_string())
-        })
-        .collect::<Vec<_>>();
-    if garbage.is_empty() {
-        Ok(())
-    } else {
-        Err(GcErr(garbage))
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-#[error("garbage remaining: {:?}", .0)]
-#[cfg(windows)]
-struct GcErr(Vec<String>);
 
 #[tokio::test]
 async fn update_exact() {

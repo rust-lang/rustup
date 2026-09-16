@@ -1,10 +1,9 @@
 use std::{
     borrow::Cow,
-    env::{consts::EXE_SUFFIX, split_paths},
+    env::split_paths,
     ffi::{OsStr, OsString},
     fmt,
     io::Write,
-    os::windows::ffi::OsStrExt,
     path::Path,
     process::Command,
 };
@@ -360,25 +359,27 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
     use std::process::Stdio;
 
-    wait_for_parent()?;
+    let uninstall = wait_for_parent().and_then(|()| {
+        let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
-    let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
-
-    // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
-    super::clean_cargo_home(no_modify_path, process)?;
+        // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
+        super::clean_cargo_home(no_modify_path, process)
+    });
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
-    // exe when it exits.
-    let rm_gc_exe = OsStr::new("net");
-
-    Command::new(rm_gc_exe)
-        .stdin(Stdio::null())
+    // exe when it exits. Do this even if uninstalling failed.
+    // Leave stdin inherited so the standard library passes GC's delete-on-close
+    // handle to the cleanup child without raw handle APIs.
+    let cleanup = Command::new("net")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .context(CliError::WindowsUninstallMadness)?;
+        .context(CliError::WindowsUninstallMadness);
 
+    // Preserve the original uninstall error if starting cleanup also failed.
+    uninstall?;
+    cleanup?;
     Ok(utils::ExitCode(0))
 }
 
@@ -686,19 +687,18 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
-//   CARGO_HOME/../rustup-gc-$random.exe.
+// - Copy the running rustup.exe to a temporary file in
+//   the system temporary directory as rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
-//   This file is opened as inheritable so that subsequent
-//   processes created with the option to inherit handles
-//   will also keep them open.
+//   Pass this handle as stdin so the standard library manages inheritance.
+//   GC does not read stdin; it uses it only to carry the deletion handle.
 // - Run the gc exe, which waits for the original rustup.exe
 //   process to close, then deletes CARGO_HOME. This process
 //   has inherited a FILE_FLAG_DELETE_ON_CLOSE handle to itself.
-// - Finally, spawn yet another system binary with the inherit handles
-//   flag, so *it* inherits the FILE_FLAG_DELETE_ON_CLOSE handle to
+// - Finally, spawn yet another system binary inheriting stdin,
+//   so *it* inherits the FILE_FLAG_DELETE_ON_CLOSE handle to
 //   the gc exe. If the gc exe exits before the system exe then at
 //   last it will be deleted when the handle closes.
 //
@@ -710,67 +710,55 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    use std::{io, ptr, thread, time::Duration};
-
-    use windows_sys::Win32::{
-        Foundation::{CloseHandle, GENERIC_READ, INVALID_HANDLE_VALUE},
-        Security::SECURITY_ATTRIBUTES,
-        Storage::FileSystem::{
-            CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
-            OPEN_EXISTING,
-        },
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
+    use std::{
+        fs::{File, OpenOptions},
+        io,
+        os::windows::fs::OpenOptionsExt,
+        thread,
+        time::Duration,
     };
 
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = process.cargo_home()?;
-    // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
-
-    // The directory containing CARGO_HOME
-    let work_path = cargo_home
-        .parent()
-        .expect("CARGO_HOME doesn't have a parent?");
-
-    // Generate a unique name for the files we're about to move out
-    // of CARGO_HOME.
-    let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
-    let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
-
-    // Make the sub-process opened by gc exe inherit its attribute.
-    let sa = SECURITY_ATTRIBUTES {
-        nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
-        lpSecurityDescriptor: ptr::null_mut(),
-        bInheritHandle: 1,
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
     };
 
-    let _g = unsafe {
-        // Open an inheritable handle to the gc exe marked
-        // FILE_FLAG_DELETE_ON_CLOSE.
-        let gc_handle = CreateFileW(
-            gc_exe_win.as_ptr(),
-            GENERIC_READ,
-            FILE_SHARE_READ | FILE_SHARE_DELETE,
-            &sa,
-            OPEN_EXISTING,
-            FILE_FLAG_DELETE_ON_CLOSE,
-            ptr::null_mut(),
-        );
+    // Copy the running executable so GC does not depend on the installed copy.
+    let rustup_path = utils::current_exe()?;
+    let mut source = File::open(&rustup_path)
+        .with_context(|| format!("could not open rustup '{}'", rustup_path.display()))?;
+    // Use the system temporary directory so GC creation does not require
+    // write access to CARGO_HOME's parent.
+    let mut gc_file = tempfile::Builder::new()
+        .prefix("rustup-gc-")
+        .suffix(".exe")
+        .tempfile()
+        .context("error creating temporary GC executable")?;
+    // copy_file_symlink_to_source would create a link when the source is a
+    // symlink. io::copy writes its contents into this independent regular file,
+    // so DELETE_ON_CLOSE applies to the GC copy rather than the source target.
+    io::copy(&mut source, gc_file.as_file_mut())
+        .with_context(|| format!("could not copy rustup from '{}'", rustup_path.display()))?;
+    // Close the write handle before opening the executable for reading.
+    let gc_exe = gc_file.into_temp_path();
+    // OpenOptions preserves the read, sharing and delete-on-close flags while
+    // letting File own the handle until it is passed to Command below.
+    let gc_handle = OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_DELETE)
+        .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
+        .open(&gc_exe)
+        .context(CliError::WindowsUninstallMadness)?;
 
-        if gc_handle == INVALID_HANDLE_VALUE {
-            let err = io::Error::last_os_error();
-            return Err(err).context(CliError::WindowsUninstallMadness);
-        }
+    // Transfer cleanup to Windows only after the DELETE_ON_CLOSE handle is
+    // open. Until then, TempPath attempts cleanup if preparation fails.
+    let gc_exe = gc_exe.keep()?;
 
-        scopeguard::guard(gc_handle, |h| {
-            let _ = CloseHandle(h);
-        })
-    };
-
-    Command::new(gc_exe)
+    // Pass the file as GC stdin so the standard library manages inheritance.
+    // Command retains the parent handle after spawn; keep it alive through the sleep.
+    let mut command = Command::new(gc_exe);
+    command
+        .stdin(gc_handle)
         .env(GC_MODIFY_PATH, if no_modify_path { "0" } else { "1" })
         .spawn()
         .context(CliError::WindowsUninstallMadness)?;
