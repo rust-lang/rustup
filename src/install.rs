@@ -57,10 +57,9 @@ impl InstallMethod<'_, '_> {
                 ..
             }) => {
                 let toolchain = LocalToolchainName::from((*toolchain).clone());
-                if old_date_version.is_some() {
-                    debug!("updating existing install for `{toolchain}`");
-                } else {
-                    debug!("installing toolchain `{toolchain}`");
+                match old_date_version {
+                    Some(_) => debug!("updating existing install for `{toolchain}`"),
+                    None => debug!("installing toolchain `{toolchain}`"),
                 }
                 toolchain
             }
