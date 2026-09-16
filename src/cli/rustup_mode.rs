@@ -1667,7 +1667,7 @@ async fn component_remove(
 
 async fn toolchain_link(
     cfg: &Cfg<'_>,
-    dest: &CustomToolchainName,
+    toolchain: &CustomToolchainName,
     src: &Path,
 ) -> anyhow::Result<ExitCode> {
     cfg.ensure_toolchains_dir()?;
@@ -1683,7 +1683,7 @@ async fn toolchain_link(
 
     InstallMethod::Link {
         src: &cfg.current_dir.join(src),
-        dest,
+        toolchain,
         cfg,
     }
     .install(None)

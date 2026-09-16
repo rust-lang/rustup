@@ -8,7 +8,7 @@ use crate::{
     config::Cfg,
     dist::{DistOptions, manifest::ManifestWithHash, prefix::InstallPrefix},
     errors::RustupError,
-    toolchain::{CustomToolchainName, Toolchain},
+    toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
     utils,
 };
 
@@ -22,7 +22,7 @@ pub(crate) enum UpdateStatus {
 pub(crate) enum InstallMethod<'cfg, 'a> {
     Link {
         src: &'a Path,
-        dest: &'a CustomToolchainName,
+        toolchain: &'a CustomToolchainName,
         cfg: &'cfg Cfg<'cfg>,
     },
     Dist(DistOptions<'cfg, 'a>),
@@ -46,23 +46,23 @@ impl InstallMethod<'_, '_> {
             .build_global();
 
         let local_name = match &self {
-            Self::Link { dest, .. } => {
-                let name = (*dest).clone().into();
-                debug!("linking toolchain {name}");
-                name
+            Self::Link { toolchain, .. } => {
+                let toolchain = LocalToolchainName::from((*toolchain).clone());
+                debug!("linking toolchain `{toolchain}`");
+                toolchain
             }
             Self::Dist(DistOptions {
-                toolchain: desc,
+                toolchain,
                 old_date_version,
                 ..
             }) => {
-                let name = (*desc).clone().into();
+                let toolchain = LocalToolchainName::from((*toolchain).clone());
                 if old_date_version.is_some() {
-                    debug!("updating existing install for '{name}'");
+                    debug!("updating existing install for `{toolchain}`");
                 } else {
-                    debug!("installing toolchain {name}");
+                    debug!("installing toolchain `{toolchain}`");
                 }
-                name
+                toolchain
             }
         };
 
