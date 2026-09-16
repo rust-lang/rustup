@@ -45,7 +45,7 @@ impl InstallMethod<'_, '_> {
             .num_threads(cfg.process.io_thread_count()?.into())
             .build_global();
 
-        let local_name = match &self {
+        let toolchain = match &self {
             Self::Link { toolchain, .. } => {
                 let toolchain = LocalToolchainName::from((*toolchain).clone());
                 debug!("linking toolchain `{toolchain}`");
@@ -65,19 +65,19 @@ impl InstallMethod<'_, '_> {
             }
         };
 
-        let dest_path = &cfg.toolchain_path(&local_name);
-        debug!("toolchain directory: {}", dest_path.display());
-        if dest_path.exists() && !matches!(self, Self::Dist { .. }) {
-            uninstall(dest_path)?;
+        let toolchain_path = &cfg.toolchain_path(&toolchain);
+        debug!("toolchain directory: {}", toolchain_path.display());
+        if toolchain_path.exists() && !matches!(self, Self::Dist { .. }) {
+            uninstall(toolchain_path)?;
         }
 
         let status = match &self {
             Self::Link { src, .. } => {
-                utils::symlink_dir(src, dest_path)?;
+                utils::symlink_dir(src, toolchain_path)?;
                 UpdateStatus::Installed
             }
             Self::Dist(opts) => match opts
-                .install_into(&InstallPrefix::from(dest_path.clone()), manifest)
+                .install_into(&InstallPrefix::from(toolchain_path.clone()), manifest)
                 .await?
             {
                 None => UpdateStatus::Unchanged,
@@ -95,13 +95,13 @@ impl InstallMethod<'_, '_> {
         };
 
         // Final check, to ensure we're installed
-        if !Toolchain::exists(cfg, &local_name)? {
-            return Err(RustupError::ToolchainNotInstallable(local_name.to_string()).into());
+        if !Toolchain::exists(cfg, &toolchain)? {
+            return Err(RustupError::ToolchainNotInstallable(toolchain.to_string()).into());
         }
 
         match &status {
             UpdateStatus::Unchanged => debug!("toolchain is already up to date"),
-            _ => debug!("toolchain {local_name} installed"),
+            _ => debug!("toolchain {toolchain} installed"),
         };
 
         Ok(status)
