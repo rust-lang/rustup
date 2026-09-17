@@ -1,6 +1,7 @@
 use std::{
     env::consts::EXE_SUFFIX,
     fs::{self, File, OpenOptions},
+    io,
     path::{Path, PathBuf},
     process::{Child, Command},
     time::{Duration, SystemTime},
@@ -189,9 +190,31 @@ fn cleanup_at(process: &Process, now: SystemTime) -> anyhow::Result<()> {
         }
     }
 
-    let updater = process
-        .cargo_home()?
-        .join(format!("bin/rustup-init{EXE_SUFFIX}"));
+    let bin = process.cargo_home()?.join("bin");
+    match fs::read_dir(&bin) {
+        Ok(entries) => {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(PENDING_BINARY_PREFIX)
+                    && is_stale(&path, now)
+                {
+                    utils::remove_file_best_effort("pending rustup binary", &path);
+                }
+            }
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => {
+            warn!(
+                "could not inspect pending rustup binaries in {}: {error}",
+                bin.display()
+            );
+        }
+    }
+
+    let updater = bin.join(format!("rustup-init{EXE_SUFFIX}"));
     // Legacy updaters have no result marker, and an older rustup process may
     // still own the shared path.
     if is_stale(&updater, now) {
@@ -458,6 +481,28 @@ mod tests {
         )
         .unwrap();
         assert!(!updater.exists());
+    }
+
+    #[tokio::test]
+    async fn cleanup_removes_abandoned_pending_binary() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let pending = root
+            .path()
+            .join("cargo/bin")
+            .join(format!("{PENDING_BINARY_PREFIX}orphan"));
+        fs::create_dir_all(pending.parent().unwrap()).unwrap();
+        fs::write(&pending, "").unwrap();
+
+        cleanup_at(&process.process, SystemTime::now()).unwrap();
+        assert!(pending.exists());
+
+        cleanup_at(
+            &process.process,
+            SystemTime::now() + ABANDONED_UPDATE_AGE + Duration::from_secs(1),
+        )
+        .unwrap();
+        assert!(!pending.exists());
     }
 
     fn test_process(root: &Path) -> TestProcess {
