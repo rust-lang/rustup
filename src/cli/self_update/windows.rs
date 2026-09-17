@@ -46,7 +46,7 @@ use windows_sys::Win32::{
 
 use super::{
     InstallOpts, report_error,
-    stage::{PreparedUpdater, SelfUpdateLock},
+    stage::{self, PreparedUpdater, SelfUpdateLock},
 };
 use crate::{
     cli::{common, errors::CliError, markdown::md},
@@ -672,10 +672,12 @@ pub(super) fn run_update(
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
-    SelfUpdateLock::lock(process)?.install_bins(
-        &process.cargo_home()?.join("bin"),
-        super::force_hard_links(process),
-    )?;
+    let self_update_lock = SelfUpdateLock::lock(process)?;
+    let result = process.cargo_home().and_then(|cargo_home| {
+        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))
+    });
+    stage::mark_result(result.is_ok(), process);
+    result?;
 
     Ok(utils::ExitCode(0))
 }

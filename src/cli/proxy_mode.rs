@@ -14,7 +14,7 @@ pub async fn main(
     current_dir: PathBuf,
     process: &Process,
 ) -> anyhow::Result<ExitStatus> {
-    self_update::cleanup_self_updater(&process.cargo_home()?.join("bin"))?;
+    self_update::cleanup_self_updater(process, &process.cargo_home()?.join("bin"))?;
 
     let _setup = job::setup();
     let mut args = process.args_os().skip(1);

@@ -423,6 +423,34 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
     }
 }
 
+/// Removes `path` if possible, without failing.
+///
+/// Unlike [`remove_file`], a busy file is left alone instead of retried, since
+/// callers use this for cleanup that another process may legitimately still be
+/// using. Returns whether `path` is gone afterwards.
+pub(crate) fn remove_file_best_effort(name: &str, path: &Path) -> bool {
+    match fs::remove_file(path) {
+        Ok(()) => {
+            debug!(path = %path.display(), "removed {name}");
+            true
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => true,
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::PermissionDenied | io::ErrorKind::ResourceBusy
+            ) =>
+        {
+            debug!(path = %path.display(), "leaving busy {name}");
+            false
+        }
+        Err(error) => {
+            warn!("could not remove {name} {}: {error}", path.display());
+            false
+        }
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn copy_and_delete(name: &'static str, src: &Path, dest: &Path) -> anyhow::Result<()> {
     // https://github.com/rust-lang/rustup/issues/1239
