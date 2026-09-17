@@ -4114,12 +4114,12 @@ async fn check_host_goes_away() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: host tuple '[HOST_TUPLE]' not found in channel manifest
+info: skipping nightly with unsupported host: host tuple '[HOST_TUPLE]' not found in channel manifest
 help: this could mean that it has been demoted and no longer has a host toolchain
 help: see <https://doc.rust-lang.org/nightly/rustc/platform-support.html> for available targets
 ...
 "#]])
-        .is_err();
+        .is_ok();
 }
 
 #[cfg(unix)]
