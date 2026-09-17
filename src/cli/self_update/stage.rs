@@ -4,6 +4,7 @@ use std::{
     ops::Deref,
     path::{Path, PathBuf},
     process::{Child, Command},
+    time::{Duration, SystemTime},
 };
 
 use anyhow::Context;
@@ -130,15 +131,22 @@ pub(super) fn mark_result(succeeded: bool, process: &Process) {
 }
 
 pub(super) fn cleanup(process: &Process, bin_path: &Path) -> anyhow::Result<()> {
+    cleanup_at(process, bin_path, SystemTime::now())
+}
+
+fn cleanup_at(process: &Process, bin_path: &Path, now: SystemTime) -> anyhow::Result<()> {
     if let Some(lock) = SelfUpdateLock::try_lock(process)? {
         let updater = updater_path(&lock.directory);
-        // The replacer records an outcome only once it has finished, so an
-        // unmarked updater may still be about to run and is left alone.
+        // The replacer records an outcome only once it has finished. An unmarked
+        // updater may still be about to run, or its replacer may have died before
+        // recording anything; only its age tells those two cases apart.
         let markers = [Marker::Complete, Marker::Failed];
         let finished = markers
             .iter()
             .any(|marker| marker.path(&lock.directory).is_file());
-        if finished && utils::remove_file_best_effort("self-updater", &updater) {
+        if (finished || is_stale(&updater, now))
+            && utils::remove_file_best_effort("self-updater", &updater)
+        {
             for marker in markers {
                 utils::remove_file_best_effort(
                     "self-update status marker",
@@ -149,11 +157,21 @@ pub(super) fn cleanup(process: &Process, bin_path: &Path) -> anyhow::Result<()> 
     }
 
     let updater = bin_path.join(format!("rustup-init{EXE_SUFFIX}"));
-    if updater.exists() {
-        utils::remove_file("legacy self-updater", &updater)?;
+    // Legacy updaters have no result marker, and an older rustup process may
+    // still own the shared path.
+    if is_stale(&updater, now) {
+        utils::remove_file_best_effort("legacy self-updater", &updater);
     }
 
     Ok(())
+}
+
+fn is_stale(path: &Path, now: SystemTime) -> bool {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|modified| now.duration_since(modified).ok())
+        .is_some_and(|age| age >= ABANDONED_UPDATE_AGE)
 }
 
 /// Outcome recorded next to the managed updater once replacement has finished.
@@ -201,6 +219,7 @@ fn stage_root(process: &Process) -> anyhow::Result<PathBuf> {
 pub const SELF_UPDATE_DIRECTORY: &str = "self-update";
 const SELF_UPDATE_LOCK_FILE: &str = "self-update.lock";
 const STAGE_ENV: &str = "RUSTUP_SELF_UPDATE_STAGE";
+const ABANDONED_UPDATE_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[cfg(test)]
 mod tests {
@@ -263,17 +282,19 @@ mod tests {
         fs::write(&updater, "").unwrap();
         fs::write(Marker::Complete.path(&lock.directory), "").unwrap();
 
-        cleanup(
+        cleanup_at(
             &process.process,
             &process.process.cargo_home().unwrap().join("bin"),
+            SystemTime::now(),
         )
         .unwrap();
 
         assert!(updater.exists());
         drop(lock);
-        cleanup(
+        cleanup_at(
             &process.process,
             &process.process.cargo_home().unwrap().join("bin"),
+            SystemTime::now(),
         )
         .unwrap();
         assert!(!updater.exists());
@@ -307,9 +328,10 @@ mod tests {
         fs::write(&updater, "").unwrap();
         drop(prepared_updater);
 
-        cleanup(
+        cleanup_at(
             &process.process,
             &process.process.cargo_home().unwrap().join("bin"),
+            SystemTime::now(),
         )
         .unwrap();
 
@@ -332,15 +354,59 @@ mod tests {
             drop(prepared_updater);
             marker.record(&process.process, &stage).unwrap();
 
-            cleanup(
+            cleanup_at(
                 &process.process,
                 &process.process.cargo_home().unwrap().join("bin"),
+                SystemTime::now(),
             )
             .unwrap();
 
             assert!(!updater.exists());
             assert!(!marker.path(&stage).exists());
         }
+    }
+
+    #[tokio::test]
+    async fn cleanup_removes_abandoned_updater() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let prepared_updater = SelfUpdateLock::lock(&process.process)
+            .unwrap()
+            .prepare_updater()
+            .unwrap();
+        let updater = prepared_updater.to_path_buf();
+        fs::write(&updater, "").unwrap();
+        drop(prepared_updater);
+
+        cleanup_at(
+            &process.process,
+            &process.process.cargo_home().unwrap().join("bin"),
+            SystemTime::now() + ABANDONED_UPDATE_AGE + Duration::from_secs(1),
+        )
+        .unwrap();
+
+        assert!(!updater.exists());
+    }
+
+    #[tokio::test]
+    async fn cleanup_delays_removing_legacy_updater() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let bin_path = root.path().join("cargo/bin");
+        let updater = bin_path.join(format!("rustup-init{EXE_SUFFIX}"));
+        fs::create_dir_all(&bin_path).unwrap();
+        fs::write(&updater, "").unwrap();
+
+        cleanup_at(&process.process, &bin_path, SystemTime::now()).unwrap();
+        assert!(updater.exists());
+
+        cleanup_at(
+            &process.process,
+            &bin_path,
+            SystemTime::now() + ABANDONED_UPDATE_AGE + Duration::from_secs(1),
+        )
+        .unwrap();
+        assert!(!updater.exists());
     }
 
     fn test_process(root: &Path) -> TestProcess {
