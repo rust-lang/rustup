@@ -1,18 +1,20 @@
 use std::{
     env::consts::EXE_SUFFIX,
-    fs::{File, OpenOptions},
+    fs::{self, File, OpenOptions},
     ops::Deref,
     path::{Path, PathBuf},
     process::{Child, Command},
 };
 
 use anyhow::Context;
+use tracing::warn;
 
 use super::install_proxies_with_opts;
 use crate::{process::Process, utils};
 
 /// Exclusive right to download the updater or replace the installed rustup.
 pub(super) struct SelfUpdateLock {
+    directory: PathBuf,
     _file: File,
 }
 
@@ -21,6 +23,15 @@ impl SelfUpdateLock {
         let lock = Self::open(process)?;
         lock._file.lock().context("failed to lock self-update")?;
         Ok(lock)
+    }
+
+    fn try_lock(process: &Process) -> anyhow::Result<Option<Self>> {
+        let lock = Self::open(process)?;
+        match lock._file.try_lock() {
+            Ok(()) => Ok(Some(lock)),
+            Err(fs::TryLockError::WouldBlock) => Ok(None),
+            Err(fs::TryLockError::Error(error)) => Err(error).context("failed to lock self-update"),
+        }
     }
 
     fn open(process: &Process) -> anyhow::Result<Self> {
@@ -35,15 +46,19 @@ impl SelfUpdateLock {
             .open(directory.join(SELF_UPDATE_LOCK_FILE))
             .context("failed to open self-update lock")?;
 
-        Ok(Self { _file: file })
+        Ok(Self {
+            directory,
+            _file: file,
+        })
     }
 
-    /// Removes any leftover updater and reserves its path for the download.
-    pub(super) fn prepare_updater(self, process: &Process) -> anyhow::Result<PreparedUpdater> {
-        let path = process
-            .cargo_home()?
-            .join(format!("bin/rustup-init{EXE_SUFFIX}"));
+    /// Clears the previous update's leftovers and reserves the managed updater path.
+    pub(super) fn prepare_updater(self) -> anyhow::Result<PreparedUpdater> {
+        let path = updater_path(&self.directory);
         utils::ensure_file_removed("self-updater", &path)?;
+        for marker in [Marker::Complete, Marker::Failed] {
+            utils::ensure_file_removed("self-update status marker", &marker.path(&self.directory))?;
+        }
         Ok(PreparedUpdater { path, _lock: self })
     }
 
@@ -68,7 +83,7 @@ impl SelfUpdateLock {
     }
 }
 
-/// The updater path, held together with the lock that protects it.
+/// The managed updater path, held together with the lock that protects it.
 pub(super) struct PreparedUpdater {
     path: PathBuf,
     _lock: SelfUpdateLock,
@@ -80,7 +95,12 @@ impl PreparedUpdater {
     /// The lock must be held until the child has been spawned: a concurrent
     /// self-update could otherwise replace the updater before it is executed.
     pub(super) fn spawn_replacer(self) -> anyhow::Result<Child> {
+        let stage = self
+            .path
+            .parent()
+            .context("self-updater path has no parent directory")?;
         Command::new(&self.path)
+            .env(STAGE_ENV, stage)
             .arg("--self-replace")
             .spawn()
             .with_context(|| format!("unable to run updater ({})", self.path.display()))
@@ -95,22 +115,121 @@ impl Deref for PreparedUpdater {
     }
 }
 
+pub(super) fn mark_result(succeeded: bool, process: &Process) {
+    let Some(stage) = process.var_os(STAGE_ENV).map(PathBuf::from) else {
+        return;
+    };
+    let marker = if succeeded {
+        Marker::Complete
+    } else {
+        Marker::Failed
+    };
+    if let Err(error) = marker.record(process, &stage) {
+        warn!("could not record self-update result: {error}");
+    }
+}
+
+pub(super) fn cleanup(process: &Process, bin_path: &Path) -> anyhow::Result<()> {
+    if let Some(lock) = SelfUpdateLock::try_lock(process)? {
+        let updater = updater_path(&lock.directory);
+        // The replacer records an outcome only once it has finished, so an
+        // unmarked updater may still be about to run and is left alone.
+        let markers = [Marker::Complete, Marker::Failed];
+        let finished = markers
+            .iter()
+            .any(|marker| marker.path(&lock.directory).is_file());
+        if finished && utils::remove_file_best_effort("self-updater", &updater) {
+            for marker in markers {
+                utils::remove_file_best_effort(
+                    "self-update status marker",
+                    &marker.path(&lock.directory),
+                );
+            }
+        }
+    }
+
+    let updater = bin_path.join(format!("rustup-init{EXE_SUFFIX}"));
+    if updater.exists() {
+        utils::remove_file("legacy self-updater", &updater)?;
+    }
+
+    Ok(())
+}
+
+/// Outcome recorded next to the managed updater once replacement has finished.
+#[derive(Clone, Copy)]
+pub enum Marker {
+    Complete,
+    Failed,
+}
+
+impl Marker {
+    /// Records this outcome in `stage`, ignoring stages outside the managed directory.
+    fn record(self, process: &Process, stage: &Path) -> anyhow::Result<()> {
+        if stage != stage_root(process)? {
+            warn!(
+                "ignoring self-update stage outside the managed directory: {}",
+                stage.display()
+            );
+            return Ok(());
+        }
+
+        utils::write_file("self-update status marker", &self.path(stage), "")
+    }
+
+    pub fn path(self, stage: &Path) -> PathBuf {
+        stage.join(self.as_str())
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Complete => "complete",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// The managed updater inside the `stage` directory.
+pub fn updater_path(stage: &Path) -> PathBuf {
+    stage.join(format!("rustup-init{EXE_SUFFIX}"))
+}
+
 fn stage_root(process: &Process) -> anyhow::Result<PathBuf> {
     Ok(process.rustup_home()?.join(SELF_UPDATE_DIRECTORY))
 }
 
-const SELF_UPDATE_DIRECTORY: &str = "self-update";
+pub const SELF_UPDATE_DIRECTORY: &str = "self-update";
 const SELF_UPDATE_LOCK_FILE: &str = "self-update.lock";
+const STAGE_ENV: &str = "RUSTUP_SELF_UPDATE_STAGE";
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, fs};
+    use std::collections::HashMap;
 
     use super::*;
     use crate::{
         process::TestProcess,
         test::{Env, test_dir},
     };
+
+    #[tokio::test]
+    async fn updater_path_is_stable() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let first = SelfUpdateLock::lock(&process.process).unwrap();
+        let first_path = updater_path(&first.directory);
+        let stage = first.directory.clone();
+        fs::write(&first_path, "").unwrap();
+        fs::write(Marker::Complete.path(&stage), "").unwrap();
+        drop(first);
+        let second = SelfUpdateLock::lock(&process.process)
+            .unwrap()
+            .prepare_updater()
+            .unwrap();
+
+        assert_eq!(first_path, *second);
+        assert!(!Marker::Complete.path(&stage).exists());
+    }
 
     #[tokio::test]
     async fn self_update_lock_is_global() {
@@ -133,6 +252,95 @@ mod tests {
         ));
         drop(lock);
         contender.try_lock().unwrap();
+    }
+
+    #[tokio::test]
+    async fn cleanup_keeps_locked_updater() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let lock = SelfUpdateLock::lock(&process.process).unwrap();
+        let updater = updater_path(&lock.directory);
+        fs::write(&updater, "").unwrap();
+        fs::write(Marker::Complete.path(&lock.directory), "").unwrap();
+
+        cleanup(
+            &process.process,
+            &process.process.cargo_home().unwrap().join("bin"),
+        )
+        .unwrap();
+
+        assert!(updater.exists());
+        drop(lock);
+        cleanup(
+            &process.process,
+            &process.process.cargo_home().unwrap().join("bin"),
+        )
+        .unwrap();
+        assert!(!updater.exists());
+    }
+
+    #[tokio::test]
+    async fn spawn_replacer_rejects_parentless_path() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let prepared_updater = PreparedUpdater {
+            path: PathBuf::new(),
+            _lock: SelfUpdateLock::lock(&process.process).unwrap(),
+        };
+        let error = prepared_updater.spawn_replacer().err().unwrap();
+
+        assert_eq!(
+            error.to_string(),
+            "self-updater path has no parent directory"
+        );
+    }
+
+    #[tokio::test]
+    async fn cleanup_keeps_fresh_updater() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let prepared_updater = SelfUpdateLock::lock(&process.process)
+            .unwrap()
+            .prepare_updater()
+            .unwrap();
+        let updater = prepared_updater.to_path_buf();
+        fs::write(&updater, "").unwrap();
+        drop(prepared_updater);
+
+        cleanup(
+            &process.process,
+            &process.process.cargo_home().unwrap().join("bin"),
+        )
+        .unwrap();
+
+        assert!(updater.exists());
+    }
+
+    #[tokio::test]
+    async fn cleanup_removes_finished_updater() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let stage = stage_root(&process.process).unwrap();
+
+        for marker in [Marker::Complete, Marker::Failed] {
+            let prepared_updater = SelfUpdateLock::lock(&process.process)
+                .unwrap()
+                .prepare_updater()
+                .unwrap();
+            let updater = prepared_updater.to_path_buf();
+            fs::write(&updater, "").unwrap();
+            drop(prepared_updater);
+            marker.record(&process.process, &stage).unwrap();
+
+            cleanup(
+                &process.process,
+                &process.process.cargo_home().unwrap().join("bin"),
+            )
+            .unwrap();
+
+            assert!(!updater.exists());
+            assert!(!marker.path(&stage).exists());
+        }
     }
 
     fn test_process(root: &Path) -> TestProcess {

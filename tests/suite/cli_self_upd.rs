@@ -1,9 +1,13 @@
 //! Testing self install, uninstall and update
 
-use std::{env, env::consts::EXE_SUFFIX, fs, path::Path, process::Command};
+use std::{
+    env::consts::EXE_SUFFIX,
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use remove_dir_all::remove_dir_all;
-#[cfg(windows)]
 use retry::{
     delay::{Fibonacci, jitter},
     retry,
@@ -14,6 +18,9 @@ use rustup::cli::self_update::CHECKPOINT_SELF_REPLACE_READY;
 use rustup::test::RegistryValueId;
 use rustup::{
     DUP_TOOLS, TOOLS,
+    cli::self_update::{
+        CHECKPOINT_SELF_UPDATE_PREPARED, Marker, SELF_UPDATE_DIRECTORY, updater_path,
+    },
     test::{
         CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash,
         output_release_file, this_host_tuple,
@@ -517,9 +524,8 @@ error: rustup is not installed at '[CARGO_DIR]'
 }
 
 #[tokio::test]
-async fn update_but_delete_existing_updater_first() {
+async fn update_does_not_reuse_legacy_updater_path() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    // The updater is stored in a known location
     let setup = cx
         .config
         .cargodir
@@ -530,8 +536,6 @@ async fn update_but_delete_existing_updater_first() {
         .await
         .is_ok();
 
-    // If it happens to already exist for some reason it
-    // should just be deleted.
     raw::write_file(&setup, "").unwrap();
     cx.config
         .expect(&["rustup", "self", "update"])
@@ -540,11 +544,11 @@ async fn update_but_delete_existing_updater_first() {
 
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     assert!(rustup.exists());
+    assert!(managed_updater(&cx.config.rustupdir.rustupdir).exists());
 }
 
-#[cfg(unix)]
 #[tokio::test]
-async fn self_update_replacement_races_proxy_cleanup() {
+async fn managed_updater_survives_concurrent_proxy_cleanup() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     let _update_server = cx.with_update_server(TEST_VERSION);
     cx.config
@@ -553,17 +557,44 @@ async fn self_update_replacement_races_proxy_cleanup() {
         .is_ok();
 
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
-    let parked = cx.spawn_at(CHECKPOINT_SELF_REPLACE_READY, ["rustup", "self", "update"]);
+    let before_hash = calc_hash(&rustup);
+    let parked = cx.spawn_at(
+        CHECKPOINT_SELF_UPDATE_PREPARED,
+        ["rustup", "self", "update"],
+    );
+    let updater = managed_updater(&cx.config.rustupdir.rustupdir);
 
-    // The proxy's startup cleanup deletes `$CARGO_HOME/bin/rustup-init`,
-    // which is the parked replacer's own executable.
     cx.config.expect(["rustc", "--version"]).await.is_ok();
 
-    // The replacer unlinks the installed rustup before copying itself over
-    // it, so it fails and leaves no rustup behind.
+    assert!(updater.exists());
+    assert!(parked.resume().success());
+    wait_for_completed_update(&cx.config.rustupdir.rustupdir);
+    assert_ne!(before_hash, calc_hash(&rustup));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn self_update_replacement_survives_proxy_cleanup() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let _update_server = cx.with_update_server(TEST_VERSION);
+    cx.config
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+
+    let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+    let before_hash = calc_hash(&rustup);
+    let parked = cx.spawn_at(CHECKPOINT_SELF_REPLACE_READY, ["rustup", "self", "update"]);
+
+    cx.config.expect(["rustc", "--version"]).await.is_ok();
+
     let status = parked.resume();
-    assert!(!status.success());
-    assert!(!rustup.exists());
+    assert!(
+        rustup.exists(),
+        "concurrent proxy removed the installed rustup during self-update ({status})"
+    );
+    assert!(status.success(), "self-update failed: {status}");
+    assert_ne!(before_hash, calc_hash(&rustup));
 }
 
 #[tokio::test]
@@ -800,11 +831,7 @@ async fn updater_leaves_itself_for_later_deletion() {
         .is_ok();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
 
-    let setup = cx
-        .config
-        .cargodir
-        .join(format!("bin/rustup-init{EXE_SUFFIX}"));
-    assert!(setup.exists());
+    assert!(managed_updater(&cx.config.rustupdir.rustupdir).exists());
 }
 
 #[tokio::test]
@@ -819,17 +846,14 @@ async fn updater_is_deleted_after_running_rustup() {
         .await
         .is_ok();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
+    wait_for_completed_update(&cx.config.rustupdir.rustupdir);
 
     cx.config
         .expect(["rustup", "update", "nightly"])
         .await
         .is_ok();
 
-    let setup = cx
-        .config
-        .cargodir
-        .join(format!("bin/rustup-init{EXE_SUFFIX}"));
-    assert!(!setup.exists());
+    assert!(!managed_updater(&cx.config.rustupdir.rustupdir).exists());
 }
 
 #[tokio::test]
@@ -844,14 +868,11 @@ async fn updater_is_deleted_after_running_rustc() {
         .await
         .is_ok();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
+    wait_for_completed_update(&cx.config.rustupdir.rustupdir);
 
     cx.config.expect(["rustc", "--version"]).await.is_ok();
 
-    let setup = cx
-        .config
-        .cargodir
-        .join(format!("bin/rustup-init{EXE_SUFFIX}"));
-    assert!(!setup.exists());
+    assert!(!managed_updater(&cx.config.rustupdir.rustupdir).exists());
 }
 
 #[tokio::test]
@@ -1234,6 +1255,24 @@ async fn install_minimal_profile() {
     cx.config.expect_component_executable("rustup").await;
     cx.config.expect_component_executable("rustc").await;
     cx.config.expect_component_not_executable("cargo").await;
+}
+
+fn wait_for_completed_update(rustup_home: &Path) {
+    let stage = rustup_home.join(SELF_UPDATE_DIRECTORY);
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+        if Marker::Complete.path(&stage).is_file() {
+            Ok(())
+        } else if Marker::Failed.path(&stage).is_file() {
+            Err("self-update failed")
+        } else {
+            Err("self-update has not completed")
+        }
+    })
+    .unwrap();
+}
+
+fn managed_updater(rustup_home: &Path) -> PathBuf {
+    updater_path(&rustup_home.join(SELF_UPDATE_DIRECTORY))
 }
 
 const TEST_VERSION: &str = "1.1.1";

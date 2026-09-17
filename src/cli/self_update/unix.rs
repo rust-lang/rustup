@@ -5,7 +5,7 @@ use tracing::{error, warn};
 
 use super::{
     shell::{self, Posix, UnixShell},
-    stage::{PreparedUpdater, SelfUpdateLock},
+    stage::{self, PreparedUpdater, SelfUpdateLock},
 };
 use crate::{process::Process, utils};
 
@@ -136,10 +136,11 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
     let self_update_lock = SelfUpdateLock::lock(process)?;
     #[cfg(feature = "test")]
     process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
-    self_update_lock.install_bins(
-        &process.cargo_home()?.join("bin"),
-        super::force_hard_links(process),
-    )?;
+    let result = process.cargo_home().and_then(|cargo_home| {
+        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))
+    });
+    stage::mark_result(result.is_ok(), process);
+    result?;
 
     Ok(utils::ExitCode(0))
 }
