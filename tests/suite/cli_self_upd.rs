@@ -544,6 +544,7 @@ async fn update_does_not_reuse_legacy_updater_path() {
 
     let rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
     assert!(rustup.exists());
+    assert!(setup.exists());
     assert!(managed_updater(&cx.config.rustupdir.rustupdir).exists());
 }
 
