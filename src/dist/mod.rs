@@ -1080,14 +1080,12 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                     backtrack_limit = backtrack_limit.map(|n| n - 1);
                 }
 
-                Some(DistError::MissingReleaseForToolchain(..)) => {
-                    // no need to even print anything for missing nightlies,
-                    // since we don't really "skip" them
-                }
-                _ => {
-                    // All other errors break the loop
-                    break Err(e);
-                }
+                // no need to even print anything for missing nightlies,
+                // since we don't really "skip" them
+                Some(DistError::MissingReleaseForToolchain(..)) => (),
+
+                // All other errors break the loop
+                _ => break Err(e),
             };
 
             if let Some(backtrack_limit) = backtrack_limit
