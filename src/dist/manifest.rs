@@ -23,7 +23,7 @@ use anyhow::{Context, anyhow, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    dist::{Profile, TargetTuple, ToolchainDesc, config::Config},
+    dist::{DistError, Profile, TargetTuple, ToolchainDesc, config::Config},
     errors::RustupError,
     toolchain::DistributableToolchain,
 };
@@ -513,8 +513,7 @@ impl Package {
                 if let Some(t) = target {
                     tpkgs
                         .get(t)
-                        .ok_or_else(|| anyhow!(format!("target '{t}' not found in channel.  \
-                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets")))
+                        .ok_or_else(|| DistError::HostTupleUnsupported(t.clone()).into())
                 } else {
                     Err(anyhow!("no target specified"))
                 }

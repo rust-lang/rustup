@@ -123,6 +123,10 @@ pub enum DistError {
     MissingReleaseForToolchain(String),
     #[error("invalid toolchain name: '{0}'")]
     InvalidOfficialName(String),
+    #[error(
+        "target '{0}' not found in channel.  Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets"
+    )]
+    HostTupleUnsupported(TargetTuple),
 }
 
 #[derive(Debug, PartialEq)]
