@@ -5,7 +5,6 @@ use std::{
     fmt,
     io::{self, Write},
     os::windows::ffi::OsStrExt,
-    path::Path,
     process::Command,
 };
 
@@ -18,7 +17,10 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
-use super::{InstallOpts, install_bins, report_error};
+use super::{
+    InstallOpts, report_error,
+    stage::{PreparedUpdater, SelfUpdateLock},
+};
 use crate::{
     cli::{common, errors::CliError, markdown::md},
     dist::TargetTuple,
@@ -655,13 +657,14 @@ pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> anyhow::Resu
     }
 }
 
-pub(crate) fn run_update(setup_path: &Path, process: &Process) -> anyhow::Result<utils::ExitCode> {
-    Command::new(setup_path)
-        .arg("--self-replace")
-        .spawn()
-        .context("unable to run updater")?;
+pub(super) fn run_update(
+    prepared_updater: PreparedUpdater,
+    process: &Process,
+) -> anyhow::Result<utils::ExitCode> {
+    let updater_path = prepared_updater.path().to_owned();
+    prepared_updater.spawn_replacer()?;
 
-    let Some(version) = super::get_and_parse_new_rustup_version(setup_path) else {
+    let Some(version) = super::get_and_parse_new_rustup_version(&updater_path) else {
         warn!("failed to get the new rustup version in order to update `DisplayVersion`");
         return Ok(utils::ExitCode(1));
     };
@@ -672,7 +675,7 @@ pub(crate) fn run_update(setup_path: &Path, process: &Process) -> anyhow::Result
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
-    install_bins(process)?;
+    SelfUpdateLock::acquire(process)?.install_bins(process)?;
 
     Ok(utils::ExitCode(0))
 }

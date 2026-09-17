@@ -77,29 +77,32 @@ use crate::{
 #[macro_use]
 mod msg;
 
+mod stage;
+use stage::{PreparedUpdater, SelfUpdateLock};
+
 #[cfg(unix)]
 mod shell;
 
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
-use unix::{do_add_to_path, do_remove_from_path};
+pub(crate) use unix::self_replace;
 #[cfg(unix)]
-pub(crate) use unix::{run_update, self_replace};
+use unix::{do_add_to_path, do_remove_from_path, run_update};
 
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
+#[cfg(windows)]
+pub(crate) use windows::self_replace;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
 use windows::{
     add_uninstall_registry_entry, do_add_to_path, do_remove_from_path,
-    remove_uninstall_registry_entry,
+    remove_uninstall_registry_entry, run_update,
 };
-#[cfg(windows)]
-pub(crate) use windows::{run_update, self_replace};
 
 pub(crate) struct InstallOpts<'a> {
     pub default_host_tuple: Option<String>,
@@ -533,10 +536,10 @@ impl SelfUpdateMode {
             SelfUpdatePermission::Permit => {}
         }
 
-        let setup_path = prepare_update(dl_cfg).await?;
+        let prepared_updater = prepare_update(dl_cfg).await?;
 
-        if let Some(setup_path) = &setup_path {
-            return run_update(setup_path, dl_cfg.process);
+        if let Some(prepared_updater) = prepared_updater {
+            return run_update(prepared_updater, dl_cfg.process);
         } else {
             // Try again in case we emitted "tool `{}` is already installed" last time.
             install_proxies(dl_cfg.process)?;
@@ -771,19 +774,7 @@ fn warn_if_default_linker_missing(process: &Process) {
 }
 
 fn install_bins(process: &Process) -> anyhow::Result<()> {
-    let bin_path = process.cargo_home()?.join("bin");
-    let this_exe_path = utils::current_exe()?;
-    let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
-
-    utils::ensure_dir_exists("bin", &bin_path)?;
-    // NB: Even on Linux we can't just copy the new binary over the (running)
-    // old binary; we must unlink it first.
-    if rustup_path.exists() {
-        utils::remove_file("rustup-bin", &rustup_path)?;
-    }
-    utils::copy_file_symlink_to_source(&this_exe_path, &rustup_path)?;
-    utils::make_executable(&rustup_path)?;
-    install_proxies(process)
+    SelfUpdateLock::acquire(process)?.install_bins(process)
 }
 
 pub(crate) fn install_proxies(process: &Process) -> anyhow::Result<()> {
@@ -1163,8 +1154,8 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     }
 
     match prepare_update(&DownloadCfg::new(cfg)).await? {
-        Some(setup_path) => {
-            let Some(version) = get_and_parse_new_rustup_version(&setup_path) else {
+        Some(prepared_updater) => {
+            let Some(version) = get_and_parse_new_rustup_version(prepared_updater.path()) else {
                 error!("failed to get rustup version");
                 return Ok(ExitCode::FAILURE);
             };
@@ -1174,7 +1165,7 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
                 PackageUpdate::Rustup,
                 Ok(UpdateStatus::Updated(version)),
             );
-            return run_update(&setup_path, cfg.process);
+            return run_update(prepared_updater, cfg.process);
         }
         None => {
             let _ = common::show_channel_update(
@@ -1215,18 +1206,14 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<PathBuf>> {
+async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<PreparedUpdater>> {
     let cargo_home = dl_cfg.process.cargo_home()?;
     let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
-    let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
         return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
     }
-
-    if setup_path.exists() {
-        utils::remove_file("setup", &setup_path)?;
-    }
+    let self_update_lock = SelfUpdateLock::acquire(dl_cfg.process)?;
 
     // Get build tuple
     let tuple = TargetTuple::from_build();
@@ -1266,18 +1253,20 @@ pub(crate) async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<O
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
+    let prepared_updater = self_update_lock.prepare_updater(dl_cfg.process)?;
+    let setup_path = prepared_updater.path();
 
     // Download new version
     info!("downloading self-update (new version: {available_version})");
     DownloadOptions::try_from(dl_cfg.process)?
-        .start(&download_url, &setup_path)
+        .start(&download_url, setup_path)
         .download()
         .await?;
 
     // Mark as executable
-    utils::make_executable(&setup_path)?;
+    utils::make_executable(setup_path)?;
 
-    Ok(Some(setup_path))
+    Ok(Some(prepared_updater))
 }
 
 async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<String> {
@@ -1441,8 +1430,10 @@ info: default host tuple is {0}
     fn install_bins_creates_cargo_home() {
         let root_dir = test_dir().unwrap();
         let cargo_home = root_dir.path().join("cargo");
+        let rustup_home = root_dir.path().join("rustup");
         let mut vars = HashMap::new();
         vars.env("CARGO_HOME", cargo_home.to_string_lossy().to_string());
+        vars.env("RUSTUP_HOME", rustup_home);
         let tp = TestProcess::with_vars(vars);
         super::install_bins(&tp.process).unwrap();
         assert!(cargo_home.exists());
