@@ -124,7 +124,9 @@ pub enum DistError {
     #[error("invalid toolchain name: '{0}'")]
     InvalidOfficialName(String),
     #[error(
-        "target '{0}' not found in channel.  Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets"
+        "host tuple '{0}' not found in channel manifest
+help: this could mean that it has been demoted and no longer has a host toolchain
+help: see <https://doc.rust-lang.org/nightly/rustc/platform-support.html> for available targets"
     )]
     HostTupleUnsupported(TargetTuple),
 }
