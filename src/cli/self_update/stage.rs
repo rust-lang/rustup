@@ -1,6 +1,7 @@
 use std::{
     env::consts::EXE_SUFFIX,
     fs::{self, File, OpenOptions},
+    io,
     ops::Deref,
     path::{Path, PathBuf},
     process::{Child, Command},
@@ -195,6 +196,29 @@ fn cleanup_at(process: &Process, bin_path: &Path, now: SystemTime) -> anyhow::Re
                     &marker.path(&lock.directory),
                 );
             }
+        }
+    }
+
+    match fs::read_dir(bin_path) {
+        Ok(entries) => {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(PENDING_BINARY_PREFIX)
+                    && is_stale(&path, now)
+                {
+                    utils::remove_file_best_effort("pending rustup binary", &path);
+                }
+            }
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => {
+            warn!(
+                "could not inspect pending rustup binaries in {}: {error}",
+                bin_path.display()
+            );
         }
     }
 
@@ -495,6 +519,27 @@ mod tests {
         )
         .unwrap();
         assert!(!updater.exists());
+    }
+
+    #[tokio::test]
+    async fn cleanup_removes_abandoned_pending_binary() {
+        let root = test_dir().unwrap();
+        let process = test_process(root.path());
+        let bin_path = root.path().join("cargo/bin");
+        let pending = bin_path.join(format!("{PENDING_BINARY_PREFIX}orphan"));
+        fs::create_dir_all(&bin_path).unwrap();
+        fs::write(&pending, "").unwrap();
+
+        cleanup_at(&process.process, &bin_path, SystemTime::now()).unwrap();
+        assert!(pending.exists());
+
+        cleanup_at(
+            &process.process,
+            &bin_path,
+            SystemTime::now() + ABANDONED_UPDATE_AGE + Duration::from_secs(1),
+        )
+        .unwrap();
+        assert!(!pending.exists());
     }
 
     fn test_process(root: &Path) -> TestProcess {
