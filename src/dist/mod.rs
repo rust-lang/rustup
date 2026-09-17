@@ -1080,6 +1080,10 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                     backtrack_limit = backtrack_limit.map(|n| n - 1);
                 }
 
+                Some(e @ DistError::HostTupleUnsupported(_)) => {
+                    info!("skipping nightly with unsupported host: {e:#}")
+                }
+
                 // no need to even print anything for missing nightlies,
                 // since we don't really "skip" them
                 Some(DistError::MissingReleaseForToolchain(..)) => (),
