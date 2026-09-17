@@ -13,13 +13,12 @@
 //! * update the PATH in a system-specific way
 //! * run the equivalent of `rustup default stable`
 //!
-//! During upgrade (`rustup self upgrade`):
+//! During upgrade (`rustup self update`):
 //!
-//! * download rustup-init to $CARGO_HOME/bin/rustup-init
-//! * run rustup-init with appropriate flags to indicate
-//!   this is a self-upgrade
-//! * rustup-init copies bins and hardlinks into place. On windows
-//!   this happens *after* the upgrade command exits successfully.
+//! * download rustup-init to a managed path under `$RUSTUP_HOME`
+//! * run the downloaded binary in replacement mode
+//! * atomically replace rustup and update its proxy links. On Windows
+//!   this happens after the update command exits.
 //!
 //! During uninstall (`rustup self uninstall`):
 //!
@@ -1114,21 +1113,10 @@ pub(crate) fn self_update_permitted(explicit: bool) -> anyhow::Result<SelfUpdate
     Ok(SelfUpdatePermission::Permit)
 }
 
-/// Self update downloads rustup-init to `$CARGO_HOME/bin/rustup-init`
-/// and runs it.
+/// Downloads the managed updater and runs it in replacement mode.
 ///
-/// It does a few things to accommodate self-delete problems on windows:
-///
-/// rustup-init is run in two stages, first with `--self-upgrade`,
-/// which displays update messages and asks for confirmations, etc;
-/// then with `--self-replace`, which replaces the rustup binary and
-/// hardlinks. The last step is done without waiting for confirmation
-/// on windows so that the running exe can be deleted.
-///
-/// Because it's again difficult for rustup-init to delete itself
-/// (and on windows this process will not be running to do it),
-/// rustup-init is stored in `$CARGO_HOME/bin`, and then deleted next
-/// time rustup runs.
+/// The updater is removed by a later rustup invocation because Windows
+/// cannot delete the updater while its process is still running.
 pub(crate) async fn update(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
@@ -1253,7 +1241,7 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
-    let prepared_updater = self_update_lock.prepare_updater(dl_cfg.process)?;
+    let prepared_updater = self_update_lock.prepare_updater()?;
     let setup_path = prepared_updater.path();
 
     // Download new version
@@ -1265,6 +1253,9 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
 
     // Mark as executable
     utils::make_executable(setup_path)?;
+
+    #[cfg(feature = "test")]
+    dl_cfg.process.checkpoint(CHECKPOINT_SELF_UPDATE_PREPARED);
 
     Ok(Some(prepared_updater))
 }
@@ -1361,17 +1352,12 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Res
 
 #[tracing::instrument(level = "trace")]
 pub(crate) fn cleanup_self_updater(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
-    let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
-
-    if setup.exists() {
-        utils::remove_file("setup", &setup)?;
-    }
-
-    Ok(())
+    stage::cleanup(process)
 }
 
 static DEFAULT_UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
+#[cfg(feature = "test")]
+pub const CHECKPOINT_SELF_UPDATE_PREPARED: &str = "self-update-prepared";
 #[cfg(feature = "test")]
 pub const CHECKPOINT_SELF_REPLACE_READY: &str = "self-replace-ready";
 

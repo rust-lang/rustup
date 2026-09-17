@@ -19,7 +19,7 @@ use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
 use super::{
     InstallOpts, report_error,
-    stage::{PreparedUpdater, SelfUpdateLock},
+    stage::{self, PreparedUpdater, SelfUpdateLock},
 };
 use crate::{
     cli::{common, errors::CliError, markdown::md},
@@ -675,7 +675,10 @@ pub(super) fn run_update(
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
-    SelfUpdateLock::acquire(process)?.install_bins(process)?;
+    let self_update_lock = SelfUpdateLock::acquire(process)?;
+    let result = self_update_lock.install_bins(process);
+    stage::mark_result(result.is_ok(), process);
+    result?;
 
     Ok(utils::ExitCode(0))
 }
