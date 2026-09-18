@@ -657,8 +657,51 @@ ignore() {
     "$@"
 }
 
+# Succeeds if $1 is an http:// URL that points at the local machine:
+# the host must be `localhost`, an IPv4 loopback address (127.0.0.0/8), or
+# the IPv6 loopback address (`::1`). The resource at such a URL may be
+# fetched over plain HTTP; every other URL must use https.
+is_local_http_url() {
+    local _url="$1"
+    case "$_url" in
+        http://*)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    # Strip the path, the optional port, and IPv6 brackets to get the bare host.
+    local _host="${_url#http://}"
+    _host="${_host%%/*}"
+    case "$_host" in
+        \[*\]*)
+            # IPv6 literal host: [addr] or [addr]:port
+            _host="${_host%%\]*}"
+            _host="${_host#?}"
+            ;;
+        *)
+            _host="${_host%%:*}"
+            ;;
+    esac
+    case "$_host" in
+        localhost | 127.* | ::1)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
+#
+# If RUSTUP_AUTHORIZATION_HEADER is set, it is sent as the value of the
+# `Authorization` header, and if RUSTUP_PROXY_AUTHORIZATION_HEADER is set,
+# it is sent as the value of the `Proxy-Authorization` header (to the
+# proxy). The resource at an http:// URL that points at the local machine
+# (see is_local_http_url) is fetched over plain HTTP; every other URL
+# requires https.
 downloader() {
     # zsh does not split words by default, Required for curl retry arguments below.
     is_zsh && setopt local_options shwordsplit
@@ -668,6 +711,7 @@ downloader() {
     local _err
     local _status
     local _retry
+    local _url
     if check_cmd curl; then
         # Check if we have a broken snap curl
         # https://github.com/boukendesho/curl-snap/issues/1
@@ -691,57 +735,105 @@ downloader() {
         _dld='curl or wget' # to be used in error message of need_cmd
     fi
 
-    if [ "$1" = --check ]; then
+    _url="$1"
+
+    if [ "$_url" = --check ]; then
         need_cmd "$_dld"
-    elif [ "$_dld" = curl ]; then
+        return 0
+    fi
+
+    local _output
+    local _arch
+    _output="$2"
+    _arch="$3"
+
+    if [ "$_dld" = curl ]; then
+        # Build the complete list of curl arguments in the positional
+        # parameters. POSIX sh has no arrays, and some values (cipher
+        # suites, header values) contain spaces, which would be split
+        # apart if carried in a single variable.
         check_curl_for_retry_support
         _retry="$RETVAL"
-        get_ciphersuites_for_curl
-        _ciphersuites="$RETVAL"
-        if [ -n "$_ciphersuites" ]; then
-            # shellcheck disable=SC2086
-            _err=$(curl $_retry --proto '=https' --tlsv1.2 --ciphers "$_ciphersuites" --silent --show-error --fail --location "$1" --output "$2" 2>&1)
-            _status=$?
+        # shellcheck disable=SC2086  # _retry is intentionally split into words
+        set -- $_retry
+        if is_local_http_url "$_url"; then
+            # Plain HTTP to the local machine: no TLS enforcement is needed.
+            :
         else
-            warn "Not enforcing strong cipher suites for TLS, this is potentially less secure"
-            if ! check_help_for "$3" curl --proto --tlsv1.2; then
-                warn "Not enforcing TLS v1.2, this is potentially less secure"
-                # shellcheck disable=SC2086
-                _err=$(curl $_retry --silent --show-error --fail --location "$1" --output "$2" 2>&1)
-                _status=$?
+            get_ciphersuites_for_curl
+            _ciphersuites="$RETVAL"
+            if [ -n "$_ciphersuites" ]; then
+                set -- "$@" --proto '=https' --tlsv1.2 --ciphers "$_ciphersuites"
             else
-                # shellcheck disable=SC2086
-                _err=$(curl $_retry --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2" 2>&1)
-                _status=$?
+                warn "Not enforcing strong cipher suites for TLS, this is potentially less secure"
+                if check_help_for "$_arch" curl --proto --tlsv1.2; then
+                    set -- "$@" --proto '=https' --tlsv1.2
+                else
+                    warn "Not enforcing TLS v1.2, this is potentially less secure"
+                fi
             fi
         fi
+        if [ -n "${RUSTUP_AUTHORIZATION_HEADER-}" ]; then
+            set -- "$@" --header "Authorization: ${RUSTUP_AUTHORIZATION_HEADER}"
+        fi
+        if [ -n "${RUSTUP_PROXY_AUTHORIZATION_HEADER-}" ]; then
+            set -- "$@" --proxy-header "Proxy-Authorization: ${RUSTUP_PROXY_AUTHORIZATION_HEADER}"
+        fi
+        set -- "$@" --silent --show-error --fail --location "$_url" --output "$_output"
+        _err=$(curl "$@" 2>&1)
+        _status=$?
         if [ -n "$_err" ]; then
             warn "$_err"
             if echo "$_err" | grep -q 404$; then
-                err "installer for platform '$3' not found, this may be unsupported"
+                err "installer for platform '$_arch' not found, this may be unsupported"
                 exit 1
             fi
         fi
         return $_status
     elif [ "$_dld" = wget ]; then
+        # Build the complete list of wget arguments in the positional
+        # parameters (see the curl branch above for why).
+        #
+        # wget has no option to send headers only to the proxy, so the
+        # Proxy-Authorization header is added with --header as well; it is
+        # included in the request that the proxy receives.
+        local _has_headers
+        _has_headers=no
+        set --
+        if [ -n "${RUSTUP_AUTHORIZATION_HEADER-}" ]; then
+            set -- "$@" --header "Authorization: ${RUSTUP_AUTHORIZATION_HEADER}"
+            _has_headers=yes
+        fi
+        if [ -n "${RUSTUP_PROXY_AUTHORIZATION_HEADER-}" ]; then
+            set -- "$@" --header "Proxy-Authorization: ${RUSTUP_PROXY_AUTHORIZATION_HEADER}"
+            _has_headers=yes
+        fi
         if [ "$(wget -V 2>&1|head -2|tail -1|cut -f1 -d" ")" = "BusyBox" ]; then
             warn "using the BusyBox version of wget.  Not enforcing strong cipher suites for TLS or TLS v1.2, this is potentially less secure"
-            _err=$(wget "$1" -O "$2" 2>&1)
+            if [ "$_has_headers" = yes ]; then
+                warn "BusyBox wget does not support custom headers, so RUSTUP_*_AUTHORIZATION_HEADER will not be sent"
+                set --
+            fi
+            _err=$(wget "$@" "$_url" -O "$_output" 2>&1)
             _status=$?
         else
             get_ciphersuites_for_wget
             _ciphersuites="$RETVAL"
-            if [ -n "$_ciphersuites" ]; then
-                _err=$(wget --https-only --secure-protocol=TLSv1_2 --ciphers "$_ciphersuites" "$1" -O "$2" 2>&1)
+            if is_local_http_url "$_url"; then
+                # Plain HTTP to the local machine: no TLS enforcement is needed.
+                _err=$(wget "$@" "$_url" -O "$_output" 2>&1)
+                _status=$?
+            elif [ -n "$_ciphersuites" ]; then
+                _err=$(wget "$@" --https-only --secure-protocol=TLSv1_2 --ciphers "$_ciphersuites" "$_url" -O "$_output" 2>&1)
                 _status=$?
             else
                 warn "Not enforcing strong cipher suites for TLS, this is potentially less secure"
-                if ! check_help_for "$3" wget --https-only --secure-protocol; then
+                if ! check_help_for "$_arch" wget --https-only --secure-protocol; then
                     warn "Not enforcing TLS v1.2, this is potentially less secure"
-                    _err=$(wget "$1" -O "$2" 2>&1)
+                    _err=$(wget "$@" "$_url" -O "$_output" 2>&1)
                     _status=$?
                 else
-                    _err=$(wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2" 2>&1)
+                    _err=$(wget "$@" --https-only --secure-protocol=TLSv1_2 "$_url" -O "$_output" 2>&1)
                     _status=$?
                 fi
             fi
@@ -749,7 +841,7 @@ downloader() {
         if [ -n "$_err" ]; then
             warn "$_err"
             if echo "$_err" | grep -q ' 404 Not Found$'; then
-                err "installer for platform '$3' not found, this may be unsupported"
+                err "installer for platform '$_arch' not found, this may be unsupported"
                 exit 1
             fi
         fi
