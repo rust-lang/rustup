@@ -22,6 +22,21 @@ use crate::{
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
 
+#[derive(Debug, Clone)]
+pub enum TargetSuggestion {
+    Toolchain(String),
+    Component(String),
+}
+
+impl std::fmt::Display for TargetSuggestion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Toolchain(command) => write!(f, "; try `{command}`"),
+            Self::Component(name) => write!(f, "; did you mean '{name}'?"),
+        }
+    }
+}
+
 /// A type erasing thunk for the retry crate to permit use with anyhow. See <https://github.com/dtolnay/anyhow/issues/149>
 #[derive(Debug, ThisError)]
 #[error(transparent)]
@@ -162,11 +177,11 @@ pub enum RustupError {
         suggestion: Option<String>,
     },
     #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
-    suggest_message(.suggestion))]
+    .suggestion.as_ref().map_or_else(String::new, ToString::to_string))]
     TargetNotInstalled {
         desc: Box<ToolchainDesc>,
         target: TargetTuple,
-        suggestion: Option<String>,
+        suggestion: Option<TargetSuggestion>,
     },
     #[error(
         "rustup executable proxies don't seem to work\n\

@@ -15,14 +15,14 @@ use crate::{
     RustupError, component_for_bin,
     config::{ActiveSource, Cfg, EnsureInstalled},
     dist::{
-        DistOptions, PartialToolchainDesc, ToolchainDesc,
+        DistOptions, PartialToolchainDesc, TargetTuple, ToolchainDesc,
         config::Config,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, Manifest, ManifestWithHash},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
-    errors::UnknownComponentInfo,
+    errors::{TargetSuggestion, UnknownComponentInfo},
     install::InstallMethod,
 };
 
@@ -385,6 +385,27 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
+    fn find_toolchain_with_target(&self, target: &TargetTuple) -> Option<String> {
+        let toolchains = self.toolchain.cfg.list_toolchains(true).ok()?;
+
+        for toolchain_name in toolchains {
+            if let ToolchainName::Official(desc) = &toolchain_name
+                && desc == &self.desc
+            {
+                continue;
+            }
+
+            if let Ok(toolchain) = Toolchain::new(self.toolchain.cfg, toolchain_name.clone().into())
+                && let Ok(installed_targets) = toolchain.installed_targets()
+                && installed_targets.contains(target)
+            {
+                return Some(format!("+{toolchain_name}"));
+            }
+        }
+
+        None
+    }
+
     pub(crate) async fn remove_components(
         &self,
         components: impl IntoIterator<Item = anyhow::Result<Component>>,
@@ -413,19 +434,31 @@ impl<'a> DistributableToolchain<'a> {
             }
 
             let suggestion = self.get_component_suggestion(&component, &config, &manifest, true);
-            // Check if the target is installed.
             if !config
                 .components
                 .iter()
                 .any(|c| c.target() == component.target())
             {
+                let target = component
+                    .target
+                    .as_ref()
+                    .expect("component target should be known");
+                let suggestion = self
+                    .find_toolchain_with_target(target)
+                    .map(|toolchain| {
+                        TargetSuggestion::Toolchain(format!(
+                            "rustup {toolchain} target remove {target}"
+                        ))
+                    })
+                    .or_else(|| suggestion.map(TargetSuggestion::Component));
                 return Err(RustupError::TargetNotInstalled {
                     desc: Box::new(self.desc.clone()),
-                    target: component.target.expect("component target should be known"),
+                    target: target.clone(),
                     suggestion,
                 }
                 .into());
             }
+
             unknown_components.push(UnknownComponentInfo {
                 name: manifest.short_name(&component).to_string(),
                 description: manifest.description(&component),
