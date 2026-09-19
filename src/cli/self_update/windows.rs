@@ -3,9 +3,8 @@ use std::{
     env::{consts::EXE_SUFFIX, split_paths},
     ffi::{OsStr, OsString},
     fmt,
-    io::Write,
+    io::{self, Write},
     os::windows::ffi::OsStrExt,
-    path::Path,
     process::Command,
 };
 
@@ -18,13 +17,12 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
+use super::{
+    InstallOpts, report_error,
+    stage::{self, PreparedUpdater, SelfUpdateLock},
+};
 use crate::{
-    cli::{
-        common,
-        errors::CliError,
-        markdown::md,
-        self_update::{InstallOpts, install_bins, report_error},
-    },
+    cli::{common, errors::CliError, markdown::md},
     dist::TargetTuple,
     download::DownloadOptions,
     process::{ColorableTerminal, Process},
@@ -41,7 +39,7 @@ pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
 fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
     write!(process.stdout().lock(), ">")?;
 
-    let _ = std::io::stdout().flush();
+    let _ = io::stdout().flush();
     let input = common::read_line(process)?;
 
     let r = match str::parse(&input) {
@@ -659,24 +657,23 @@ pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> anyhow::Resu
     }
 }
 
-pub(crate) fn run_update(setup_path: &Path, process: &Process) -> anyhow::Result<utils::ExitCode> {
-    Command::new(setup_path)
-        .arg("--self-replace")
-        .spawn()
-        .context("unable to run updater")?;
-
-    let Some(version) = super::get_and_parse_new_rustup_version(setup_path) else {
-        warn!("failed to get the new rustup version in order to update `DisplayVersion`");
-        return Ok(utils::ExitCode(1));
-    };
-    update_uninstall_registry_display_version(&version, process)?;
+pub(super) fn run_update(
+    prepared_updater: PreparedUpdater,
+    _process: &Process,
+) -> anyhow::Result<utils::ExitCode> {
+    prepared_updater.spawn_replacer()?;
 
     Ok(utils::ExitCode(0))
 }
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
-    install_bins(process)?;
+    let self_update_lock = SelfUpdateLock::acquire(process)?;
+    let result = self_update_lock.install_bins(process).and_then(|()| {
+        update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
+    });
+    stage::mark_result(result.is_ok(), process);
+    result?;
 
     Ok(utils::ExitCode(0))
 }

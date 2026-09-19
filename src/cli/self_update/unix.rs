@@ -1,14 +1,11 @@
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::PathBuf;
 
 use anyhow::{Context, bail};
 use tracing::{error, warn};
 
 use super::{
-    install_bins,
     shell::{self, Posix, UnixShell},
+    stage::{self, PreparedUpdater, SelfUpdateLock},
 };
 use crate::{process::Process, utils};
 
@@ -121,13 +118,16 @@ pub(crate) fn do_write_env_files(process: &Process) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Tell the upgrader to replace the rustup bins, then delete
-/// itself.
-pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Result<utils::ExitCode> {
-    let status = Command::new(setup_path)
-        .arg("--self-replace")
-        .status()
-        .context(format!("unable to run updater ({})", setup_path.display()))?;
+/// Tell the updater to replace the rustup bins, then wait for it to finish.
+pub(super) fn run_update(
+    prepared_updater: PreparedUpdater,
+    _process: &Process,
+) -> anyhow::Result<utils::ExitCode> {
+    let setup_path = prepared_updater.path().to_owned();
+    let status = prepared_updater
+        .spawn_replacer()?
+        .wait()
+        .with_context(|| format!("unable to wait for updater ({})", setup_path.display()))?;
 
     if !status.success() {
         bail!("self-updated failed to replace rustup executable");
@@ -140,7 +140,12 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Resul
 /// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
 /// links to it.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    install_bins(process)?;
+    let self_update_lock = SelfUpdateLock::acquire(process)?;
+    #[cfg(feature = "test")]
+    process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
+    let result = self_update_lock.install_bins(process);
+    stage::mark_result(result.is_ok(), process);
+    result?;
 
     Ok(utils::ExitCode(0))
 }

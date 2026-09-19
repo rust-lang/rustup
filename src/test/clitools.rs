@@ -1031,6 +1031,7 @@ impl CliTestContext {
                     cmd.spawn()
                         .expect("failed to start command for checkpoint test")
                 }),
+                marker: marker.clone(),
             }
         };
 
@@ -1138,6 +1139,7 @@ impl Drop for WorkDirGuard<'_> {
 #[must_use]
 pub struct ParkedChild {
     child: Option<Child>,
+    marker: PathBuf,
 }
 
 impl ParkedChild {
@@ -1147,9 +1149,21 @@ impl ParkedChild {
         child
             .kill()
             .expect("failed to terminate command at checkpoint");
-        child
+        let status = child
             .wait()
-            .expect("failed to reap command after checkpoint")
+            .expect("failed to reap command after checkpoint");
+        remove_checkpoint_marker(&self.marker);
+        status
+    }
+
+    /// Resume the parked command and wait for it to finish.
+    pub fn resume(mut self) -> ExitStatus {
+        remove_checkpoint_marker(&self.marker);
+        self.child
+            .take()
+            .unwrap()
+            .wait()
+            .expect("failed to reap resumed checkpoint command")
     }
 }
 
@@ -1160,6 +1174,15 @@ impl Drop for ParkedChild {
         };
         let _ = child.kill();
         let _ = child.wait();
+        remove_checkpoint_marker(&self.marker);
+    }
+}
+
+fn remove_checkpoint_marker(marker: &Path) {
+    if let Err(error) = fs::remove_file(marker)
+        && error.kind() != io::ErrorKind::NotFound
+    {
+        panic!("failed to remove checkpoint marker: {error}");
     }
 }
 
