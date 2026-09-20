@@ -3,20 +3,44 @@ use std::{
     env::{consts::EXE_SUFFIX, split_paths},
     ffi::{OsStr, OsString},
     fmt,
-    io::Write,
+    io::{self, Write},
+    mem,
     os::windows::ffi::OsStrExt,
-    path::Path,
-    process::Command,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+    ptr, thread,
+    time::Duration,
 };
 
 use anyhow::{Context, anyhow};
+use cc::windows_registry::{find_tool, find_vs_version};
 use itertools::Itertools;
 use tracing::{info, warn};
 #[cfg(any(test, feature = "test"))]
 use windows_registry::Value;
 use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
-use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
+use windows_sys::Win32::{
+    Foundation::{
+        CloseHandle, ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA, GENERIC_READ, INVALID_HANDLE_VALUE,
+        LPARAM, WAIT_OBJECT_0, WPARAM,
+    },
+    Security::SECURITY_ATTRIBUTES,
+    Storage::FileSystem::{
+        CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, OPEN_EXISTING,
+        SYNCHRONIZE,
+    },
+    System::{
+        Diagnostics::ToolHelp::{
+            CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next,
+            TH32CS_SNAPPROCESS,
+        },
+        Threading::{GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject},
+    },
+    UI::WindowsAndMessaging::{
+        HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
+    },
+};
 
 use crate::{
     cli::{
@@ -41,7 +65,7 @@ pub(crate) fn ensure_prompt(process: &Process) -> anyhow::Result<()> {
 fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
     write!(process.stdout().lock(), ">")?;
 
-    let _ = std::io::stdout().flush();
+    let _ = io::stdout().flush();
     let input = common::read_line(process)?;
 
     let r = match str::parse(&input) {
@@ -191,20 +215,19 @@ pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option
         return None;
     }
 
-    use cc::windows_registry;
     let host_tuple = if let Some(tuple) = opts.default_host_tuple.as_ref() {
         tuple.to_owned()
     } else {
         TargetTuple::from_host_or_build(process).to_string()
     };
     let installing_msvc = host_tuple.contains("msvc");
-    let have_msvc = windows_registry::find_tool(&host_tuple, "cl.exe").is_some();
+    let have_msvc = find_tool(&host_tuple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
         // Visual Studio build tools are required.
         // If the user does not have Visual Studio installed and their host
         // machine is i686 or x86_64 then it's OK to try an auto install.
         // Otherwise a manual install will be required.
-        let has_any_vs = windows_registry::find_vs_version().is_ok();
+        let has_any_vs = find_vs_version().is_ok();
         let is_x86 = host_tuple.contains("i686") || host_tuple.contains("x86_64");
         if is_x86 && !has_any_vs {
             Some(VsInstallPlan::Automatic)
@@ -358,8 +381,6 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    use std::process::Stdio;
-
     wait_for_parent()?;
 
     let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
@@ -384,20 +405,6 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
 }
 
 pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
-    use std::{io, mem};
-
-    use windows_sys::Win32::{
-        Foundation::{CloseHandle, INVALID_HANDLE_VALUE, WAIT_OBJECT_0},
-        Storage::FileSystem::SYNCHRONIZE,
-        System::{
-            Diagnostics::ToolHelp::{
-                CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next,
-                TH32CS_SNAPPROCESS,
-            },
-            Threading::{GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject},
-        },
-    };
-
     unsafe {
         // Take a snapshot of system processes, one of which is ours
         // and contains our parent's pid
@@ -464,15 +471,6 @@ pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
 }
 
 fn _apply_new_path(new_path: Option<HSTRING>, process: &Process) -> anyhow::Result<()> {
-    use std::ptr;
-
-    use windows_sys::Win32::{
-        Foundation::{LPARAM, WPARAM},
-        UI::WindowsAndMessaging::{
-            HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
-        },
-    };
-
     let Some(new_path) = new_path else {
         return Ok(()); // No need to set the path
     };
@@ -622,8 +620,6 @@ pub(crate) fn update_uninstall_registry_display_version(
 }
 
 pub(crate) fn add_uninstall_registry_entry(process: &Process) -> anyhow::Result<()> {
-    use std::path::PathBuf;
-
     let key = rustup_uninstall_registry_key(process)?;
 
     // Don't overwrite registry if Rustup is already installed
@@ -712,17 +708,6 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    use std::{io, ptr, thread, time::Duration};
-
-    use windows_sys::Win32::{
-        Foundation::{CloseHandle, GENERIC_READ, INVALID_HANDLE_VALUE},
-        Security::SECURITY_ATTRIBUTES,
-        Storage::FileSystem::{
-            CreateFileW, FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ,
-            OPEN_EXISTING,
-        },
-    };
-
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = process.cargo_home()?;
     // The rustup.exe bin
