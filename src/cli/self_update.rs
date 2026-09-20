@@ -708,7 +708,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
         #[cfg(not(windows))]
         {
             let rcfiles = shell::get_available_shells(process)
-                .flat_map(|sh| sh.rcs(process).into_iter())
+                .flat_map(|sh| sh.rcs(process))
                 .map(|rc| format!("    {}", rc.display()))
                 .collect::<Vec<_>>();
             let plural = if rcfiles.len() > 1 { "s" } else { "" };

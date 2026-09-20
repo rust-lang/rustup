@@ -26,6 +26,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::bail;
+use itertools::Itertools;
 
 use super::utils;
 use crate::process::Process;
@@ -113,14 +114,16 @@ pub(crate) trait UnixShell {
     // Returns the display name of the shell, used in post-install messages.
     fn name(&self) -> &'static str;
 
-    // Gives all rcfiles of a given shell that Rustup is concerned with.
-    // Used primarily in checking rcfiles for cleanup.
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf>;
+    // Gives candidate rcfile paths, which may not exist, in preference order.
+    // Used to select installation targets and check all candidates for cleanup.
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>>;
 
     // Returns rcfile paths where installation should add the source command.
     // May return multiple paths, including files that do not yet exist.
     // Does not modify the files.
-    fn rcs(&self, process: &Process) -> Vec<PathBuf>;
+    fn rcs(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        Box::new(self.rc_candidates(process).take(1))
+    }
 
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
@@ -175,17 +178,11 @@ impl UnixShell for Posix {
         "sh/ash/dash/pdksh"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        match process.home_dir() {
-            Some(dir) => vec![dir.join(".profile")],
-            _ => vec![],
-        }
-    }
-
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
         // Write to .profile even if it doesn't exist. It's the only rc in the
         // POSIX spec so it should always be set up.
-        self.rc_candidates(process)
+        Box::new(home_dir.into_iter().map(|dir| dir.join(".profile")))
     }
 }
 
@@ -193,27 +190,26 @@ struct Bash;
 
 impl UnixShell for Bash {
     fn does_exist(&self, process: &Process) -> bool {
-        !self.rcs(process).is_empty()
+        self.rc_candidates(process).any(|rc| rc.is_file())
     }
 
     fn name(&self) -> &'static str {
         "bash"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
         // Bash also may read .profile, however Rustup already includes handling
         // .profile as part of POSIX and always does setup for POSIX shells.
-        [".bash_profile", ".bash_login", ".bashrc"]
-            .iter()
-            .filter_map(|rc| process.home_dir().map(|dir| dir.join(rc)))
-            .collect()
+        Box::new(
+            [".bash_profile", ".bash_login", ".bashrc"]
+                .into_iter()
+                .filter_map(move |rc| home_dir.as_ref().map(|dir| dir.join(rc))),
+        )
     }
 
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
-        self.rc_candidates(process)
-            .into_iter()
-            .filter(|rc| rc.is_file())
-            .collect()
+    fn rcs(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        Box::new(self.rc_candidates(process).filter(|rc| rc.is_file()))
     }
 }
 
@@ -251,26 +247,28 @@ impl UnixShell for Zsh {
         "zsh"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        [Self::zdotdir(process).ok(), process.home_dir()]
-            .iter()
-            .filter_map(|dir| dir.as_ref().map(|p| p.join(".zshenv")))
-            .collect()
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
+        Box::new(
+            Self::zdotdir(process)
+                .into_iter()
+                .map(|dir| dir.join(".zshenv"))
+                .chain(home_dir.into_iter().map(|dir| dir.join(".zshenv"))),
+        )
     }
 
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
         // zsh can change $ZDOTDIR both _before_ AND _during_ reading .zshenv,
         // so we: write to $ZDOTDIR/.zshenv if-exists ($ZDOTDIR changes before)
         // OR write to $HOME/.zshenv if it exists (change-during)
         // if neither exist, we create it ourselves, but using the same logic,
         // because we must still respond to whether $ZDOTDIR is set or unset.
         // In any case we only write once.
-        self.rc_candidates(process)
-            .into_iter()
-            .filter(|env| env.is_file())
-            .chain(self.rc_candidates(process))
-            .take(1)
-            .collect()
+        Box::new(
+            self.rc_candidates(process)
+                .find_or_first(|rc| rc.is_file())
+                .into_iter(),
+        )
     }
 }
 
@@ -289,27 +287,20 @@ impl UnixShell for Fish {
 
     // > "$XDG_CONFIG_HOME/fish/conf.d" (or "~/.config/fish/conf.d" if that variable is unset) for the user
     // from <https://github.com/fish-shell/fish-shell/issues/3170#issuecomment-228311857>
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        let p0 = process.var("XDG_CONFIG_HOME").ok().map(|p| {
-            let mut path = PathBuf::from(p);
-            path.push("fish/conf.d/rustup.fish");
-            path
-        });
-
-        let p1 = process.home_dir().map(|mut path| {
-            path.push(".config/fish/conf.d/rustup.fish");
-            path
-        });
-
-        p0.into_iter().chain(p1).collect()
-    }
-
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
         // The first rcfile takes precedence.
-        match self.rc_candidates(process).into_iter().next() {
-            Some(path) => vec![path],
-            None => vec![],
-        }
+        Box::new(
+            process
+                .var("XDG_CONFIG_HOME")
+                .into_iter()
+                .map(|dir| Path::new(&dir).join("fish/conf.d/rustup.fish"))
+                .chain(
+                    home_dir
+                        .into_iter()
+                        .map(|home| home.join(".config/fish/conf.d/rustup.fish")),
+                ),
+        )
     }
 
     fn env_script(&self) -> ShellScript {
@@ -340,28 +331,20 @@ impl UnixShell for Nu {
         "nushell"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        let mut paths = vec![];
-
-        if let Ok(p) = process.var("XDG_CONFIG_HOME") {
-            let mut p = PathBuf::from(p);
-            p.extend(["nushell", "config.nu"]);
-            paths.push(p)
-        }
-
-        if let Some(mut p) = process.home_dir() {
-            p.extend([".config", "nushell", "config.nu"]);
-            paths.push(p)
-        }
-        paths
-    }
-
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
         // The first rcfile in XDG_CONFIG_HOME takes precedence.
-        match self.rc_candidates(process).into_iter().next() {
-            Some(path) => vec![path],
-            None => vec![],
-        }
+        Box::new(
+            process
+                .var("XDG_CONFIG_HOME")
+                .into_iter()
+                .map(|dir| Path::new(&dir).join("nushell/config.nu"))
+                .chain(
+                    home_dir
+                        .into_iter()
+                        .map(|home| home.join(".config/nushell/config.nu")),
+                ),
+        )
     }
 
     fn env_script(&self) -> ShellScript {
@@ -395,30 +378,23 @@ impl UnixShell for Tcsh {
         "tcsh"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        let mut paths = vec![];
-
-        if let Some(home) = process.home_dir() {
-            paths.push(home.join(".tcshrc"));
-            paths.push(home.join(".cshrc"));
-        }
-
-        paths
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
+        Box::new(
+            [".tcshrc", ".cshrc"]
+                .into_iter()
+                .filter_map(move |rc| home_dir.as_ref().map(|home| home.join(rc))),
+        )
     }
 
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
-        for f in self.rc_candidates(process) {
-            if f.is_file() {
-                return vec![f];
-            }
-        }
-
+    fn rcs(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        // Prefer .tcshrc over .cshrc.
         // If neither exists, default to ~/.tcshrc
-        if let Some(home) = process.home_dir() {
-            return vec![home.join(".tcshrc")];
-        }
-
-        vec![]
+        Box::new(
+            self.rc_candidates(process)
+                .find_or_first(|rc| rc.is_file())
+                .into_iter(),
+        )
     }
 
     fn env_script(&self) -> ShellScript {
@@ -448,60 +424,33 @@ impl UnixShell for Pwsh {
         "pwsh"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        let mut paths = vec![];
-
-        let Some(mut config_dir) = process.home_dir() else {
-            return paths;
-        };
-        config_dir.extend([".config", "powershell"]);
-
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
         // PowerShell provides many kinds of user-specific and host-specific
         // profile files. When the system has multiple profiles, PowerShell
         // executes them in a defined order.
         //
         // For more details, please refer to:
         // https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles
-        //
+        let config_dir = home_dir.map(|home| home.join(".config/powershell"));
+
         // `~/.config/powershell/profile.ps1` is the "Current User, All Hosts"
         // profile file. It affects all PowerShell hosts of the current user.
-        paths.push(config_dir.join("profile.ps1"));
-
-        let Ok(config_dir) = config_dir.read_dir() else {
-            return paths;
-        };
+        // Always modify the "Current User, All Hosts" profile.
+        let profile = config_dir.as_ref().map(|dir| dir.join("profile.ps1"));
 
         // Some editors like Visual Studio Code or PowerShell ISE use their
         // own dedicated profile files, whose file names are
         // `<Host Profile ID>_profile.ps1`. Such customization may use
         // PowerShell Editor Services for IDE integration.
         // https://github.com/PowerShell/PowerShellEditorServices
-        for host_profile in config_dir {
-            let Ok(host_profile) = host_profile else {
-                continue;
-            };
-            let host_profile_path = host_profile.path();
-            if !host_profile_path.is_file() {
-                continue;
-            }
-            if host_profile_path.ends_with("_profile.ps1") {
-                paths.push(host_profile_path);
-            }
-        }
-
-        paths
-    }
-
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
-        let mut paths = vec![];
-        // Always modify the "Current User, All Hosts" profile.
-        let Some(mut profile) = process.home_dir() else {
-            return paths;
-        };
-
-        profile.extend([".config", "powershell", "profile.ps1"]);
-        paths.push(profile);
-        paths
+        let host_profiles = config_dir
+            .into_iter()
+            .flat_map(|dir| dir.read_dir().into_iter().flatten())
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| path.is_file() && path.ends_with("_profile.ps1"));
+        Box::new(profile.into_iter().chain(host_profiles))
     }
 
     fn env_script(&self) -> ShellScript {
@@ -530,33 +479,19 @@ impl UnixShell for Xonsh {
         "xonsh"
     }
 
-    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
-        let mut paths = vec![];
-
-        if let Ok(p) = process.var("XDG_CONFIG_HOME") {
-            let mut p = PathBuf::from(p);
-            p.extend(["xonsh", "rc.xsh"]);
-            paths.push(p);
-        }
-
-        if let Some(mut p) = process.home_dir() {
-            p.extend([".config", "xonsh", "rc.xsh"]);
-            paths.push(p);
-        }
-
-        if let Some(home) = process.home_dir() {
-            paths.push(home.join(".xonshrc"));
-        }
-
-        paths
-    }
-
-    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Box<dyn Iterator<Item = PathBuf>> {
+        let home_dir = process.home_dir();
         // The first rcfile in XDG_CONFIG_HOME takes precedence.
-        match self.rc_candidates(process).into_iter().next() {
-            Some(path) => vec![path],
-            None => vec![],
-        }
+        let home_rcs = [".config/xonsh/rc.xsh", ".xonshrc"]
+            .into_iter()
+            .filter_map(move |rc| home_dir.as_ref().map(|home| home.join(rc)));
+        Box::new(
+            process
+                .var("XDG_CONFIG_HOME")
+                .into_iter()
+                .map(|dir| Path::new(&dir).join("xonsh/rc.xsh"))
+                .chain(home_rcs),
+        )
     }
 
     fn env_script(&self) -> ShellScript {

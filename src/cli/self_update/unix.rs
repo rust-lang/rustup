@@ -59,7 +59,7 @@ pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
         // Check more files for cleanup than normally are updated.
-        remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
+        remove_source_command(&source_cmd, sh.rc_candidates(process))?;
     }
 
     remove_legacy_paths(process, &cargo_home, home_dir.as_deref())
@@ -142,9 +142,13 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 }
 
 /// Removes the first exact line matching `command` followed by a newline from each existing rcfile.
-fn remove_source_command(command: &str, rcfiles: &[PathBuf]) -> anyhow::Result<()> {
+fn remove_source_command(
+    command: &str,
+    rcfiles: impl IntoIterator<Item = impl AsRef<Path>>,
+) -> anyhow::Result<()> {
     let command_bytes = format!("{command}\n").into_bytes();
-    for rc in rcfiles.iter().filter(|rc| rc.is_file()) {
+    for rc in rcfiles.into_iter().filter(|rc| rc.as_ref().is_file()) {
+        let rc = rc.as_ref();
         let file = utils::read_file("rcfile", rc)?;
         let file_bytes = file.into_bytes();
         // FIXME: This is whitespace sensitive where it should not be.
