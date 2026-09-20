@@ -6,7 +6,10 @@ use std::{
     fs::OpenOptions,
     io::{self, Write},
     mem,
-    os::windows::fs::OpenOptionsExt,
+    os::windows::{
+        fs::OpenOptionsExt,
+        io::{AsRawHandle, FromRawHandle, OwnedHandle},
+    },
     path::{Path, PathBuf},
     process::{Command, Stdio},
     ptr, thread,
@@ -23,8 +26,8 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
 use windows_sys::Win32::{
     Foundation::{
-        CloseHandle, ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA, INVALID_HANDLE_VALUE, LPARAM,
-        WAIT_OBJECT_0, WPARAM,
+        ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA, INVALID_HANDLE_VALUE, LPARAM, WAIT_OBJECT_0,
+        WPARAM,
     },
     Storage::FileSystem::{
         FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, SYNCHRONIZE,
@@ -415,15 +418,13 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
             return Err(err).context(CliError::WindowsUninstallMadness);
         }
 
-        let snapshot = scopeguard::guard(snapshot, |h| {
-            let _ = CloseHandle(h);
-        });
+        let snapshot = OwnedHandle::from_raw_handle(snapshot);
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
         entry.dwSize = size_of::<PROCESSENTRY32>() as u32;
 
         // Iterate over system processes looking for ours
-        let success = Process32First(*snapshot, &mut entry);
+        let success = Process32First(snapshot.as_raw_handle(), &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
             return Err(err).context(CliError::WindowsUninstallMadness);
@@ -431,7 +432,7 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 
         let this_pid = GetCurrentProcessId();
         while entry.th32ProcessID != this_pid {
-            let success = Process32Next(*snapshot, &mut entry);
+            let success = Process32Next(snapshot.as_raw_handle(), &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
                 return Err(err).context(CliError::WindowsUninstallMadness);
@@ -450,12 +451,10 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
             return Ok(());
         }
 
-        let parent = scopeguard::guard(parent, |h| {
-            let _ = CloseHandle(h);
-        });
+        let parent = OwnedHandle::from_raw_handle(parent);
 
         // Wait for our parent to exit
-        let res = WaitForSingleObject(*parent, INFINITE);
+        let res = WaitForSingleObject(parent.as_raw_handle(), INFINITE);
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();

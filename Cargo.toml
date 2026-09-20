@@ -110,7 +110,6 @@ snapbox = { version = "1", features = ["term-svg"], optional = true }
 walkdir = { version = "2", optional = true }
 
 [target."cfg(windows)".dependencies]
-scopeguard = "1"
 windows-registry = "0.100"
 windows-result = "0.100"
 
