@@ -278,7 +278,7 @@ pub fn updater_path(stage: &Path) -> PathBuf {
 }
 
 fn stage_root(process: &Process) -> anyhow::Result<PathBuf> {
-    Ok(process.rustup_home()?.join(SELF_UPDATE_DIRECTORY))
+    Ok(process.home_dirs()?.state.join(SELF_UPDATE_DIRECTORY))
 }
 
 pub const SELF_UPDATE_DIRECTORY: &str = "self-update";
@@ -300,10 +300,16 @@ mod tests {
     #[tokio::test]
     async fn updater_path_is_stable() {
         let root = test_dir().unwrap();
-        let process = test_process(root.path());
+        let state_home = root.path().join("state");
+        let mut vars = HashMap::new();
+        vars.env("RUSTUP_HOME", root.path().join("rustup"));
+        vars.env("RUSTUP_STATE_HOME", &state_home);
+        vars.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        let process = TestProcess::with_vars(vars);
         let first = SelfUpdateLock::lock(&process.process).unwrap();
         let first_path = updater_path(&first.directory);
         let stage = first.directory.clone();
+        assert_eq!(stage, state_home.join(SELF_UPDATE_DIRECTORY));
         fs::write(&first_path, "").unwrap();
         fs::write(Marker::Complete.path(&stage), "").unwrap();
         drop(first);
