@@ -32,8 +32,9 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
+#[cfg(unix)]
+use std::borrow::Cow;
 use std::{
-    borrow::Cow,
     env::{self, consts::EXE_SUFFIX},
     fmt, fs,
     io::{self, Write},
@@ -193,15 +194,16 @@ impl InstallOpts<'_> {
 
         let cargo_home = process.cargo_home()?;
         let home_dir = process.home_dir();
-        let env_dir = canonical_cargo_home(&cargo_home, home_dir.as_deref());
-        let cargo_bin_dir = format!("{env_dir}{MAIN_SEPARATOR}bin");
         let msg = if no_modify_path {
             format!(
                 post_install_msg_no_modify_path!(),
-                cargo_bin_dir = cargo_bin_dir
+                cargo_bin_dir = HomeDisplay::new(&cargo_home.join("bin"), home_dir.as_deref()),
             )
         } else {
-            format!(post_install_msg!(), cargo_bin_dir = cargo_bin_dir)
+            format!(
+                post_install_msg!(),
+                cargo_bin_dir = HomeDisplay::new(&cargo_home.join("bin"), home_dir.as_deref()),
+            )
         };
         md(&mut term, msg);
         #[cfg(not(windows))]
@@ -209,7 +211,7 @@ impl InstallOpts<'_> {
             &mut term,
             format!(
                 post_install_msg_unix!(),
-                env_dir = env_dir,
+                env_dir = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
                 source_env_lines =
                     shell::build_source_env_lines(process, &cargo_home, home_dir.as_deref()),
             ),
@@ -586,17 +588,39 @@ fn update_root(process: &Process) -> String {
         .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
 }
 
-/// `CARGO_HOME` suitable for display, possibly with $HOME
-/// substituted for the directory prefix
-fn canonical_cargo_home(cargo_home: &Path, home_dir: Option<&Path>) -> Cow<'static, str> {
-    let default_cargo_home = home_dir.unwrap_or_else(|| Path::new(".")).join(".cargo");
-    if default_cargo_home == cargo_home {
-        cfg_select! {
-            windows => r"%USERPROFILE%\.cargo".into(),
-            _ => "$HOME/.cargo".into(),
+/// Displays an installation path with a platform-specific home abbreviation.
+struct HomeDisplay<'a> {
+    path: &'a Path,
+    home_prefix: Option<&'a str>,
+}
+
+impl<'a> HomeDisplay<'a> {
+    fn new(path: &'a Path, home_dir: Option<&Path>) -> Self {
+        match home_dir.and_then(|home| path.strip_prefix(home).ok()) {
+            Some(relative) => Self {
+                path: relative,
+                home_prefix: Some(cfg_select! {
+                    windows => "%USERPROFILE%",
+                    _ => "$HOME",
+                }),
+            },
+            None => Self {
+                path,
+                home_prefix: None,
+            },
         }
-    } else {
-        cargo_home.to_string_lossy().into_owned().into()
+    }
+}
+
+impl fmt::Display for HomeDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(home_prefix) = self.home_prefix {
+            f.write_str(home_prefix)?;
+            if !self.path.is_empty() {
+                write!(f, "{MAIN_SEPARATOR}")?;
+            }
+        }
+        self.path.display().fmt(f)
     }
 }
 
@@ -945,8 +969,8 @@ pub(crate) fn uninstall(
         let msg = if no_modify_path {
             pre_uninstall_msg_no_modify_path!().to_owned()
         } else {
-            let cargo_home = canonical_cargo_home(&cargo_home, process.home_dir().as_deref());
-            let cargo_bin_dir = format!("{cargo_home}{MAIN_SEPARATOR}bin");
+            let bin_home = cargo_home.join("bin");
+            let cargo_bin_dir = HomeDisplay::new(&bin_home, process.home_dir().as_deref());
             format!(pre_uninstall_msg!(), cargo_bin_dir = cargo_bin_dir)
         };
         md(&mut process.stdout(), msg);
@@ -1370,8 +1394,9 @@ pub(crate) fn cleanup_self_updater(bin_path: &Path) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, path::Path};
 
+    use super::HomeDisplay;
     use crate::{
         cli::self_update::InstallOpts,
         config::Cfg,
@@ -1380,6 +1405,48 @@ mod tests {
         process::TestProcess,
         test::{test_dir, with_rustup_home},
     };
+
+    #[test]
+    fn bin_home_display() {
+        let home = Path::new("/home/user");
+        let cargo_bin_dir = home.join(".cargo").join("bin");
+        assert_eq!(
+            HomeDisplay::new(&cargo_bin_dir, Some(home)).to_string(),
+            cfg_select! {
+                windows => r"%USERPROFILE%\.cargo\bin",
+                _ => "$HOME/.cargo/bin",
+            }
+        );
+
+        let local_bin_dir = home.join(".local").join("bin");
+        assert_eq!(
+            HomeDisplay::new(&local_bin_dir, Some(home)).to_string(),
+            cfg_select! {
+                windows => r"%USERPROFILE%\.local\bin",
+                _ => "$HOME/.local/bin",
+            }
+        );
+        assert_eq!(
+            HomeDisplay::new(home, Some(home)).to_string(),
+            cfg_select! {
+                windows => "%USERPROFILE%",
+                _ => "$HOME",
+            }
+        );
+
+        for bin_home in ["/opt/rust/bin", "/home/username/bin", ".cargo/bin"] {
+            let bin_home = Path::new(bin_home);
+            assert_eq!(
+                HomeDisplay::new(bin_home, Some(home)).to_string(),
+                bin_home.display().to_string()
+            );
+        }
+
+        assert_eq!(
+            HomeDisplay::new(&cargo_bin_dir, None).to_string(),
+            cargo_bin_dir.display().to_string()
+        );
+    }
 
     #[test]
     fn default_toolchain_is_stable() {
