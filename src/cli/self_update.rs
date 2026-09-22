@@ -255,16 +255,6 @@ impl InstallOpts<'_> {
         #[cfg(windows)]
         add_uninstall_registry_entry(process)?;
 
-        // If RUSTUP_HOME is not set, make sure it exists
-        if process.var_os("RUSTUP_HOME").is_none() {
-            let home = process
-                .home_dir()
-                .map(|p| p.join(".rustup"))
-                .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
-
-            fs::create_dir_all(home).context("unable to create ~/.rustup")?;
-        }
-
         let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
 
         let (components, targets) = (self.components, self.targets);
@@ -678,8 +668,9 @@ fn check_existence_of_rustc_or_cargo_in_path(
 }
 
 fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
-    let rustup_dir = process.rustup_home()?;
-    let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+    // TODO: Setting file's category is still under discussion
+    // See: [discussion issue](https://github.com/rust-lang/rustup/issues/4944)
+    let settings_file = SettingsFile::new(process.home_dirs()?.config.join("settings.toml"));
     if !utils::path_exists(&settings_file.path) {
         return Ok(());
     }

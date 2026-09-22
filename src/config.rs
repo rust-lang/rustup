@@ -323,6 +323,7 @@ pub(crate) struct Cfg<'a> {
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     pub rustup_cache_dir: PathBuf,
+    pub rustup_config_dir: PathBuf,
     pub rustup_data_dir: PathBuf,
     pub rustup_state_dir: PathBuf,
     pub download_dir: PathBuf,
@@ -354,15 +355,18 @@ impl<'a> Cfg<'a> {
         let rustup_dir = process.rustup_home()?;
         let home_dirs = process.home_dirs()?;
         let rustup_cache_dir = home_dirs.cache;
+        let rustup_config_dir = home_dirs.config;
         let rustup_data_dir = home_dirs.data;
         let rustup_state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
         if process.use_category_home() {
+            utils::ensure_dir_exists("config home", &rustup_config_dir)?;
             utils::ensure_dir_exists("state home", &rustup_state_dir)?;
+        } else {
+            utils::ensure_dir_exists("home", &rustup_config_dir)?;
         }
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(rustup_config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
@@ -409,6 +413,7 @@ impl<'a> Cfg<'a> {
             fallback_settings,
             toolchains_dir,
             rustup_cache_dir,
+            rustup_config_dir,
             rustup_data_dir,
             rustup_state_dir,
             download_dir,
@@ -1199,6 +1204,7 @@ impl Debug for Cfg<'_> {
             fallback_settings,
             toolchains_dir,
             rustup_cache_dir,
+            rustup_config_dir,
             rustup_data_dir,
             rustup_state_dir,
             download_dir,
@@ -1220,6 +1226,7 @@ impl Debug for Cfg<'_> {
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("rustup_cache_dir", rustup_cache_dir)
+            .field("rustup_config_dir", rustup_config_dir)
             .field("rustup_data_dir", rustup_data_dir)
             .field("rustup_state_dir", rustup_state_dir)
             .field("download_dir", download_dir)
