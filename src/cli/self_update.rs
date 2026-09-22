@@ -213,15 +213,18 @@ impl InstallOpts<'_> {
         };
         md(&mut term, msg);
         #[cfg(not(windows))]
-        md(
-            &mut term,
-            format!(
-                post_install_msg_unix!(),
-                env_dir = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
-                source_env_lines =
-                    shell::build_source_env_lines(process, &cargo_home, home_dir.as_deref()),
-            ),
-        );
+        {
+            let env_home = process.env_home()?;
+            md(
+                &mut term,
+                format!(
+                    post_install_msg_unix!(),
+                    env_dir = HomeDisplay::new(&env_home, home_dir.as_deref()),
+                    source_env_lines =
+                        shell::build_source_env_lines(process, &env_home, home_dir.as_deref()),
+                ),
+            );
+        }
 
         #[cfg(unix)]
         warn_if_default_linker_missing(process);

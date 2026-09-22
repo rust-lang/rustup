@@ -98,6 +98,18 @@ impl Process {
         })
     }
 
+    /// Returns the directory containing Rustup's shell environment scripts.
+    ///
+    /// Category mode uses the data home; legacy mode uses the Cargo home.
+    #[cfg(any(unix, test))]
+    pub(crate) fn env_home(&self) -> io::Result<PathBuf> {
+        if self.use_category_home() {
+            return home::category_home(home::HomeCategory::Data, self);
+        }
+
+        home_env::cargo_home_with_env(self)
+    }
+
     /// Returns Rustup's binary installation directory.
     ///
     /// Category mode uses the binary directory resolver in [`home`].
@@ -523,6 +535,7 @@ mod tests {
         for home in [&homes.cache, &homes.config, &homes.data, &homes.state] {
             assert_eq!(home, &home_dir.join(".rustup"));
         }
+        assert_eq!(tp.process.env_home()?, home_dir.join(".cargo"));
         assert_eq!(tp.process.bin_home()?, home_dir.join(".cargo/bin"));
 
         let rustup_home = home_dir.join("legacy");
@@ -534,6 +547,7 @@ mod tests {
         for home in [&homes.cache, &homes.config, &homes.data, &homes.state] {
             assert_eq!(home, &rustup_home);
         }
+        assert_eq!(tp.process.env_home()?, cargo_home);
         assert_eq!(tp.process.bin_home()?, cargo_home.join("bin"));
         Ok(())
     }
@@ -556,6 +570,7 @@ mod tests {
             assert_eq!(homes.config, home_dir.join(".config/rustup"));
             assert_eq!(homes.data, home_dir.join(".local/share/rustup"));
             assert_eq!(homes.state, home_dir.join(".local/state/rustup"));
+            assert_eq!(tp.process.env_home()?, home_dir.join(".local/share/rustup"));
         }
         assert_eq!(tp.process.bin_home()?, home_dir.join(".local/bin"));
 
@@ -572,6 +587,7 @@ mod tests {
         assert_eq!(homes.config, Path::new("config"));
         assert_eq!(homes.data, Path::new("data"));
         assert_eq!(homes.state, Path::new("state"));
+        assert_eq!(tp.process.env_home()?, Path::new("data"));
         assert_eq!(tp.process.bin_home()?, Path::new("bin"));
         Ok(())
     }
