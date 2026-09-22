@@ -672,7 +672,10 @@ pub(crate) fn run_update(setup_path: &Path, process: &Process) -> anyhow::Result
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
-    install_bins(process)?;
+    install_bins(
+        &process.cargo_home()?.join("bin"),
+        super::force_hard_links(process),
+    )?;
 
     Ok(utils::ExitCode(0))
 }
@@ -706,9 +709,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
-    // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = process.cargo_home()?;
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> anyhow::Result<()> {
     // The rustup.exe bin
     let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
 

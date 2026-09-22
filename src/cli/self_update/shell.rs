@@ -23,7 +23,7 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::bail;
 
@@ -37,15 +37,17 @@ pub(crate) struct ShellScript {
 }
 
 // TODO: Update into a bytestring.
-fn cargo_home_str_with_home(home: &str, process: &Process) -> anyhow::Result<String> {
-    let path = process.cargo_home()?;
-
-    let default_cargo_home = process
-        .home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".cargo");
-    Ok(if default_cargo_home == path {
-        format!("{home}/.cargo")
+fn path_str_with_home(
+    home: &str,
+    path: &Path,
+    home_dir: Option<&Path>,
+    default_suffix: &str,
+) -> anyhow::Result<String> {
+    let default_path = home_dir
+        .unwrap_or_else(|| Path::new("."))
+        .join(default_suffix);
+    Ok(if default_path == path {
+        format!("{home}/{default_suffix}")
     } else {
         match path.to_str() {
             Some(p) => p.to_owned(),
@@ -58,9 +60,13 @@ fn cargo_home_str_with_home(home: &str, process: &Process) -> anyhow::Result<Str
 /// shells that are available on the current system. Shells sharing the same
 /// env file are grouped onto one line (e.g. sh/bash/zsh all use `env`).
 pub(crate) fn build_source_env_lines(process: &Process) -> String {
+    let Ok(cargo_home) = process.cargo_home() else {
+        return String::new();
+    };
+    let home_dir = process.home_dir();
     let mut groups = Vec::<(_, Vec<_>)>::new();
     for shell in get_available_shells(process) {
-        let Ok(src) = shell.source_string(process) else {
+        let Ok(src) = shell.source_string(&cargo_home, home_dir.as_deref()) else {
             continue;
         };
         if let Some(names) = groups
@@ -124,22 +130,34 @@ pub(crate) trait UnixShell {
         }
     }
 
-    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<String> {
+    fn home_var(&self) -> &'static str {
         #[cfg(windows)]
         let home = "%USERPROFILE%";
         #[cfg(not(windows))]
         let home = "$HOME";
-        cargo_home_str_with_home(home, process)
+        home
     }
 
-    fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        Ok(format!(r#". "{}/env""#, self.cargo_home_str(process)?))
+    fn env_dir_str(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
+        path_str_with_home(self.home_var(), env_dir, home_dir, ".cargo")
     }
 
-    fn write_script(&self, script: &ShellScript, process: &Process) -> anyhow::Result<()> {
-        let home = process.cargo_home()?;
-        let cargo_bin = format!("{}/bin", self.cargo_home_str(process)?);
-        let env_name = home.join(script.name);
+    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
+        Ok(format!(
+            r#". "{}/env""#,
+            self.env_dir_str(env_dir, home_dir)?
+        ))
+    }
+
+    fn write_script(
+        &self,
+        script: &ShellScript,
+        env_dir: &Path,
+        bin_dir: &Path,
+        home_dir: Option<&Path>,
+    ) -> anyhow::Result<()> {
+        let cargo_bin = path_str_with_home(self.home_var(), bin_dir, home_dir, ".cargo/bin")?;
+        let env_name = env_dir.join(script.name);
         let env_file = script.content.replace("{cargo_bin}", &cargo_bin);
         utils::write_file(script.name, &env_name, &env_file)?;
         Ok(())
@@ -301,10 +319,10 @@ impl UnixShell for Fish {
         }
     }
 
-    fn source_string(&self, process: &Process) -> anyhow::Result<String> {
+    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
         Ok(format!(
             r#"source "{}/env.fish""#,
-            self.cargo_home_str(process)?
+            self.env_dir_str(env_dir, home_dir)?
         ))
     }
 }
@@ -353,15 +371,15 @@ impl UnixShell for Nu {
         }
     }
 
-    fn source_string(&self, process: &Process) -> anyhow::Result<String> {
+    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
         Ok(format!(
             r#"source "{}/env.nu""#,
-            self.cargo_home_str(process)?
+            self.env_dir_str(env_dir, home_dir)?
         ))
     }
 
-    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<String> {
-        cargo_home_str_with_home("~", process)
+    fn home_var(&self) -> &'static str {
+        "~"
     }
 }
 
@@ -410,10 +428,10 @@ impl UnixShell for Tcsh {
         }
     }
 
-    fn source_string(&self, process: &Process) -> anyhow::Result<String> {
+    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
         Ok(format!(
             r#"source "{}/env.tcsh""#,
-            self.cargo_home_str(process)?
+            self.env_dir_str(env_dir, home_dir)?
         ))
     }
 }
@@ -493,8 +511,11 @@ impl UnixShell for Pwsh {
         }
     }
 
-    fn source_string(&self, process: &Process) -> anyhow::Result<String> {
-        Ok(format!(r#". "{}/env.ps1""#, self.cargo_home_str(process)?))
+    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
+        Ok(format!(
+            r#". "{}/env.ps1""#,
+            self.env_dir_str(env_dir, home_dir)?
+        ))
     }
 }
 
@@ -545,15 +566,15 @@ impl UnixShell for Xonsh {
         }
     }
 
-    fn source_string(&self, process: &Process) -> anyhow::Result<String> {
+    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
         Ok(format!(
             r#"source "{}/env.xsh""#,
-            self.cargo_home_str(process)?
+            self.env_dir_str(env_dir, home_dir)?
         ))
     }
 
-    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<String> {
-        cargo_home_str_with_home("$HOME", process)
+    fn home_var(&self) -> &'static str {
+        "$HOME"
     }
 }
 
