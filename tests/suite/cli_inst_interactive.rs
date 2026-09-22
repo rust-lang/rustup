@@ -179,6 +179,32 @@ Consider running the right command for your shell (note the leading DOT):
     });
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn category_install_displays_shell_setup() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let data_home = cx.config.homedir.join("data");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("PATH", cx.config.exedir.to_str().unwrap()),
+        ("SHELL", "/bin/sh"),
+    ];
+
+    cx.config
+        .expect_with_env(["rustup-init", "-y", "--default-toolchain", "none"], env)
+        .await
+        .extend_redactions([("[DATA_HOME]", data_home.to_str().unwrap().to_owned())])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+...
+corresponding env file under $HOME/data.
+...
+  . "[DATA_HOME]/env" # For sh/ash/dash/pdksh
+...
+"#]]);
+}
+
 #[tokio::test]
 async fn blank_lines_around_stderr_log_output_update() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;

@@ -70,6 +70,22 @@ export PATH="$HOME/apple/bin"
     }
 
     #[tokio::test]
+    async fn category_install_creates_env_in_data_home() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let data_home = cx.config.homedir.join("data");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+            ("PATH", cx.config.exedir.to_str().unwrap()),
+            ("SHELL", "/bin/sh"),
+        ];
+
+        cx.config.expect_with_env(INIT_NONE, env).await.is_ok();
+
+        assert!(data_home.join("env").is_file());
+    }
+
+    #[tokio::test]
     async fn install_updates_bash_rcs() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
