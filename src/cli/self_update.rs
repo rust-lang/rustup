@@ -242,7 +242,8 @@ impl InstallOpts<'_> {
         quiet: bool,
         process: &Process,
     ) -> anyhow::Result<()> {
-        install_bins(process)?;
+        let cargo_bin = process.cargo_home()?.join("bin");
+        install_bins(&cargo_bin, force_hard_links(process))?;
 
         #[cfg(unix)]
         unix::write_env_files(process)?;
@@ -287,7 +288,7 @@ impl InstallOpts<'_> {
                 DistributableToolchain::install(options).await?.status
             };
 
-            check_proxy_sanity(cfg.process, components, &desc)?;
+            check_proxy_sanity(&cargo_bin, components, &desc)?;
 
             cfg.set_default(Some(&partial_desc.into()))?;
             writeln!(cfg.process.stdout().lock())?;
@@ -771,12 +772,11 @@ fn warn_if_default_linker_missing(process: &Process) {
     }
 }
 
-fn install_bins(process: &Process) -> anyhow::Result<()> {
-    let bin_path = process.cargo_home()?.join("bin");
+fn install_bins(bin_path: &Path, force_hard_links: bool) -> anyhow::Result<()> {
     let this_exe_path = utils::current_exe()?;
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
-    utils::ensure_dir_exists("bin", &bin_path)?;
+    utils::ensure_dir_exists("bin", bin_path)?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if rustup_path.exists() {
@@ -784,22 +784,22 @@ fn install_bins(process: &Process) -> anyhow::Result<()> {
     }
     utils::copy_file_symlink_to_source(&this_exe_path, &rustup_path)?;
     utils::make_executable(&rustup_path)?;
-    install_proxies(process)
+    install_proxies_with_opts(bin_path, force_hard_links)
 }
 
 pub(crate) fn install_proxies(process: &Process) -> anyhow::Result<()> {
-    install_proxies_with_opts(
-        process,
-        // HACK: On Windows CI machines, some Docker setups don't like symlinks, so we force hard
-        // links in this case.
-        // See: <https://github.com/rust-lang/rustup/issues/4291>
-        (cfg!(windows) && process.is_ci())
-            || process.var_os("RUSTUP_FORCE_HARDLINK_PROXIES").is_some(),
-    )
+    let bin_path = process.cargo_home()?.join("bin");
+    install_proxies_with_opts(&bin_path, force_hard_links(process))
 }
 
-fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> anyhow::Result<()> {
-    let bin_path = process.cargo_home()?.join("bin");
+fn force_hard_links(process: &Process) -> bool {
+    // HACK: On Windows CI machines, some Docker setups don't like symlinks, so we force hard
+    // links in this case.
+    // See: <https://github.com/rust-lang/rustup/issues/4291>
+    (cfg!(windows) && process.is_ci()) || process.var_os("RUSTUP_FORCE_HARDLINK_PROXIES").is_some()
+}
+
+fn install_proxies_with_opts(bin_path: &Path, force_hard_links: bool) -> anyhow::Result<()> {
     let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
     let rustup = Handle::from_path(&rustup_path)?;
@@ -893,7 +893,7 @@ fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> anyho
         // This may fail for symlinks in some circumstances.
         let path = bin_path.join(format!("{tool}{EXE_SUFFIX}", tool = TOOLS[0]));
         if fs::File::open(path).is_err() {
-            return install_proxies_with_opts(process, true);
+            return install_proxies_with_opts(bin_path, true);
         }
     }
 
@@ -901,12 +901,10 @@ fn install_proxies_with_opts(process: &Process, force_hard_links: bool) -> anyho
 }
 
 fn check_proxy_sanity(
-    process: &Process,
+    bin_path: &Path,
     components: &[&str],
     desc: &ToolchainDesc,
 ) -> anyhow::Result<()> {
-    let bin_path = process.cargo_home()?.join("bin");
-
     // Sometimes linking a proxy produces an unpredictable result, where the proxy
     // is in place, but manages to not call rustup correctly. One way to make sure we
     // don't run headfirst into the wall is to at least try and run our freshly
@@ -991,7 +989,7 @@ pub(crate) fn uninstall(
     // the process exits.
     // see: windows::{complete_windows_uninstall,spawn_uninstall_gc}
     #[cfg(windows)]
-    windows::spawn_uninstall_gc(no_modify_path, process)?;
+    windows::spawn_uninstall_gc(no_modify_path, &cargo_home)?;
 
     info!("rustup is uninstalled");
 
@@ -1372,9 +1370,8 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Res
 }
 
 #[tracing::instrument(level = "trace")]
-pub(crate) fn cleanup_self_updater(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
-    let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
+pub(crate) fn cleanup_self_updater(bin_path: &Path) -> anyhow::Result<()> {
+    let setup = bin_path.join(format!("rustup-init{EXE_SUFFIX}"));
 
     if setup.exists() {
         utils::remove_file("setup", &setup)?;
@@ -1393,7 +1390,7 @@ mod tests {
         dist::{PartialToolchainDesc, Profile},
         for_host,
         process::TestProcess,
-        test::{Env, test_dir, with_rustup_home},
+        test::{test_dir, with_rustup_home},
     };
 
     #[test]
@@ -1438,10 +1435,7 @@ info: default host tuple is {0}
     fn install_bins_creates_cargo_home() {
         let root_dir = test_dir().unwrap();
         let cargo_home = root_dir.path().join("cargo");
-        let mut vars = HashMap::new();
-        vars.env("CARGO_HOME", cargo_home.to_string_lossy().to_string());
-        let tp = TestProcess::with_vars(vars);
-        super::install_bins(&tp.process).unwrap();
+        super::install_bins(&cargo_home.join("bin"), false).unwrap();
         assert!(cargo_home.exists());
     }
 }

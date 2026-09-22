@@ -54,8 +54,11 @@ pub(crate) fn anti_sudo_check(
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
+    let cargo_home = process.cargo_home()?;
+    let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_bytes = format!("{}\n", sh.source_string(process)?).into_bytes();
+        let source_bytes =
+            format!("{}\n", sh.source_string(&cargo_home, home_dir.as_deref())?).into_bytes();
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rc_candidates(process).iter().filter(|rc| rc.is_file()) {
@@ -78,8 +81,10 @@ pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
+    let cargo_home = process.cargo_home()?;
+    let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(process)?;
+        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.rcs(process) {
@@ -107,13 +112,16 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
+    let cargo_home = process.cargo_home()?;
+    let bin_dir = cargo_home.join("bin");
+    let home_dir = process.home_dir();
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
         let script = sh.env_script();
         // Only write each possible script once.
         if !written.contains(&script) {
-            sh.write_script(&script, process)?;
+            sh.write_script(&script, &cargo_home, &bin_dir, home_dir.as_deref())?;
             written.push(script);
         }
     }
@@ -140,7 +148,10 @@ pub(crate) fn run_update(setup_path: &Path, _process: &Process) -> anyhow::Resul
 /// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
 /// links to it.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    install_bins(process)?;
+    install_bins(
+        &process.cargo_home()?.join("bin"),
+        super::force_hard_links(process),
+    )?;
 
     Ok(utils::ExitCode(0))
 }
@@ -179,7 +190,7 @@ fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
     remove_legacy_source_command(
         format!(
             "export PATH=\"{}/bin:$PATH\"\n",
-            Posix.cargo_home_str(process)?
+            Posix.env_dir_str(&process.cargo_home()?, process.home_dir().as_deref())?
         ),
         process,
     )?;
@@ -187,7 +198,10 @@ fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
     remove_legacy_source_command(
-        format!("source \"{}/env\"\n", Posix.cargo_home_str(process)?),
+        format!(
+            "source \"{}/env\"\n",
+            Posix.env_dir_str(&process.cargo_home()?, process.home_dir().as_deref())?
+        ),
         process,
     )?;
 
