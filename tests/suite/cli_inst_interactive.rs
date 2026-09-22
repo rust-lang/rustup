@@ -55,6 +55,8 @@ async fn update() {
 async fn smoke_case_install_no_modify_path() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     // Keep displayed paths short and shell detection independent of the host.
+    let home = tempfile::tempdir().unwrap();
+    cx.config.homedir = home.path().to_owned();
     cx.config.cargodir = cx.config.homedir.join(".cargo");
     // During an interactive session, after "Press the Enter
     // key..."  the UI emits a blank line, then there is a blank
@@ -70,7 +72,16 @@ async fn smoke_case_install_no_modify_path() {
             ("SHELL", "/bin/sh"),
         ],
     )
+    .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+    .extend_redactions([("[HOME]", cx.config.homedir.clone())])
     .with_stdout(snapbox::str![[r#"
+...
+Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+  [RUSTUP_DIR]
+
+This can be modified with the RUSTUP_HOME environment variable.
 ...
 This path needs to be in your PATH environment variable,
 but will not be added automatically.
@@ -102,7 +113,7 @@ Rust is installed now. Great!
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (%USERPROFILE%/.cargo/bin) in[..]
+To get started you need Rustup's bin directory (%USERPROFILE%/.cargo/bin) in[..]
 your PATH
 environment variable. This has not been done automatically.
 
@@ -113,7 +124,7 @@ Press the Enter key to continue.
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ($HOME/.cargo/bin) in your PATH
+To get started you need Rustup's bin directory ($HOME/.cargo/bin) in your PATH
 environment variable. This has not been done automatically.
 
 To configure your current shell, you need to source the
@@ -152,6 +163,7 @@ async fn smoke_case_install_with_path_install() {
             ("SHELL", "/bin/sh"),
         ],
     )
+    .extend_redactions([("[HOME]", cx.config.homedir.clone())])
     .is_ok()
     .without_stdout("This path needs to be in your PATH environment variable")
     .with_stdout(cfg_select! {
@@ -161,7 +173,7 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory (%USERPROFILE%/.cargo/bin).
+Rustup's bin directory (%USERPROFILE%/.cargo/bin).
 
 Press the Enter key to continue.
 
@@ -172,7 +184,7 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory ($HOME/.cargo/bin).
+Rustup's bin directory ($HOME/.cargo/bin).
 
 To configure your current shell, you need to source the
 corresponding env file under $HOME/.cargo.
@@ -183,6 +195,7 @@ Consider running the right command for your shell (note the leading DOT):
 ...
 "#]],
     });
+
     #[cfg(unix)]
     assert_eq!(
         fs::read_to_string(cx.config.homedir.join(".profile")).unwrap(),
@@ -364,6 +377,87 @@ async fn install_with_split_homes_does_not_create_legacy_home() {
     assert!(!cx.config.homedir.join(".rustup").exists());
     assert!(config_home.is_dir());
     assert!(state_home.is_dir());
+}
+
+fn category_home_install_output(config: &Config, homes: [&str; 4]) -> Assert {
+    let [config_home, state_home, data_home, cache_home] = homes;
+    run_input_with_env(
+        config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_HOME", &config.rustupdir.to_string()),
+            ("RUSTUP_CONFIG_HOME", config_home),
+            ("RUSTUP_STATE_HOME", state_home),
+            ("RUSTUP_DATA_HOME", data_home),
+            ("RUSTUP_CACHE_HOME", cache_home),
+        ],
+    )
+}
+
+#[tokio::test]
+async fn install_displays_split_homes() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let data_home = cx.config.current_dir().join("relative/data");
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let redactions = [
+        ("[CONFIG_HOME]", config_home.clone()),
+        ("[STATE_HOME]", state_home.clone()),
+        ("[DATA_HOME]", data_home.clone()),
+        ("[CACHE_HOME]", cache_home.clone()),
+    ];
+
+    category_home_install_output(
+        &cx.config,
+        [
+            config_home.to_str().unwrap(),
+            state_home.to_str().unwrap(),
+            data_home.to_str().unwrap(),
+            cache_home.to_str().unwrap(),
+        ],
+    )
+    .extend_redactions(redactions)
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [CONFIG_HOME]
+    state:  [STATE_HOME]
+    data:   [DATA_HOME]
+    cache:  [CACHE_HOME]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
+}
+
+#[tokio::test]
+async fn install_displays_category_overrides_when_homes_match_legacy() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let home = cx.config.rustupdir.to_string();
+    category_home_install_output(&cx.config, [&home; 4])
+        .extend_redactions([("[RUSTUP_DIR]", &home)])
+        .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [RUSTUP_DIR]
+    state:  [RUSTUP_DIR]
+    data:   [RUSTUP_DIR]
+    cache:  [RUSTUP_DIR]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]

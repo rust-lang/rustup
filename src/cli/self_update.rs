@@ -8,14 +8,14 @@
 //!
 //! During install (as `rustup-init`):
 //!
-//! * copy the self exe to $CARGO_HOME/bin
-//! * hardlink rustc, etc to *that*
+//! * copy the self exe to the Rustup bin home
+//! * hardlink rustc, etc. to *that*
 //! * update the PATH in a system-specific way
 //! * run the equivalent of `rustup default stable`
 //!
 //! During upgrade (`rustup self update`):
 //!
-//! * download rustup-init to a managed path under `$RUSTUP_HOME`
+//! * download rustup-init to `self-update` under the Rustup state home
 //! * run the downloaded binary in replacement mode
 //! * atomically replace rustup and update its proxy links. On Windows
 //!   this happens after the update command exits.
@@ -197,29 +197,32 @@ impl InstallOpts<'_> {
             return Ok(ExitCode::FAILURE);
         }
 
-        let cargo_home = process.cargo_home()?;
+        let bin_home = process.rustup_bin_home()?;
         let home_dir = process.home_dir();
         let msg = if no_modify_path {
             format!(
                 post_install_msg_no_modify_path!(),
-                cargo_bin_dir = HomeDisplay::new(&cargo_home.join("bin"), home_dir.as_deref()),
+                rustup_bin_home = HomeDisplay::new(&bin_home, home_dir.as_deref()),
             )
         } else {
             format!(
                 post_install_msg!(),
-                cargo_bin_dir = HomeDisplay::new(&cargo_home.join("bin"), home_dir.as_deref()),
+                rustup_bin_home = HomeDisplay::new(&bin_home, home_dir.as_deref()),
             )
         };
         md(&mut term, msg);
         #[cfg(not(windows))]
-        md(
-            &mut term,
-            format!(
-                post_install_msg_unix!(),
-                env_dir = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
-                source_env_lines = shell::build_source_env_lines(process, &cargo_home),
-            ),
-        );
+        {
+            let env_home = process.rustup_env_home()?;
+            md(
+                &mut term,
+                format!(
+                    post_install_msg_unix!(),
+                    env_dir = HomeDisplay::new(&env_home, home_dir.as_deref()),
+                    source_env_lines = shell::build_source_env_lines(process, &env_home),
+                ),
+            );
+        }
 
         #[cfg(unix)]
         warn_if_default_linker_missing(process);
@@ -242,8 +245,8 @@ impl InstallOpts<'_> {
         quiet: bool,
         process: &Process,
     ) -> anyhow::Result<()> {
-        let cargo_bin = process.cargo_home()?.join("bin");
-        install_bins(process, &cargo_bin, force_hard_links(process))?;
+        let bin_home = process.rustup_bin_home()?;
+        install_bins(process, &bin_home, force_hard_links(process))?;
 
         #[cfg(unix)]
         unix::write_env_files(process)?;
@@ -278,7 +281,7 @@ impl InstallOpts<'_> {
                 DistributableToolchain::install(options).await?.status
             };
 
-            check_proxy_sanity(&cargo_bin, components, &desc)?;
+            check_proxy_sanity(&bin_home, components, &desc)?;
 
             cfg.set_default(Some(&partial_desc.into()))?;
             writeln!(cfg.process.stdout().lock())?;
@@ -625,8 +628,10 @@ fn rustc_or_cargo_exists_in_path(process: &Process) -> anyhow::Result<()> {
             .any(|c| c == Component::Normal(".cargo".as_ref()))
     }
 
+    let rustup_bin_home = process.rustup_bin_home()?;
     if let Some(paths) = process.var_os("PATH") {
-        let paths = env::split_paths(&paths).filter(ignore_paths);
+        let paths =
+            env::split_paths(&paths).filter(|path| ignore_paths(path) && path != &rustup_bin_home);
 
         for path in paths {
             let rustc = path.join(format!("rustc{EXE_SUFFIX}"));
@@ -692,9 +697,37 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
 }
 
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
-    let cargo_home = process.cargo_home()?;
-    let cargo_bin_dir = cargo_home.join("bin");
-    let rustup_home = process.rustup_home()?;
+    let rustup_bin_home = process.rustup_bin_home()?;
+    let home_dirs = process.home_dirs()?;
+    let rustup_home_message = if !process.use_category_home() {
+        // In legacy mode, all four category homes equal the resolved RUSTUP_HOME.
+        format!(
+            concat!(
+                "Rustup metadata and toolchains will be installed into the Rustup\n",
+                "home directory, located at:\n\n",
+                "    {}\n\n",
+                "This can be modified with the `RUSTUP_HOME` environment variable."
+            ),
+            home_dirs.data.display()
+        )
+    } else {
+        format!(
+            concat!(
+                "Rustup will use these directories:\n\n",
+                "      config: {}\n",
+                "      state:  {}\n",
+                "      data:   {}\n",
+                "      cache:  {}\n\n",
+                "They can be modified individually with\n",
+                "`RUSTUP_CONFIG_HOME`, `RUSTUP_STATE_HOME`, `RUSTUP_DATA_HOME`, and\n",
+                "`RUSTUP_CACHE_HOME`."
+            ),
+            home_dirs.config.display(),
+            home_dirs.state.display(),
+            home_dirs.data.display(),
+            home_dirs.cache.display(),
+        )
+    };
 
     if !no_modify_path {
         // Brittle code warning: some duplication in unix::add_to_path
@@ -708,26 +741,23 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
             let rcfiles = rcfiles.join("\n");
             Ok(format!(
                 pre_install_msg_unix!(),
-                cargo_home = cargo_home.display(),
-                cargo_bin_dir = cargo_bin_dir.display(),
+                rustup_bin_home = rustup_bin_home.display(),
                 plural = plural,
                 rcfiles = rcfiles,
-                rustup_home = rustup_home.display(),
+                rustup_home_message = rustup_home_message,
             ))
         }
         #[cfg(windows)]
         Ok(format!(
             pre_install_msg_win!(),
-            cargo_home = cargo_home.display(),
-            cargo_bin_dir = cargo_bin_dir.display(),
-            rustup_home = rustup_home.display(),
+            rustup_bin_home = rustup_bin_home.display(),
+            rustup_home_message = rustup_home_message,
         ))
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
-            cargo_home = cargo_home.display(),
-            cargo_bin_dir = cargo_bin_dir.display(),
-            rustup_home = rustup_home.display(),
+            rustup_bin_home = rustup_bin_home.display(),
+            rustup_home_message = rustup_home_message,
         ))
     }
 }
@@ -783,7 +813,7 @@ fn install_bins(process: &Process, bin_path: &Path, force_hard_links: bool) -> a
 }
 
 pub(crate) fn install_proxies(process: &Process) -> anyhow::Result<()> {
-    let bin_path = process.cargo_home()?.join("bin");
+    let bin_path = process.rustup_bin_home()?;
     install_proxies_with_opts(&bin_path, force_hard_links(process))
 }
 
@@ -1198,11 +1228,11 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<PreparedUpdater>> {
-    let cargo_home = dl_cfg.process.cargo_home()?;
-    let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
+    let bin_home = dl_cfg.process.rustup_bin_home()?;
+    let rustup_path = bin_home.join(format!("rustup{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
-        return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
+        return Err(CliError::NotSelfInstalled { p: bin_home }.into());
     }
     let self_update_lock = SelfUpdateLock::lock(dl_cfg.process)?;
 

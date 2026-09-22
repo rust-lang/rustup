@@ -137,11 +137,12 @@ pub(crate) trait UnixShell {
         env_home: &Path,
         bin_home: &Path,
     ) -> anyhow::Result<()> {
-        let cargo_bin = bin_home.to_str().context("Non-Unicode path!")?;
+        let rustup_bin = bin_home.to_str().context("Non-Unicode path!")?;
+        utils::ensure_dir_exists("env file home", env_home)?;
         utils::write_file(
             script.name,
             &env_home.join(script.name),
-            &script.content.replace("{cargo_bin}", cargo_bin),
+            &script.content.replace("{rustup_bin}", rustup_bin),
         )
     }
 }

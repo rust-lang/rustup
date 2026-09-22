@@ -515,7 +515,7 @@ async fn update_but_not_installed() {
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-error: rustup is not installed at '[CARGO_DIR]'
+error: rustup is not installed at '[CARGO_DIR]/bin'
 
 "#]]);
 }
@@ -857,20 +857,39 @@ async fn updater_is_deleted_after_running_rustup() {
 #[tokio::test]
 async fn updater_is_deleted_after_running_rustc() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let state_home = cx.config.current_dir().join("state");
+    let bin_home = cx.config.current_dir().join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
     cx.config
-        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .expect_with_env(["rustup-init", "-y", "--no-modify-path"], env)
         .await
         .is_ok();
     cx.config
-        .expect(["rustup", "default", "nightly"])
+        .expect_with_env(["rustup", "default", "nightly"], env)
         .await
         .is_ok();
-    cx.config.expect(["rustup", "self", "update"]).await.is_ok();
-    wait_for_completed_update(&cx.config.rustupdir.rustupdir);
-
-    cx.config.expect(["rustc", "--version"]).await.is_ok();
-
+    let rustup = bin_home.join(format!("rustup{EXE_SUFFIX}"));
+    let before_hash = calc_hash(&rustup);
+    cx.config
+        .expect_with_env([rustup.to_str().unwrap(), "self", "update"], env)
+        .await
+        .is_ok();
+    wait_for_completed_update(&state_home);
+    assert_ne!(before_hash, calc_hash(&rustup));
+    assert!(managed_updater(&state_home).is_file());
     assert!(!managed_updater(&cx.config.rustupdir.rustupdir).exists());
+
+    let rustc = bin_home.join(format!("rustc{EXE_SUFFIX}"));
+    cx.config
+        .expect_with_env([rustc.to_str().unwrap(), "--version"], env)
+        .await
+        .is_ok();
+
+    assert!(!managed_updater(&state_home).exists());
 }
 
 #[tokio::test]

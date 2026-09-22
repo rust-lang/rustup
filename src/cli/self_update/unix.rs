@@ -51,7 +51,7 @@ pub(crate) fn anti_sudo_check(
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+    let cargo_home = process.rustup_env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
         let commands = [
@@ -68,11 +68,12 @@ pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
+    let env_home = process.rustup_env_home()?;
     let cargo_home = process.cargo_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home.display());
-        let legacy_cmd = sh.legacy_source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(&env_home.display());
+        let legacy_cmd = sh.legacy_source_string(&env_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.rcs(process) {
@@ -106,15 +107,15 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
-    let bin_home = cargo_home.join("bin");
+    let env_home = process.rustup_env_home()?;
+    let bin_home = process.rustup_bin_home()?;
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
         let script = sh.env_script();
         // Only write each possible script once.
         if !written.contains(&script) {
-            sh.write_script(&script, &cargo_home, &bin_home)?;
+            sh.write_script(&script, &env_home, &bin_home)?;
             written.push(script);
         }
     }
@@ -140,16 +141,16 @@ pub(super) fn run_update(
     Ok(utils::ExitCode(0))
 }
 
-/// This function is as the final step of a self-upgrade. It replaces
-/// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
-/// links to it.
+/// This function is the final step of a self-upgrade. It replaces Rustup in
+/// the Rustup bin home and updates the proxy links.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     let self_update_lock = SelfUpdateLock::lock(process)?;
     #[cfg(feature = "test")]
     process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
-    let result = process.cargo_home().and_then(|cargo_home| {
-        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))
-    });
+    let result = (|| {
+        let bin_home = process.rustup_bin_home()?;
+        self_update_lock.install_bins(&bin_home, super::force_hard_links(process))
+    })();
     stage::mark_result(result.is_ok(), process);
     result?;
 

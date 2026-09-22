@@ -191,10 +191,15 @@ mod tests {
         let cwd = Path::new("/work");
         let mut vars = HashMap::new();
         vars.env("RUSTUP_BIN_HOME", "bin");
+        vars.env("RUSTUP_CONFIG_HOME", "config");
         vars.env("CARGO_HOME", "cargo");
 
         let tp = TestProcess::new(cwd, &[] as &[&str], vars.clone(), "");
         assert_eq!(bin_home(&tp.process)?, Path::new("bin"));
+        assert_eq!(
+            category_home(HomeCategory::Config, &tp.process)?,
+            Path::new("config")
+        );
 
         vars.env("RUSTUP_BIN_HOME", "");
         let tp = TestProcess::new(cwd, &[] as &[&str], vars, "");
