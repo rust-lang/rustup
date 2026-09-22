@@ -204,7 +204,11 @@ impl InstallOpts<'_> {
             format!(post_install_msg_win!(), cargo_home = cargo_home)
         };
         #[cfg(not(windows))]
-        let source_env_lines = shell::build_source_env_lines(process);
+        let source_env_lines = {
+            let env_dir = process.cargo_home()?;
+            let home_dir = process.home_dir();
+            shell::build_source_env_lines(process, &env_dir, home_dir.as_deref())
+        };
         #[cfg(not(windows))]
         let msg = if no_modify_path {
             format!(
