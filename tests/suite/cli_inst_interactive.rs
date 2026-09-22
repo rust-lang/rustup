@@ -13,11 +13,19 @@ fn run_input(config: &Config, args: &[&str], input: &str) -> Assert {
     run_input_with_env(config, args, input, &[])
 }
 
-fn run_input_with_env(config: &Config, args: &[&str], input: &str, env: &[(&str, &str)]) -> Assert {
+fn run_input_with_env(
+    config: &Config,
+    args: &[&str],
+    input: &str,
+    env: &[(&str, Option<&str>)],
+) -> Assert {
     let mut cmd = config.cmd(args[0], &args[1..]);
 
     for (key, value) in env.iter() {
-        cmd.env(key, value);
+        match value {
+            Some(value) => cmd.env(key, value),
+            None => cmd.env_remove(key),
+        };
     }
 
     cmd.stdin(Stdio::piped());
@@ -53,14 +61,27 @@ async fn update() {
 // test for the install case.
 #[tokio::test]
 async fn smoke_case_install_no_modify_path() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    // Keep displayed paths short and shell detection independent of the host.
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
     // During an interactive session, after "Press the Enter
     // key..."  the UI emits a blank line, then there is a blank
     // line that comes from the user pressing enter, then log
     // output on stderr, then an explicit blank line on stdout
     // before printing $toolchain installed
-    run_input(&cx.config, &["rustup-init", "--no-modify-path"], "\n\n")
-        .with_stdout(snapbox::str![[r#"
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "\n\n",
+        &[
+            ("PATH", Some(cx.config.exedir.to_str().unwrap())),
+            ("SHELL", Some("/bin/sh")),
+            // HACK: current XONSH detection is done via `process.var("XONSHRC").is_ok()`,
+            // setting this as none prevents unwanted modification
+            ("XONSHRC", None),
+        ],
+    )
+    .with_stdout(snapbox::str![[r#"
 ...
 This path needs to be in your PATH environment variable,
 but will not be added automatically.
@@ -87,7 +108,34 @@ Current installation options:
 Rust is installed now. Great!
 ...
 "#]])
-        .is_ok();
+    .with_stdout(cfg_select! {
+        windows => snapbox::str![[r#"
+...
+Rust is installed now. Great!
+
+To get started you need Cargo's bin directory (%USERPROFILE%/.cargo/bin) in[..]
+your PATH
+environment variable. This has not been done automatically.
+
+Press the Enter key to continue.
+
+"#]],
+        _ => snapbox::str![[r#"
+...
+Rust is installed now. Great!
+
+To get started you need Cargo's bin directory ($HOME/.cargo/bin) in your PATH
+environment variable. This has not been done automatically.
+
+To configure your current shell, you need to source the
+corresponding env file under $HOME/.cargo.
+
+Consider running the right command for your shell (note the leading DOT):
+. "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+...
+"#]],
+    })
+    .is_ok();
     if cfg!(unix) {
         assert!(!cx.config.homedir.join(".profile").exists());
         assert!(cx.config.cargodir.join("env").exists());
@@ -96,11 +144,51 @@ Rust is installed now. Great!
 
 #[tokio::test]
 async fn smoke_case_install_with_path_install() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
 
-    run_input(&cx.config, &["rustup-init"], "\n\n")
-        .is_ok()
-        .without_stdout("This path needs to be in your PATH environment variable");
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init"],
+        "\n\n",
+        &[
+            ("PATH", Some(cx.config.exedir.to_str().unwrap())),
+            ("SHELL", Some("/bin/sh")),
+            // HACK: current XONSH detection is done via `process.var("XONSHRC").is_ok()`,
+            // setting this as none prevents unwanted modification
+            ("XONSHRC", None),
+        ],
+    )
+    .is_ok()
+    .without_stdout("This path needs to be in your PATH environment variable")
+    .with_stdout(cfg_select! {
+        windows => snapbox::str![[r#"
+...
+Rust is installed now. Great!
+
+To get started you may need to restart your current shell.
+This would reload your PATH environment variable to include
+Cargo's bin directory (%USERPROFILE%/.cargo/bin).
+
+Press the Enter key to continue.
+
+"#]],
+        _ => snapbox::str![[r#"
+...
+Rust is installed now. Great!
+
+To get started you may need to restart your current shell.
+This would reload your PATH environment variable to include
+Cargo's bin directory ($HOME/.cargo/bin).
+
+To configure your current shell, you need to source the
+corresponding env file under $HOME/.cargo.
+
+Consider running the right command for your shell (note the leading DOT):
+. "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+...
+"#]],
+    });
 }
 
 #[tokio::test]
