@@ -23,14 +23,12 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
-use std::{borrow::Cow, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::bail;
 
 use super::utils;
 use crate::process::Process;
-
-pub(crate) type Shell = Box<dyn UnixShell>;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ShellScript {
@@ -39,7 +37,7 @@ pub(crate) struct ShellScript {
 }
 
 // TODO: Update into a bytestring.
-fn cargo_home_str_with_home(home: &str, process: &Process) -> anyhow::Result<Cow<'static, str>> {
+fn cargo_home_str_with_home(home: &str, process: &Process) -> anyhow::Result<String> {
     let path = process.cargo_home()?;
 
     let default_cargo_home = process
@@ -47,29 +45,13 @@ fn cargo_home_str_with_home(home: &str, process: &Process) -> anyhow::Result<Cow
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
-        Cow::Owned(format!("{home}/.cargo"))
+        format!("{home}/.cargo")
     } else {
         match path.to_str() {
-            Some(p) => p.to_owned().into(),
+            Some(p) => p.to_owned(),
             None => bail!("Non-Unicode path!"),
         }
     })
-}
-
-// TODO: Tcsh (BSD)
-// TODO?: Make a decision on Ion Shell
-// Cross-platform non-POSIX shells have not been assessed for integration yet
-fn enumerate_shells() -> Vec<Shell> {
-    vec![
-        Box::new(Posix),
-        Box::new(Bash),
-        Box::new(Zsh),
-        Box::new(Fish),
-        Box::new(Nu),
-        Box::new(Tcsh),
-        Box::new(Pwsh),
-        Box::new(Xonsh),
-    ]
 }
 
 /// Builds the shell source lines for the post-install message, showing only
@@ -97,10 +79,24 @@ pub(crate) fn build_source_env_lines(process: &Process) -> String {
         .collect()
 }
 
-pub(crate) fn get_available_shells(process: &Process) -> impl Iterator<Item = Shell> + '_ {
-    enumerate_shells()
-        .into_iter()
-        .filter(|sh| sh.does_exist(process))
+// TODO: Tcsh (BSD)
+// TODO?: Make a decision on Ion Shell
+// Cross-platform non-POSIX shells have not been assessed for integration yet
+pub(crate) fn get_available_shells(
+    process: &Process,
+) -> impl Iterator<Item = &'static dyn UnixShell> + '_ {
+    [
+        &Posix as &dyn UnixShell,
+        &Bash,
+        &Zsh,
+        &Fish,
+        &Nu,
+        &Tcsh,
+        &Pwsh,
+        &Xonsh,
+    ]
+    .into_iter()
+    .filter(move |sh| sh.does_exist(process))
 }
 
 pub(crate) trait UnixShell {
@@ -128,7 +124,7 @@ pub(crate) trait UnixShell {
         }
     }
 
-    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<Cow<'static, str>> {
+    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<String> {
         #[cfg(windows)]
         let home = "%USERPROFILE%";
         #[cfg(not(windows))]
@@ -364,7 +360,7 @@ impl UnixShell for Nu {
         ))
     }
 
-    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<Cow<'static, str>> {
+    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<String> {
         cargo_home_str_with_home("~", process)
     }
 }
@@ -556,7 +552,7 @@ impl UnixShell for Xonsh {
         ))
     }
 
-    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<Cow<'static, str>> {
+    fn cargo_home_str(&self, process: &Process) -> anyhow::Result<String> {
         cargo_home_str_with_home("$HOME", process)
     }
 }
