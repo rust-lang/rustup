@@ -59,14 +59,14 @@ fn path_str_with_home(
 /// Builds the shell source lines for the post-install message, showing only
 /// shells that are available on the current system. Shells sharing the same
 /// env file are grouped onto one line (e.g. sh/bash/zsh all use `env`).
-pub(crate) fn build_source_env_lines(process: &Process) -> String {
-    let Ok(cargo_home) = process.cargo_home() else {
-        return String::new();
-    };
-    let home_dir = process.home_dir();
+pub(crate) fn build_source_env_lines(
+    process: &Process,
+    env_dir: &Path,
+    home_dir: Option<&Path>,
+) -> String {
     let mut groups = Vec::<(_, Vec<_>)>::new();
     for shell in get_available_shells(process) {
-        let Ok(src) = shell.source_string(&cargo_home, home_dir.as_deref()) else {
+        let Ok(src) = shell.source_string(env_dir, home_dir) else {
             continue;
         };
         if let Some(names) = groups
@@ -578,14 +578,17 @@ impl UnixShell for Xonsh {
     }
 }
 
-pub(crate) fn legacy_paths(process: &Process) -> impl Iterator<Item = PathBuf> + '_ {
+pub(crate) fn legacy_paths<'a>(
+    process: &Process,
+    home_dir: Option<&'a Path>,
+) -> impl Iterator<Item = PathBuf> + 'a {
     let zprofiles = Zsh::zdotdir(process)
         .into_iter()
-        .chain(process.home_dir())
-        .map(|d| d.join(".zprofile"));
+        .map(|dir| dir.join(".zprofile"))
+        .chain(home_dir.map(|dir| dir.join(".zprofile")));
     let profiles = [".bash_profile", ".profile"]
-        .iter()
-        .filter_map(|rc| process.home_dir().map(|d| d.join(rc)));
+        .into_iter()
+        .filter_map(move |rc| home_dir.map(|dir| dir.join(rc)));
 
     profiles.chain(zprofiles)
 }

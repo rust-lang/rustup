@@ -57,27 +57,12 @@ pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
     let cargo_home = process.cargo_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_bytes =
-            format!("{}\n", sh.source_string(&cargo_home, home_dir.as_deref())?).into_bytes();
-
+        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
         // Check more files for cleanup than normally are updated.
-        for rc in sh.rc_candidates(process).iter().filter(|rc| rc.is_file()) {
-            let file = utils::read_file("rcfile", rc)?;
-            let file_bytes = file.into_bytes();
-            // FIXME: This is whitespace sensitive where it should not be.
-            if let Some(idx) = find_exact_line(&file_bytes, &source_bytes) {
-                // Here we rewrite the file without the offending line.
-                let mut new_bytes = file_bytes[..idx].to_vec();
-                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
-                let new_file = String::from_utf8(new_bytes).unwrap();
-                utils::write_file("rcfile", rc, &new_file)?;
-            }
-        }
+        remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
     }
 
-    remove_legacy_paths(process)?;
-
-    Ok(())
+    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
@@ -106,7 +91,7 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
         }
     }
 
-    remove_legacy_paths(process)?;
+    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())?;
 
     Ok(())
 }
@@ -156,18 +141,19 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
     Ok(utils::ExitCode(0))
 }
 
-fn remove_legacy_source_command(source_cmd: String, process: &Process) -> anyhow::Result<()> {
-    let cmd_bytes = source_cmd.into_bytes();
-    for rc in shell::legacy_paths(process).filter(|rc| rc.is_file()) {
-        let file = utils::read_file("rcfile", &rc)?;
+/// Removes the first exact line matching `command` followed by a newline from each existing rcfile.
+fn remove_source_command(command: &str, rcfiles: &[PathBuf]) -> anyhow::Result<()> {
+    let command_bytes = format!("{command}\n").into_bytes();
+    for rc in rcfiles.iter().filter(|rc| rc.is_file()) {
+        let file = utils::read_file("rcfile", rc)?;
         let file_bytes = file.into_bytes();
         // FIXME: This is whitespace sensitive where it should not be.
-        if let Some(idx) = find_exact_line(&file_bytes, &cmd_bytes) {
+        if let Some(idx) = find_exact_line(&file_bytes, &command_bytes) {
             // Here we rewrite the file without the offending line.
             let mut new_bytes = file_bytes[..idx].to_vec();
-            new_bytes.extend(&file_bytes[idx + cmd_bytes.len()..]);
+            new_bytes.extend(&file_bytes[idx + command_bytes.len()..]);
             let new_file = String::from_utf8(new_bytes).unwrap();
-            utils::write_file("rcfile", &rc, &new_file)?;
+            utils::write_file("rcfile", rc, &new_file)?;
         }
     }
     Ok(())
@@ -183,27 +169,21 @@ fn find_exact_line(file: &[u8], line: &[u8]) -> Option<usize> {
         })
 }
 
-fn remove_legacy_paths(process: &Process) -> anyhow::Result<()> {
+fn remove_legacy_paths(
+    process: &Process,
+    cargo_home: &Path,
+    home_dir: Option<&Path>,
+) -> anyhow::Result<()> {
+    let cargo_home = Posix.env_dir_str(cargo_home, home_dir)?;
+    let rcfiles = shell::legacy_paths(process, home_dir).collect::<Vec<_>>();
     // Before the work to support more kinds of shells, which was released in
     // version 1.23.0 of Rustup, we always inserted this line instead, which is
     // now considered legacy
-    remove_legacy_source_command(
-        format!(
-            "export PATH=\"{}/bin:$PATH\"\n",
-            Posix.env_dir_str(&process.cargo_home()?, process.home_dir().as_deref())?
-        ),
-        process,
-    )?;
+    remove_source_command(&format!("export PATH=\"{cargo_home}/bin:$PATH\""), &rcfiles)?;
     // Unfortunately in 1.23, we accidentally used `source` rather than `.`
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
-    remove_legacy_source_command(
-        format!(
-            "source \"{}/env\"\n",
-            Posix.env_dir_str(&process.cargo_home()?, process.home_dir().as_deref())?
-        ),
-        process,
-    )?;
+    remove_source_command(&format!("source \"{cargo_home}/env\""), &rcfiles)?;
 
     Ok(())
 }
