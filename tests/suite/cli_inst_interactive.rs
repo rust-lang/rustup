@@ -15,7 +15,6 @@ fn run_input(config: &Config, args: &[&str], input: &str) -> Assert {
 
 fn run_input_with_env(config: &Config, args: &[&str], input: &str, env: &[(&str, &str)]) -> Assert {
     let mut cmd = config.cmd(args[0], &args[1..]);
-    config.env(&mut cmd);
 
     for (key, value) in env.iter() {
         cmd.env(key, value);
