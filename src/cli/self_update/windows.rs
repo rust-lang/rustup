@@ -126,7 +126,7 @@ pub(super) async fn maybe_install_msvc(
     opts: &InstallOpts<'_>,
     process: &Process,
 ) -> anyhow::Result<()> {
-    let Some(plan) = do_msvc_check(opts, process) else {
+    let Some(plan) = msvc_check(opts, process) else {
         return Ok(());
     };
 
@@ -211,7 +211,7 @@ pub(crate) enum VsInstallPlan {
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
-pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option<VsInstallPlan> {
+pub(crate) fn msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option<VsInstallPlan> {
     // Test suite skips this since it's env dependent
     if process.var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
         return None;
@@ -354,7 +354,7 @@ pub(crate) async fn try_install_msvc(
                 // It's possible that the installer returned a non-zero exit code
                 // even though the required components were successfully installed.
                 // In that case we warn about the error but continue on.
-                let have_msvc = do_msvc_check(opts, process).is_none();
+                let have_msvc = msvc_check(opts, process).is_none();
                 let has_libs = has_windows_sdk_libs(process);
                 if have_msvc && has_libs {
                     warn!("Visual Studio is installed but a problem occurred during installation");
@@ -465,7 +465,7 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
+pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
     _apply_new_path(new_path, process)
 }
@@ -570,7 +570,7 @@ where
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
 }
 
-pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
+pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
     _apply_new_path(new_path, process)
 }

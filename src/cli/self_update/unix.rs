@@ -15,7 +15,7 @@ use crate::{process::Process, utils};
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
-pub(crate) fn do_anti_sudo_check(
+pub(crate) fn anti_sudo_check(
     no_prompt: bool,
     process: &Process,
 ) -> anyhow::Result<utils::ExitCode> {
@@ -53,12 +53,12 @@ pub(crate) fn do_anti_sudo_check(
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
+pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_bytes = format!("{}\n", sh.source_string(process)?).into_bytes();
 
         // Check more files for cleanup than normally are updated.
-        for rc in sh.rcfiles(process).iter().filter(|rc| rc.is_file()) {
+        for rc in sh.rc_candidates(process).iter().filter(|rc| rc.is_file()) {
             let file = utils::read_file("rcfile", rc)?;
             let file_bytes = file.into_bytes();
             // FIXME: This is whitespace sensitive where it should not be.
@@ -77,12 +77,12 @@ pub(crate) fn do_remove_from_path(process: &Process) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
+pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
     for sh in shell::get_available_shells(process) {
         let source_cmd = sh.source_string(process)?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
-        for rc in sh.update_rcs(process) {
+        for rc in sh.rcs(process) {
             let cmd_to_write = match utils::read_file("rcfile", &rc) {
                 Ok(contents) if contents.contains(&source_cmd) => continue,
                 Ok(contents) if !contents.ends_with('\n') => &source_cmd_with_newline,
@@ -106,7 +106,7 @@ pub(crate) fn do_add_to_path(process: &Process) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) fn do_write_env_files(process: &Process) -> anyhow::Result<()> {
+pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
