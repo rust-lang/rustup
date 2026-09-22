@@ -2072,6 +2072,28 @@ async fn install_uses_cache_home() {
 }
 
 #[tokio::test]
+async fn install_uses_data_home() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let toolchain = format!("stable-{}", this_host_tuple());
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(data_home.join("toolchains").join(&toolchain).is_dir());
+    assert!(!cx.config.rustupdir.has(format!("toolchains/{toolchain}")));
+}
+
+#[tokio::test]
 // Issue #304
 async fn remove_target_missing_update_hash() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
