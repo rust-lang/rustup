@@ -191,39 +191,29 @@ impl InstallOpts<'_> {
             return Ok(ExitCode::FAILURE);
         }
 
-        let cargo_home = canonical_cargo_home(process)?;
-        #[cfg(windows)]
-        let cargo_home = cargo_home.replace('\\', r"\\");
-        #[cfg(windows)]
+        let cargo_home = process.cargo_home()?;
+        let home_dir = process.home_dir();
+        let env_dir = canonical_cargo_home(&cargo_home, home_dir.as_deref());
+        let cargo_bin_dir = format!("{env_dir}{MAIN_SEPARATOR}bin");
         let msg = if no_modify_path {
             format!(
-                post_install_msg_win_no_modify_path!(),
-                cargo_home = cargo_home
+                post_install_msg_no_modify_path!(),
+                cargo_bin_dir = cargo_bin_dir
             )
         } else {
-            format!(post_install_msg_win!(), cargo_home = cargo_home)
-        };
-        #[cfg(not(windows))]
-        let source_env_lines = {
-            let env_dir = process.cargo_home()?;
-            let home_dir = process.home_dir();
-            shell::build_source_env_lines(process, &env_dir, home_dir.as_deref())
-        };
-        #[cfg(not(windows))]
-        let msg = if no_modify_path {
-            format!(
-                post_install_msg_unix_no_modify_path!(),
-                cargo_home = cargo_home,
-                source_env_lines = source_env_lines,
-            )
-        } else {
-            format!(
-                post_install_msg_unix!(),
-                cargo_home = cargo_home,
-                source_env_lines = source_env_lines,
-            )
+            format!(post_install_msg!(), cargo_bin_dir = cargo_bin_dir)
         };
         md(&mut term, msg);
+        #[cfg(not(windows))]
+        md(
+            &mut term,
+            format!(
+                post_install_msg_unix!(),
+                env_dir = env_dir,
+                source_env_lines =
+                    shell::build_source_env_lines(process, &cargo_home, home_dir.as_deref()),
+            ),
+        );
 
         #[cfg(unix)]
         warn_if_default_linker_missing(process);
@@ -598,21 +588,16 @@ fn update_root(process: &Process) -> String {
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
-fn canonical_cargo_home(process: &Process) -> anyhow::Result<Cow<'static, str>> {
-    let path = process.cargo_home()?;
-
-    let default_cargo_home = process
-        .home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".cargo");
-    Ok(if default_cargo_home == path {
+fn canonical_cargo_home(cargo_home: &Path, home_dir: Option<&Path>) -> Cow<'static, str> {
+    let default_cargo_home = home_dir.unwrap_or_else(|| Path::new(".")).join(".cargo");
+    if default_cargo_home == cargo_home {
         cfg_select! {
             windows => r"%USERPROFILE%\.cargo".into(),
             _ => "$HOME/.cargo".into(),
         }
     } else {
-        path.to_string_lossy().into_owned().into()
-    })
+        cargo_home.to_string_lossy().into_owned().into()
+    }
 }
 
 fn rustc_or_cargo_exists_in_path(process: &Process) -> anyhow::Result<()> {
@@ -691,7 +676,7 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
 
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
     let cargo_home = process.cargo_home()?;
-    let cargo_home_bin = cargo_home.join("bin");
+    let cargo_bin_dir = cargo_home.join("bin");
     let rustup_home = home::rustup_home()?;
 
     if !no_modify_path {
@@ -707,7 +692,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
             Ok(format!(
                 pre_install_msg_unix!(),
                 cargo_home = cargo_home.display(),
-                cargo_home_bin = cargo_home_bin.display(),
+                cargo_bin_dir = cargo_bin_dir.display(),
                 plural = plural,
                 rcfiles = rcfiles,
                 rustup_home = rustup_home.display(),
@@ -717,14 +702,14 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
         Ok(format!(
             pre_install_msg_win!(),
             cargo_home = cargo_home.display(),
-            cargo_home_bin = cargo_home_bin.display(),
+            cargo_bin_dir = cargo_bin_dir.display(),
             rustup_home = rustup_home.display(),
         ))
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
             cargo_home = cargo_home.display(),
-            cargo_home_bin = cargo_home_bin.display(),
+            cargo_bin_dir = cargo_bin_dir.display(),
             rustup_home = rustup_home.display(),
         ))
     }
@@ -960,10 +945,9 @@ pub(crate) fn uninstall(
         let msg = if no_modify_path {
             pre_uninstall_msg_no_modify_path!().to_owned()
         } else {
-            format!(
-                pre_uninstall_msg!(),
-                cargo_home = canonical_cargo_home(process)?
-            )
+            let cargo_home = canonical_cargo_home(&cargo_home, process.home_dir().as_deref());
+            let cargo_bin_dir = format!("{cargo_home}{MAIN_SEPARATOR}bin");
+            format!(pre_uninstall_msg!(), cargo_bin_dir = cargo_bin_dir)
         };
         md(&mut process.stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false, process)? {
