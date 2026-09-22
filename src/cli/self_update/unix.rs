@@ -63,10 +63,10 @@ pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+    let env_home = process.rustup_env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(&env_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.rcs(process) {
@@ -88,22 +88,25 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
         }
     }
 
-    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())?;
+    if !process.use_category_home() {
+        remove_legacy_paths(process, &env_home, home_dir.as_deref())?;
+    }
 
     Ok(())
 }
 
 pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
-    let bin_dir = cargo_home.join("bin");
+    let env_home = process.rustup_env_home()?;
+    let bin_dir = process.cargo_home()?.join("bin");
     let home_dir = process.home_dir();
+    utils::ensure_dir_exists("env", &env_home)?;
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
         let script = sh.env_script();
         // Only write each possible script once.
         if !written.contains(&script) {
-            sh.write_script(&script, &cargo_home, &bin_dir, home_dir.as_deref())?;
+            sh.write_script(&script, &env_home, &bin_dir, home_dir.as_deref())?;
             written.push(script);
         }
     }
