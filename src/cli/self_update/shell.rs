@@ -113,10 +113,12 @@ pub(crate) trait UnixShell {
 
     // Gives all rcfiles of a given shell that Rustup is concerned with.
     // Used primarily in checking rcfiles for cleanup.
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf>;
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf>;
 
-    // Gives rcs that should be written to.
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf>;
+    // Returns rcfile paths where installation should add the source command.
+    // May return multiple paths, including files that do not yet exist.
+    // Does not modify the files.
+    fn rcs(&self, process: &Process) -> Vec<PathBuf>;
 
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
@@ -159,17 +161,17 @@ impl UnixShell for Posix {
         "sh/ash/dash/pdksh"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         match process.home_dir() {
             Some(dir) => vec![dir.join(".profile")],
             _ => vec![],
         }
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
         // Write to .profile even if it doesn't exist. It's the only rc in the
         // POSIX spec so it should always be set up.
-        self.rcfiles(process)
+        self.rc_candidates(process)
     }
 }
 
@@ -177,14 +179,14 @@ struct Bash;
 
 impl UnixShell for Bash {
     fn does_exist(&self, process: &Process) -> bool {
-        !self.update_rcs(process).is_empty()
+        !self.rcs(process).is_empty()
     }
 
     fn name(&self) -> &'static str {
         "bash"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         // Bash also may read .profile, however Rustup already includes handling
         // .profile as part of POSIX and always does setup for POSIX shells.
         [".bash_profile", ".bash_login", ".bashrc"]
@@ -193,8 +195,8 @@ impl UnixShell for Bash {
             .collect()
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
-        self.rcfiles(process)
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+        self.rc_candidates(process)
             .into_iter()
             .filter(|rc| rc.is_file())
             .collect()
@@ -235,24 +237,24 @@ impl UnixShell for Zsh {
         "zsh"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         [Self::zdotdir(process).ok(), process.home_dir()]
             .iter()
             .filter_map(|dir| dir.as_ref().map(|p| p.join(".zshenv")))
             .collect()
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
         // zsh can change $ZDOTDIR both _before_ AND _during_ reading .zshenv,
         // so we: write to $ZDOTDIR/.zshenv if-exists ($ZDOTDIR changes before)
         // OR write to $HOME/.zshenv if it exists (change-during)
         // if neither exist, we create it ourselves, but using the same logic,
         // because we must still respond to whether $ZDOTDIR is set or unset.
         // In any case we only write once.
-        self.rcfiles(process)
+        self.rc_candidates(process)
             .into_iter()
             .filter(|env| env.is_file())
-            .chain(self.rcfiles(process))
+            .chain(self.rc_candidates(process))
             .take(1)
             .collect()
     }
@@ -273,7 +275,7 @@ impl UnixShell for Fish {
 
     // > "$XDG_CONFIG_HOME/fish/conf.d" (or "~/.config/fish/conf.d" if that variable is unset) for the user
     // from <https://github.com/fish-shell/fish-shell/issues/3170#issuecomment-228311857>
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         let p0 = process.var("XDG_CONFIG_HOME").ok().map(|p| {
             let mut path = PathBuf::from(p);
             path.push("fish/conf.d/rustup.fish");
@@ -288,9 +290,9 @@ impl UnixShell for Fish {
         p0.into_iter().chain(p1).collect()
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
         // The first rcfile takes precedence.
-        match self.rcfiles(process).into_iter().next() {
+        match self.rc_candidates(process).into_iter().next() {
             Some(path) => vec![path],
             None => vec![],
         }
@@ -324,7 +326,7 @@ impl UnixShell for Nu {
         "nushell"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         let mut paths = vec![];
 
         if let Ok(p) = process.var("XDG_CONFIG_HOME") {
@@ -340,9 +342,9 @@ impl UnixShell for Nu {
         paths
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
         // The first rcfile in XDG_CONFIG_HOME takes precedence.
-        match self.rcfiles(process).into_iter().next() {
+        match self.rc_candidates(process).into_iter().next() {
             Some(path) => vec![path],
             None => vec![],
         }
@@ -379,7 +381,7 @@ impl UnixShell for Tcsh {
         "tcsh"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         let mut paths = vec![];
 
         if let Some(home) = process.home_dir() {
@@ -390,8 +392,8 @@ impl UnixShell for Tcsh {
         paths
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
-        for f in self.rcfiles(process) {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
+        for f in self.rc_candidates(process) {
             if f.is_file() {
                 return vec![f];
             }
@@ -432,7 +434,7 @@ impl UnixShell for Pwsh {
         "pwsh"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         let mut paths = vec![];
 
         let Some(mut config_dir) = process.home_dir() else {
@@ -476,7 +478,7 @@ impl UnixShell for Pwsh {
         paths
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
         let mut paths = vec![];
         // Always modify the "Current User, All Hosts" profile.
         let Some(mut profile) = process.home_dir() else {
@@ -511,7 +513,7 @@ impl UnixShell for Xonsh {
         "xonsh"
     }
 
-    fn rcfiles(&self, process: &Process) -> Vec<PathBuf> {
+    fn rc_candidates(&self, process: &Process) -> Vec<PathBuf> {
         let mut paths = vec![];
 
         if let Ok(p) = process.var("XDG_CONFIG_HOME") {
@@ -532,9 +534,9 @@ impl UnixShell for Xonsh {
         paths
     }
 
-    fn update_rcs(&self, process: &Process) -> Vec<PathBuf> {
+    fn rcs(&self, process: &Process) -> Vec<PathBuf> {
         // The first rcfile in XDG_CONFIG_HOME takes precedence.
-        match self.rcfiles(process).into_iter().next() {
+        match self.rc_candidates(process).into_iter().next() {
             Some(path) => vec![path],
             None => vec![],
         }

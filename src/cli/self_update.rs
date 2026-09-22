@@ -83,7 +83,7 @@ mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
-use unix::{do_add_to_path, do_remove_from_path};
+use unix::{add_to_path, remove_from_path};
 #[cfg(unix)]
 pub(crate) use unix::{run_update, self_replace};
 
@@ -95,8 +95,7 @@ pub use windows::complete_windows_uninstall;
 pub use windows::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
 use windows::{
-    add_uninstall_registry_entry, do_add_to_path, do_remove_from_path,
-    remove_uninstall_registry_entry,
+    add_to_path, add_uninstall_registry_entry, remove_from_path, remove_uninstall_registry_entry,
 };
 #[cfg(windows)]
 pub(crate) use windows::{run_update, self_replace};
@@ -147,7 +146,7 @@ impl InstallOpts<'_> {
 
         #[cfg(unix)]
         {
-            exit_code &= unix::do_anti_sudo_check(no_prompt, process)?;
+            exit_code &= unix::anti_sudo_check(no_prompt, process)?;
         }
 
         let mut term = process.stdout();
@@ -246,10 +245,10 @@ impl InstallOpts<'_> {
         install_bins(process)?;
 
         #[cfg(unix)]
-        unix::do_write_env_files(process)?;
+        unix::write_env_files(process)?;
 
         if !self.no_modify_path {
-            do_add_to_path(process)?;
+            add_to_path(process)?;
         }
 
         #[cfg(windows)]
@@ -691,11 +690,11 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
     let rustup_home = home::rustup_home()?;
 
     if !no_modify_path {
-        // Brittle code warning: some duplication in unix::do_add_to_path
+        // Brittle code warning: some duplication in unix::add_to_path
         #[cfg(not(windows))]
         {
             let rcfiles = shell::get_available_shells(process)
-                .flat_map(|sh| sh.update_rcs(process).into_iter())
+                .flat_map(|sh| sh.rcs(process).into_iter())
                 .map(|rc| format!("    {}", rc.display()))
                 .collect::<Vec<_>>();
             let plural = if rcfiles.len() > 1 { "s" } else { "" };
@@ -1065,7 +1064,7 @@ fn clean_cargo_home(
         }
         Ok(()) if !no_modify_path => {
             info!("removing cargo bin directory `{cargo_bin_display}` from $PATH");
-            do_remove_from_path(process)?;
+            remove_from_path(process)?;
         }
         Ok(()) => {}
     }
