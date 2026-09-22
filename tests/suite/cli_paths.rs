@@ -41,9 +41,7 @@ export PATH="$HOME/apple/bin"
     #[tokio::test]
     async fn install_creates_necessary_scripts() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        // Override the test harness so that cargo home looks like
-        // $HOME/.cargo by removing CARGO_HOME from the environment,
-        // otherwise the literal path will be written to the file.
+        // Exercise the default Cargo home; newly generated paths are absolute.
 
         let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
         let files: Vec<PathBuf> = [".cargo/env", ".profile", ".zshenv"]
@@ -53,6 +51,7 @@ export PATH="$HOME/apple/bin"
         for file in &files {
             assert!(!file.exists());
         }
+        // Remove the test harness override to exercise HOME/.cargo.
         cmd.env_remove("CARGO_HOME");
         cmd.env("SHELL", "zsh");
         assert!(cmd.output().unwrap().status.success());
@@ -60,10 +59,14 @@ export PATH="$HOME/apple/bin"
         let env = rcs.next().unwrap();
         let envfile = fs::read_to_string(env).unwrap();
         let (_, envfile_export) = envfile.split_at(envfile.find("export PATH").unwrap_or(0));
-        assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
+        let expected_export = format!(
+            "export PATH=\"{}/.cargo/bin:$PATH\"\n",
+            cx.config.homedir.display()
+        );
+        assert!(envfile_export.starts_with(&expected_export));
 
         for rc in rcs {
-            let expected = source("$HOME/.cargo", POSIX_SH);
+            let expected = source(cx.config.homedir.join(".cargo").display(), POSIX_SH);
             let new_profile = fs::read_to_string(rc).unwrap();
             assert_eq!(new_profile, expected);
         }
@@ -373,7 +376,8 @@ error: could not amend shell profile[..]
         cmd.env("ZDOTDIR", zdotdir.path());
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
-        let fixed_rc = FAKE_RC.to_owned() + &source("$HOME/.cargo", POSIX_SH);
+        let fixed_rc =
+            FAKE_RC.to_owned() + &source(cx.config.homedir.join(".cargo").display(), POSIX_SH);
         for rc in &rcs {
             let new_rc = fs::read_to_string(rc).unwrap();
             assert_eq!(new_rc, fixed_rc);
@@ -396,7 +400,8 @@ error: could not amend shell profile[..]
         assert!(cmd.output().unwrap().status.success());
 
         let new_profile = fs::read_to_string(&profile).unwrap();
-        let expected = guarded_source.to_owned() + &source("$HOME/.cargo", POSIX_SH);
+        let expected = guarded_source.to_owned()
+            + &source(cx.config.homedir.join(".cargo").display(), POSIX_SH);
         assert_eq!(new_profile, expected);
     }
 
@@ -458,31 +463,27 @@ error: could not amend shell profile[..]
         }
     }
 
-    // In the default case we want to write $HOME/.cargo/bin as the path,
-    // not the full path.
     #[tokio::test]
-    async fn when_cargo_home_is_the_default_write_path_specially() {
+    async fn default_cargo_home_recognizes_legacy_sources_and_cleans_up() {
         let cx = CliTestContext::new(Scenario::Empty).await;
-        // Override the test harness so that cargo home looks like
-        // $HOME/.cargo by removing CARGO_HOME from the environment,
-        // otherwise the literal path will be written to the file.
-
         let profile = cx.config.homedir.join(".profile");
-        raw::write_file(&profile, FAKE_RC).unwrap();
+        let legacy = format!("{FAKE_RC}. \"$HOME/.cargo/env\"\n");
+        raw::write_file(&profile, &legacy).unwrap();
+
         let mut cmd = cx.config.cmd("rustup-init", &INIT_NONE[1..]);
+        // Remove the test harness override to exercise HOME/.cargo.
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
+        // Keep the existing abbreviated command without adding a duplicate.
+        assert_eq!(fs::read_to_string(&profile).unwrap(), legacy);
 
-        let new_profile = fs::read_to_string(&profile).unwrap();
-        let expected = format!("{FAKE_RC}. \"$HOME/.cargo/env\"\n");
-        assert_eq!(new_profile, expected);
-
+        // Cleanup must remove both abbreviated and absolute commands if both exist.
+        let both = legacy + &format!(". \"{}/.cargo/env\"\n", cx.config.homedir.display());
+        raw::write_file(&profile, &both).unwrap();
         let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
-
-        let new_profile = fs::read_to_string(&profile).unwrap();
-        assert_eq!(new_profile, FAKE_RC);
+        assert_eq!(fs::read_to_string(&profile).unwrap(), FAKE_RC);
     }
 
     #[tokio::test]

@@ -23,11 +23,14 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
-use anyhow::bail;
+use anyhow::{Context, bail};
 
-use super::utils;
+use super::{HomeDisplay, utils};
 use crate::process::Process;
 
 #[derive(Debug, PartialEq)]
@@ -36,39 +39,19 @@ pub(crate) struct ShellScript {
     name: &'static str,
 }
 
-// TODO: Update into a bytestring.
-fn path_str_with_home(
-    home: &str,
-    path: &Path,
-    home_dir: Option<&Path>,
-    default_suffix: &str,
-) -> anyhow::Result<String> {
-    let default_path = home_dir
-        .unwrap_or_else(|| Path::new("."))
-        .join(default_suffix);
-    Ok(if default_path == path {
-        format!("{home}/{default_suffix}")
-    } else {
-        match path.to_str() {
-            Some(p) => p.to_owned(),
-            None => bail!("Non-Unicode path!"),
-        }
-    })
-}
-
 /// Builds the shell source lines for the post-install message, showing only
 /// shells that are available on the current system. Shells sharing the same
 /// env file are grouped onto one line (e.g. sh/bash/zsh all use `env`).
-pub(crate) fn build_source_env_lines(
-    process: &Process,
-    env_dir: &Path,
-    home_dir: Option<&Path>,
-) -> String {
+pub(crate) fn build_source_env_lines(process: &Process, env_home: &Path) -> String {
+    let home_dir = process.home_dir();
     let mut groups = Vec::<(_, Vec<_>)>::new();
     for shell in get_available_shells(process) {
-        let Ok(src) = shell.source_string(env_dir, home_dir) else {
-            continue;
-        };
+        let mut env_home = HomeDisplay::new(env_home, home_dir.as_deref());
+        // Nushell uses tilde expansion for the displayed source command.
+        if shell.name() == "nushell" && env_home.home_prefix.is_some() {
+            env_home.home_prefix = Some("~");
+        }
+        let src = shell.source_string(&env_home);
         if let Some(names) = groups
             .iter_mut()
             .find_map(|(s, names)| (*s == src).then_some(names))
@@ -130,37 +113,36 @@ pub(crate) trait UnixShell {
         }
     }
 
-    fn home_var(&self) -> &'static str {
-        #[cfg(windows)]
-        let home = "%USERPROFILE%";
-        #[cfg(not(windows))]
-        let home = "$HOME";
-        home
+    fn source_string(&self, env_home: &dyn Display) -> String {
+        format!(r#". "{env_home}/env""#)
     }
 
-    fn env_dir_str(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        path_str_with_home(self.home_var(), env_dir, home_dir, ".cargo")
-    }
-
-    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#". "{}/env""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+    // Recognize the historical HOME spelling in existing rc files.
+    fn legacy_source_string(
+        &self,
+        env_home: &Path,
+        home_dir: Option<&Path>,
+    ) -> anyhow::Result<String> {
+        // Only the default Cargo home used an abbreviated historical path.
+        let legacy_home = match home_dir {
+            Some(home) if env_home == home.join(".cargo") => "$HOME/.cargo",
+            _ => env_home.to_str().context("Non-Unicode path!")?,
+        };
+        Ok(self.source_string(&legacy_home))
     }
 
     fn write_script(
         &self,
         script: &ShellScript,
-        env_dir: &Path,
-        bin_dir: &Path,
-        home_dir: Option<&Path>,
+        env_home: &Path,
+        bin_home: &Path,
     ) -> anyhow::Result<()> {
-        let cargo_bin = path_str_with_home(self.home_var(), bin_dir, home_dir, ".cargo/bin")?;
-        let env_name = env_dir.join(script.name);
-        let env_file = script.content.replace("{cargo_bin}", &cargo_bin);
-        utils::write_file(script.name, &env_name, &env_file)?;
-        Ok(())
+        let cargo_bin = bin_home.to_str().context("Non-Unicode path!")?;
+        utils::write_file(
+            script.name,
+            &env_home.join(script.name),
+            &script.content.replace("{cargo_bin}", cargo_bin),
+        )
     }
 }
 
@@ -319,11 +301,8 @@ impl UnixShell for Fish {
         }
     }
 
-    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#"source "{}/env.fish""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+    fn source_string(&self, env_home: &dyn Display) -> String {
+        format!(r#"source "{env_home}/env.fish""#)
     }
 }
 
@@ -371,15 +350,21 @@ impl UnixShell for Nu {
         }
     }
 
-    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#"source "{}/env.nu""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+    fn source_string(&self, env_home: &dyn Display) -> String {
+        format!(r#"source "{env_home}/env.nu""#)
     }
 
-    fn home_var(&self) -> &'static str {
-        "~"
+    fn legacy_source_string(
+        &self,
+        env_home: &Path,
+        home_dir: Option<&Path>,
+    ) -> anyhow::Result<String> {
+        // Nushell used tilde expansion for the default Cargo home.
+        let legacy_home = match home_dir {
+            Some(home) if env_home == home.join(".cargo") => "~/.cargo",
+            _ => env_home.to_str().context("Non-Unicode path!")?,
+        };
+        Ok(self.source_string(&legacy_home))
     }
 }
 
@@ -428,11 +413,8 @@ impl UnixShell for Tcsh {
         }
     }
 
-    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#"source "{}/env.tcsh""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+    fn source_string(&self, env_home: &dyn Display) -> String {
+        format!(r#"source "{env_home}/env.tcsh""#)
     }
 }
 
@@ -511,11 +493,8 @@ impl UnixShell for Pwsh {
         }
     }
 
-    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#". "{}/env.ps1""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+    fn source_string(&self, env_home: &dyn Display) -> String {
+        format!(r#". "{env_home}/env.ps1""#)
     }
 }
 
@@ -567,15 +546,8 @@ impl UnixShell for Xonsh {
         }
     }
 
-    fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#"source "{}/env.xsh""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
-    }
-
-    fn home_var(&self) -> &'static str {
-        "$HOME"
+    fn source_string(&self, env_home: &dyn Display) -> String {
+        format!(r#"source "{env_home}/env.xsh""#)
     }
 }
 
@@ -592,4 +564,112 @@ pub(crate) fn legacy_paths<'a>(
         .filter_map(move |rc| home_dir.map(|dir| dir.join(rc)));
 
     profiles.chain(zprofiles)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Fish, Nu, Path, Posix, Pwsh, Tcsh, UnixShell, Xonsh, build_source_env_lines};
+    use crate::process::TestProcess;
+
+    #[test]
+    fn source_commands_only_abbreviate_for_display() {
+        let tp = TestProcess::with_vars(
+            [("HOME", "/home/user"), ("PATH", ""), ("SHELL", "/bin/nu")]
+                .into_iter()
+                .map(|(key, value)| (key.to_owned(), value.to_owned()))
+                .collect(),
+        );
+        let shells: [(&dyn UnixShell, &str, &str); 6] = [
+            (&Posix, ".", "env"),
+            (&Fish, "source", "env.fish"),
+            (&Nu, "source", "env.nu"),
+            (&Tcsh, "source", "env.tcsh"),
+            (&Pwsh, ".", "env.ps1"),
+            (&Xonsh, "source", "env.xsh"),
+        ];
+        for (path, posix_display, nu_display) in [
+            ("/home/user/.cargo", "$HOME/.cargo", "~/.cargo"),
+            (
+                "/home/user/.config/rustup",
+                "$HOME/.config/rustup",
+                "~/.config/rustup",
+            ),
+            ("/home/user", "$HOME", "~"),
+            ("/opt/rustup", "/opt/rustup", "/opt/rustup"),
+            (
+                "/home/username/rustup",
+                "/home/username/rustup",
+                "/home/username/rustup",
+            ),
+            ("relative", "relative", "relative"),
+        ] {
+            let env_home = Path::new(path);
+            for (shell, command, script) in shells {
+                assert_eq!(
+                    shell.source_string(&env_home.display()),
+                    format!(r#"{command} "{path}/{script}""#),
+                );
+            }
+            let lines = build_source_env_lines(&tp.process, env_home);
+            assert!(
+                lines.contains(&format!(r#". "{posix_display}/env""#)),
+                "{lines}"
+            );
+            assert!(
+                lines.contains(&format!(r#"source "{nu_display}/env.nu""#)),
+                "{lines}"
+            );
+        }
+    }
+
+    #[test]
+    fn source_strings_keep_current_and_legacy_formats() {
+        // Freeze both current absolute commands and historical HOME abbreviations.
+        let cases: [(&dyn UnixShell, &str, &str); 5] = [
+            (
+                &Fish,
+                r#"source "/home/user/.cargo/env.fish""#,
+                r#"source "$HOME/.cargo/env.fish""#,
+            ),
+            (
+                &Nu,
+                r#"source "/home/user/.cargo/env.nu""#,
+                r#"source "~/.cargo/env.nu""#,
+            ),
+            (
+                &Tcsh,
+                r#"source "/home/user/.cargo/env.tcsh""#,
+                r#"source "$HOME/.cargo/env.tcsh""#,
+            ),
+            (
+                &Pwsh,
+                r#". "/home/user/.cargo/env.ps1""#,
+                r#". "$HOME/.cargo/env.ps1""#,
+            ),
+            (
+                &Xonsh,
+                r#"source "/home/user/.cargo/env.xsh""#,
+                r#"source "$HOME/.cargo/env.xsh""#,
+            ),
+        ];
+        for (shell, current, legacy) in cases {
+            assert_eq!(
+                shell.source_string(&Path::new("/home/user/.cargo").display()),
+                current,
+                "{}",
+                shell.name()
+            );
+            assert_eq!(
+                shell
+                    .legacy_source_string(
+                        Path::new("/home/user/.cargo"),
+                        Some(Path::new("/home/user")),
+                    )
+                    .unwrap(),
+                legacy,
+                "{}",
+                shell.name()
+            );
+        }
+    }
 }

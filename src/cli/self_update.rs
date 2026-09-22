@@ -217,8 +217,7 @@ impl InstallOpts<'_> {
             format!(
                 post_install_msg_unix!(),
                 env_dir = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
-                source_env_lines =
-                    shell::build_source_env_lines(process, &cargo_home, home_dir.as_deref()),
+                source_env_lines = shell::build_source_env_lines(process, &cargo_home),
             ),
         );
 

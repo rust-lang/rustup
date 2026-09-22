@@ -135,6 +135,12 @@ Consider running the right command for your shell (note the leading DOT):
 #[tokio::test]
 async fn smoke_case_install_with_path_install() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    // Abbreviate HOME before rendering, even when its real path exceeds the wrapping margin.
+    let home = tempfile::Builder::new()
+        .prefix("rustup installer home with a path longer than the terminal wrapping margin-")
+        .tempdir()
+        .unwrap();
+    cx.config.homedir = home.path().to_owned();
     cx.config.cargodir = cx.config.homedir.join(".cargo");
 
     run_input_with_env(
@@ -177,6 +183,11 @@ Consider running the right command for your shell (note the leading DOT):
 ...
 "#]],
     });
+    #[cfg(unix)]
+    assert_eq!(
+        fs::read_to_string(cx.config.homedir.join(".profile")).unwrap(),
+        format!(". \"{}/env\"\n", cx.config.cargodir.display())
+    );
 }
 
 #[tokio::test]

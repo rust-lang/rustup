@@ -4,7 +4,7 @@ use anyhow::{Context, bail};
 use tracing::{error, warn};
 
 use super::{
-    shell::{self, Posix, UnixShell},
+    shell,
     stage::{self, PreparedUpdater, SelfUpdateLock},
 };
 use crate::{process::Process, utils};
@@ -54,9 +54,14 @@ pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
     let cargo_home = process.cargo_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let commands = [
+            sh.source_string(&cargo_home.display()),
+            sh.legacy_source_string(&cargo_home, home_dir.as_deref())?,
+        ];
         // Check more files for cleanup than normally are updated.
-        remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
+        for source_cmd in commands {
+            remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
+        }
     }
 
     remove_legacy_paths(process, &cargo_home, home_dir.as_deref())
@@ -66,12 +71,19 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
     let cargo_home = process.cargo_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(&cargo_home.display());
+        let legacy_cmd = sh.legacy_source_string(&cargo_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.rcs(process) {
             let cmd_to_write = match utils::read_file("rcfile", &rc) {
-                Ok(contents) if contents.contains(&source_cmd) => continue,
+                Ok(contents)
+                    if contents
+                        .lines()
+                        .any(|line| line == source_cmd || line == legacy_cmd) =>
+                {
+                    continue;
+                }
                 Ok(contents) if !contents.ends_with('\n') => &source_cmd_with_newline,
                 _ => &source_cmd,
             };
@@ -95,15 +107,14 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
 
 pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
     let cargo_home = process.cargo_home()?;
-    let bin_dir = cargo_home.join("bin");
-    let home_dir = process.home_dir();
+    let bin_home = cargo_home.join("bin");
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
         let script = sh.env_script();
         // Only write each possible script once.
         if !written.contains(&script) {
-            sh.write_script(&script, &cargo_home, &bin_dir, home_dir.as_deref())?;
+            sh.write_script(&script, &cargo_home, &bin_home)?;
             written.push(script);
         }
     }
@@ -178,7 +189,10 @@ fn remove_legacy_paths(
     cargo_home: &Path,
     home_dir: Option<&Path>,
 ) -> anyhow::Result<()> {
-    let cargo_home = Posix.env_dir_str(cargo_home, home_dir)?;
+    let cargo_home = match home_dir {
+        Some(home) if cargo_home == home.join(".cargo") => "$HOME/.cargo",
+        _ => cargo_home.to_str().context("Non-Unicode path!")?,
+    };
     let rcfiles = shell::legacy_paths(process, home_dir).collect::<Vec<_>>();
     // Before the work to support more kinds of shells, which was released in
     // version 1.23.0 of Rustup, we always inserted this line instead, which is
