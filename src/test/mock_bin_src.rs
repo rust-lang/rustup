@@ -97,6 +97,13 @@ fn main() {
             });
             eprintln!("{value}");
         }
+        Some("--run-in-dir") => {
+            let dir = args.next().expect("--run-in-dir requires a directory");
+            let command = args.next().expect("--run-in-dir requires a command");
+            env::set_current_dir(dir).unwrap();
+            let status = Command::new(command).args(args).status().unwrap();
+            assert!(status.success());
+        }
         Some("--echo-current-exe") => {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::current_exe().unwrap().display()).unwrap();

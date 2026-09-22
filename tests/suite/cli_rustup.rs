@@ -906,6 +906,194 @@ error: infinite recursion detected
 }
 
 #[tokio::test]
+async fn category_child_receives_resolved_homes() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    let legacy_home = &cx.config.rustupdir.rustupdir;
+    let category_homes = [
+        ("RUSTUP_CACHE_HOME", cx.config.current_dir().join("cache")),
+        ("RUSTUP_CONFIG_HOME", cx.config.current_dir().join("config")),
+        ("RUSTUP_DATA_HOME", legacy_home.clone()),
+        ("RUSTUP_STATE_HOME", cx.config.current_dir().join("state")),
+    ];
+
+    for (key, explicit_home) in &category_homes {
+        for value in [None, Some(Path::new("")), Some(explicit_home.as_path())] {
+            let mut cmd = cx.config.cmd("rustc", ["+stable", "--echo-env", key]);
+            cmd.env("RUSTUP_USE_CATEGORY_HOME", "1")
+                .envs(category_homes.iter().map(|(key, path)| (*key, path)));
+            match value {
+                Some(path) => {
+                    cmd.env(key, path);
+                }
+                None => {
+                    cmd.env_remove(key);
+                }
+            }
+
+            // Unset and empty overrides must be resolved from RUSTUP_HOME and
+            // explicitly forwarded; inheriting the parent environment cannot pass.
+            let expected = value
+                .filter(|path| !path.as_os_str().is_empty())
+                .unwrap_or(legacy_home);
+            let output = cmd.output().unwrap();
+            let stderr = String::from_utf8(output.stderr).unwrap();
+            assert!(output.status.success(), "{key}={value:?}: {stderr}");
+            assert_eq!(stderr.trim(), expected.to_string_lossy(), "{key}={value:?}");
+        }
+    }
+}
+
+#[tokio::test]
+async fn category_child_anchors_relative_homes_after_changing_directory() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let category_homes = [
+        ("RUSTUP_CACHE_HOME", "cache"),
+        ("RUSTUP_CONFIG_HOME", "config"),
+        ("RUSTUP_DATA_HOME", "data"),
+        ("RUSTUP_STATE_HOME", "state"),
+    ];
+    let mut link = cx.config.cmd("rustup", ["toolchain", "link", "custom"]);
+    link.arg(cx.config.customdir.join("custom-1"))
+        .env("RUSTUP_USE_CATEGORY_HOME", "1")
+        .envs(category_homes);
+    let output = link.output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let cwd = cx.config.current_dir();
+    let subdir = cwd.join("subdir");
+    fs::create_dir(&subdir).unwrap();
+    for (key, relative_home) in category_homes {
+        let mut cmd = cx.config.cmd(
+            "rustup",
+            [
+                "run",
+                "custom",
+                "rustc",
+                "--run-in-dir",
+                "subdir",
+                "rustc",
+                "--echo-env",
+                key,
+            ],
+        );
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1")
+            .envs(category_homes);
+        let output = cmd.output().unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(output.status.success(), "{key}: {stderr}");
+        assert_eq!(stderr.trim(), cwd.join(relative_home).to_string_lossy());
+        assert!(!subdir.join(relative_home).exists());
+    }
+}
+
+#[tokio::test]
+async fn category_child_preserves_legacy_home_without_resolving_it() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    for legacy in [Some("relative-legacy"), None] {
+        let mut cmd = cx.config.cmd("rustc", ["--echo-env", "RUSTUP_HOME"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        for category in ["CONFIG", "CACHE", "DATA", "STATE"] {
+            cmd.env(
+                format!("RUSTUP_{category}_HOME"),
+                cx.config.rustupdir.to_string(),
+            );
+        }
+        match legacy {
+            Some(value) => {
+                cmd.env("RUSTUP_HOME", value);
+            }
+            None => {
+                cmd.env_remove("RUSTUP_HOME");
+            }
+        }
+        let output = cmd.output().unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        match legacy {
+            Some(value) => {
+                assert!(output.status.success(), "{stderr}");
+                assert_eq!(stderr.trim(), value);
+            }
+            None => {
+                assert!(!output.status.success());
+                assert!(
+                    stderr.contains("RUSTUP_HOME environment variable not set"),
+                    "{stderr}"
+                );
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn child_cargo_home_preserves_legacy_compatibility() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    for (mode, cargo_home, expected) in [
+        ("0", None, Some(cx.config.homedir.join(".cargo"))),
+        ("1", None, None),
+        ("1", Some(""), Some(PathBuf::new())),
+        (
+            "1",
+            Some("relative-cargo"),
+            Some(cx.config.current_dir().join("relative-cargo")),
+        ),
+    ] {
+        let mut cmd = cx.config.cmd("rustc", ["--echo-env", "CARGO_HOME"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", mode);
+        match cargo_home {
+            Some(value) => {
+                cmd.env("CARGO_HOME", value);
+            }
+            None => {
+                cmd.env_remove("CARGO_HOME");
+            }
+        }
+        let output = cmd.output().unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        match expected {
+            Some(path) => {
+                assert!(
+                    output.status.success(),
+                    "mode={mode}, CARGO_HOME={cargo_home:?}: {stderr}"
+                );
+                assert_eq!(
+                    stderr.trim(),
+                    path.to_string_lossy(),
+                    "mode={mode}, CARGO_HOME={cargo_home:?}"
+                );
+            }
+            None => {
+                assert!(
+                    !output.status.success(),
+                    "mode={mode}, CARGO_HOME={cargo_home:?}: {stderr}"
+                );
+                assert!(
+                    stderr.contains("CARGO_HOME environment variable not set"),
+                    "{stderr}"
+                );
+            }
+        }
+    }
+}
+
+#[tokio::test]
 async fn show_home() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config

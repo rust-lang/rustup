@@ -1277,7 +1277,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
         writeln!(
             t,
             "{HEADER}rustup home:  {HEADER:#}{}",
-            cfg.rustup_dir.display()
+            cfg.rustup_data_dir.display()
         )?;
         writeln!(t)?;
     }
@@ -1426,7 +1426,11 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<E
 
 #[tracing::instrument(level = "trace", skip_all)]
 fn show_rustup_home(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
-    writeln!(cfg.process.stdout().lock(), "{}", cfg.rustup_dir.display())?;
+    writeln!(
+        cfg.process.stdout().lock(),
+        "{}",
+        cfg.rustup_data_dir.display()
+    )?;
     Ok(ExitCode::SUCCESS)
 }
 
