@@ -67,9 +67,9 @@ opener = "0.8.0"
 # rustup: this allows controlling the vendoring status without exposing the
 # presence of the download crate.
 openssl = { version = "0.10", optional = true }
-opentelemetry = { version = "0.32", optional = true }
-opentelemetry-otlp = { version = "0.32", features = ["grpc-tonic"], optional = true }
-opentelemetry_sdk = { version = "0.32", features = ["rt-tokio"], optional = true }
+opentelemetry = { version = "0.33", optional = true }
+opentelemetry-otlp = { version = "0.33", features = ["grpc-tonic"], optional = true }
+opentelemetry_sdk = { version = "0.33", features = ["rt-tokio"], optional = true }
 platforms = "4"
 pulldown-cmark = { version = "0.13", default-features = false }
 rand = "0.10"
@@ -97,7 +97,7 @@ tokio-stream = "0.1.14"
 toml = "1.0"
 tracing = "0.1"
 tracing-log = "0.2"
-tracing-opentelemetry = { version = "0.33", optional = true }
+tracing-opentelemetry = { version = "0.34", optional = true }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 unicode-security = "0.1"
 url = "2.4"
