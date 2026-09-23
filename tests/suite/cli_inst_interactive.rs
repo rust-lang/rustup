@@ -13,19 +13,11 @@ fn run_input(config: &Config, args: &[&str], input: &str) -> Assert {
     run_input_with_env(config, args, input, &[])
 }
 
-fn run_input_with_env(
-    config: &Config,
-    args: &[&str],
-    input: &str,
-    env: &[(&str, Option<&str>)],
-) -> Assert {
+fn run_input_with_env(config: &Config, args: &[&str], input: &str, env: &[(&str, &str)]) -> Assert {
     let mut cmd = config.cmd(args[0], &args[1..]);
 
     for (key, value) in env.iter() {
-        match value {
-            Some(value) => cmd.env(key, value),
-            None => cmd.env_remove(key),
-        };
+        cmd.env(key, value);
     }
 
     cmd.stdin(Stdio::piped());
@@ -74,11 +66,8 @@ async fn smoke_case_install_no_modify_path() {
         &["rustup-init", "--no-modify-path"],
         "\n\n",
         &[
-            ("PATH", Some(cx.config.exedir.to_str().unwrap())),
-            ("SHELL", Some("/bin/sh")),
-            // HACK: current XONSH detection is done via `process.var("XONSHRC").is_ok()`,
-            // setting this as none prevents unwanted modification
-            ("XONSHRC", None),
+            ("PATH", cx.config.exedir.to_str().unwrap()),
+            ("SHELL", "/bin/sh"),
         ],
     )
     .with_stdout(snapbox::str![[r#"
@@ -153,11 +142,8 @@ async fn smoke_case_install_with_path_install() {
         &["rustup-init"],
         "\n\n",
         &[
-            ("PATH", Some(cx.config.exedir.to_str().unwrap())),
-            ("SHELL", Some("/bin/sh")),
-            // HACK: current XONSH detection is done via `process.var("XONSHRC").is_ok()`,
-            // setting this as none prevents unwanted modification
-            ("XONSHRC", None),
+            ("PATH", cx.config.exedir.to_str().unwrap()),
+            ("SHELL", "/bin/sh"),
         ],
     )
     .is_ok()
