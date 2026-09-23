@@ -131,7 +131,8 @@ To configure your current shell, you need to source the
 corresponding env file under $HOME/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
-. "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+
+  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
 ...
 "#]],
     })
@@ -185,7 +186,8 @@ To configure your current shell, you need to source the
 corresponding env file under $HOME/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
-. "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+
+  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
 ...
 "#]],
     });

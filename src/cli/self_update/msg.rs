@@ -15,13 +15,13 @@ home directory, located at:
 
     {rustup_home}
 
-This can be modified with the RUSTUP_HOME environment variable.
+This can be modified with the `RUSTUP_HOME` environment variable.
 
 The Cargo home directory is located at:
 
     {cargo_home}
 
-This can be modified with the CARGO_HOME environment variable.
+This can be modified with the `CARGO_HOME` environment variable.
 
 The `cargo`, `rustc`, `rustup` and other commands will be added to
 Cargo's bin directory, located at:
@@ -99,7 +99,10 @@ To configure your current shell, you need to source the
 corresponding `env` file under `{env_dir}`.
 
 Consider running the right command for your shell (note the leading DOT):
-{source_env_lines}"
+
+```
+{source_env_lines}```
+"
     };
 }
 
