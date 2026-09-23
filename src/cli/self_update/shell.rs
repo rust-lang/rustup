@@ -523,7 +523,8 @@ struct Xonsh;
 
 impl UnixShell for Xonsh {
     fn does_exist(&self, process: &Process) -> bool {
-        process.var("XONSHRC").is_ok() || utils::find_cmd(&["xonsh"], process).is_some()
+        matches!(process.var("SHELL"), Ok(sh) if sh.contains("xonsh"))
+            || utils::find_cmd(&["xonsh"], process).is_some()
     }
 
     fn name(&self) -> &'static str {
