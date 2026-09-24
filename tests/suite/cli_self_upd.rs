@@ -12,14 +12,13 @@ use retry::{
     delay::{Fibonacci, jitter},
     retry,
 };
-#[cfg(unix)]
-use rustup::cli::self_update::CHECKPOINT_SELF_REPLACE_READY;
 #[cfg(windows)]
 use rustup::test::RegistryValueId;
 use rustup::{
     DUP_TOOLS, TOOLS,
     cli::self_update::{
-        CHECKPOINT_SELF_UPDATE_PREPARED, Marker, SELF_UPDATE_DIRECTORY, updater_path,
+        CHECKPOINT_SELF_REPLACE_READY, CHECKPOINT_SELF_UPDATE_PREPARED, Marker,
+        SELF_UPDATE_DIRECTORY, updater_path,
     },
     test::{
         CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash,
@@ -507,6 +506,116 @@ async fn update_overwrites_programs_display_version() {
             .unwrap(),
         Value::from(version)
     );
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn self_replace_waits_for_legacy_parent() {
+    use std::io::Write;
+
+    let cx = setup_empty_installed().await;
+    let rustup_home = &cx.config.rustupdir.rustupdir;
+    let stage = rustup_home.join(SELF_UPDATE_DIRECTORY);
+    fs::create_dir_all(&stage).unwrap();
+    let updater = managed_updater(rustup_home);
+    fs::copy(cx.config.exedir.join("rustup-init.exe"), &updater).unwrap();
+    // Make the replacement distinguishable without changing its behavior.
+    writeln!(fs::OpenOptions::new().append(true).open(&updater).unwrap()).unwrap();
+    let rustup = cx.config.cargodir.join("bin/rustup.exe");
+    let expected_hash = calc_hash(&updater);
+    assert_ne!(calc_hash(&rustup), expected_hash);
+
+    // The test subprocess acts as an old launcher: it spawns the new updater
+    // directly, without providing the inherited-parent-handle protocol.
+    let mut launcher = Command::new(std::env::current_exe().unwrap());
+    cx.config.env(&mut launcher);
+    let status = launcher
+        .args([
+            "--exact",
+            "suite::cli_self_upd::legacy_self_update_launcher",
+            "--ignored",
+            "--nocapture",
+        ])
+        .env("RUSTUP_TEST_LEGACY_UPDATER", &updater)
+        .env("RUSTUP_SELF_UPDATE_STAGE", &stage)
+        .env(rustup::test::CHECKPOINT_ENV, CHECKPOINT_SELF_REPLACE_READY)
+        .env_remove("RUSTUP_PARENT_HANDLE")
+        .status()
+        .unwrap();
+    assert!(status.success(), "legacy launcher failed: {status}");
+
+    wait_for_completed_update(rustup_home);
+    assert_eq!(calc_hash(&rustup), expected_hash);
+    let mut updated = Command::new(&rustup);
+    cx.config.env(&mut updated);
+    assert!(updated.arg("--version").status().unwrap().success());
+}
+
+#[cfg(windows)]
+#[test]
+#[ignore = "subprocess helper for self_replace_waits_for_legacy_parent"]
+fn legacy_self_update_launcher() {
+    use std::{
+        thread,
+        time::{Duration, Instant},
+    };
+
+    // Reap the updater on assertion failure, so a failed test cannot leave it
+    // running against a test directory that is being removed.
+    struct Updater(Option<std::process::Child>);
+    impl Drop for Updater {
+        fn drop(&mut self) {
+            if let Some(child) = &mut self.0 {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+        }
+    }
+
+    let updater = std::env::var_os("RUSTUP_TEST_LEGACY_UPDATER").unwrap();
+    let rustup_home = PathBuf::from(std::env::var_os("RUSTUP_HOME").unwrap());
+    let stage = rustup_home.join(SELF_UPDATE_DIRECTORY);
+    let rustup = PathBuf::from(std::env::var_os("CARGO_HOME").unwrap()).join("bin/rustup.exe");
+    let before_hash = calc_hash(&rustup);
+    let marker =
+        rustup::test::checkpoint_path(rustup_home.parent().unwrap(), CHECKPOINT_SELF_REPLACE_READY);
+    let mut child = Updater(Some(
+        Command::new(updater)
+            .arg("--self-replace")
+            .env_remove("RUSTUP_PARENT_HANDLE")
+            .spawn()
+            .unwrap(),
+    ));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !marker.is_file() {
+        assert!(
+            child.0.as_mut().unwrap().try_wait().unwrap().is_none(),
+            "updater exited before checkpoint"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "updater did not reach checkpoint"
+        );
+        thread::sleep(Duration::from_millis(10));
+    }
+    fs::remove_file(marker).unwrap();
+
+    // Allow the updater to run beyond the checkpoint. It must still be waiting
+    // for this process, even though no parent handle was supplied.
+    let deadline = Instant::now() + Duration::from_millis(250);
+    while Instant::now() < deadline {
+        assert!(
+            child.0.as_mut().unwrap().try_wait().unwrap().is_none(),
+            "updater exited while its parent was alive"
+        );
+        assert!(!Marker::Complete.path(&stage).exists());
+        assert!(!Marker::Failed.path(&stage).exists());
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(calc_hash(&rustup), before_hash);
+    // Leave the updater running; returning from this subprocess releases its
+    // parent wait, and the outer test verifies the completed replacement.
+    child.0.take();
 }
 
 #[tokio::test]

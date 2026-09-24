@@ -124,11 +124,13 @@ impl PreparedUpdater {
             .path
             .parent()
             .context("self-updater path has no parent directory")?;
-        Command::new(&self.path)
-            .env(STAGE_ENV, stage)
-            .arg("--self-replace")
-            .spawn()
-            .with_context(|| format!("unable to run updater ({})", self.path.display()))
+        let mut command = Command::new(&self.path);
+        command.env(STAGE_ENV, stage).arg("--self-replace");
+        #[cfg(windows)]
+        let child = super::windows::spawn_with_parent_handle(&mut command);
+        #[cfg(not(windows))]
+        let child = command.spawn();
+        child.with_context(|| format!("unable to run updater ({})", self.path.display()))
     }
 }
 
