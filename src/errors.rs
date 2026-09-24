@@ -9,18 +9,86 @@ use std::{
 };
 
 use platforms::Platform;
+use strsim::damerau_levenshtein;
 use thiserror::Error as ThisError;
 use url::Url;
 
 use crate::{
     dist::{
         Channel, TargetTuple, ToolchainDesc,
+        config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
     toolchain::{PathBasedToolchainName, ToolchainName},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
+
+pub(crate) fn component_suggestion(
+    desc: &ToolchainDesc,
+    component: &Component,
+    config: &DistConfig,
+    manifest: &Manifest,
+    only_installed: bool,
+) -> Option<String> {
+    // Suggest only for very small differences
+    // High number can result in inaccurate suggestions for short queries e.g. `rls`
+    const MAX_DISTANCE: usize = 3;
+    let Ok(components) = manifest.query_components(desc, config) else {
+        return None;
+    };
+    let components = components
+        .iter()
+        .filter(|c| !only_installed || c.installed)
+        .collect::<Vec<_>>();
+    let short_name_distance = components
+        .iter()
+        .map(|c| {
+            (
+                damerau_levenshtein(&manifest.name(&c.component), &manifest.name(component)),
+                *c,
+            )
+        })
+        .min_by_key(|t| t.0)
+        .expect("There should be always at least one component");
+    let long_name_distance = components
+        .iter()
+        .map(|c| {
+            (
+                damerau_levenshtein(&c.component.name(), &manifest.name(component)),
+                *c,
+            )
+        })
+        .min_by_key(|t| t.0)
+        .expect("There should be always at least one component");
+
+    // Find closer suggestion
+    let (closest_distance, closest_match) = if short_name_distance.0 > long_name_distance.0 {
+        let closest = &long_name_distance.1.component;
+        // Check if only targets differ
+        let name = if closest.short_name() == component.short_name() {
+            closest.target()
+        } else {
+            closest.short_name().to_string()
+        };
+        (long_name_distance.0, name)
+    } else {
+        // Check if only targets differ
+        let name = if manifest.short_name(&short_name_distance.1.component)
+            == manifest.short_name(component)
+        {
+            short_name_distance.1.component.target()
+        } else {
+            manifest
+                .short_name(&short_name_distance.1.component)
+                .to_string()
+        };
+        (short_name_distance.0, name)
+    };
+
+    // If suggestion is too different don't suggest anything
+    (closest_distance <= MAX_DISTANCE).then_some(closest_match)
+}
 
 /// A type erasing thunk for the retry crate to permit use with anyhow. See <https://github.com/dtolnay/anyhow/issues/149>
 #[derive(Debug, ThisError)]
@@ -205,7 +273,7 @@ fn maybe_suggest_toolchain(bad_name: &str) -> Cow<'static, str> {
     let suggestion = ["stable", "beta", "nightly"]
         .into_iter()
         .filter_map(|s| {
-            let distance = strsim::damerau_levenshtein(bad_name, s);
+            let distance = damerau_levenshtein(bad_name, s);
             (distance <= MAX_DISTANCE).then_some((distance, s))
         })
         .max();
