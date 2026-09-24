@@ -1796,6 +1796,73 @@ error: toolchain 'nightly-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]' in
 }
 
 #[tokio::test]
+async fn remove_target_not_installed_with_suggestion() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect([
+            "rustup",
+            "target",
+            "add",
+            CROSS_ARCH1,
+            "--toolchain=nightly",
+        ])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "target", "remove", CROSS_ARCH1])
+        .await
+        .extend_redactions([
+            ("[HOST_TUPLE]", this_host_tuple()),
+            ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
+        ])
+        .with_stderr(snapbox::str![[r#"
+...
+error: toolchain 'stable-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]' installed
+help: try `rustup +nightly-[HOST_TUPLE] target remove [CROSS_ARCH_I]`
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn remove_target_not_installed_no_alternative() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "target", "remove", CROSS_ARCH1])
+        .await
+        .extend_redactions([
+            ("[HOST_TUPLE]", this_host_tuple()),
+            ("[CROSS_ARCH_I]", CROSS_ARCH1.to_string()),
+        ])
+        .with_stderr(snapbox::str![[r#"
+...
+error: toolchain 'stable-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]' installed
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
 async fn remove_target_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
@@ -2337,8 +2404,8 @@ async fn remove_target_suggest_best_match() {
         .expect(["rustup", "target", "remove", &format!("{CROSS_ARCH1}a")[..]])
         .await
         .with_stderr(snapbox::str![[r#"
-error: toolchain 'nightly-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]a' installed; did you mean '[CROSS_ARCH_I]'?
-
+error: toolchain 'nightly-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]a' installed
+help: did you mean '[CROSS_ARCH_I]'?
 
 "#]])
         .is_err();

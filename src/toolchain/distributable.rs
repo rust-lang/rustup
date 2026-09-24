@@ -21,7 +21,7 @@ use crate::{
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
-    errors::{UnknownComponentInfo, component_suggestion},
+    errors::{TargetSuggestion, UnknownComponentInfo, component_suggestion},
     install::InstallMethod,
 };
 
@@ -335,21 +335,34 @@ impl<'a> DistributableToolchain<'a> {
                 continue;
             }
 
-            let suggestion = component_suggestion(&self.desc, &component, &config, &manifest, true);
-
             // Check if the target is installed.
             if !config
                 .components
                 .iter()
                 .any(|c| c.target() == component.target())
             {
+                let target = component
+                    .target
+                    .as_ref()
+                    .expect("component target should be known");
+                let suggestion = TargetSuggestion::from_target(
+                    &self.desc,
+                    target,
+                    &component,
+                    &config,
+                    &manifest,
+                    self.toolchain.cfg,
+                );
                 return Err(RustupError::TargetNotInstalled {
                     desc: Box::new(self.desc.clone()),
-                    target: component.target.expect("component target should be known"),
+                    target: target.clone(),
                     suggestion,
                 }
                 .into());
             }
+
+            let suggestion = component_suggestion(&self.desc, &component, &config, &manifest, true);
+
             unknown_components.push(UnknownComponentInfo {
                 name: manifest.short_name(&component).to_string(),
                 description: manifest.description(&component),

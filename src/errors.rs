@@ -3,7 +3,7 @@
 use std::{
     borrow::Cow,
     ffi::OsString,
-    fmt::{Debug, Write as FmtWrite},
+    fmt::{self, Debug, Write as FmtWrite},
     io::{self, Write},
     path::PathBuf,
 };
@@ -14,15 +14,73 @@ use thiserror::Error as ThisError;
 use url::Url;
 
 use crate::{
+    config::Cfg,
     dist::{
         Channel, TargetTuple, ToolchainDesc,
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{PathBasedToolchainName, ToolchainName},
+    toolchain::{PathBasedToolchainName, Toolchain, ToolchainName},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
+
+#[derive(Debug, Clone)]
+pub enum TargetSuggestion {
+    Toolchain { name: String, target: TargetTuple },
+    Component(String),
+}
+
+impl TargetSuggestion {
+    pub(crate) fn from_target(
+        desc: &ToolchainDesc,
+        target: &TargetTuple,
+        component: &Component,
+        config: &DistConfig,
+        manifest: &Manifest,
+        cfg: &Cfg<'_>,
+    ) -> Option<Self> {
+        let Ok(toolchains) = cfg.list_toolchains(true) else {
+            return component_suggestion(desc, component, config, manifest, true)
+                .map(Self::Component);
+        };
+
+        for toolchain_name in toolchains {
+            if let ToolchainName::Official(toolchain_desc) = &toolchain_name
+                && toolchain_desc == desc
+            {
+                continue;
+            }
+
+            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
+                continue;
+            };
+            let Ok(installed_targets) = toolchain.installed_targets() else {
+                continue;
+            };
+
+            if installed_targets.contains(target) {
+                return Some(Self::Toolchain {
+                    name: toolchain_name.to_string(),
+                    target: target.clone(),
+                });
+            }
+        }
+
+        component_suggestion(desc, component, config, manifest, true).map(Self::Component)
+    }
+}
+
+impl fmt::Display for TargetSuggestion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Toolchain { name, target } => {
+                write!(f, "\nhelp: try `rustup +{name} target remove {target}`")
+            }
+            Self::Component(name) => write!(f, "\nhelp: did you mean '{name}'?"),
+        }
+    }
+}
 
 pub(crate) fn component_suggestion(
     desc: &ToolchainDesc,
@@ -229,12 +287,12 @@ pub enum RustupError {
         target: TargetTuple,
         suggestion: Option<String>,
     },
-    #[error("toolchain '{}' does not have target '{}' installed{}\n", .desc, .target,
-    suggest_message(.suggestion))]
+    #[error("toolchain '{}' does not have target '{}' installed{}", .desc, .target,
+    .suggestion.as_ref().map_or_else(String::new, ToString::to_string))]
     TargetNotInstalled {
         desc: Box<ToolchainDesc>,
         target: TargetTuple,
-        suggestion: Option<String>,
+        suggestion: Option<TargetSuggestion>,
     },
     #[error(
         "rustup executable proxies don't seem to work\n\
