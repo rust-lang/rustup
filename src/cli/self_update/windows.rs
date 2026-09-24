@@ -8,10 +8,10 @@ use std::{
     mem,
     os::windows::{
         fs::OpenOptionsExt,
-        io::{AsRawHandle, FromRawHandle, OwnedHandle},
+        io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle},
     },
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
     ptr, thread,
     time::Duration,
 };
@@ -26,8 +26,8 @@ use windows_registry::{CURRENT_USER, HSTRING, Key};
 use windows_result::WIN32_ERROR;
 use windows_sys::Win32::{
     Foundation::{
-        ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA, INVALID_HANDLE_VALUE, LPARAM, WAIT_OBJECT_0,
-        WPARAM,
+        DuplicateHandle, ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA, INVALID_HANDLE_VALUE, LPARAM,
+        WAIT_OBJECT_0, WPARAM,
     },
     Storage::FileSystem::{
         FILE_FLAG_DELETE_ON_CLOSE, FILE_SHARE_DELETE, FILE_SHARE_READ, SYNCHRONIZE,
@@ -37,7 +37,9 @@ use windows_sys::Win32::{
             CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next,
             TH32CS_SNAPPROCESS,
         },
-        Threading::{GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject},
+        Threading::{
+            GetCurrentProcess, GetCurrentProcessId, INFINITE, OpenProcess, WaitForSingleObject,
+        },
     },
     UI::WindowsAndMessaging::{
         HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutA, WM_SETTINGCHANGE,
@@ -382,7 +384,7 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    let uninstall = wait_for_parent().and_then(|()| {
+    let uninstall = wait_for_parent(process).and_then(|()| {
         let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
         // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
@@ -407,7 +409,45 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
+/// Starts a helper that calls `wait_for_parent` before replacing or deleting files.
+pub(super) fn spawn_with_parent_handle(command: &mut Command) -> io::Result<Child> {
+    let mut parent = ptr::null_mut();
+    // SAFETY: GetCurrentProcess is valid for this call, and parent is writable.
+    // Duplicate the pseudo-handle into a real, inheritable SYNCHRONIZE handle.
+    let duplicated = unsafe {
+        let current = GetCurrentProcess();
+        DuplicateHandle(current, current, current, &mut parent, SYNCHRONIZE, 1, 0)
+    };
+    if duplicated == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // SAFETY: DuplicateHandle succeeded and ownership has not been transferred yet.
+    let parent = unsafe { OwnedHandle::from_raw_handle(parent) };
+
+    // Keep our handle open until spawn returns; the child then owns its inherited copy.
+    command
+        .env(PARENT_HANDLE, (parent.as_raw_handle() as usize).to_string())
+        .spawn()
+}
+
+fn wait_for_parent(process: &Process) -> anyhow::Result<()> {
+    let Some(parent) = process.var_opt(PARENT_HANDLE)? else {
+        return wait_for_parent_legacy();
+    };
+    let parent = parent.parse::<usize>()? as RawHandle;
+    // SAFETY: spawn_with_parent_handle transfers a dedicated inherited process handle.
+    // This is its only Rust owner in the helper, which calls this function once.
+    let parent = unsafe { OwnedHandle::from_raw_handle(parent) };
+    // SAFETY: parent keeps the inherited SYNCHRONIZE handle open throughout the wait.
+    if unsafe { WaitForSingleObject(parent.as_raw_handle(), INFINITE) } != WAIT_OBJECT_0 {
+        return Err(io::Error::last_os_error()).context("failed to wait for parent process");
+    }
+    Ok(())
+}
+
+// Compatibility with launchers which do not pass a parent process handle.
+// TODO: Delete this when it's suitable.
+fn wait_for_parent_legacy() -> anyhow::Result<()> {
     unsafe {
         // Take a snapshot of system processes, one of which is ours
         // and contains our parent's pid
@@ -664,7 +704,9 @@ pub(super) fn run_update(
 }
 
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
-    wait_for_parent()?;
+    #[cfg(feature = "test")]
+    process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
+    wait_for_parent(process)?;
     let self_update_lock = SelfUpdateLock::lock(process)?;
     let result = process.cargo_home().and_then(|cargo_home| {
         self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))?;
@@ -729,15 +771,13 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> any
         .open(&gc_exe)
         .context(CliError::WindowsUninstallMadness)?;
 
-    // Pass the file as GC stdin so the standard library manages inheritance.
-    // Command retains the parent handle after spawn; keep it alive through the sleep.
     let mut command = Command::new(gc_exe);
     command
         .stdin(gc_handle)
-        .env(GC_MODIFY_PATH, if no_modify_path { "0" } else { "1" })
-        .spawn()
-        .context(CliError::WindowsUninstallMadness)?;
+        .env(GC_MODIFY_PATH, if no_modify_path { "0" } else { "1" });
+    spawn_with_parent_handle(&mut command).context(CliError::WindowsUninstallMadness)?;
 
+    // Command retains the deletion handle after spawn; keep it alive through the sleep.
     // The catch 22 article says we must sleep here to give
     // Windows a chance to bump the processes file reference
     // count. acrichto though is in disbelief and *demanded* that
@@ -753,6 +793,10 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> any
 // The rustup-gc executable cannot accept normal function call here,
 // so we use env var here, notifying it if we need to remove $CARGO_HOME/bin from $PATH
 const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
+
+// Decimal value of the process handle inherited by GC or the self-replacer.
+// Older launchers omit it, so their helpers use PID lookup instead.
+const PARENT_HANDLE: &str = "RUSTUP_PARENT_HANDLE";
 
 /// Environment variable carrying the per-test registry ID.
 #[cfg(any(test, feature = "test"))]
