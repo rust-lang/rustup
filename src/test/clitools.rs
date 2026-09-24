@@ -836,16 +836,22 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         test_registry_id: test_id(),
     };
 
-    // NOTE: By default, we assume that one of the following is true,
-    // assuming `rustup-init` is located under directory `D`:
-    // - The current exe is under `D`
-    // - The current exe is under `D/deps`
-    let mut build_path = env::current_exe().unwrap();
-    assert!(build_path.pop(), "current exe path has no parent");
-    if build_path.ends_with("deps") {
-        assert!(build_path.pop(), "deps path has no parent");
-    }
-    build_path.push(format!("rustup-init{EXE_SUFFIX}"));
+    let build_path = match env::var_os("RUSTUP_TEST_RUSTUP_INIT") {
+        Some(exe) => PathBuf::from(exe),
+        None => {
+            // NOTE: By default, we assume that one of the following is true,
+            // assuming `rustup-init` is located under directory `D`:
+            // - The current exe is under `D`
+            // - The current exe is under `D/deps`
+            let mut exe = env::current_exe().unwrap();
+            assert!(exe.pop(), "current exe path has no parent");
+            if exe.ends_with("deps") {
+                assert!(exe.pop(), "deps path has no parent");
+            }
+            exe.push(format!("rustup-init{EXE_SUFFIX}"));
+            exe
+        }
+    };
 
     let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
     // Used to create dist servers. Perhaps should only link when needed?
