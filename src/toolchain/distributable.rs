@@ -16,13 +16,12 @@ use crate::{
     config::{ActiveSource, Cfg, EnsureInstalled},
     dist::{
         DistOptions, PartialToolchainDesc, ToolchainDesc,
-        config::Config,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, Manifest, ManifestWithHash},
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
-    errors::UnknownComponentInfo,
+    errors::{UnknownComponentInfo, component_suggestion},
     install::InstallMethod,
 };
 
@@ -100,7 +99,8 @@ impl<'a> DistributableToolchain<'a> {
             }
 
             let config = manifestation.read_config()?.unwrap_or_default();
-            let suggestion = self.get_component_suggestion(&component, &config, &manifest, false);
+            let suggestion =
+                component_suggestion(&self.desc, &component, &config, &manifest, false);
             let desc = self.desc.clone();
 
             if targ_pkg
@@ -246,83 +246,6 @@ impl<'a> DistributableToolchain<'a> {
         Ok(cmd)
     }
 
-    fn get_component_suggestion(
-        &self,
-        component: &Component,
-        config: &Config,
-        manifest: &Manifest,
-        only_installed: bool,
-    ) -> Option<String> {
-        use strsim::damerau_levenshtein;
-
-        // Suggest only for very small differences
-        // High number can result in inaccurate suggestions for short queries e.g. `rls`
-        const MAX_DISTANCE: usize = 3;
-
-        let components = manifest.query_components(&self.desc, config);
-        if let Ok(components) = components {
-            let short_name_distance = components
-                .iter()
-                .filter(|c| !only_installed || c.installed)
-                .map(|c| {
-                    (
-                        damerau_levenshtein(
-                            &manifest.name(&c.component)[..],
-                            &manifest.name(component)[..],
-                        ),
-                        c,
-                    )
-                })
-                .min_by_key(|t| t.0)
-                .expect("There should be always at least one component");
-
-            let long_name_distance = components
-                .iter()
-                .filter(|c| !only_installed || c.installed)
-                .map(|c| {
-                    (
-                        damerau_levenshtein(&c.component.name()[..], &manifest.name(component)[..]),
-                        c,
-                    )
-                })
-                .min_by_key(|t| t.0)
-                .expect("There should be always at least one component");
-
-            let mut closest_distance = short_name_distance;
-            let mut closest_match = manifest
-                .short_name(&short_name_distance.1.component)
-                .to_owned();
-
-            // Find closer suggestion
-            if short_name_distance.0 > long_name_distance.0 {
-                closest_distance = long_name_distance;
-
-                // Check if only targets differ
-                if closest_distance.1.component.short_name() == component.short_name() {
-                    closest_match = long_name_distance.1.component.target();
-                } else {
-                    closest_match = long_name_distance.1.component.short_name().to_string();
-                }
-            } else {
-                // Check if only targets differ
-                if manifest.short_name(&closest_distance.1.component)
-                    == manifest.short_name(component)
-                {
-                    closest_match = short_name_distance.1.component.target();
-                }
-            }
-
-            // If suggestion is too different don't suggest anything
-            if closest_distance.0 > MAX_DISTANCE {
-                None
-            } else {
-                Some(closest_match)
-            }
-        } else {
-            None
-        }
-    }
-
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn get_manifestation(&self) -> anyhow::Result<Manifestation> {
         let prefix = InstallPrefix::from(self.toolchain.path());
@@ -412,7 +335,8 @@ impl<'a> DistributableToolchain<'a> {
                 continue;
             }
 
-            let suggestion = self.get_component_suggestion(&component, &config, &manifest, true);
+            let suggestion = component_suggestion(&self.desc, &component, &config, &manifest, true);
+
             // Check if the target is installed.
             if !config
                 .components
