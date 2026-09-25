@@ -1,9 +1,9 @@
 use std::{
     borrow::Cow,
-    env::{consts::EXE_SUFFIX, split_paths},
+    env::split_paths,
     ffi::{OsStr, OsString},
     fmt,
-    fs::OpenOptions,
+    fs::{File, OpenOptions},
     io::{self, Write},
     mem,
     os::windows::{
@@ -682,8 +682,8 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
-//   CARGO_HOME/../rustup-gc-$random.exe.
+// - Copy the running rustup.exe to a temporary file in
+//   the system temporary directory as rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
@@ -705,21 +705,24 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> anyhow::Result<()> {
-    // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
-
-    // The directory containing CARGO_HOME
-    let work_path = cargo_home
-        .parent()
-        .expect("CARGO_HOME doesn't have a parent?");
-
-    // Generate a unique name for the files we're about to move out
-    // of CARGO_HOME.
-    let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
+    // Copy the running executable so GC does not depend on the installed copy.
+    let rustup_path = utils::current_exe()?;
+    let mut source = File::open(&rustup_path)
+        .with_context(|| format!("could not open rustup '{}'", rustup_path.display()))?;
+    // Use the system temporary directory so GC creation does not require
+    // write access to CARGO_HOME's parent.
+    let mut gc_file = tempfile::Builder::new()
+        .prefix("rustup-gc-")
+        .suffix(".exe")
+        .tempfile()
+        .context("error creating temporary GC executable")?;
+    // `io::copy` writes its contents into this independent regular file,
+    // so DELETE_ON_CLOSE applies to the GC copy rather than the source target.
+    io::copy(&mut source, gc_file.as_file_mut())
+        .with_context(|| format!("could not copy rustup from '{}'", rustup_path.display()))?;
+    // Close the write handle before opening the executable for reading.
+    let gc_exe = gc_file.into_temp_path();
     // OpenOptions preserves the read, sharing and delete-on-close flags while
     // letting File own the handle until it is passed to Command below.
     let gc_handle = OpenOptions::new()
@@ -728,6 +731,10 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> any
         .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
         .open(&gc_exe)
         .context(CliError::WindowsUninstallMadness)?;
+
+    // Transfer cleanup to Windows only after the DELETE_ON_CLOSE handle is
+    // open. Until then, TempPath attempts cleanup if preparation fails.
+    let gc_exe = gc_exe.keep()?;
 
     // Pass the file as GC stdin so the standard library manages inheritance.
     // Command retains the parent handle after spawn; keep it alive through the sleep.
