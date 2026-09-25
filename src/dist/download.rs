@@ -17,7 +17,7 @@ use url::Url;
 use crate::{
     config::Cfg,
     dist::{
-        Channel, DEFAULT_DIST_SERVER, ToolchainDesc,
+        Channel, DEFAULT_DIST_SERVER, OfficialToolchainName,
         manifest::{Manifest, ManifestWithHash},
         temp,
     },
@@ -155,7 +155,7 @@ impl<'a> DownloadCfg<'a> {
     pub(crate) async fn dl_v2_manifest(
         &self,
         update_hash: Option<&Path>,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
         cfg: &Cfg<'_>,
     ) -> anyhow::Result<Option<ManifestWithHash>> {
         let manifest_url = toolchain.manifest_v2_url(&cfg.dist_root_url, self.process);
@@ -208,7 +208,7 @@ impl<'a> DownloadCfg<'a> {
     pub(super) async fn dl_v1_manifest(
         &self,
         dist_root: &str,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
     ) -> anyhow::Result<Vec<String>> {
         let root_url = toolchain.package_dir(dist_root);
 

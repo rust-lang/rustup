@@ -48,7 +48,7 @@ use crate::{
     command, component_for_bin,
     config::{ActiveSource, Cfg, OverrideCfg, OverrideFile},
     dist::{
-        DistOptions, PartialToolchainDesc, Profile, Switch, TargetTuple,
+        DistOptions, PartialOfficialToolchainName, Profile, Switch, TargetTuple,
         download::DownloadCfg,
         manifest::{Component, ManifestWithHash},
     },
@@ -56,9 +56,9 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{ColorableTerminal, Process},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, LocalToolchainName,
-        MaybeResolvableToolchainName, Override, ResolvableLocalToolchainName,
-        ResolvableToolchainName, Toolchain, ToolchainName,
+        CustomToolchainName, DistributableToolchain, MaybePartialToolchainName, Override,
+        PartialToolchainName, PartialToolchainNameOrPath, Toolchain, ToolchainName,
+        ToolchainNameOrPath,
     },
     utils::{self, ExitCode},
 };
@@ -106,7 +106,7 @@ struct Rustup {
         value_parser = plus_toolchain_value_parser,
         value_hint = ValueHint::Other,
     )]
-    plus_toolchain: Option<Override<ResolvableLocalToolchainName>>,
+    plus_toolchain: Option<Override<PartialToolchainNameOrPath>>,
 
     #[command(subcommand)]
     subcmd: Option<RustupSubcmd>,
@@ -114,10 +114,10 @@ struct Rustup {
 
 fn plus_toolchain_value_parser(
     s: &str,
-) -> clap::error::Result<Override<ResolvableLocalToolchainName>> {
+) -> clap::error::Result<Override<PartialToolchainNameOrPath>> {
     use clap::{Error, error::ErrorKind};
     if let Some(stripped) = s.strip_prefix('+') {
-        Override::<ResolvableLocalToolchainName>::from_str(stripped)
+        Override::<PartialToolchainNameOrPath>::from_str(stripped)
             .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
     } else {
         Err(Error::raw(
@@ -160,7 +160,7 @@ enum RustupSubcmd {
     #[command(after_help = default_help())]
     Default {
         #[arg(help = maybe_resolvable_toolchain_arg_help())]
-        toolchain: Option<Override<MaybeResolvableToolchainName>>,
+        toolchain: Option<Override<MaybePartialToolchainName>>,
 
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
@@ -186,7 +186,7 @@ enum RustupSubcmd {
     Update {
         /// Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help toolchain`
         #[arg(num_args = 1.., value_parser = update_toolchain_value_parser)]
-        toolchain: Vec<PartialToolchainDesc>,
+        toolchain: Vec<PartialOfficialToolchainName>,
 
         /// Don't perform self update when running the `rustup update` command
         #[arg(long)]
@@ -238,7 +238,7 @@ enum RustupSubcmd {
     #[command(after_help = run_help(), trailing_var_arg = true)]
     Run {
         #[arg(help = resolvable_local_toolchain_arg_help())]
-        toolchain: ResolvableLocalToolchainName,
+        toolchain: PartialToolchainNameOrPath,
 
         #[arg(required = true, num_args = 1..)]
         command: Vec<String>,
@@ -253,7 +253,7 @@ enum RustupSubcmd {
         command: String,
 
         #[arg(long, help = resolvable_toolchain_arg_help())]
-        toolchain: Option<ResolvableToolchainName>,
+        toolchain: Option<PartialToolchainName>,
     },
 
     /// Open the documentation for the current toolchain
@@ -272,7 +272,7 @@ enum RustupSubcmd {
         serve: bool,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         #[arg(help = topic_arg_help())]
         topic: Option<String>,
@@ -287,7 +287,7 @@ enum RustupSubcmd {
         command: String,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
     },
 
     /// Modify the rustup installation
@@ -312,8 +312,8 @@ enum RustupSubcmd {
     },
 }
 
-fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialToolchainDesc> {
-    PartialToolchainDesc::from_str(s).inspect_err(|_| {
+fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialOfficialToolchainName> {
+    PartialOfficialToolchainName::from_str(s).inspect_err(|_| {
         if s == "self" {
             info!("if you meant to update rustup itself, use `rustup self update`");
         }
@@ -458,7 +458,7 @@ struct UpdateOpts {
         help = official_toolchain_arg_help(),
         num_args = 1..,
     )]
-    toolchain: Vec<PartialToolchainDesc>,
+    toolchain: Vec<PartialOfficialToolchainName>,
 
     #[arg(long, value_enum)]
     profile: Option<Profile>,
@@ -511,7 +511,7 @@ struct UninstallOpts {
         required = true,
         num_args = 1..,
     )]
-    toolchain: Vec<ResolvableToolchainName>,
+    toolchain: Vec<PartialToolchainName>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -523,7 +523,7 @@ enum TargetSubcmd {
             long,
             help = official_toolchain_arg_help(),
         )]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         /// List only installed targets
         #[arg(long)]
@@ -542,7 +542,7 @@ enum TargetSubcmd {
         target: Vec<String>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
     },
 
     /// Remove a target from a Rust toolchain
@@ -553,7 +553,7 @@ enum TargetSubcmd {
         target: Vec<TargetTuple>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
     },
 }
 
@@ -563,7 +563,7 @@ enum ComponentSubcmd {
     /// List installed and available components
     List {
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         /// List only installed components
         #[arg(long)]
@@ -580,7 +580,7 @@ enum ComponentSubcmd {
         component: Vec<String>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         #[arg(long)]
         target: Option<String>,
@@ -593,7 +593,7 @@ enum ComponentSubcmd {
         component: Vec<String>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         #[arg(long)]
         target: Option<String>,
@@ -614,7 +614,7 @@ enum OverrideSubcmd {
     #[command(alias = "add")]
     Set {
         #[arg(help = resolvable_toolchain_arg_help())]
-        toolchain: Override<ResolvableToolchainName>,
+        toolchain: Override<PartialToolchainName>,
 
         /// Path to the directory
         #[arg(long)]
@@ -925,22 +925,22 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
 
 async fn default_(
     cfg: &Cfg<'_>,
-    toolchain: Option<Override<MaybeResolvableToolchainName>>,
+    toolchain: Option<Override<MaybePartialToolchainName>>,
     force_non_host: bool,
 ) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     if let Some(toolchain) = toolchain {
         match toolchain.resolve(cfg)? {
-            MaybeResolvableToolchainName::None => {
+            MaybePartialToolchainName::None => {
                 cfg.set_default(None)?;
             }
-            MaybeResolvableToolchainName::Some(ResolvableToolchainName::Custom(toolchain_name)) => {
+            MaybePartialToolchainName::Some(PartialToolchainName::Custom(toolchain_name)) => {
                 Toolchain::new(cfg, toolchain_name.clone().into())?;
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
-            MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
-                let desc = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
+            MaybePartialToolchainName::Some(PartialToolchainName::Official(toolchain)) => {
+                let desc = toolchain.clone().complete(&cfg.default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
@@ -1136,7 +1136,7 @@ async fn update(
             // This needs another pass to fix it all up
             if !name.target.is_empty() {
                 let host_arch = TargetTuple::from_host_or_build(cfg.process);
-                let target_tuple = name.clone().resolve(&host_arch)?.target;
+                let target_tuple = name.clone().complete(&host_arch)?.target;
                 common::check_non_host_toolchain(
                     name.to_string(),
                     &host_arch,
@@ -1144,7 +1144,7 @@ async fn update(
                     force_non_host,
                 )?;
             }
-            let desc = name.clone().resolve(&cfg.default_host_tuple()?)?;
+            let desc = name.clone().complete(&cfg.default_host_tuple()?)?;
 
             let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
             let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
@@ -1210,11 +1210,11 @@ async fn update(
 
 async fn run(
     cfg: &Cfg<'_>,
-    toolchain: ResolvableLocalToolchainName,
+    toolchain: PartialToolchainNameOrPath,
     command: Vec<String>,
     install: bool,
 ) -> anyhow::Result<ExitStatus> {
-    let toolchain = toolchain.resolve(&cfg.default_host_tuple()?)?;
+    let toolchain = toolchain.complete(&cfg.default_host_tuple()?)?;
     let toolchain = Toolchain::from_local(toolchain, install, cfg).await?;
     let cmd = toolchain.command(&command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
@@ -1223,12 +1223,12 @@ async fn run(
 async fn which(
     cfg: &Cfg<'_>,
     binary: &str,
-    toolchain: Option<ResolvableToolchainName>,
+    toolchain: Option<PartialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg.default_host_tuple()?)?.into(),
+                name.complete(&cfg.default_host_tuple()?)?.into(),
                 ActiveSource::CommandLine, // From --toolchain option
             )),
             None => None,
@@ -1285,7 +1285,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     let mut installed_toolchains = cfg.list_toolchains(cfg.quiet)?;
     installed_toolchains.sort();
     let active_toolchain_and_source: Option<(ToolchainName, ActiveSource)> =
-        if let Ok(Some((LocalToolchainName::Named(toolchain_name), source))) =
+        if let Ok(Some((ToolchainNameOrPath::Named(toolchain_name), source))) =
             cfg.maybe_ensure_active_toolchain(None).await
         {
             Some((toolchain_name, source))
@@ -1374,7 +1374,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
             })
             .collect(),
         ToolchainName::Custom(name) => {
-            Toolchain::new(cfg, LocalToolchainName::Named(name.into()))?.installed_targets()?
+            Toolchain::new(cfg, ToolchainNameOrPath::Named(name.into()))?.installed_targets()?
         }
     };
 
@@ -1432,7 +1432,7 @@ fn show_rustup_home(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
 
 async fn target_list(
     cfg: &Cfg<'_>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     installed_only: bool,
     quiet: bool,
 ) -> anyhow::Result<ExitCode> {
@@ -1468,7 +1468,7 @@ async fn target_list(
 async fn target_add(
     cfg: &Cfg<'_>,
     targets: Vec<String>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
@@ -1514,7 +1514,7 @@ async fn target_add(
 async fn target_remove(
     cfg: &Cfg<'_>,
     targets: Vec<TargetTuple>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
@@ -1542,7 +1542,7 @@ async fn target_remove(
 
 async fn component_list(
     cfg: &Cfg<'_>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     installed_only: bool,
     quiet: bool,
 ) -> anyhow::Result<ExitCode> {
@@ -1576,7 +1576,7 @@ async fn component_list(
 async fn component_add(
     cfg: &Cfg<'_>,
     components: Vec<String>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     target: Option<String>,
 ) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
@@ -1610,7 +1610,7 @@ fn get_target(
 async fn component_remove(
     cfg: &Cfg<'_>,
     components: Vec<String>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     target: Option<String>,
 ) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
@@ -1664,7 +1664,7 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<
         .map(|(it, _)| it);
 
     for toolchain_name in opts.toolchain {
-        let toolchain_name = toolchain_name.resolve(&cfg.default_host_tuple()?)?;
+        let toolchain_name = toolchain_name.complete(&cfg.default_host_tuple()?)?;
 
         if active_toolchain
             .as_ref()
@@ -1698,9 +1698,9 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                 .get_default_resolvable()?
                 .context("no default toolchain to pin")?;
             let components = match &default {
-                ResolvableToolchainName::Official(desc) => {
+                PartialToolchainName::Official(desc) => {
                     let tc =
-                        DistributableToolchain::new(cfg, desc.clone().resolve(&default_host)?)?;
+                        DistributableToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
                     let manifest = tc.get_manifest()?;
 
                     Some(
@@ -1713,7 +1713,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                             .collect(),
                     )
                 }
-                ResolvableToolchainName::Custom(_) => None,
+                PartialToolchainName::Custom(_) => None,
             };
             (OverrideCfg::from(default), components)
         }
@@ -1754,13 +1754,13 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
 
 async fn override_add(
     cfg: &Cfg<'_>,
-    toolchain: Override<ResolvableToolchainName>,
+    toolchain: Override<PartialToolchainName>,
     path: Option<&Path>,
 ) -> anyhow::Result<ExitCode> {
     let toolchain_name = toolchain
         .clone()
         .resolve(cfg)?
-        .resolve(&cfg.default_host_tuple()?)?;
+        .complete(&cfg.default_host_tuple()?)?;
     match Toolchain::new(cfg, toolchain_name.clone().into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
@@ -1920,7 +1920,7 @@ async fn display_version(cfg: &mut Cfg<'_>) -> anyhow::Result<()> {
         .args()
         .find_map(|arg| {
             arg.strip_prefix('+')
-                .map(Override::<ResolvableLocalToolchainName>::from_str)
+                .map(Override::<PartialToolchainNameOrPath>::from_str)
         })
         .transpose()?;
 

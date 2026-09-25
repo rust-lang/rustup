@@ -60,7 +60,7 @@ use crate::{
     },
     config::{Cfg, default_host_tuple},
     dist::{
-        DistOptions, PartialToolchainDesc, Profile, TargetTuple, ToolchainDesc,
+        DistOptions, OfficialToolchainName, PartialOfficialToolchainName, Profile, TargetTuple,
         download::DownloadCfg,
     },
     download::DownloadOptions,
@@ -69,7 +69,7 @@ use crate::{
     process::Process,
     settings::SettingsFile,
     toolchain::{
-        DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
+        DistributableToolchain, MaybeOfficialToolchainName, PartialToolchainName, Toolchain,
     },
     utils::{self, ExitCode},
 };
@@ -271,7 +271,7 @@ impl InstallOpts<'_> {
         let (components, targets) = (self.components, self.targets);
         let toolchain = self.select_toolchain(&mut cfg)?;
         if let Some(partial_desc) = toolchain {
-            let desc = partial_desc.clone().resolve(&cfg.default_host_tuple()?)?;
+            let desc = partial_desc.clone().complete(&cfg.default_host_tuple()?)?;
             let options =
                 DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, &cfg)?;
             let status = if Toolchain::exists(&cfg, &desc.clone().into())? {
@@ -303,7 +303,10 @@ impl InstallOpts<'_> {
     /// This function first initializes the default profile and default host tuple in the
     /// configuration, then returns the toolchain that should be installed, or `None` if none is
     /// specified by the user.
-    fn select_toolchain(self, cfg: &mut Cfg<'_>) -> anyhow::Result<Option<PartialToolchainDesc>> {
+    fn select_toolchain(
+        self,
+        cfg: &mut Cfg<'_>,
+    ) -> anyhow::Result<Option<PartialOfficialToolchainName>> {
         let Self {
             default_host_tuple,
             default_toolchain,
@@ -365,10 +368,10 @@ impl InstallOpts<'_> {
                 }
                 None => match cfg.get_default_resolvable()? {
                     // Default is installable
-                    Some(ResolvableToolchainName::Official(t)) => Some(t),
+                    Some(PartialToolchainName::Official(t)) => Some(t),
                     // Default is custom, presumably from a prior install. Do nothing.
-                    Some(ResolvableToolchainName::Custom(_)) => None,
-                    None => Some(PartialToolchainDesc::from_str("stable")?),
+                    Some(PartialToolchainName::Custom(_)) => None,
+                    None => Some(PartialOfficialToolchainName::from_str("stable")?),
                 },
             })
         } else {
@@ -433,11 +436,11 @@ impl InstallOpts<'_> {
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process));
         let partial_channel = match &self.default_toolchain {
             None | Some(MaybeOfficialToolchainName::None) => {
-                ResolvableToolchainName::from_str("stable")?
+                PartialToolchainName::from_str("stable")?
             }
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
-        let resolved = partial_channel.resolve(&host_tuple)?;
+        let resolved = partial_channel.complete(&host_tuple)?;
         trace!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     }
@@ -693,7 +696,8 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
     warn!("it looks like you have an existing rustup settings file at:");
     warn!("{}", settings_file.path.display());
     let default_host_tuple = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
-    let inferred = PartialToolchainDesc::from_str("stable")?.resolve(&default_host_tuple)?;
+    let inferred =
+        PartialOfficialToolchainName::from_str("stable")?.complete(&default_host_tuple)?;
     if default_toolchain != inferred.to_string() {
         warn!("rustup will install the default toolchain as specified in the settings file,");
         warn!("instead of the one inferred from the default host tuple.");
@@ -908,7 +912,7 @@ fn install_proxies_with_opts(bin_path: &Path, force_hard_links: bool) -> anyhow:
 fn check_proxy_sanity(
     bin_path: &Path,
     components: &[&str],
-    desc: &ToolchainDesc,
+    desc: &OfficialToolchainName,
 ) -> anyhow::Result<()> {
     // Sometimes linking a proxy produces an unpredictable result, where the proxy
     // is in place, but manages to not call rustup correctly. One way to make sure we
@@ -1382,7 +1386,7 @@ mod tests {
     use crate::{
         cli::self_update::InstallOpts,
         config::Cfg,
-        dist::{PartialToolchainDesc, Profile},
+        dist::{PartialOfficialToolchainName, Profile},
         for_host,
         process::TestProcess,
         test::{Env, test_dir, with_rustup_home},
@@ -1450,7 +1454,7 @@ mod tests {
             };
 
             assert_eq!(
-                "stable".parse::<PartialToolchainDesc>().unwrap(),
+                "stable".parse::<PartialOfficialToolchainName>().unwrap(),
                 opts.select_toolchain(&mut cfg)
                     .unwrap() // result
                     .unwrap() // option

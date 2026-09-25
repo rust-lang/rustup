@@ -23,7 +23,7 @@ use anyhow::{Context, anyhow, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    dist::{DistError, Profile, TargetTuple, ToolchainDesc, config::Config},
+    dist::{DistError, OfficialToolchainName, Profile, TargetTuple, config::Config},
     errors::RustupError,
     toolchain::DistributableToolchain,
 };
@@ -456,7 +456,7 @@ impl Manifest {
     /// Determine installed components from an installed manifest.
     pub(crate) fn query_components(
         &self,
-        desc: &ToolchainDesc,
+        desc: &OfficialToolchainName,
         config: &Config,
     ) -> anyhow::Result<Vec<ComponentStatus>> {
         // Return all optional components of the "rust" package for the

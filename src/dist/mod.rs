@@ -132,13 +132,13 @@ help: see <https://doc.rust-lang.org/nightly/rustc/platform-support.html> for av
 }
 
 #[derive(Debug, PartialEq)]
-struct ParsedToolchainDesc {
+struct ParsedOfficialToolchainName {
     channel: Channel,
     date: Option<String>,
     target: Option<String>,
 }
 
-impl FromStr for ParsedToolchainDesc {
+impl FromStr for ParsedOfficialToolchainName {
     type Err = anyhow::Error;
     fn from_str(desc: &str) -> anyhow::Result<Self> {
         // Note this regex gives you a guaranteed match of the channel (1)
@@ -199,63 +199,30 @@ impl FromStr for ParsedToolchainDesc {
 /// from a hardcoded set of known tuples, whereas target tuples
 /// are nearly-arbitrary strings.
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
-pub struct PartialToolchainDesc {
+pub struct PartialOfficialToolchainName {
     pub channel: Channel,
     pub date: Option<String>,
     pub target: PartialTargetTuple,
 }
 
-impl PartialToolchainDesc {
+impl PartialOfficialToolchainName {
     /// Create a toolchain desc using input_host to fill in missing fields
-    pub(crate) fn resolve(self, input_host: &TargetTuple) -> anyhow::Result<ToolchainDesc> {
-        let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' couldn't be converted to partial tuple",
-                input_host.0
-            ))
-        })?;
-        let host_arch = host.arch.ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' did not specify a CPU architecture",
-                input_host.0
-            ))
-        })?;
-        let host_os = host.os.ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' did not specify an operating system",
-                input_host.0
-            ))
-        })?;
-        let host_env = host.env;
-
-        // If OS was specified, don't default to host environment, even if the OS matches
-        // the host OS, otherwise cannot specify no environment.
-        let env = if self.target.os.is_some() {
-            self.target.env
-        } else {
-            self.target.env.or(host_env)
-        };
-        let arch = self.target.arch.unwrap_or(host_arch);
-        let os = self.target.os.unwrap_or(host_os);
-
-        let trip = if let Some(env) = env {
-            format!("{arch}-{os}-{env}")
-        } else {
-            format!("{arch}-{os}")
-        };
-
-        Ok(ToolchainDesc {
+    pub(crate) fn complete(
+        self,
+        input_host: &TargetTuple,
+    ) -> anyhow::Result<OfficialToolchainName> {
+        Ok(OfficialToolchainName {
             channel: self.channel,
             date: self.date,
-            target: TargetTuple(trip),
+            target: self.target.complete(input_host)?,
         })
     }
 }
 
-impl FromStr for PartialToolchainDesc {
+impl FromStr for PartialOfficialToolchainName {
     type Err = anyhow::Error;
     fn from_str(name: &str) -> anyhow::Result<Self> {
-        let parsed: ParsedToolchainDesc = name.parse()?;
+        let parsed: ParsedOfficialToolchainName = name.parse()?;
         let target = PartialTargetTuple::new(parsed.target.as_deref().unwrap_or(""));
 
         target
@@ -268,21 +235,15 @@ impl FromStr for PartialToolchainDesc {
     }
 }
 
-impl fmt::Display for PartialToolchainDesc {
+impl fmt::Display for PartialOfficialToolchainName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.channel)?;
 
         if let Some(date) = &self.date {
             write!(f, "-{date}")?;
         }
-        if let Some(arch) = &self.target.arch {
-            write!(f, "-{arch}")?;
-        }
-        if let Some(os) = &self.target.os {
-            write!(f, "-{os}")?;
-        }
-        if let Some(env) = &self.target.env {
-            write!(f, "-{env}")?;
+        if !self.target.is_empty() {
+            write!(f, "-{}", self.target)?;
         }
 
         Ok(())
@@ -296,13 +257,13 @@ impl fmt::Display for PartialToolchainDesc {
 /// As strings they look like stable-x86_64-pc-windows-msvc or
 /// 1.55-x86_64-pc-windows-msvc
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
-pub struct ToolchainDesc {
+pub struct OfficialToolchainName {
     pub channel: Channel,
     pub date: Option<String>,
     pub target: TargetTuple,
 }
 
-impl ToolchainDesc {
+impl OfficialToolchainName {
     pub(crate) fn manifest_v1_url(&self, dist_root: &str, process: &Process) -> String {
         let do_manifest_staging = process.var("RUSTUP_STAGED_MANIFEST").is_ok();
         match (self.date.as_ref(), do_manifest_staging) {
@@ -343,10 +304,10 @@ impl ToolchainDesc {
     }
 }
 
-impl FromStr for ToolchainDesc {
+impl FromStr for OfficialToolchainName {
     type Err = anyhow::Error;
     fn from_str(name: &str) -> anyhow::Result<Self> {
-        let parsed: ParsedToolchainDesc = name.parse()?;
+        let parsed: ParsedOfficialToolchainName = name.parse()?;
 
         if parsed.target.is_none() {
             return Err(anyhow!(RustupError::InvalidToolchainName(name.to_string())));
@@ -360,7 +321,7 @@ impl FromStr for ToolchainDesc {
     }
 }
 
-impl fmt::Display for ToolchainDesc {
+impl fmt::Display for OfficialToolchainName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.channel)?;
 
@@ -882,7 +843,7 @@ impl fmt::Display for Switch {
 
 pub(crate) struct DistOptions<'cfg, 'a> {
     pub(super) cfg: &'cfg Cfg<'cfg>,
-    pub(super) toolchain: &'a ToolchainDesc,
+    pub(super) toolchain: &'a OfficialToolchainName,
     profile: Profile,
     pub(super) update_hash: PathBuf,
     dl_cfg: DownloadCfg<'cfg>,
@@ -904,7 +865,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     pub(super) fn new(
         components: &'a [&'a str],
         targets: &'a [&'a str],
-        toolchain: &'a ToolchainDesc,
+        toolchain: &'a OfficialToolchainName,
         profile: Profile,
         force: bool,
         cfg: &'cfg Cfg<'cfg>,
@@ -1128,7 +1089,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
     pub(crate) async fn try_update(
         &self,
-        toolchain: Option<&ToolchainDesc>,
+        toolchain: Option<&OfficialToolchainName>,
         prefix: &InstallPrefix,
         manifest_result: anyhow::Result<Option<ManifestWithHash>>,
     ) -> anyhow::Result<Option<String>> {
@@ -1270,7 +1231,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     pub(crate) async fn dl_v2_manifest(
         &self,
         prefix: &InstallPrefix,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
     ) -> anyhow::Result<Option<ManifestWithHash>> {
         self.dl_cfg
             .dl_v2_manifest(
@@ -1352,13 +1313,13 @@ mod tests {
         ];
 
         for (input, (channel, date, target)) in success_cases {
-            let parsed = input.parse::<ParsedToolchainDesc>();
+            let parsed = input.parse::<ParsedOfficialToolchainName>();
             assert!(
                 parsed.is_ok(),
                 "expected parsing of `{input}` to succeed: {parsed:?}"
             );
 
-            let expected = ParsedToolchainDesc {
+            let expected = ParsedOfficialToolchainName {
                 channel: Channel::from_str(channel).unwrap(),
                 date: date.map(String::from),
                 target: target.map(String::from),
@@ -1377,7 +1338,7 @@ mod tests {
         ];
 
         for input in failure_cases {
-            let parsed = input.parse::<ParsedToolchainDesc>();
+            let parsed = input.parse::<ParsedOfficialToolchainName>();
             assert!(
                 parsed.is_err(),
                 "expected parsing of `{input}` to fail: {parsed:?}"
@@ -1408,7 +1369,7 @@ mod tests {
         ];
         for case in CASES {
             let full_tcn = format!("{}-x86_64-unknown-linux-gnu", case.0);
-            let tcd = ToolchainDesc::from_str(&full_tcn).unwrap();
+            let tcd = OfficialToolchainName::from_str(&full_tcn).unwrap();
             eprintln!("Considering {}", case.0);
             assert_eq!(tcd.is_tracking(), case.1);
         }

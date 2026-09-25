@@ -5,7 +5,7 @@ use crate::{
     command::run_command_for_dir,
     config::{ActiveSource, Cfg},
     process::Process,
-    toolchain::{Override, ResolvableLocalToolchainName},
+    toolchain::{Override, PartialToolchainNameOrPath},
 };
 
 #[tracing::instrument(level = "trace", skip(process))]
@@ -25,7 +25,7 @@ pub async fn main(
         .as_ref()
         .map(|arg| arg.to_string_lossy())
         .filter(|arg| arg.starts_with('+'))
-        .map(|name| Override::<ResolvableLocalToolchainName>::from_str(&name[1..]))
+        .map(|name| Override::<PartialToolchainNameOrPath>::from_str(&name[1..]))
         .transpose()?;
 
     // Build command args now while we know whether or not to skip arg 1.
@@ -38,7 +38,7 @@ pub async fn main(
     let (toolchain, source) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg)?.resolve(&cfg.default_host_tuple()?)?,
+                name.resolve(&cfg)?.complete(&cfg.default_host_tuple()?)?,
                 ActiveSource::CommandLine,
             )),
 

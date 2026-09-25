@@ -16,11 +16,11 @@ use url::Url;
 use crate::{
     config::Cfg,
     dist::{
-        Channel, TargetTuple, ToolchainDesc,
+        Channel, OfficialToolchainName, TargetTuple,
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{PathBasedToolchainName, Toolchain, ToolchainName},
+    toolchain::{Toolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -33,7 +33,7 @@ pub enum TargetSuggestion {
 
 impl TargetSuggestion {
     pub(crate) fn from_target(
-        desc: &ToolchainDesc,
+        desc: &OfficialToolchainName,
         target: &TargetTuple,
         component: &Component,
         config: &DistConfig,
@@ -83,7 +83,7 @@ impl fmt::Display for TargetSuggestion {
 }
 
 pub(crate) fn component_suggestion(
-    desc: &ToolchainDesc,
+    desc: &OfficialToolchainName,
     component: &Component,
     config: &DistConfig,
     manifest: &Manifest,
@@ -202,7 +202,7 @@ pub enum RustupError {
      help: this may happen if the toolchain installation was interrupted\n\
      help: try reinstalling or updating the toolchain"
     )]
-    MissingManifest(ToolchainDesc),
+    MissingManifest(OfficialToolchainName),
     #[error("server sent a broken manifest: missing package for component {0}")]
     MissingPackageForComponent(String),
     #[error("could not read {name} directory: '{}'", .path.display())]
@@ -258,7 +258,7 @@ pub enum RustupError {
         is_active: bool,
     },
     #[error("path '{0}' not found")]
-    PathToolchainNotInstalled(PathBasedToolchainName),
+    PathToolchainNotInstalled(ToolchainPath),
     #[error(
         "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n{hint}",
         hint = DEFAULT_STABLE_HINT
@@ -266,7 +266,7 @@ pub enum RustupError {
     ToolchainNotSelected(String),
     #[error("{}", unknown_components_msg(.desc, .components))]
     UnknownComponents {
-        desc: ToolchainDesc,
+        desc: OfficialToolchainName,
         components: Vec<UnknownComponentInfo>,
     },
     #[error(
@@ -275,7 +275,7 @@ pub enum RustupError {
         note: you can find instructions on that page to build the target support from source"
     )]
     UnavailableTarget {
-        desc: ToolchainDesc,
+        desc: OfficialToolchainName,
         platform: &'static Platform,
     },
     #[error("toolchain '{}' does not support target '{}'{}\n\
@@ -283,14 +283,14 @@ pub enum RustupError {
     note: if you are adding support for a new target to rustc itself, see https://rustc-dev-guide.rust-lang.org/building/new-target.html", .desc, .target,
     suggest_message(.suggestion))]
     UnknownTarget {
-        desc: Box<ToolchainDesc>,
+        desc: Box<OfficialToolchainName>,
         target: TargetTuple,
         suggestion: Option<String>,
     },
     #[error("toolchain '{}' does not have target '{}' installed{}", .desc, .target,
     .suggestion.as_ref().map_or_else(String::new, ToString::to_string))]
     TargetNotInstalled {
-        desc: Box<ToolchainDesc>,
+        desc: Box<OfficialToolchainName>,
         target: TargetTuple,
         suggestion: Option<TargetSuggestion>,
     },
@@ -402,7 +402,10 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
     String::from_utf8(buf).unwrap()
 }
 
-fn unknown_components_msg(desc: &ToolchainDesc, components: &[UnknownComponentInfo]) -> String {
+fn unknown_components_msg(
+    desc: &OfficialToolchainName,
+    components: &[UnknownComponentInfo],
+) -> String {
     let mut buf = String::new();
 
     match components {

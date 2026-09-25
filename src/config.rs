@@ -16,8 +16,8 @@ use tracing::{debug, info, trace, warn};
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, DistOptions, PartialTargetTuple, PartialToolchainDesc, Profile, Switch, TargetTuple,
-        ToolchainDesc,
+        self, DistOptions, OfficialToolchainName, PartialOfficialToolchainName, PartialTargetTuple,
+        Profile, Switch, TargetTuple,
     },
     errors::RustupError,
     fallback_settings::FallbackSettings,
@@ -25,9 +25,8 @@ use crate::{
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, LocalToolchainName, Override,
-        PathBasedToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain,
-        ToolchainName,
+        CustomToolchainName, DistributableToolchain, Override, PartialToolchainName,
+        PartialToolchainNameOrPath, Toolchain, ToolchainName, ToolchainNameOrPath, ToolchainPath,
     },
     utils,
 };
@@ -183,10 +182,10 @@ impl<T> Deref for EnsureInstalled<T> {
 // downloaded and installed.
 #[derive(Clone, Debug)]
 pub(crate) enum OverrideCfg {
-    PathBased(PathBasedToolchainName),
+    PathBased(ToolchainPath),
     Custom(CustomToolchainName),
     Official {
-        toolchain: PartialToolchainDesc,
+        toolchain: PartialOfficialToolchainName,
         // To ensure preservation of the user's original intent in an override file, the below
         // values are semantically different for `components` and `targets`:
         // - `None` means that the user has specified no override.
@@ -200,7 +199,7 @@ pub(crate) enum OverrideCfg {
 impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> anyhow::Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
-            (Some(name), None) => Override::<ResolvableToolchainName>::from_str(&name)?,
+            (Some(name), None) => Override::<PartialToolchainName>::from_str(&name)?,
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
                     || file.toolchain.components.is_some()
@@ -216,9 +215,7 @@ impl OverrideCfg {
                 // Longer term we'll not support path based toolchains at
                 // all, because they also permit arbitrary code execution,
                 // though with more challenges to exploit.
-                return Ok(Self::PathBased(PathBasedToolchainName::try_from(
-                    &path as &Path,
-                )?));
+                return Ok(Self::PathBased(ToolchainPath::try_from(&path as &Path)?));
             }
             (Some(channel), Some(path)) => {
                 bail!(
@@ -234,7 +231,7 @@ impl OverrideCfg {
         };
         let toolchain_name = toolchain_name.resolve(cfg)?;
         Ok(match toolchain_name {
-            ResolvableToolchainName::Official(desc) => Self::Official {
+            PartialToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
                 components: file.toolchain.components,
                 targets: file.toolchain.targets,
@@ -245,18 +242,18 @@ impl OverrideCfg {
                     .map(Profile::from_str)
                     .transpose()?,
             },
-            ResolvableToolchainName::Custom(name) => Self::Custom(name),
+            PartialToolchainName::Custom(name) => Self::Custom(name),
         })
     }
 
     fn into_local_toolchain_name(
         self,
         host_tuple: &TargetTuple,
-    ) -> anyhow::Result<LocalToolchainName> {
+    ) -> anyhow::Result<ToolchainNameOrPath> {
         Ok(match self {
             Self::PathBased(path_based_name) => path_based_name.into(),
             Self::Custom(custom_name) => custom_name.into(),
-            Self::Official { toolchain, .. } => toolchain.resolve(host_tuple)?.into(),
+            Self::Official { toolchain, .. } => toolchain.complete(host_tuple)?.into(),
         })
     }
 
@@ -267,25 +264,25 @@ impl OverrideCfg {
     }
 }
 
-impl From<ResolvableToolchainName> for OverrideCfg {
-    fn from(value: ResolvableToolchainName) -> Self {
+impl From<PartialToolchainName> for OverrideCfg {
+    fn from(value: PartialToolchainName) -> Self {
         match value {
-            ResolvableToolchainName::Official(desc) => Self::Official {
+            PartialToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
                 components: None,
                 targets: None,
                 profile: None,
             },
-            ResolvableToolchainName::Custom(name) => Self::Custom(name),
+            PartialToolchainName::Custom(name) => Self::Custom(name),
         }
     }
 }
 
-impl From<ResolvableLocalToolchainName> for OverrideCfg {
-    fn from(value: ResolvableLocalToolchainName) -> Self {
+impl From<PartialToolchainNameOrPath> for OverrideCfg {
+    fn from(value: PartialToolchainNameOrPath) -> Self {
         match value {
-            ResolvableLocalToolchainName::Named(name) => Self::from(name),
-            ResolvableLocalToolchainName::Path(path_name) => Self::PathBased(path_name),
+            PartialToolchainNameOrPath::Named(name) => Self::from(name),
+            PartialToolchainNameOrPath::Path(path_name) => Self::PathBased(path_name),
         }
     }
 }
@@ -324,8 +321,8 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub toolchain_override: Option<Override<ResolvableLocalToolchainName>>,
-    env_override: Option<Override<ResolvableLocalToolchainName>>,
+    pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
+    env_override: Option<Override<PartialToolchainNameOrPath>>,
     pub(crate) dist_root_server: String,
     pub dist_root_url: String,
     pub quiet: bool,
@@ -386,7 +383,7 @@ impl<'a> Cfg<'a> {
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(Override::<ResolvableLocalToolchainName>::from_str(tc)?),
+            Some(tc) => Some(Override::<PartialToolchainNameOrPath>::from_str(tc)?),
             None => None,
         };
 
@@ -415,7 +412,7 @@ impl<'a> Cfg<'a> {
         // Run some basic checks against the constructed configuration
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
-        ResolvableToolchainName::from_str("stable")?.resolve(
+        PartialToolchainName::from_str("stable")?.complete(
             &cfg.default_host_tuple()
                 .context("Unable parse configuration")?,
         )?;
@@ -425,7 +422,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn set_default(
         &self,
-        toolchain: Option<&ResolvableToolchainName>,
+        toolchain: Option<&PartialToolchainName>,
     ) -> anyhow::Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = toolchain.map(|t| t.to_string());
@@ -512,7 +509,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn installed_paths<'b>(
         &self,
-        desc: &ToolchainDesc,
+        desc: &OfficialToolchainName,
         path: &'b Path,
     ) -> anyhow::Result<Vec<InstalledPath<'b>>> {
         Ok(vec![
@@ -526,7 +523,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn get_hash_file(
         &self,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
         create_parent: bool,
     ) -> anyhow::Result<PathBuf> {
         if create_parent {
@@ -586,13 +583,13 @@ impl<'a> Cfg<'a> {
 
     pub(crate) async fn toolchain_from_partial(
         &self,
-        toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
+        toolchain: Option<(PartialOfficialToolchainName, ActiveSource)>,
     ) -> anyhow::Result<(Toolchain<'_>, ActiveSource)> {
         let toolchain = toolchain
             .map(|(desc, source)| {
                 anyhow::Ok((
-                    LocalToolchainName::Named(ToolchainName::Official(
-                        desc.resolve(&self.default_host_tuple()?)?,
+                    ToolchainNameOrPath::Named(ToolchainName::Official(
+                        desc.complete(&self.default_host_tuple()?)?,
                     )),
                     source,
                 ))
@@ -604,7 +601,7 @@ impl<'a> Cfg<'a> {
     pub(crate) async fn maybe_ensure_active_toolchain(
         &self,
         force_ensure: Option<bool>,
-    ) -> anyhow::Result<Option<(LocalToolchainName, ActiveSource)>> {
+    ) -> anyhow::Result<Option<(ToolchainNameOrPath, ActiveSource)>> {
         let should_ensure = if let Some(force) = force_ensure {
             force
         } else {
@@ -629,7 +626,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn active_toolchain(
         &self,
-    ) -> anyhow::Result<Option<(LocalToolchainName, ActiveSource)>> {
+    ) -> anyhow::Result<Option<(ToolchainNameOrPath, ActiveSource)>> {
         Ok(
             if let Some((override_config, source)) = self.find_override_config()? {
                 Some((
@@ -687,7 +684,7 @@ impl<'a> Cfg<'a> {
             if let Some(name) = settings.dir_override(d) {
                 let source = ActiveSource::OverrideDb(d.to_owned());
                 return Ok(Some((
-                    Override::<ResolvableToolchainName>::from_str(&name)?
+                    Override::<PartialToolchainName>::from_str(&name)?
                         .resolve(self)?
                         .into(),
                     source,
@@ -741,7 +738,7 @@ impl<'a> Cfg<'a> {
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
                     let toolchain_override =
-                        Override::<ResolvableToolchainName>::from_str(toolchain_name_str.as_str())
+                        Override::<PartialToolchainName>::from_str(toolchain_name_str.as_str())
                             .map_err(|_| {
                                 anyhow!(
                                     "invalid toolchain name detected in override file '{}'",
@@ -752,7 +749,7 @@ impl<'a> Cfg<'a> {
                     let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
-                    if let ResolvableToolchainName::Official(name) = &toolchain_name
+                    if let PartialToolchainName::Official(name) = &toolchain_name
                         && !name.target.is_empty()
                     {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
@@ -769,7 +766,7 @@ impl<'a> Cfg<'a> {
                     }
 
                     // XXX: this awkwardness deals with settings file being locked already
-                    let toolchain_name = toolchain_name.resolve(&default_host)?;
+                    let toolchain_name = toolchain_name.complete(&default_host)?;
                     if !Toolchain::exists(self, &toolchain_name.clone().into())?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
@@ -824,7 +821,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) async fn local_toolchain(
         &self,
-        name: Option<(LocalToolchainName, ActiveSource)>,
+        name: Option<(ToolchainNameOrPath, ActiveSource)>,
     ) -> anyhow::Result<(Toolchain<'_>, ActiveSource)> {
         match name {
             Some((tc, source)) => {
@@ -849,7 +846,7 @@ impl<'a> Cfg<'a> {
         &self,
         force_non_host: bool,
         verbose: bool,
-    ) -> anyhow::Result<(EnsureInstalled<LocalToolchainName>, ActiveSource)> {
+    ) -> anyhow::Result<(EnsureInstalled<ToolchainNameOrPath>, ActiveSource)> {
         if let Some((override_config, source)) = self.find_override_config()? {
             let default_host = self.default_host_tuple()?;
             let toolchain = override_config
@@ -863,7 +860,7 @@ impl<'a> Cfg<'a> {
             } = override_config
             {
                 self.ensure_installed(
-                    &toolchain.resolve(&default_host)?,
+                    &toolchain.complete(&default_host)?,
                     components.unwrap_or_default(),
                     targets.unwrap_or_default(),
                     profile,
@@ -893,12 +890,12 @@ impl<'a> Cfg<'a> {
         }
     }
 
-    // Returns a Toolchain matching the given ToolchainDesc, installing it and
+    // Returns a Toolchain matching the given OfficialToolchainName, installing it and
     // the given components and targets if they aren't already installed.
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn ensure_installed(
         &self,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
@@ -958,7 +955,7 @@ impl<'a> Cfg<'a> {
         let Some(toolchain) = self.get_default_resolvable()? else {
             return Ok(None);
         };
-        Ok(Some(toolchain.resolve(&self.default_host_tuple()?)?))
+        Ok(Some(toolchain.complete(&self.default_host_tuple()?)?))
     }
 
     /// Gets the configured default toolchain name in its unresolved form, if any.
@@ -968,7 +965,7 @@ impl<'a> Cfg<'a> {
     /// This function returns an error if:
     /// - The configuration file is invalid.
     /// - The configuration file contains an illegal default toolchain name.
-    pub(crate) fn get_default_resolvable(&self) -> anyhow::Result<Option<ResolvableToolchainName>> {
+    pub(crate) fn get_default_resolvable(&self) -> anyhow::Result<Option<PartialToolchainName>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
         let toolchain_maybe_str = if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
@@ -981,7 +978,7 @@ impl<'a> Cfg<'a> {
         let Some(toolchain) = &toolchain_maybe_str else {
             return Ok(None);
         };
-        Ok(Some(ResolvableToolchainName::from_str(toolchain)?))
+        Ok(Some(PartialToolchainName::from_str(toolchain)?))
     }
 
     /// Lists all the installed toolchains.
@@ -1037,7 +1034,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn list_channels(
         &self,
-    ) -> anyhow::Result<Vec<(ToolchainDesc, DistributableToolchain<'_>)>> {
+    ) -> anyhow::Result<Vec<(OfficialToolchainName, DistributableToolchain<'_>)>> {
         let mut channels = self
             .list_toolchains(true)?
             .into_iter()
@@ -1071,7 +1068,8 @@ impl<'a> Cfg<'a> {
         // Ensure that the provided host tuple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied tuple is insufficient / bad.
-        PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
+        PartialOfficialToolchainName::from_str("stable")?
+            .complete(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
             s.default_host_tuple = Some(host_tuple);
             Ok(())
@@ -1085,10 +1083,10 @@ impl<'a> Cfg<'a> {
     }
 
     /// The path on disk of any concrete toolchain
-    pub(crate) fn toolchain_path(&self, toolchain: &LocalToolchainName) -> PathBuf {
+    pub(crate) fn toolchain_path(&self, toolchain: &ToolchainNameOrPath) -> PathBuf {
         match toolchain {
-            LocalToolchainName::Named(name) => self.toolchains_dir.join(name.to_string()),
-            LocalToolchainName::Path(p) => p.to_path_buf(),
+            ToolchainNameOrPath::Named(name) => self.toolchains_dir.join(name.to_string()),
+            ToolchainNameOrPath::Path(p) => p.to_path_buf(),
         }
     }
 
@@ -1114,7 +1112,8 @@ impl<'a> Cfg<'a> {
         }
 
         let default_host = self.default_host_tuple()?;
-        let stable_desc = PartialToolchainDesc::from_str("stable")?.resolve(&default_host)?;
+        let stable_desc =
+            PartialOfficialToolchainName::from_str("stable")?.complete(&default_host)?;
         let stable = match DistributableToolchain::new(self, stable_desc) {
             Ok(stable) => stable,
             // If the `stable` toolchain is not installed, we don't notify the user.

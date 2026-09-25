@@ -9,13 +9,13 @@ use platforms::Platform;
 
 use super::{
     Toolchain,
-    names::{LocalToolchainName, ToolchainName},
+    names::{ToolchainName, ToolchainNameOrPath},
 };
 use crate::{
     RustupError, component_for_bin,
     config::{ActiveSource, Cfg, EnsureInstalled},
     dist::{
-        DistOptions, PartialToolchainDesc, ToolchainDesc,
+        DistOptions, OfficialToolchainName, PartialOfficialToolchainName,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, Manifest, ManifestWithHash},
         manifestation::{Changes, Manifestation},
@@ -29,7 +29,7 @@ use crate::{
 #[derive(Debug)]
 pub(crate) struct DistributableToolchain<'a> {
     pub(crate) toolchain: Toolchain<'a>,
-    desc: ToolchainDesc,
+    desc: OfficialToolchainName,
 }
 
 impl<'a> DistributableToolchain<'a> {
@@ -46,7 +46,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub(crate) async fn from_partial(
-        toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
+        toolchain: Option<(PartialOfficialToolchainName, ActiveSource)>,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         Ok(Self::try_from(
@@ -54,11 +54,11 @@ impl<'a> DistributableToolchain<'a> {
         )?)
     }
 
-    pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ToolchainDesc) -> Result<Self, RustupError> {
+    pub(crate) fn new(cfg: &'a Cfg<'a>, desc: OfficialToolchainName) -> Result<Self, RustupError> {
         Toolchain::new(cfg, desc.clone().into()).map(|toolchain| Self { toolchain, desc })
     }
 
-    pub(crate) fn desc(&self) -> &ToolchainDesc {
+    pub(crate) fn desc(&self) -> &OfficialToolchainName {
         &self.desc
     }
 
@@ -416,7 +416,7 @@ impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
 
     fn try_from(value: &Toolchain<'a>) -> Result<Self, Self::Error> {
         match value.name() {
-            LocalToolchainName::Named(ToolchainName::Official(desc)) => Ok(Self {
+            ToolchainNameOrPath::Named(ToolchainName::Official(desc)) => Ok(Self {
                 toolchain: value.clone(),
                 desc: desc.clone(),
             }),
