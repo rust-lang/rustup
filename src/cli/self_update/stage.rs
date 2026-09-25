@@ -54,16 +54,6 @@ impl SelfUpdateLock {
         })
     }
 
-    /// Clears the previous update's leftovers and reserves the managed updater path.
-    pub(super) fn prepare_updater(self) -> anyhow::Result<PreparedUpdater> {
-        let path = updater_path(&self.directory);
-        utils::ensure_file_removed("self-updater", &path)?;
-        for marker in [Marker::Complete, Marker::Failed] {
-            utils::ensure_file_removed("self-update status marker", &marker.path(&self.directory))?;
-        }
-        Ok(PreparedUpdater { path, _lock: self })
-    }
-
     /// Installs the running executable as `rustup` in `bin_path` and refreshes its proxies.
     pub(super) fn install_bins(
         &self,
@@ -129,6 +119,19 @@ impl PreparedUpdater {
             .arg("--self-replace")
             .spawn()
             .with_context(|| format!("unable to run updater ({})", self.path.display()))
+    }
+}
+
+impl TryFrom<SelfUpdateLock> for PreparedUpdater {
+    type Error = anyhow::Error;
+
+    fn try_from(lock: SelfUpdateLock) -> Result<Self, Self::Error> {
+        let path = updater_path(&lock.directory);
+        utils::ensure_file_removed("self-updater", &path)?;
+        for marker in [Marker::Complete, Marker::Failed] {
+            utils::ensure_file_removed("self-update status marker", &marker.path(&lock.directory))?;
+        }
+        Ok(Self { path, _lock: lock })
     }
 }
 
@@ -308,10 +311,8 @@ mod tests {
         fs::write(&first_path, "").unwrap();
         fs::write(Marker::Complete.path(&stage), "").unwrap();
         drop(first);
-        let second = SelfUpdateLock::lock(&process.process)
-            .unwrap()
-            .prepare_updater()
-            .unwrap();
+        let second =
+            PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
 
         assert_eq!(first_path, *second);
         assert!(!Marker::Complete.path(&stage).exists());
@@ -432,10 +433,8 @@ mod tests {
     async fn cleanup_keeps_fresh_updater() {
         let root = test_dir().unwrap();
         let process = test_process(root.path());
-        let prepared_updater = SelfUpdateLock::lock(&process.process)
-            .unwrap()
-            .prepare_updater()
-            .unwrap();
+        let prepared_updater =
+            PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
         let updater = prepared_updater.to_path_buf();
         fs::write(&updater, "").unwrap();
         drop(prepared_updater);
@@ -457,10 +456,8 @@ mod tests {
         let stage = stage_root(&process.process).unwrap();
 
         for marker in [Marker::Complete, Marker::Failed] {
-            let prepared_updater = SelfUpdateLock::lock(&process.process)
-                .unwrap()
-                .prepare_updater()
-                .unwrap();
+            let prepared_updater =
+                PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
             let updater = prepared_updater.to_path_buf();
             fs::write(&updater, "").unwrap();
             drop(prepared_updater);
@@ -482,10 +479,8 @@ mod tests {
     async fn cleanup_removes_abandoned_updater() {
         let root = test_dir().unwrap();
         let process = test_process(root.path());
-        let prepared_updater = SelfUpdateLock::lock(&process.process)
-            .unwrap()
-            .prepare_updater()
-            .unwrap();
+        let prepared_updater =
+            PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
         let updater = prepared_updater.to_path_buf();
         fs::write(&updater, "").unwrap();
         drop(prepared_updater);

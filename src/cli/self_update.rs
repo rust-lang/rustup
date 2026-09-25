@@ -1254,7 +1254,7 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
-    let prepared_updater = self_update_lock.prepare_updater()?;
+    let prepared_updater = PreparedUpdater::try_from(self_update_lock)?;
     let setup_path: &Path = &prepared_updater;
 
     // Download new version
