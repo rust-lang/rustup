@@ -38,7 +38,7 @@ pub async fn main(
     let (toolchain, source) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg)?.resolve(&cfg.default_host_tuple()?)?,
+                name.resolve(&cfg)?.complete(&cfg.default_host_tuple()?)?,
                 ActiveSource::CommandLine,
             )),
 
