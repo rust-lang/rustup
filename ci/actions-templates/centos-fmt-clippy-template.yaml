@@ -35,10 +35,13 @@ jobs: # skip-all
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rustup using ./rustup-init.sh
+        run: |
+          sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -c=clippy -y
       - name: Get rustc commit hash
         id: cargo-target-cache
         run: |
-          echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
+          echo "rust_hash=$(rustc -Vv | grep commit-hash | awk '{print $2}')" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
         uses: actions/cache@v6
@@ -46,9 +49,6 @@ jobs: # skip-all
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ runner.os }}-cargo-clippy-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ github.base_ref }}-${{ runner.os }}-cargo-clippy-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Rustup using ./rustup-init.sh
-        run: |
-          sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -c=clippy -y
       - name: Run the centos check within the docker image
         run: |
           docker run \
