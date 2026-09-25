@@ -14,6 +14,51 @@ use tracing::warn;
 use super::install_proxies_with_opts;
 use crate::{process::Process, utils};
 
+/// The managed updater path, held together with the lock that protects it.
+pub(super) struct PreparedUpdater {
+    path: PathBuf,
+    _lock: SelfUpdateLock,
+}
+
+impl PreparedUpdater {
+    /// Starts the updater in `--self-replace` mode and then releases the lock.
+    ///
+    /// The lock must be held until the child has been spawned: a concurrent
+    /// self-update could otherwise replace the updater before it is executed.
+    pub(super) fn spawn_replacer(self) -> anyhow::Result<Child> {
+        let stage = self
+            .path
+            .parent()
+            .context("self-updater path has no parent directory")?;
+        Command::new(&self.path)
+            .env(STAGE_ENV, stage)
+            .arg("--self-replace")
+            .spawn()
+            .with_context(|| format!("unable to run updater ({})", self.path.display()))
+    }
+}
+
+impl TryFrom<SelfUpdateLock> for PreparedUpdater {
+    type Error = anyhow::Error;
+
+    fn try_from(lock: SelfUpdateLock) -> Result<Self, Self::Error> {
+        let path = updater_path(&lock.directory);
+        utils::ensure_file_removed("self-updater", &path)?;
+        for marker in [Marker::Complete, Marker::Failed] {
+            utils::ensure_file_removed("self-update status marker", &marker.path(&lock.directory))?;
+        }
+        Ok(Self { path, _lock: lock })
+    }
+}
+
+impl Deref for PreparedUpdater {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        &self.path
+    }
+}
+
 /// Exclusive right to download the updater or replace the installed rustup.
 pub(super) struct SelfUpdateLock {
     directory: PathBuf,
@@ -95,51 +140,6 @@ impl SelfUpdateLock {
 
         replace_rustup_binary(&pending, &rustup_path)?;
         install_proxies_with_opts(bin_path, force_hard_links)
-    }
-}
-
-/// The managed updater path, held together with the lock that protects it.
-pub(super) struct PreparedUpdater {
-    path: PathBuf,
-    _lock: SelfUpdateLock,
-}
-
-impl PreparedUpdater {
-    /// Starts the updater in `--self-replace` mode and then releases the lock.
-    ///
-    /// The lock must be held until the child has been spawned: a concurrent
-    /// self-update could otherwise replace the updater before it is executed.
-    pub(super) fn spawn_replacer(self) -> anyhow::Result<Child> {
-        let stage = self
-            .path
-            .parent()
-            .context("self-updater path has no parent directory")?;
-        Command::new(&self.path)
-            .env(STAGE_ENV, stage)
-            .arg("--self-replace")
-            .spawn()
-            .with_context(|| format!("unable to run updater ({})", self.path.display()))
-    }
-}
-
-impl TryFrom<SelfUpdateLock> for PreparedUpdater {
-    type Error = anyhow::Error;
-
-    fn try_from(lock: SelfUpdateLock) -> Result<Self, Self::Error> {
-        let path = updater_path(&lock.directory);
-        utils::ensure_file_removed("self-updater", &path)?;
-        for marker in [Marker::Complete, Marker::Failed] {
-            utils::ensure_file_removed("self-update status marker", &marker.path(&lock.directory))?;
-        }
-        Ok(Self { path, _lock: lock })
-    }
-}
-
-impl Deref for PreparedUpdater {
-    type Target = Path;
-
-    fn deref(&self) -> &Path {
-        &self.path
     }
 }
 
