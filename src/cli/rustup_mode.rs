@@ -48,7 +48,7 @@ use crate::{
     command, component_for_bin,
     config::{ActiveSource, Cfg, OverrideCfg, OverrideFile},
     dist::{
-        DistOptions, PartialToolchainDesc, Profile, Switch, TargetTuple,
+        DistOptions, PartialOfficialToolchainName, Profile, Switch, TargetTuple,
         download::DownloadCfg,
         manifest::{Component, ManifestWithHash},
     },
@@ -186,7 +186,7 @@ enum RustupSubcmd {
     Update {
         /// Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help toolchain`
         #[arg(num_args = 1.., value_parser = update_toolchain_value_parser)]
-        toolchain: Vec<PartialToolchainDesc>,
+        toolchain: Vec<PartialOfficialToolchainName>,
 
         /// Don't perform self update when running the `rustup update` command
         #[arg(long)]
@@ -272,7 +272,7 @@ enum RustupSubcmd {
         serve: bool,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         #[arg(help = topic_arg_help())]
         topic: Option<String>,
@@ -287,7 +287,7 @@ enum RustupSubcmd {
         command: String,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
     },
 
     /// Modify the rustup installation
@@ -312,8 +312,8 @@ enum RustupSubcmd {
     },
 }
 
-fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialToolchainDesc> {
-    PartialToolchainDesc::from_str(s).inspect_err(|_| {
+fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialOfficialToolchainName> {
+    PartialOfficialToolchainName::from_str(s).inspect_err(|_| {
         if s == "self" {
             info!("if you meant to update rustup itself, use `rustup self update`");
         }
@@ -458,7 +458,7 @@ struct UpdateOpts {
         help = official_toolchain_arg_help(),
         num_args = 1..,
     )]
-    toolchain: Vec<PartialToolchainDesc>,
+    toolchain: Vec<PartialOfficialToolchainName>,
 
     #[arg(long, value_enum)]
     profile: Option<Profile>,
@@ -523,7 +523,7 @@ enum TargetSubcmd {
             long,
             help = official_toolchain_arg_help(),
         )]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         /// List only installed targets
         #[arg(long)]
@@ -542,7 +542,7 @@ enum TargetSubcmd {
         target: Vec<String>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
     },
 
     /// Remove a target from a Rust toolchain
@@ -553,7 +553,7 @@ enum TargetSubcmd {
         target: Vec<TargetTuple>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
     },
 }
 
@@ -563,7 +563,7 @@ enum ComponentSubcmd {
     /// List installed and available components
     List {
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         /// List only installed components
         #[arg(long)]
@@ -580,7 +580,7 @@ enum ComponentSubcmd {
         component: Vec<String>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         #[arg(long)]
         target: Option<String>,
@@ -593,7 +593,7 @@ enum ComponentSubcmd {
         component: Vec<String>,
 
         #[arg(long, help = official_toolchain_arg_help())]
-        toolchain: Option<PartialToolchainDesc>,
+        toolchain: Option<PartialOfficialToolchainName>,
 
         #[arg(long)]
         target: Option<String>,
@@ -1432,7 +1432,7 @@ fn show_rustup_home(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
 
 async fn target_list(
     cfg: &Cfg<'_>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     installed_only: bool,
     quiet: bool,
 ) -> anyhow::Result<ExitCode> {
@@ -1468,7 +1468,7 @@ async fn target_list(
 async fn target_add(
     cfg: &Cfg<'_>,
     targets: Vec<String>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
@@ -1514,7 +1514,7 @@ async fn target_add(
 async fn target_remove(
     cfg: &Cfg<'_>,
     targets: Vec<TargetTuple>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
@@ -1542,7 +1542,7 @@ async fn target_remove(
 
 async fn component_list(
     cfg: &Cfg<'_>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     installed_only: bool,
     quiet: bool,
 ) -> anyhow::Result<ExitCode> {
@@ -1576,7 +1576,7 @@ async fn component_list(
 async fn component_add(
     cfg: &Cfg<'_>,
     components: Vec<String>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     target: Option<String>,
 ) -> anyhow::Result<ExitCode> {
     let distributable = DistributableToolchain::from_partial(
@@ -1610,7 +1610,7 @@ fn get_target(
 async fn component_remove(
     cfg: &Cfg<'_>,
     components: Vec<String>,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     target: Option<String>,
 ) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));

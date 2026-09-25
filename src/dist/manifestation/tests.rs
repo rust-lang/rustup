@@ -17,7 +17,7 @@ use url::Url;
 use crate::{
     config::Cfg,
     dist::{
-        DEFAULT_DIST_SERVER, DistOptions, Profile, TargetTuple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, DistOptions, OfficialToolchainName, Profile, TargetTuple,
         download::{DownloadCfg, DownloadTracker},
         manifest::{Component, Manifest},
         manifestation::{Changes, Manifestation, UpdateStatus},
@@ -381,7 +381,7 @@ async fn rename_component_new() {
     assert!(utils::path_exists(cx.prefix.path().join("bin/bonus")));
 }
 
-fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> anyhow::Result<Url> {
+fn make_manifest_url(dist_server: &Url, toolchain: &OfficialToolchainName) -> anyhow::Result<Url> {
     let url = format!(
         "{}/dist/channel-rust-{}.toml",
         dist_server, toolchain.channel
@@ -410,7 +410,7 @@ impl Compressions {
 
 struct TestContext {
     url: Url,
-    toolchain: ToolchainDesc,
+    toolchain: OfficialToolchainName,
     prefix: InstallPrefix,
     download_dir: PathBuf,
     tp: TestProcess,
@@ -455,7 +455,7 @@ impl TestContext {
 
         let prefix_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         let work_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-        let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
+        let toolchain = OfficialToolchainName::from_str("nightly-x86_64-apple-darwin").unwrap();
         let prefix = InstallPrefix::from(prefix_tempdir.path());
         let tp = TestProcess::new(env::current_dir().unwrap(), &["rustup"], env, "");
 

@@ -34,7 +34,7 @@ use tracing::{info, warn};
 use super::topical_doc;
 use crate::{
     config::{ActiveSource, Cfg},
-    dist::{PartialToolchainDesc, manifest::ComponentStatus},
+    dist::{PartialOfficialToolchainName, manifest::ComponentStatus},
     toolchain::DistributableToolchain,
     utils::{self, ExitCode},
 };
@@ -184,7 +184,7 @@ pub(crate) async fn doc(
     cfg: &Cfg<'_>,
     path_only: bool,
     serve: bool,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
     mut topic: Option<&str>,
     doc_page: &DocPage,
 ) -> anyhow::Result<ExitCode> {
@@ -253,7 +253,7 @@ pub(crate) async fn doc(
 pub(crate) async fn man(
     cfg: &Cfg<'_>,
     command: &str,
-    toolchain: Option<PartialToolchainDesc>,
+    toolchain: Option<PartialOfficialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;

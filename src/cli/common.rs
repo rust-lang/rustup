@@ -19,7 +19,7 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
     config::Cfg,
-    dist::{DistOptions, TargetTuple, ToolchainDesc},
+    dist::{DistOptions, OfficialToolchainName, TargetTuple},
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
@@ -146,7 +146,7 @@ pub(crate) fn show_channel_update(
 
 pub(crate) enum PackageUpdate {
     Rustup,
-    Toolchain(ToolchainDesc),
+    Toolchain(OfficialToolchainName),
 }
 
 impl Display for PackageUpdate {

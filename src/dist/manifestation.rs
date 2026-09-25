@@ -24,7 +24,7 @@ use tracing::{debug, info, warn};
 use crate::{
     diskio::{Executor, IO_CHUNK_SIZE, get_executor, unpack_ram},
     dist::{
-        DEFAULT_DIST_SERVER, Profile, TargetTuple, ToolchainDesc,
+        DEFAULT_DIST_SERVER, OfficialToolchainName, Profile, TargetTuple,
         component::{Components, DirectoryPackage, Transaction},
         config::Config,
         download::{DownloadCfg, DownloadStatus, File},
@@ -119,7 +119,7 @@ impl Manifestation {
         changes: Changes,
         force_update: bool,
         download_cfg: &DownloadCfg<'_>,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
         implicit_modify: bool,
     ) -> anyhow::Result<UpdateStatus> {
         // Some vars we're going to need a few times
@@ -704,7 +704,7 @@ impl Update {
     fn unavailable_components(
         &self,
         new_manifest: &Manifest,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
     ) -> anyhow::Result<()> {
         let mut unavailable_components: Vec<Component> = self
             .components_to_install

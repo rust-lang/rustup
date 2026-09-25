@@ -16,8 +16,8 @@ use tracing::{debug, info, trace, warn};
 use crate::{
     cli::{common, self_update::SelfUpdateMode},
     dist::{
-        self, DistOptions, PartialTargetTuple, PartialToolchainDesc, Profile, Switch, TargetTuple,
-        ToolchainDesc,
+        self, DistOptions, OfficialToolchainName, PartialOfficialToolchainName, PartialTargetTuple,
+        Profile, Switch, TargetTuple,
     },
     errors::RustupError,
     fallback_settings::FallbackSettings,
@@ -186,7 +186,7 @@ pub(crate) enum OverrideCfg {
     PathBased(PathBasedToolchainName),
     Custom(CustomToolchainName),
     Official {
-        toolchain: PartialToolchainDesc,
+        toolchain: PartialOfficialToolchainName,
         // To ensure preservation of the user's original intent in an override file, the below
         // values are semantically different for `components` and `targets`:
         // - `None` means that the user has specified no override.
@@ -512,7 +512,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn installed_paths<'b>(
         &self,
-        desc: &ToolchainDesc,
+        desc: &OfficialToolchainName,
         path: &'b Path,
     ) -> anyhow::Result<Vec<InstalledPath<'b>>> {
         Ok(vec![
@@ -526,7 +526,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn get_hash_file(
         &self,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
         create_parent: bool,
     ) -> anyhow::Result<PathBuf> {
         if create_parent {
@@ -586,7 +586,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) async fn toolchain_from_partial(
         &self,
-        toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
+        toolchain: Option<(PartialOfficialToolchainName, ActiveSource)>,
     ) -> anyhow::Result<(Toolchain<'_>, ActiveSource)> {
         let toolchain = toolchain
             .map(|(desc, source)| {
@@ -893,12 +893,12 @@ impl<'a> Cfg<'a> {
         }
     }
 
-    // Returns a Toolchain matching the given ToolchainDesc, installing it and
+    // Returns a Toolchain matching the given OfficialToolchainName, installing it and
     // the given components and targets if they aren't already installed.
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn ensure_installed(
         &self,
-        toolchain: &ToolchainDesc,
+        toolchain: &OfficialToolchainName,
         components: Vec<String>,
         targets: Vec<String>,
         profile: Option<Profile>,
@@ -1037,7 +1037,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn list_channels(
         &self,
-    ) -> anyhow::Result<Vec<(ToolchainDesc, DistributableToolchain<'_>)>> {
+    ) -> anyhow::Result<Vec<(OfficialToolchainName, DistributableToolchain<'_>)>> {
         let mut channels = self
             .list_toolchains(true)?
             .into_iter()
@@ -1071,7 +1071,8 @@ impl<'a> Cfg<'a> {
         // Ensure that the provided host tuple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied tuple is insufficient / bad.
-        PartialToolchainDesc::from_str("stable")?.resolve(&TargetTuple::new(host_tuple.clone()))?;
+        PartialOfficialToolchainName::from_str("stable")?
+            .resolve(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
             s.default_host_tuple = Some(host_tuple);
             Ok(())
@@ -1114,7 +1115,8 @@ impl<'a> Cfg<'a> {
         }
 
         let default_host = self.default_host_tuple()?;
-        let stable_desc = PartialToolchainDesc::from_str("stable")?.resolve(&default_host)?;
+        let stable_desc =
+            PartialOfficialToolchainName::from_str("stable")?.resolve(&default_host)?;
         let stable = match DistributableToolchain::new(self, stable_desc) {
             Ok(stable) => stable,
             // If the `stable` toolchain is not installed, we don't notify the user.
