@@ -51,15 +51,18 @@ pub(crate) fn anti_sudo_check(
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+    let env_home = process.env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(&env_home, home_dir.as_deref())?;
         // Check more files for cleanup than normally are updated.
         remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
     }
 
-    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())
+    if !process.use_category_home() {
+        remove_legacy_paths(process, &env_home, home_dir.as_deref())?;
+    }
+    Ok(())
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
