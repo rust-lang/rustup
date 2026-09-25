@@ -25,8 +25,8 @@ use crate::{
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, Override, PartialToolchainNameOrPath,
-        ResolvableToolchainName, Toolchain, ToolchainName, ToolchainNameOrPath, ToolchainPath,
+        CustomToolchainName, DistributableToolchain, Override, PartialToolchainName,
+        PartialToolchainNameOrPath, Toolchain, ToolchainName, ToolchainNameOrPath, ToolchainPath,
     },
     utils,
 };
@@ -199,7 +199,7 @@ pub(crate) enum OverrideCfg {
 impl OverrideCfg {
     fn from_file(cfg: &Cfg<'_>, file: OverrideFile) -> anyhow::Result<Self> {
         let toolchain_name = match (file.toolchain.channel, file.toolchain.path) {
-            (Some(name), None) => Override::<ResolvableToolchainName>::from_str(&name)?,
+            (Some(name), None) => Override::<PartialToolchainName>::from_str(&name)?,
             (None, Some(path)) => {
                 if file.toolchain.targets.is_some()
                     || file.toolchain.components.is_some()
@@ -231,7 +231,7 @@ impl OverrideCfg {
         };
         let toolchain_name = toolchain_name.resolve(cfg)?;
         Ok(match toolchain_name {
-            ResolvableToolchainName::Official(desc) => Self::Official {
+            PartialToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
                 components: file.toolchain.components,
                 targets: file.toolchain.targets,
@@ -242,7 +242,7 @@ impl OverrideCfg {
                     .map(Profile::from_str)
                     .transpose()?,
             },
-            ResolvableToolchainName::Custom(name) => Self::Custom(name),
+            PartialToolchainName::Custom(name) => Self::Custom(name),
         })
     }
 
@@ -264,16 +264,16 @@ impl OverrideCfg {
     }
 }
 
-impl From<ResolvableToolchainName> for OverrideCfg {
-    fn from(value: ResolvableToolchainName) -> Self {
+impl From<PartialToolchainName> for OverrideCfg {
+    fn from(value: PartialToolchainName) -> Self {
         match value {
-            ResolvableToolchainName::Official(desc) => Self::Official {
+            PartialToolchainName::Official(desc) => Self::Official {
                 toolchain: desc,
                 components: None,
                 targets: None,
                 profile: None,
             },
-            ResolvableToolchainName::Custom(name) => Self::Custom(name),
+            PartialToolchainName::Custom(name) => Self::Custom(name),
         }
     }
 }
@@ -412,7 +412,7 @@ impl<'a> Cfg<'a> {
         // Run some basic checks against the constructed configuration
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
-        ResolvableToolchainName::from_str("stable")?.resolve(
+        PartialToolchainName::from_str("stable")?.resolve(
             &cfg.default_host_tuple()
                 .context("Unable parse configuration")?,
         )?;
@@ -422,7 +422,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn set_default(
         &self,
-        toolchain: Option<&ResolvableToolchainName>,
+        toolchain: Option<&PartialToolchainName>,
     ) -> anyhow::Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = toolchain.map(|t| t.to_string());
@@ -684,7 +684,7 @@ impl<'a> Cfg<'a> {
             if let Some(name) = settings.dir_override(d) {
                 let source = ActiveSource::OverrideDb(d.to_owned());
                 return Ok(Some((
-                    Override::<ResolvableToolchainName>::from_str(&name)?
+                    Override::<PartialToolchainName>::from_str(&name)?
                         .resolve(self)?
                         .into(),
                     source,
@@ -738,7 +738,7 @@ impl<'a> Cfg<'a> {
                     })?;
                 if let Some(toolchain_name_str) = &override_file.toolchain.channel {
                     let toolchain_override =
-                        Override::<ResolvableToolchainName>::from_str(toolchain_name_str.as_str())
+                        Override::<PartialToolchainName>::from_str(toolchain_name_str.as_str())
                             .map_err(|_| {
                                 anyhow!(
                                     "invalid toolchain name detected in override file '{}'",
@@ -749,7 +749,7 @@ impl<'a> Cfg<'a> {
                     let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
-                    if let ResolvableToolchainName::Official(name) = &toolchain_name
+                    if let PartialToolchainName::Official(name) = &toolchain_name
                         && !name.target.is_empty()
                     {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
@@ -965,7 +965,7 @@ impl<'a> Cfg<'a> {
     /// This function returns an error if:
     /// - The configuration file is invalid.
     /// - The configuration file contains an illegal default toolchain name.
-    pub(crate) fn get_default_resolvable(&self) -> anyhow::Result<Option<ResolvableToolchainName>> {
+    pub(crate) fn get_default_resolvable(&self) -> anyhow::Result<Option<PartialToolchainName>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
         let toolchain_maybe_str = if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
@@ -978,7 +978,7 @@ impl<'a> Cfg<'a> {
         let Some(toolchain) = &toolchain_maybe_str else {
             return Ok(None);
         };
-        Ok(Some(ResolvableToolchainName::from_str(toolchain)?))
+        Ok(Some(PartialToolchainName::from_str(toolchain)?))
     }
 
     /// Lists all the installed toolchains.

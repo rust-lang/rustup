@@ -69,7 +69,7 @@ use crate::{
     process::Process,
     settings::SettingsFile,
     toolchain::{
-        DistributableToolchain, MaybeOfficialToolchainName, ResolvableToolchainName, Toolchain,
+        DistributableToolchain, MaybeOfficialToolchainName, PartialToolchainName, Toolchain,
     },
     utils::{self, ExitCode},
 };
@@ -368,9 +368,9 @@ impl InstallOpts<'_> {
                 }
                 None => match cfg.get_default_resolvable()? {
                     // Default is installable
-                    Some(ResolvableToolchainName::Official(t)) => Some(t),
+                    Some(PartialToolchainName::Official(t)) => Some(t),
                     // Default is custom, presumably from a prior install. Do nothing.
-                    Some(ResolvableToolchainName::Custom(_)) => None,
+                    Some(PartialToolchainName::Custom(_)) => None,
                     None => Some(PartialOfficialToolchainName::from_str("stable")?),
                 },
             })
@@ -436,7 +436,7 @@ impl InstallOpts<'_> {
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process));
         let partial_channel = match &self.default_toolchain {
             None | Some(MaybeOfficialToolchainName::None) => {
-                ResolvableToolchainName::from_str("stable")?
+                PartialToolchainName::from_str("stable")?
             }
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };

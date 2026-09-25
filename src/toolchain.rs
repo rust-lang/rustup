@@ -37,8 +37,8 @@ pub(crate) use distributable::DistributableToolchain;
 
 mod names;
 pub(crate) use names::{
-    CustomToolchainName, MaybeOfficialToolchainName, MaybeResolvableToolchainName, Override,
-    PartialToolchainNameOrPath, ResolvableToolchainName, ToolchainName, ToolchainNameOrPath,
+    CustomToolchainName, MaybeOfficialToolchainName, MaybePartialToolchainName, Override,
+    PartialToolchainName, PartialToolchainNameOrPath, ToolchainName, ToolchainNameOrPath,
     ToolchainPath,
 };
 

@@ -56,8 +56,8 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{ColorableTerminal, Process},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, MaybeResolvableToolchainName, Override,
-        PartialToolchainNameOrPath, ResolvableToolchainName, Toolchain, ToolchainName,
+        CustomToolchainName, DistributableToolchain, MaybePartialToolchainName, Override,
+        PartialToolchainName, PartialToolchainNameOrPath, Toolchain, ToolchainName,
         ToolchainNameOrPath,
     },
     utils::{self, ExitCode},
@@ -160,7 +160,7 @@ enum RustupSubcmd {
     #[command(after_help = default_help())]
     Default {
         #[arg(help = maybe_resolvable_toolchain_arg_help())]
-        toolchain: Option<Override<MaybeResolvableToolchainName>>,
+        toolchain: Option<Override<MaybePartialToolchainName>>,
 
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
@@ -253,7 +253,7 @@ enum RustupSubcmd {
         command: String,
 
         #[arg(long, help = resolvable_toolchain_arg_help())]
-        toolchain: Option<ResolvableToolchainName>,
+        toolchain: Option<PartialToolchainName>,
     },
 
     /// Open the documentation for the current toolchain
@@ -511,7 +511,7 @@ struct UninstallOpts {
         required = true,
         num_args = 1..,
     )]
-    toolchain: Vec<ResolvableToolchainName>,
+    toolchain: Vec<PartialToolchainName>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -614,7 +614,7 @@ enum OverrideSubcmd {
     #[command(alias = "add")]
     Set {
         #[arg(help = resolvable_toolchain_arg_help())]
-        toolchain: Override<ResolvableToolchainName>,
+        toolchain: Override<PartialToolchainName>,
 
         /// Path to the directory
         #[arg(long)]
@@ -925,21 +925,21 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
 
 async fn default_(
     cfg: &Cfg<'_>,
-    toolchain: Option<Override<MaybeResolvableToolchainName>>,
+    toolchain: Option<Override<MaybePartialToolchainName>>,
     force_non_host: bool,
 ) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
     if let Some(toolchain) = toolchain {
         match toolchain.resolve(cfg)? {
-            MaybeResolvableToolchainName::None => {
+            MaybePartialToolchainName::None => {
                 cfg.set_default(None)?;
             }
-            MaybeResolvableToolchainName::Some(ResolvableToolchainName::Custom(toolchain_name)) => {
+            MaybePartialToolchainName::Some(PartialToolchainName::Custom(toolchain_name)) => {
                 Toolchain::new(cfg, toolchain_name.clone().into())?;
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
-            MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
+            MaybePartialToolchainName::Some(PartialToolchainName::Official(toolchain)) => {
                 let desc = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
@@ -1223,7 +1223,7 @@ async fn run(
 async fn which(
     cfg: &Cfg<'_>,
     binary: &str,
-    toolchain: Option<ResolvableToolchainName>,
+    toolchain: Option<PartialToolchainName>,
 ) -> anyhow::Result<ExitCode> {
     let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
@@ -1698,7 +1698,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                 .get_default_resolvable()?
                 .context("no default toolchain to pin")?;
             let components = match &default {
-                ResolvableToolchainName::Official(desc) => {
+                PartialToolchainName::Official(desc) => {
                     let tc =
                         DistributableToolchain::new(cfg, desc.clone().resolve(&default_host)?)?;
                     let manifest = tc.get_manifest()?;
@@ -1713,7 +1713,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                             .collect(),
                     )
                 }
-                ResolvableToolchainName::Custom(_) => None,
+                PartialToolchainName::Custom(_) => None,
             };
             (OverrideCfg::from(default), components)
         }
@@ -1754,7 +1754,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
 
 async fn override_add(
     cfg: &Cfg<'_>,
-    toolchain: Override<ResolvableToolchainName>,
+    toolchain: Override<PartialToolchainName>,
     path: Option<&Path>,
 ) -> anyhow::Result<ExitCode> {
     let toolchain_name = toolchain
