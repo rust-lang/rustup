@@ -14,8 +14,10 @@ jobs: # skip-main skip-pr skip-stable
     strategy:
       fail-fast: false
       matrix:
+        # Every target gets a release build. Targets whose test suite runs
+        # natively on a hosted runner also get a dev build that runs the tests;
+        # those are the `mode: dev` entries under `include` below.
         mode:
-          - dev
           - release
         target:
           - x86_64-unknown-linux-gnu
@@ -48,7 +50,7 @@ jobs: # skip-main skip-pr skip-stable
           - loongarch64-unknown-linux-musl # skip-pr skip-main
         include:
           - target: x86_64-unknown-linux-gnu
-            run_tests: YES
+            mode: dev
             #snap_arch: amd64
           - target: i686-unknown-linux-gnu # skip-pr skip-main
             #snap_arch: i386  # skip-pr skip-main
@@ -57,7 +59,9 @@ jobs: # skip-main skip-pr skip-stable
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-            run_tests: YES
+          - target: aarch64-unknown-linux-gnu
+            mode: dev
+            os: ubuntu-24.04-arm
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
           - target: powerpc64le-unknown-linux-gnu # skip-pr skip-main
@@ -85,7 +89,7 @@ jobs: # skip-main skip-pr skip-stable
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
       - name: Skip tests
-        if: matrix.run_tests == '' || matrix.mode == 'release'
+        if: matrix.mode == 'release'
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees

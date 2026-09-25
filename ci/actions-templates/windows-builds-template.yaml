@@ -21,8 +21,10 @@ jobs: # skip-main skip-pr skip-stable
     strategy:
       fail-fast: false
       matrix:
+        # Every target gets a release build. Targets whose test suite runs
+        # natively on a hosted runner also get a dev build that runs the tests;
+        # those are the `mode: dev` entries under `include` below.
         mode:
-          - dev
           - release
         target:
           - x86_64-pc-windows-msvc
@@ -33,7 +35,7 @@ jobs: # skip-main skip-pr skip-stable
           - aarch64-pc-windows-gnullvm
         include:
           - target: x86_64-pc-windows-msvc
-            run_tests: YES
+            mode: dev
           - target: x86_64-pc-windows-gnu
             arch: x86_64
             mingwdir: mingw64
@@ -42,7 +44,10 @@ jobs: # skip-main skip-pr skip-stable
             # Architecture of the rustup build that installs Rust in this workflow.
             rustup_arch: aarch64
             os: windows-11-arm
-            run_tests: YES
+          - target: aarch64-pc-windows-msvc
+            mode: dev
+            rustup_arch: aarch64
+            os: windows-11-arm
           - target: aarch64-pc-windows-gnullvm
             rustup_arch: aarch64
             os: windows-11-arm
@@ -108,7 +113,7 @@ jobs: # skip-main skip-pr skip-stable
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Skip tests
-        if: matrix.run_tests == '' || matrix.mode == 'release'
+        if: matrix.mode == 'release'
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         shell: bash
