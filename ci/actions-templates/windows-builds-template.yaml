@@ -119,17 +119,6 @@ jobs: # skip-main skip-pr skip-stable
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Get rustc commit hash
-        id: cargo-target-cache
-        run: |
-          echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
-        shell: bash
-      - name: Cache cargo build
-        uses: actions/cache@v6
-        with:
-          path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using win.rustup.rs
         env:
           RUSTUP_ARCH: ${{ matrix.rustup_arch || 'x86_64' }}
@@ -141,6 +130,17 @@ jobs: # skip-main skip-pr skip-stable
           del rustup-init.exe
       - name: Ensure stable toolchain is up to date
         run: rustup update stable
+      - name: Get rustc commit hash
+        id: cargo-target-cache
+        run: |
+          echo "rust_hash=$(rustc -Vv | grep commit-hash | awk '{print $2}')" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Cache cargo build
+        uses: actions/cache@v6
+        with:
+          path: target
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install the target
         run: |
           rustup target install ${{ matrix.target }}
