@@ -54,7 +54,14 @@ target_cargo() {
     cargo "${cmd}" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
-target_cargo build
+# Jobs that skip the tests exist to produce the binary, so build just that.
+# Jobs that run the tests build the binary again below with the `test`
+# feature, and the release job for the same target already covers the
+# build without it, so don't build it twice here.
+if [ -n "$SKIP_TESTS" ]; then
+  target_cargo build
+  exit 0
+fi
 
 # Machines have 7GB of RAM, and our target/ contents is large enough that
 # thrashing will occur if we build-run-build-run rather than
@@ -84,8 +91,6 @@ build_test() {
   fi
 }
 
-if [ -z "$SKIP_TESTS" ]; then
-  target_cargo run --features test -- --dump-testament
-  build_test build
-  RUSTUP_CI=1 build_test test
-fi
+target_cargo run --features test -- --dump-testament
+build_test build
+RUSTUP_CI=1 build_test test
