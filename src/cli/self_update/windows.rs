@@ -379,13 +379,17 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
     false
 }
 
-/// Run by rustup-gc-$num.exe to delete CARGO_HOME
+/// Run by rustup-gc-$num.exe to finish deleting the installation.
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
     let uninstall = wait_for_parent().and_then(|()| {
         let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
-        // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
+        // Now that the parent has exited, its installed binary can be removed.
+        if process.use_category_home() {
+            return super::clean_category_home(no_modify_path, process);
+        }
+
         let cargo_home = process.cargo_home()?;
         super::clean_cargo_home(no_modify_path, process, &cargo_home)
     });
@@ -569,10 +573,7 @@ where
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let windows_path = get_windows_path_var(process)?;
-    let path_str = process.cargo_home()?.join("bin");
-    let new_path = windows_path
-        .and_then(|old_path| _remove_from_path(old_path, HSTRING::from(path_str.as_path())));
+    let new_path = _with_path_rustup_bin(_remove_from_path, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -695,7 +696,7 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //   Pass this handle as stdin so the standard library manages inheritance.
 //   GC does not read stdin; it uses it only to carry the deletion handle.
 // - Run the gc exe, which waits for the original rustup.exe
-//   process to close, then deletes CARGO_HOME. This process
+//   process to close, then cleans up the installation. This process
 //   has inherited a FILE_FLAG_DELETE_ON_CLOSE handle to itself.
 // - Finally, spawn yet another system binary inheriting stdin,
 //   so *it* inherits the FILE_FLAG_DELETE_ON_CLOSE handle to
@@ -763,7 +764,7 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
 }
 
 // The rustup-gc executable cannot accept normal function call here,
-// so we use env var here, notifying it if we need to remove $CARGO_HOME/bin from $PATH
+// so we use env var here, notifying it if we need to remove the bin home from $PATH
 const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
 /// Environment variable carrying the per-test registry ID.

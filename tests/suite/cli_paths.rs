@@ -86,6 +86,39 @@ export PATH="$HOME/apple/bin"
     }
 
     #[tokio::test]
+    async fn category_uninstall_preserves_legacy_installation() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        cx.config.expect(INIT_NONE).await.is_ok();
+        let legacy_env = fs::read_to_string(cx.config.cargodir.join("env")).unwrap();
+        let profile = cx.config.homedir.join(".profile");
+        let legacy_profile = fs::read_to_string(&profile).unwrap();
+        let data_home = cx.config.homedir.join("data");
+        let bin_home = cx.config.homedir.join("bin");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+        cx.config.expect_with_env(INIT_NONE, env).await.is_ok();
+        let settings_file = cx.config.rustupdir.rustupdir.join("settings.toml");
+        let settings = fs::read_to_string(&settings_file).unwrap();
+        cx.config
+            .expect_with_env(["rustup", "self", "uninstall", "-y"], env)
+            .await
+            .is_ok();
+
+        assert!(!data_home.join("env").exists());
+        assert!(!bin_home.exists());
+        assert_eq!(fs::read_to_string(&profile).unwrap(), legacy_profile);
+        assert_eq!(
+            fs::read_to_string(cx.config.cargodir.join("env")).unwrap(),
+            legacy_env
+        );
+        assert!(cx.config.cargodir.join("bin/rustup").is_file());
+        assert_eq!(fs::read_to_string(settings_file).unwrap(), settings);
+    }
+
+    #[tokio::test]
     async fn install_updates_bash_rcs() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
@@ -564,6 +597,45 @@ mod windows {
         let after_uninstall = read_path(test_id).unwrap_or_default();
         assert!(
             !os_str_contains(&after_uninstall, &cfg_path),
+            "`{cfg_path:?}` in `{after_uninstall:?}`",
+        );
+    }
+
+    #[tokio::test]
+    async fn category_install_uninstall_affect_path() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let test_id = &cx.config.test_registry_id;
+        let bin_home = cx.config.homedir.join("bin");
+        let cfg_path = bin_home.as_os_str();
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+        let read_path = |test_id: &str| -> Option<_> {
+            retry(
+                Fibonacci::from_millis(1).map(jitter).take(21),
+                || match get_path(test_id).unwrap() {
+                    Some(v) => OperationResult::Ok(HSTRING::try_from(v).unwrap().to_os_string()),
+                    None => OperationResult::Retry(()),
+                },
+            )
+            .ok()
+        };
+
+        cx.config.expect_with_env(INIT_NONE, env).await.is_ok();
+        let after_install = read_path(test_id).unwrap_or_default();
+        assert!(
+            os_str_contains(&after_install, cfg_path),
+            "`{cfg_path:?}` not in `{after_install:?}`",
+        );
+
+        cx.config
+            .expect_with_env(["rustup", "self", "uninstall", "-y"], env)
+            .await
+            .is_ok();
+        let after_uninstall = read_path(test_id).unwrap_or_default();
+        assert!(
+            !os_str_contains(&after_uninstall, cfg_path),
             "`{cfg_path:?}` in `{after_uninstall:?}`",
         );
     }

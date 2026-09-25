@@ -20,13 +20,16 @@
 //! * atomically replace rustup and update its proxy links. On Windows
 //!   this happens after the update command exits.
 //!
-//! During uninstall (`rustup self uninstall`):
+//! During legacy-mode uninstall (`rustup self uninstall`):
 //!
 //! * Delete `$RUSTUP_HOME`.
 //! * Delete all entries in `$CARGO_HOME` except `bin`.
 //! * Delete rustup tool links and binary from `$CARGO_HOME/bin`.
 //! * Delete `$CARGO_HOME/bin` if it is empty after uninstall.
 //! * Delete `$CARGO_HOME` if it is empty after uninstall.
+//!
+//! Category-mode uninstall removes the current toolchains, env files and binaries,
+//! preserving other files in the category homes without separately cleaning legacy homes.
 //!
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
@@ -956,7 +959,7 @@ fn check_proxy_sanity(
     Ok(())
 }
 
-/// Uninstall process:
+/// Legacy uninstall process:
 /// 1. Remove all installed toolchains.
 /// 2. Remove rustup home.
 /// 3. Remove all entries in `$CARGO_HOME` except `bin`.
@@ -964,6 +967,9 @@ fn check_proxy_sanity(
 /// 5. Try to remove $CARGO_HOME/bin directory if it's empty.
 /// 6. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
 /// 7. Try to remove $CARGO_HOME directory if it's empty.
+///
+/// Category mode removes the current toolchains, env files and binaries, preserving
+/// other files in the category homes without separately cleaning legacy homes.
 pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
@@ -976,18 +982,31 @@ pub(crate) fn uninstall(
     }
 
     let process = cfg.process;
-    let cargo_home = process.cargo_home()?;
+    let bin_home = process.rustup_bin_home()?;
 
-    if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
-        return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
+    if !bin_home.join(format!("rustup{EXE_SUFFIX}")).exists() {
+        return Err(CliError::NotSelfInstalled { p: bin_home }.into());
     }
 
     if !no_prompt {
         writeln!(process.stdout().lock())?;
-        let msg = if no_modify_path {
+        let msg = if process.use_category_home() {
+            let home_dir = process.home_dir();
+            let path_message = if no_modify_path {
+                "Your `PATH` environment variable and shell profiles will not be modified."
+            } else {
+                "Rustup shell setup and PATH entries will be cleaned up where applicable."
+            };
+            format!(
+                pre_uninstall_category_msg!(),
+                toolchains_dir = HomeDisplay::new(&cfg.toolchains_dir, home_dir.as_deref()),
+                env_home = HomeDisplay::new(&cfg.rustup_data_dir, home_dir.as_deref()),
+                bin_home = HomeDisplay::new(&bin_home, home_dir.as_deref()),
+                path_message = path_message,
+            )
+        } else if no_modify_path {
             pre_uninstall_msg_no_modify_path!().to_owned()
         } else {
-            let bin_home = cargo_home.join("bin");
             let cargo_bin_dir = HomeDisplay::new(&bin_home, process.home_dir().as_deref());
             format!(pre_uninstall_msg!(), cargo_bin_dir = cargo_bin_dir)
         };
@@ -1003,17 +1022,21 @@ pub(crate) fn uninstall(
         Toolchain::ensure_removed(cfg, toolchain.into())?;
     }
 
-    info!("removing rustup home");
-
-    // Delete RUSTUP_HOME
-    let rustup_dir = process.rustup_home()?;
-    if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", &rustup_dir)?;
+    if !process.use_category_home() {
+        info!("removing rustup home");
+        let rustup_dir = process.rustup_home()?;
+        if rustup_dir.exists() {
+            utils::remove_dir("rustup_home", &rustup_dir)?;
+        }
     }
 
     // Delete rustup.
     #[cfg(unix)]
-    clean_cargo_home(no_modify_path, process, &cargo_home)?;
+    if process.use_category_home() {
+        clean_category_home(no_modify_path, process)?;
+    } else {
+        clean_cargo_home(no_modify_path, process, &process.cargo_home()?)?;
+    }
     // NOTE: On windows, this is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
@@ -1024,6 +1047,47 @@ pub(crate) fn uninstall(
     info!("rustup is uninstalled");
 
     Ok(ExitCode::SUCCESS)
+}
+
+/// Removes the current category installation's env files, proxies and binary.
+fn clean_category_home(no_modify_path: bool, process: &Process) -> anyhow::Result<()> {
+    #[cfg(unix)]
+    {
+        let env_home = process.rustup_env_home()?;
+        for sh in shell::get_available_shells(process) {
+            let env_file = env_home.join(sh.env_script().name);
+            if env_file.is_file() {
+                utils::remove_file("env", &env_file)?;
+            }
+        }
+    }
+
+    let bin_home = process.rustup_bin_home()?;
+    let rustup_path = bin_home.join(format!("rustup{EXE_SUFFIX}"));
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        let proxy_path = bin_home.join(format!("{tool}{EXE_SUFFIX}"));
+        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
+            utils::remove_file("rustup tool proxy", &proxy_path)?;
+        }
+    }
+    utils::remove_file("rustup_bin", &rustup_path)?;
+
+    #[cfg(windows)]
+    remove_uninstall_registry_entry(process)?;
+
+    match fs::remove_dir(&bin_home) {
+        Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
+            warn!("keeping non-empty bin directory `{}`", bin_home.display());
+        }
+        Err(e) => {
+            return Err(e).with_context(|| {
+                format!("failed to remove bin directory `{}`", bin_home.display())
+            });
+        }
+        Ok(()) if !no_modify_path => remove_from_path(process)?,
+        Ok(()) => {}
+    }
+    Ok(())
 }
 
 /// Remove rustup-owned cargo-home state.

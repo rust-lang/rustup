@@ -112,6 +112,25 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
+macro_rules! pre_uninstall_category_msg {
+    () => {
+        r"# Thanks for hacking in Rust!
+
+This will uninstall the toolchains managed by this installation and remove
+Rustup's shell environment files and binaries:
+
+    toolchains: {toolchains_dir}
+    env files:  {env_home}
+    binaries:   {bin_home}
+
+Other files in these directories and Cargo home data will be kept.
+
+{path_message}
+
+"
+    };
+}
+
 macro_rules! pre_uninstall_msg_no_modify_path {
     () => {
         r"# Thanks for hacking in Rust!
