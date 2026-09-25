@@ -109,6 +109,34 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
+macro_rules! pre_uninstall_category_msg {
+    () => {
+        r"# Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and delete the following directories
+if they exist:
+
+{rustup_homes}
+
+These directories will be removed with ALL their contents, including unrelated
+files and any bin directories inside them. Directory symlinks are unlinked
+rather than recursively removed; installed toolchains are still uninstalled.
+
+Cargo home data in `{cargo_home}` will also be removed, except for the bin
+directories below. Rustup binaries and tool links will be removed from:
+
+{bin_homes}
+
+Other programs in these bin directories will be kept ONLY if the directories
+are not inside (or the same as) a directory listed for complete removal above.
+Empty bin and Cargo home directories will then be removed.
+
+{path_message}
+
+"
+    };
+}
+
 macro_rules! pre_uninstall_msg_no_modify_path {
     () => {
         r"# Thanks for hacking in Rust!

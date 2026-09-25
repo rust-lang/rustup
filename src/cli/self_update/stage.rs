@@ -284,7 +284,7 @@ fn stage_root(process: &Process) -> anyhow::Result<PathBuf> {
 pub const SELF_UPDATE_DIRECTORY: &str = "self-update";
 const SELF_UPDATE_LOCK_FILE: &str = "self-update.lock";
 const STAGE_ENV: &str = "RUSTUP_SELF_UPDATE_STAGE";
-const PENDING_BINARY_PREFIX: &str = ".rustup-pending-";
+pub(super) const PENDING_BINARY_PREFIX: &str = ".rustup-pending-";
 const ABANDONED_UPDATE_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[cfg(test)]

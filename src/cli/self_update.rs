@@ -22,7 +22,7 @@
 //!
 //! During uninstall (`rustup self uninstall`):
 //!
-//! * Delete `$RUSTUP_HOME`.
+//! * Delete all resolved Rustup homes.
 //! * Delete all entries in `$CARGO_HOME` except `bin`.
 //! * Delete rustup tool links and binary from `$CARGO_HOME/bin`.
 //! * Delete `$CARGO_HOME/bin` if it is empty after uninstall.
@@ -101,10 +101,7 @@ pub(crate) use windows::self_replace;
 #[cfg(all(windows, feature = "test"))]
 pub use windows::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
 #[cfg(windows)]
-use windows::{
-    add_to_path, add_uninstall_registry_entry, remove_from_path, remove_uninstall_registry_entry,
-    run_update,
-};
+use windows::{add_to_path, add_uninstall_registry_entry, remove_from_path, run_update};
 
 pub(crate) struct InstallOpts<'a> {
     pub default_host_tuple: Option<String>,
@@ -952,12 +949,11 @@ fn check_proxy_sanity(
 
 /// Uninstall process:
 /// 1. Remove all installed toolchains.
-/// 2. Remove rustup home.
-/// 3. Remove all entries in `$CARGO_HOME` except `bin`.
-/// 4. Remove rustup tool links and binary.
-/// 5. Try to remove $CARGO_HOME/bin directory if it's empty.
-/// 6. Upon successfully removing $CARGO_HOME/bin, clean up $PATH.
-/// 7. Try to remove $CARGO_HOME directory if it's empty.
+/// 2. Remove all resolved Rustup homes.
+/// 3. Remove Cargo home data, preserving both bin directories.
+/// 4. Remove rustup tool links and binaries from both bin directories.
+/// 5. Remove empty bin directories and clean up PATH as appropriate.
+/// 6. Try to remove the Cargo home directory if it's empty.
 pub(crate) fn uninstall(
     no_prompt: bool,
     no_modify_path: bool,
@@ -971,14 +967,61 @@ pub(crate) fn uninstall(
 
     let process = cfg.process;
     let cargo_home = process.cargo_home()?;
-
-    if !cargo_home.join(format!("bin/rustup{EXE_SUFFIX}")).exists() {
+    let legacy_bin = cargo_home.join("bin");
+    let category_bin = process.rustup_bin_home()?;
+    let rustup_exe = format!("rustup{EXE_SUFFIX}");
+    let legacy_rustup = legacy_bin.join(&rustup_exe);
+    let category_rustup = category_bin.join(rustup_exe);
+    let rustup_is_self_installed = legacy_rustup.try_exists()?
+        || (category_bin != legacy_bin && category_rustup.try_exists()?);
+    if !rustup_is_self_installed {
         return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
     }
 
+    // Resolve the legacy home before displaying the uninstall notice.
+    let legacy_home = process.rustup_home()?;
+    let rustup_homes = [
+        ("rustup home", &legacy_home),
+        ("rustup cache home", &cfg.rustup_cache_dir),
+        ("rustup config home", &cfg.rustup_config_dir),
+        ("rustup data home", &cfg.rustup_data_dir),
+        ("rustup state home", &cfg.rustup_state_dir),
+    ];
+
     if !no_prompt {
         writeln!(process.stdout().lock())?;
-        let msg = if no_modify_path {
+        let msg = if process.use_category_home() {
+            let rustup_homes = format!(
+                concat!(
+                    "      config: {}\n",
+                    "      state:  {}\n",
+                    "      data:   {}\n",
+                    "      cache:  {}\n\n",
+                    "      legacy Rustup home: {}"
+                ),
+                cfg.rustup_config_dir.display(),
+                cfg.rustup_state_dir.display(),
+                cfg.rustup_data_dir.display(),
+                cfg.rustup_cache_dir.display(),
+                legacy_home.display(),
+            );
+            let mut bin_homes = format!("- `{}`", legacy_bin.display());
+            if category_bin != legacy_bin {
+                bin_homes.push_str(&format!("\n- `{}`", category_bin.display()));
+            }
+            let path_message = if no_modify_path {
+                "Your `PATH` environment variable and shell profiles will not be modified."
+            } else {
+                "Rustup shell setup and PATH entries will be cleaned up where applicable."
+            };
+            format!(
+                pre_uninstall_category_msg!(),
+                rustup_homes = rustup_homes,
+                cargo_home = cargo_home.display(),
+                bin_homes = bin_homes,
+                path_message = path_message,
+            )
+        } else if no_modify_path {
             pre_uninstall_msg_no_modify_path!().to_owned()
         } else {
             let bin_home = cargo_home.join("bin");
@@ -992,6 +1035,18 @@ pub(crate) fn uninstall(
         }
     }
 
+    #[cfg(unix)]
+    if process.use_category_home() && !no_modify_path {
+        // Remove both current and legacy env script references, but process a
+        // shared data/Cargo home only once.
+        let data_home = &cfg.rustup_data_dir;
+        if data_home == &cargo_home {
+            remove_from_path(process, &[data_home], &cargo_home)?;
+        } else {
+            remove_from_path(process, &[data_home, &cargo_home], &cargo_home)?;
+        }
+    }
+
     info!("removing toolchains");
     for toolchain in cfg.list_toolchains(true)? {
         Toolchain::ensure_removed(cfg, toolchain.into())?;
@@ -999,15 +1054,20 @@ pub(crate) fn uninstall(
 
     info!("removing rustup home");
 
-    // Delete RUSTUP_HOME
-    let rustup_dir = process.rustup_home()?;
-    if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", &rustup_dir)?;
+    // Delete the legacy Rustup home and all resolved category homes.
+    for (name, rustup_dir) in rustup_homes {
+        if rustup_dir.try_exists()? {
+            utils::remove_dir(name, rustup_dir)?;
+        }
     }
 
     // Delete rustup.
     #[cfg(unix)]
-    clean_cargo_home(no_modify_path, process, &cargo_home)?;
+    {
+        clean_cargo_home_data(&cargo_home, &category_bin)?;
+        clean_bin_homes(no_modify_path, process, &cargo_home, &category_bin)?;
+        remove_empty_cargo_home(&cargo_home)?;
+    }
     // NOTE: On windows, this is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
@@ -1020,81 +1080,58 @@ pub(crate) fn uninstall(
     Ok(ExitCode::SUCCESS)
 }
 
-/// Remove rustup-owned cargo-home state.
-/// This removes non-`bin` entries in `$CARGO_HOME`, removes rustup tool links and executable from
-/// `$CARGO_HOME/bin`, then removes `$CARGO_HOME/bin` and `$CARGO_HOME` only if they are empty.
-/// Nonempty directories are left in place.
-fn clean_cargo_home(
+/// Remove Cargo home data while preserving both bin directories and their contents.
+fn clean_cargo_home_data(cargo_home: &Path, category_bin: &Path) -> anyhow::Result<()> {
+    info!("removing cargo home");
+
+    // Check every entry before deleting any of them.
+    for path in cargo_home_entries_to_remove(cargo_home, category_bin)? {
+        if path.is_dir() {
+            utils::remove_dir("cargo_home", &path)?;
+        } else {
+            utils::remove_file("cargo_home", &path)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Remove Rustup binaries from both bin homes, preserving unrelated programs.
+/// Update PATH where appropriate when a bin directory is removed.
+fn clean_bin_homes(
     no_modify_path: bool,
     process: &Process,
     cargo_home: &Path,
+    category_bin: &Path,
 ) -> anyhow::Result<()> {
-    let cargo_bin = cargo_home.join("bin");
+    let legacy_bin = cargo_home.join("bin");
 
-    info!("removing cargo home");
+    info!("removing rustup tool links and binary");
 
-    // Delete everything in CARGO_HOME except the bin directory first.
-    let diriter = fs::read_dir(cargo_home).map_err(|e| CliError::ReadDirError {
-        p: cargo_home.to_owned(),
-        source: e,
-    })?;
-    for dirent in diriter {
-        let dirent = dirent.map_err(|e| CliError::ReadDirError {
-            p: cargo_home.to_owned(),
-            source: e,
-        })?;
-        if dirent.file_name().to_str() != Some("bin") {
-            if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path())?;
-            } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
+    for bin in std::iter::once(legacy_bin.as_path())
+        .chain((category_bin != legacy_bin).then_some(category_bin))
+    {
+        let bin_removed = clean_rustup_binaries(bin)?;
+        if bin_removed && !no_modify_path {
+            #[cfg(windows)]
+            remove_from_path(process, bin)?;
+            #[cfg(unix)]
+            if !process.use_category_home() && bin == legacy_bin {
+                remove_from_path(process, &[cargo_home], cargo_home)?;
             }
         }
     }
 
-    info!("removing rustup tool links and binary");
+    Ok(())
+}
 
-    let rustup_path = cargo_bin.join(format!("rustup{EXE_SUFFIX}"));
-
-    let proxy_paths = TOOLS
-        .iter()
-        .chain(DUP_TOOLS.iter())
-        .map(|tool| cargo_bin.join(format!("{tool}{EXE_SUFFIX}")));
-
-    for proxy_path in proxy_paths {
-        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
-            utils::remove_file("rustup tool proxy", &proxy_path)?;
-        }
-    }
-
-    utils::remove_file("rustup_bin", &rustup_path)?;
-
-    #[cfg(windows)]
-    remove_uninstall_registry_entry(process)?;
-
-    let cargo_bin_display = cargo_bin.display();
-    info!("removing empty cargo bin directory `{cargo_bin_display}`");
-
-    match fs::remove_dir(&cargo_bin) {
-        Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
-            warn!("keeping non-empty cargo bin directory `{cargo_bin_display}`")
-        }
-        Err(e) => {
-            return Err(e).with_context(|| {
-                format!("failed to remove cargo bin directory `{cargo_bin_display}`")
-            });
-        }
-        Ok(()) if !no_modify_path => {
-            info!("removing cargo bin directory `{cargo_bin_display}` from $PATH");
-            remove_from_path(process)?;
-        }
-        Ok(()) => {}
-    }
-
+/// Remove Cargo home only if no entries remain after data and binary cleanup.
+fn remove_empty_cargo_home(cargo_home: &Path) -> anyhow::Result<()> {
     let cargo_home_display = cargo_home.display();
     info!("removing empty cargo home directory `{cargo_home_display}`");
 
     match fs::remove_dir(cargo_home) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
         Err(e) if e.kind() == io::ErrorKind::DirectoryNotEmpty => {
             warn!("keeping non-empty cargo home directory `{cargo_home_display}`");
         }
@@ -1107,6 +1144,121 @@ fn clean_cargo_home(
     }
 
     Ok(())
+}
+
+/// Find Cargo home entries that can be removed without breaking either bin directory.
+/// This only inspects paths; the caller deletes them after all checks succeed.
+fn cargo_home_entries_to_remove(
+    cargo_home: &Path,
+    category_bin: &Path,
+) -> anyhow::Result<Vec<PathBuf>> {
+    let category_bin_location = match fs::canonicalize(category_bin) {
+        Ok(path) => Some(path),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+        Err(error) => {
+            return Err(error).with_context(|| {
+                format!(
+                    "could not resolve bin directory '{}'",
+                    category_bin.display()
+                )
+            });
+        }
+    };
+
+    let entries = match fs::read_dir(cargo_home) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(source) => {
+            return Err(CliError::ReadDirError {
+                p: cargo_home.to_owned(),
+                source,
+            }
+            .into());
+        }
+    };
+    let cargo_home_location = fs::canonicalize(cargo_home)
+        .with_context(|| format!("could not resolve cargo home '{}'", cargo_home.display()))?;
+    let cargo_home_is_bin = category_bin_location.as_ref() == Some(&cargo_home_location);
+
+    let mut paths_to_remove = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|source| CliError::ReadDirError {
+            p: cargo_home.to_owned(),
+            source,
+        })?;
+        let path = entry.path();
+
+        // Keep the legacy bin entry, including a symlink to the migrated bin home.
+        // If Cargo home itself is the bin home, keep all its entries.
+        if entry.file_name() == "bin" || cargo_home_is_bin {
+            continue;
+        }
+
+        // Keep any subtree containing the actual category bin directory.
+        if path.is_dir()
+            && let Some(bin_location) = &category_bin_location
+        {
+            let location = fs::canonicalize(&path).with_context(|| {
+                format!("could not resolve cargo directory '{}'", path.display())
+            })?;
+            if bin_location.starts_with(location) {
+                continue;
+            }
+        }
+
+        paths_to_remove.push(path);
+    }
+
+    Ok(paths_to_remove)
+}
+
+/// Remove rustup-owned binaries from a bin directory.
+///
+/// Returns whether the directory was removed after becoming empty.
+fn clean_rustup_binaries(bin_dir: &Path) -> anyhow::Result<bool> {
+    let rustup_path = bin_dir.join(format!("rustup{EXE_SUFFIX}"));
+    if !rustup_path.try_exists()? {
+        return Ok(false);
+    }
+
+    let proxy_paths = TOOLS
+        .iter()
+        .chain(DUP_TOOLS.iter())
+        .map(|tool| bin_dir.join(format!("{tool}{EXE_SUFFIX}")));
+
+    for proxy_path in proxy_paths {
+        if is_same_file(&proxy_path, &rustup_path).unwrap_or(false) {
+            utils::remove_file("rustup tool proxy", &proxy_path)?;
+        }
+    }
+
+    for entry in fs::read_dir(bin_dir)? {
+        let entry = entry?;
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(stage::PENDING_BINARY_PREFIX)
+        {
+            utils::remove_file("pending rustup binary", &entry.path())?;
+        }
+    }
+
+    utils::remove_file("rustup_bin", &rustup_path)?;
+
+    let bin_dir_display = bin_dir.display();
+    info!("removing empty cargo bin directory `{bin_dir_display}`");
+
+    // Remove the actual directory only if it is empty, including when bin_dir
+    // is a symlink. Keep the alias itself, which may have been created by the user.
+    match fs::remove_dir(fs::canonicalize(bin_dir)?) {
+        Ok(()) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::DirectoryNotEmpty => {
+            warn!("keeping non-empty cargo bin directory `{bin_dir_display}`");
+            Ok(false)
+        }
+        Err(error) => Err(error)
+            .with_context(|| format!("failed to remove cargo bin directory `{bin_dir_display}`")),
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -387,7 +387,11 @@ pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::Ex
 
         // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
         let cargo_home = process.cargo_home()?;
-        super::clean_cargo_home(no_modify_path, process, &cargo_home)
+        let category_bin = process.rustup_bin_home()?;
+        super::clean_cargo_home_data(&cargo_home, &category_bin)?;
+        super::clean_bin_homes(no_modify_path, process, &cargo_home, &category_bin)?;
+        remove_uninstall_registry_entry(process)?;
+        super::remove_empty_cargo_home(&cargo_home)
     });
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
@@ -568,9 +572,8 @@ where
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path))))
 }
 
-pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_bin = process.cargo_home()?.join("bin");
-    let new_path = _with_path(_remove_from_path, &cargo_bin, process)?;
+pub(crate) fn remove_from_path(process: &Process, bin_home: &Path) -> anyhow::Result<()> {
+    let new_path = _with_path(_remove_from_path, bin_home, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -710,8 +713,10 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
     let rustup_path = utils::current_exe()?;
     let mut source = File::open(&rustup_path)
         .with_context(|| format!("could not open rustup '{}'", rustup_path.display()))?;
-    // Use the system temporary directory so GC creation does not require
-    // write access to CARGO_HOME's parent.
+    // Use the system temporary directory even in category mode: GC must outlive
+    // cleanup of the installation, so it belongs outside the Rustup category
+    // homes and bin directories. Its DELETE_ON_CLOSE handle handles cleanup.
+    // This also avoids requiring write access to CARGO_HOME's parent.
     let mut gc_file = tempfile::Builder::new()
         .prefix("rustup-gc-")
         .suffix(".exe")

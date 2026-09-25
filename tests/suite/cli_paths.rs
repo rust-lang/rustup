@@ -116,6 +116,45 @@ export PATH="$HOME/apple/bin"
         // Reinstalling recognizes the absolute command without duplicating it.
         assert!(cmd.output().unwrap().status.success());
         assert_eq!(fs::read_to_string(&profile).unwrap(), expected_profile);
+
+        let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        cmd.env("RUSTUP_BIN_HOME", &bin_home);
+        cmd.env("RUSTUP_CONFIG_HOME", &config_home);
+        cmd.env("RUSTUP_DATA_HOME", &data_home);
+        assert!(cmd.output().unwrap().status.success());
+        assert_eq!(fs::read_to_string(profile).unwrap(), FAKE_RC);
+        assert!(!env_file.exists());
+    }
+
+    #[tokio::test]
+    async fn category_uninstall_preserves_unrelated_shell_setup() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        cx.config.expect(&INIT_NONE).await.is_ok();
+        let data_home = cx.config.homedir.join("data home");
+        fs::create_dir_all(&data_home).unwrap();
+        fs::write(data_home.join("env"), "# category environment\n").unwrap();
+        let data = data_home.display();
+        let cargo = cx.config.cargodir.display();
+        let profile = cx.config.homedir.join(".profile");
+        let bashrc = cx.config.homedir.join(".bashrc");
+        let retained = format!("{FAKE_RC}export PATH=\"{data}/bin:$PATH\"\n");
+        let legacy = format!(
+            "export PATH=\"{cargo}/bin:$PATH\"\n\
+             source \"{cargo}/env\"\n"
+        );
+        let sources = format!(". \"{data}/env\"\n. \"{cargo}/env\"\n");
+        fs::write(&profile, format!("{retained}{legacy}{sources}")).unwrap();
+        // These historical commands were not generated in .bashrc.
+        fs::write(&bashrc, format!("{legacy}{sources}")).unwrap();
+
+        let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1")
+            .env("RUSTUP_DATA_HOME", &data_home);
+        let output = cmd.output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(fs::read_to_string(profile).unwrap(), retained);
+        assert_eq!(fs::read_to_string(bashrc).unwrap(), legacy);
     }
 
     #[tokio::test]
