@@ -275,14 +275,8 @@ impl fmt::Display for PartialToolchainDesc {
         if let Some(date) = &self.date {
             write!(f, "-{date}")?;
         }
-        if let Some(arch) = &self.target.arch {
-            write!(f, "-{arch}")?;
-        }
-        if let Some(os) = &self.target.os {
-            write!(f, "-{os}")?;
-        }
-        if let Some(env) = &self.target.env {
-            write!(f, "-{env}")?;
+        if !self.target.is_empty() {
+            write!(f, "-{}", self.target)?;
         }
 
         Ok(())

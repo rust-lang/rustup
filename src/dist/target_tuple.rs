@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{fmt, sync::LazyLock};
 
 use regex::Regex;
 
@@ -54,6 +54,21 @@ impl PartialTargetTuple {
 
     pub(crate) fn is_empty(&self) -> bool {
         self.arch.is_none() && self.env.is_none() && self.os.is_none()
+    }
+}
+
+impl fmt::Display for PartialTargetTuple {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(arch) = &self.arch {
+            write!(f, "{arch}")?;
+        }
+        if let Some(os) = &self.os {
+            write!(f, "-{os}")?;
+        }
+        if let Some(env) = &self.env {
+            write!(f, "-{env}")?;
+        }
+        Ok(())
     }
 }
 
