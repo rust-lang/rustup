@@ -33,7 +33,7 @@
 //!
 //! CustomToolchainName can be used to link toolchains to local paths on disk.
 //!
-//! PathBasedToolchainName can obtained from rustup toolchain files.
+//! ToolchainPath can obtained from rustup toolchain files.
 //!
 //! State from toolchains on disk can be loaded in an InstalledToolchain struct
 //! and passed around and queried. The details on that are still vague :).
@@ -324,7 +324,7 @@ impl Display for ToolchainName {
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub(crate) enum ResolvableLocalToolchainName {
     Named(ResolvableToolchainName),
-    Path(PathBasedToolchainName),
+    Path(ToolchainPath),
 }
 
 impl ResolvableLocalToolchainName {
@@ -361,7 +361,7 @@ impl FromStr for ResolvableLocalToolchainName {
 
         if candidate.contains('/') || candidate.contains('\\') {
             let path = PathBuf::from(candidate);
-            let path = PathBasedToolchainName::try_from(&path as &Path)?;
+            let path = ToolchainPath::try_from(&path as &Path)?;
             return Ok(Self::Path(path));
         }
 
@@ -392,7 +392,7 @@ impl From<ResolvableToolchainName> for ResolvableLocalToolchainName {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum LocalToolchainName {
     Named(ToolchainName),
-    Path(PathBasedToolchainName),
+    Path(ToolchainPath),
 }
 
 impl From<ToolchainName> for LocalToolchainName {
@@ -401,8 +401,8 @@ impl From<ToolchainName> for LocalToolchainName {
     }
 }
 
-impl From<PathBasedToolchainName> for LocalToolchainName {
-    fn from(value: PathBasedToolchainName) -> Self {
+impl From<ToolchainPath> for LocalToolchainName {
+    fn from(value: ToolchainPath) -> Self {
         Self::Path(value)
     }
 }
@@ -473,21 +473,21 @@ impl Display for CustomToolchainName {
 /// code execution in a rust dir, so as a partial mitigation is limited to
 /// absolute paths.
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct PathBasedToolchainName(PathBuf, String);
+pub struct ToolchainPath(PathBuf, String);
 
-impl From<PathBasedToolchainName> for PathBuf {
-    fn from(value: PathBasedToolchainName) -> Self {
+impl From<ToolchainPath> for PathBuf {
+    fn from(value: ToolchainPath) -> Self {
         value.0
     }
 }
 
-impl Display for PathBasedToolchainName {
+impl Display for ToolchainPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.display())
     }
 }
 
-impl TryFrom<&Path> for PathBasedToolchainName {
+impl TryFrom<&Path> for ToolchainPath {
     type Error = InvalidName;
 
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
@@ -511,7 +511,7 @@ impl TryFrom<&Path> for PathBasedToolchainName {
     }
 }
 
-impl TryFrom<&LocalToolchainName> for PathBasedToolchainName {
+impl TryFrom<&LocalToolchainName> for ToolchainPath {
     type Error = InvalidName;
 
     fn try_from(value: &LocalToolchainName) -> Result<Self, Self::Error> {
@@ -522,7 +522,7 @@ impl TryFrom<&LocalToolchainName> for PathBasedToolchainName {
     }
 }
 
-impl Deref for PathBasedToolchainName {
+impl Deref for ToolchainPath {
     type Target = PathBuf;
 
     fn deref(&self) -> &PathBuf {
@@ -684,7 +684,7 @@ mod tests {
         //     fs::create_dir(d.create_directory("bin").unwrap()).unwrap();
         // // .into_path())
 
-        //     PathBasedToolchainName::try_from(Path::new(&name)).unwrap();
+        //     ToolchainPath::try_from(Path::new(&name)).unwrap();
         // }
 
     }
