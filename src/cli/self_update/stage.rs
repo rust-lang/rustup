@@ -265,14 +265,10 @@ impl Marker {
     }
 
     pub fn path(self, stage: &Path) -> PathBuf {
-        stage.join(self.as_str())
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
+        stage.join(match self {
             Self::Complete => "complete",
             Self::Failed => "failed",
-        }
+        })
     }
 }
 
