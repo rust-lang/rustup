@@ -208,46 +208,10 @@ pub struct PartialToolchainDesc {
 impl PartialToolchainDesc {
     /// Create a toolchain desc using input_host to fill in missing fields
     pub(crate) fn resolve(self, input_host: &TargetTuple) -> anyhow::Result<ToolchainDesc> {
-        let host = PartialTargetTuple::new(&input_host.0).ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' couldn't be converted to partial tuple",
-                input_host.0
-            ))
-        })?;
-        let host_arch = host.arch.ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' did not specify a CPU architecture",
-                input_host.0
-            ))
-        })?;
-        let host_os = host.os.ok_or_else(|| {
-            anyhow!(format!(
-                "Provided host '{}' did not specify an operating system",
-                input_host.0
-            ))
-        })?;
-        let host_env = host.env;
-
-        // If OS was specified, don't default to host environment, even if the OS matches
-        // the host OS, otherwise cannot specify no environment.
-        let env = if self.target.os.is_some() {
-            self.target.env
-        } else {
-            self.target.env.or(host_env)
-        };
-        let arch = self.target.arch.unwrap_or(host_arch);
-        let os = self.target.os.unwrap_or(host_os);
-
-        let trip = if let Some(env) = env {
-            format!("{arch}-{os}-{env}")
-        } else {
-            format!("{arch}-{os}")
-        };
-
         Ok(ToolchainDesc {
             channel: self.channel,
             date: self.date,
-            target: TargetTuple(trip),
+            target: self.target.complete(input_host)?,
         })
     }
 }

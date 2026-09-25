@@ -1913,7 +1913,7 @@ async fn set_default_host_invalid_tuple() {
         .expect(["rustup", "set", "default-host", "foo"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: Provided host 'foo' couldn't be converted to partial tuple
+error: provided host 'foo' couldn't be converted to partial tuple
 
 "#]])
         .is_err();
@@ -1927,7 +1927,7 @@ async fn set_default_host_invalid_tuple_valid_partial() {
         .expect(["rustup", "set", "default-host", "x86_64-msvc"])
         .await
         .with_stderr(snapbox::str![[r#"
-error: Provided host 'x86_64-msvc' did not specify an operating system
+error: provided host 'x86_64-msvc' did not specify an operating system
 
 "#]])
         .is_err();
