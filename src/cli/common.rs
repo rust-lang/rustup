@@ -23,7 +23,7 @@ use crate::{
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
-    toolchain::{LocalToolchainName, Toolchain, ToolchainName},
+    toolchain::{Toolchain, ToolchainName, ToolchainNameOrPath},
     utils::{self, ExitCode},
 };
 
@@ -327,7 +327,7 @@ pub(crate) async fn list_toolchains(
     } else {
         let default_toolchain_name = cfg.get_default()?;
         let active_toolchain_name: Option<ToolchainName> =
-            if let Ok(Some((LocalToolchainName::Named(toolchain), _source))) =
+            if let Ok(Some((ToolchainNameOrPath::Named(toolchain), _source))) =
                 cfg.maybe_ensure_active_toolchain(None).await
             {
                 Some(toolchain)

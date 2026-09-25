@@ -25,9 +25,8 @@ use crate::{
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, LocalToolchainName, Override,
-        ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain, ToolchainName,
-        ToolchainPath,
+        CustomToolchainName, DistributableToolchain, Override, PartialToolchainNameOrPath,
+        ResolvableToolchainName, Toolchain, ToolchainName, ToolchainNameOrPath, ToolchainPath,
     },
     utils,
 };
@@ -250,7 +249,7 @@ impl OverrideCfg {
     fn into_local_toolchain_name(
         self,
         host_tuple: &TargetTuple,
-    ) -> anyhow::Result<LocalToolchainName> {
+    ) -> anyhow::Result<ToolchainNameOrPath> {
         Ok(match self {
             Self::PathBased(path_based_name) => path_based_name.into(),
             Self::Custom(custom_name) => custom_name.into(),
@@ -279,11 +278,11 @@ impl From<ResolvableToolchainName> for OverrideCfg {
     }
 }
 
-impl From<ResolvableLocalToolchainName> for OverrideCfg {
-    fn from(value: ResolvableLocalToolchainName) -> Self {
+impl From<PartialToolchainNameOrPath> for OverrideCfg {
+    fn from(value: PartialToolchainNameOrPath) -> Self {
         match value {
-            ResolvableLocalToolchainName::Named(name) => Self::from(name),
-            ResolvableLocalToolchainName::Path(path_name) => Self::PathBased(path_name),
+            PartialToolchainNameOrPath::Named(name) => Self::from(name),
+            PartialToolchainNameOrPath::Path(path_name) => Self::PathBased(path_name),
         }
     }
 }
@@ -322,8 +321,8 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
-    pub toolchain_override: Option<Override<ResolvableLocalToolchainName>>,
-    env_override: Option<Override<ResolvableLocalToolchainName>>,
+    pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
+    env_override: Option<Override<PartialToolchainNameOrPath>>,
     pub(crate) dist_root_server: String,
     pub dist_root_url: String,
     pub quiet: bool,
@@ -384,7 +383,7 @@ impl<'a> Cfg<'a> {
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
-            Some(tc) => Some(Override::<ResolvableLocalToolchainName>::from_str(tc)?),
+            Some(tc) => Some(Override::<PartialToolchainNameOrPath>::from_str(tc)?),
             None => None,
         };
 
@@ -589,7 +588,7 @@ impl<'a> Cfg<'a> {
         let toolchain = toolchain
             .map(|(desc, source)| {
                 anyhow::Ok((
-                    LocalToolchainName::Named(ToolchainName::Official(
+                    ToolchainNameOrPath::Named(ToolchainName::Official(
                         desc.resolve(&self.default_host_tuple()?)?,
                     )),
                     source,
@@ -602,7 +601,7 @@ impl<'a> Cfg<'a> {
     pub(crate) async fn maybe_ensure_active_toolchain(
         &self,
         force_ensure: Option<bool>,
-    ) -> anyhow::Result<Option<(LocalToolchainName, ActiveSource)>> {
+    ) -> anyhow::Result<Option<(ToolchainNameOrPath, ActiveSource)>> {
         let should_ensure = if let Some(force) = force_ensure {
             force
         } else {
@@ -627,7 +626,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn active_toolchain(
         &self,
-    ) -> anyhow::Result<Option<(LocalToolchainName, ActiveSource)>> {
+    ) -> anyhow::Result<Option<(ToolchainNameOrPath, ActiveSource)>> {
         Ok(
             if let Some((override_config, source)) = self.find_override_config()? {
                 Some((
@@ -822,7 +821,7 @@ impl<'a> Cfg<'a> {
 
     pub(crate) async fn local_toolchain(
         &self,
-        name: Option<(LocalToolchainName, ActiveSource)>,
+        name: Option<(ToolchainNameOrPath, ActiveSource)>,
     ) -> anyhow::Result<(Toolchain<'_>, ActiveSource)> {
         match name {
             Some((tc, source)) => {
@@ -847,7 +846,7 @@ impl<'a> Cfg<'a> {
         &self,
         force_non_host: bool,
         verbose: bool,
-    ) -> anyhow::Result<(EnsureInstalled<LocalToolchainName>, ActiveSource)> {
+    ) -> anyhow::Result<(EnsureInstalled<ToolchainNameOrPath>, ActiveSource)> {
         if let Some((override_config, source)) = self.find_override_config()? {
             let default_host = self.default_host_tuple()?;
             let toolchain = override_config
@@ -1084,10 +1083,10 @@ impl<'a> Cfg<'a> {
     }
 
     /// The path on disk of any concrete toolchain
-    pub(crate) fn toolchain_path(&self, toolchain: &LocalToolchainName) -> PathBuf {
+    pub(crate) fn toolchain_path(&self, toolchain: &ToolchainNameOrPath) -> PathBuf {
         match toolchain {
-            LocalToolchainName::Named(name) => self.toolchains_dir.join(name.to_string()),
-            LocalToolchainName::Path(p) => p.to_path_buf(),
+            ToolchainNameOrPath::Named(name) => self.toolchains_dir.join(name.to_string()),
+            ToolchainNameOrPath::Path(p) => p.to_path_buf(),
         }
     }
 

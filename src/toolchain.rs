@@ -37,22 +37,22 @@ pub(crate) use distributable::DistributableToolchain;
 
 mod names;
 pub(crate) use names::{
-    CustomToolchainName, LocalToolchainName, MaybeOfficialToolchainName,
-    MaybeResolvableToolchainName, Override, ResolvableLocalToolchainName, ResolvableToolchainName,
-    ToolchainName, ToolchainPath,
+    CustomToolchainName, MaybeOfficialToolchainName, MaybeResolvableToolchainName, Override,
+    PartialToolchainNameOrPath, ResolvableToolchainName, ToolchainName, ToolchainNameOrPath,
+    ToolchainPath,
 };
 
 /// A toolchain installed on the local disk
 #[derive(Clone, Debug)]
 pub(crate) struct Toolchain<'a> {
     pub(super) cfg: &'a Cfg<'a>,
-    name: LocalToolchainName,
+    name: ToolchainNameOrPath,
     path: PathBuf,
 }
 
 impl<'a> Toolchain<'a> {
     pub(crate) async fn from_local(
-        name: LocalToolchainName,
+        name: ToolchainNameOrPath,
         install_if_missing: bool,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<EnsureInstalled<Toolchain<'a>>> {
@@ -74,7 +74,7 @@ impl<'a> Toolchain<'a> {
     /// from the ActiveSource if the toolchain isn't installed.
     pub(crate) fn with_source(
         cfg: &'a Cfg<'a>,
-        name: LocalToolchainName,
+        name: ToolchainNameOrPath,
         source: &ActiveSource,
     ) -> anyhow::Result<Self> {
         match Self::new(cfg, name.clone()) {
@@ -108,15 +108,15 @@ impl<'a> Toolchain<'a> {
         Err(anyhow!(source_err).context(format!("override toolchain '{name}' is not installed")))
     }
 
-    pub(crate) fn new(cfg: &'a Cfg<'a>, name: LocalToolchainName) -> Result<Self, RustupError> {
+    pub(crate) fn new(cfg: &'a Cfg<'a>, name: ToolchainNameOrPath) -> Result<Self, RustupError> {
         let path = cfg.toolchain_path(&name);
         if !Toolchain::exists(cfg, &name)? {
             return Err(match name {
-                LocalToolchainName::Named(name) => {
+                ToolchainNameOrPath::Named(name) => {
                     let is_active = matches!(cfg.active_toolchain(), Ok(Some((t, _))) if t == name);
                     RustupError::ToolchainNotInstalled { name, is_active }
                 }
-                LocalToolchainName::Path(name) => RustupError::PathToolchainNotInstalled(name),
+                ToolchainNameOrPath::Path(name) => RustupError::PathToolchainNotInstalled(name),
             });
         }
         Ok(Self { cfg, name, path })
@@ -124,7 +124,7 @@ impl<'a> Toolchain<'a> {
 
     /// Ok(True) if the toolchain exists. Ok(False) if the toolchain or its
     /// containing directory don't exist. Err otherwise.
-    pub(crate) fn exists(cfg: &Cfg<'_>, name: &LocalToolchainName) -> Result<bool, RustupError> {
+    pub(crate) fn exists(cfg: &Cfg<'_>, name: &ToolchainNameOrPath) -> Result<bool, RustupError> {
         let path = cfg.toolchain_path(name);
         // toolchain validation should have prevented a situation where there is
         // no base dir, but defensive programming is defensive.
@@ -146,7 +146,7 @@ impl<'a> Toolchain<'a> {
         Ok(opened.is_ok())
     }
 
-    pub(crate) fn name(&self) -> &LocalToolchainName {
+    pub(crate) fn name(&self) -> &ToolchainNameOrPath {
         &self.name
     }
 
@@ -359,7 +359,7 @@ impl<'a> Toolchain<'a> {
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
     fn maybe_do_cargo_fallback(&self) -> anyhow::Result<Option<Command>> {
-        if let LocalToolchainName::Named(ToolchainName::Official(_)) = self.name() {
+        if let ToolchainNameOrPath::Named(ToolchainName::Official(_)) = self.name() {
             return Ok(None);
         }
 
@@ -461,7 +461,7 @@ impl<'a> Toolchain<'a> {
                 let binary_lossy: String = binary.to_string_lossy().into();
                 if matches!(
                     &self.name,
-                    LocalToolchainName::Named(ToolchainName::Official(_))
+                    ToolchainNameOrPath::Named(ToolchainName::Official(_))
                 ) {
                     let distributable = DistributableToolchain::try_from(self)?;
                     // Design note: this is a bit of an awkward cast from
@@ -543,11 +543,11 @@ impl<'a> Toolchain<'a> {
     /// Remove the toolchain from disk
     ///
     ///
-    pub fn ensure_removed(cfg: &Cfg<'_>, name: LocalToolchainName) -> anyhow::Result<()> {
+    pub fn ensure_removed(cfg: &Cfg<'_>, name: ToolchainNameOrPath) -> anyhow::Result<()> {
         let path = cfg.toolchain_path(&name);
         let name = match name {
-            LocalToolchainName::Named(t) => t,
-            LocalToolchainName::Path(_) => bail!("Cannot remove a path based toolchain"),
+            ToolchainNameOrPath::Named(t) => t,
+            ToolchainNameOrPath::Path(_) => bail!("Cannot remove a path based toolchain"),
         };
         let fs_modified = match Self::exists(cfg, &name.clone().into())? {
             true => {

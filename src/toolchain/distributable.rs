@@ -9,7 +9,7 @@ use platforms::Platform;
 
 use super::{
     Toolchain,
-    names::{LocalToolchainName, ToolchainName},
+    names::{ToolchainName, ToolchainNameOrPath},
 };
 use crate::{
     RustupError, component_for_bin,
@@ -416,7 +416,7 @@ impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
 
     fn try_from(value: &Toolchain<'a>) -> Result<Self, Self::Error> {
         match value.name() {
-            LocalToolchainName::Named(ToolchainName::Official(desc)) => Ok(Self {
+            ToolchainNameOrPath::Named(ToolchainName::Official(desc)) => Ok(Self {
                 toolchain: value.clone(),
                 desc: desc.clone(),
             }),
