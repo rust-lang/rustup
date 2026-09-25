@@ -33,7 +33,7 @@ use crate::process::Process;
 #[derive(Debug, PartialEq)]
 pub(crate) struct ShellScript {
     content: &'static str,
-    name: &'static str,
+    pub(super) name: &'static str,
 }
 
 // TODO: Update into a bytestring.
