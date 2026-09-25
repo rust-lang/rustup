@@ -38,8 +38,8 @@ pub(crate) use distributable::DistributableToolchain;
 mod names;
 pub(crate) use names::{
     CustomToolchainName, LocalToolchainName, MaybeOfficialToolchainName,
-    MaybeResolvableToolchainName, Override, PathBasedToolchainName, ResolvableLocalToolchainName,
-    ResolvableToolchainName, ToolchainName,
+    MaybeResolvableToolchainName, Override, ResolvableLocalToolchainName, ResolvableToolchainName,
+    ToolchainName, ToolchainPath,
 };
 
 /// A toolchain installed on the local disk

@@ -26,8 +26,8 @@ use crate::{
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
         CustomToolchainName, DistributableToolchain, LocalToolchainName, Override,
-        PathBasedToolchainName, ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain,
-        ToolchainName,
+        ResolvableLocalToolchainName, ResolvableToolchainName, Toolchain, ToolchainName,
+        ToolchainPath,
     },
     utils,
 };
@@ -183,7 +183,7 @@ impl<T> Deref for EnsureInstalled<T> {
 // downloaded and installed.
 #[derive(Clone, Debug)]
 pub(crate) enum OverrideCfg {
-    PathBased(PathBasedToolchainName),
+    PathBased(ToolchainPath),
     Custom(CustomToolchainName),
     Official {
         toolchain: PartialOfficialToolchainName,
@@ -216,9 +216,7 @@ impl OverrideCfg {
                 // Longer term we'll not support path based toolchains at
                 // all, because they also permit arbitrary code execution,
                 // though with more challenges to exploit.
-                return Ok(Self::PathBased(PathBasedToolchainName::try_from(
-                    &path as &Path,
-                )?));
+                return Ok(Self::PathBased(ToolchainPath::try_from(&path as &Path)?));
             }
             (Some(channel), Some(path)) => {
                 bail!(

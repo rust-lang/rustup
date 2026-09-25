@@ -20,7 +20,7 @@ use crate::{
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{PathBasedToolchainName, Toolchain, ToolchainName},
+    toolchain::{Toolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -258,7 +258,7 @@ pub enum RustupError {
         is_active: bool,
     },
     #[error("path '{0}' not found")]
-    PathToolchainNotInstalled(PathBasedToolchainName),
+    PathToolchainNotInstalled(ToolchainPath),
     #[error(
         "rustup could not choose a version of {0} to run, because one wasn't specified explicitly, and no default is configured.\n{hint}",
         hint = DEFAULT_STABLE_HINT
