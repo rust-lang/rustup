@@ -61,17 +61,28 @@ jobs: # skip-x86_64 skip-aarch64
             rustup toolchain uninstall stable
           fi
           rustup toolchain install --profile=minimal stable
-      - name: Get rustc commit hash
+      - name: Compute cache key inputs
         id: cargo-target-cache
+        env:
+          MERGE_GROUP_BASE_REF: ${{ github.event.merge_group.base_ref }}
         run: |
           echo "rust_hash=$(rustc -Vv | grep commit-hash | awk '{print $2}')" >> $GITHUB_OUTPUT
+          # The branch whose caches PR and merge queue builds fall back to.
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) branch="$GITHUB_BASE_REF" ;;
+            merge_group) branch="${MERGE_GROUP_BASE_REF#refs/heads/}" ;;
+            *) branch="$GITHUB_REF_NAME" ;;
+          esac
+          echo "branch=$branch" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.head_ref }}
+          restore-keys: |
+            ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-
       - name: Ensure we have our goal target installed
         run: |
           rustup target install "$TARGET"
