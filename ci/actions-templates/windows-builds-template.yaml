@@ -166,10 +166,12 @@ jobs: # skip-main skip-pr skip-stable
           BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
       - name: Run cargo clippy
-        if: matrix.mode == 'release' && matrix.mingwdir == ''
+        # The Linux check job only sees `cfg(unix)` code, so lint the
+        # `cfg(windows)` code here too. The source has no `target_env` or
+        # `target_arch` gates, so one Windows target covers all of them.
+        if: matrix.mode == 'release' && matrix.target == 'x86_64-pc-windows-msvc'
         env:
           TARGET: ${{ matrix.target }}
-        # os-specific code leads to lints escaping if we only run this in one target
         run: |
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
