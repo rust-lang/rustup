@@ -8,7 +8,7 @@ use crate::{
     config::Cfg,
     dist::{DistOptions, manifest::ManifestWithHash, prefix::InstallPrefix},
     errors::RustupError,
-    toolchain::{CustomToolchainName, LocalToolchainName, Toolchain},
+    toolchain::{CustomToolchainName, Toolchain, ToolchainNameOrPath},
     utils,
 };
 
@@ -47,7 +47,7 @@ impl InstallMethod<'_, '_> {
 
         let toolchain = match &self {
             Self::Link { toolchain, .. } => {
-                let toolchain = LocalToolchainName::from((*toolchain).clone());
+                let toolchain = ToolchainNameOrPath::from((*toolchain).clone());
                 debug!("linking toolchain `{toolchain}`");
                 toolchain
             }
@@ -56,7 +56,7 @@ impl InstallMethod<'_, '_> {
                 old_date_version,
                 ..
             }) => {
-                let toolchain = LocalToolchainName::from((*toolchain).clone());
+                let toolchain = ToolchainNameOrPath::from((*toolchain).clone());
                 match old_date_version {
                     Some(_) => debug!("updating existing install for `{toolchain}`"),
                     None => debug!("installing toolchain `{toolchain}`"),

@@ -56,9 +56,9 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{ColorableTerminal, Process},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, LocalToolchainName,
-        MaybeResolvableToolchainName, Override, ResolvableLocalToolchainName,
-        ResolvableToolchainName, Toolchain, ToolchainName,
+        CustomToolchainName, DistributableToolchain, MaybeResolvableToolchainName, Override,
+        PartialToolchainNameOrPath, ResolvableToolchainName, Toolchain, ToolchainName,
+        ToolchainNameOrPath,
     },
     utils::{self, ExitCode},
 };
@@ -106,7 +106,7 @@ struct Rustup {
         value_parser = plus_toolchain_value_parser,
         value_hint = ValueHint::Other,
     )]
-    plus_toolchain: Option<Override<ResolvableLocalToolchainName>>,
+    plus_toolchain: Option<Override<PartialToolchainNameOrPath>>,
 
     #[command(subcommand)]
     subcmd: Option<RustupSubcmd>,
@@ -114,10 +114,10 @@ struct Rustup {
 
 fn plus_toolchain_value_parser(
     s: &str,
-) -> clap::error::Result<Override<ResolvableLocalToolchainName>> {
+) -> clap::error::Result<Override<PartialToolchainNameOrPath>> {
     use clap::{Error, error::ErrorKind};
     if let Some(stripped) = s.strip_prefix('+') {
-        Override::<ResolvableLocalToolchainName>::from_str(stripped)
+        Override::<PartialToolchainNameOrPath>::from_str(stripped)
             .map_err(|e| Error::raw(ErrorKind::InvalidValue, e))
     } else {
         Err(Error::raw(
@@ -238,7 +238,7 @@ enum RustupSubcmd {
     #[command(after_help = run_help(), trailing_var_arg = true)]
     Run {
         #[arg(help = resolvable_local_toolchain_arg_help())]
-        toolchain: ResolvableLocalToolchainName,
+        toolchain: PartialToolchainNameOrPath,
 
         #[arg(required = true, num_args = 1..)]
         command: Vec<String>,
@@ -1210,7 +1210,7 @@ async fn update(
 
 async fn run(
     cfg: &Cfg<'_>,
-    toolchain: ResolvableLocalToolchainName,
+    toolchain: PartialToolchainNameOrPath,
     command: Vec<String>,
     install: bool,
 ) -> anyhow::Result<ExitStatus> {
@@ -1285,7 +1285,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     let mut installed_toolchains = cfg.list_toolchains(cfg.quiet)?;
     installed_toolchains.sort();
     let active_toolchain_and_source: Option<(ToolchainName, ActiveSource)> =
-        if let Ok(Some((LocalToolchainName::Named(toolchain_name), source))) =
+        if let Ok(Some((ToolchainNameOrPath::Named(toolchain_name), source))) =
             cfg.maybe_ensure_active_toolchain(None).await
         {
             Some((toolchain_name, source))
@@ -1374,7 +1374,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
             })
             .collect(),
         ToolchainName::Custom(name) => {
-            Toolchain::new(cfg, LocalToolchainName::Named(name.into()))?.installed_targets()?
+            Toolchain::new(cfg, ToolchainNameOrPath::Named(name.into()))?.installed_targets()?
         }
     };
 
@@ -1920,7 +1920,7 @@ async fn display_version(cfg: &mut Cfg<'_>) -> anyhow::Result<()> {
         .args()
         .find_map(|arg| {
             arg.strip_prefix('+')
-                .map(Override::<ResolvableLocalToolchainName>::from_str)
+                .map(Override::<PartialToolchainNameOrPath>::from_str)
         })
         .transpose()?;
 
