@@ -307,8 +307,7 @@ mod tests {
         fs::write(&first_path, "").unwrap();
         fs::write(Marker::Complete.path(&stage), "").unwrap();
         drop(first);
-        let second =
-            PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
+        let second = prepared_updater(&process);
 
         assert_eq!(first_path, *second);
         assert!(!Marker::Complete.path(&stage).exists());
@@ -429,8 +428,7 @@ mod tests {
     async fn cleanup_keeps_fresh_updater() {
         let root = test_dir().unwrap();
         let process = test_process(root.path());
-        let prepared_updater =
-            PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
+        let prepared_updater = prepared_updater(&process);
         let updater = prepared_updater.to_path_buf();
         fs::write(&updater, "").unwrap();
         drop(prepared_updater);
@@ -452,8 +450,7 @@ mod tests {
         let stage = stage_root(&process.process).unwrap();
 
         for marker in [Marker::Complete, Marker::Failed] {
-            let prepared_updater =
-                PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
+            let prepared_updater = prepared_updater(&process);
             let updater = prepared_updater.to_path_buf();
             fs::write(&updater, "").unwrap();
             drop(prepared_updater);
@@ -475,8 +472,7 @@ mod tests {
     async fn cleanup_removes_abandoned_updater() {
         let root = test_dir().unwrap();
         let process = test_process(root.path());
-        let prepared_updater =
-            PreparedUpdater::try_from(SelfUpdateLock::lock(&process.process).unwrap()).unwrap();
+        let prepared_updater = prepared_updater(&process);
         let updater = prepared_updater.to_path_buf();
         fs::write(&updater, "").unwrap();
         drop(prepared_updater);
@@ -539,5 +535,9 @@ mod tests {
         vars.env("CARGO_HOME", root.join("cargo"));
         vars.env("RUSTUP_HOME", root.join("rustup"));
         TestProcess::with_vars(vars)
+    }
+
+    fn prepared_updater(tp: &TestProcess) -> PreparedUpdater {
+        PreparedUpdater::try_from(SelfUpdateLock::lock(&tp.process).unwrap()).unwrap()
     }
 }
