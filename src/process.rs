@@ -18,6 +18,7 @@ use std::{
     thread,
 };
 
+use ::home::env as home_env;
 use anstream::ColorChoice;
 use anyhow::{Context, bail};
 use indicatif::ProgressDrawTarget;
@@ -35,6 +36,8 @@ use crate::{
 };
 
 mod file_source;
+mod home;
+pub(crate) use home::HomeDirs;
 mod terminal_source;
 pub use terminal_source::ColorableTerminal;
 
@@ -65,15 +68,66 @@ impl Process {
     }
 
     pub(crate) fn home_dir(&self) -> Option<PathBuf> {
-        home::env::home_dir_with_env(self)
+        home_env::home_dir_with_env(self)
     }
 
     pub(crate) fn cargo_home(&self) -> anyhow::Result<PathBuf> {
-        home::env::cargo_home_with_env(self).context("failed to determine cargo home")
+        home_env::cargo_home_with_env(self).context("failed to determine cargo home")
     }
 
     pub(crate) fn rustup_home(&self) -> anyhow::Result<PathBuf> {
-        home::env::rustup_home_with_env(self).context("failed to determine rustup home dir")
+        home_env::rustup_home_with_env(self).context("failed to determine rustup home dir")
+    }
+
+    /// Returns Rustup's cache, config, data, and state directories.
+    ///
+    /// Category mode uses each non-empty `RUSTUP_<CATEGORY>_HOME`, then a
+    /// non-empty `RUSTUP_HOME`, then the platform default, then `~/.rustup`.
+    /// Legacy mode uses the resolved Rustup home for all four categories.
+    /// See [`home`] for platform defaults and path rules.
+    pub(crate) fn home_dirs(&self) -> io::Result<HomeDirs> {
+        if self.use_category_home() {
+            HomeDirs::from_env(self)
+        } else {
+            let home = home_env::rustup_home_with_env(self)?;
+            Ok(HomeDirs {
+                cache: home.clone(),
+                config: home.clone(),
+                data: home.clone(),
+                state: home,
+            })
+        }
+    }
+
+    /// Returns Rustup's binary installation directory.
+    ///
+    /// Category mode uses a non-empty `RUSTUP_BIN_HOME`, then a non-empty
+    /// `CARGO_HOME` with `bin` appended, then the platform default, then
+    /// `~/.cargo/bin`. Legacy mode appends `bin` to the resolved Cargo home.
+    pub(crate) fn rustup_bin_home(&self) -> io::Result<PathBuf> {
+        if self.use_category_home() {
+            home::bin_home(self)
+        } else {
+            Ok(home_env::cargo_home_with_env(self)?.join("bin"))
+        }
+    }
+
+    /// Returns the directory containing Rustup's shell environment scripts.
+    /// Uses the data home in category mode, or the Cargo home in legacy mode.
+    #[cfg(any(unix, test))]
+    pub(crate) fn rustup_env_home(&self) -> io::Result<PathBuf> {
+        if self.use_category_home() {
+            home::category_home(home::HomeCategory::Data, self)
+        } else {
+            home_env::cargo_home_with_env(self)
+        }
+    }
+
+    /// Category mode is enabled when `RUSTUP_USE_CATEGORY_HOME` is non-empty
+    /// and not "0"; values such as "false" also enable it.
+    pub(crate) fn use_category_home(&self) -> bool {
+        self.var_os("RUSTUP_USE_CATEGORY_HOME")
+            .is_some_and(|value| value != "0")
     }
 
     pub fn io_thread_count(&self) -> anyhow::Result<IoThreadCount> {
@@ -305,10 +359,10 @@ impl From<IoThreadCount> for usize {
     }
 }
 
-impl home::env::Env for Process {
+impl home_env::Env for Process {
     fn home_dir(&self) -> Option<PathBuf> {
         match self {
-            Self::OsProcess(_) => home::env::OS_ENV.home_dir(),
+            Self::OsProcess(_) => home_env::OS_ENV.home_dir(),
             #[cfg(feature = "test")]
             Self::TestProcess(_) => self.var("HOME").ok().map(|v| v.into()),
         }
@@ -316,7 +370,7 @@ impl home::env::Env for Process {
 
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
         match self {
-            Self::OsProcess(_) => home::env::OS_ENV.current_dir(),
+            Self::OsProcess(_) => home_env::OS_ENV.current_dir(),
             #[cfg(feature = "test")]
             Self::TestProcess(_) => self.current_dir(),
         }
@@ -441,7 +495,7 @@ pub struct TestContext {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, path::Path};
 
     use super::*;
     use crate::{process::TestProcess, test::Env};
@@ -461,5 +515,69 @@ mod tests {
         assert_color_choice("AutO", true, ColorChoice::Auto);
         // non-tty + `auto` does not enable the colors.
         assert_color_choice("aUTo", false, ColorChoice::Never);
+    }
+
+    #[test]
+    fn category_mode_disabled_uses_legacy_homes() -> io::Result<()> {
+        let mut vars = HashMap::new();
+        vars.env("HOME", Path::new("/home"));
+        vars.env("RUSTUP_STATE_HOME", Path::new("/split"));
+        vars.env("RUSTUP_BIN_HOME", Path::new("/split/bin"));
+
+        let tp = TestProcess::with_vars(vars.clone());
+        assert_eq!(
+            tp.process.home_dirs()?,
+            HomeDirs {
+                cache: "/home/.rustup".into(),
+                config: "/home/.rustup".into(),
+                data: "/home/.rustup".into(),
+                state: "/home/.rustup".into(),
+            }
+        );
+        assert_eq!(tp.process.rustup_bin_home()?, Path::new("/home/.cargo/bin"));
+        assert_eq!(tp.process.rustup_env_home()?, Path::new("/home/.cargo"));
+
+        vars.env("RUSTUP_HOME", Path::new("/legacy"));
+        vars.env("CARGO_HOME", Path::new("/cargo"));
+        let tp = TestProcess::with_vars(vars);
+        assert_eq!(
+            tp.process.home_dirs()?,
+            HomeDirs {
+                cache: "/legacy".into(),
+                config: "/legacy".into(),
+                data: "/legacy".into(),
+                state: "/legacy".into(),
+            }
+        );
+        assert_eq!(tp.process.rustup_bin_home()?, Path::new("/cargo/bin"));
+        assert_eq!(tp.process.rustup_env_home()?, Path::new("/cargo"));
+        Ok(())
+    }
+
+    #[test]
+    fn category_mode_enabled_uses_category_homes() -> io::Result<()> {
+        let mut vars = HashMap::new();
+        vars.env("RUSTUP_CACHE_HOME", "cache");
+        vars.env("RUSTUP_CONFIG_HOME", "config");
+        vars.env("RUSTUP_DATA_HOME", "data");
+        vars.env("RUSTUP_STATE_HOME", "state");
+        vars.env("RUSTUP_BIN_HOME", "bin");
+
+        for mode in ["1", "false"] {
+            vars.env("RUSTUP_USE_CATEGORY_HOME", mode);
+            let tp = TestProcess::with_vars(vars.clone());
+            assert_eq!(
+                tp.process.home_dirs()?,
+                HomeDirs {
+                    cache: "cache".into(),
+                    config: "config".into(),
+                    data: "data".into(),
+                    state: "state".into(),
+                }
+            );
+            assert_eq!(tp.process.rustup_bin_home()?, Path::new("bin"));
+            assert_eq!(tp.process.rustup_env_home()?, Path::new("data"));
+        }
+        Ok(())
     }
 }

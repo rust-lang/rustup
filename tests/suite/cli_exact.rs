@@ -658,6 +658,28 @@ help: run 'rustup default stable' to download the latest stable release of Rust 
 }
 
 #[tokio::test]
+async fn default_uses_config_home() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let config_home_env = config_home.to_str().unwrap();
+    std::fs::remove_file(cx.config.rustupdir.join("settings.toml")).unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "default", "stable"],
+            [
+                ("RUSTUP_CONFIG_HOME", config_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(config_home.join("settings.toml").is_file());
+    assert!(!cx.config.rustupdir.has("settings.toml"));
+}
+
+#[tokio::test]
 async fn list_targets() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let trip = this_host_tuple();

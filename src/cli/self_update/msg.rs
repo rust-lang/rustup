@@ -10,23 +10,15 @@ macro_rules! pre_install_msg_template {
 This will download and install the official compiler for the Rust
 programming language, and its package manager, Cargo.
 
-Rustup metadata and toolchains will be installed into the Rustup
-home directory, located at:
-
-    {rustup_home}
-
-This can be modified with the `RUSTUP_HOME` environment variable.
-
-The Cargo home directory is located at:
-
-    {cargo_home}
-
-This can be modified with the `CARGO_HOME` environment variable.
+{rustup_home_message}
 
 The `cargo`, `rustc`, `rustup` and other commands will be added to
-Cargo's bin directory, located at:
+Rustup's bin directory, located at:
 
-    {cargo_bin_dir}
+    {rustup_bin_home}
+
+This can be modified with `CARGO_HOME`, or overridden in category
+home mode with `RUSTUP_BIN_HOME`.
 
 ",
             $platform_msg,
@@ -76,7 +68,7 @@ macro_rules! post_install_msg {
 
 To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
-Cargo's bin directory (`{cargo_bin_dir}`).
+Rustup's bin directory (`{rustup_bin_home}`).
 "
     };
 }
@@ -85,7 +77,7 @@ macro_rules! post_install_msg_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (`{cargo_bin_dir}`) in your `PATH`
+To get started you need Rustup's bin directory (`{rustup_bin_home}`) in your `PATH`
 environment variable. This has not been done automatically.
 "
     };
@@ -112,6 +104,34 @@ macro_rules! pre_uninstall_msg {
 
 This will uninstall all Rust toolchains and data, and remove
 `{cargo_bin_dir}` from your `PATH` environment variable.
+
+"
+    };
+}
+
+macro_rules! pre_uninstall_category_msg {
+    () => {
+        r"# Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and delete the following directories
+if they exist:
+
+{rustup_homes}
+
+These directories will be removed with ALL their contents, including unrelated
+files and any bin directories inside them. Directory symlinks are unlinked
+rather than recursively removed; installed toolchains are still uninstalled.
+
+Cargo home data in `{cargo_home}` will also be removed, except for the bin
+directories below. Rustup binaries and tool links will be removed from:
+
+{bin_homes}
+
+Other programs in these bin directories will be kept ONLY if the directories
+are not inside (or the same as) a directory listed for complete removal above.
+Empty bin and Cargo home directories will then be removed.
+
+{path_message}
 
 "
     };
