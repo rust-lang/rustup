@@ -15,7 +15,7 @@ use crate::{
     RustupError, component_for_bin,
     config::{ActiveSource, Cfg, EnsureInstalled},
     dist::{
-        DistOptions, PartialToolchainDesc, ToolchainDesc,
+        ChannelToolchainName, DistOptions, PartialChannelToolchainName,
         download::DownloadCfg,
         manifest::{Component, ComponentStatus, Manifest, ManifestWithHash},
         manifestation::{Changes, Manifestation},
@@ -29,7 +29,7 @@ use crate::{
 #[derive(Debug)]
 pub(crate) struct DistributableToolchain<'a> {
     pub(crate) toolchain: Toolchain<'a>,
-    desc: ToolchainDesc,
+    desc: ChannelToolchainName,
 }
 
 impl<'a> DistributableToolchain<'a> {
@@ -46,7 +46,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     pub(crate) async fn from_partial(
-        toolchain: Option<(PartialToolchainDesc, ActiveSource)>,
+        toolchain: Option<(PartialChannelToolchainName, ActiveSource)>,
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         Ok(Self::try_from(
@@ -54,11 +54,11 @@ impl<'a> DistributableToolchain<'a> {
         )?)
     }
 
-    pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ToolchainDesc) -> Result<Self, RustupError> {
+    pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ChannelToolchainName) -> Result<Self, RustupError> {
         Toolchain::new(cfg, desc.clone().into()).map(|toolchain| Self { toolchain, desc })
     }
 
-    pub(crate) fn desc(&self) -> &ToolchainDesc {
+    pub(crate) fn desc(&self) -> &ChannelToolchainName {
         &self.desc
     }
 

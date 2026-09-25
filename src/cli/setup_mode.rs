@@ -12,7 +12,7 @@ use crate::{
     },
     dist::Profile,
     process::Process,
-    toolchain::MaybeOfficialToolchainName,
+    toolchain::MaybeChannelToolchainName,
     utils,
 };
 
@@ -44,7 +44,7 @@ struct RustupInit {
 
     /// Choose a default toolchain to install. Use 'none' to not install any toolchains at all
     #[arg(long)]
-    default_toolchain: Option<MaybeOfficialToolchainName>,
+    default_toolchain: Option<MaybeChannelToolchainName>,
 
     #[arg(long, value_enum, default_value_t)]
     profile: Profile,
