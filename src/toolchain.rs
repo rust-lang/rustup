@@ -23,7 +23,7 @@ use crate::{
     RustupError,
     config::{ActiveSource, Cfg, EnsureInstalled, InstalledPath},
     dist::{
-        DistOptions, PartialToolchainDesc, TargetTuple,
+        DistOptions, PartialChannelToolchainName, TargetTuple,
         component::{Component, Components},
         prefix::InstallPrefix,
     },
@@ -37,7 +37,7 @@ pub(crate) use distributable::DistributableToolchain;
 
 mod names;
 pub(crate) use names::{
-    CustomToolchainName, LocalToolchainName, MaybeOfficialToolchainName,
+    CustomToolchainName, LocalToolchainName, MaybeChannelToolchainName,
     MaybeResolvableToolchainName, Override, PathBasedToolchainName, ResolvableLocalToolchainName,
     ResolvableToolchainName, ToolchainName,
 };
@@ -378,7 +378,7 @@ impl<'a> Toolchain<'a> {
         // toolchains in principle.
         for fallback in ["nightly", "beta", "stable"] {
             let resolved =
-                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_tuple)?;
+                PartialChannelToolchainName::from_str(fallback)?.resolve(&default_host_tuple)?;
             if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
                 let cmd = fallback.create_fallback_command("cargo", self)?;
                 return Ok(Some(cmd));
