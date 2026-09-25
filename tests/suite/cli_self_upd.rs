@@ -364,7 +364,7 @@ async fn complete_uninstall_keeps_non_empty_cargo_bin() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: keeping non-empty cargo bin directory `[..]`
+warn: keeping non-empty bin directory `[..]`
 ...
 "#]])
         .is_ok();
