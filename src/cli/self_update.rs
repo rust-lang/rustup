@@ -271,7 +271,7 @@ impl InstallOpts<'_> {
         let (components, targets) = (self.components, self.targets);
         let toolchain = self.select_toolchain(&mut cfg)?;
         if let Some(partial_desc) = toolchain {
-            let desc = partial_desc.clone().resolve(&cfg.default_host_tuple()?)?;
+            let desc = partial_desc.clone().complete(&cfg.default_host_tuple()?)?;
             let options =
                 DistOptions::new(components, targets, &desc, cfg.get_profile()?, true, &cfg)?;
             let status = if Toolchain::exists(&cfg, &desc.clone().into())? {
@@ -440,7 +440,7 @@ impl InstallOpts<'_> {
             }
             Some(MaybeOfficialToolchainName::Some(s)) => s.into(),
         };
-        let resolved = partial_channel.resolve(&host_tuple)?;
+        let resolved = partial_channel.complete(&host_tuple)?;
         trace!("Successfully resolved installation toolchain as: {resolved}");
         Ok(())
     }
@@ -697,7 +697,7 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
     warn!("{}", settings_file.path.display());
     let default_host_tuple = settings_file.with(|s| Ok(default_host_tuple(s, process)))?;
     let inferred =
-        PartialOfficialToolchainName::from_str("stable")?.resolve(&default_host_tuple)?;
+        PartialOfficialToolchainName::from_str("stable")?.complete(&default_host_tuple)?;
     if default_toolchain != inferred.to_string() {
         warn!("rustup will install the default toolchain as specified in the settings file,");
         warn!("instead of the one inferred from the default host tuple.");

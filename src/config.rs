@@ -253,7 +253,7 @@ impl OverrideCfg {
         Ok(match self {
             Self::PathBased(path_based_name) => path_based_name.into(),
             Self::Custom(custom_name) => custom_name.into(),
-            Self::Official { toolchain, .. } => toolchain.resolve(host_tuple)?.into(),
+            Self::Official { toolchain, .. } => toolchain.complete(host_tuple)?.into(),
         })
     }
 
@@ -412,7 +412,7 @@ impl<'a> Cfg<'a> {
         // Run some basic checks against the constructed configuration
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
-        PartialToolchainName::from_str("stable")?.resolve(
+        PartialToolchainName::from_str("stable")?.complete(
             &cfg.default_host_tuple()
                 .context("Unable parse configuration")?,
         )?;
@@ -589,7 +589,7 @@ impl<'a> Cfg<'a> {
             .map(|(desc, source)| {
                 anyhow::Ok((
                     ToolchainNameOrPath::Named(ToolchainName::Official(
-                        desc.resolve(&self.default_host_tuple()?)?,
+                        desc.complete(&self.default_host_tuple()?)?,
                     )),
                     source,
                 ))
@@ -766,7 +766,7 @@ impl<'a> Cfg<'a> {
                     }
 
                     // XXX: this awkwardness deals with settings file being locked already
-                    let toolchain_name = toolchain_name.resolve(&default_host)?;
+                    let toolchain_name = toolchain_name.complete(&default_host)?;
                     if !Toolchain::exists(self, &toolchain_name.clone().into())?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
@@ -860,7 +860,7 @@ impl<'a> Cfg<'a> {
             } = override_config
             {
                 self.ensure_installed(
-                    &toolchain.resolve(&default_host)?,
+                    &toolchain.complete(&default_host)?,
                     components.unwrap_or_default(),
                     targets.unwrap_or_default(),
                     profile,
@@ -955,7 +955,7 @@ impl<'a> Cfg<'a> {
         let Some(toolchain) = self.get_default_resolvable()? else {
             return Ok(None);
         };
-        Ok(Some(toolchain.resolve(&self.default_host_tuple()?)?))
+        Ok(Some(toolchain.complete(&self.default_host_tuple()?)?))
     }
 
     /// Gets the configured default toolchain name in its unresolved form, if any.
@@ -1069,7 +1069,7 @@ impl<'a> Cfg<'a> {
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied tuple is insufficient / bad.
         PartialOfficialToolchainName::from_str("stable")?
-            .resolve(&TargetTuple::new(host_tuple.clone()))?;
+            .complete(&TargetTuple::new(host_tuple.clone()))?;
         self.settings_file.with_mut(|s| {
             s.default_host_tuple = Some(host_tuple);
             Ok(())
@@ -1113,7 +1113,7 @@ impl<'a> Cfg<'a> {
 
         let default_host = self.default_host_tuple()?;
         let stable_desc =
-            PartialOfficialToolchainName::from_str("stable")?.resolve(&default_host)?;
+            PartialOfficialToolchainName::from_str("stable")?.complete(&default_host)?;
         let stable = match DistributableToolchain::new(self, stable_desc) {
             Ok(stable) => stable,
             // If the `stable` toolchain is not installed, we don't notify the user.

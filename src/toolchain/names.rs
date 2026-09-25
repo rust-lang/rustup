@@ -162,10 +162,10 @@ pub(crate) enum PartialToolchainName {
 
 impl PartialToolchainName {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
+    pub fn complete(self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
         Ok(match self {
             Self::Custom(c) => ToolchainName::Custom(c),
-            Self::Official(desc) => ToolchainName::Official(desc.resolve(host)?),
+            Self::Official(desc) => ToolchainName::Official(desc.complete(host)?),
         })
     }
 }
@@ -329,9 +329,9 @@ pub(crate) enum PartialToolchainNameOrPath {
 
 impl PartialToolchainNameOrPath {
     /// Resolve to a concrete toolchain name
-    pub fn resolve(&self, host: &TargetTuple) -> Result<ToolchainNameOrPath, anyhow::Error> {
+    pub fn complete(&self, host: &TargetTuple) -> Result<ToolchainNameOrPath, anyhow::Error> {
         match self.clone() {
-            Self::Named(t) => Ok(ToolchainNameOrPath::Named(t.resolve(host)?)),
+            Self::Named(t) => Ok(ToolchainNameOrPath::Named(t.complete(host)?)),
             Self::Path(t) => Ok(ToolchainNameOrPath::Path(t)),
         }
     }

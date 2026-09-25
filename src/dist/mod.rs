@@ -207,7 +207,10 @@ pub struct PartialOfficialToolchainName {
 
 impl PartialOfficialToolchainName {
     /// Create a toolchain desc using input_host to fill in missing fields
-    pub(crate) fn resolve(self, input_host: &TargetTuple) -> anyhow::Result<OfficialToolchainName> {
+    pub(crate) fn complete(
+        self,
+        input_host: &TargetTuple,
+    ) -> anyhow::Result<OfficialToolchainName> {
         Ok(OfficialToolchainName {
             channel: self.channel,
             date: self.date,

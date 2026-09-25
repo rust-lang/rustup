@@ -940,7 +940,7 @@ async fn default_(
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
             MaybePartialToolchainName::Some(PartialToolchainName::Official(toolchain)) => {
-                let desc = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
+                let desc = toolchain.clone().complete(&cfg.default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
                     .await?
@@ -1136,7 +1136,7 @@ async fn update(
             // This needs another pass to fix it all up
             if !name.target.is_empty() {
                 let host_arch = TargetTuple::from_host_or_build(cfg.process);
-                let target_tuple = name.clone().resolve(&host_arch)?.target;
+                let target_tuple = name.clone().complete(&host_arch)?.target;
                 common::check_non_host_toolchain(
                     name.to_string(),
                     &host_arch,
@@ -1144,7 +1144,7 @@ async fn update(
                     force_non_host,
                 )?;
             }
-            let desc = name.clone().resolve(&cfg.default_host_tuple()?)?;
+            let desc = name.clone().complete(&cfg.default_host_tuple()?)?;
 
             let components = opts.component.iter().map(|s| &**s).collect::<Vec<_>>();
             let targets = opts.target.iter().map(|s| &**s).collect::<Vec<_>>();
@@ -1214,7 +1214,7 @@ async fn run(
     command: Vec<String>,
     install: bool,
 ) -> anyhow::Result<ExitStatus> {
-    let toolchain = toolchain.resolve(&cfg.default_host_tuple()?)?;
+    let toolchain = toolchain.complete(&cfg.default_host_tuple()?)?;
     let toolchain = Toolchain::from_local(toolchain, install, cfg).await?;
     let cmd = toolchain.command(&command[0])?;
     command::run_command_for_dir(cmd, &command[0], &command[1..])
@@ -1228,7 +1228,7 @@ async fn which(
     let (toolchain, _) = cfg
         .local_toolchain(match toolchain {
             Some(name) => Some((
-                name.resolve(&cfg.default_host_tuple()?)?.into(),
+                name.complete(&cfg.default_host_tuple()?)?.into(),
                 ActiveSource::CommandLine, // From --toolchain option
             )),
             None => None,
@@ -1664,7 +1664,7 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<
         .map(|(it, _)| it);
 
     for toolchain_name in opts.toolchain {
-        let toolchain_name = toolchain_name.resolve(&cfg.default_host_tuple()?)?;
+        let toolchain_name = toolchain_name.complete(&cfg.default_host_tuple()?)?;
 
         if active_toolchain
             .as_ref()
@@ -1700,7 +1700,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
             let components = match &default {
                 PartialToolchainName::Official(desc) => {
                     let tc =
-                        DistributableToolchain::new(cfg, desc.clone().resolve(&default_host)?)?;
+                        DistributableToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
                     let manifest = tc.get_manifest()?;
 
                     Some(
@@ -1760,7 +1760,7 @@ async fn override_add(
     let toolchain_name = toolchain
         .clone()
         .resolve(cfg)?
-        .resolve(&cfg.default_host_tuple()?)?;
+        .complete(&cfg.default_host_tuple()?)?;
     match Toolchain::new(cfg, toolchain_name.clone().into()) {
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
