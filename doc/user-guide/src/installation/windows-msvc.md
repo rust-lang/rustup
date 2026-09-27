@@ -54,7 +54,7 @@ winget install --source winget --id Microsoft.WindowsSDK.10.0.26100
 ## Manual install
 
 [Download Visual Studio][vs downloads].
-Rust supports Visual Studio 2017 and later but it is recommended that you use the latest version (currently 2022) for new projects.
+Rust supports Visual Studio 2017 and later, including Visual Studio 2022 and Visual Studio 2026. For new projects, Visual Studio 2022 or later is recommended.
 You can opt to download only the Build Tools for Visual Studio, which does not include the IDE.
 However this requires you already have a license to the Community, Professional or Enterprise edition.
 
@@ -65,9 +65,9 @@ On the "Language Packs" tab, make sure the English language pack is installed in
 If you want more details on the installation process or want to further customize the install then follow the walkthrough below.
 Otherwise complete the Visual Studio install and continue with installing Rust.
 
-## Walkthrough: Installing Visual Studio 2022
+## Walkthrough: Installing Visual Studio
 
-This walkthrough uses the Community edition of Visual Studio but the Professional, Enterprise and the Build Tools all work the same way.
+This walkthrough uses the Community edition of Visual Studio 2022, but Visual Studio 2026 and the Professional, Enterprise, and Build Tools editions all work the same way.
 
 The installer will start by linking to the [license][vs licences] and for your edition of Visual Studio and then preparing the installer.
 
