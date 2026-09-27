@@ -905,22 +905,65 @@ pub async fn main(
 fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
     let mut toolchains = cfg.list_toolchains(true).unwrap_or_default();
     toolchains.sort();
-    Rustup::command().mut_arg("+toolchain", move |arg| {
-        arg.add(ArgValueCompleter::new(move |current: &OsStr| {
-            let Some(prefix) = current.to_str() else {
-                return Vec::new();
+
+    // Collect available targets from the first installed
+    // distributable toolchain. Uses only on-disk manifest data
+    let available_targets = toolchains
+        .iter()
+        .find_map(|name| {
+            let ToolchainName::Channel(desc) = name else {
+                return None;
             };
-            toolchains
-                .iter()
-                .filter_map(|toolchain| {
-                    let candidate = format!("+{toolchain}");
-                    candidate
-                        .starts_with(prefix)
-                        .then(|| CompletionCandidate::new(candidate))
+            let dist = DistributableToolchain::new(cfg, desc.clone()).ok()?;
+            let components = dist.components().ok()?;
+            Some(
+                components
+                    .into_iter()
+                    .filter_map(|c| {
+                        (c.component.short_name() == "rust-std" && c.available)
+                            .then(|| c.component.target.map(|t| t.to_string()))?
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .unwrap_or_default();
+
+    Rustup::command()
+        .mut_arg("+toolchain", move |arg| {
+            arg.add(ArgValueCompleter::new(move |current: &OsStr| {
+                let Some(prefix) = current.to_str() else {
+                    return Vec::new();
+                };
+                toolchains
+                    .iter()
+                    .filter_map(|toolchain| {
+                        let candidate = format!("+{toolchain}");
+                        candidate
+                            .starts_with(prefix)
+                            .then(|| CompletionCandidate::new(candidate))
+                    })
+                    .collect()
+            }))
+        })
+        .mut_subcommand("target", move |target_cmd| {
+            target_cmd.mut_subcommand("add", move |add_cmd| {
+                add_cmd.mut_arg("target", move |arg| {
+                    arg.add(ArgValueCompleter::new(move |current: &OsStr| {
+                        let prefix = current.to_str().unwrap_or_default();
+                        let mut candidates = available_targets
+                            .iter()
+                            .filter(|t| t.starts_with(prefix))
+                            .map(|t| CompletionCandidate::new(t.clone()))
+                            .collect::<Vec<CompletionCandidate>>();
+                        // "all" is a special keyword that installs every available target
+                        if "all".starts_with(prefix) {
+                            candidates.push(CompletionCandidate::new("all"));
+                        }
+                        candidates
+                    }))
                 })
-                .collect()
-        }))
-    })
+            })
+        })
 }
 
 async fn default_(
@@ -1978,23 +2021,8 @@ mod tests {
 
     #[test]
     fn dynamic_completion_distinguishes_toolchains_and_subcommands() {
-        let rustup_home = tempfile::tempdir().unwrap();
+        let (rustup_home, process) = completion_cfg();
         fs::create_dir_all(rustup_home.path().join("toolchains/custom")).unwrap();
-        let vars = HashMap::from([
-            (
-                "RUSTUP_HOME".to_owned(),
-                rustup_home.path().display().to_string(),
-            ),
-            (
-                "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS".to_owned(),
-                rustup_home
-                    .path()
-                    .join("missing-settings.toml")
-                    .display()
-                    .to_string(),
-            ),
-        ]);
-        let process = TestProcess::new(rustup_home.path(), &["rustup"], vars, "").process;
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
 
         assert_eq!(complete(&cfg, &["rustup", "+cus"], 1), ["+custom"]);
@@ -2021,5 +2049,133 @@ mod tests {
                 candidates.intersection(&root_only).collect::<Vec<_>>()
             );
         }
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_offers_all_keyword() {
+        let (rustup_home, process) = completion_cfg();
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
+        assert!(candidates.contains(&"all".to_owned()));
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_prefix_filters_all() {
+        let (rustup_home, process) = completion_cfg();
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        // "al" prefix matches only "all"
+        let candidates = complete(&cfg, &["rustup", "target", "add", "al"], 3);
+        assert_eq!(candidates, ["all"]);
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", "x86"], 3);
+        assert!(!candidates.contains(&"all".to_owned()));
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_does_not_bleed_into_other_subcmds() {
+        let (rustup_home, process) = completion_cfg();
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "target", "remove", ""], 3);
+        assert!(!candidates.contains(&"all".to_owned()));
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_offers_real_targets() {
+        let (rustup_home, process) = completion_cfg();
+
+        // The toolchain name must be parseable as an official ToolchainDesc
+        let toolchain_name = "stable-x86_64-unknown-linux-gnu";
+        let toolchain_dir = rustup_home.path().join("toolchains").join(toolchain_name);
+
+        // Manifest lives at: <toolchain>/lib/rustlib/multirust-channel-manifest.toml
+        let manifest_dir = toolchain_dir.join("lib/rustlib");
+        fs::create_dir_all(&manifest_dir).unwrap();
+
+        // Minimal manifest with available rust-std targets
+        let manifest = r#"
+manifest-version = "2"
+date = "2025-01-01"
+[pkg.rust]
+  version = "rustc 1.80.0 (fake)"
+  [pkg.rust.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "https://example.com"
+    hash = "deadbeef"
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+      pkg = "rustc"
+      target = "x86_64-unknown-linux-gnu"
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+      pkg = "rust-std"
+      target = "x86_64-unknown-linux-gnu"
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+      pkg = "rust-std"
+      target = "aarch64-unknown-linux-gnu"
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+      pkg = "rust-std"
+      target = "x86_64-unknown-linux-musl"
+[pkg.rustc]
+  version = "rustc 1.80.0 (fake)"
+  [pkg.rustc.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "https://example.com"
+    hash = "deadbeef"
+[pkg.rust-std]
+  version = "rustc 1.80.0 (fake)"
+  [pkg.rust-std.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "https://example.com"
+    hash = "deadbeef"
+  [pkg.rust-std.target.aarch64-unknown-linux-gnu]
+    available = true
+    url = "https://example.com"
+    hash = "deadbeef"
+  [pkg.rust-std.target.x86_64-unknown-linux-musl]
+    available = true
+    url = "https://example.com"
+    hash = "deadbeef"
+"#;
+        fs::write(
+            manifest_dir.join("multirust-channel-manifest.toml"),
+            manifest,
+        )
+        .unwrap();
+
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
+
+        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
+        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"all".to_owned()));
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
+        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
+    }
+
+    /// Creates a bare rustup home with no toolchains installed.
+    /// Used by completion tests to verify the completer is robust
+    /// and to set up a base environment for further customisation.
+    fn completion_cfg() -> (tempfile::TempDir, crate::process::Process) {
+        let rustup_home = tempfile::tempdir().unwrap();
+        let vars = HashMap::from([
+            (
+                "RUSTUP_HOME".to_owned(),
+                rustup_home.path().display().to_string(),
+            ),
+            (
+                "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS".to_owned(),
+                rustup_home
+                    .path()
+                    .join("missing-settings.toml")
+                    .display()
+                    .to_string(),
+            ),
+        ]);
+        let process = TestProcess::new(rustup_home.path(), &["rustup"], vars, "").process;
+        (rustup_home, process)
     }
 }
