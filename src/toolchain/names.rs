@@ -33,7 +33,7 @@
 //!
 //! CustomToolchainName can be used to link toolchains to local paths on disk.
 //!
-//! ToolchainPath can obtained from rustup toolchain files.
+//! ToolchainPath can be obtained from rustup toolchain files.
 //!
 //! State from toolchains on disk can be loaded in an InstalledToolchain struct
 //! and passed around and queried. The details on that are still vague :).
