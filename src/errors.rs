@@ -46,7 +46,7 @@ impl TargetSuggestion {
         };
 
         for toolchain_name in toolchains {
-            if let ToolchainName::Official(toolchain_desc) = &toolchain_name
+            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
                 && toolchain_desc == desc
             {
                 continue;
@@ -244,7 +244,7 @@ pub enum RustupError {
     #[error(
         "toolchain '{name}' is not installed{}",
         match name {
-            ToolchainName::Official(t) => {
+            ToolchainName::Channel(t) => {
                 let t = if *is_active { "" } else { &format!(" {t}") };
                 Cow::Owned(format!(
                     "\nhelp: run `rustup toolchain install{t}` to install it",

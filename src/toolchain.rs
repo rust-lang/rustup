@@ -59,7 +59,7 @@ impl<'a> Toolchain<'a> {
         match Self::new(cfg, name) {
             Ok(tc) => Ok(EnsureInstalled::new(tc, UpdateStatus::Unchanged)),
             Err(RustupError::ToolchainNotInstalled {
-                name: ToolchainName::Official(desc),
+                name: ToolchainName::Channel(desc),
                 ..
             }) if install_if_missing => {
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
@@ -359,7 +359,7 @@ impl<'a> Toolchain<'a> {
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
     fn maybe_do_cargo_fallback(&self) -> anyhow::Result<Option<Command>> {
-        if let LocalToolchainName::Named(ToolchainName::Official(_)) = self.name() {
+        if let LocalToolchainName::Named(ToolchainName::Channel(_)) = self.name() {
             return Ok(None);
         }
 
@@ -461,7 +461,7 @@ impl<'a> Toolchain<'a> {
                 let binary_lossy: String = binary.to_string_lossy().into();
                 if matches!(
                     &self.name,
-                    LocalToolchainName::Named(ToolchainName::Official(_))
+                    LocalToolchainName::Named(ToolchainName::Channel(_)),
                 ) {
                     let distributable = DistributableToolchain::try_from(self)?;
                     // Design note: this is a bit of an awkward cast from
@@ -554,7 +554,7 @@ impl<'a> Toolchain<'a> {
                 info!("uninstalling toolchain {name}");
                 let installed_paths = match &name {
                     ToolchainName::Custom(_) => Ok(vec![InstalledPath::Dir { path: &path }]),
-                    ToolchainName::Official(desc) => cfg.installed_paths(desc, &path),
+                    ToolchainName::Channel(desc) => cfg.installed_paths(desc, &path),
                 }?;
                 for path in installed_paths {
                     match path {

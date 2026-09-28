@@ -939,7 +939,7 @@ async fn default_(
                 Toolchain::new(cfg, toolchain_name.clone().into())?;
                 cfg.set_default(Some(&toolchain_name.into()))?;
             }
-            MaybeResolvableToolchainName::Some(ResolvableToolchainName::Official(toolchain)) => {
+            MaybeResolvableToolchainName::Some(ResolvableToolchainName::Channel(toolchain)) => {
                 let desc = toolchain.clone().resolve(&cfg.default_host_tuple()?)?;
                 let status = cfg
                     .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
@@ -1365,7 +1365,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     writeln!(t.lock(), "installed targets:")?;
 
     let active_toolchain_targets = match active_toolchain_name {
-        ToolchainName::Official(desc) => DistributableToolchain::new(cfg, desc)?
+        ToolchainName::Channel(desc) => DistributableToolchain::new(cfg, desc)?
             .components()?
             .into_iter()
             .filter_map(|c| {
@@ -1698,7 +1698,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                 .get_default_resolvable()?
                 .context("no default toolchain to pin")?;
             let components = match &default {
-                ResolvableToolchainName::Official(desc) => {
+                ResolvableToolchainName::Channel(desc) => {
                     let tc =
                         DistributableToolchain::new(cfg, desc.clone().resolve(&default_host)?)?;
                     let manifest = tc.get_manifest()?;
@@ -1765,7 +1765,7 @@ async fn override_add(
         Ok(_) => {}
         Err(e @ RustupError::ToolchainNotInstalled { .. }) => match &toolchain_name {
             ToolchainName::Custom(_) => Err(e)?,
-            ToolchainName::Official(desc) => {
+            ToolchainName::Channel(desc) => {
                 let options = DistOptions::new(&[], &[], desc, cfg.get_profile()?, false, cfg)?;
                 let status = DistributableToolchain::install(options).await?.status;
                 writeln!(cfg.process.stdout().lock())?;

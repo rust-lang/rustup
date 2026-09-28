@@ -368,7 +368,7 @@ impl InstallOpts<'_> {
                 }
                 None => match cfg.get_default_resolvable()? {
                     // Default is installable
-                    Some(ResolvableToolchainName::Official(t)) => Some(t),
+                    Some(ResolvableToolchainName::Channel(t)) => Some(t),
                     // Default is custom, presumably from a prior install. Do nothing.
                     Some(ResolvableToolchainName::Custom(_)) => None,
                     None => Some(PartialChannelToolchainName::from_str("stable")?),
