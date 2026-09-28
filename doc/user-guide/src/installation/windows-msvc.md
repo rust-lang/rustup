@@ -18,7 +18,7 @@ Alternatively Visual Studio can be installed via the [WinGet] package manager, w
 Run the following command in powershell or the command prompt:
 
 ```
-winget install --id Microsoft.VisualStudio.2022.Community --source winget --force --override "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --addProductLang En-us"
+winget install --id Microsoft.VisualStudio.Community --source winget --force --override "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --addProductLang En-us"
 ```
 
 You can replace "Community" with "BuildTools" in the above command if you already have a Visual Studio license.
