@@ -157,7 +157,7 @@ where
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ResolvableToolchainName {
     Custom(CustomToolchainName),
-    Official(PartialChannelToolchainName),
+    Channel(PartialChannelToolchainName),
 }
 
 impl ResolvableToolchainName {
@@ -165,7 +165,7 @@ impl ResolvableToolchainName {
     pub fn resolve(self, host: &TargetTuple) -> Result<ToolchainName, anyhow::Error> {
         Ok(match self {
             Self::Custom(c) => ToolchainName::Custom(c),
-            Self::Official(desc) => ToolchainName::Official(desc.resolve(host)?),
+            Self::Channel(desc) => ToolchainName::Channel(desc.resolve(host)?),
         })
     }
 }
@@ -178,7 +178,7 @@ impl FromStr for ResolvableToolchainName {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let candidate = validate_name(value)?;
         if let Ok(desc) = PartialChannelToolchainName::from_str(candidate) {
-            return Ok(Self::Official(desc));
+            return Ok(Self::Channel(desc));
         }
 
         match CustomToolchainName::from_str(candidate) {
@@ -190,7 +190,7 @@ impl FromStr for ResolvableToolchainName {
 
 impl From<&PartialChannelToolchainName> for ResolvableToolchainName {
     fn from(value: &PartialChannelToolchainName) -> Self {
-        Self::Official(value.to_owned())
+        Self::Channel(value.to_owned())
     }
 }
 
@@ -198,7 +198,7 @@ impl Display for ResolvableToolchainName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(c) => write!(f, "{c}"),
-            Self::Official(o) => write!(f, "{o}"),
+            Self::Channel(o) => write!(f, "{o}"),
         }
     }
 }
@@ -276,13 +276,13 @@ impl Display for MaybeChannelToolchainName {
 /// the toolchain directory.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ToolchainName {
-    Official(ChannelToolchainName),
+    Channel(ChannelToolchainName),
     Custom(CustomToolchainName),
 }
 
 impl From<ChannelToolchainName> for ToolchainName {
     fn from(value: ChannelToolchainName) -> Self {
-        Self::Official(value)
+        Self::Channel(value)
     }
 }
 
@@ -299,7 +299,7 @@ impl FromStr for ToolchainName {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let candidate = validate_name(value)?;
         if let Ok(desc) = ChannelToolchainName::from_str(candidate) {
-            return Ok(Self::Official(desc));
+            return Ok(Self::Channel(desc));
         }
 
         match CustomToolchainName::from_str(candidate) {
@@ -313,7 +313,7 @@ impl Display for ToolchainName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(t) => write!(f, "{t}"),
-            Self::Official(t) => write!(f, "{t}"),
+            Self::Channel(t) => write!(f, "{t}"),
         }
     }
 }
@@ -339,7 +339,7 @@ impl ResolvableLocalToolchainName {
 
 impl From<PartialChannelToolchainName> for ResolvableToolchainName {
     fn from(value: PartialChannelToolchainName) -> Self {
-        Self::Official(value)
+        Self::Channel(value)
     }
 }
 
@@ -409,7 +409,7 @@ impl From<PathBasedToolchainName> for LocalToolchainName {
 
 impl From<ChannelToolchainName> for LocalToolchainName {
     fn from(value: ChannelToolchainName) -> Self {
-        ToolchainName::Official(value).into()
+        ToolchainName::Channel(value).into()
     }
 }
 

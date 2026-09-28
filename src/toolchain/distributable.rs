@@ -293,7 +293,7 @@ impl<'a> DistributableToolchain<'a> {
             } else {
                 // available, not installed, recommend installation
                 let selector = match self.toolchain.cfg.get_default()? {
-                    Some(ToolchainName::Official(n)) if n == self.desc => String::new(),
+                    Some(ToolchainName::Channel(n)) if n == self.desc => String::new(),
                     _ => format!("--toolchain {} ", self.toolchain.name()),
                 };
                 Err(anyhow!(
@@ -416,7 +416,7 @@ impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
 
     fn try_from(value: &Toolchain<'a>) -> Result<Self, Self::Error> {
         match value.name() {
-            LocalToolchainName::Named(ToolchainName::Official(desc)) => Ok(Self {
+            LocalToolchainName::Named(ToolchainName::Channel(desc)) => Ok(Self {
                 toolchain: value.clone(),
                 desc: desc.clone(),
             }),

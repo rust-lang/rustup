@@ -185,7 +185,7 @@ impl<T> Deref for EnsureInstalled<T> {
 pub(crate) enum OverrideCfg {
     PathBased(PathBasedToolchainName),
     Custom(CustomToolchainName),
-    Official {
+    Channel {
         toolchain: PartialChannelToolchainName,
         // To ensure preservation of the user's original intent in an override file, the below
         // values are semantically different for `components` and `targets`:
@@ -234,7 +234,7 @@ impl OverrideCfg {
         };
         let toolchain_name = toolchain_name.resolve(cfg)?;
         Ok(match toolchain_name {
-            ResolvableToolchainName::Official(desc) => Self::Official {
+            ResolvableToolchainName::Channel(desc) => Self::Channel {
                 toolchain: desc,
                 components: file.toolchain.components,
                 targets: file.toolchain.targets,
@@ -256,12 +256,12 @@ impl OverrideCfg {
         Ok(match self {
             Self::PathBased(path_based_name) => path_based_name.into(),
             Self::Custom(custom_name) => custom_name.into(),
-            Self::Official { toolchain, .. } => toolchain.resolve(host_tuple)?.into(),
+            Self::Channel { toolchain, .. } => toolchain.resolve(host_tuple)?.into(),
         })
     }
 
     pub(crate) fn qualify(&mut self, host_tuple: &TargetTuple) {
-        if let Self::Official { toolchain, .. } = self {
+        if let Self::Channel { toolchain, .. } = self {
             toolchain.target = PartialTargetTuple::new(host_tuple).unwrap();
         }
     }
@@ -270,7 +270,7 @@ impl OverrideCfg {
 impl From<ResolvableToolchainName> for OverrideCfg {
     fn from(value: ResolvableToolchainName) -> Self {
         match value {
-            ResolvableToolchainName::Official(desc) => Self::Official {
+            ResolvableToolchainName::Channel(desc) => Self::Channel {
                 toolchain: desc,
                 components: None,
                 targets: None,
@@ -296,7 +296,7 @@ impl From<OverrideCfg> for OverrideFile {
         match value {
             OverrideCfg::PathBased(path) => ts.path = Some(path.into()),
             OverrideCfg::Custom(name) => ts.channel = Some(name.to_string()),
-            OverrideCfg::Official {
+            OverrideCfg::Channel {
                 toolchain,
                 components,
                 targets,
@@ -591,7 +591,7 @@ impl<'a> Cfg<'a> {
         let toolchain = toolchain
             .map(|(desc, source)| {
                 anyhow::Ok((
-                    LocalToolchainName::Named(ToolchainName::Official(
+                    LocalToolchainName::Named(ToolchainName::Channel(
                         desc.resolve(&self.default_host_tuple()?)?,
                     )),
                     source,
@@ -752,7 +752,7 @@ impl<'a> Cfg<'a> {
                     let default_host = default_host_tuple(settings, self.process);
                     // Do not permit architecture/os selection in channels as
                     // these are host specific and toolchain files are portable.
-                    if let ResolvableToolchainName::Official(name) = &toolchain_name
+                    if let ResolvableToolchainName::Channel(name) = &toolchain_name
                         && !name.target.is_empty()
                     {
                         // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
@@ -855,7 +855,7 @@ impl<'a> Cfg<'a> {
             let toolchain = override_config
                 .clone()
                 .into_local_toolchain_name(&default_host)?;
-            let status = if let OverrideCfg::Official {
+            let status = if let OverrideCfg::Channel {
                 toolchain,
                 components,
                 targets,
@@ -879,7 +879,7 @@ impl<'a> Cfg<'a> {
             Ok((EnsureInstalled::new(toolchain, status), source))
         } else if let Some(toolchain) = self.get_default()? {
             let source = ActiveSource::Default;
-            let status = if let ToolchainName::Official(desc) = &toolchain {
+            let status = if let ToolchainName::Channel(desc) = &toolchain {
                 self.ensure_installed(desc, vec![], vec![], None, force_non_host, verbose)
                     .await?
                     .status
@@ -1042,7 +1042,7 @@ impl<'a> Cfg<'a> {
             .list_toolchains(true)?
             .into_iter()
             .filter_map(|t| match t {
-                ToolchainName::Official(n) if n.is_tracking() => {
+                ToolchainName::Channel(n) if n.is_tracking() => {
                     Some(DistributableToolchain::new(self, n.clone()).map(|t| (n, t)))
                 }
                 _ => None,
