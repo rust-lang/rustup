@@ -530,7 +530,7 @@ info: override toolchain for '[PATH]' removed
             .extend_redactions([("[OLD]", old), ("[NEW]", new)])
             .is_ok()
             .with_stdout(snapbox::str![[r#"
-[OLD]	nightly             
+[NEW]	nightly             
 
 "#]])
             .with_stderr(snapbox::str![[""]]);
