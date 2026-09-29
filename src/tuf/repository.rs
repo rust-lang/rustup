@@ -7,7 +7,7 @@ use futures_util::{
     future::BoxFuture,
     io::{AsyncRead, AsyncReadExt, Cursor},
 };
-use tracing::{debug, trace, warn, info};
+use tracing::{debug, info, trace, warn};
 use tuf::{
     client::{Client, Config},
     database::Database,
@@ -51,11 +51,16 @@ impl TufRepository {
         }
 
         if config.ignore_failures {
-            warn!("RUST_TUF_IGNORE is set to true, and validation failures will be silently ignored");
+            warn!(
+                "RUST_TUF_IGNORE is set to true, and validation failures will be silently ignored"
+            );
         }
 
         if let Some(date) = config.ignore_expiry_after.as_ref() {
-            warn!("RUST_TUF_IGNOREDATE is set to true and validation failures will be ignored after {}", date);
+            warn!(
+                "RUST_TUF_IGNOREDATE is set to true and validation failures will be ignored after {}",
+                date
+            );
         }
 
         debug!(

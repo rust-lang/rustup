@@ -23,6 +23,14 @@ jobs: # skip-all
         uses: actions/checkout@v7
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
+      - name: Enable Windows OS Long Paths
+        if: ${{ contains(matrix.os, 'windows') }}
+        shell: powershell
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+      - name: Enable git long paths
+        if: ${{ contains(matrix.os, 'windows') }}
+        run: git config --global core.longpaths true
       - name: Install OpenSSL
         if: ${{ contains(matrix.os, 'windows') }}
         run: |

@@ -74,6 +74,12 @@ jobs:
             llvm_mingw_version: 20260616
             gcc: aarch64-w64-mingw32-clang
     steps:
+      - name: Enable Windows OS Long Paths
+        shell: powershell
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+      - name: Enable git long paths
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v7
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
@@ -283,6 +289,12 @@ jobs:
             llvm_mingw_version: 20260616
             gcc: aarch64-w64-mingw32-clang
     steps:
+      - name: Enable Windows OS Long Paths
+        shell: powershell
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+      - name: Enable git long paths
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v7
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
@@ -498,6 +510,12 @@ jobs:
             mingwdir: mingw32 # skip-pr skip-main
             gcc: i686-w64-mingw32-gcc # skip-pr skip-main
     steps:
+      - name: Enable Windows OS Long Paths
+        shell: powershell
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+      - name: Enable git long paths
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v7
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
@@ -1719,6 +1737,14 @@ jobs:
         uses: actions/checkout@v7
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
+      - name: Enable Windows OS Long Paths
+        if: ${{ contains(matrix.os, 'windows') }}
+        shell: powershell
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+      - name: Enable git long paths
+        if: ${{ contains(matrix.os, 'windows') }}
+        run: git config --global core.longpaths true
       - name: Install OpenSSL
         if: ${{ contains(matrix.os, 'windows') }}
         run: |

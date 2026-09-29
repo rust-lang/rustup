@@ -94,7 +94,6 @@ use unix::{add_to_path, remove_from_path, run_update};
 
 #[cfg(windows)]
 mod windows;
-use crate::tuf::TufMode;
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 #[cfg(windows)]
@@ -106,6 +105,8 @@ use windows::{
     add_to_path, add_uninstall_registry_entry, remove_from_path, remove_uninstall_registry_entry,
     run_update,
 };
+
+use crate::tuf::TufMode;
 
 pub(crate) struct InstallOpts<'a> {
     pub default_host_tuple: Option<String>,
