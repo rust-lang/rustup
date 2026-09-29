@@ -1271,7 +1271,7 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
             format!("{update_root}/archive/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}")
         }
         TufMode::Warn | TufMode::On => {
-            format!("{update_root}/dist/{tuple}/rustup-init{EXE_SUFFIX}")
+            format!("{update_root}/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}")
         }
     };
 
