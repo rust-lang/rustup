@@ -13,8 +13,11 @@
 # beware this makes variables global with f()-style function syntax in ksh93.
 # mksh has this alias by default.
 has_local() {
+    # Clear `PATH` so that a `local` executable can't pass for the builtin.
+    # Use a subshell, since some shells (e.g. dash) keep the assignment after
+    # running `local`.
     # shellcheck disable=SC2034  # deliberately unused
-    local _has_local
+    (PATH='' local _has_local)
 }
 
 has_local 2>/dev/null || alias local=typeset
