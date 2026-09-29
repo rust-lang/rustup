@@ -603,7 +603,7 @@ async fn remove_override_nonexistent_symlink() {
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
-info: no nonexistent paths detected
+info: override toolchain for '[PATH]' removed
 
 "#]]);
     }
@@ -707,10 +707,15 @@ async fn list_overrides_with_symlink() {
         .extend_redactions([("[PATH]", old)])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[PATH]	nightly             
+[PATH] (not a directory)	nightly             
+
 
 "#]])
-        .with_stderr(snapbox::str![[""]]);
+        .with_stderr(snapbox::str![[r#"
+info: you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`
+
+"#]]);
 }
 
 #[tokio::test]
