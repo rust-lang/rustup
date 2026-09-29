@@ -37,7 +37,7 @@ use std::{
     env::{self, consts::EXE_SUFFIX},
     fmt, fs,
     io::{self, Write},
-    path::{Component, MAIN_SEPARATOR, Path, PathBuf},
+    path::{MAIN_SEPARATOR, Path, PathBuf},
     process::Command,
     str::FromStr,
 };
@@ -630,26 +630,21 @@ impl fmt::Display for HomeDisplay<'_> {
 }
 
 fn rustc_or_cargo_exists_in_path(process: &Process) -> anyhow::Result<()> {
-    // Ignore rustc and cargo if present in $HOME/.cargo/bin or a few other directories
-    #[allow(clippy::ptr_arg)]
-    fn ignore_paths(path: &PathBuf) -> bool {
-        !path
-            .components()
-            .any(|c| c == Component::Normal(".cargo".as_ref()))
+    let Some(paths) = process.var_os("PATH") else {
+        return Ok(());
+    };
+    let cargo_bin = process.cargo_home()?.join("bin");
+
+    let conflict = env::split_paths(&paths).find(|path| {
+        path != &cargo_bin
+            && (path.join(format!("rustc{EXE_SUFFIX}")).exists()
+                || path.join(format!("cargo{EXE_SUFFIX}")).exists())
+    });
+
+    if let Some(path) = conflict {
+        anyhow::bail!("{}", path.display());
     }
 
-    if let Some(paths) = process.var_os("PATH") {
-        let paths = env::split_paths(&paths).filter(ignore_paths);
-
-        for path in paths {
-            let rustc = path.join(format!("rustc{EXE_SUFFIX}"));
-            let cargo = path.join(format!("cargo{EXE_SUFFIX}"));
-
-            if rustc.exists() || cargo.exists() {
-                return Err(anyhow!("{}", path.to_str().unwrap().to_owned()));
-            }
-        }
-    }
     Ok(())
 }
 
