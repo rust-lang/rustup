@@ -70,7 +70,15 @@ async fn smoke_case_install_no_modify_path() {
             ("SHELL", "/bin/sh"),
         ],
     )
+    .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
     .with_stdout(snapbox::str![[r#"
+...
+Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+  [RUSTUP_DIR]
+
+This can be modified with the RUSTUP_HOME environment variable.
 ...
 This path needs to be in your PATH environment variable,
 but will not be added automatically.
