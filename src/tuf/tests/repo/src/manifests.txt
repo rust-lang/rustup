@@ -1,0 +1,8 @@
+static.rust-lang.org/dist/channels/current/beta.toml
+static.rust-lang.org/dist/channels/current/nightly.toml
+static.rust-lang.org/dist/channels/current/stable.toml
+static.rust-lang.org/dist/channels/nightly/2026/06-01/nightly.toml
+static.rust-lang.org/dist/channels/nightly/2026/09-03/stable.toml
+static.rust-lang.org/dist/channels/nightly/2026/09-11/beta.toml
+static.rust-lang.org/dist/channels/nightly/2026/09-16/nightly.toml
+static.rust-lang.org/dist/channels/stable/1.98.1.toml
