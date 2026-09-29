@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     fmt,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf, absolute},
     str::FromStr,
 };
 
@@ -113,6 +113,17 @@ impl Settings {
     }
 
     pub(crate) fn remove_override(&mut self, path: &Path) -> bool {
+        // `path_to_key()` resolves symlinks, but `path` might have only become a
+        // symlink after its override was set, leaving that override keyed by
+        // `path` itself. Remove it first rather than the override of the target.
+        let unresolved_key = absolute(path).ok().and_then(|abs_path| {
+            let parent = abs_path.parent()?.canonicalize().ok()?;
+            Some(parent.join(abs_path.file_name()?).display().to_string())
+        });
+        if unresolved_key.is_some_and(|key| self.overrides.remove(&key).is_some()) {
+            return true;
+        }
+
         let key = Self::path_to_key(path);
         self.overrides.remove(&key).is_some()
     }
