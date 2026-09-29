@@ -7,7 +7,7 @@ use futures_util::{
     future::BoxFuture,
     io::{AsyncRead, AsyncReadExt, Cursor},
 };
-use tracing::{debug, trace, warn};
+use tracing::{debug, trace, warn, info};
 use tuf::{
     client::{Client, Config},
     database::Database,
@@ -43,6 +43,21 @@ impl TufRepository {
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn open(config: &TufConfig, options: DownloadOptions) -> anyhow::Result<Self> {
         let location = config.server.as_str();
+
+        info!("syncing TUF database from {}", location);
+
+        if config.mode == TufMode::Warn {
+            warn!("TUF is set to 'warn' mode, and validation failures will be ignored");
+        }
+
+        if config.ignore_failures {
+            warn!("RUST_TUF_IGNORE is set to true, and validation failures will be silently ignored");
+        }
+
+        if let Some(date) = config.ignore_expiry_after.as_ref() {
+            warn!("RUST_TUF_IGNOREDATE is set to true and validation failures will be ignored after {}", date);
+        }
+
         debug!(
             location,
             home = %config.home.display(),
