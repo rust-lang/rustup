@@ -38,6 +38,8 @@ pub(super) mod dist;
 pub use dist::DistContext;
 pub(super) mod mock;
 pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+mod mock_tuf;
+pub use mock_tuf::MockTufServer;
 
 pub fn checkpoint_path(test_root: &Path, name: &str) -> PathBuf {
     test_root.join(format!("rustup-checkpoint-{name}"))

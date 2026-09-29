@@ -12,3 +12,4 @@ mod cli_v2;
 mod dist_install;
 mod known_target_tuples;
 mod static_roots;
+mod tuf;
