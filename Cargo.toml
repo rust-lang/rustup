@@ -62,7 +62,7 @@ hyper-util = { version = "0.1.1", features = ["tokio"] }
 indicatif = "0.18"
 itertools = "0.15"
 libc = "0.2"
-opener = "0.8.0"
+opener = "0.9.0"
 # `openssl` is used by the `reqwest` backend although it isn't imported by
 # rustup: this allows controlling the vendoring status without exposing the
 # presence of the download crate.
