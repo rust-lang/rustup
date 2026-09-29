@@ -685,7 +685,7 @@ dependencies = [
 [[package]]
 name = "dsse"
 version = "0.1.0"
-source = "git+https://github.com/rf-signing-experiment/rust-tuf?rev=f2903981f4c7a562b3c56da9df22d18602b14b56#f2903981f4c7a562b3c56da9df22d18602b14b56"
+source = "git+https://github.com/rf-signing-experiment/rust-tuf?rev=2575ab28b46e6408ea24b4afdb603d13cb91b229#2575ab28b46e6408ea24b4afdb603d13cb91b229"
 dependencies = [
  "data-encoding",
  "serde",
@@ -3282,7 +3282,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tuf"
 version = "0.3.0-beta15"
-source = "git+https://github.com/rf-signing-experiment/rust-tuf?rev=f2903981f4c7a562b3c56da9df22d18602b14b56#f2903981f4c7a562b3c56da9df22d18602b14b56"
+source = "git+https://github.com/rf-signing-experiment/rust-tuf?rev=2575ab28b46e6408ea24b4afdb603d13cb91b229#2575ab28b46e6408ea24b4afdb603d13cb91b229"
 dependencies = [
  "chrono",
  "data-encoding",
