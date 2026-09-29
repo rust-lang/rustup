@@ -22,7 +22,7 @@ use crate::{
     errors::RustupError,
     tuf::{
         TufConfig, TufMode,
-        consts::{METADATA_PREFIX, TARGETS_PREFIX},
+        consts::{METADATA_PREFIX, ROOT, TARGETS_PREFIX},
     },
     utils,
 };
@@ -55,20 +55,21 @@ impl TufRepository {
         let local = FileSystemRepository::new(&config.home);
         let remote = Remote::from_location(location, options)?;
 
-        let client = match &config.root {
+        let bytes = match &config.root {
             Some(path) => {
                 debug!(path = %path.display(), "using trusted TUF root from RUSTUP_TUF_ROOT");
-                let bytes = utils::read_file("tuf root", path)?.into_bytes();
-                trace!(len = bytes.len(), "read trusted TUF root");
-                let root = RawSignedMetadata::new(bytes);
-                Client::with_trusted_root(Config::default(), &root, local, remote).await
+                utils::read_file("tuf root", path)?.into_bytes()
             }
             None => {
-                debug!(home = %config.home.display(), "using trusted TUF root from local cache");
-                Client::with_trusted_local(Config::default(), local, remote).await
+                debug!("using trusted TUF root shipped with rustup");
+                ROOT.to_vec()
             }
-        }
-        .with_context(|| format!("error loading TUF repository from '{location}'"))?;
+        };
+        trace!(len = bytes.len(), "read trusted TUF root");
+        let root = RawSignedMetadata::new(bytes);
+        let client = Client::with_trusted_root(Config::default(), &root, local, remote)
+            .await
+            .with_context(|| format!("error loading TUF repository from '{location}'"))?;
 
         let repository = Self {
             mode: config.mode,

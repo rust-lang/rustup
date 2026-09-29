@@ -12,3 +12,7 @@ pub(super) const METADATA_PREFIX: &str = "metadata";
 
 /// Path prefix of a TUF repository's target files.
 pub(super) const TARGETS_PREFIX: &str = "targets";
+
+/// The trusted TUF root shipped with rustup, used unless `RUSTUP_TUF_ROOT`
+/// points at another.
+pub(super) const ROOT: &[u8] = include_bytes!("root.json");
