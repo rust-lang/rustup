@@ -1,11 +1,7 @@
 #!/bin/bash
 
-curl -o /tmp/tuf-root.json https://storage.googleapis.com/tufops/metadata/1.root.json
-
 export RUSTUP_TUF_ENABLE=on
 export RUSTUP_TUF_IGNOREDATE=2026-09-26T17:06:53Z
-export RUSTUP_TUF_SERVER=https://storage.googleapis.com/tufops
-export RUSTUP_TUF_ROOT=/tmp/tuf-root.json
 export RUSTUP_HOME=/tmp/tuf-home CARGO_HOME=/tmp/tuf-home
 export RUSTUP_LOG=rustup::tuf=debug,rustup::download=debug
 

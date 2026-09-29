@@ -44,7 +44,12 @@ impl ChannelToolchainName {
     /// date.
     pub(crate) fn manifest_v3_url(&self, dist_root: &str, process: &Process) -> Result<String> {
         let do_manifest_staging = process.var("RUSTUP_STAGED_MANIFEST").is_ok();
-        trace!(dist_root, channel = %self.channel, target = %self.target, "building v3 manifest url");
+        trace!(
+            do_manifest_staging,
+            channel = %self.channel,
+            target = %self.target,
+            "building v3 manifest url"
+        );
 
         Ok(match (self.date.as_ref(), do_manifest_staging) {
             (None, false) => match &self.channel {
@@ -63,12 +68,32 @@ impl ChannelToolchainName {
             (Some(date), false) => {
                 let date = NaiveDate::parse_from_str(date, "%Y-%m-%d")
                     .with_context(|| format!("invalid date '{date}', expected yyyy-mm-dd"))?;
-                format!(
-                    "{}/channels/nightly/{}/{}.toml",
-                    dist_root,
-                    date.format("%Y/%m-%d"),
-                    self.channel
-                )
+
+                match &self.channel {
+                    Channel::Beta | Channel::Stable => {
+                        format!(
+                            "{}/channels/{}/{}.toml",
+                            dist_root,
+                            self.channel,
+                            date.format("%Y-%m-%d"),
+                        )
+                    }
+                    Channel::Nightly => {
+                        format!(
+                            "{}/channels/nightly/{}/nightly.toml",
+                            dist_root,
+                            date.format("%Y/%m-%d")
+                        )
+                    }
+                    // A pre-release version is a beta; everything else is a
+                    // stable release.
+                    Channel::Version(version) if !version.pre.is_empty() => {
+                        format!("{}/channels/beta/{}.toml", dist_root, self.channel)
+                    }
+                    Channel::Version(_) => {
+                        format!("{}/channels/stable/{}.toml", dist_root, self.channel)
+                    }
+                }
             }
             (None, true) => format!("{}/channels/staging/{}.toml", dist_root, self.channel),
             (Some(_), true) => panic!("not a real-world case"),
