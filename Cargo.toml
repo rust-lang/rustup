@@ -106,7 +106,7 @@ xz2 = "0.1.3"
 zstd = { version = "0.14", default-features = false }
 
 # TUF
-tuf = { git = "https://github.com/rf-signing-experiment/rust-tuf", rev = "2575ab28b46e6408ea24b4afdb603d13cb91b229" }
+tuf = { git = "https://github.com/rf-signing-experiment/rust-tuf", rev = "08d65e820bc12a15cda9ebbd4d07964ee620b579" }
 
 # test only (depends on `test` feature)
 snapbox = { version = "1", features = ["term-svg"], optional = true }

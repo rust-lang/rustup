@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::fs;
 
 use anyhow::{Context, anyhow, bail};
 use chrono::{DateTime, Utc};
@@ -18,10 +18,12 @@ use tuf::{
 use url::Url;
 
 use crate::{
-    dist::temp,
     download::DownloadOptions,
     errors::RustupError,
-    tuf::{TufConfig, TufMode},
+    tuf::{
+        TufConfig, TufMode,
+        consts::{METADATA_PREFIX, TARGETS_PREFIX},
+    },
     utils,
 };
 
@@ -51,7 +53,7 @@ impl TufRepository {
         );
         utils::ensure_dir_exists("tuf home", &config.home)?;
         let local = FileSystemRepository::new(&config.home);
-        let remote = Remote::from_location(location, config, options)?;
+        let remote = Remote::from_location(location, options)?;
 
         let client = match &config.root {
             Some(path) => {
@@ -269,11 +271,7 @@ enum Remote {
 }
 
 impl Remote {
-    fn from_location(
-        location: &str,
-        config: &TufConfig,
-        options: DownloadOptions,
-    ) -> anyhow::Result<Self> {
+    fn from_location(location: &str, options: DownloadOptions) -> anyhow::Result<Self> {
         if utils::is_directory(location) {
             debug!(
                 path = location,
@@ -293,7 +291,7 @@ impl Remote {
             }
             "http" | "https" => {
                 debug!(%url, "using http TUF remote");
-                Self::Http(HttpRepository::new(url, options, config.home.join(TMP_DIR)))
+                Self::Http(HttpRepository::new(url, options))
             }
             scheme => bail!("unsupported TUF repository scheme '{scheme}' in '{url}'"),
         })
@@ -328,18 +326,12 @@ impl RepositoryProvider<Pouf1> for Remote {
 struct HttpRepository {
     base: Url,
     options: DownloadOptions,
-    tmp_cx: temp::Context,
 }
 
 impl HttpRepository {
-    fn new(base: Url, options: DownloadOptions, tmp_dir: PathBuf) -> Self {
-        trace!(%base, tmp_dir = %tmp_dir.display(), ?options, "created TUF http repository");
-        let tmp_cx = temp::Context::new(tmp_dir, base.as_str());
-        Self {
-            base,
-            options,
-            tmp_cx,
-        }
+    fn new(base: Url, options: DownloadOptions) -> Self {
+        trace!(%base, ?options, "created TUF http repository");
+        Self { base, options }
     }
 
     fn url(&self, prefix: &str, components: &[String]) -> tuf::Result<Url> {
@@ -357,11 +349,16 @@ impl HttpRepository {
     }
 
     async fn fetch(&self, url: Url) -> anyhow::Result<Vec<u8>> {
-        let file = self.tmp_cx.new_file()?;
-        debug!(%url, path = %file.display(), "fetching TUF file");
-        self.options.start(&url, &file, None).download().await?;
-        let bytes = fs::read(&*file)
-            .with_context(|| format!("error reading TUF file '{}'", file.display()))?;
+        // Removed when dropped, whether or not the download succeeds.
+        let file = tempfile::Builder::new()
+            .prefix("rustup-tuf")
+            .tempfile()
+            .context("error creating temp file for TUF download")?;
+        let path = file.path();
+        debug!(%url, path = %path.display(), "fetching TUF file");
+        self.options.start(&url, path, None).download().await?;
+        let bytes = fs::read(path)
+            .with_context(|| format!("error reading TUF file '{}'", path.display()))?;
         trace!(%url, len = bytes.len(), "fetched TUF file");
         Ok(bytes)
     }
@@ -419,21 +416,9 @@ impl RepositoryProvider<Pouf1> for HttpRepository {
     }
 }
 
-impl Drop for HttpRepository {
-    fn drop(&mut self) {
-        self.tmp_cx.clean();
-    }
-}
-
 fn is_not_found(err: &anyhow::Error) -> bool {
     matches!(
         err.downcast_ref::<RustupError>(),
         Some(RustupError::DownloadNotExists { .. })
     )
 }
-
-/// Scratch space for the HTTP remote's downloads, under [`TufConfig::home`].
-const TMP_DIR: &str = "tmp";
-/// Path prefixes of the two halves of a TUF repository.
-const METADATA_PREFIX: &str = "metadata";
-const TARGETS_PREFIX: &str = "targets";

@@ -8,6 +8,7 @@
 //! tarballs included, still comes straight from the dist server.
 
 mod config;
+mod consts;
 pub use self::config::{TufConfig, TufMode};
 
 mod manifest;

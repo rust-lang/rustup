@@ -10,8 +10,11 @@ use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 use tracing::{trace, warn};
 
 use crate::{
-    config::dist_root_server, dist::DEFAULT_DIST_SERVER, download::DownloadOptions,
-    process::Process, tuf::TufRepository,
+    config::dist_root_server,
+    dist::DEFAULT_DIST_SERVER,
+    download::DownloadOptions,
+    process::Process,
+    tuf::{TufRepository, consts::DEFAULT_HOME_DIR},
 };
 
 /// TUF-related settings, resolved from the `RUSTUP_TUF_*` environment variables.
@@ -221,6 +224,3 @@ pub(super) fn parse_date_time(value: &str) -> Option<DateTime<Utc>> {
         .and_then(|d| d.and_hms_opt(0, 0, 0))
         .map(|dt| dt.and_utc())
 }
-
-/// Name of the default [`TufConfig::home`] directory under `RUSTUP_HOME`.
-const DEFAULT_HOME_DIR: &str = "tuf";

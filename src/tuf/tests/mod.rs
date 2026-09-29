@@ -5,17 +5,15 @@ use chrono::{DateTime, Duration, Utc};
 mod config;
 mod download;
 mod manifest;
+mod online;
 
-/// The fixture repository: `src/` holds the published manifests and `tuf/`
-/// the TUF metadata and targets generated from them.
+/// Fixture repository: manifests in `src/`, TUF metadata and targets in `tuf/`.
 pub(crate) const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/src/tuf/tests/repo");
 
-/// A server that is deliberately unreachable: with TUF enabled nothing should
-/// ever be fetched from it directly. Target names are URL paths, so this has
-/// no path of its own and the fixture's targets sit directly under it.
+/// Unreachable dist server: with TUF on, nothing is fetched from it directly.
 pub(crate) const DIST_ROOT: &str = "https://dist.invalid";
 
-/// One second before the fixture's timestamp role expires.
+/// One second before the fixture's timestamp expires.
 pub(crate) fn ignore_date(tuf: &Path) -> String {
     let json = fs::read_to_string(tuf.join("metadata/timestamp.json")).unwrap();
     let key = "\"expires\":\"";
