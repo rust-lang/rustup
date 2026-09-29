@@ -10,22 +10,20 @@ use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 use tracing::{trace, warn};
 
 use crate::{
-    config::dist_root_server,
-    dist::DEFAULT_DIST_SERVER,
     download::DownloadOptions,
     process::Process,
-    tuf::{TufRepository, consts::DEFAULT_HOME_DIR},
+    tuf::{
+        TufRepository,
+        consts::{DEFAULT_HOME_DIR, DEFAULT_SERVER},
+    },
 };
 
 /// TUF-related settings, resolved from the `RUSTUP_TUF_*` environment variables.
 #[derive(Debug)]
 pub struct TufConfig {
-    /// Where the TUF repository for dist files lives, either a URL or a local
-    /// directory (`RUSTUP_TUF_DIST_SERVER`, default: the dist root).
-    pub dist_server: String,
-    /// URL of the TUF repository used to validate rustup's own updates
-    /// (`RUSTUP_TUF_UPDATE_SERVER`). Not consumed yet.
-    pub update_server: Option<String>,
+    /// The TUF repository for dist files and rustup's own updates, a URL or
+    /// a local directory (`RUSTUP_TUF_SERVER`).
+    pub server: String,
     /// A local `root.json` to use instead of the one shipped with rustup
     /// (`RUSTUP_TUF_ROOT`).
     pub root: Option<PathBuf>,
@@ -51,24 +49,13 @@ impl TufConfig {
     /// `rustup_dir` is the resolved `RUSTUP_HOME`, used for the default
     /// [`TufConfig::home`]. Unparsable values fall back to their defaults.
     pub fn from_env(rustup_dir: &Path, process: &Process) -> Self {
-        let dist_server = match process.var("RUSTUP_TUF_DIST_SERVER") {
+        let server = match process.var("RUSTUP_TUF_SERVER") {
             Ok(url) => {
-                trace!("`RUSTUP_TUF_DIST_SERVER` has been set to `{url}`");
+                trace!("`RUSTUP_TUF_SERVER` has been set to `{url}`");
                 url
             }
-            // Same resolution as `Cfg::dist_root_url`. `Cfg::new` fails on
-            // the same error before this value can matter, so the fallback
-            // only keeps this constructor infallible.
-            Err(_) => format!(
-                "{}/dist",
-                dist_root_server(process).unwrap_or_else(|_| DEFAULT_DIST_SERVER.to_owned())
-            ),
+            Err(_) => DEFAULT_SERVER.to_owned(),
         };
-
-        let update_server = process
-            .var("RUSTUP_TUF_UPDATE_SERVER")
-            .inspect(|url| trace!("`RUSTUP_TUF_UPDATE_SERVER` has been set to `{url}`"))
-            .ok();
 
         let root = process
             .var("RUSTUP_TUF_ROOT")
@@ -103,8 +90,7 @@ impl TufConfig {
             .and_then(|s| parse_date_time(&s));
 
         Self {
-            dist_server,
-            update_server,
+            server,
             root,
             home,
             mode,
@@ -142,8 +128,7 @@ impl TufConfig {
 
 impl PartialEq for TufConfig {
     fn eq(&self, other: &Self) -> bool {
-        self.dist_server == other.dist_server
-            && self.update_server == other.update_server
+        self.server == other.server
             && self.root == other.root
             && self.home == other.home
             && self.mode == other.mode

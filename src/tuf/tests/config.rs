@@ -27,8 +27,7 @@ fn defaults() {
     assert_eq!(
         config(&[]),
         TufConfig {
-            dist_server: "https://static.rust-lang.org/dist".to_owned(),
-            update_server: None,
+            server: "https://storage.googleapis.com/tufops".to_owned(),
             root: None,
             home: PathBuf::from("/rustup/tuf"),
             mode: TufMode::Off,
@@ -42,8 +41,7 @@ fn defaults() {
 #[test]
 fn all_set() {
     let cfg = config(&[
-        ("RUSTUP_TUF_DIST_SERVER", "https://tuf.example.com/dist"),
-        ("RUSTUP_TUF_UPDATE_SERVER", "https://tuf.example.com/rustup"),
+        ("RUSTUP_TUF_SERVER", "https://tuf.example.com"),
         ("RUSTUP_TUF_ROOT", "/etc/rustup/root.json"),
         ("RUSTUP_TUF_HOME", "/var/lib/rustup-tuf"),
         ("RUSTUP_TUF_ENABLE", "warn"),
@@ -53,8 +51,7 @@ fn all_set() {
     assert_eq!(
         cfg,
         TufConfig {
-            dist_server: "https://tuf.example.com/dist".to_owned(),
-            update_server: Some("https://tuf.example.com/rustup".to_owned()),
+            server: "https://tuf.example.com".to_owned(),
             root: Some(PathBuf::from("/etc/rustup/root.json")),
             home: PathBuf::from("/var/lib/rustup-tuf"),
             mode: TufMode::Warn,

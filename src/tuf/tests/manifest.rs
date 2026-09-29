@@ -38,7 +38,7 @@ fn test_process(root: PathBuf) -> TestProcess {
         ("HOME", root.join("home")),
         ("RUSTUP_DIST_SERVER", PathBuf::from(DIST_ROOT)),
         ("RUSTUP_TUF_ENABLE", PathBuf::from("on")),
-        ("RUSTUP_TUF_DIST_SERVER", tuf.clone()),
+        ("RUSTUP_TUF_SERVER", tuf.clone()),
         ("RUSTUP_TUF_ROOT", tuf.join("metadata/1.root.json")),
         ("RUSTUP_TUF_IGNOREDATE", PathBuf::from(ignore_date(&tuf))),
     ])

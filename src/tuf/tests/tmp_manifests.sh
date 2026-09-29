@@ -7,7 +7,7 @@ target/debug/rustup-init -y --no-modify-path --default-toolchain none
 
 export RUSTUP_TUF_ENABLE=on 
 export RUSTUP_TUF_IGNOREDATE=2026-09-29T19:31:22Z
-export RUSTUP_TUF_DIST_SERVER=/home/jaynus/work/tuf/demo/test_v4
+export RUSTUP_TUF_SERVER=/home/jaynus/work/tuf/demo/test_v4
 export RUSTUP_TUF_ROOT=/home/jaynus/work/tuf/demo/test_v4/metadata/1.root.json
 
 export RUSTUP_LOG=rustup::tuf=trace,rustup::download=debug,rustup::dist=trace

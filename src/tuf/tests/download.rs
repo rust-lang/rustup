@@ -32,7 +32,7 @@ fn setup(tuf: &Path, home: &Path, vars: &[(&str, &str)]) -> (DownloadOptions, Tu
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect::<HashMap<_, _>>();
     vars.insert(
-        "RUSTUP_TUF_DIST_SERVER".to_owned(),
+        "RUSTUP_TUF_SERVER".to_owned(),
         tuf.to_string_lossy().into_owned(),
     );
     vars.insert(

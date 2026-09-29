@@ -79,7 +79,7 @@ impl Online {
             ("CARGO_HOME", home.join("cargo")),
             ("HOME", home.join("home")),
             ("RUSTUP_TUF_ENABLE", PathBuf::from("on")),
-            ("RUSTUP_TUF_DIST_SERVER", PathBuf::from(REPOSITORY)),
+            ("RUSTUP_TUF_SERVER", PathBuf::from(REPOSITORY)),
             ("RUSTUP_TUF_ROOT", root),
             ("RUSTUP_TUF_IGNOREDATE", PathBuf::from(IGNORE_DATE)),
         ])

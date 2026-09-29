@@ -28,7 +28,7 @@ use crate::{
 };
 
 /// A TUF client over the dist repository: a local metadata cache under
-/// [`TufConfig::home`] kept in sync with the remote at [`TufConfig::dist_server`].
+/// [`TufConfig::home`] kept in sync with the remote at [`TufConfig::server`].
 pub(crate) struct TufRepository {
     mode: TufMode,
     ignore_failures: bool,
@@ -37,12 +37,12 @@ pub(crate) struct TufRepository {
 }
 
 impl TufRepository {
-    /// Opens the repository at [`TufConfig::dist_server`]. The remote's own
+    /// Opens the repository at [`TufConfig::server`]. The remote's own
     /// metadata and target downloads use `options` and are never themselves
     /// TUF-verified, which is what keeps this from recursing.
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn open(config: &TufConfig, options: DownloadOptions) -> anyhow::Result<Self> {
-        let location = config.dist_server.as_str();
+        let location = config.server.as_str();
         debug!(
             location,
             home = %config.home.display(),
