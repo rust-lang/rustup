@@ -703,7 +703,7 @@ pub async fn main(
         .bin("rustup")
         .complete();
 
-    self_update::cleanup_self_updater(process, &process.cargo_home()?.join("bin"))?;
+    self_update::cleanup_self_updater(process, &cfg.rustup_bin_dir)?;
 
     use clap::error::ErrorKind::*;
     let matches = match Rustup::try_parse_from(process.args_os()) {
@@ -1983,6 +1983,10 @@ mod tests {
         let vars = HashMap::from([
             (
                 "RUSTUP_HOME".to_owned(),
+                rustup_home.path().display().to_string(),
+            ),
+            (
+                "CARGO_HOME".to_owned(),
                 rustup_home.path().display().to_string(),
             ),
             (

@@ -8,14 +8,14 @@
 //!
 //! During install (as `rustup-init`):
 //!
-//! * copy the self exe to $CARGO_HOME/bin
-//! * hardlink rustc, etc to *that*
+//! * copy the self exe to the Rustup bin home
+//! * hardlink rustc, etc. to *that*
 //! * update the PATH in a system-specific way
 //! * run the equivalent of `rustup default stable`
 //!
 //! During upgrade (`rustup self update`):
 //!
-//! * download rustup-init to a managed path under `$RUSTUP_HOME`
+//! * download rustup-init to `self-update` under the Rustup state home
 //! * run the downloaded binary in replacement mode
 //! * atomically replace rustup and update its proxy links. On Windows
 //!   this happens after the update command exits.
@@ -197,17 +197,17 @@ impl InstallOpts<'_> {
             return Ok(ExitCode::FAILURE);
         }
 
-        let cargo_home = process.cargo_home()?;
+        let bin_home = process.rustup_bin_home()?;
         let home_dir = process.home_dir();
         let msg = if no_modify_path {
             format!(
                 post_install_msg_no_modify_path!(),
-                cargo_bin_dir = HomeDisplay::new(&cargo_home.join("bin"), home_dir.as_deref()),
+                cargo_bin_dir = HomeDisplay::new(&bin_home, home_dir.as_deref()),
             )
         } else {
             format!(
                 post_install_msg!(),
-                cargo_bin_dir = HomeDisplay::new(&cargo_home.join("bin"), home_dir.as_deref()),
+                cargo_bin_dir = HomeDisplay::new(&bin_home, home_dir.as_deref()),
             )
         };
         md(&mut term, msg);
@@ -246,8 +246,8 @@ impl InstallOpts<'_> {
         quiet: bool,
         process: &Process,
     ) -> anyhow::Result<()> {
-        let cargo_bin = process.cargo_home()?.join("bin");
-        install_bins(process, &cargo_bin, force_hard_links(process))?;
+        let bin_home = process.rustup_bin_home()?;
+        install_bins(process, &bin_home, force_hard_links(process))?;
 
         #[cfg(unix)]
         unix::write_env_files(process)?;
@@ -288,7 +288,7 @@ impl InstallOpts<'_> {
                 DistributableToolchain::install(options).await?.status
             };
 
-            check_proxy_sanity(&cargo_bin, components, &desc)?;
+            check_proxy_sanity(&bin_home, components, &desc)?;
 
             cfg.set_default(Some(&partial_desc.into()))?;
             writeln!(cfg.process.stdout().lock())?;
@@ -631,10 +631,10 @@ fn rustc_or_cargo_exists_in_path(process: &Process) -> anyhow::Result<()> {
     let Some(paths) = process.var_os("PATH") else {
         return Ok(());
     };
-    let cargo_bin = process.cargo_home()?.join("bin");
+    let bin_home = process.rustup_bin_home()?;
 
     let conflict = env::split_paths(&paths).find(|path| {
-        path != &cargo_bin
+        path != &bin_home
             && (path.join(format!("rustc{EXE_SUFFIX}")).exists()
                 || path.join(format!("cargo{EXE_SUFFIX}")).exists())
     });
@@ -700,8 +700,9 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
 
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
     let cargo_home = process.cargo_home()?;
-    let cargo_bin_dir = cargo_home.join("bin");
+    let cargo_bin_dir = process.rustup_bin_home()?;
     let rustup_home = process.rustup_home()?;
+    let home_dir = process.home_dir();
 
     if !no_modify_path {
         // Brittle code warning: some duplication in unix::add_to_path
@@ -716,7 +717,7 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
             Ok(format!(
                 pre_install_msg_unix!(),
                 cargo_home = cargo_home.display(),
-                cargo_bin_dir = cargo_bin_dir.display(),
+                cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
                 plural = plural,
                 rcfiles = rcfiles,
                 rustup_home = rustup_home.display(),
@@ -726,14 +727,14 @@ fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<St
         Ok(format!(
             pre_install_msg_win!(),
             cargo_home = cargo_home.display(),
-            cargo_bin_dir = cargo_bin_dir.display(),
+            cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
             rustup_home = rustup_home.display(),
         ))
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
             cargo_home = cargo_home.display(),
-            cargo_bin_dir = cargo_bin_dir.display(),
+            cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
             rustup_home = rustup_home.display(),
         ))
     }
@@ -790,7 +791,7 @@ fn install_bins(process: &Process, bin_path: &Path, force_hard_links: bool) -> a
 }
 
 pub(crate) fn install_proxies(process: &Process) -> anyhow::Result<()> {
-    let bin_path = process.cargo_home()?.join("bin");
+    let bin_path = process.rustup_bin_home()?;
     install_proxies_with_opts(&bin_path, force_hard_links(process))
 }
 
@@ -1205,11 +1206,11 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<PreparedUpdater>> {
-    let cargo_home = dl_cfg.process.cargo_home()?;
-    let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
+    let bin_home = dl_cfg.process.rustup_bin_home()?;
+    let rustup_path = bin_home.join(format!("rustup{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
-        return Err(CliError::NotSelfInstalled { p: cargo_home }.into());
+        return Err(CliError::NotSelfInstalled { p: bin_home }.into());
     }
     let self_update_lock = SelfUpdateLock::lock(dl_cfg.process)?;
 
@@ -1432,6 +1433,7 @@ mod tests {
         with_rustup_home(|home| {
             let mut vars = HashMap::new();
             home.apply(&mut vars);
+            vars.env("CARGO_HOME", &home.rustupdir);
             let tp = TestProcess::with_vars(vars);
             let mut cfg =
                 Cfg::from_env(tp.process.current_dir().unwrap(), false, true, &tp.process).unwrap();

@@ -10,7 +10,7 @@ use std::{
         fs::OpenOptionsExt,
         io::{AsRawHandle, FromRawHandle, OwnedHandle},
     },
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
     ptr, thread,
     time::Duration,
@@ -465,7 +465,7 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
+    let new_path = _with_path_rustup_bin(_add_to_path, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -559,18 +559,20 @@ fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
 
 const PATH_SEPARATOR: u16 = b';' as u16;
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
+fn _with_path_rustup_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
     let windows_path = get_windows_path_var(process)?;
-    let mut path_str = process.cargo_home()?;
-    path_str.push("bin");
+    let path_str = process.rustup_bin_home()?;
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
+    let windows_path = get_windows_path_var(process)?;
+    let path_str = process.cargo_home()?.join("bin");
+    let new_path = windows_path
+        .and_then(|old_path| _remove_from_path(old_path, HSTRING::from(path_str.as_path())));
     _apply_new_path(new_path, process)
 }
 
@@ -631,8 +633,7 @@ pub(crate) fn add_uninstall_registry_entry(process: &Process) -> anyhow::Result<
         }
     }
 
-    let mut path = process.cargo_home()?;
-    path.push("bin\\rustup.exe");
+    let path = process.rustup_bin_home()?.join("rustup.exe");
     let mut uninstall_cmd = OsString::from("\"");
     uninstall_cmd.push(path);
     uninstall_cmd.push("\" self uninstall");
@@ -666,10 +667,14 @@ pub(super) fn run_update(
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
     let self_update_lock = SelfUpdateLock::lock(process)?;
-    let result = process.cargo_home().and_then(|cargo_home| {
-        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))?;
-        update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
-    });
+    let result = self_update_lock
+        .install_bins(
+            &process.rustup_bin_home()?,
+            super::force_hard_links(process),
+        )
+        .and_then(|()| {
+            update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
+        });
     stage::mark_result(result.is_ok(), process);
     result?;
 
@@ -835,6 +840,61 @@ mod tests {
             Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
         }
+    }
+
+    #[test]
+    fn legacy_mode_uninstall_uses_cargo_bin() {
+        let cwd = std::env::current_dir().unwrap();
+        let cargo_home = cwd.join("cargo home");
+        let tp = TestProcess::with_vars(HashMap::from([
+            (RUSTUP_REGISTRY_TEST_ID.to_owned(), test_id()),
+            (
+                "CARGO_HOME".to_owned(),
+                cargo_home.to_str().unwrap().to_owned(),
+            ),
+            ("RUSTUP_USE_CATEGORY_HOME".to_owned(), "0".to_owned()),
+        ]));
+        add_uninstall_registry_entry(&tp.process).unwrap();
+        assert_eq!(
+            rustup_uninstall_registry_key(&tp.process)
+                .unwrap()
+                .get_string("UninstallString")
+                .unwrap(),
+            format!(
+                "\"{}\" self uninstall",
+                cargo_home.join("bin").join("rustup.exe").display()
+            )
+        );
+    }
+
+    #[test]
+    fn category_mode_uninstall_uses_rustup_bin() {
+        let cwd = std::env::current_dir().unwrap();
+        let cargo_home = cwd.join("cargo home");
+        let bin_home = cwd.join("category bin");
+        let tp = TestProcess::with_vars(HashMap::from([
+            (RUSTUP_REGISTRY_TEST_ID.to_owned(), test_id()),
+            (
+                "CARGO_HOME".to_owned(),
+                cargo_home.to_str().unwrap().to_owned(),
+            ),
+            (
+                "RUSTUP_BIN_HOME".to_owned(),
+                bin_home.to_str().unwrap().to_owned(),
+            ),
+            ("RUSTUP_USE_CATEGORY_HOME".to_owned(), "1".to_owned()),
+        ]));
+        add_uninstall_registry_entry(&tp.process).unwrap();
+        assert_eq!(
+            rustup_uninstall_registry_key(&tp.process)
+                .unwrap()
+                .get_string("UninstallString")
+                .unwrap(),
+            format!(
+                "\"{}\" self uninstall",
+                bin_home.join("rustup.exe").display()
+            )
+        );
     }
 
     #[test]
@@ -1031,7 +1091,7 @@ mod tests {
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
-            _with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+            _with_path_rustup_bin(|_, _| panic!("called"), &tp.process).unwrap()
         );
 
         assert_eq!(

@@ -110,7 +110,7 @@ Rust is installed now. Great!
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (%USERPROFILE%/.cargo/bin) in[..]
+To get started you need the bin home directory (%USERPROFILE%/.cargo/bin) in[..]
 your PATH
 environment variable. This has not been done automatically.
 
@@ -121,7 +121,7 @@ Press the Enter key to continue.
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ($HOME/.cargo/bin) in your PATH
+To get started you need the bin home directory ($HOME/.cargo/bin) in your PATH
 environment variable. This has not been done automatically.
 
 To configure your current shell, you need to source the
@@ -163,7 +163,7 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory (%USERPROFILE%/.cargo/bin).
+the bin home directory (%USERPROFILE%/.cargo/bin).
 
 Press the Enter key to continue.
 
@@ -174,7 +174,7 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory ($HOME/.cargo/bin).
+the bin home directory ($HOME/.cargo/bin).
 
 To configure your current shell, you need to source the
 corresponding env file under $HOME/.cargo.
@@ -192,9 +192,11 @@ Consider running the right command for your shell (note the leading DOT):
 async fn category_install_displays_shell_setup() {
     let cx = CliTestContext::new(Scenario::Empty).await;
     let data_home = cx.config.homedir.join("data");
+    let bin_home = cx.config.homedir.join("test-bin-home");
     let env = [
         ("RUSTUP_USE_CATEGORY_HOME", "1"),
         ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
         ("PATH", cx.config.exedir.to_str().unwrap()),
         ("SHELL", "/bin/sh"),
     ];
@@ -206,11 +208,51 @@ async fn category_install_displays_shell_setup() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 ...
+the bin home directory ($HOME/test-bin-home).
+...
 corresponding env file under $HOME/data.
 ...
   . "[DATA_HOME]/env" # For sh/ash/dash/pdksh
 ...
 "#]]);
+}
+
+#[tokio::test]
+async fn reinstall_ignores_own_bin_in_path_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let bin_home = cx.config.homedir.join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ("PATH", bin_home.to_str().unwrap()),
+        ("RUSTUP_INIT_SKIP_PATH_CHECK", ""),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--default-toolchain",
+                "none",
+                "--no-modify-path",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+    run_input_with_env(
+        &cx.config,
+        &[
+            "rustup-init",
+            "--default-toolchain",
+            "none",
+            "--no-modify-path",
+        ],
+        "\n\n",
+        &env,
+    )
+    .is_ok()
+    .without_stderr("It looks like you have an existing installation of Rust");
 }
 
 #[tokio::test]
