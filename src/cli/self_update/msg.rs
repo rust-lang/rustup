@@ -24,7 +24,7 @@ The Cargo home directory is located at:
 This can be modified with the `CARGO_HOME` environment variable.
 
 The `cargo`, `rustc`, `rustup` and other commands will be added to
-Cargo's bin directory, located at:
+the bin home directory, located at:
 
     {cargo_bin_dir}
 
@@ -76,7 +76,7 @@ macro_rules! post_install_msg {
 
 To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
-Cargo's bin directory (`{cargo_bin_dir}`).
+the bin home directory (`{cargo_bin_dir}`).
 "
     };
 }
@@ -85,7 +85,7 @@ macro_rules! post_install_msg_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (`{cargo_bin_dir}`) in your `PATH`
+To get started you need the bin home directory (`{cargo_bin_dir}`) in your `PATH`
 environment variable. This has not been done automatically.
 "
     };

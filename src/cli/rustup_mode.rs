@@ -716,7 +716,7 @@ pub async fn main(
         .bin("rustup")
         .complete();
 
-    self_update::cleanup_self_updater(process, &process.cargo_home()?.join("bin"))?;
+    self_update::cleanup_self_updater(process, &cfg.bin_dir)?;
 
     use clap::error::ErrorKind::*;
     let matches = match Rustup::try_parse_from(&args) {
