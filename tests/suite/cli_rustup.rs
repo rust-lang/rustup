@@ -1223,6 +1223,39 @@ hint: a new stable Rust release is available, run `rustup update stable` to inst
 }
 
 #[tokio::test]
+async fn notify_release_hint_at_most_once_per_day_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let state_home = cx.config.current_dir().join("relative/state");
+    let state_home_env = state_home.to_str().unwrap();
+    let state_env = [
+        ("RUSTUP_STATE_HOME", state_home_env),
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+    ];
+    cx.config
+        .expect_with_env(["rustup", "set", "release-hint", "enable"], state_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "update", "stable"], state_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "show"], state_env)
+        .await
+        .with_stderr(snapbox::str![[r#"
+hint: a new stable Rust release is available, run `rustup update stable` to install it
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "show"], state_env)
+        .await
+        .with_stderr(snapbox::str![[""]])
+        .is_ok();
+    assert!(state_home.join("state.toml").is_file());
+}
+
+#[tokio::test]
 async fn notify_release_hint_skipped_for_recent_release() {
     let cx = CliTestContext::new(Scenario::RecentStable).await;
     cx.config

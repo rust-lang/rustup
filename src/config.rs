@@ -322,6 +322,7 @@ pub(crate) struct Cfg<'a> {
     update_hash_dir: PathBuf,
     pub rustup_cache_dir: PathBuf,
     pub rustup_data_dir: PathBuf,
+    pub rustup_state_dir: PathBuf,
     pub download_dir: PathBuf,
     pub tmp_dir: PathBuf,
     pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
@@ -353,8 +354,12 @@ impl<'a> Cfg<'a> {
         let home_dirs = process.home_dirs()?;
         let rustup_cache_dir = home_dirs.cache;
         let rustup_data_dir = home_dirs.data;
+        let rustup_state_dir = home_dirs.state;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
+        if process.use_category_home() {
+            utils::ensure_dir_exists("state home", &rustup_state_dir)?;
+        }
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         settings_file.with(|s| {
@@ -368,7 +373,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(rustup_state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
@@ -407,6 +412,7 @@ impl<'a> Cfg<'a> {
             update_hash_dir,
             rustup_cache_dir,
             rustup_data_dir,
+            rustup_state_dir,
             download_dir,
             tmp_dir,
             toolchain_override: None,
@@ -1196,6 +1202,7 @@ impl Debug for Cfg<'_> {
             update_hash_dir,
             rustup_cache_dir,
             rustup_data_dir,
+            rustup_state_dir,
             download_dir,
             tmp_dir,
             toolchain_override,
@@ -1218,6 +1225,7 @@ impl Debug for Cfg<'_> {
             .field("update_hash_dir", update_hash_dir)
             .field("rustup_cache_dir", rustup_cache_dir)
             .field("rustup_data_dir", rustup_data_dir)
+            .field("rustup_state_dir", rustup_state_dir)
             .field("download_dir", download_dir)
             .field("tmp_dir", tmp_dir)
             .field("toolchain_override", toolchain_override)

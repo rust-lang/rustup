@@ -262,6 +262,7 @@ impl InstallOpts<'_> {
         let home_dirs = process.home_dirs()?;
         utils::ensure_dir_exists("cache home", &home_dirs.cache)?;
         utils::ensure_dir_exists("data home", &home_dirs.data)?;
+        utils::ensure_dir_exists("state home", &home_dirs.state)?;
 
         let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
 

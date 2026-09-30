@@ -793,6 +793,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::remove_var("RUSTUP_UPDATE_ROOT");
         env::remove_var("RUSTUP_CACHE_HOME");
         env::remove_var("RUSTUP_DATA_HOME");
+        env::remove_var("RUSTUP_STATE_HOME");
         env::remove_var("RUSTUP_TOOLCHAIN");
         env::remove_var("SHELL");
         env::remove_var("ZDOTDIR");
@@ -804,6 +805,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::remove_var("XDG_CONFIG_HOME");
         env::remove_var("XDG_CACHE_HOME");
         env::remove_var("XDG_DATA_HOME");
+        env::remove_var("XDG_STATE_HOME");
 
         match env::var("RUSTUP_BACKTRACE") {
             Ok(val) => env::set_var("RUST_BACKTRACE", val),
