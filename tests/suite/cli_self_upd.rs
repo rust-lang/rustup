@@ -1258,8 +1258,8 @@ async fn install_minimal_profile() {
     cx.config.expect_component_not_executable("cargo").await;
 }
 
-fn wait_for_completed_update(rustup_home: &Path) {
-    let stage = rustup_home.join(SELF_UPDATE_DIRECTORY);
+fn wait_for_completed_update(state_home: &Path) {
+    let stage = state_home.join(SELF_UPDATE_DIRECTORY);
     retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
         if Marker::Complete.path(&stage).is_file() {
             Ok(())
@@ -1272,8 +1272,8 @@ fn wait_for_completed_update(rustup_home: &Path) {
     .unwrap();
 }
 
-fn managed_updater(rustup_home: &Path) -> PathBuf {
-    updater_path(&rustup_home.join(SELF_UPDATE_DIRECTORY))
+fn managed_updater(state_home: &Path) -> PathBuf {
+    updater_path(&state_home.join(SELF_UPDATE_DIRECTORY))
 }
 
 const TEST_VERSION: &str = "1.1.1";
