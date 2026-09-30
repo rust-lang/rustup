@@ -360,6 +360,32 @@ no active toolchain
 }
 
 #[tokio::test]
+async fn install_initializes_homes_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let data_home = cx.config.current_dir().join("relative/data");
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let mut cmd = cx.config.cmd(
+        "rustup-init",
+        ["-y", "--no-modify-path", "--default-toolchain", "none"],
+    );
+    cmd.env_remove("RUSTUP_HOME");
+    cmd.env("RUSTUP_CONFIG_HOME", "relative/config");
+    cmd.env("RUSTUP_STATE_HOME", "relative/state");
+    cmd.env("RUSTUP_DATA_HOME", "relative/data");
+    cmd.env("RUSTUP_CACHE_HOME", "relative/cache");
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    assert!(cmd.output().unwrap().status.success());
+
+    assert!(!cx.config.homedir.join(".rustup").exists());
+    assert!(config_home.is_dir());
+    assert!(state_home.is_dir());
+    assert!(data_home.is_dir());
+    assert!(cache_home.is_dir());
+}
+
+#[tokio::test]
 async fn with_no_toolchain_doesnt_hang() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     run_input(
@@ -745,6 +771,41 @@ version = "12""#,
         .expect_with_env(
             ["rustup-init", "-y", "--no-modify-path"],
             [("RUSTUP_HOME", temp_dir_path)],
+        )
+        .await
+        .is_ok()
+        .with_stderr(snapbox::str![[r#"
+...
+warn: it looks like you have an existing rustup settings file at:
+...
+"#]]);
+}
+
+#[tokio::test]
+async fn install_warns_about_existing_settings_file_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let config_home_env = config_home.to_str().unwrap();
+    let settings_file = config_home.join("settings.toml");
+    fs::create_dir_all(settings_file.parent().unwrap()).unwrap();
+    raw::write_file(
+        &settings_file,
+        &format!(
+            r#"default_toolchain = "{}"
+profile = "default"
+version = "12""#,
+            this_host_tuple()
+        ),
+    )
+    .unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["rustup-init", "-y", "--no-modify-path"],
+            [
+                ("RUSTUP_CONFIG_HOME", config_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
         )
         .await
         .is_ok()

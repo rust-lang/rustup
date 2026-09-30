@@ -322,6 +322,7 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub cache_dir: PathBuf,
+    pub config_dir: PathBuf,
     pub data_dir: PathBuf,
     pub state_dir: PathBuf,
     pub download_dir: PathBuf,
@@ -354,15 +355,18 @@ impl<'a> Cfg<'a> {
         let rustup_dir = process.rustup_home()?;
         let home_dirs = process.home_dirs()?;
         let cache_dir = home_dirs.cache;
+        let config_dir = home_dirs.config;
         let data_dir = home_dirs.data;
         let state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
         if process.use_category_home() {
+            utils::ensure_dir_exists("config home", &config_dir)?;
             utils::ensure_dir_exists("state home", &state_dir)?;
+        } else {
+            utils::ensure_dir_exists("home", &config_dir)?;
         }
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
@@ -412,6 +416,7 @@ impl<'a> Cfg<'a> {
             toolchains_dir,
             update_hash_dir,
             cache_dir,
+            config_dir,
             data_dir,
             state_dir,
             download_dir,
@@ -1194,6 +1199,7 @@ impl Debug for Cfg<'_> {
             toolchains_dir,
             update_hash_dir,
             cache_dir,
+            config_dir,
             data_dir,
             state_dir,
             download_dir,
@@ -1217,6 +1223,7 @@ impl Debug for Cfg<'_> {
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
             .field("cache_dir", cache_dir)
+            .field("config_dir", config_dir)
             .field("data_dir", data_dir)
             .field("state_dir", state_dir)
             .field("download_dir", download_dir)
