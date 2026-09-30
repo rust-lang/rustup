@@ -83,7 +83,7 @@ impl Process {
     ///
     /// Category mode resolves each directory independently through [`home`].
     /// Legacy mode uses the resolved Rustup home for all four categories.
-    #[allow(dead_code, reason = "split-home interface is not consumed yet")]
+    /// See [`home`] for platform defaults and path rules.
     pub(crate) fn home_dirs(&self) -> io::Result<HomeDirs> {
         if self.use_category_home() {
             return HomeDirs::from_env(self);

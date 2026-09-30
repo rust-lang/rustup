@@ -154,6 +154,7 @@ impl<'a> Toolchain<'a> {
         env_var::inc("RUST_RECURSION_COUNT", cmd, self.cfg.process);
 
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
+        cmd.env("RUSTUP_CACHE_HOME", &self.cfg.cache_dir);
         if !self.cfg.process.use_category_home() {
             cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
         }
