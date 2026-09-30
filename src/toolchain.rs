@@ -180,6 +180,7 @@ impl<'a> Toolchain<'a> {
 
         cmd.env("RUSTUP_TOOLCHAIN", format!("{}", self.name));
         cmd.env("RUSTUP_CACHE_HOME", &self.cfg.rustup_cache_dir);
+        cmd.env("RUSTUP_CONFIG_HOME", &self.cfg.rustup_config_dir);
         cmd.env("RUSTUP_DATA_HOME", &self.cfg.rustup_data_dir);
         cmd.env("RUSTUP_STATE_HOME", &self.cfg.rustup_state_dir);
         if !self.cfg.process.use_category_home() {
