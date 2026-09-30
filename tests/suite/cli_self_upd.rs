@@ -84,7 +84,7 @@ info: default toolchain set to stable
     fn check(path: &Path) {
         assert!(path.exists());
     }
-    #[cfg(not(windows))]
+    #[cfg(unix)]
     fn check(path: &Path) {
         fn is_exe(path: &Path) -> bool {
             use std::os::unix::fs::MetadataExt;
@@ -97,6 +97,46 @@ info: default toolchain set to stable
     for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
         let path = &cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
         check(path);
+    }
+}
+
+#[tokio::test]
+async fn install_bins_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let bin_home = cx.config.current_dir().join("relative/bin");
+    let bin_home_env = bin_home.to_str().unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["rustup-init", "-y"],
+            [
+                ("RUSTUP_BIN_HOME", bin_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+  stable-[HOST_TUPLE] installed - 1.1.0 (hash-stable-1.1.0)
+...
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+info: syncing channel updates for stable-[HOST_TUPLE]
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
+info: downloading 4 components
+info: default toolchain set to stable
+
+"#]])
+        .is_ok();
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        let path = &bin_home.join(format!("{tool}{EXE_SUFFIX}"));
+        assert!(path.is_file());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(path.metadata().unwrap().permissions().mode() & 0o777, 0o755);
+        }
     }
 }
 
@@ -514,11 +554,11 @@ async fn update_but_not_installed() {
     cx.config
         .expect(["rustup", "self", "update"])
         .await
-        .extend_redactions([("[CARGO_DIR]", cx.config.cargodir)])
+        .extend_redactions([("[BIN_HOME]", cx.config.cargodir.join("bin"))])
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-error: rustup is not installed at '[CARGO_DIR]'
+error: rustup is not installed at '[BIN_HOME]'
 
 "#]]);
 }
@@ -670,6 +710,45 @@ async fn update_updates_rustup_bin() {
     let after_hash = calc_hash(&bin);
 
     assert_ne!(before_hash, after_hash);
+}
+
+#[tokio::test]
+async fn update_updates_rustup_bin_with_category_mode_enabled() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let state_home = cx.config.homedir.join("state");
+    let bin_home = cx.config.homedir.join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    let bin = bin_home.join(format!("rustup{EXE_SUFFIX}"));
+    let before_hash = calc_hash(&bin);
+    let mut cmd = Command::new(&bin);
+    cx.config.env(&mut cmd);
+    cmd.envs(env).args(["self", "update"]);
+    let out = cmd.output().unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    wait_for_completed_update(&state_home);
+    assert_ne!(before_hash, calc_hash(&bin));
 }
 
 #[tokio::test]
@@ -874,6 +953,40 @@ async fn updater_is_deleted_after_running_rustc() {
     cx.config.expect(["rustc", "--version"]).await.is_ok();
 
     assert!(!managed_updater(&cx.config.rustupdir.rustupdir).exists());
+}
+
+#[tokio::test]
+async fn updater_is_deleted_after_running_rustc_with_category_mode_enabled() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let state_home = cx.config.current_dir().join("state");
+    let bin_home = cx.config.current_dir().join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(["rustup-init", "-y", "--no-modify-path"], env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "default", "nightly"], env)
+        .await
+        .is_ok();
+    let rustup = bin_home.join(format!("rustup{EXE_SUFFIX}"));
+    cx.config
+        .expect_with_env([rustup.to_str().unwrap(), "self", "update"], env)
+        .await
+        .is_ok();
+    wait_for_completed_update(&state_home);
+    assert!(managed_updater(&state_home).is_file());
+
+    let rustc = bin_home.join(format!("rustc{EXE_SUFFIX}"));
+    cx.config
+        .expect_with_env([rustc.to_str().unwrap(), "--version"], env)
+        .await
+        .is_ok();
+    assert!(!managed_updater(&state_home).exists());
 }
 
 #[tokio::test]
