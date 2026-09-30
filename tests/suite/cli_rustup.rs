@@ -769,7 +769,7 @@ custom
 async fn fallback_cargo_calls_correct_rustc() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     // Hm, this is the _only_ test that assumes that toolchain proxies
-    // exist in CARGO_HOME. Adding that proxy here.
+    // exist in bin home. Adding that proxy here.
     let rustup_path = cx.config.exedir.join(format!("rustup{EXE_SUFFIX}"));
     let cargo_bin_path = cx.config.cargodir.join("bin");
     fs::create_dir_all(&cargo_bin_path).unwrap();
@@ -827,8 +827,14 @@ async fn fallback_cargo_calls_correct_rustc() {
 #[tokio::test]
 async fn fallback_cargo_calls_correct_rustc_with_category_mode_enabled() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let data_env = [
+        ("RUSTUP_DATA_HOME", data_home_env),
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+    ];
     // Hm, this is the _only_ test that assumes that toolchain proxies
-    // exist in CARGO_HOME. Adding that proxy here.
+    // exist in bin home. Adding that proxy here.
     let rustup_path = cx.config.exedir.join(format!("rustup{EXE_SUFFIX}"));
     let cargo_bin_path = cx.config.cargodir.join("bin");
     fs::create_dir_all(&cargo_bin_path).unwrap();
@@ -839,28 +845,19 @@ async fn fallback_cargo_calls_correct_rustc_with_category_mode_enabled() {
     let path = cx.config.customdir.join("custom-1");
     let path = path.to_string_lossy();
     cx.config
-        .expect_with_env(
-            ["rustup", "toolchain", "link", "custom", &path],
-            [("RUSTUP_USE_CATEGORY_HOME", "1")],
-        )
+        .expect_with_env(["rustup", "toolchain", "link", "custom", &path], data_env)
         .await
         .is_ok();
     cx.config
-        .expect_with_env(
-            ["rustup", "default", "custom"],
-            [("RUSTUP_USE_CATEGORY_HOME", "1")],
-        )
+        .expect_with_env(["rustup", "default", "custom"], data_env)
         .await
         .is_ok();
     cx.config
-        .expect_with_env(
-            ["rustup", "update", "nightly"],
-            [("RUSTUP_USE_CATEGORY_HOME", "1")],
-        )
+        .expect_with_env(["rustup", "update", "nightly"], data_env)
         .await
         .is_ok();
     cx.config
-        .expect_with_env(["rustc", "--version"], [("RUSTUP_USE_CATEGORY_HOME", "1")])
+        .expect_with_env(["rustc", "--version"], data_env)
         .await
         .with_stdout(snapbox::str![[r#"
 1.0.0 (hash-c-1)
@@ -868,7 +865,7 @@ async fn fallback_cargo_calls_correct_rustc_with_category_mode_enabled() {
 "#]])
         .is_ok();
     cx.config
-        .expect_with_env(["cargo", "--version"], [("RUSTUP_USE_CATEGORY_HOME", "1")])
+        .expect_with_env(["cargo", "--version"], data_env)
         .await
         .with_stdout(snapbox::str![[r#"
 1.3.0 (hash-nightly-2)
@@ -883,16 +880,18 @@ async fn fallback_cargo_calls_correct_rustc_with_category_mode_enabled() {
     // RUSTUP_TOOLCHAIN variable set by the original "cargo" proxy, and
     // interpreted by the nested "rustc" proxy.
     cx.config
-        .expect_with_env(
-            ["cargo", "--call-rustc"],
-            [("RUSTUP_USE_CATEGORY_HOME", "1")],
-        )
+        .expect_with_env(["cargo", "--call-rustc"], data_env)
         .await
         .with_stdout(snapbox::str![[r#"
 1.0.0 (hash-c-1)
 
 "#]])
         .is_ok();
+
+    #[cfg(windows)]
+    {
+        assert!(data_home.join("fallback/cargo.exe").is_file());
+    }
 }
 
 // Checks that cargo can recursively invoke itself with rustup shorthand (via
