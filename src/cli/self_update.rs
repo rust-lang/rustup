@@ -270,6 +270,9 @@ impl InstallOpts<'_> {
             fs::create_dir_all(home).context("unable to create ~/.rustup")?;
         }
 
+        let cache_home = process.home_dirs()?.cache;
+        utils::ensure_dir_exists("cache home", &cache_home)?;
+
         let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
 
         let (components, targets) = (self.components, self.targets);
