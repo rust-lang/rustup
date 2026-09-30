@@ -32,7 +32,7 @@
 </tspan>
     <tspan x="10px" y="118px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">active-toolchain</tspan><tspan>  Show the active toolchain</tspan>
 </tspan>
-    <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">home</tspan><tspan>              Display the computed value of RUSTUP_HOME</tspan>
+    <tspan x="10px" y="136px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">home</tspan><tspan>              Display resolved Rustup home directories</tspan>
 </tspan>
     <tspan x="10px" y="154px"><tspan>  </tspan><tspan class="fg-bright-cyan bold">profile</tspan><tspan>           Show the default profile used for the `rustup install` command</tspan>
 </tspan>
