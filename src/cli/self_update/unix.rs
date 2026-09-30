@@ -97,7 +97,7 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
 
 pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
     let env_home = process.env_home()?;
-    let bin_dir = process.cargo_home()?.join("bin");
+    let bin_dir = process.bin_home()?;
     let home_dir = process.home_dir();
     utils::ensure_dir_exists("env", &env_home)?;
     let mut written = vec![];
@@ -132,16 +132,19 @@ pub(super) fn run_update(
     Ok(utils::ExitCode(0))
 }
 
-/// This function is as the final step of a self-upgrade. It replaces
-/// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
-/// links to it.
+/// This function is the final step of a self-upgrade. It replaces Rustup in
+/// the Rustup bin home and updates the proxy links.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     let self_update_lock = SelfUpdateLock::lock(process)?;
     #[cfg(feature = "test")]
     process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
-    let result = process.cargo_home().and_then(|cargo_home| {
-        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))
-    });
+
+    let result = process
+        .bin_home()
+        .map_err(anyhow::Error::from)
+        .and_then(|bin_home| {
+            self_update_lock.install_bins(&bin_home, super::force_hard_links(process))
+        });
     stage::mark_result(result.is_ok(), process);
     result?;
 

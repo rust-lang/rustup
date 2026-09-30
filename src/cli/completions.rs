@@ -225,6 +225,10 @@ mod tests {
                 rustup_home.path().display().to_string(),
             ),
             (
+                "CARGO_HOME".to_owned(),
+                rustup_home.path().display().to_string(),
+            ),
+            (
                 "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS".to_owned(),
                 rustup_home
                     .path()

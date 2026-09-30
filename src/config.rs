@@ -321,6 +321,7 @@ pub(crate) struct Cfg<'a> {
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
+    pub bin_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub config_dir: PathBuf,
     pub data_dir: PathBuf,
@@ -353,6 +354,7 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
+        let bin_dir = process.bin_home()?;
         let home_dirs = process.home_dirs()?;
         let cache_dir = home_dirs.cache;
         let config_dir = home_dirs.config;
@@ -415,6 +417,7 @@ impl<'a> Cfg<'a> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            bin_dir,
             cache_dir,
             config_dir,
             data_dir,
@@ -1198,6 +1201,7 @@ impl Debug for Cfg<'_> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            bin_dir,
             cache_dir,
             config_dir,
             data_dir,
@@ -1222,6 +1226,7 @@ impl Debug for Cfg<'_> {
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
+            .field("bin_dir", bin_dir)
             .field("cache_dir", cache_dir)
             .field("config_dir", config_dir)
             .field("data_dir", data_dir)
