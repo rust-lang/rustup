@@ -321,7 +321,9 @@ pub(crate) struct Cfg<'a> {
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
+    pub cache_dir: PathBuf,
     pub download_dir: PathBuf,
+    pub tmp_dir: PathBuf,
     pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
     env_override: Option<Override<PartialToolchainNameOrPath>>,
     pub(crate) dist_root_server: String,
@@ -348,6 +350,7 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
+        let cache_dir = process.home_dirs()?.cache;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
 
@@ -379,8 +382,9 @@ impl<'a> Cfg<'a> {
         let fallback_settings = None;
 
         let toolchains_dir = rustup_dir.join("toolchains");
-        let update_hash_dir = rustup_dir.join("update-hashes");
-        let download_dir = rustup_dir.join("downloads");
+        let update_hash_dir = cache_dir.join("update-hashes");
+        let download_dir = cache_dir.join("downloads");
+        let tmp_dir = cache_dir.join("tmp");
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
@@ -399,7 +403,9 @@ impl<'a> Cfg<'a> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            cache_dir,
             download_dir,
+            tmp_dir,
             toolchain_override: None,
             env_override,
             dist_root_server,
@@ -1177,7 +1183,9 @@ impl Debug for Cfg<'_> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            cache_dir,
             download_dir,
+            tmp_dir,
             toolchain_override,
             env_override,
             dist_root_server,
@@ -1196,7 +1204,9 @@ impl Debug for Cfg<'_> {
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
+            .field("cache_dir", cache_dir)
             .field("download_dir", download_dir)
+            .field("tmp_dir", tmp_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
             .field("dist_root_server", dist_root_server)
