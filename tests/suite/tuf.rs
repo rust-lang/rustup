@@ -167,6 +167,7 @@ async fn self_update() {
 "#]])
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
+info: syncing TUF database from [..]
 info: downloading self-update (new version: [TEST_VERSION])
 
 "#]])
