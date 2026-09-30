@@ -791,6 +791,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::remove_var("CARGO");
         env::remove_var("RUSTUP_AUTO_INSTALL");
         env::remove_var("RUSTUP_UPDATE_ROOT");
+        env::remove_var("RUSTUP_CACHE_HOME");
         env::remove_var("RUSTUP_DATA_HOME");
         env::remove_var("RUSTUP_TOOLCHAIN");
         env::remove_var("SHELL");
@@ -801,6 +802,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::set_var("TERM", "dumb");
         // Removed to avoid leaking the developer's environment into the test
         env::remove_var("XDG_CONFIG_HOME");
+        env::remove_var("XDG_CACHE_HOME");
         env::remove_var("XDG_DATA_HOME");
 
         match env::var("RUSTUP_BACKTRACE") {

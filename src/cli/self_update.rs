@@ -259,15 +259,8 @@ impl InstallOpts<'_> {
         #[cfg(windows)]
         add_uninstall_registry_entry(process)?;
 
-        // If RUSTUP_HOME is not set, make sure it exists
-        if process.var_os("RUSTUP_HOME").is_none() {
-            let home = process
-                .home_dir()
-                .map(|p| p.join(".rustup"))
-                .ok_or_else(|| anyhow::anyhow!("could not find home dir to put .rustup in"))?;
-
-            fs::create_dir_all(home).context("unable to create ~/.rustup")?;
-        }
+        let cache_home = process.home_dirs()?.cache;
+        utils::ensure_dir_exists("cache home", &cache_home)?;
 
         let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
 
