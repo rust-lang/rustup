@@ -204,7 +204,6 @@ async fn category_install_displays_shell_setup() {
     cx.config
         .expect_with_env(["rustup-init", "-y", "--default-toolchain", "none"], env)
         .await
-        .extend_redactions([("[DATA_HOME]", data_home.to_str().unwrap().to_owned())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 ...
@@ -212,7 +211,7 @@ the bin home directory ($HOME/test-bin-home).
 ...
 corresponding env file under $HOME/data.
 ...
-  . "[DATA_HOME]/env" # For sh/ash/dash/pdksh
+  . "$HOME/data/env" # For sh/ash/dash/pdksh
 ...
 "#]]);
 }
@@ -433,6 +432,83 @@ async fn install_initializes_homes_with_category_mode_enabled() {
     assert!(state_home.is_dir());
     assert!(data_home.is_dir());
     assert!(cache_home.is_dir());
+}
+
+#[tokio::test]
+async fn install_displays_homes_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.homedir.join("config");
+    let state_home = cx.config.homedir.join("state");
+    let data_home = cx.config.homedir.join("data");
+    let cache_home = cx.config.homedir.join("cache");
+    let home_var = if cfg!(windows) {
+        "%USERPROFILE%"
+    } else {
+        "$HOME"
+    };
+
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+            ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+            ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+            ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ],
+    )
+    .extend_redactions([("[HOME_VAR]", home_var)])
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [HOME_VAR]/config
+    state:  [HOME_VAR]/state
+    data:   [HOME_VAR]/data
+    cache:  [HOME_VAR]/cache
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
+}
+
+#[tokio::test]
+async fn install_displays_category_homes_when_paths_match_legacy() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let home = cx.config.rustupdir.to_string();
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_CONFIG_HOME", &home),
+            ("RUSTUP_STATE_HOME", &home),
+            ("RUSTUP_DATA_HOME", &home),
+            ("RUSTUP_CACHE_HOME", &home),
+        ],
+    )
+    .extend_redactions([("[RUSTUP_DIR]", &home)])
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [RUSTUP_DIR]
+    state:  [RUSTUP_DIR]
+    data:   [RUSTUP_DIR]
+    cache:  [RUSTUP_DIR]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
 }
 
 #[tokio::test]
