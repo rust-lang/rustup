@@ -321,6 +321,7 @@ pub(crate) struct Cfg<'a> {
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
     pub rustup_cache_dir: PathBuf,
+    pub rustup_data_dir: PathBuf,
     pub download_dir: PathBuf,
     pub tmp_dir: PathBuf,
     pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
@@ -349,7 +350,9 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
-        let rustup_cache_dir = process.home_dirs()?.cache;
+        let home_dirs = process.home_dirs()?;
+        let rustup_cache_dir = home_dirs.cache;
+        let rustup_data_dir = home_dirs.data;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
 
@@ -380,7 +383,7 @@ impl<'a> Cfg<'a> {
         #[cfg(windows)]
         let fallback_settings = None;
 
-        let toolchains_dir = rustup_dir.join("toolchains");
+        let toolchains_dir = rustup_data_dir.join("toolchains");
         let update_hash_dir = rustup_cache_dir.join("update-hashes");
         let download_dir = rustup_cache_dir.join("downloads");
         let tmp_dir = rustup_cache_dir.join("tmp");
@@ -403,6 +406,7 @@ impl<'a> Cfg<'a> {
             toolchains_dir,
             update_hash_dir,
             rustup_cache_dir,
+            rustup_data_dir,
             download_dir,
             tmp_dir,
             toolchain_override: None,
@@ -1191,6 +1195,7 @@ impl Debug for Cfg<'_> {
             toolchains_dir,
             update_hash_dir,
             rustup_cache_dir,
+            rustup_data_dir,
             download_dir,
             tmp_dir,
             toolchain_override,
@@ -1212,6 +1217,7 @@ impl Debug for Cfg<'_> {
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
             .field("rustup_cache_dir", rustup_cache_dir)
+            .field("rustup_data_dir", rustup_data_dir)
             .field("download_dir", download_dir)
             .field("tmp_dir", tmp_dir)
             .field("toolchain_override", toolchain_override)

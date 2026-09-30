@@ -259,8 +259,9 @@ impl InstallOpts<'_> {
         #[cfg(windows)]
         add_uninstall_registry_entry(process)?;
 
-        let cache_home = process.home_dirs()?.cache;
-        utils::ensure_dir_exists("cache home", &cache_home)?;
+        let home_dirs = process.home_dirs()?;
+        utils::ensure_dir_exists("cache home", &home_dirs.cache)?;
+        utils::ensure_dir_exists("data home", &home_dirs.data)?;
 
         let mut cfg = Cfg::from_env(current_dir, quiet, false, process)?;
 

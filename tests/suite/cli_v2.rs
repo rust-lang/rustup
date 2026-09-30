@@ -2103,6 +2103,54 @@ async fn install_cache_with_category_mode_disabled() {
 }
 
 #[tokio::test]
+async fn install_data_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let toolchain = for_host!("stable-{}");
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(data_home.join("toolchains").join(toolchain).is_dir());
+}
+
+#[tokio::test]
+async fn install_data_with_category_mode_disabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let toolchain = for_host!("stable-{}");
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "0"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(
+        cx.config
+            .rustupdir
+            .join("toolchains")
+            .join(toolchain)
+            .is_dir()
+    );
+}
+
+#[tokio::test]
 // Issue #304
 async fn remove_target_missing_update_hash() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
