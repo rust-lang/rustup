@@ -1026,6 +1026,80 @@ error: infinite recursion detected
 }
 
 #[tokio::test]
+async fn show_category_homes() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let config_home = cx.config.homedir.join("config home");
+    let state_home = cx.config.homedir.join("state home");
+    let data_home = cx.config.homedir.join("data home");
+    let cache_home = cx.config.homedir.join("cache home");
+    let bin_home = cx.config.homedir.join("bin home");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(["rustup", "show", "home"], env)
+        .await
+        .extend_redactions([("[HOME]", &cx.config.homedir)])
+        .with_stdout(snapbox::str![[r#"
+config: [HOME]/config home
+state: [HOME]/state home
+data: [HOME]/data home
+cache: [HOME]/cache home
+
+"#]])
+        .is_ok();
+
+    cx.config
+        .expect_with_env(["rustup", "show"], env)
+        .await
+        .extend_redactions([("[HOME]", &cx.config.homedir)])
+        .with_stdout(snapbox::str![[r#"
+Default host: [HOST_TUPLE]
+rustup homes:
+  config: [HOME]/config home
+  state: [HOME]/state home
+  data: [HOME]/data home
+  cache: [HOME]/cache home
+  bin: [HOME]/bin home
+
+installed toolchains
+--------------------
+
+active toolchain
+----------------
+no active toolchain
+
+"#]])
+        .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn show_category_platform_defaults() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "show", "home"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1"), ("RUSTUP_HOME", "")],
+        )
+        .await
+        .extend_redactions([("[HOME]", &cx.config.homedir)])
+        .with_stdout(snapbox::str![[r#"
+config: [HOME]/.config/rustup
+state: [HOME]/.local/state/rustup
+data: [HOME]/.local/share/rustup
+cache: [HOME]/.cache/rustup
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn show_home() {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
