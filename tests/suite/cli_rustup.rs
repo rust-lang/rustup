@@ -824,6 +824,77 @@ async fn fallback_cargo_calls_correct_rustc() {
         .is_ok();
 }
 
+#[tokio::test]
+async fn fallback_cargo_calls_correct_rustc_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    // Hm, this is the _only_ test that assumes that toolchain proxies
+    // exist in CARGO_HOME. Adding that proxy here.
+    let rustup_path = cx.config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+    let cargo_bin_path = cx.config.cargodir.join("bin");
+    fs::create_dir_all(&cargo_bin_path).unwrap();
+    let rustc_path = cargo_bin_path.join(format!("rustc{EXE_SUFFIX}"));
+    fs::hard_link(rustup_path, &rustc_path).unwrap();
+
+    // Install a custom toolchain and a nightly toolchain for the cargo fallback
+    let path = cx.config.customdir.join("custom-1");
+    let path = path.to_string_lossy();
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "link", "custom", &path],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(
+            ["rustup", "default", "custom"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(
+            ["rustup", "update", "nightly"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustc", "--version"], [("RUSTUP_USE_CATEGORY_HOME", "1")])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.0.0 (hash-c-1)
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect_with_env(["cargo", "--version"], [("RUSTUP_USE_CATEGORY_HOME", "1")])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+
+    assert!(rustc_path.exists());
+
+    // Here --call-rustc tells the mock cargo bin to exec `rustc --version`.
+    // We should be ultimately calling the custom rustc, according to the
+    // RUSTUP_TOOLCHAIN variable set by the original "cargo" proxy, and
+    // interpreted by the nested "rustc" proxy.
+    cx.config
+        .expect_with_env(
+            ["cargo", "--call-rustc"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.0.0 (hash-c-1)
+
+"#]])
+        .is_ok();
+}
+
 // Checks that cargo can recursively invoke itself with rustup shorthand (via
 // the proxy).
 //
@@ -882,6 +953,70 @@ async fn recursive_cargo() {
                 "RUST_RECURSION_COUNT",
                 &*RUST_RECURSION_COUNT_MAX.to_string(),
             )],
+        )
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: infinite recursion detected
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn recursive_cargo_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::ArchivesV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "default", "nightly"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .is_ok();
+
+    // We need an intermediary to run cargo itself.
+    // The "mock" cargo can't do that because on Windows it will check
+    // for a `cargo.exe` in the current directory before checking PATH.
+    //
+    // The solution here is to copy from the "mock" `cargo.exe` into
+    // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
+    // needing to build another executable just for this test.
+    let which_cargo = cx
+        .config
+        .expect_with_env(
+            ["rustup", "which", "cargo"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await;
+    let real_mock_cargo = which_cargo.output.stdout.trim();
+    let cargo_bin_path = cx.config.cargodir.join("bin");
+    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{EXE_SUFFIX}"));
+    fs::create_dir_all(&cargo_bin_path).unwrap();
+    fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["cargo", "--recursive-cargo-subcommand"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+
+    // If we have set the current recursion count to the maximum while doing
+    // another recursion, then rustup should bail out warning about it.
+    cx.config
+        .expect_with_env(
+            ["cargo", "--recursive-cargo-subcommand"],
+            [
+                (
+                    "RUST_RECURSION_COUNT",
+                    &*RUST_RECURSION_COUNT_MAX.to_string(),
+                ),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
         )
         .await
         .with_stderr(snapbox::str![[r#"
