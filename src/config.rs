@@ -331,6 +331,7 @@ pub(crate) struct Cfg<'a> {
     update_hash_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub data_dir: PathBuf,
+    pub state_dir: PathBuf,
     pub download_dir: PathBuf,
     pub tmp_dir: PathBuf,
     pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
@@ -362,8 +363,12 @@ impl<'a> Cfg<'a> {
         let home_dirs = process.home_dirs()?;
         let cache_dir = home_dirs.cache;
         let data_dir = home_dirs.data;
+        let state_dir = home_dirs.state;
 
         utils::ensure_dir_exists("home", &rustup_dir)?;
+        if process.use_category_home() {
+            utils::ensure_dir_exists("state home", &state_dir)?;
+        }
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         settings_file.with(|s| {
@@ -377,7 +382,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
@@ -416,6 +421,7 @@ impl<'a> Cfg<'a> {
             update_hash_dir,
             cache_dir,
             data_dir,
+            state_dir,
             download_dir,
             tmp_dir,
             toolchain_override: None,
@@ -1213,6 +1219,7 @@ impl Debug for Cfg<'_> {
             update_hash_dir,
             cache_dir,
             data_dir,
+            state_dir,
             download_dir,
             tmp_dir,
             toolchain_override,
@@ -1235,6 +1242,7 @@ impl Debug for Cfg<'_> {
             .field("update_hash_dir", update_hash_dir)
             .field("cache_dir", cache_dir)
             .field("data_dir", data_dir)
+            .field("state_dir", state_dir)
             .field("download_dir", download_dir)
             .field("tmp_dir", tmp_dir)
             .field("toolchain_override", toolchain_override)
