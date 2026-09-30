@@ -701,43 +701,71 @@ fn check_existence_of_settings_file(process: &Process) -> anyhow::Result<()> {
 fn pre_install_msg(no_modify_path: bool, process: &Process) -> anyhow::Result<String> {
     let cargo_home = process.cargo_home()?;
     let cargo_bin_dir = process.rustup_bin_home()?;
-    let rustup_home = process.rustup_home()?;
+    let home_dirs = process.home_dirs()?;
     let home_dir = process.home_dir();
+    let rustup_home_message = if process.use_category_home() {
+        format!(
+            "Rustup will use these directories:
 
-    if !no_modify_path {
-        // Brittle code warning: some duplication in unix::add_to_path
-        #[cfg(not(windows))]
-        {
-            let rcfiles = shell::get_available_shells(process)
-                .flat_map(|sh| sh.rcs(process).into_iter())
-                .map(|rc| format!("    {}", rc.display()))
-                .collect::<Vec<_>>();
-            let plural = if rcfiles.len() > 1 { "s" } else { "" };
-            let rcfiles = rcfiles.join("\n");
-            Ok(format!(
-                pre_install_msg_unix!(),
-                cargo_home = cargo_home.display(),
-                cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
-                plural = plural,
-                rcfiles = rcfiles,
-                rustup_home = rustup_home.display(),
-            ))
-        }
-        #[cfg(windows)]
-        Ok(format!(
-            pre_install_msg_win!(),
-            cargo_home = cargo_home.display(),
-            cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
-            rustup_home = rustup_home.display(),
-        ))
+      config: {}
+      state:  {}
+      data:   {}
+      cache:  {}
+
+They can be modified individually with
+`RUSTUP_CONFIG_HOME`, `RUSTUP_STATE_HOME`, `RUSTUP_DATA_HOME`, and
+`RUSTUP_CACHE_HOME`.",
+            HomeDisplay::new(&home_dirs.config, home_dir.as_deref()),
+            HomeDisplay::new(&home_dirs.state, home_dir.as_deref()),
+            HomeDisplay::new(&home_dirs.data, home_dir.as_deref()),
+            HomeDisplay::new(&home_dirs.cache, home_dir.as_deref()),
+        )
     } else {
-        Ok(format!(
+        format!(
+            "Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+    {}
+
+This can be modified with the `RUSTUP_HOME` environment variable.",
+            HomeDisplay::new(&home_dirs.data, home_dir.as_deref()),
+        )
+    };
+
+    if no_modify_path {
+        return Ok(format!(
             pre_install_msg_no_modify_path!(),
-            cargo_home = cargo_home.display(),
+            cargo_home = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
             cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
-            rustup_home = rustup_home.display(),
+            rustup_home_message = rustup_home_message,
+        ));
+    }
+
+    // Brittle code warning: some duplication in unix::add_to_path
+    #[cfg(not(windows))]
+    {
+        let rcfiles = shell::get_available_shells(process)
+            .flat_map(|sh| sh.rcs(process).into_iter())
+            .map(|rc| format!("    {}", HomeDisplay::new(&rc, home_dir.as_deref())))
+            .collect::<Vec<_>>();
+        let plural = if rcfiles.len() > 1 { "s" } else { "" };
+        let rcfiles = rcfiles.join("\n");
+        Ok(format!(
+            pre_install_msg_unix!(),
+            cargo_home = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
+            cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
+            plural = plural,
+            rcfiles = rcfiles,
+            rustup_home_message = rustup_home_message,
         ))
     }
+    #[cfg(windows)]
+    Ok(format!(
+        pre_install_msg_win!(),
+        cargo_home = HomeDisplay::new(&cargo_home, home_dir.as_deref()),
+        cargo_bin_dir = HomeDisplay::new(&cargo_bin_dir, home_dir.as_deref()),
+        rustup_home_message = rustup_home_message,
+    ))
 }
 
 #[cfg(unix)]

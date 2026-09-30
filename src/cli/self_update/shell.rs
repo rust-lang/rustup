@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::bail;
 
-use super::utils;
+use super::{HomeDisplay, utils};
 use crate::process::Process;
 
 #[derive(Debug, PartialEq)]
@@ -66,7 +66,11 @@ pub(crate) fn build_source_env_lines(
 ) -> String {
     let mut groups = Vec::<(_, Vec<_>)>::new();
     for shell in get_available_shells(process) {
-        let Ok(src) = shell.source_string(env_dir, home_dir) else {
+        let mut env_display = HomeDisplay::new(env_dir, home_dir);
+        if env_display.home_prefix.is_some() {
+            env_display.home_prefix = Some(shell.home_var());
+        }
+        let Ok(src) = shell.source_string(Path::new(&env_display.to_string()), None) else {
             continue;
         };
         if let Some(names) = groups
