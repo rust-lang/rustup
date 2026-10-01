@@ -172,7 +172,7 @@ impl<'a> DownloadCfg<'a> {
     ) -> anyhow::Result<Option<ManifestWithHash>> {
         // TUF
         let manifest_url = if self.tuf.enabled() {
-            toolchain.manifest_v3_url(&cfg.dist_root_url, cfg.process)?
+            toolchain.manifest_v3_url(cfg).await?
         } else {
             toolchain.manifest_v2_url(&cfg.dist_root_url, self.process)
         };

@@ -85,9 +85,10 @@ async fn manifests_come_from_the_repository() {
             .unwrap_or_else(|| panic!("{toolchain}: no manifest returned"));
 
         // The published file this toolchain resolves to.
+        let url = name.manifest_v3_url(&cfg).await.unwrap();
         let path = src.join(
-            name.manifest_v3_url("", &tp.process)
-                .unwrap()
+            url.strip_prefix(&cfg.dist_root_url)
+                .unwrap_or_else(|| panic!("{toolchain}: '{url}' is not under the dist root"))
                 .trim_start_matches('/'),
         );
         let bytes = fs::read(&path).unwrap_or_else(|err| panic!("{toolchain}: {err}"));

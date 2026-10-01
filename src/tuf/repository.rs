@@ -1,4 +1,4 @@
-use std::fs;
+use std::{collections::HashSet, fs, path::Path};
 
 use anyhow::{Context, anyhow, bail};
 use chrono::{DateTime, Utc};
@@ -10,7 +10,6 @@ use futures_util::{
 use tracing::{debug, info, trace, warn};
 use tuf::{
     client::{Client, Config},
-    database::Database,
     metadata::{Metadata, MetadataPath, MetadataVersion, RawSignedMetadata, TargetPath},
     pouf::Pouf1,
     repository::{FileSystemRepository, RepositoryProvider},
@@ -43,26 +42,18 @@ impl TufRepository {
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn open(config: &TufConfig, options: DownloadOptions) -> anyhow::Result<Self> {
         let location = config.server.as_str();
-
-        info!("syncing TUF database from {}", location);
-
+        info!("syncing TUF database from {location}");
         if config.mode == TufMode::Warn {
             warn!("TUF is set to 'warn' mode, and validation failures will be ignored");
         }
-
         if config.ignore_failures {
+            warn!("RUSTUP_TUF_IGNORE is set, and all TUF validation failures will be ignored");
+        }
+        if let Some(date) = config.ignore_expiry_after {
             warn!(
-                "RUST_TUF_IGNORE is set to true, and validation failures will be silently ignored"
+                "RUSTUP_TUF_IGNOREDATE is set, and TUF metadata expiry after {date} will be ignored"
             );
         }
-
-        if let Some(date) = config.ignore_expiry_after.as_ref() {
-            warn!(
-                "RUST_TUF_IGNOREDATE is set to true and validation failures will be ignored after {}",
-                date
-            );
-        }
-
         debug!(
             location,
             home = %config.home.display(),
@@ -71,10 +62,10 @@ impl TufRepository {
             ignore_expiry_after = ?config.ignore_expiry_after,
             "opening TUF repository"
         );
+
         utils::ensure_dir_exists("tuf home", &config.home)?;
         let local = FileSystemRepository::new(&config.home);
         let remote = Remote::from_location(location, options)?;
-
         let bytes = match &config.root {
             Some(path) => {
                 debug!(path = %path.display(), "using trusted TUF root from RUSTUP_TUF_ROOT");
@@ -108,6 +99,7 @@ impl TufRepository {
             debug!("TUF mode is off, skipping metadata update");
             return Ok(Verification::Skipped);
         }
+
         let start_time = self.start_time();
         debug!(%start_time, "updating TUF metadata from remote");
         match self.client.update_with_start_time(&start_time).await {
@@ -137,21 +129,151 @@ impl TufRepository {
             debug!(target, "TUF mode is off, reading target unverified");
             return Ok((self.read_unverified(&path).await?, Verification::Skipped));
         }
-        match self.read_verified(&path).await {
+
+        let err = match self.read_verified(&path).await {
             Ok(bytes) => {
                 debug!(target, len = bytes.len(), "TUF target verified");
-                Ok((bytes, Verification::Verified))
+                return Ok((bytes, Verification::Verified));
             }
-            Err(err) => {
-                debug!(target, error = %err, "TUF target verification failed");
-                let verification = self.tolerate(err.into())?;
-                debug!(
-                    target,
-                    "reading TUF target unverified after tolerated failure"
-                );
-                Ok((self.read_unverified(&path).await?, verification))
+            Err(err) => err,
+        };
+        debug!(target, error = %err, "TUF target verification failed");
+        let verification = self.tolerate(err.into())?;
+        debug!(
+            target,
+            "reading TUF target unverified after tolerated failure"
+        );
+        Ok((self.read_unverified(&path).await?, verification))
+    }
+
+    /// Finds the newest target named `filename` under `folder` (searched
+    /// recursively), using only the targets metadata; `None` means no role
+    /// under `folder` has a target with that name.
+    ///
+    /// Delegations are walked depth first and loaded lazily: a delegated
+    /// role is fetched and verified (through the client's own delegation
+    /// walk) only when the search reaches it, so nothing past the match is
+    /// downloaded. Within a role the newest match wins, and delegations are
+    /// descended into newest first. The dated folders (`2026/`,
+    /// `2026/09-16/`, `2026-09-16.toml`) are zero-padded, so "newest" is
+    /// simply the greatest path.
+    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
+    pub(crate) async fn find_targets(
+        &mut self,
+        folder: &Path,
+        filename: &str,
+    ) -> anyhow::Result<Option<String>> {
+        let start_time = self.start_time();
+        debug!(folder = %folder.display(), filename, "searching TUF targets metadata");
+        let matches = |target: &TargetPath| {
+            let target = Path::new(target.as_str());
+            target.starts_with(folder) && target.file_name() == Some(filename.as_ref())
+        };
+        let overlaps = |prefix: &TargetPath| {
+            let prefix = Path::new(prefix.as_str());
+            prefix.starts_with(folder) || folder.starts_with(prefix)
+        };
+
+        // The roles still to search, each with the delegated path prefix
+        // that led to it (`None` for the top-level role). Children go on the
+        // stack oldest first, so the newest is popped, and loaded, first.
+        let mut seen = HashSet::new();
+        let mut pending = vec![(MetadataPath::targets(), None)];
+        while let Some((role, prefix)) = pending.pop() {
+            if !seen.insert(role.clone()) {
+                trace!(%role, "role already searched, skipping");
+                continue;
             }
+            if let Some(prefix) = prefix {
+                self.load_delegation(&role, &prefix, filename, &start_time)
+                    .await?;
+            }
+
+            let database = self.client.database();
+            let targets = if role == MetadataPath::targets() {
+                database.trusted_targets()
+            } else {
+                database.trusted_delegations().get(&role)
+            };
+            let Some(targets) = targets else {
+                debug!(%role, "role is not in the trusted database, skipping");
+                continue;
+            };
+            trace!(
+                %role,
+                version = targets.version(),
+                targets = targets.targets().len(),
+                delegations = targets.delegations().roles().len(),
+                "searching role"
+            );
+            if let Some(target) = targets.targets().keys().filter(|t| matches(t)).max() {
+                debug!(%role, %target, roles_searched = seen.len(), "found TUF target");
+                return Ok(Some(target.as_str().to_owned()));
+            }
+
+            // Each delegation is keyed by its newest path overlapping `folder`.
+            let mut delegations = targets
+                .delegations()
+                .roles()
+                .iter()
+                .filter_map(|delegation| {
+                    let prefix = delegation.paths().iter().filter(|p| overlaps(p)).max()?;
+                    Some((delegation.name().clone(), Some(prefix.clone())))
+                })
+                .collect::<Vec<_>>();
+            delegations.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
+            trace!(
+                %role,
+                delegations = ?delegations.iter().rev().map(|(role, _)| role).collect::<Vec<_>>(),
+                "delegations to search, newest first"
+            );
+            pending.extend(delegations);
         }
+
+        debug!(
+            folder = %folder.display(),
+            filename,
+            roles_searched = seen.len(),
+            "no matching TUF target"
+        );
+        Ok(None)
+    }
+
+    /// Makes the client fetch and verify the delegated role `role`, if it
+    /// hasn't already, by looking up `filename` under `prefix`, one of the
+    /// paths delegated to it. The lookup itself is expected to fail when no
+    /// such target exists; only the side effect of loading the role matters.
+    #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
+    async fn load_delegation(
+        &mut self,
+        role: &MetadataPath,
+        prefix: &TargetPath,
+        filename: &str,
+        start_time: &DateTime<Utc>,
+    ) -> anyhow::Result<()> {
+        if self.delegation_loaded(role) {
+            trace!(%role, "delegation already loaded");
+            return Ok(());
+        }
+
+        let probe = Path::new(prefix.as_str()).join(filename);
+        let probe = TargetPath::new(probe.to_string_lossy())?;
+        debug!(%role, %prefix, %probe, "probing to load delegation");
+        match self
+            .client
+            .fetch_target_description_with_start_time(&probe, start_time)
+            .await
+        {
+            Ok(_) => trace!(%role, %probe, "probe target exists"),
+            Err(err) => trace!(
+                %role,
+                %probe,
+                error = %err,
+                "probe lookup failed (expected when the probe target does not exist)"
+            ),
+        }
+        debug!(%role, loaded = self.delegation_loaded(role), "probe finished");
+        Ok(())
     }
 
     async fn read_verified(&mut self, path: &TargetPath) -> tuf::Result<Vec<u8>> {
@@ -168,8 +290,8 @@ impl TufRepository {
     }
 
     async fn read_unverified(&self, path: &TargetPath) -> tuf::Result<Vec<u8>> {
-        let mut candidates = Vec::new();
         let database = self.client.database();
+        let mut candidates = Vec::new();
         if database.trusted_root().consistent_snapshot()
             && let Some(description) = database
                 .trusted_targets()
@@ -184,26 +306,44 @@ impl TufRepository {
 
         let mut last_err = tuf::Error::TargetNotFound(path.clone());
         for candidate in &candidates {
-            match self.client.remote_repo().fetch_target(candidate).await {
-                Ok(mut reader) => {
-                    let mut bytes = Vec::new();
-                    reader.read_to_end(&mut bytes).await?;
-                    trace!(target = %path, %candidate, len = bytes.len(), "read unverified TUF target");
-                    return Ok(bytes);
-                }
+            let mut reader = match self.client.remote_repo().fetch_target(candidate).await {
+                Ok(reader) => reader,
                 Err(err) => {
-                    trace!(target = %path, %candidate, error = %err, "unverified TUF target candidate failed");
+                    trace!(
+                        target = %path,
+                        %candidate,
+                        error = %err,
+                        "unverified TUF target candidate failed"
+                    );
                     last_err = err;
+                    continue;
                 }
-            }
+            };
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+            trace!(
+                target = %path,
+                %candidate,
+                len = bytes.len(),
+                "read unverified TUF target"
+            );
+            return Ok(bytes);
         }
         Err(last_err)
+    }
+
+    fn delegation_loaded(&self, role: &MetadataPath) -> bool {
+        self.client
+            .database()
+            .trusted_delegations()
+            .contains_key(role)
     }
 
     fn start_time(&self) -> DateTime<Utc> {
         if self.ignore_failures {
             return DateTime::<Utc>::MIN_UTC;
         }
+
         let now = Utc::now();
         match self.ignore_expiry_after {
             Some(ignore_after) => now.min(ignore_after),
@@ -242,33 +382,33 @@ impl TufRepository {
             TufMode::On if self.ignore_failures => Some("RUSTUP_TUF_IGNORE is set"),
             TufMode::On => None,
         };
-        match reason {
-            Some(reason) => {
-                debug!(reason, "tolerating TUF verification failure");
-                warn!("TUF verification failed: {err:#}");
-                Ok(Verification::Skipped)
-            }
-            None => {
-                debug!(mode = %self.mode, "TUF verification failure is fatal");
-                Err(err.context("TUF verification failed"))
-            }
-        }
+        let Some(reason) = reason else {
+            debug!(mode = %self.mode, "TUF verification failure is fatal");
+            return Err(err.context("TUF verification failed"));
+        };
+
+        debug!(reason, "tolerating TUF verification failure");
+        warn!("TUF verification failed: {err:#}");
+        Ok(Verification::Skipped)
     }
 
     fn trace_database(&self, message: &str) {
-        let database: &Database<Pouf1> = self.client.database();
+        let database = self.client.database();
         let root = database.trusted_root();
+        let timestamp = database.trusted_timestamp();
+        let snapshot = database.trusted_snapshot();
+        let targets = database.trusted_targets();
         trace!(
             root_version = root.version(),
             root_expires = %root.expires(),
             consistent_snapshot = root.consistent_snapshot(),
-            timestamp_version = database.trusted_timestamp().map(|m| m.version()),
-            timestamp_expires = database.trusted_timestamp().map(|m| m.expires().to_string()),
-            snapshot_version = database.trusted_snapshot().map(|m| m.version()),
-            snapshot_expires = database.trusted_snapshot().map(|m| m.expires().to_string()),
-            targets_version = database.trusted_targets().map(|m| m.version()),
-            targets_expires = database.trusted_targets().map(|m| m.expires().to_string()),
-            targets_count = database.trusted_targets().map(|m| m.targets().len()),
+            timestamp_version = timestamp.map(|m| m.version()),
+            timestamp_expires = timestamp.map(|m| m.expires().to_string()),
+            snapshot_version = snapshot.map(|m| m.version()),
+            snapshot_expires = snapshot.map(|m| m.expires().to_string()),
+            targets_version = targets.map(|m| m.version()),
+            targets_expires = targets.map(|m| m.expires().to_string()),
+            targets_count = targets.map(|m| m.targets().len()),
             delegations = database.trusted_delegations().len(),
             "{message}"
         );
@@ -357,14 +497,13 @@ impl HttpRepository {
 
     fn url(&self, prefix: &str, components: &[String]) -> tuf::Result<Url> {
         let mut url = self.base.clone();
-        {
-            let mut segments = url.path_segments_mut().map_err(|_| {
-                tuf::Error::IllegalArgument(format!("cannot be a base url: {}", self.base))
-            })?;
-            segments.pop_if_empty();
-            segments.push(prefix);
-            segments.extend(components);
-        }
+        let mut segments = url.path_segments_mut().map_err(|_| {
+            tuf::Error::IllegalArgument(format!("cannot be a base url: {}", self.base))
+        })?;
+        segments.pop_if_empty();
+        segments.push(prefix);
+        segments.extend(components);
+        drop(segments);
         trace!(prefix, ?components, %url, "resolved TUF url");
         Ok(url)
     }
@@ -405,7 +544,12 @@ impl RepositoryProvider<Pouf1> for HttpRepository {
                     })
                 }
                 Err(err) => {
-                    debug!(%meta_path, %version, error = format!("{err:#}"), "TUF metadata fetch failed");
+                    debug!(
+                        %meta_path,
+                        %version,
+                        error = format!("{err:#}"),
+                        "TUF metadata fetch failed"
+                    );
                     Err(tuf::Error::Opaque(format!("{err:#}")))
                 }
             }
@@ -428,7 +572,11 @@ impl RepositoryProvider<Pouf1> for HttpRepository {
                     Err(tuf::Error::TargetNotFound(target_path))
                 }
                 Err(err) => {
-                    debug!(%target_path, error = format!("{err:#}"), "TUF target fetch failed");
+                    debug!(
+                        %target_path,
+                        error = format!("{err:#}"),
+                        "TUF target fetch failed"
+                    );
                     Err(tuf::Error::Opaque(format!("{err:#}")))
                 }
             }
@@ -442,4 +590,74 @@ fn is_not_found(err: &anyhow::Error) -> bool {
         err.downcast_ref::<RustupError>(),
         Some(RustupError::DownloadNotExists { .. })
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, fs, io, path::Path};
+
+    use tracing::subscriber;
+    use tracing_subscriber::{EnvFilter, filter::LevelFilter};
+    use tuf::{
+        client::{Client, Config},
+        metadata::RawSignedMetadata,
+        repository::FileSystemRepository,
+    };
+
+    use super::{Remote, TufRepository};
+    use crate::{download::DownloadOptions, process::Process, tuf::TufMode};
+
+    /// Searches the repository at `RUSTUP_TUF_SERVER`, trusted from the root
+    /// at `RUSTUP_TUF_ROOT`, for `1.93.0.toml`, loading delegated roles on
+    /// the way. The metadata cache lives in a fresh temp dir. Tracing goes to
+    /// stdout, filtered by `RUSTUP_LOG` (default: everything under `rustup::tuf`).
+    ///
+    /// Run with `cargo test --features test --lib -- tuf::repository::tests::find_targets --ignored --nocapture`.
+    #[ignore = "uses the TUF repository named by RUSTUP_TUF_SERVER and RUSTUP_TUF_ROOT"]
+    #[tokio::test]
+    async fn find_targets() {
+        let filter = EnvFilter::builder()
+            .with_env_var("RUSTUP_LOG")
+            .with_default_directive(LevelFilter::OFF.into())
+            .from_env_lossy()
+            .add_directive("rustup::tuf=trace".parse().unwrap());
+        let subscriber = tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_writer(io::stdout)
+            .finish();
+        let _guard = subscriber::set_default(subscriber);
+
+        let server = env::var("RUSTUP_TUF_SERVER").expect("RUSTUP_TUF_SERVER is set");
+        let root = env::var("RUSTUP_TUF_ROOT").expect("RUSTUP_TUF_ROOT is set");
+        let home = tempfile::Builder::new()
+            .prefix("rustup-tuf-find-targets")
+            .tempdir()
+            .unwrap();
+
+        let options = DownloadOptions::try_from(&Process::os()).unwrap();
+        let root = RawSignedMetadata::new(fs::read(root).unwrap());
+        let client = Client::with_trusted_root(
+            Config::default(),
+            &root,
+            FileSystemRepository::new(home.path()),
+            Remote::from_location(&server, options).unwrap(),
+        )
+        .await
+        .unwrap();
+        let mut repository = TufRepository {
+            mode: TufMode::On,
+            ignore_failures: false,
+            ignore_expiry_after: None,
+            client,
+        };
+        repository.verify().await.unwrap();
+
+        let found = repository
+            .find_targets(Path::new(""), "1.93.0.toml")
+            .await
+            .unwrap();
+        eprintln!("found: {found:#?}");
+        let found = found.expect("no target named 1.93.0.toml found");
+        assert_eq!(Path::new(&found).file_name(), Some("1.93.0.toml".as_ref()));
+    }
 }
