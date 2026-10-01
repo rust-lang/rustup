@@ -1261,7 +1261,6 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
         None => get_available_rustup_manifest(dl_cfg).await?,
     };
 
-
     // If up-to-date
     if available_manifest.version == current_version {
         return Ok(None);
@@ -1274,10 +1273,17 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     // is always the latest version
     let url = match tuf_mode {
         TufMode::Off => {
-            format!("{update_root}/archive/{}/{tuple}/rustup-init{EXE_SUFFIX}", available_manifest.version)
+            format!(
+                "{update_root}/archive/{}/{tuple}/rustup-init{EXE_SUFFIX}",
+                available_manifest.version
+            )
         }
         TufMode::Warn | TufMode::On => {
-            format!("{update_root}/{}/{tuple}/rustup-init{EXE_SUFFIX}", available_manifest.dist.unwrap())
+            let dist = available_manifest
+                .dist
+                .as_deref()
+                .context("rustup release manifest has no `dist` field, which TUF mode requires")?;
+            format!("{update_root}/{dist}/{tuple}/rustup-init{EXE_SUFFIX}")
         }
     };
 
@@ -1287,7 +1293,10 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     let setup_path: &Path = &prepared_updater;
 
     // Download new version
-    info!("downloading self-update (new version: {})", available_manifest.version);
+    info!(
+        "downloading self-update (new version: {})",
+        available_manifest.version
+    );
     DownloadOptions::try_from(dl_cfg.process)?
         .start(&download_url, setup_path, Some(dl_cfg.tuf))
         .download()
@@ -1330,7 +1339,7 @@ async fn get_available_rustup_manifest(dl_cfg: &DownloadCfg<'_>) -> anyhow::Resu
 struct RustupManifest {
     schema_version: SchemaVersion,
     version: String,
-    dist: Option<String>
+    dist: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
