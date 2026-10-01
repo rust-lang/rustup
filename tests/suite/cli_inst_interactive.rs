@@ -718,10 +718,7 @@ version = "12""#,
     cx.config
         .expect_with_env(
             ["rustup-init", "-y", "--no-modify-path"],
-            [
-                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-                ("RUSTUP_HOME", temp_dir_path),
-            ],
+            [("RUSTUP_HOME", temp_dir_path)],
         )
         .await
         .is_ok()
