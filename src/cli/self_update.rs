@@ -1249,16 +1249,21 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
 
     // Get available version
     info!("checking for self-update (current version: {current_version})");
-    let available_version = match dl_cfg.process.var_opt("RUSTUP_VERSION")? {
-        Some(ver) => {
-            info!("`RUSTUP_VERSION` has been set to `{ver}`");
-            ver
+    let available_manifest = match dl_cfg.process.var_opt("RUSTUP_VERSION")? {
+        Some(version) => {
+            info!("`RUSTUP_VERSION` has been set to `{version}`");
+            RustupManifest {
+                schema_version: SchemaVersion::V1,
+                version,
+                dist: None,
+            }
         }
-        None => get_available_rustup_version(dl_cfg).await?,
+        None => get_available_rustup_manifest(dl_cfg).await?,
     };
 
+
     // If up-to-date
-    if available_version == current_version {
+    if available_manifest.version == current_version {
         return Ok(None);
     }
 
@@ -1269,10 +1274,10 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     // is always the latest version
     let url = match tuf_mode {
         TufMode::Off => {
-            format!("{update_root}/archive/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}")
+            format!("{update_root}/archive/{}/{tuple}/rustup-init{EXE_SUFFIX}", available_manifest.version)
         }
         TufMode::Warn | TufMode::On => {
-            format!("{update_root}/{available_version}/{tuple}/rustup-init{EXE_SUFFIX}")
+            format!("{update_root}/{}/{tuple}/rustup-init{EXE_SUFFIX}", available_manifest.dist.unwrap())
         }
     };
 
@@ -1282,7 +1287,7 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     let setup_path: &Path = &prepared_updater;
 
     // Download new version
-    info!("downloading self-update (new version: {available_version})");
+    info!("downloading self-update (new version: {})", available_manifest.version);
     DownloadOptions::try_from(dl_cfg.process)?
         .start(&download_url, setup_path, Some(dl_cfg.tuf))
         .download()
@@ -1297,7 +1302,7 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     Ok(Some(prepared_updater))
 }
 
-async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<String> {
+async fn get_available_rustup_manifest(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<RustupManifest> {
     let update_root = update_root(dl_cfg.process);
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
@@ -1317,7 +1322,7 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> anyhow::Resul
     let release_toml = toml::from_str::<RustupManifest>(&release_toml_str)
         .context("unable to parse rustup release file")?;
 
-    Ok(release_toml.version)
+    Ok(release_toml)
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -1325,6 +1330,7 @@ async fn get_available_rustup_version(dl_cfg: &DownloadCfg<'_>) -> anyhow::Resul
 struct RustupManifest {
     schema_version: SchemaVersion,
     version: String,
+    dist: Option<String>
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -1332,12 +1338,15 @@ pub(crate) enum SchemaVersion {
     #[serde(rename = "1")]
     #[default]
     V1,
+    #[serde(rename = "2")]
+    V2,
 }
 
 impl SchemaVersion {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::V1 => "1",
+            Self::V2 => "2",
         }
     }
 }
@@ -1348,6 +1357,7 @@ impl FromStr for SchemaVersion {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "1" => Ok(Self::V1),
+            "2" => Ok(Self::V2),
             _ => Err(RustupError::UnsupportedVersion(s.to_owned())),
         }
     }
@@ -1367,7 +1377,7 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Res
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
-    let available_version = get_available_rustup_version(dl_cfg).await?;
+    let available_manifest = get_available_rustup_manifest(dl_cfg).await?;
 
     let bold = Style::new().bold();
     let yellow = WARN;
@@ -1375,10 +1385,11 @@ pub(crate) async fn check_rustup_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Res
 
     write!(t, "{bold}rustup - {bold:#}")?;
 
-    Ok(if current_version != available_version {
+    Ok(if current_version != available_manifest.version {
         writeln!(
             t,
-            "{yellow}update available{yellow:#} : {current_version} -> {available_version}"
+            "{yellow}update available{yellow:#} : {current_version} -> {}",
+            available_manifest.version
         )?;
         true
     } else {
