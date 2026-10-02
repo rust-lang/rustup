@@ -320,7 +320,13 @@ pub(crate) struct Cfg<'a> {
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
+    pub rustup_bin_dir: PathBuf,
+    pub rustup_cache_dir: PathBuf,
+    pub rustup_config_dir: PathBuf,
+    pub rustup_data_dir: PathBuf,
+    pub rustup_state_dir: PathBuf,
     pub download_dir: PathBuf,
+    pub tmp_dir: PathBuf,
     pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
     env_override: Option<Override<PartialToolchainNameOrPath>>,
     pub(crate) dist_root_server: String,
@@ -347,10 +353,21 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
+        let rustup_bin_dir = process.rustup_bin_home()?;
+        let home_dirs = process.home_dirs()?;
+        let rustup_cache_dir = home_dirs.cache;
+        let rustup_config_dir = home_dirs.config;
+        let rustup_data_dir = home_dirs.data;
+        let rustup_state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
+        if process.use_category_home() {
+            utils::ensure_dir_exists("config home", &rustup_config_dir)?;
+            utils::ensure_dir_exists("state home", &rustup_state_dir)?;
+        } else {
+            utils::ensure_dir_exists("home", &rustup_config_dir)?;
+        }
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(rustup_config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
@@ -362,7 +379,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(rustup_state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
@@ -377,9 +394,10 @@ impl<'a> Cfg<'a> {
         #[cfg(windows)]
         let fallback_settings = None;
 
-        let toolchains_dir = rustup_dir.join("toolchains");
-        let update_hash_dir = rustup_dir.join("update-hashes");
-        let download_dir = rustup_dir.join("downloads");
+        let toolchains_dir = rustup_data_dir.join("toolchains");
+        let update_hash_dir = rustup_cache_dir.join("update-hashes");
+        let download_dir = rustup_cache_dir.join("downloads");
+        let tmp_dir = rustup_cache_dir.join("tmp");
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
@@ -398,7 +416,13 @@ impl<'a> Cfg<'a> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            rustup_bin_dir,
+            rustup_cache_dir,
+            rustup_config_dir,
+            rustup_data_dir,
+            rustup_state_dir,
             download_dir,
+            tmp_dir,
             toolchain_override: None,
             env_override,
             dist_root_server,
@@ -1184,7 +1208,13 @@ impl Debug for Cfg<'_> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            rustup_bin_dir,
+            rustup_cache_dir,
+            rustup_config_dir,
+            rustup_data_dir,
+            rustup_state_dir,
             download_dir,
+            tmp_dir,
             toolchain_override,
             env_override,
             dist_root_server,
@@ -1203,7 +1233,13 @@ impl Debug for Cfg<'_> {
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
+            .field("rustup_bin_dir", rustup_bin_dir)
+            .field("rustup_cache_dir", rustup_cache_dir)
+            .field("rustup_config_dir", rustup_config_dir)
+            .field("rustup_data_dir", rustup_data_dir)
+            .field("rustup_state_dir", rustup_state_dir)
             .field("download_dir", download_dir)
+            .field("tmp_dir", tmp_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
             .field("dist_root_server", dist_root_server)

@@ -5,6 +5,7 @@ use std::{fs, io::Write, path::PathBuf};
 
 use rustup::{
     dist::{TargetTuple, manifest::Manifest},
+    for_host,
     test::{
         CROSS_ARCH1, CROSS_ARCH2, CliTestContext, Config, Scenario, create_hash, this_host_tuple,
     },
@@ -2025,6 +2026,128 @@ warn: removing the last target; no build targets will be available
 ...
 "#]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn install_cache_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let cache_home_env = cache_home.to_str().unwrap();
+    let toolchain = for_host!("stable-{}");
+    let update_hash = cache_home.join("update-hashes").join(toolchain);
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(cache_home.join("tmp").is_dir());
+    assert!(cache_home.join("downloads").is_dir());
+    assert!(update_hash.is_file());
+    assert!(cx.config.rustupdir.has(format!("toolchains/{toolchain}")));
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "remove", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+    assert!(!update_hash.is_file());
+}
+
+#[tokio::test]
+async fn install_cache_with_category_mode_disabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let cache_home_env = cache_home.to_str().unwrap();
+    let toolchain = for_host!("stable-{}");
+    let update_hash = cx.config.rustupdir.join("update-hashes").join(toolchain);
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "0"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(cx.config.rustupdir.join("tmp").is_dir());
+    assert!(cx.config.rustupdir.join("downloads").is_dir());
+    assert!(update_hash.is_file());
+    assert!(cx.config.rustupdir.has(format!("toolchains/{toolchain}")));
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "remove", "stable"],
+            [
+                ("RUSTUP_CACHE_HOME", cache_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "0"),
+            ],
+        )
+        .await
+        .is_ok();
+    assert!(!update_hash.is_file());
+}
+
+#[tokio::test]
+async fn install_data_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let toolchain = for_host!("stable-{}");
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(data_home.join("toolchains").join(toolchain).is_dir());
+}
+
+#[tokio::test]
+async fn install_data_with_category_mode_disabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let toolchain = for_host!("stable-{}");
+
+    cx.config
+        .expect_with_env(
+            ["rustup", "toolchain", "install", "stable"],
+            [
+                ("RUSTUP_DATA_HOME", data_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "0"),
+            ],
+        )
+        .await
+        .is_ok();
+
+    assert!(
+        cx.config
+            .rustupdir
+            .join("toolchains")
+            .join(toolchain)
+            .is_dir()
+    );
 }
 
 #[tokio::test]

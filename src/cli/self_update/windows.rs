@@ -1,16 +1,16 @@
 use std::{
     borrow::Cow,
-    env::{consts::EXE_SUFFIX, split_paths},
+    env::split_paths,
     ffi::{OsStr, OsString},
     fmt,
-    fs::OpenOptions,
+    fs::{File, OpenOptions},
     io::{self, Write},
     mem,
     os::windows::{
         fs::OpenOptionsExt,
         io::{AsRawHandle, FromRawHandle, OwnedHandle},
     },
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
     ptr, thread,
     time::Duration,
@@ -379,13 +379,17 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
     false
 }
 
-/// Run by rustup-gc-$num.exe to delete CARGO_HOME
+/// Run by rustup-gc-$num.exe to finish deleting the installation.
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
     let uninstall = wait_for_parent().and_then(|()| {
         let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
 
-        // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
+        // Now that the parent has exited, its installed binary can be removed.
+        if process.use_category_home() {
+            return super::clean_category_home(no_modify_path, process);
+        }
+
         let cargo_home = process.cargo_home()?;
         super::clean_cargo_home(no_modify_path, process, &cargo_home)
     });
@@ -465,7 +469,7 @@ pub(crate) fn wait_for_parent() -> anyhow::Result<()> {
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_add_to_path, process)?;
+    let new_path = _with_path_rustup_bin(_add_to_path, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -559,18 +563,17 @@ fn _remove_from_path(old_path: HSTRING, path_str: HSTRING) -> Option<HSTRING> {
 
 const PATH_SEPARATOR: u16 = b';' as u16;
 
-fn _with_path_cargo_home_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
+fn _with_path_rustup_bin<F>(f: F, process: &Process) -> anyhow::Result<Option<HSTRING>>
 where
     F: FnOnce(HSTRING, HSTRING) -> Option<HSTRING>,
 {
     let windows_path = get_windows_path_var(process)?;
-    let mut path_str = process.cargo_home()?;
-    path_str.push("bin");
+    let path_str = process.rustup_bin_home()?;
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let new_path = _with_path_cargo_home_bin(_remove_from_path, process)?;
+    let new_path = _with_path_rustup_bin(_remove_from_path, process)?;
     _apply_new_path(new_path, process)
 }
 
@@ -631,8 +634,7 @@ pub(crate) fn add_uninstall_registry_entry(process: &Process) -> anyhow::Result<
         }
     }
 
-    let mut path = process.cargo_home()?;
-    path.push("bin\\rustup.exe");
+    let path = process.rustup_bin_home()?.join("rustup.exe");
     let mut uninstall_cmd = OsString::from("\"");
     uninstall_cmd.push(path);
     uninstall_cmd.push("\" self uninstall");
@@ -666,10 +668,14 @@ pub(super) fn run_update(
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     wait_for_parent()?;
     let self_update_lock = SelfUpdateLock::lock(process)?;
-    let result = process.cargo_home().and_then(|cargo_home| {
-        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))?;
-        update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
-    });
+    let result = self_update_lock
+        .install_bins(
+            &process.rustup_bin_home()?,
+            super::force_hard_links(process),
+        )
+        .and_then(|()| {
+            update_uninstall_registry_display_version(env!("CARGO_PKG_VERSION"), process)
+        });
     stage::mark_result(result.is_ok(), process);
     result?;
 
@@ -682,15 +688,15 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 // while they are open, like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup.exe to a temporary file in
-//   CARGO_HOME/../rustup-gc-$random.exe.
+// - Copy the running rustup.exe to a temporary file in
+//   the system temporary directory as rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
 //   Pass this handle as stdin so the standard library manages inheritance.
 //   GC does not read stdin; it uses it only to carry the deletion handle.
 // - Run the gc exe, which waits for the original rustup.exe
-//   process to close, then deletes CARGO_HOME. This process
+//   process to close, then cleans up the installation. This process
 //   has inherited a FILE_FLAG_DELETE_ON_CLOSE handle to itself.
 // - Finally, spawn yet another system binary inheriting stdin,
 //   so *it* inherits the FILE_FLAG_DELETE_ON_CLOSE handle to
@@ -705,21 +711,24 @@ pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode>
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> anyhow::Result<()> {
-    // The rustup.exe bin
-    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
-
-    // The directory containing CARGO_HOME
-    let work_path = cargo_home
-        .parent()
-        .expect("CARGO_HOME doesn't have a parent?");
-
-    // Generate a unique name for the files we're about to move out
-    // of CARGO_HOME.
-    let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
-    // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file_symlink_to_source(&rustup_path, &gc_exe)?;
+pub(crate) fn spawn_uninstall_gc(no_modify_path: bool) -> anyhow::Result<()> {
+    // Copy the running executable so GC does not depend on the installed copy.
+    let rustup_path = utils::current_exe()?;
+    let mut source = File::open(&rustup_path)
+        .with_context(|| format!("could not open rustup '{}'", rustup_path.display()))?;
+    // Use the system temporary directory so GC creation does not require
+    // write access to CARGO_HOME's parent.
+    let mut gc_file = tempfile::Builder::new()
+        .prefix("rustup-gc-")
+        .suffix(".exe")
+        .tempfile()
+        .context("error creating temporary GC executable")?;
+    // `io::copy` writes its contents into this independent regular file,
+    // so DELETE_ON_CLOSE applies to the GC copy rather than the source target.
+    io::copy(&mut source, gc_file.as_file_mut())
+        .with_context(|| format!("could not copy rustup from '{}'", rustup_path.display()))?;
+    // Close the write handle before opening the executable for reading.
+    let gc_exe = gc_file.into_temp_path();
     // OpenOptions preserves the read, sharing and delete-on-close flags while
     // letting File own the handle until it is passed to Command below.
     let gc_handle = OpenOptions::new()
@@ -728,6 +737,10 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> any
         .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
         .open(&gc_exe)
         .context(CliError::WindowsUninstallMadness)?;
+
+    // Transfer cleanup to Windows only after the DELETE_ON_CLOSE handle is
+    // open. Until then, TempPath attempts cleanup if preparation fails.
+    let gc_exe = gc_exe.keep()?;
 
     // Pass the file as GC stdin so the standard library manages inheritance.
     // Command retains the parent handle after spawn; keep it alive through the sleep.
@@ -751,7 +764,7 @@ pub(crate) fn spawn_uninstall_gc(no_modify_path: bool, cargo_home: &Path) -> any
 }
 
 // The rustup-gc executable cannot accept normal function call here,
-// so we use env var here, notifying it if we need to remove $CARGO_HOME/bin from $PATH
+// so we use env var here, notifying it if we need to remove the bin home from $PATH
 const GC_MODIFY_PATH: &str = "RUSTUP_GC_MODIFY_PATH";
 
 /// Environment variable carrying the per-test registry ID.
@@ -828,6 +841,61 @@ mod tests {
             Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
         }
+    }
+
+    #[test]
+    fn legacy_mode_uninstall_uses_cargo_bin() {
+        let cwd = std::env::current_dir().unwrap();
+        let cargo_home = cwd.join("cargo home");
+        let tp = TestProcess::with_vars(HashMap::from([
+            (RUSTUP_REGISTRY_TEST_ID.to_owned(), test_id()),
+            (
+                "CARGO_HOME".to_owned(),
+                cargo_home.to_str().unwrap().to_owned(),
+            ),
+            ("RUSTUP_USE_CATEGORY_HOME".to_owned(), "0".to_owned()),
+        ]));
+        add_uninstall_registry_entry(&tp.process).unwrap();
+        assert_eq!(
+            rustup_uninstall_registry_key(&tp.process)
+                .unwrap()
+                .get_string("UninstallString")
+                .unwrap(),
+            format!(
+                "\"{}\" self uninstall",
+                cargo_home.join("bin").join("rustup.exe").display()
+            )
+        );
+    }
+
+    #[test]
+    fn category_mode_uninstall_uses_rustup_bin() {
+        let cwd = std::env::current_dir().unwrap();
+        let cargo_home = cwd.join("cargo home");
+        let bin_home = cwd.join("category bin");
+        let tp = TestProcess::with_vars(HashMap::from([
+            (RUSTUP_REGISTRY_TEST_ID.to_owned(), test_id()),
+            (
+                "CARGO_HOME".to_owned(),
+                cargo_home.to_str().unwrap().to_owned(),
+            ),
+            (
+                "RUSTUP_BIN_HOME".to_owned(),
+                bin_home.to_str().unwrap().to_owned(),
+            ),
+            ("RUSTUP_USE_CATEGORY_HOME".to_owned(), "1".to_owned()),
+        ]));
+        add_uninstall_registry_entry(&tp.process).unwrap();
+        assert_eq!(
+            rustup_uninstall_registry_key(&tp.process)
+                .unwrap()
+                .get_string("UninstallString")
+                .unwrap(),
+            format!(
+                "\"{}\" self uninstall",
+                bin_home.join("rustup.exe").display()
+            )
+        );
     }
 
     #[test]
@@ -1024,7 +1092,7 @@ mod tests {
         // Ok(None) signals no change to the PATH setting layer
         assert_eq!(
             None,
-            _with_path_cargo_home_bin(|_, _| panic!("called"), &tp.process).unwrap()
+            _with_path_rustup_bin(|_, _| panic!("called"), &tp.process).unwrap()
         );
 
         assert_eq!(
