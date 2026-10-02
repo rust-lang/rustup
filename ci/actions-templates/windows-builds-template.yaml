@@ -34,8 +34,8 @@ jobs: # skip-main skip-pr skip-stable
           - i686-pc-windows-gnu # skip-pr skip-main
           - aarch64-pc-windows-gnullvm
         include:
-          - target: x86_64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: x86_64-pc-windows-msvc
           - target: x86_64-pc-windows-gnu
             arch: x86_64
             mingwdir: mingw64
@@ -44,8 +44,8 @@ jobs: # skip-main skip-pr skip-stable
             # Architecture of the rustup build that installs Rust in this workflow.
             rustup_arch: aarch64
             os: windows-11-arm
-          - target: aarch64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: aarch64-pc-windows-msvc
             rustup_arch: aarch64
             os: windows-11-arm
           - target: aarch64-pc-windows-gnullvm

@@ -49,8 +49,8 @@ jobs: # skip-main skip-pr skip-stable
           - loongarch64-unknown-linux-gnu # skip-pr skip-main
           - loongarch64-unknown-linux-musl # skip-pr skip-main
         include:
-          - target: x86_64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: x86_64-unknown-linux-gnu
             #snap_arch: amd64
           - target: i686-unknown-linux-gnu # skip-pr skip-main
             #snap_arch: i386  # skip-pr skip-main
@@ -59,8 +59,8 @@ jobs: # skip-main skip-pr skip-stable
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-          - target: aarch64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
