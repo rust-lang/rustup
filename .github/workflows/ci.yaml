@@ -54,8 +54,8 @@ jobs:
           - x86_64-pc-windows-gnu
           - aarch64-pc-windows-gnullvm
         include:
-          - target: x86_64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: x86_64-pc-windows-msvc
           - target: x86_64-pc-windows-gnu
             arch: x86_64
             mingwdir: mingw64
@@ -64,8 +64,8 @@ jobs:
             # Architecture of the rustup build that installs Rust in this workflow.
             rustup_arch: aarch64
             os: windows-11-arm
-          - target: aarch64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: aarch64-pc-windows-msvc
             rustup_arch: aarch64
             os: windows-11-arm
           - target: aarch64-pc-windows-gnullvm
@@ -263,8 +263,8 @@ jobs:
           - x86_64-pc-windows-gnu
           - aarch64-pc-windows-gnullvm
         include:
-          - target: x86_64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: x86_64-pc-windows-msvc
           - target: x86_64-pc-windows-gnu
             arch: x86_64
             mingwdir: mingw64
@@ -273,8 +273,8 @@ jobs:
             # Architecture of the rustup build that installs Rust in this workflow.
             rustup_arch: aarch64
             os: windows-11-arm
-          - target: aarch64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: aarch64-pc-windows-msvc
             rustup_arch: aarch64
             os: windows-11-arm
           - target: aarch64-pc-windows-gnullvm
@@ -474,8 +474,8 @@ jobs:
           - i686-pc-windows-gnu # skip-pr skip-main
           - aarch64-pc-windows-gnullvm
         include:
-          - target: x86_64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: x86_64-pc-windows-msvc
           - target: x86_64-pc-windows-gnu
             arch: x86_64
             mingwdir: mingw64
@@ -484,8 +484,8 @@ jobs:
             # Architecture of the rustup build that installs Rust in this workflow.
             rustup_arch: aarch64
             os: windows-11-arm
-          - target: aarch64-pc-windows-msvc
-            mode: dev
+          - mode: dev
+            target: aarch64-pc-windows-msvc
             rustup_arch: aarch64
             os: windows-11-arm
           - target: aarch64-pc-windows-gnullvm
@@ -680,16 +680,16 @@ jobs:
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu
         include:
-          - target: x86_64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: x86_64-unknown-linux-gnu
             #snap_arch: amd64
             # We add an ARM-based host to the following target.
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-          - target: aarch64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
@@ -868,16 +868,16 @@ jobs:
           - powerpc64-unknown-linux-gnu # skip-pr
           - x86_64-unknown-linux-musl # skip-pr
         include:
-          - target: x86_64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: x86_64-unknown-linux-gnu
             #snap_arch: amd64
             # We add an ARM-based host to the following target.
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-          - target: aarch64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
@@ -1077,8 +1077,8 @@ jobs:
           - loongarch64-unknown-linux-gnu # skip-pr skip-main
           - loongarch64-unknown-linux-musl # skip-pr skip-main
         include:
-          - target: x86_64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: x86_64-unknown-linux-gnu
             #snap_arch: amd64
           - target: i686-unknown-linux-gnu # skip-pr skip-main
             #snap_arch: i386  # skip-pr skip-main
@@ -1087,8 +1087,8 @@ jobs:
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-          - target: aarch64-unknown-linux-gnu
-            mode: dev
+          - mode: dev
+            target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
