@@ -6,23 +6,28 @@ jobs: # skip-all
   # stable is placed in the root of the gh-pages branch, while main is placed at /devel
   doc: # job-name
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Install mdbook
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@e407f7bafb71fd004bc5c2da3032e5470cbb6ef0 # v2.87.24
         env:
           # renovate: datasource=crate depName=mdbook
           MDBOOK_VERSION: "0.5.2"
         with:
           tool: mdbook@${{ env.MDBOOK_VERSION }}
       - name: Build user-guide (stable)
-        if: ${{ !contains(fromJSON('["pull_request", "merge_group"]'), github.event_name) }}
         run: |
           git checkout stable
-          # Support both old and new directory structure during the transition
-          cd doc/user-guide || cd doc
+          cd doc/user-guide
           mdbook build
           mv book ${{ runner.temp }}
       - name: Build user-guide (main)
@@ -30,24 +35,20 @@ jobs: # skip-all
           git checkout main
           cd doc/user-guide
           mdbook build
-          mkdir -p ${{ runner.temp }}/book
           mv book ${{ runner.temp }}/book/devel
       - name: Build dev-guide (main)
         run: |
           git checkout main
           cd doc/dev-guide
           mdbook build
-          mkdir -p ${{ runner.temp }}/book
           mv book ${{ runner.temp }}/book/dev-guide
-      - name: Deploy to GitHub
-        if: ${{ !contains(fromJSON('["pull_request", "merge_group"]'), github.event_name) && !startsWith(github.ref_name, 'release/') }}
-        run: |
-          cd ${{ runner.temp }}/book
-          git config --global init.defaultBranch main
-          git init
-          git config user.name "Deploy from CI"
-          git config user.email ""
-          git add . .nojekyll
-          git commit -m "Deploy $GITHUB_REF $GITHUB_SHA to gh-pages"
-          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git push --force --set-upstream origin main:gh-pages
+      - name: Setup Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/book
+      - name: Deploy to GitHub Pages
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/stable') }}
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
