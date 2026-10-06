@@ -5,7 +5,7 @@ use std::{
     ffi::{OsStr, OsString},
     fmt::Debug,
     fs,
-    io::{self, BufRead, BufReader},
+    io::{BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     str::FromStr,
@@ -13,7 +13,6 @@ use std::{
 };
 
 use anyhow::{Context, anyhow, bail};
-use fs_at::OpenOptions;
 use same_file::is_same_file;
 use tracing::info;
 use url::Url;
@@ -29,7 +28,7 @@ use crate::{
     },
     env_var,
     install::{self, UpdateStatus},
-    utils::{self, raw::open_dir_following_links},
+    utils,
 };
 
 mod channels;
@@ -110,7 +109,7 @@ impl<'a> Toolchain<'a> {
 
     pub(crate) fn new(cfg: &'a Cfg<'a>, name: ToolchainNameOrPath) -> Result<Self, RustupError> {
         let path = name.path(cfg);
-        if !Toolchain::exists(cfg, &name)? {
+        if !name.exists(cfg)? {
             return Err(match name {
                 ToolchainNameOrPath::Named(name) => {
                     let is_active = matches!(cfg.active_toolchain(), Ok(Some((t, _))) if t == name);
@@ -120,30 +119,6 @@ impl<'a> Toolchain<'a> {
             });
         }
         Ok(Self { cfg, name, path })
-    }
-
-    /// Ok(True) if the toolchain exists. Ok(False) if the toolchain or its
-    /// containing directory don't exist. Err otherwise.
-    pub(crate) fn exists(cfg: &Cfg<'_>, name: &ToolchainNameOrPath) -> Result<bool, RustupError> {
-        let path = name.path(cfg);
-        // toolchain validation should have prevented a situation where there is
-        // no base dir, but defensive programming is defensive.
-        let parent = path
-            .parent()
-            .ok_or_else(|| RustupError::InvalidToolchainName(name.to_string()))?;
-        let base_name = path
-            .file_name()
-            .ok_or_else(|| RustupError::InvalidToolchainName(name.to_string()))?;
-        let parent_dir = match open_dir_following_links(parent) {
-            Ok(d) => d,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(false),
-            e => e?,
-        };
-        let opened = OpenOptions::default()
-            .read(true)
-            .follow(true)
-            .open_dir_at(&parent_dir, base_name);
-        Ok(opened.is_ok())
     }
 
     pub(crate) fn name(&self) -> &ToolchainNameOrPath {
@@ -539,7 +514,7 @@ impl<'a> Toolchain<'a> {
             ToolchainNameOrPath::Named(t) => t,
             ToolchainNameOrPath::Path(_) => bail!("Cannot remove a path based toolchain"),
         };
-        let fs_modified = match Self::exists(cfg, &name.clone().into())? {
+        let fs_modified = match name.exists(cfg)? {
             true => {
                 info!("uninstalling toolchain {name}");
                 let installed_paths = match &name {

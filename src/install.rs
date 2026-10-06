@@ -8,7 +8,7 @@ use crate::{
     config::Cfg,
     dist::{DistOptions, manifest::ManifestWithHash, prefix::InstallPrefix},
     errors::RustupError,
-    toolchain::{CustomToolchainName, Toolchain, ToolchainNameExt as _, ToolchainNameOrPath},
+    toolchain::{CustomToolchainName, ToolchainNameExt as _, ToolchainNameOrPath},
     utils,
 };
 
@@ -95,7 +95,7 @@ impl InstallMethod<'_, '_> {
         };
 
         // Final check, to ensure we're installed
-        if !Toolchain::exists(cfg, &toolchain)? {
+        if !toolchain.exists(cfg)? {
             return Err(RustupError::ToolchainNotInstallable(toolchain.to_string()).into());
         }
 

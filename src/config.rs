@@ -26,7 +26,8 @@ use crate::{
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
         ChannelToolchain, CustomToolchainName, Override, PartialToolchainName,
-        PartialToolchainNameOrPath, Toolchain, ToolchainName, ToolchainNameOrPath, ToolchainPath,
+        PartialToolchainNameOrPath, Toolchain, ToolchainName, ToolchainNameExt as _,
+        ToolchainNameOrPath, ToolchainPath,
     },
     utils,
 };
@@ -767,7 +768,7 @@ impl<'a> Cfg<'a> {
 
                     // XXX: this awkwardness deals with settings file being locked already
                     let toolchain_name = toolchain_name.complete(&default_host)?;
-                    if !Toolchain::exists(self, &toolchain_name.clone().into())?
+                    if !toolchain_name.exists(self)?
                         && matches!(toolchain_name, ToolchainName::Custom(_))
                     {
                         bail!(

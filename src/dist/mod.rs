@@ -18,7 +18,7 @@ use crate::{
     config::Cfg,
     errors::{NIGHTLY_COMPONENT_NOTE, RustupError},
     process::Process,
-    toolchain::ChannelToolchain,
+    toolchain::{ChannelToolchain, ToolchainNameExt},
     utils,
 };
 
@@ -300,6 +300,8 @@ impl ChannelToolchainName {
         }
     }
 }
+
+impl ToolchainNameExt for ChannelToolchainName {}
 
 impl FromStr for ChannelToolchainName {
     type Err = anyhow::Error;
