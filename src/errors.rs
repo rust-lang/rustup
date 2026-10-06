@@ -82,6 +82,19 @@ impl fmt::Display for TargetSuggestion {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ComponentSuggestion {
+    Component(String),
+}
+
+impl fmt::Display for ComponentSuggestion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Component(name) => write!(f, "did you mean '{name}'?"),
+        }
+    }
+}
+
 pub(crate) fn component_suggestion(
     desc: &ChannelToolchainName,
     component: &Component,
@@ -157,7 +170,7 @@ pub struct OperationError(pub anyhow::Error);
 pub struct UnknownComponentInfo {
     pub name: String,
     pub description: String,
-    pub suggestion: Option<String>,
+    pub suggestion: Option<ComponentSuggestion>,
 }
 
 #[derive(ThisError, Debug)]
@@ -418,7 +431,7 @@ fn unknown_components_msg(
             );
 
             if let Some(suggestion) = &component.suggestion {
-                let _ = write!(buf, "\nhelp: did you mean '{suggestion}'?");
+                let _ = write!(buf, "\nhelp: {suggestion}");
             }
 
             if component.description.contains("rust-std") {
@@ -442,7 +455,7 @@ fn unknown_components_msg(
                 let _ = writeln!(buf, "  - '{}'", component.name);
 
                 if let Some(suggestion) = &component.suggestion {
-                    let _ = writeln!(buf, "    help: did you mean '{suggestion}'?");
+                    let _ = writeln!(buf, "    help: {suggestion}");
                 }
             }
         }

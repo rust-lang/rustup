@@ -21,7 +21,7 @@ use crate::{
         manifestation::{Changes, Manifestation},
         prefix::InstallPrefix,
     },
-    errors::{TargetSuggestion, UnknownComponentInfo, component_suggestion},
+    errors::{ComponentSuggestion, TargetSuggestion, UnknownComponentInfo, component_suggestion},
     install::InstallMethod,
 };
 
@@ -113,7 +113,7 @@ impl<'a> DistributableToolchain<'a> {
                     components: vec![UnknownComponentInfo {
                         name: manifest.short_name(&component).to_string(),
                         description: manifest.description(&component),
-                        suggestion,
+                        suggestion: suggestion.map(ComponentSuggestion::Component),
                     }],
                 }
                 .into());
@@ -366,7 +366,7 @@ impl<'a> DistributableToolchain<'a> {
             unknown_components.push(UnknownComponentInfo {
                 name: manifest.short_name(&component).to_string(),
                 description: manifest.description(&component),
-                suggestion,
+                suggestion: suggestion.map(ComponentSuggestion::Component),
             });
         }
 
