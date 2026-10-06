@@ -280,6 +280,8 @@ pub enum ToolchainName {
     Custom(CustomToolchainName),
 }
 
+impl ToolchainNameExt for ToolchainName {}
+
 impl From<ChannelToolchainName> for ToolchainName {
     fn from(value: ChannelToolchainName) -> Self {
         Self::Channel(value)
@@ -393,6 +395,15 @@ impl From<PartialToolchainName> for PartialToolchainNameOrPath {
 pub(crate) enum ToolchainNameOrPath {
     Named(ToolchainName),
     Path(ToolchainPath),
+}
+
+impl ToolchainNameExt for ToolchainNameOrPath {
+    fn path(&self, cfg: &Cfg<'_>) -> PathBuf {
+        match self {
+            Self::Named(name) => name.path(cfg),
+            Self::Path(p) => p.to_path_buf(),
+        }
+    }
 }
 
 impl From<ToolchainName> for ToolchainNameOrPath {
@@ -527,6 +538,14 @@ impl Deref for ToolchainPath {
 
     fn deref(&self) -> &PathBuf {
         &self.0
+    }
+}
+
+/// Extension methods for a generic toolchain name.
+pub trait ToolchainNameExt: Display {
+    /// Provides the path to the toolchain's root directory.
+    fn path(&self, cfg: &Cfg<'_>) -> PathBuf {
+        cfg.toolchains_dir.join(self.to_string())
     }
 }
 
