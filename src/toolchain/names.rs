@@ -43,17 +43,21 @@
 
 use std::{
     fmt::{self, Display},
+    io,
     ops::Deref,
     path::{Path, PathBuf},
     str::FromStr,
 };
 
+use fs_at::OpenOptions;
 use thiserror::Error;
 use unicode_security::GeneralSecurityProfile;
 
 use crate::{
     config::{Cfg, no_toolchain_error},
     dist::{ChannelToolchainName, PartialChannelToolchainName, TargetTuple},
+    errors::RustupError,
+    utils::raw::open_dir_following_links,
 };
 
 /// Errors related to toolchains
@@ -543,6 +547,32 @@ impl Deref for ToolchainPath {
 
 /// Extension methods for a generic toolchain name.
 pub trait ToolchainNameExt: Display {
+    /// Checks if the toolchain is already installed.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(true)` if the toolchain exists.
+    /// - `Ok(false)` if the toolchain or its containing directory don't exist.
+    /// - `Err(_)` if there was an error checking for the toolchain's existence.
+    fn exists(&self, cfg: &Cfg<'_>) -> Result<bool, RustupError> {
+        let path = self.path(cfg);
+        // toolchain validation should have prevented a situation where there is
+        // no base dir, but defensive programming is defensive.
+        let invalid_name = || RustupError::InvalidToolchainName(self.to_string());
+        let parent = path.parent().ok_or_else(invalid_name)?;
+        let base_name = path.file_name().ok_or_else(invalid_name)?;
+        let parent_dir = match open_dir_following_links(parent) {
+            Ok(d) => d,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(false),
+            e => e?,
+        };
+        let opened = OpenOptions::default()
+            .read(true)
+            .follow(true)
+            .open_dir_at(&parent_dir, base_name);
+        Ok(opened.is_ok())
+    }
+
     /// Provides the path to the toolchain's root directory.
     fn path(&self, cfg: &Cfg<'_>) -> PathBuf {
         cfg.toolchains_dir.join(self.to_string())
