@@ -2423,6 +2423,23 @@ help: did you mean 'rustc'?
 }
 
 #[tokio::test]
+async fn remove_targetless_component_not_installed() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "component", "remove", "rust-src"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rust-src'
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
 async fn add_target_suggest_best_match() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
