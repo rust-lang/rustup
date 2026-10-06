@@ -1,6 +1,6 @@
 #[cfg(windows)]
 use std::fs;
-use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, process::Command};
+use std::{convert::Infallible, env::consts::EXE_SUFFIX, ffi::OsStr, ops::Deref, process::Command};
 
 #[cfg(windows)]
 use anyhow::Context;
@@ -336,15 +336,12 @@ impl<'a> DistributableToolchain<'a> {
             }
 
             // Check if the target is installed.
-            if !config
-                .components
-                .iter()
-                .any(|c| c.target() == component.target())
+            if let Some(target) = component.target.as_ref()
+                && !config
+                    .components
+                    .iter()
+                    .any(|c| c.target() == target.deref())
             {
-                let target = component
-                    .target
-                    .as_ref()
-                    .expect("component target should be known");
                 let suggestion = TargetSuggestion::from_target(
                     &self.desc,
                     target,
