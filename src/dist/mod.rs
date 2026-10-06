@@ -18,7 +18,7 @@ use crate::{
     config::Cfg,
     errors::{NIGHTLY_COMPONENT_NOTE, RustupError},
     process::Process,
-    toolchain::DistributableToolchain,
+    toolchain::ChannelToolchain,
     utils,
 };
 
@@ -884,7 +884,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
 
     pub(super) fn for_update(
         mut self,
-        toolchain: &'a DistributableToolchain<'cfg>,
+        toolchain: &'a ChannelToolchain<'cfg>,
         allow_downgrade: bool,
     ) -> Self {
         self.allow_downgrade = allow_downgrade;

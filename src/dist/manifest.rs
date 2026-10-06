@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     dist::{ChannelToolchainName, DistError, Profile, TargetTuple, config::Config},
     errors::RustupError,
-    toolchain::DistributableToolchain,
+    toolchain::ChannelToolchain,
 };
 
 /// A download manifest paired with its respective hash, as returned by the dist server.
@@ -558,7 +558,7 @@ impl Component {
 
     pub(crate) fn try_new(
         name: &str,
-        distributable: &DistributableToolchain<'_>,
+        distributable: &ChannelToolchain<'_>,
         fallback_target: Option<&TargetTuple>,
     ) -> anyhow::Result<Self> {
         let manifest = distributable.get_manifest()?;

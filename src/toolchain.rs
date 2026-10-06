@@ -33,7 +33,7 @@ use crate::{
 };
 
 mod distributable;
-pub(crate) use distributable::DistributableToolchain;
+pub(crate) use distributable::ChannelToolchain;
 
 mod names;
 pub(crate) use names::{
@@ -63,7 +63,7 @@ impl<'a> Toolchain<'a> {
                 ..
             }) if install_if_missing => {
                 let options = DistOptions::new(&[], &[], &desc, cfg.get_profile()?, true, cfg)?;
-                let tc = DistributableToolchain::install(options).await?;
+                let tc = ChannelToolchain::install(options).await?;
                 Ok(EnsureInstalled::new(tc.inner.into(), tc.status))
             }
             Err(e) => Err(e.into()),
@@ -379,7 +379,7 @@ impl<'a> Toolchain<'a> {
         for fallback in ["nightly", "beta", "stable"] {
             let resolved =
                 PartialChannelToolchainName::from_str(fallback)?.complete(&default_host_tuple)?;
-            if let Ok(fallback) = DistributableToolchain::new(self.cfg, resolved) {
+            if let Ok(fallback) = ChannelToolchain::new(self.cfg, resolved) {
                 let cmd = fallback.create_fallback_command("cargo", self)?;
                 return Ok(Some(cmd));
             }
@@ -463,7 +463,7 @@ impl<'a> Toolchain<'a> {
                     &self.name,
                     ToolchainNameOrPath::Named(ToolchainName::Channel(_))
                 ) {
-                    let distributable = DistributableToolchain::try_from(self)?;
+                    let distributable = ChannelToolchain::try_from(self)?;
                     // Design note: this is a bit of an awkward cast from
                     // general (toolchain) to more specialised (distributable);
                     // perhaps this function should something implemented on a

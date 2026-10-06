@@ -53,7 +53,7 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{ColorableTerminal, Process},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, MaybePartialToolchainName, Override,
+        ChannelToolchain, CustomToolchainName, MaybePartialToolchainName, Override,
         PartialToolchainName, PartialToolchainNameOrPath, Toolchain, ToolchainName,
         ToolchainNameOrPath,
     },
@@ -911,7 +911,7 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
             let ToolchainName::Channel(desc) = name else {
                 return None;
             };
-            let dist = DistributableToolchain::new(cfg, desc.clone()).ok()?;
+            let dist = ChannelToolchain::new(cfg, desc.clone()).ok()?;
             let components = dist.components().ok()?;
             Some(
                 components
@@ -1183,7 +1183,7 @@ async fn update(
                 cfg,
             )?;
 
-            let status = match DistributableToolchain::new(cfg, desc.clone()) {
+            let status = match ChannelToolchain::new(cfg, desc.clone()) {
                 Ok(d) => {
                     if !opts.no_update {
                         InstallMethod::Dist(dist_opts.for_update(&d, opts.allow_downgrade))
@@ -1194,7 +1194,7 @@ async fn update(
                     }
                 }
                 Err(RustupError::ToolchainNotInstalled { .. }) => {
-                    DistributableToolchain::install(dist_opts).await?.status
+                    ChannelToolchain::install(dist_opts).await?.status
                 }
                 Err(e) => Err(e)?,
             };
@@ -1391,7 +1391,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     writeln!(t.lock(), "installed targets:")?;
 
     let active_toolchain_targets = match active_toolchain_name {
-        ToolchainName::Channel(desc) => DistributableToolchain::new(cfg, desc)?
+        ToolchainName::Channel(desc) => ChannelToolchain::new(cfg, desc)?
             .components()?
             .into_iter()
             .filter_map(|c| {
@@ -1467,7 +1467,7 @@ async fn target_list(
     // If a toolchain is Distributable, we can assume it has a manifest and thus print all possible targets and the installed ones.
     // However, if it is a custom toolchain, we can only print the installed targets.
     // NB: this decision is made based on the absence of a manifest in custom toolchains.
-    if let Ok(distributable) = DistributableToolchain::from_partial(toolchain.clone(), cfg).await {
+    if let Ok(distributable) = ChannelToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
             distributable.components()?.into_iter().filter_map(|c| {
                 if c.component.short_name() == "rust-std" && c.available {
@@ -1501,7 +1501,7 @@ async fn target_add(
     // isn't a feature yet.
     // list_components *and* add_components would both be inappropriate for
     // custom toolchains.
-    let distributable = DistributableToolchain::from_partial(
+    let distributable = ChannelToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
         cfg,
     )
@@ -1542,7 +1542,7 @@ async fn target_remove(
     targets: Vec<TargetTuple>,
     toolchain: Option<PartialChannelToolchainName>,
 ) -> anyhow::Result<ExitCode> {
-    let distributable = DistributableToolchain::from_partial(
+    let distributable = ChannelToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
         cfg,
     )
@@ -1575,7 +1575,7 @@ async fn component_list(
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
 
     // downcasting required because the toolchain files can name any toolchain
-    if let Ok(distributable) = DistributableToolchain::from_partial(toolchain.clone(), cfg).await {
+    if let Ok(distributable) = ChannelToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
             distributable
                 .components()?
@@ -1605,7 +1605,7 @@ async fn component_add(
     toolchain: Option<PartialChannelToolchainName>,
     target: Option<String>,
 ) -> anyhow::Result<ExitCode> {
-    let distributable = DistributableToolchain::from_partial(
+    let distributable = ChannelToolchain::from_partial(
         toolchain.map(|desc| (desc, ActiveSource::CommandLine)),
         cfg,
     )
@@ -1624,10 +1624,7 @@ async fn component_add(
     Ok(ExitCode::SUCCESS)
 }
 
-fn get_target(
-    target: Option<String>,
-    distributable: &DistributableToolchain<'_>,
-) -> Option<TargetTuple> {
+fn get_target(target: Option<String>, distributable: &ChannelToolchain<'_>) -> Option<TargetTuple> {
     target
         .map(TargetTuple::new)
         .or_else(|| Some(distributable.desc().target.clone()))
@@ -1640,7 +1637,7 @@ async fn component_remove(
     target: Option<String>,
 ) -> anyhow::Result<ExitCode> {
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
-    let distributable = DistributableToolchain::from_partial(toolchain, cfg).await?;
+    let distributable = ChannelToolchain::from_partial(toolchain, cfg).await?;
     let target = get_target(target, &distributable);
 
     distributable
@@ -1725,8 +1722,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                 .context("no default toolchain to pin")?;
             let components = match &default {
                 PartialToolchainName::Channel(desc) => {
-                    let tc =
-                        DistributableToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
+                    let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
                     let manifest = tc.get_manifest()?;
 
                     Some(
@@ -1793,7 +1789,7 @@ async fn override_add(
             ToolchainName::Custom(_) => Err(e)?,
             ToolchainName::Channel(desc) => {
                 let options = DistOptions::new(&[], &[], desc, cfg.get_profile()?, false, cfg)?;
-                let status = DistributableToolchain::install(options).await?.status;
+                let status = ChannelToolchain::install(options).await?.status;
                 writeln!(cfg.process.stdout().lock())?;
                 common::show_channel_update(
                     cfg,

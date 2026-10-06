@@ -35,7 +35,7 @@ use super::topical_doc;
 use crate::{
     config::{ActiveSource, Cfg},
     dist::{PartialChannelToolchainName, manifest::ComponentStatus},
-    toolchain::DistributableToolchain,
+    toolchain::ChannelToolchain,
     utils::{self, ExitCode},
 };
 
@@ -191,7 +191,7 @@ pub(crate) async fn doc(
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
 
-    if let Ok(distributable) = DistributableToolchain::try_from(&toolchain)
+    if let Ok(distributable) = ChannelToolchain::try_from(&toolchain)
         && let [_] = distributable
             .components()?
             .into_iter()
