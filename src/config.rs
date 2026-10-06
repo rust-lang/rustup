@@ -1082,14 +1082,6 @@ impl<'a> Cfg<'a> {
             .with(|s| Ok(default_host_tuple(s, self.process)))
     }
 
-    /// The path on disk of any concrete toolchain
-    pub(crate) fn toolchain_path(&self, toolchain: &ToolchainNameOrPath) -> PathBuf {
-        match toolchain {
-            ToolchainNameOrPath::Named(name) => self.toolchains_dir.join(name.to_string()),
-            ToolchainNameOrPath::Path(p) => p.to_path_buf(),
-        }
-    }
-
     /// Notifies a user with a hint whenever a new Rust release is available.
     /// This is only shown at max once per day and only if not in proxy mode.
     pub(crate) fn notify_release(&self) -> anyhow::Result<()> {
