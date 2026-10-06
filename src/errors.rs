@@ -84,12 +84,59 @@ impl fmt::Display for TargetSuggestion {
 
 #[derive(Debug, Clone)]
 pub enum ComponentSuggestion {
+    Toolchain { name: String, component: String },
     Component(String),
+}
+
+impl ComponentSuggestion {
+    pub(crate) fn for_removal(
+        desc: &ChannelToolchainName,
+        component: &Component,
+        config: &DistConfig,
+        manifest: &Manifest,
+        cfg: &Cfg<'_>,
+    ) -> Option<Self> {
+        let Ok(toolchains) = cfg.list_toolchains(true) else {
+            return component_suggestion(desc, component, config, manifest, true)
+                .map(Self::Component);
+        };
+
+        let names = [component.name(), component.wildcard().name()];
+        for toolchain_name in toolchains {
+            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
+                && toolchain_desc == desc
+            {
+                continue;
+            }
+
+            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
+                continue;
+            };
+            let Ok(installed_components) = toolchain.installed_components() else {
+                continue;
+            };
+
+            if installed_components
+                .iter()
+                .any(|c| names.iter().any(|n| n == c.name()))
+            {
+                return Some(Self::Toolchain {
+                    name: toolchain_name.to_string(),
+                    component: manifest.short_name(component).to_string(),
+                });
+            }
+        }
+
+        component_suggestion(desc, component, config, manifest, true).map(Self::Component)
+    }
 }
 
 impl fmt::Display for ComponentSuggestion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Toolchain { name, component } => {
+                write!(f, "try `rustup +{name} component remove {component}`")
+            }
             Self::Component(name) => write!(f, "did you mean '{name}'?"),
         }
     }

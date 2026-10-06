@@ -361,12 +361,18 @@ impl<'a> DistributableToolchain<'a> {
                 .into());
             }
 
-            let suggestion = component_suggestion(&self.desc, &component, &config, &manifest, true);
+            let suggestion = ComponentSuggestion::for_removal(
+                &self.desc,
+                &component,
+                &config,
+                &manifest,
+                self.toolchain.cfg,
+            );
 
             unknown_components.push(UnknownComponentInfo {
                 name: manifest.short_name(&component).to_string(),
                 description: manifest.description(&component),
-                suggestion: suggestion.map(ComponentSuggestion::Component),
+                suggestion,
             });
         }
 

@@ -1863,6 +1863,67 @@ error: toolchain 'stable-[HOST_TUPLE]' does not have target '[CROSS_ARCH_I]' ins
 }
 
 #[tokio::test]
+async fn remove_component_not_installed_with_suggestion() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect([
+            "rustup",
+            "component",
+            "add",
+            "rust-analysis",
+            "--toolchain=nightly",
+        ])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "component", "remove", "rust-analysis"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rust-analysis' for target '[HOST_TUPLE]'
+help: try `rustup +nightly-[HOST_TUPLE] component remove rust-analysis`
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn remove_component_not_installed_no_alternative() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "component", "remove", "rust-analysis"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rust-analysis' for target '[HOST_TUPLE]'
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
 async fn remove_target_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
