@@ -1,9 +1,9 @@
 use std::{
     borrow::Cow,
     env::consts::EXE_SUFFIX,
-    ffi::OsStr,
     fmt,
     io::{self, Write},
+    iter,
     path::{Path, PathBuf},
     process::ExitStatus,
     str::FromStr,
@@ -19,10 +19,7 @@ use clap::{
     builder::{PossibleValue, ValueHint},
 };
 use clap_cargo::style::{CONTEXT, ERROR, GOOD, HEADER, TRANSIENT, WARN};
-use clap_complete::{
-    Shell,
-    engine::{ArgValueCompleter, CompletionCandidate},
-};
+use clap_complete::{ArgValueCandidates, Shell, engine::CompletionCandidate};
 use futures_util::stream::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde::Serialize;
@@ -930,36 +927,22 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
 
     Rustup::command()
         .mut_arg("+toolchain", move |arg| {
-            arg.add(ArgValueCompleter::new(move |current: &OsStr| {
-                let Some(prefix) = current.to_str() else {
-                    return Vec::new();
-                };
+            arg.add(ArgValueCandidates::new(move || {
                 toolchains
                     .iter()
-                    .filter_map(|toolchain| {
-                        let candidate = format!("+{toolchain}");
-                        candidate
-                            .starts_with(prefix)
-                            .then(|| CompletionCandidate::new(candidate))
-                    })
+                    .map(|t| CompletionCandidate::new(format!("+{t}")))
                     .collect()
             }))
         })
         .mut_subcommand("target", move |target_cmd| {
             target_cmd.mut_subcommand("add", move |add_cmd| {
                 add_cmd.mut_arg("target", move |arg| {
-                    arg.add(ArgValueCompleter::new(move |current: &OsStr| {
-                        let prefix = current.to_str().unwrap_or_default();
-                        let mut candidates = available_targets
-                            .iter()
-                            .filter(|t| t.starts_with(prefix))
-                            .map(|t| CompletionCandidate::new(t.clone()))
-                            .collect::<Vec<CompletionCandidate>>();
+                    arg.add(ArgValueCandidates::new(move || {
                         // "all" is a special keyword that installs every available target
-                        if "all".starts_with(prefix) {
-                            candidates.push(CompletionCandidate::new("all"));
-                        }
-                        candidates
+                        iter::once("all")
+                            .chain(available_targets.iter().map(AsRef::as_ref))
+                            .map(CompletionCandidate::new)
+                            .collect()
                     }))
                 })
             })
