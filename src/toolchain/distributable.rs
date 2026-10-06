@@ -27,12 +27,12 @@ use crate::{
 
 /// An official toolchain installed on the local disk
 #[derive(Debug)]
-pub(crate) struct DistributableToolchain<'a> {
+pub(crate) struct ChannelToolchain<'a> {
     pub(crate) toolchain: Toolchain<'a>,
     desc: ChannelToolchainName,
 }
 
-impl<'a> DistributableToolchain<'a> {
+impl<'a> ChannelToolchain<'a> {
     #[tracing::instrument(level = "trace", err(level = "trace"), skip_all)]
     pub(crate) async fn install(
         options: DistOptions<'a, '_>,
@@ -414,7 +414,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 }
 
-impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
+impl<'a> TryFrom<&Toolchain<'a>> for ChannelToolchain<'a> {
     type Error = RustupError;
 
     fn try_from(value: &Toolchain<'a>) -> Result<Self, Self::Error> {
@@ -428,8 +428,8 @@ impl<'a> TryFrom<&Toolchain<'a>> for DistributableToolchain<'a> {
     }
 }
 
-impl<'a> From<DistributableToolchain<'a>> for Toolchain<'a> {
-    fn from(value: DistributableToolchain<'a>) -> Self {
+impl<'a> From<ChannelToolchain<'a>> for Toolchain<'a> {
+    fn from(value: ChannelToolchain<'a>) -> Self {
         value.toolchain
     }
 }

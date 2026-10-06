@@ -68,9 +68,7 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::Process,
     settings::SettingsFile,
-    toolchain::{
-        DistributableToolchain, MaybeChannelToolchainName, PartialToolchainName, Toolchain,
-    },
+    toolchain::{ChannelToolchain, MaybeChannelToolchainName, PartialToolchainName, Toolchain},
     utils::{self, ExitCode},
 };
 
@@ -281,12 +279,12 @@ impl InstallOpts<'_> {
                 // - silently ignore it (and provide inconsistent metadata for reporting the install/update change)
                 // - delete the partial install and start over
                 // For now, we error.
-                let toolchain = DistributableToolchain::new(&cfg, desc.clone())?;
+                let toolchain = ChannelToolchain::new(&cfg, desc.clone())?;
                 InstallMethod::Dist(options.for_update(&toolchain, false))
                     .install(None)
                     .await?
             } else {
-                DistributableToolchain::install(options).await?.status
+                ChannelToolchain::install(options).await?.status
             };
 
             check_proxy_sanity(&cargo_bin, components, &desc)?;

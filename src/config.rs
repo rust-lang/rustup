@@ -25,7 +25,7 @@ use crate::{
     process::Process,
     settings::{MetadataVersion, Settings, SettingsFile},
     toolchain::{
-        CustomToolchainName, DistributableToolchain, Override, PartialToolchainName,
+        ChannelToolchain, CustomToolchainName, Override, PartialToolchainName,
         PartialToolchainNameOrPath, Toolchain, ToolchainName, ToolchainNameOrPath, ToolchainPath,
     },
     utils,
@@ -925,9 +925,9 @@ impl<'a> Cfg<'a> {
             self,
         )?;
 
-        Ok(match DistributableToolchain::new(self, toolchain.clone()) {
+        Ok(match ChannelToolchain::new(self, toolchain.clone()) {
             Err(RustupError::ToolchainNotInstalled { .. }) => {
-                let tc = DistributableToolchain::install(options).await?;
+                let tc = ChannelToolchain::install(options).await?;
                 EnsureInstalled::new(tc.inner.into(), tc.status)
             }
             Ok(distributable) => {
@@ -1034,13 +1034,13 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn list_channels(
         &self,
-    ) -> anyhow::Result<Vec<(ChannelToolchainName, DistributableToolchain<'_>)>> {
+    ) -> anyhow::Result<Vec<(ChannelToolchainName, ChannelToolchain<'_>)>> {
         let mut channels = self
             .list_toolchains(true)?
             .into_iter()
             .filter_map(|t| match t {
                 ToolchainName::Channel(n) if n.is_tracking() => {
-                    Some(DistributableToolchain::new(self, n.clone()).map(|t| (n, t)))
+                    Some(ChannelToolchain::new(self, n.clone()).map(|t| (n, t)))
                 }
                 _ => None,
             })
@@ -1114,7 +1114,7 @@ impl<'a> Cfg<'a> {
         let default_host = self.default_host_tuple()?;
         let stable_desc =
             PartialChannelToolchainName::from_str("stable")?.complete(&default_host)?;
-        let stable = match DistributableToolchain::new(self, stable_desc) {
+        let stable = match ChannelToolchain::new(self, stable_desc) {
             Ok(stable) => stable,
             // If the `stable` toolchain is not installed, we don't notify the user.
             Err(RustupError::ToolchainNotInstalled { .. }) => return Ok(()),
