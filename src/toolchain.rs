@@ -32,8 +32,8 @@ use crate::{
     utils::{self, raw::open_dir_following_links},
 };
 
-mod distributable;
-pub(crate) use distributable::ChannelToolchain;
+mod channels;
+pub(crate) use channels::ChannelToolchain;
 
 mod names;
 pub(crate) use names::{
