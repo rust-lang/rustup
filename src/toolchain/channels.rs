@@ -29,7 +29,6 @@ use crate::{
 #[derive(Debug)]
 pub(crate) struct ChannelToolchain<'a> {
     pub(crate) toolchain: Toolchain<'a>,
-    desc: ChannelToolchainName,
 }
 
 impl<'a> ChannelToolchain<'a> {
@@ -55,13 +54,14 @@ impl<'a> ChannelToolchain<'a> {
     }
 
     pub(crate) fn new(cfg: &'a Cfg<'a>, desc: ChannelToolchainName) -> Result<Self, RustupError> {
-        Toolchain::new(cfg, desc.clone().into()).map(|toolchain| Self { toolchain, desc })
+        Toolchain::new(cfg, desc.into()).map(|toolchain| Self { toolchain })
     }
 
     pub(crate) async fn add_components(
         &self,
         components: impl IntoIterator<Item = anyhow::Result<Component>>,
     ) -> anyhow::Result<()> {
+        let desc = self.desc();
         let manifestation = self.get_manifestation()?;
         let manifest = self.get_manifest()?;
 
@@ -71,7 +71,7 @@ impl<'a> ChannelToolchain<'a> {
             .expect("manifest should contain a rust package");
         let targ_pkg = rust_pkg
             .targets
-            .get(&self.desc.target)
+            .get(&desc.target)
             .expect("installed manifest should have a known target");
 
         let components = components.into_iter();
@@ -95,9 +95,7 @@ impl<'a> ChannelToolchain<'a> {
             }
 
             let config = manifestation.read_config()?.unwrap_or_default();
-            let suggestion =
-                component_suggestion(&self.desc, &component, &config, &manifest, false);
-            let desc = self.desc.clone();
+            let suggestion = component_suggestion(desc, &component, &config, &manifest, false);
 
             if targ_pkg
                 .components
@@ -105,7 +103,7 @@ impl<'a> ChannelToolchain<'a> {
                 .any(|c| c.target() == component.target())
             {
                 return Err(RustupError::UnknownComponents {
-                    desc,
+                    desc: desc.clone(),
                     components: vec![UnknownComponentInfo {
                         name: manifest.short_name(&component).to_string(),
                         description: manifest.description(&component),
@@ -117,11 +115,15 @@ impl<'a> ChannelToolchain<'a> {
 
             let target = component.target.expect("component target should be known");
             if let Some(platform) = Platform::find(&target) {
-                return Err(RustupError::UnavailableTarget { desc, platform }.into());
+                return Err(RustupError::UnavailableTarget {
+                    desc: desc.clone(),
+                    platform,
+                }
+                .into());
             }
 
             return Err(RustupError::UnknownTarget {
-                desc: Box::new(desc),
+                desc: Box::new(desc.clone()),
                 target,
                 suggestion,
             }
@@ -135,7 +137,7 @@ impl<'a> ChannelToolchain<'a> {
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
-            .update(manifest, changes, false, &download_cfg, &self.desc, false)
+            .update(manifest, changes, false, &download_cfg, desc, false)
             .await?;
 
         Ok(())
@@ -170,7 +172,7 @@ impl<'a> ChannelToolchain<'a> {
         };
 
         let config = manifestation.read_config()?.unwrap_or_default();
-        let installed_components = manifest.query_components(&self.desc, &config)?;
+        let installed_components = manifest.query_components(self.desc(), &config)?;
         // check if all the components we want are installed
         let wanted_components = components.iter().all(|name| {
             installed_components.iter().any(|status| {
@@ -245,7 +247,7 @@ impl<'a> ChannelToolchain<'a> {
     #[tracing::instrument(level = "trace", skip_all)]
     pub(crate) fn get_manifestation(&self) -> anyhow::Result<Manifestation> {
         let prefix = InstallPrefix::from(self.toolchain.path());
-        Manifestation::open(prefix, self.desc.target.clone())
+        Manifestation::open(prefix, self.desc().target.clone())
     }
 
     /// Get the manifest associated with this distribution
@@ -254,9 +256,12 @@ impl<'a> ChannelToolchain<'a> {
         self.get_manifestation()?
             .load_manifest()
             .transpose()
-            .unwrap_or_else(|| match self.guess_v1_manifest() {
-                true => Err(RustupError::ComponentsUnsupportedV1(self.desc.to_string()).into()),
-                false => Err(RustupError::MissingManifest(self.desc.clone()).into()),
+            .unwrap_or_else(|| {
+                let desc = self.desc();
+                match self.guess_v1_manifest() {
+                    true => Err(RustupError::ComponentsUnsupportedV1(desc.to_string()).into()),
+                    false => Err(RustupError::MissingManifest(desc.clone()).into()),
+                }
             })
     }
 
@@ -266,12 +271,12 @@ impl<'a> ChannelToolchain<'a> {
     }
 
     pub fn recursion_error(&self, binary_lossy: String) -> Result<Infallible, anyhow::Error> {
+        let desc = self.desc();
         let prefix = InstallPrefix::from(self.toolchain.path());
-        let manifestation = Manifestation::open(prefix, self.desc.target.clone())?;
+        let manifestation = Manifestation::open(prefix, desc.target.clone())?;
         let manifest = self.get_manifest()?;
         let config = manifestation.read_config()?.unwrap_or_default();
-        let component_statuses = manifest.query_components(&self.desc, &config)?;
-        let desc = &self.desc;
+        let component_statuses = manifest.query_components(desc, &config)?;
         if let Some(component_name) = component_for_bin(&binary_lossy) {
             let component_status = component_statuses
                 .iter()
@@ -289,7 +294,7 @@ impl<'a> ChannelToolchain<'a> {
             } else {
                 // available, not installed, recommend installation
                 let selector = match self.toolchain.cfg.get_default()? {
-                    Some(ToolchainName::Channel(n)) if n == self.desc => String::new(),
+                    Some(ToolchainName::Channel(n)) if &n == desc => String::new(),
                     _ => format!("--toolchain {} ", self.toolchain.name()),
                 };
                 Err(anyhow!(
@@ -308,6 +313,7 @@ impl<'a> ChannelToolchain<'a> {
         &self,
         components: impl IntoIterator<Item = anyhow::Result<Component>>,
     ) -> anyhow::Result<()> {
+        let desc = self.desc();
         let manifestation = self.get_manifestation()?;
         let config = manifestation.read_config()?.unwrap_or_default();
         let manifest = self.get_manifest()?;
@@ -339,7 +345,7 @@ impl<'a> ChannelToolchain<'a> {
                     .any(|c| c.target() == target.deref())
             {
                 let suggestion = TargetSuggestion::from_target(
-                    &self.desc,
+                    desc,
                     target,
                     &component,
                     &config,
@@ -347,7 +353,7 @@ impl<'a> ChannelToolchain<'a> {
                     self.toolchain.cfg,
                 );
                 return Err(RustupError::TargetNotInstalled {
-                    desc: Box::new(self.desc.clone()),
+                    desc: Box::new(desc.clone()),
                     target: target.clone(),
                     suggestion,
                 }
@@ -355,7 +361,7 @@ impl<'a> ChannelToolchain<'a> {
             }
 
             let suggestion = ComponentSuggestion::for_removal(
-                &self.desc,
+                desc,
                 &component,
                 &config,
                 &manifest,
@@ -376,7 +382,7 @@ impl<'a> ChannelToolchain<'a> {
 
         let download_cfg = DownloadCfg::new(self.toolchain.cfg);
         manifestation
-            .update(manifest, changes, false, &download_cfg, &self.desc, false)
+            .update(manifest, changes, false, &download_cfg, desc, false)
             .await?;
 
         if !unknown_components.is_empty() {
@@ -391,14 +397,15 @@ impl<'a> ChannelToolchain<'a> {
     }
 
     pub async fn fetch_dist_manifest(&self) -> anyhow::Result<Option<ManifestWithHash>> {
+        let desc = self.desc();
         let prefix = InstallPrefix::from(self.toolchain.path());
         let update_hash = if prefix.dist_manifest().is_some() {
-            Some(self.toolchain.cfg.get_hash_file(&self.desc, false)?)
+            Some(self.toolchain.cfg.get_hash_file(desc, false)?)
         } else {
             None
         };
         DownloadCfg::new(self.toolchain.cfg)
-            .dl_v2_manifest(update_hash.as_deref(), &self.desc, self.toolchain.cfg)
+            .dl_v2_manifest(update_hash.as_deref(), desc, self.toolchain.cfg)
             .await
     }
 
@@ -410,7 +417,16 @@ impl<'a> ChannelToolchain<'a> {
     }
 
     pub(crate) fn desc(&self) -> &ChannelToolchainName {
-        &self.desc
+        match self.toolchain.name() {
+            ToolchainNameOrPath::Named(ToolchainName::Channel(name)) => name,
+            // TODO: `self.toolchain` is in principle ensured to have a `ChannelToolchainName` since
+            // it has been constructed as such in `Self::new()`, so this case should be unreachable.
+            // However, this may not be clear to the outside caller, so further cleanup is needed to
+            // make sure `Self` cannot be constructed with (or mutated to have) a non-channel name.
+            // For example, this should be possible with the following feature when it lands:
+            // <https://rust-lang.github.io/rfcs/3323-restrictions.html#mut-restricted-fields>
+            _ => unreachable!("ChannelToolchain should always have a ChannelToolchainName"),
+        }
     }
 }
 
@@ -419,9 +435,8 @@ impl<'a> TryFrom<&Toolchain<'a>> for ChannelToolchain<'a> {
 
     fn try_from(value: &Toolchain<'a>) -> Result<Self, Self::Error> {
         match value.name() {
-            ToolchainNameOrPath::Named(ToolchainName::Channel(desc)) => Ok(Self {
+            ToolchainNameOrPath::Named(ToolchainName::Channel(_)) => Ok(Self {
                 toolchain: value.clone(),
-                desc: desc.clone(),
             }),
             n => Err(RustupError::ComponentsUnsupported(n.to_string())),
         }
