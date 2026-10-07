@@ -504,17 +504,17 @@ impl<'a> Toolchain<'a> {
         buf
     }
 
-    pub fn doc_path(&self, relative: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+    pub fn doc_path(&self, relative: impl AsRef<Path>) -> PathBuf {
         let relative = relative.as_ref();
         if relative.is_absolute() {
-            return Ok(relative.to_owned());
+            return relative.to_owned();
         }
 
         let mut doc_dir = self.path.clone();
         doc_dir.extend(["share", "doc", "rust", "html"]);
         doc_dir.push(relative);
 
-        Ok(doc_dir)
+        doc_dir
     }
 
     pub fn open_docs(
@@ -523,7 +523,7 @@ impl<'a> Toolchain<'a> {
         fragment: Option<&str>,
     ) -> anyhow::Result<()> {
         let relative = relative.as_ref();
-        let mut doc_url = Url::from_file_path(self.doc_path(relative)?)
+        let mut doc_url = Url::from_file_path(self.doc_path(relative))
             .ok()
             .with_context(|| anyhow!("invalid doc file absolute path `{}`", relative.display()))?;
         doc_url.set_fragment(fragment);

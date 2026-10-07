@@ -212,12 +212,12 @@ pub(crate) async fn doc(
     let (doc_path, fragment) = match (topic, doc_page.name()) {
         (Some(topic), Some(name)) => {
             let (doc_path, fragment) = doc_page
-                .resolve(&toolchain.doc_path("")?, topic)
+                .resolve(&toolchain.doc_path(""), topic)
                 .context(format!("no document for {name} on {topic}"))?;
             (Cow::Owned(doc_path), fragment)
         }
         (Some(topic), None) => {
-            let doc_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
+            let doc_path = topical_doc::local_path(&toolchain.doc_path(""), topic)?;
             (Cow::Owned(doc_path), None)
         }
         (None, name) => {
@@ -228,13 +228,13 @@ pub(crate) async fn doc(
     };
 
     if path_only {
-        let doc_path = toolchain.doc_path(&doc_path)?;
+        let doc_path = toolchain.doc_path(&doc_path);
         writeln!(cfg.process.stdout().lock(), "{}", doc_path.display())?;
         return Ok(ExitCode::SUCCESS);
     }
 
     if serve {
-        let root = toolchain.doc_path("")?;
+        let root = toolchain.doc_path("");
         serve_and_open(root, &doc_path, fragment).await?;
         return Ok(ExitCode::SUCCESS);
     }
