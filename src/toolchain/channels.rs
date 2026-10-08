@@ -58,10 +58,6 @@ impl<'a> ChannelToolchain<'a> {
         Toolchain::new(cfg, desc.clone().into()).map(|toolchain| Self { toolchain, desc })
     }
 
-    pub(crate) fn desc(&self) -> &ChannelToolchainName {
-        &self.desc
-    }
-
     pub(crate) async fn add_components(
         &self,
         components: impl IntoIterator<Item = anyhow::Result<Component>>,
@@ -411,6 +407,10 @@ impl<'a> ChannelToolchain<'a> {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
+    }
+
+    pub(crate) fn desc(&self) -> &ChannelToolchainName {
+        &self.desc
     }
 }
 
