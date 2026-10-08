@@ -27,6 +27,7 @@ use crate::{
 
 /// An official toolchain installed on the local disk
 #[derive(Debug)]
+#[repr(transparent)]
 pub(crate) struct ChannelToolchain<'a> {
     pub(crate) toolchain: Toolchain<'a>,
 }
@@ -49,7 +50,7 @@ impl<'a> ChannelToolchain<'a> {
         cfg: &'a Cfg<'a>,
     ) -> anyhow::Result<Self> {
         Ok(Self::try_from(
-            &cfg.toolchain_from_partial(toolchain).await?.0,
+            cfg.toolchain_from_partial(toolchain).await?.0,
         )?)
     }
 
@@ -430,14 +431,12 @@ impl<'a> ChannelToolchain<'a> {
     }
 }
 
-impl<'a> TryFrom<&Toolchain<'a>> for ChannelToolchain<'a> {
+impl<'a> TryFrom<Toolchain<'a>> for ChannelToolchain<'a> {
     type Error = RustupError;
 
-    fn try_from(value: &Toolchain<'a>) -> Result<Self, Self::Error> {
-        match value.name() {
-            ToolchainNameOrPath::Named(ToolchainName::Channel(_)) => Ok(Self {
-                toolchain: value.clone(),
-            }),
+    fn try_from(toolchain: Toolchain<'a>) -> Result<Self, Self::Error> {
+        match toolchain.name() {
+            ToolchainNameOrPath::Named(ToolchainName::Channel(_)) => Ok(Self { toolchain }),
             n => Err(RustupError::ComponentsUnsupported(n.to_string())),
         }
     }

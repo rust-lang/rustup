@@ -438,11 +438,12 @@ impl<'a> Toolchain<'a> {
                     &self.name,
                     ToolchainNameOrPath::Named(ToolchainName::Channel(_))
                 ) {
-                    let distributable = ChannelToolchain::try_from(self)?;
-                    // Design note: this is a bit of an awkward cast from
-                    // general (toolchain) to more specialised (distributable);
-                    // perhaps this function should something implemented on a
-                    // trait, permitting removal of that case.
+                    // NOTE: This is a bit of an awkward cast from general `Toolchain` to more
+                    // specialised `ChannelToolchain` which is just a newtype over the former; in
+                    // theory, a `.clone()` is not needed because for `.recursion_error()` we would
+                    // only need a `&ChannelToolchain`, which is safely convertible from
+                    // `&Toolchain`.
+                    let distributable = ChannelToolchain::try_from(self.clone())?;
                     return Err(distributable.recursion_error(binary_lossy).unwrap_err());
                 } else {
                     let t = &self.name;
