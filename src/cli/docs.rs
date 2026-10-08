@@ -191,7 +191,7 @@ pub(crate) async fn doc(
     let toolchain = toolchain.map(|desc| (desc, ActiveSource::CommandLine));
     let toolchain = cfg.toolchain_from_partial(toolchain).await?.0;
 
-    if let Ok(distributable) = ChannelToolchain::try_from(&toolchain)
+    if let Ok(distributable) = ChannelToolchain::try_from(toolchain.clone())
         && let [_] = distributable
             .components()?
             .into_iter()
