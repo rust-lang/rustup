@@ -1769,6 +1769,15 @@ async fn rust_analyzer_proxy_uses_external_without_hosted() {
         .await;
     let real_path = Path::new(real_path.output.stderr.trim());
     fs::copy(real_path, extern_path).unwrap();
+    // Copy `.version` and `.version-hash` files as well so that the `--version` probe works. This
+    // is needed for rustup to detect valid external `rust-analyzer` fallbacks.
+    for suffix in [".version", ".version-hash"] {
+        fs::copy(
+            format!("{}{suffix}", real_path.display()),
+            format!("{}{suffix}", extern_path.display()),
+        )
+        .unwrap();
+    }
     cx.config
         .expect(["rustup", "component", "remove", "rust-analyzer"])
         .await
@@ -1808,6 +1817,15 @@ async fn rust_analyzer_proxy_skips_external_redirecting_to_rustup() {
         .await;
     let real_path = Path::new(real_path.output.stderr.trim());
     fs::copy(real_path, extern_path).unwrap();
+    // Copy `.version` and `.version-hash` files as well so that the `--version` probe works. This
+    // is needed for rustup to detect valid external `rust-analyzer` fallbacks.
+    for suffix in [".version", ".version-hash"] {
+        fs::copy(
+            format!("{}{suffix}", real_path.display()),
+            format!("{}{suffix}", extern_path.display()),
+        )
+        .unwrap();
+    }
     cx.config
         .expect(["rustup", "component", "remove", "rust-analyzer"])
         .await
@@ -1851,11 +1869,11 @@ exec "$RUSTUP_TEST_RUST_ANALYZER_PROXY" "$@"
         .expect_with_env(["rust-analyzer", "--echo-current-exe"], env_override)
         .await
         .extend_redactions([("[EXTERN_PATH]", extern_path)])
-        .is_err()
+        .is_ok()
         .with_stderr(snapbox::str![[r#"
 info: `rust-analyzer` is unavailable for the active toolchain
-...
-error: infinite recursion detected
+info: falling back to "[EXTERN_PATH]"
+[EXTERN_PATH]
 
 "#]]);
 }
