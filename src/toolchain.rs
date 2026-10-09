@@ -1,5 +1,3 @@
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt as _;
 use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
@@ -385,8 +383,11 @@ impl<'a> Toolchain<'a> {
 
         let me = env::current_exe()?;
 
-        // Try to find the first `rust-analyzer` under the `$PATH` that is both
-        // an existing file and not the same file as `me`, i.e. not a rustup proxy.
+        // Try to find the first `rust-analyzer` under the `$PATH` that:
+        // - Is an existing file.
+        // - Is not the same file as `me`, i.e. not a rustup proxy.
+        // - Can be executed with `--version` while `RUST_RECURSION_COUNT` is set to
+        //   `RUST_RECURSION_COUNT_MAX + 1`, i.e. doesn't redirect to rustup.
         for mut p in env::split_paths(&path) {
             p.push(binary);
             let is_external_ra = p.is_file()
@@ -397,14 +398,29 @@ impl<'a> Toolchain<'a> {
                 continue;
             }
 
-            // On Unix, we additionally check if the file is executable.
-            #[cfg(unix)]
-            if !p
-                .metadata()
-                .is_ok_and(|meta| meta.permissions().mode() & 0o111 != 0)
-            {
+            let mut ra = Command::new(&p);
+            self.set_env(&mut ra);
+            ra.arg("--version")
+                .env(
+                    "RUST_RECURSION_COUNT",
+                    (env_var::RUST_RECURSION_COUNT_MAX + 1).to_string(),
+                )
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .stdin(Stdio::null());
+
+            let Ok(mut child) = ra.spawn() else {
                 continue;
-            }
+            };
+            match child.wait_timeout(Duration::from_secs(10)) {
+                Ok(Some(s)) if s.success() => (),
+                Ok(Some(_)) | Err(_) => continue,
+                Ok(None) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    continue;
+                }
+            };
 
             let mut ra = Command::new(p);
             self.set_env(&mut ra);
