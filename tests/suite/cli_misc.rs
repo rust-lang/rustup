@@ -1828,10 +1828,11 @@ exec "$RUSTUP_TEST_RUST_ANALYZER_PROXY" "$@"
             )
             .await
             .is_err()
+            // NOTE: The below "unknown binary" error message is shown because the toolchain we are
+            // testing only has `rls` and we need to test `rust-analyzer` on it. As such the below
+            // snapshot only asserts that the infinite recursion behavior is gone.
             .with_stderr(snapbox::str![[r#"
-info: `rust-analyzer` is unavailable for the active toolchain
-...
-error: infinite recursion detected
+error: Unknown binary 'rust-analyzer' in official toolchain 'stable-[HOST_TUPLE]'.
 
 "#]]);
     };
