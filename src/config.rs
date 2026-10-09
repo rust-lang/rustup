@@ -321,7 +321,13 @@ pub(crate) struct Cfg<'a> {
     fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     update_hash_dir: PathBuf,
+    pub bin_dir: PathBuf,
+    pub cache_dir: PathBuf,
+    pub config_dir: PathBuf,
+    pub data_dir: PathBuf,
+    pub state_dir: PathBuf,
     pub download_dir: PathBuf,
+    pub tmp_dir: PathBuf,
     pub toolchain_override: Option<Override<PartialToolchainNameOrPath>>,
     env_override: Option<Override<PartialToolchainNameOrPath>>,
     pub(crate) dist_root_server: String,
@@ -348,10 +354,21 @@ impl<'a> Cfg<'a> {
     ) -> anyhow::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = process.rustup_home()?;
+        let bin_dir = process.bin_home()?;
+        let home_dirs = process.home_dirs()?;
+        let cache_dir = home_dirs.cache;
+        let config_dir = home_dirs.config;
+        let data_dir = home_dirs.data;
+        let state_dir = home_dirs.state;
 
-        utils::ensure_dir_exists("home", &rustup_dir)?;
+        if process.use_category_home() {
+            utils::ensure_dir_exists("config home", &config_dir)?;
+            utils::ensure_dir_exists("state home", &state_dir)?;
+        } else {
+            utils::ensure_dir_exists("home", &config_dir)?;
+        }
 
-        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(config_dir.join("settings.toml"));
         settings_file.with(|s| {
             debug!("read metadata version: {}", s.version);
             if s.version == MetadataVersion::default() {
@@ -363,7 +380,7 @@ impl<'a> Cfg<'a> {
             }
         })?;
 
-        let state_file = StateFile::new(rustup_dir.join("state.toml"));
+        let state_file = StateFile::new(state_dir.join("state.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         #[cfg(unix)]
@@ -378,9 +395,10 @@ impl<'a> Cfg<'a> {
         #[cfg(windows)]
         let fallback_settings = None;
 
-        let toolchains_dir = rustup_dir.join("toolchains");
-        let update_hash_dir = rustup_dir.join("update-hashes");
-        let download_dir = rustup_dir.join("downloads");
+        let toolchains_dir = data_dir.join("toolchains");
+        let update_hash_dir = cache_dir.join("update-hashes");
+        let download_dir = cache_dir.join("downloads");
+        let tmp_dir = cache_dir.join("tmp");
 
         // Environment override
         let env_override = match &process.var_opt("RUSTUP_TOOLCHAIN")? {
@@ -399,7 +417,13 @@ impl<'a> Cfg<'a> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            bin_dir,
+            cache_dir,
+            config_dir,
+            data_dir,
+            state_dir,
             download_dir,
+            tmp_dir,
             toolchain_override: None,
             env_override,
             dist_root_server,
@@ -1177,7 +1201,13 @@ impl Debug for Cfg<'_> {
             fallback_settings,
             toolchains_dir,
             update_hash_dir,
+            bin_dir,
+            cache_dir,
+            config_dir,
+            data_dir,
+            state_dir,
             download_dir,
+            tmp_dir,
             toolchain_override,
             env_override,
             dist_root_server,
@@ -1196,7 +1226,13 @@ impl Debug for Cfg<'_> {
             .field("fallback_settings", fallback_settings)
             .field("toolchains_dir", toolchains_dir)
             .field("update_hash_dir", update_hash_dir)
+            .field("bin_dir", bin_dir)
+            .field("cache_dir", cache_dir)
+            .field("config_dir", config_dir)
+            .field("data_dir", data_dir)
+            .field("state_dir", state_dir)
             .field("download_dir", download_dir)
+            .field("tmp_dir", tmp_dir)
             .field("toolchain_override", toolchain_override)
             .field("env_override", env_override)
             .field("dist_root_server", dist_root_server)

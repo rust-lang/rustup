@@ -10,12 +10,7 @@ macro_rules! pre_install_msg_template {
 This will download and install the official compiler for the Rust
 programming language, and its package manager, Cargo.
 
-Rustup metadata and toolchains will be installed into the Rustup
-home directory, located at:
-
-    {rustup_home}
-
-This can be modified with the `RUSTUP_HOME` environment variable.
+{rustup_home_message}
 
 The Cargo home directory is located at:
 
@@ -24,7 +19,7 @@ The Cargo home directory is located at:
 This can be modified with the `CARGO_HOME` environment variable.
 
 The `cargo`, `rustc`, `rustup` and other commands will be added to
-Cargo's bin directory, located at:
+the bin home directory, located at:
 
     {cargo_bin_dir}
 
@@ -76,7 +71,7 @@ macro_rules! post_install_msg {
 
 To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
-Cargo's bin directory (`{cargo_bin_dir}`).
+the bin home directory (`{cargo_bin_dir}`).
 "
     };
 }
@@ -85,7 +80,7 @@ macro_rules! post_install_msg_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (`{cargo_bin_dir}`) in your `PATH`
+To get started you need the bin home directory (`{cargo_bin_dir}`) in your `PATH`
 environment variable. This has not been done automatically.
 "
     };
@@ -112,6 +107,25 @@ macro_rules! pre_uninstall_msg {
 
 This will uninstall all Rust toolchains and data, and remove
 `{cargo_bin_dir}` from your `PATH` environment variable.
+
+"
+    };
+}
+
+macro_rules! pre_uninstall_category_msg {
+    () => {
+        r"# Thanks for hacking in Rust!
+
+This will uninstall the toolchains managed by this installation and remove
+Rustup's shell environment files and binaries:
+
+    toolchains: {toolchains_dir}
+    env files:  {env_home}
+    binaries:   {bin_home}
+
+Other files in these directories and Cargo home data will be kept.
+
+{path_message}
 
 "
     };
