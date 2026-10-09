@@ -1816,7 +1816,8 @@ fn override_remove(
                 .keys()
                 .filter_map(|k| {
                     let path = Path::new(k);
-                    (!path.is_dir()).then(|| path.to_owned())
+                    // Overrides are looked up by canonical path, so one set on a symlink never applies.
+                    (!path.is_dir() || path.is_symlink()).then(|| path.to_owned())
                 })
                 .collect())
         })?;
