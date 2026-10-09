@@ -1,6 +1,8 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
 use std::{env::consts::EXE_SUFFIX, fs, path::Path, str};
 
 use itertools::Itertools;
@@ -1753,7 +1755,18 @@ async fn rust_analyzer_proxy_falls_back_external() {
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let extern_dir = tempdir.path();
     let extern_path = &extern_dir.join("rust-analyzer");
+    // HACK: The toolchain we are using in this test has `rls` instead of `rust-analyzer` but we
+    // need to test the latter. Thus, we copy the `rls` mock binary and its version files to the
+    // external directory to look like `rust-analyzer` so that `rust-analyzer` and `rust-analyzer
+    // --version` continue to work.
     fs::copy(real_path, extern_path).unwrap();
+    for suffix in [".version", ".version-hash"] {
+        fs::copy(
+            bindir.join(format!("rls{EXE_SUFFIX}{suffix}")),
+            format!("{}{suffix}", extern_path.display()),
+        )
+        .unwrap();
+    }
 
     // First case: rustup-hosted and external RA both installed,
     // prioritize the former.
@@ -1786,6 +1799,42 @@ info: falling back to "[EXTERN_PATH]"
 
 "#]])
         .is_ok();
+
+    // Third case: rustup-hosted RA unavailable, external RA redirects to rustup proxy, fallback fails.
+    #[cfg(unix)]
+    {
+        fs::write(
+            extern_path,
+            r#"#!/bin/sh
+exec "$RUSTUP_TEST_RUST_ANALYZER_PROXY" "$@"
+"#,
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(extern_path).unwrap().permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(extern_path, permissions).unwrap();
+
+        let proxy_path = exedir.join(&ra);
+        cx.config
+            .expect_with_env(
+                ["rust-analyzer", "--version"],
+                [
+                    ("PATH", &*extern_dir.display().to_string()),
+                    (
+                        "RUSTUP_TEST_RUST_ANALYZER_PROXY",
+                        &*proxy_path.display().to_string(),
+                    ),
+                ],
+            )
+            .await
+            .is_err()
+            .with_stderr(snapbox::str![[r#"
+info: `rust-analyzer` is unavailable for the active toolchain
+...
+error: infinite recursion detected
+
+"#]]);
+    };
 }
 
 #[tokio::test]
