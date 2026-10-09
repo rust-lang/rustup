@@ -509,6 +509,61 @@ async fn update_overwrites_programs_display_version() {
     );
 }
 
+#[cfg(windows)]
+#[tokio::test]
+async fn self_replace_supports_legacy_launcher() {
+    use std::io::Write;
+
+    let cx = setup_empty_installed().await;
+    let rustup_home = &cx.config.rustupdir.rustupdir;
+    let stage = rustup_home.join(SELF_UPDATE_DIRECTORY);
+    fs::create_dir_all(&stage).unwrap();
+    let updater = managed_updater(rustup_home);
+    fs::copy(cx.config.exedir.join("rustup-init.exe"), &updater).unwrap();
+    // Make the replacement distinguishable without changing its behavior.
+    writeln!(fs::OpenOptions::new().append(true).open(&updater).unwrap()).unwrap();
+    let rustup = cx.config.cargodir.join("bin/rustup.exe");
+    let expected_hash = calc_hash(&updater);
+    assert_ne!(calc_hash(&rustup), expected_hash);
+
+    // The test subprocess acts as an old launcher: it spawns the new updater
+    // directly, without providing the inherited-parent-handle protocol.
+    let mut launcher = Command::new(std::env::current_exe().unwrap());
+    cx.config.env(&mut launcher);
+    let status = launcher
+        .args([
+            "--exact",
+            "suite::cli_self_upd::legacy_self_update_launcher",
+            "--ignored",
+            "--nocapture",
+        ])
+        .env("RUSTUP_TEST_LEGACY_UPDATER", &updater)
+        .env("RUSTUP_SELF_UPDATE_STAGE", &stage)
+        .env_remove("RUSTUP_PARENT_HANDLE")
+        .status()
+        .unwrap();
+    assert!(status.success(), "legacy launcher failed: {status}");
+
+    wait_for_completed_update(rustup_home);
+    assert_eq!(calc_hash(&rustup), expected_hash);
+}
+
+#[cfg(windows)]
+#[test]
+#[ignore = "subprocess helper for self_replace_supports_legacy_launcher"]
+#[expect(
+    clippy::zombie_processes,
+    reason = "the updater waits for this launcher to exit; the outer test checks the result"
+)]
+fn legacy_self_update_launcher() {
+    let updater = std::env::var_os("RUSTUP_TEST_LEGACY_UPDATER").unwrap();
+    Command::new(updater)
+        .arg("--self-replace")
+        .env_remove("RUSTUP_PARENT_HANDLE")
+        .spawn()
+        .unwrap();
+}
+
 #[tokio::test]
 async fn update_but_not_installed() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
