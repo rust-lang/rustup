@@ -1706,28 +1706,34 @@ CARGO environment variable not set[..]
 }
 
 #[tokio::test]
-async fn rust_analyzer_proxy_falls_back_external() {
+async fn rust_analyzer_proxy_uses_hosted_without_external() {
     let cx = CliTestContext::new(Scenario::RustAnalyzer).await;
     cx.config.expect(RUST_ANALYZER_SETUP_CMD).await.is_ok();
 
-    // Base case: rustup-hosted RA installed, external RA unavailable,
-    // use the former.
     let real_path = cx
         .config
         .expect(["rust-analyzer", "--echo-current-exe"])
         .await;
     real_path.is_ok();
     let real_path = Path::new(real_path.output.stderr.trim());
-
     assert!(real_path.is_file());
+}
+
+#[tokio::test]
+async fn rust_analyzer_proxy_uses_hosted_over_external() {
+    let cx = CliTestContext::new(Scenario::RustAnalyzer).await;
+    cx.config.expect(RUST_ANALYZER_SETUP_CMD).await.is_ok();
 
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let extern_dir = tempdir.path();
     let extern_path = &extern_dir.join("rust-analyzer");
+    let real_path = cx
+        .config
+        .expect(["rust-analyzer", "--echo-current-exe"])
+        .await;
+    let real_path = Path::new(real_path.output.stderr.trim());
     fs::copy(real_path, extern_path).unwrap();
 
-    // First case: rustup-hosted and external RA both installed,
-    // prioritize the former.
     cx.config
         .expect_with_env(
             ["rust-analyzer", "--echo-current-exe"],
@@ -1740,12 +1746,27 @@ async fn rust_analyzer_proxy_falls_back_external() {
 
 "#]])
         .is_ok();
+}
 
-    // Second case: rustup-hosted RA unavailable, fallback on the external RA.
+#[tokio::test]
+async fn rust_analyzer_proxy_uses_external_without_hosted() {
+    let cx = CliTestContext::new(Scenario::RustAnalyzer).await;
+    cx.config.expect(RUST_ANALYZER_SETUP_CMD).await.is_ok();
+
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let extern_dir = tempdir.path();
+    let extern_path = &extern_dir.join("rust-analyzer");
+    let real_path = cx
+        .config
+        .expect(["rust-analyzer", "--echo-current-exe"])
+        .await;
+    let real_path = Path::new(real_path.output.stderr.trim());
+    fs::copy(real_path, extern_path).unwrap();
     cx.config
         .expect(["rustup", "component", "remove", "rust-analyzer"])
         .await
         .is_ok();
+
     cx.config
         .expect_with_env(
             ["rust-analyzer", "--echo-current-exe"],
