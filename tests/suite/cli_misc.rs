@@ -1707,7 +1707,7 @@ CARGO environment variable not set[..]
 
 #[tokio::test]
 async fn rust_analyzer_proxy_falls_back_external() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cx = CliTestContext::new(Scenario::RustAnalyzer).await;
     cx.config
         .expect([
             "rustup",
@@ -1715,7 +1715,7 @@ async fn rust_analyzer_proxy_falls_back_external() {
             "install",
             "stable",
             "--profile=minimal",
-            "--component=rls",
+            "--component=rust-analyzer",
         ])
         .await
         .is_ok();
@@ -1723,21 +1723,6 @@ async fn rust_analyzer_proxy_falls_back_external() {
         .expect(["rustup", "default", "stable"])
         .await
         .is_ok();
-
-    // We pretend to have a `rust-analyzer` installation by reusing the `rls`
-    // proxy and mock binary.
-    let rls = format!("rls{EXE_SUFFIX}");
-    let ra = format!("rust-analyzer{EXE_SUFFIX}");
-    let exedir = &cx.config.exedir;
-    let bindir = &cx
-        .config
-        .rustupdir
-        .join("toolchains")
-        .join(format!("stable-{}", this_host_tuple()))
-        .join("bin");
-    for dir in [exedir, bindir] {
-        fs::rename(dir.join(&rls), dir.join(&ra)).unwrap();
-    }
 
     // Base case: rustup-hosted RA installed, external RA unavailable,
     // use the former.
@@ -1771,7 +1756,10 @@ async fn rust_analyzer_proxy_falls_back_external() {
         .is_ok();
 
     // Second case: rustup-hosted RA unavailable, fallback on the external RA.
-    fs::remove_file(bindir.join(&ra)).unwrap();
+    cx.config
+        .expect(["rustup", "component", "remove", "rust-analyzer"])
+        .await
+        .is_ok();
     cx.config
         .expect_with_env(
             ["rust-analyzer", "--echo-current-exe"],
