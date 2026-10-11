@@ -925,6 +925,16 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
         })
         .unwrap_or_default();
 
+    let active_channel_toolchain = match cfg.active_toolchain() {
+        Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
+            ChannelToolchain::new(cfg, desc).ok()
+        }
+        _ => None,
+    };
+    let installed_targets = active_channel_toolchain
+        .and_then(|dist| dist.toolchain.installed_targets().ok())
+        .unwrap_or_default();
+
     Rustup::command()
         .mut_arg("+toolchain", move |arg| {
             arg.add(ArgValueCandidates::new(move || {
@@ -935,17 +945,28 @@ fn completion_command(cfg: &Cfg<'_>) -> clap::Command {
             }))
         })
         .mut_subcommand("target", move |target_cmd| {
-            target_cmd.mut_subcommand("add", move |add_cmd| {
-                add_cmd.mut_arg("target", move |arg| {
-                    arg.add(ArgValueCandidates::new(move || {
-                        // "all" is a special keyword that installs every available target
-                        iter::once("all")
-                            .chain(available_targets.iter().map(AsRef::as_ref))
-                            .map(CompletionCandidate::new)
-                            .collect()
-                    }))
+            target_cmd
+                .mut_subcommand("add", move |add_cmd| {
+                    add_cmd.mut_arg("target", move |arg| {
+                        arg.add(ArgValueCandidates::new(move || {
+                            // "all" is a special keyword that installs every available target
+                            iter::once("all")
+                                .chain(available_targets.iter().map(AsRef::as_ref))
+                                .map(CompletionCandidate::new)
+                                .collect()
+                        }))
+                    })
                 })
-            })
+                .mut_subcommand("remove", move |remove_cmd| {
+                    remove_cmd.mut_arg("target", move |arg| {
+                        arg.add(ArgValueCandidates::new(move || {
+                            installed_targets
+                                .iter()
+                                .map(|t| CompletionCandidate::new(t.to_string()))
+                                .collect()
+                        }))
+                    })
+                })
         })
 }
 
@@ -2059,6 +2080,31 @@ mod tests {
 
         let candidates = complete(&cfg, &["rustup", "target", "remove", ""], 3);
         assert!(!candidates.contains(&"all".to_owned()));
+    }
+
+    #[test]
+    fn dynamic_completion_target_remove() {
+        let (rustup_home, process) = completion_cfg();
+        let manifest_dir = rustup_home
+            .path()
+            .join("toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib");
+        fs::create_dir_all(&manifest_dir).unwrap();
+        fs::write(
+            manifest_dir.join("components"),
+            "rustc-x86_64-unknown-linux-gnu\n\
+             rust-std-x86_64-unknown-linux-gnu\n\
+             rust-std-x86_64-unknown-linux-musl\n",
+        )
+        .unwrap();
+
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&"stable-x86_64-unknown-linux-gnu".parse().unwrap()))
+            .unwrap();
+
+        assert_eq!(
+            complete(&cfg, &["rustup", "target", "remove", "x86_64"], 3),
+            ["x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl"]
+        );
     }
 
     #[test]
