@@ -85,6 +85,7 @@ pub(super) struct Release {
     version: String,
     hash: String,
     rls: RlsStatus,
+    rust_analyzer: bool,
     available: bool,
     multi_arch: bool,
 }
@@ -108,6 +109,11 @@ impl Release {
 
     pub(super) fn with_rls(mut self, status: RlsStatus) -> Self {
         self.rls = status;
+        self
+    }
+
+    pub(super) fn with_rust_analyzer(mut self) -> Self {
+        self.rust_analyzer = true;
         self
     }
 
@@ -136,6 +142,7 @@ impl Release {
             available: true,
             multi_arch: false,
             rls: RlsStatus::Available,
+            rust_analyzer: false,
         }
     }
 
@@ -278,6 +285,7 @@ impl MockChannel {
             version,
             hash: version_hash,
             rls,
+            rust_analyzer,
             available: _,
             multi_arch: _,
         } = release;
@@ -318,6 +326,11 @@ impl MockChannel {
             ));
         }
 
+        if *rust_analyzer {
+            let ra = MockInstallerBuilder::rust_analyzer(version, version_hash);
+            all.rust_analyzer.push((ra, host_tuple.clone()));
+        }
+
         all.docs.push((rust_docs, host_tuple.clone()));
         all.src.push((rust_src, "*".to_string()));
         all.analysis.push((rust_analysis, "*".to_string()));
@@ -343,6 +356,11 @@ impl MockChannel {
                     MockInstallerBuilder { components: vec![] },
                     target_tuple.clone(),
                 ));
+            }
+
+            if *rust_analyzer {
+                let ra = MockInstallerBuilder::rust_analyzer(version, version_hash);
+                all.rust_analyzer.push((ra, target_tuple.clone()));
             }
 
             all.docs.push((rust_docs, target_tuple.to_string()));
@@ -374,7 +392,7 @@ impl MockChannel {
 
         // Add subcomponents of the rust package
         {
-            let rust_pkg = packages.last_mut().unwrap();
+            let rust_pkg = packages.iter_mut().find(|p| p.name == "rust").unwrap();
             for target_pkg in rust_pkg.targets.iter_mut() {
                 let target = &target_pkg.target;
                 target_pkg.components.push(MockComponent {
@@ -416,6 +434,13 @@ impl MockChannel {
                         is_extension: true,
                     })
                 }
+                if *rust_analyzer {
+                    target_pkg.components.push(MockComponent {
+                        name: "rust-analyzer-preview".to_string(),
+                        target: target.to_string(),
+                        is_extension: true,
+                    });
+                }
                 for other_target in &all_std_archs {
                     if other_target != target {
                         target_pkg.components.push(MockComponent {
@@ -442,6 +467,12 @@ impl MockChannel {
         let mut renames = HashMap::new();
         if *rls == RlsStatus::Renamed {
             renames.insert("rls".to_owned(), "rls-preview".to_owned());
+        }
+        if *rust_analyzer {
+            renames.insert(
+                "rust-analyzer".to_owned(),
+                "rust-analyzer-preview".to_owned(),
+            );
         }
 
         Self {
@@ -498,6 +529,7 @@ struct MockChannelContent {
     rustc: Vec<(MockInstallerBuilder, String)>,
     cargo: Vec<(MockInstallerBuilder, String)>,
     rls: Vec<(MockInstallerBuilder, String)>,
+    rust_analyzer: Vec<(MockInstallerBuilder, String)>,
     docs: Vec<(MockInstallerBuilder, String)>,
     src: Vec<(MockInstallerBuilder, String)>,
     analysis: Vec<(MockInstallerBuilder, String)>,
@@ -509,7 +541,7 @@ impl MockChannelContent {
         self,
         rls_name: &'static str,
     ) -> Vec<(&'static str, Vec<(MockInstallerBuilder, String)>)> {
-        vec![
+        let mut packages = vec![
             ("rust-std", self.std),
             ("rustc", self.rustc),
             ("cargo", self.cargo),
@@ -518,7 +550,14 @@ impl MockChannelContent {
             ("rust-src", self.src),
             ("rust-analysis", self.analysis),
             ("rust", self.combined),
-        ]
+        ];
+
+        // Not every release ships `rust-analyzer`.
+        if !self.rust_analyzer.is_empty() {
+            packages.push(("rust-analyzer-preview", self.rust_analyzer));
+        }
+
+        packages
     }
 }
 

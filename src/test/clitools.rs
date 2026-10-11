@@ -543,6 +543,8 @@ pub enum Scenario {
     SimpleV2,
     /// One date, v1 manifests
     SimpleV1,
+    /// One date, v2 manifests, `rust-analyzer` available as an extension component
+    RustAnalyzer,
     /// One date, v2 manifests, MULTI_ARCH1 host
     MultiHost,
     /// One date, v2 manifests, beta with tag
@@ -627,6 +629,13 @@ impl Scenario {
                 Release::beta("1.2.0", "2015-01-02"),
                 Release::stable("1.1.0", "2015-01-02"),
             ],
+            Self::RustAnalyzer => vec![
+                Release::new("nightly", "1.3.0", "2015-01-02", "2")
+                    .with_rls(RlsStatus::Renamed)
+                    .with_rust_analyzer(),
+                Release::beta("1.2.0", "2015-01-02").with_rust_analyzer(),
+                Release::stable("1.1.0", "2015-01-02").with_rust_analyzer(),
+            ],
             Self::MultiHost => vec![
                 Release::new("nightly", "1.3.0", "2015-01-02", "2").multi_arch(),
                 Release::beta("1.2.0", "2015-01-02").multi_arch(),
@@ -677,6 +686,7 @@ impl Scenario {
             | Self::ArchivesV2TwoVersions
             | Self::BetaTag
             | Self::MultiHost
+            | Self::RustAnalyzer
             | Self::Unavailable
             | Self::UnavailableRls
             | Self::RemovedRls
@@ -739,6 +749,7 @@ impl ConstState {
                 | Scenario::None
                 | Scenario::RecentStable
                 | Scenario::RemovedRls
+                | Scenario::RustAnalyzer
                 | Scenario::SimpleV1
                 | Scenario::SimpleV2
                 | Scenario::Unavailable
@@ -849,6 +860,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
     let rustc_path = config.exedir.join(format!("rustc{EXE_SUFFIX}"));
     let cargo_path = config.exedir.join(format!("cargo{EXE_SUFFIX}"));
     let rls_path = config.exedir.join(format!("rls{EXE_SUFFIX}"));
+    let rust_analyzer_path = config.exedir.join(format!("rust-analyzer{EXE_SUFFIX}"));
     let rust_lldb_path = config.exedir.join(format!("rust-lldb{EXE_SUFFIX}"));
 
     const ESTIMATED_LINKS_PER_TEST: usize = 6 * 2;
@@ -885,6 +897,7 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
     hard_link(&rustup_path, rustc_path).unwrap();
     hard_link(&rustup_path, cargo_path).unwrap();
     hard_link(&rustup_path, rls_path).unwrap();
+    hard_link(&rustup_path, rust_analyzer_path).unwrap();
     hard_link(&rustup_path, rust_lldb_path).unwrap();
 
     // Make sure the host tuple matches the build tuple. Otherwise testing a 32-bit build of

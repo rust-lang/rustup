@@ -76,6 +76,15 @@ impl MockInstallerBuilder {
         }
     }
 
+    pub(super) fn rust_analyzer(version: &str, version_hash: &str) -> Self {
+        Self {
+            components: vec![MockComponentBuilder {
+                name: "rust-analyzer-preview".to_string(),
+                files: mock_bin("rust-analyzer", version, version_hash),
+            }],
+        }
+    }
+
     pub(super) fn rust_doc() -> Self {
         let mut files: Vec<MockFile> = topical_doc_data::unique_paths()
             .map(|x| MockFile::new(x, b""))
