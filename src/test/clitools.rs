@@ -723,26 +723,26 @@ impl ConstState {
         Self {
             const_dist_dir,
             scenarios: enum_map! {
-                Scenario::ArchivesV1 => RwLock::new(None),
-                Scenario::ArchivesV2 => RwLock::new(None),
-                Scenario::ArchivesV2_2015_01_01 => RwLock::new(None),
-                Scenario::ArchivesV2TwoVersions => RwLock::new(None),
-                Scenario::BetaTag => RwLock::new(None),
-                Scenario::Empty => RwLock::new(None),
-                Scenario::Full => RwLock::new(None),
-                Scenario::HostGoesMissingBefore => RwLock::new(None),
-                Scenario::HostGoesMissingAfter => RwLock::new(None),
-                Scenario::MissingComponent => RwLock::new(None),
-                Scenario::MissingComponentMulti => RwLock::new(None),
-                Scenario::MissingNightly => RwLock::new(None),
-                Scenario::MultiHost => RwLock::new(None),
-                Scenario::None => RwLock::new(None),
-                Scenario::RemovedRls => RwLock::new(None),
-                Scenario::SimpleV1 => RwLock::new(None),
-                Scenario::SimpleV2 => RwLock::new(None),
-                Scenario::Unavailable => RwLock::new(None),
-                Scenario::UnavailableRls => RwLock::new(None),
-                Scenario::RecentStable => RwLock::new(None),
+                Scenario::ArchivesV1
+                | Scenario::ArchivesV2
+                | Scenario::ArchivesV2TwoVersions
+                | Scenario::ArchivesV2_2015_01_01
+                | Scenario::BetaTag
+                | Scenario::Empty
+                | Scenario::Full
+                | Scenario::HostGoesMissingAfter
+                | Scenario::HostGoesMissingBefore
+                | Scenario::MissingComponent
+                | Scenario::MissingComponentMulti
+                | Scenario::MissingNightly
+                | Scenario::MultiHost
+                | Scenario::None
+                | Scenario::RecentStable
+                | Scenario::RemovedRls
+                | Scenario::SimpleV1
+                | Scenario::SimpleV2
+                | Scenario::Unavailable
+                | Scenario::UnavailableRls => RwLock::new(None),
             },
         }
     }
