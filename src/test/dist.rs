@@ -141,27 +141,11 @@ impl Release {
 
     pub(super) fn mock(&self) -> MockChannel {
         if self.available {
-            MockChannel::new(
-                &self.channel,
-                &self.date,
-                &self.version,
-                &self.hash,
-                self.rls,
-                self.multi_arch,
-                false,
-            )
+            MockChannel::new(self, self.multi_arch, false)
         } else if self.multi_arch {
             // unavailable but multiarch means to build only with host==MULTI_ARCH1
             // instead of true multiarch
-            MockChannel::new(
-                &self.channel,
-                &self.date,
-                &self.version,
-                &self.hash,
-                self.rls,
-                false,
-                true,
-            )
+            MockChannel::new(self, false, true)
         } else {
             MockChannel::unavailable(&self.channel, &self.date, &self.version, &self.hash)
         }
@@ -287,15 +271,16 @@ pub(crate) struct MockChannel {
 }
 
 impl MockChannel {
-    pub(super) fn new(
-        channel: &str,
-        date: &str,
-        version: &str,
-        version_hash: &str,
-        rls: RlsStatus,
-        multi_arch: bool,
-        swap_tuples: bool,
-    ) -> Self {
+    pub(super) fn new(release: &Release, multi_arch: bool, swap_tuples: bool) -> Self {
+        let Release {
+            channel,
+            date,
+            version,
+            hash: version_hash,
+            rls,
+            available: _,
+            multi_arch: _,
+        } = release;
         // Build the mock installers
         let host_tuple = if swap_tuples {
             MULTI_ARCH1.to_owned()
@@ -323,7 +308,7 @@ impl MockChannel {
         all.rustc.push((rustc, host_tuple.clone()));
         all.cargo.push((cargo, host_tuple.clone()));
 
-        if rls != RlsStatus::Unavailable {
+        if *rls != RlsStatus::Unavailable {
             let rls = MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
             all.rls.push((rls, host_tuple.clone()));
         } else {
@@ -350,7 +335,7 @@ impl MockChannel {
             all.rustc.push((rustc, target_tuple.clone()));
             all.cargo.push((cargo, target_tuple.clone()));
 
-            if rls != RlsStatus::Unavailable {
+            if *rls != RlsStatus::Unavailable {
                 let rls = MockInstallerBuilder::rls(version, version_hash, rls.pkg_name());
                 all.rls.push((rls, target_tuple.clone()));
             } else {
@@ -412,13 +397,13 @@ impl MockChannel {
                     target: target.to_string(),
                     is_extension: false,
                 });
-                if rls == RlsStatus::Renamed {
+                if *rls == RlsStatus::Renamed {
                     target_pkg.components.push(MockComponent {
                         name: "rls-preview".to_string(),
                         target: target.to_string(),
                         is_extension: true,
                     });
-                } else if rls == RlsStatus::Available {
+                } else if *rls == RlsStatus::Available {
                     target_pkg.components.push(MockComponent {
                         name: "rls".to_string(),
                         target: target.to_string(),
@@ -455,7 +440,7 @@ impl MockChannel {
         }
 
         let mut renames = HashMap::new();
-        if rls == RlsStatus::Renamed {
+        if *rls == RlsStatus::Renamed {
             renames.insert("rls".to_owned(), "rls-preview".to_owned());
         }
 
