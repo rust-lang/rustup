@@ -84,7 +84,11 @@ impl fmt::Display for TargetSuggestion {
 
 #[derive(Debug, Clone)]
 pub enum ComponentSuggestion {
-    Toolchain { name: String, component: String },
+    Toolchain {
+        name: String,
+        component: String,
+        is_add: bool,
+    },
     Component(String),
 }
 
@@ -123,6 +127,7 @@ impl ComponentSuggestion {
                 return Some(Self::Toolchain {
                     name: toolchain_name.to_string(),
                     component: manifest.short_name(component).to_string(),
+                    is_add: false,
                 });
             }
         }
@@ -134,8 +139,13 @@ impl ComponentSuggestion {
 impl fmt::Display for ComponentSuggestion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Toolchain { name, component } => {
-                write!(f, "try `rustup +{name} component remove {component}`")
+            Self::Toolchain {
+                name,
+                component,
+                is_add,
+            } => {
+                let action = if *is_add { "add" } else { "remove" };
+                write!(f, "try `rustup +{name} component {action} {component}`")
             }
             Self::Component(name) => write!(f, "did you mean '{name}'?"),
         }
