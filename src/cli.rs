@@ -2,6 +2,7 @@
 #[macro_use]
 pub mod log;
 pub mod common;
+mod completions;
 mod docs;
 pub mod errors;
 mod help;
