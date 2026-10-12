@@ -171,9 +171,7 @@ mod tests {
     #[test]
     fn dynamic_completion_target_remove() {
         let (rustup_home, process) = completion_cfg();
-        let manifest_dir = rustup_home
-            .path()
-            .join("toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib");
+        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
         fs::create_dir_all(&manifest_dir).unwrap();
         fs::write(
             manifest_dir.join("components"),
@@ -184,8 +182,7 @@ mod tests {
         .unwrap();
 
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
-        cfg.set_default(Some(&"stable-x86_64-unknown-linux-gnu".parse().unwrap()))
-            .unwrap();
+        cfg.set_default(Some(&TOOLCHAIN.parse().unwrap())).unwrap();
 
         assert_eq!(
             complete(&cfg, &["rustup", "target", "remove", "x86_64"], 3),
@@ -196,17 +193,53 @@ mod tests {
     #[test]
     fn dynamic_completion_target_add_offers_real_targets() {
         let (rustup_home, process) = completion_cfg();
-
-        // The toolchain name must be parseable as an official ToolchainDesc
-        let toolchain_name = "stable-x86_64-unknown-linux-gnu";
-        let toolchain_dir = rustup_home.path().join("toolchains").join(toolchain_name);
-
-        // Manifest lives at: <toolchain>/lib/rustlib/multirust-channel-manifest.toml
-        let manifest_dir = toolchain_dir.join("lib/rustlib");
+        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
         fs::create_dir_all(&manifest_dir).unwrap();
+        fs::write(
+            manifest_dir.join("multirust-channel-manifest.toml"),
+            MANIFEST,
+        )
+        .unwrap();
 
-        // Minimal manifest with available rust-std targets
-        let manifest = r#"
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
+
+        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
+        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"all".to_owned()));
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
+        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
+    }
+
+    /// Creates a bare rustup home with no toolchains installed.
+    /// Used by completion tests to verify the completer is robust
+    /// and to set up a base environment for further customisation.
+    fn completion_cfg() -> (tempfile::TempDir, crate::process::Process) {
+        let rustup_home = tempfile::tempdir().unwrap();
+        let vars = HashMap::from([
+            (
+                "RUSTUP_HOME".to_owned(),
+                rustup_home.path().display().to_string(),
+            ),
+            (
+                "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS".to_owned(),
+                rustup_home
+                    .path()
+                    .join("missing-settings.toml")
+                    .display()
+                    .to_string(),
+            ),
+        ]);
+        let process = TestProcess::new(rustup_home.path(), &["rustup"], vars, "").process;
+        (rustup_home, process)
+    }
+
+    const TOOLCHAIN: &str = "stable-x86_64-unknown-linux-gnu";
+    const MANIFEST_DIR: &str = "toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib";
+    const MANIFEST: &str = r#"
 manifest-version = "2"
 date = "2025-01-01"
 [pkg.rust]
@@ -248,45 +281,4 @@ date = "2025-01-01"
     url = "https://example.com"
     hash = "deadbeef"
 "#;
-        fs::write(
-            manifest_dir.join("multirust-channel-manifest.toml"),
-            manifest,
-        )
-        .unwrap();
-
-        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
-
-        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
-
-        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"all".to_owned()));
-
-        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
-        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
-    }
-
-    /// Creates a bare rustup home with no toolchains installed.
-    /// Used by completion tests to verify the completer is robust
-    /// and to set up a base environment for further customisation.
-    fn completion_cfg() -> (tempfile::TempDir, crate::process::Process) {
-        let rustup_home = tempfile::tempdir().unwrap();
-        let vars = HashMap::from([
-            (
-                "RUSTUP_HOME".to_owned(),
-                rustup_home.path().display().to_string(),
-            ),
-            (
-                "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS".to_owned(),
-                rustup_home
-                    .path()
-                    .join("missing-settings.toml")
-                    .display()
-                    .to_string(),
-            ),
-        ]);
-        let process = TestProcess::new(rustup_home.path(), &["rustup"], vars, "").process;
-        (rustup_home, process)
-    }
 }
