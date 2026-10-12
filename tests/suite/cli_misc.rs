@@ -1,7 +1,12 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-use std::{env::consts::EXE_SUFFIX, fs, path::Path, str};
+use std::{
+    env::{self, consts::EXE_SUFFIX},
+    fs,
+    path::Path,
+    str,
+};
 
 use itertools::Itertools;
 use rustup::{
@@ -410,7 +415,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
 
     let assert_ok_with_paths = |assert: &Assert, data| {
         assert.is_ok();
-        let stderr = std::env::split_paths(&assert.output.stderr)
+        let stderr = env::split_paths(&assert.output.stderr)
             .format_with("\n", |p, f| f(&p.display()))
             .to_string();
         let stderr = assert.redact(&stderr);
@@ -468,7 +473,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
                 ["cargo", "--echo-env", "PATH"],
                 [(
                     "PATH",
-                    std::env::join_paths([&cx.config.exedir, &cargo_home_bin])
+                    env::join_paths([&cx.config.exedir, &cargo_home_bin])
                         .unwrap()
                         .to_str()
                         .unwrap(),
