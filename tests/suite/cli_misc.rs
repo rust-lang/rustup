@@ -1708,21 +1708,7 @@ CARGO environment variable not set[..]
 #[tokio::test]
 async fn rust_analyzer_proxy_falls_back_external() {
     let cx = CliTestContext::new(Scenario::RustAnalyzer).await;
-    cx.config
-        .expect([
-            "rustup",
-            "toolchain",
-            "install",
-            "stable",
-            "--profile=minimal",
-            "--component=rust-analyzer",
-        ])
-        .await
-        .is_ok();
-    cx.config
-        .expect(["rustup", "default", "stable"])
-        .await
-        .is_ok();
+    cx.config.expect(RUST_ANALYZER_SETUP_CMD).await.is_ok();
 
     // Base case: rustup-hosted RA installed, external RA unavailable,
     // use the former.
@@ -1775,6 +1761,16 @@ info: falling back to "[EXTERN_PATH]"
 "#]])
         .is_ok();
 }
+
+const RUST_ANALYZER_SETUP_CMD: &[&str] = &[
+    "rustup",
+    "toolchain",
+    "install",
+    "stable",
+    "--default",
+    "--profile=minimal",
+    "--component=rust-analyzer",
+];
 
 #[tokio::test]
 async fn warn_auto_install_on_proxy() {
