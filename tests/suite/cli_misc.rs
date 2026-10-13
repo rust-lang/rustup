@@ -488,6 +488,115 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
 }
 
 #[tokio::test]
+async fn rustup_doesnt_prepend_path_unnecessarily_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let bin_home = cx.config.current_dir().join("bin");
+    let bin_home_env = bin_home.to_str().unwrap();
+    cx.config
+        .expect_with_env(
+            ["rustup", "default", "nightly"],
+            [
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+                ("RUSTUP_BIN_HOME", bin_home_env),
+            ],
+        )
+        .await
+        .is_ok();
+
+    let assert_ok_with_paths = |assert: &Assert, data| {
+        assert.is_ok();
+        let stderr = std::env::split_paths(&assert.output.stderr)
+            .format_with("\n", |p, f| f(&p.display()))
+            .to_string();
+        let stderr = assert.redact(&stderr);
+        snapbox::assert_data_eq!(stderr, data);
+    };
+
+    // For all of these, bin home will be auto-prepended.
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(
+                ["cargo", "--echo-env", "PATH"],
+                [
+                    ("RUSTUP_USE_CATEGORY_HOME", "1"),
+                    ("RUSTUP_BIN_HOME", bin_home_env),
+                ],
+            )
+            .await
+            .extend_redactions([("[BIN_HOME]", &bin_home)]),
+        snapbox::str![[r#"
+[BIN_HOME]
+...
+"#]],
+    );
+
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(
+                ["cargo", "--echo-env", "PATH"],
+                [
+                    ("PATH", ""),
+                    ("RUSTUP_USE_CATEGORY_HOME", "1"),
+                    ("RUSTUP_BIN_HOME", bin_home_env),
+                ],
+            )
+            .await
+            .extend_redactions([("[BIN_HOME]", &bin_home)]),
+        snapbox::str![[r#"
+[BIN_HOME]
+...
+"#]],
+    );
+
+    // Check that bin home is prepended to path.
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(
+                ["cargo", "--echo-env", "PATH"],
+                [
+                    ("PATH", &*cx.config.exedir.display().to_string()),
+                    ("RUSTUP_USE_CATEGORY_HOME", "1"),
+                    ("RUSTUP_BIN_HOME", bin_home_env),
+                ],
+            )
+            .await
+            .extend_redactions([("[BIN_HOME]", &bin_home), ("[EXEDIR]", &cx.config.exedir)]),
+        snapbox::str![[r#"
+[BIN_HOME]
+[EXEDIR]
+...
+"#]],
+    );
+
+    // But if bin home is already on PATH, it will not be prepended again,
+    // so exedir will take precedence.
+    assert_ok_with_paths(
+        cx.config
+            .expect_with_env(
+                ["cargo", "--echo-env", "PATH"],
+                [
+                    (
+                        "PATH",
+                        std::env::join_paths([&cx.config.exedir, &bin_home])
+                            .unwrap()
+                            .to_str()
+                            .unwrap(),
+                    ),
+                    ("RUSTUP_USE_CATEGORY_HOME", "1"),
+                    ("RUSTUP_BIN_HOME", bin_home_env),
+                ],
+            )
+            .await
+            .extend_redactions([("[BIN_HOME]", &bin_home), ("[EXEDIR]", &cx.config.exedir)]),
+        snapbox::str![[r#"
+[EXEDIR]
+[BIN_HOME]
+...
+"#]],
+    );
+}
+
+#[tokio::test]
 async fn rustup_failed_path_search() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     use std::env::consts::EXE_SUFFIX;
