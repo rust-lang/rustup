@@ -40,28 +40,14 @@ impl TargetSuggestion {
         manifest: &Manifest,
         cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        let Ok(toolchains) = cfg.list_toolchains(true) else {
-            return component_suggestion(desc, component, config, manifest, true)
-                .map(Self::Component);
-        };
-
-        for toolchain_name in toolchains {
-            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
-                && toolchain_desc == desc
-            {
-                continue;
-            }
-
-            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
-                continue;
-            };
-            let Ok(installed_targets) = toolchain.installed_targets() else {
+        for (name, channel_toolchain) in other_channel_toolchains(cfg, desc) {
+            let Ok(installed_targets) = channel_toolchain.toolchain.installed_targets() else {
                 continue;
             };
 
             if installed_targets.contains(target) {
                 return Some(Self::Toolchain {
-                    name: toolchain_name.to_string(),
+                    name: name.to_string(),
                     target: target.clone(),
                 });
             }
