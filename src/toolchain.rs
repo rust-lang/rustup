@@ -1,5 +1,3 @@
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt as _;
 use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
@@ -385,19 +383,39 @@ impl<'a> Toolchain<'a> {
 
         let me = env::current_exe()?;
 
-        // Try to find the first `rust-analyzer` under the `$PATH` that is both
-        // an existing file and not the same file as `me`, i.e. not a rustup proxy.
+        // Try to find the first `rust-analyzer` under the `$PATH` that:
+        // - Is an existing file.
+        // - Is not the same file as `me`, i.e. not a rustup proxy.
+        // - Can be executed with `--version` while `RUST_RECURSION_COUNT` is set to
+        //   `RUST_RECURSION_COUNT_MAX + 1`, i.e. doesn't redirect to rustup.
         for mut p in env::split_paths(&path) {
             p.push(binary);
-            let is_external_ra = p.is_file()
+            let mut is_external_ra = p.is_file()
                 // We report `true` on `is_same_file()` error to prevent an invalid `p`
                 // from becoming the candidate.
                 && !is_same_file(&me, &p).unwrap_or(true);
-            // On Unix, we additionally check if the file is executable.
-            #[cfg(unix)]
-            let is_external_ra = is_external_ra
-                && p.metadata()
-                    .is_ok_and(|meta| meta.permissions().mode() & 0o111 != 0);
+
+            if is_external_ra {
+                let mut ra = Command::new(&p);
+                self.set_env(&mut ra);
+                ra.arg("--version")
+                    .env(
+                        "RUST_RECURSION_COUNT",
+                        (env_var::RUST_RECURSION_COUNT_MAX + 1).to_string(),
+                    )
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .stdin(Stdio::null());
+
+                is_external_ra = match ra
+                    .spawn()
+                    .and_then(|mut c| c.wait_timeout(Duration::from_secs(10)))
+                {
+                    Ok(Some(s)) => s.success(),
+                    Ok(None) | Err(_) => false,
+                }
+            }
+
             if is_external_ra {
                 let mut ra = Command::new(p);
                 self.set_env(&mut ra);

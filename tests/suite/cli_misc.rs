@@ -1,7 +1,14 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-use std::{env::consts::EXE_SUFFIX, fs, path::Path, str};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
+use std::{
+    env::{self, consts::EXE_SUFFIX},
+    fs,
+    path::Path,
+    str,
+};
 
 use itertools::Itertools;
 use rustup::{
@@ -410,7 +417,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
 
     let assert_ok_with_paths = |assert: &Assert, data| {
         assert.is_ok();
-        let stderr = std::env::split_paths(&assert.output.stderr)
+        let stderr = env::split_paths(&assert.output.stderr)
             .format_with("\n", |p, f| f(&p.display()))
             .to_string();
         let stderr = assert.redact(&stderr);
@@ -468,7 +475,7 @@ async fn rustup_doesnt_prepend_path_unnecessarily() {
                 ["cargo", "--echo-env", "PATH"],
                 [(
                     "PATH",
-                    std::env::join_paths([&cx.config.exedir, &cargo_home_bin])
+                    env::join_paths([&cx.config.exedir, &cargo_home_bin])
                         .unwrap()
                         .to_str()
                         .unwrap(),
@@ -1762,6 +1769,15 @@ async fn rust_analyzer_proxy_uses_external_without_hosted() {
         .await;
     let real_path = Path::new(real_path.output.stderr.trim());
     fs::copy(real_path, extern_path).unwrap();
+    // Copy `.version` and `.version-hash` files as well so that the `--version` probe works. This
+    // is needed for rustup to detect valid external `rust-analyzer` fallbacks.
+    for suffix in [".version", ".version-hash"] {
+        fs::copy(
+            format!("{}{suffix}", real_path.display()),
+            format!("{}{suffix}", extern_path.display()),
+        )
+        .unwrap();
+    }
     cx.config
         .expect(["rustup", "component", "remove", "rust-analyzer"])
         .await
@@ -1781,6 +1797,85 @@ info: falling back to "[EXTERN_PATH]"
 
 "#]])
         .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn rust_analyzer_proxy_skips_external_redirecting_to_rustup() {
+    let cx = CliTestContext::new(Scenario::RustAnalyzer).await;
+    cx.config.expect(RUST_ANALYZER_SETUP_CMD).await.is_ok();
+
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+
+    // Creates the "good" external fallback under `extern_path` by copying from the `rust-analyzer`
+    // mock binary under `real_path`.
+    let extern_dir = tempdir.path();
+    let extern_path = &extern_dir.join("rust-analyzer");
+    let real_path = cx
+        .config
+        .expect(["rust-analyzer", "--echo-current-exe"])
+        .await;
+    let real_path = Path::new(real_path.output.stderr.trim());
+    fs::copy(real_path, extern_path).unwrap();
+    // Copy `.version` and `.version-hash` files as well so that the `--version` probe works. This
+    // is needed for rustup to detect valid external `rust-analyzer` fallbacks.
+    for suffix in [".version", ".version-hash"] {
+        fs::copy(
+            format!("{}{suffix}", real_path.display()),
+            format!("{}{suffix}", extern_path.display()),
+        )
+        .unwrap();
+    }
+    cx.config
+        .expect(["rustup", "component", "remove", "rust-analyzer"])
+        .await
+        .is_ok();
+
+    // Creates the "bad" external fallback under `bad_extern_dir`, which is itself a shell script
+    // that calls the rustup proxy, causing infinite recursion if used.
+    let bad_extern_dir = extern_dir.join("bad");
+    fs::create_dir_all(&bad_extern_dir).unwrap();
+    let bad_extern_path = &bad_extern_dir.join("rust-analyzer");
+    fs::write(
+        bad_extern_path,
+        r#"#!/bin/sh
+exec "$RUSTUP_TEST_RUST_ANALYZER_PROXY" "$@"
+"#,
+    )
+    .unwrap();
+    let mut permissions = fs::metadata(bad_extern_path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(bad_extern_path, permissions).unwrap();
+
+    // When setting up the env override, we put the bad fallback before the good one.
+    let proxy_path = cx.config.exedir.join(format!("rust-analyzer{EXE_SUFFIX}"));
+    let env_override = &[
+        (
+            "PATH",
+            &*env::join_paths([&bad_extern_dir, extern_dir])
+                .unwrap()
+                .display()
+                .to_string(),
+        ),
+        (
+            "RUSTUP_TEST_RUST_ANALYZER_PROXY",
+            &*proxy_path.display().to_string(),
+        ),
+    ];
+
+    // If rustup is able to detect that the bad fallback is redirecting to itself, it should skip it
+    // and use the good fallback instead.
+    cx.config
+        .expect_with_env(["rust-analyzer", "--echo-current-exe"], env_override)
+        .await
+        .extend_redactions([("[EXTERN_PATH]", extern_path)])
+        .is_ok()
+        .with_stderr(snapbox::str![[r#"
+info: `rust-analyzer` is unavailable for the active toolchain
+info: falling back to "[EXTERN_PATH]"
+[EXTERN_PATH]
+
+"#]]);
 }
 
 const RUST_ANALYZER_SETUP_CMD: &[&str] = &[
