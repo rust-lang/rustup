@@ -473,6 +473,71 @@ info: override toolchain for '[PATH]' removed
 }
 
 #[tokio::test]
+#[cfg(unix)]
+async fn remove_override_with_path_symlink() {
+    for keyword in &["remove", "unset"] {
+        let cx = CliTestContext::new(Scenario::SimpleV2).await;
+        let cwd = std::fs::canonicalize(cx.config.current_dir()).unwrap();
+        let old = cwd.join("old");
+        let new = cwd.join("new");
+
+        // Override `old`, move it to `new` behind a symlink, then override `new` too.
+        std::fs::create_dir(&old).unwrap();
+        cx.config
+            .expect([
+                "rustup",
+                "override",
+                "add",
+                "nightly",
+                "--path",
+                old.to_str().unwrap(),
+            ])
+            .await
+            .is_ok();
+        std::fs::rename(&old, &new).unwrap();
+        raw::symlink_dir(&new, &old).unwrap();
+        cx.config
+            .expect([
+                "rustup",
+                "override",
+                "add",
+                "nightly",
+                "--path",
+                new.to_str().unwrap(),
+            ])
+            .await
+            .is_ok();
+
+        cx.config
+            .expect([
+                "rustup",
+                "override",
+                keyword,
+                "--path",
+                old.to_str().unwrap(),
+            ])
+            .await
+            .extend_redactions([("[PATH]", old.clone())])
+            .is_ok()
+            .with_stdout(snapbox::str![[""]])
+            .with_stderr(snapbox::str![[r#"
+info: override toolchain for '[PATH]' removed
+
+"#]]);
+        cx.config
+            .expect(["rustup", "override", "list"])
+            .await
+            .extend_redactions([("[OLD]", old), ("[NEW]", new)])
+            .is_ok()
+            .with_stdout(snapbox::str![[r#"
+[NEW]	nightly             
+
+"#]])
+            .with_stderr(snapbox::str![[""]]);
+    }
+}
+
+#[tokio::test]
 #[cfg_attr(target_os = "windows", ignore)] // FIXME #1103
 async fn remove_override_nonexistent() {
     for keyword in &["remove", "unset"] {
@@ -497,6 +562,44 @@ async fn remove_override_nonexistent() {
             .expect(["rustup", "override", keyword, "--nonexistent"])
             .await
             .extend_redactions([("[PATH]", path)])
+            .is_ok()
+            .with_stdout(snapbox::str![[""]])
+            .with_stderr(snapbox::str![[r#"
+info: override toolchain for '[PATH]' removed
+
+"#]]);
+    }
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn remove_override_nonexistent_symlink() {
+    for keyword in &["remove", "unset"] {
+        let cx = CliTestContext::new(Scenario::SimpleV2).await;
+        let cwd = std::fs::canonicalize(cx.config.current_dir()).unwrap();
+        let old = cwd.join("old");
+        let new = cwd.join("new");
+
+        // Override `old`, then move it to `new` behind a symlink.
+        std::fs::create_dir(&old).unwrap();
+        cx.config
+            .expect([
+                "rustup",
+                "override",
+                "add",
+                "nightly",
+                "--path",
+                old.to_str().unwrap(),
+            ])
+            .await
+            .is_ok();
+        std::fs::rename(&old, &new).unwrap();
+        raw::symlink_dir(&new, &old).unwrap();
+
+        cx.config
+            .expect(["rustup", "override", keyword, "--nonexistent"])
+            .await
+            .extend_redactions([("[PATH]", old)])
             .is_ok()
             .with_stdout(snapbox::str![[""]])
             .with_stderr(snapbox::str![[r#"
@@ -564,6 +667,47 @@ async fn list_overrides_with_nonexistent() {
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 [PATH]	nightly             
+
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`
+
+"#]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn list_overrides_with_symlink() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cwd = std::fs::canonicalize(cx.config.current_dir()).unwrap();
+    let old = cwd.join("old");
+    let new = cwd.join("new");
+
+    // Override `old`, then move it to `new` behind a symlink.
+    std::fs::create_dir(&old).unwrap();
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "add",
+            "nightly",
+            "--path",
+            old.to_str().unwrap(),
+        ])
+        .await
+        .is_ok();
+    std::fs::rename(&old, &new).unwrap();
+    raw::symlink_dir(&new, &old).unwrap();
+
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[PATH]", old)])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[PATH] (not a directory)	nightly             
 
 
 "#]])

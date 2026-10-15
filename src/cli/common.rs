@@ -402,7 +402,9 @@ pub(crate) fn list_overrides(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     } else {
         let mut any_not_exist = false;
         for (k, v) in overrides {
-            let dir_exists = Path::new(&k).is_dir();
+            // Overrides are looked up by canonical path, so one set on a symlink never applies.
+            let path = Path::new(&k);
+            let dir_exists = path.is_dir() && !path.is_symlink();
             if !dir_exists {
                 any_not_exist = true;
             }
