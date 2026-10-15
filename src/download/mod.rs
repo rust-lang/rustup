@@ -32,10 +32,12 @@ use crate::{dist::download::DownloadStatus, errors::RustupError, process::Proces
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct DownloadOptions {
     tls: Tls,
     timeout: Duration,
+    authorization_header: Option<String>,
+    proxy_authorization_header: Option<String>,
 }
 
 impl DownloadOptions {
@@ -46,7 +48,7 @@ impl DownloadOptions {
             hasher: None,
             status: None,
             resume: false,
-            options: *self,
+            options: self.clone(),
         }
     }
 }
@@ -100,7 +102,15 @@ impl TryFrom<&Process> for DownloadOptions {
             Err(_) => 180,
         });
 
-        Ok(Self { tls, timeout })
+        let authorization_header = process.var_opt("RUSTUP_AUTHORIZATION_HEADER")?;
+        let proxy_authorization_header = process.var_opt("RUSTUP_PROXY_AUTHORIZATION_HEADER")?;
+
+        Ok(Self {
+            tls,
+            timeout,
+            authorization_header,
+            proxy_authorization_header,
+        })
     }
 }
 
@@ -289,6 +299,14 @@ impl<'a> Download<'a> {
         }
 
         let mut req = client.get(url.as_str());
+
+        if let Some(header) = &self.options.authorization_header {
+            req = req.header(header::AUTHORIZATION, header);
+        }
+        if let Some(header) = &self.options.proxy_authorization_header {
+            req = req.header(header::PROXY_AUTHORIZATION, header);
+        }
+
         if resume_from != 0 {
             req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
