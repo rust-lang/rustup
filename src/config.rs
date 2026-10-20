@@ -687,14 +687,15 @@ impl<'a> Cfg<'a> {
         dir: &Path,
         settings: &Settings,
     ) -> anyhow::Result<Option<(OverrideCfg, ActiveSource)>> {
+        let overrides = settings.overrides_by_dir();
         let mut dir = Some(dir);
 
         while let Some(d) = dir {
             // First check the override database
-            if let Some(name) = settings.dir_override(d) {
+            if let Some(name) = overrides.get(d) {
                 let source = ActiveSource::OverrideDb(d.to_owned());
                 return Ok(Some((
-                    Override::<PartialToolchainName>::from_str(&name)?
+                    Override::<PartialToolchainName>::from_str(name)?
                         .resolve(self)?
                         .into(),
                     source,
