@@ -20,7 +20,7 @@ use crate::{
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{Toolchain, ToolchainName, ToolchainPath},
+    toolchain::{ChannelToolchain, Toolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -40,28 +40,14 @@ impl TargetSuggestion {
         manifest: &Manifest,
         cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        let Ok(toolchains) = cfg.list_toolchains(true) else {
-            return component_suggestion(desc, component, config, manifest, true)
-                .map(Self::Component);
-        };
-
-        for toolchain_name in toolchains {
-            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
-                && toolchain_desc == desc
-            {
-                continue;
-            }
-
-            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
-                continue;
-            };
-            let Ok(installed_targets) = toolchain.installed_targets() else {
+        for (name, channel_toolchain) in other_channel_toolchains(cfg, desc) {
+            let Ok(installed_targets) = channel_toolchain.toolchain.installed_targets() else {
                 continue;
             };
 
             if installed_targets.contains(target) {
                 return Some(Self::Toolchain {
-                    name: toolchain_name.to_string(),
+                    name: name.to_string(),
                     target: target.clone(),
                 });
             }
@@ -84,7 +70,11 @@ impl fmt::Display for TargetSuggestion {
 
 #[derive(Debug, Clone)]
 pub enum ComponentSuggestion {
-    Toolchain { name: String, component: String },
+    Toolchain {
+        name: String,
+        component: String,
+        action: &'static str,
+    },
     Component(String),
 }
 
@@ -96,46 +86,91 @@ impl ComponentSuggestion {
         manifest: &Manifest,
         cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        let Ok(toolchains) = cfg.list_toolchains(true) else {
-            return component_suggestion(desc, component, config, manifest, true)
-                .map(Self::Component);
-        };
-
-        let names = [component.name(), component.wildcard().name()];
-        for toolchain_name in toolchains {
-            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
-                && toolchain_desc == desc
-            {
-                continue;
-            }
-
-            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
-                continue;
-            };
-            let Ok(installed_components) = toolchain.installed_components() else {
-                continue;
-            };
-
-            if installed_components
-                .iter()
-                .any(|c| names.iter().any(|n| n == c.name()))
-            {
+        for (name, channel_toolchain) in other_channel_toolchains(cfg, desc) {
+            if toolchain_has_installed_component(&channel_toolchain.toolchain, component) {
                 return Some(Self::Toolchain {
-                    name: toolchain_name.to_string(),
+                    name: name.to_string(),
                     component: manifest.short_name(component).to_string(),
+                    action: "remove",
                 });
             }
         }
 
         component_suggestion(desc, component, config, manifest, true).map(Self::Component)
     }
+
+    pub(crate) fn for_addition(
+        desc: &ChannelToolchainName,
+        component: &Component,
+        config: &DistConfig,
+        manifest: &Manifest,
+        cfg: &Cfg<'_>,
+    ) -> Option<Self> {
+        for (name, channel_toolchain) in other_channel_toolchains(cfg, desc) {
+            if toolchain_has_available_component(&channel_toolchain, component) {
+                return Some(Self::Toolchain {
+                    name: name.to_string(),
+                    component: manifest.short_name(component).to_string(),
+                    action: "add",
+                });
+            }
+        }
+
+        component_suggestion(desc, component, config, manifest, false).map(Self::Component)
+    }
+}
+
+fn other_channel_toolchains<'a>(
+    cfg: &'a Cfg<'a>,
+    desc: &ChannelToolchainName,
+) -> impl Iterator<Item = (ChannelToolchainName, ChannelToolchain<'a>)> {
+    cfg.list_toolchains(true)
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(move |toolchain_name| match toolchain_name {
+            ToolchainName::Channel(toolchain_desc) if &toolchain_desc != desc => {
+                let channel_toolchain = ChannelToolchain::new(cfg, toolchain_desc.clone()).ok()?;
+                Some((toolchain_desc, channel_toolchain))
+            }
+            _ => None,
+        })
+}
+
+fn component_matches(component: &Component, candidate_name: &str) -> bool {
+    candidate_name == component.name() || candidate_name == component.wildcard().name()
+}
+
+fn toolchain_has_installed_component(toolchain: &Toolchain<'_>, component: &Component) -> bool {
+    let Ok(installed_components) = toolchain.installed_components() else {
+        return false;
+    };
+    installed_components
+        .iter()
+        .any(|installed| component_matches(component, installed.name()))
+}
+
+fn toolchain_has_available_component(
+    toolchain: &ChannelToolchain<'_>,
+    component: &Component,
+) -> bool {
+    let Ok(components) = toolchain.components() else {
+        return false;
+    };
+    components
+        .iter()
+        .any(|status| status.available && component_matches(component, &status.component.name()))
 }
 
 impl fmt::Display for ComponentSuggestion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Toolchain { name, component } => {
-                write!(f, "try `rustup +{name} component remove {component}`")
+            Self::Toolchain {
+                name,
+                component,
+                action,
+            } => {
+                write!(f, "try `rustup +{name} component {action} {component}`")
             }
             Self::Component(name) => write!(f, "did you mean '{name}'?"),
         }
