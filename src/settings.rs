@@ -105,16 +105,8 @@ pub struct Settings {
 }
 
 impl Settings {
-    fn path_to_key(path: &Path) -> String {
-        if path.exists() {
-            utils::canonicalize_path(path).display().to_string()
-        } else {
-            path.display().to_string()
-        }
-    }
-
     pub(crate) fn remove_override(&mut self, path: &Path) -> bool {
-        let key = Self::path_to_key(path);
+        let key = path.display().to_string();
         if self.overrides.remove(&key).is_some() {
             return true;
         }
@@ -128,7 +120,7 @@ impl Settings {
     }
 
     pub(crate) fn add_override(&mut self, path: &Path, toolchain: String) {
-        let key = Self::path_to_key(path);
+        let key = path.display().to_string();
         // Keep a single override per directory, whichever path it was stored under.
         if let Ok(dir) = Handle::from_path(path) {
             self.overrides.retain(|stored, _| !leads_to(stored, &dir));
