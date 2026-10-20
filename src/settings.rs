@@ -114,12 +114,23 @@ impl Settings {
     }
 
     pub(crate) fn remove_override(&mut self, path: &Path) -> bool {
-        let key = Self::path_to_key(path);
-        self.overrides.remove(&key).is_some()
+        let mut removed = self.overrides.remove(&Self::path_to_key(path)).is_some();
+        // The directory may also be stored under other paths that lead to it.
+        if let Ok(dir) = Handle::from_path(path) {
+            let count = self.overrides.len();
+            self.overrides.retain(|stored, _| !leads_to(stored, &dir));
+            removed |= self.overrides.len() < count;
+        }
+        removed
     }
 
     pub(crate) fn add_override(&mut self, path: &Path, toolchain: String) {
         let key = Self::path_to_key(path);
+        // Drop every entry stored for this directory under any path, so that
+        // the one inserted below under `key` is its only override.
+        if let Ok(dir) = Handle::from_path(path) {
+            self.overrides.retain(|stored, _| !leads_to(stored, &dir));
+        }
         info!(
             "override toolchain for {} set to {toolchain}",
             path.display(),
@@ -146,6 +157,11 @@ impl Settings {
     fn stringify(&self) -> anyhow::Result<String> {
         Ok(toml::to_string(self)?)
     }
+}
+
+/// Whether `path` leads to the directory behind `dir`.
+fn leads_to(path: &str, dir: &Handle) -> bool {
+    Handle::from_path(path).is_ok_and(|other| other == *dir)
 }
 
 /// Overrides keyed by the identity of their directories rather than by their
