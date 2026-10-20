@@ -3,7 +3,7 @@ use std::{
     env::consts::EXE_SUFFIX,
     fmt,
     io::{self, Write},
-    path::{Path, PathBuf},
+    path::{Path, PathBuf, absolute},
     process::ExitStatus,
     str::FromStr,
     sync::Arc,
@@ -1750,7 +1750,12 @@ async fn override_add(
         Err(e) => Err(e)?,
     }
 
-    cfg.make_override(path.unwrap_or(&cfg.current_dir), &toolchain)?;
+    // Relative to the directory rustup runs in, which `absolute` alone would
+    // take from the OS rather than from `cfg`.
+    let path = path
+        .map(|path| absolute(cfg.current_dir.join(path)))
+        .transpose()?;
+    cfg.make_override(path.as_deref().unwrap_or(&cfg.current_dir), &toolchain)?;
     Ok(ExitCode::SUCCESS)
 }
 
@@ -1774,7 +1779,7 @@ fn override_remove(
         }
         list
     } else if let Some(path) = path {
-        vec![path.to_owned()]
+        vec![absolute(cfg.current_dir.join(path))?]
     } else {
         vec![cfg.current_dir.clone()]
     };
