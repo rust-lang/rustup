@@ -1,6 +1,8 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
+use std::fs;
+
 use rustup::{
     test::{CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple},
     utils::raw,
@@ -445,7 +447,7 @@ async fn remove_override_with_path_deleted() {
                 .prefix("rustup-test")
                 .tempdir()
                 .unwrap();
-            let path = std::fs::canonicalize(dir.path()).unwrap();
+            let path = fs::canonicalize(dir.path()).unwrap();
             let cx = cx.change_dir(&path);
             cx.config
                 .expect(["rustup", "override", "add", "nightly"])
@@ -482,7 +484,7 @@ async fn remove_override_nonexistent() {
                 .prefix("rustup-test")
                 .tempdir()
                 .unwrap();
-            let path = std::fs::canonicalize(dir.path()).unwrap();
+            let path = fs::canonicalize(dir.path()).unwrap();
             let cx = cx.change_dir(&path);
             cx.config
                 .expect(["rustup", "override", "add", "nightly"])
@@ -509,7 +511,7 @@ info: override toolchain for '[PATH]' removed
 #[tokio::test]
 async fn list_overrides() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let cwd = std::fs::canonicalize(cx.config.current_dir()).unwrap();
+    let cwd = fs::canonicalize(cx.config.current_dir()).unwrap();
     let mut cwd_formatted = format!("{}", cwd.display());
 
     if cfg!(windows) {
@@ -546,7 +548,7 @@ async fn list_overrides_with_nonexistent() {
             .expect(["rustup", "override", "add", "nightly"])
             .await
             .is_ok();
-        std::fs::canonicalize(dir.path()).unwrap()
+        fs::canonicalize(dir.path()).unwrap()
     };
     // FIXME TempDir seems to succumb to difficulties removing dirs on windows
     let _ = raw::remove_dir(&nonexistent_path);
