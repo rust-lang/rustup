@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.29.2] - 2026-10-20
+
+This is a small release which only updates the rustls-webpki and
+webpki-root-certs dependencies to address the problematic eMudhra
+intermediate certificates issue described in [CVE-2026-12345].
+
+See also [RUSTSEC-2026-0382].
+
+[CVE-2026-111943]: https://www.cve.org/CVERecord?id=CVE-2026-111943
+[RUSTSEC-2026-0382]: https://rustsec.org/advisories/RUSTSEC-2026-0382.html
+
+
 ## [1.29.1] - 2026-08-13
 
 This new patch release has brought some minor improvements and fixes over the previous one.
