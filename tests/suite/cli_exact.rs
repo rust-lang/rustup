@@ -604,7 +604,7 @@ async fn override_moved_behind_symlink(cx: &CliTestContext) -> (PathBuf, PathBuf
 
 #[tokio::test]
 #[cfg(unix)]
-async fn override_ignored_for_dir_moved_behind_symlink() {
+async fn override_applies_to_dir_moved_behind_symlink() {
     let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config
         .expect(["rustup", "default", "stable"])
@@ -612,15 +612,15 @@ async fn override_ignored_for_dir_moved_behind_symlink() {
         .is_ok();
     let (old, _new) = override_moved_behind_symlink(&cx).await;
 
-    // The override is stored under the directory's old path, which the
-    // directory itself no longer resolves to.
+    // The override is stored under the directory's old path, which still
+    // leads to the directory itself.
     let cx = cx.change_dir(&old);
     cx.config
         .expect(["rustc", "--version"])
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-1.1.0 (hash-stable-1.1.0)
+1.3.0 (hash-nightly-2)
 
 "#]]);
 }
