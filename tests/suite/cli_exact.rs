@@ -513,13 +513,6 @@ info: override toolchain for '[PATH]' removed
 #[tokio::test]
 async fn list_overrides() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let cwd = fs::canonicalize(cx.config.current_dir()).unwrap();
-    let mut cwd_formatted = format!("{}", cwd.display());
-
-    if cfg!(windows) {
-        cwd_formatted.drain(..4);
-    }
-
     cx.config
         .expect(["rustup", "override", "add", "nightly"])
         .await
@@ -527,7 +520,7 @@ async fn list_overrides() {
     cx.config
         .expect(["rustup", "override", "list"])
         .await
-        .extend_redactions([("[CWD]", cwd_formatted)])
+        .extend_redactions([("[CWD]", cx.config.current_dir())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
 [CWD]	nightly             
@@ -550,24 +543,19 @@ async fn list_overrides_with_nonexistent() {
             .expect(["rustup", "override", "add", "nightly"])
             .await
             .is_ok();
-        fs::canonicalize(dir.path()).unwrap()
+        dir.path().to_owned()
     };
     // FIXME TempDir seems to succumb to difficulties removing dirs on windows
     let _ = raw::remove_dir(&nonexistent_path);
     assert!(!nonexistent_path.exists());
-    let mut path_formatted = format!("{}", nonexistent_path.display());
-
-    if cfg!(windows) {
-        path_formatted.drain(..4);
-    }
 
     cx.config
         .expect(["rustup", "override", "list"])
         .await
-        .extend_redactions([("[PATH]", path_formatted + " (not a directory)")])
+        .extend_redactions([("[PATH]", nonexistent_path)])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[PATH]	nightly             
+[PATH] (not a directory)	nightly             
 
 
 "#]])
@@ -765,14 +753,15 @@ async fn override_set_with_path_symlink() {
         .await
         .is_ok();
 
-    // The symlink is resolved before the override is stored.
+    // The override is stored under the path as given, and applies to the
+    // directory however it is reached.
     cx.config
         .expect(["rustup", "override", "list"])
         .await
         .extend_redactions([("[LINK]", link.clone()), ("[TARGET]", target.clone())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[TARGET]	nightly             
+[LINK]	nightly             
 
 "#]])
         .with_stderr(snapbox::str![[""]]);
@@ -801,13 +790,15 @@ async fn override_set_with_path_relative_nonexistent() {
         .await
         .is_ok();
 
-    // The relative path is stored as given, so it can never match a directory.
+    // The relative path is made absolute, so it matches the directory once
+    // that exists.
     cx.config
         .expect(["rustup", "override", "list"])
         .await
+        .extend_redactions([("[CWD]", cx.config.current_dir())])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-later (not a directory)                 	nightly             
+[CWD]/later (not a directory)	nightly             
 
 
 "#]])
@@ -824,7 +815,7 @@ info: you may remove overrides for non-existent directories with
         .await
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-1.1.0 (hash-stable-1.1.0)
+1.3.0 (hash-nightly-2)
 
 "#]]);
 }
