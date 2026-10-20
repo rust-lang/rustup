@@ -2,6 +2,8 @@
 //! is exactly as expected.
 
 use std::fs;
+#[cfg(unix)]
+use std::path::PathBuf;
 
 use rustup::{
     test::{CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple},
@@ -572,6 +574,260 @@ async fn list_overrides_with_nonexistent() {
         .with_stderr(snapbox::str![[r#"
 info: you may remove overrides for non-existent directories with
 `rustup override unset --nonexistent`
+
+"#]]);
+}
+
+/// Sets an override on `old`, then moves that directory to `new` and leaves a
+/// symlink to it behind at `old`.
+#[cfg(unix)]
+async fn override_moved_behind_symlink(cx: &CliTestContext) -> (PathBuf, PathBuf) {
+    let cwd = fs::canonicalize(cx.config.current_dir()).unwrap();
+    let old = cwd.join("old");
+    let new = cwd.join("new");
+    fs::create_dir(&old).unwrap();
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "set",
+            "nightly",
+            "--path",
+            old.to_str().unwrap(),
+        ])
+        .await
+        .is_ok();
+    fs::rename(&old, &new).unwrap();
+    raw::symlink_dir(&new, &old).unwrap();
+    (old, new)
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn override_ignored_for_dir_moved_behind_symlink() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    let (old, _new) = override_moved_behind_symlink(&cx).await;
+
+    // The override is stored under the directory's old path, which the
+    // directory itself no longer resolves to.
+    let cx = cx.change_dir(&old);
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+1.1.0 (hash-stable-1.1.0)
+
+"#]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn list_overrides_with_dir_moved_behind_symlink() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let (old, _new) = override_moved_behind_symlink(&cx).await;
+
+    // The symlink leads to a directory, so the override is not nonexistent.
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[OLD]", old)])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[OLD]	nightly             
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+    cx.config
+        .expect(["rustup", "override", "unset", "--nonexistent"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+info: no nonexistent paths detected
+
+"#]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn remove_override_with_path_moved_behind_symlink() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let (old, _new) = override_moved_behind_symlink(&cx).await;
+
+    // `--path` resolves the symlink, so the override stored under `old` is
+    // not found.
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "unset",
+            "--path",
+            old.to_str().unwrap(),
+        ])
+        .await
+        .extend_redactions([("[OLD]", old.clone())])
+        .is_ok()
+        .with_stdout(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+info: no override toolchain for '[OLD]'
+
+"#]]);
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[OLD]", old)])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[OLD]	nightly             
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn remove_override_with_path_symlink_removes_target() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let (old, new) = override_moved_behind_symlink(&cx).await;
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "set",
+            "nightly",
+            "--path",
+            new.to_str().unwrap(),
+        ])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[OLD]", old.clone()), ("[NEW]", new.clone())])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[NEW]	nightly             
+[OLD]	nightly             
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+
+    // `--path` resolves the symlink, so this removes the override of `new`
+    // and leaves the one stored under `old` behind.
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "unset",
+            "--path",
+            old.to_str().unwrap(),
+        ])
+        .await
+        .extend_redactions([("[OLD]", old.clone())])
+        .is_ok()
+        .with_stdout(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+info: override toolchain for '[OLD]' removed
+
+"#]]);
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[OLD]", old), ("[NEW]", new)])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[OLD]	nightly             
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn override_set_with_path_symlink() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let cwd = fs::canonicalize(cx.config.current_dir()).unwrap();
+    let target = cwd.join("target");
+    let link = cwd.join("link");
+    fs::create_dir(&target).unwrap();
+    raw::symlink_dir(&target, &link).unwrap();
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "set",
+            "nightly",
+            "--path",
+            link.to_str().unwrap(),
+        ])
+        .await
+        .is_ok();
+
+    // The symlink is resolved before the override is stored.
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[LINK]", link.clone()), ("[TARGET]", target.clone())])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[TARGET]	nightly             
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+    for dir in [&target, &link] {
+        let cx = cx.change_dir(dir);
+        cx.config
+            .expect(["rustc", "--version"])
+            .await
+            .is_ok()
+            .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]]);
+    }
+}
+
+#[tokio::test]
+async fn override_set_with_path_relative_nonexistent() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "override", "set", "nightly", "--path", "later"])
+        .await
+        .is_ok();
+
+    // The relative path is stored as given, so it can never match a directory.
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+later (not a directory)                 	nightly             
+
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`
+
+"#]]);
+    let later = cx.config.current_dir().join("later");
+    fs::create_dir(&later).unwrap();
+    let cx = cx.change_dir(&later);
+    cx.config
+        .expect(["rustc", "--version"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+1.1.0 (hash-stable-1.1.0)
 
 "#]]);
 }
