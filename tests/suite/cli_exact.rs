@@ -659,66 +659,7 @@ async fn remove_override_with_path_moved_behind_symlink() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let (old, _new) = override_moved_behind_symlink(&cx).await;
 
-    // `--path` resolves the symlink, so the override stored under `old` is
-    // not found.
-    cx.config
-        .expect([
-            "rustup",
-            "override",
-            "unset",
-            "--path",
-            old.to_str().unwrap(),
-        ])
-        .await
-        .extend_redactions([("[OLD]", old.clone())])
-        .is_ok()
-        .with_stdout(snapbox::str![[""]])
-        .with_stderr(snapbox::str![[r#"
-info: no override toolchain for '[OLD]'
-
-"#]]);
-    cx.config
-        .expect(["rustup", "override", "list"])
-        .await
-        .extend_redactions([("[OLD]", old)])
-        .is_ok()
-        .with_stdout(snapbox::str![[r#"
-[OLD]	nightly             
-
-"#]])
-        .with_stderr(snapbox::str![[""]]);
-}
-
-#[tokio::test]
-#[cfg(unix)]
-async fn remove_override_with_path_symlink_removes_target() {
-    let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let (old, new) = override_moved_behind_symlink(&cx).await;
-    cx.config
-        .expect([
-            "rustup",
-            "override",
-            "set",
-            "nightly",
-            "--path",
-            new.to_str().unwrap(),
-        ])
-        .await
-        .is_ok();
-    cx.config
-        .expect(["rustup", "override", "list"])
-        .await
-        .extend_redactions([("[OLD]", old.clone()), ("[NEW]", new.clone())])
-        .is_ok()
-        .with_stdout(snapbox::str![[r#"
-[NEW]	nightly             
-[OLD]	nightly             
-
-"#]])
-        .with_stderr(snapbox::str![[""]]);
-
-    // `--path` resolves the symlink, so this removes the override of `new`
-    // and leaves the one stored under `old` behind.
+    // The symlink leads to the directory the override was stored for.
     cx.config
         .expect([
             "rustup",
@@ -738,10 +679,66 @@ info: override toolchain for '[OLD]' removed
     cx.config
         .expect(["rustup", "override", "list"])
         .await
-        .extend_redactions([("[OLD]", old), ("[NEW]", new)])
         .is_ok()
         .with_stdout(snapbox::str![[r#"
-[OLD]	nightly             
+no overrides
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn remove_override_with_path_symlink() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let (old, new) = override_moved_behind_symlink(&cx).await;
+
+    // `old` and `new` are the same directory, so this replaces its override.
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "set",
+            "nightly",
+            "--path",
+            new.to_str().unwrap(),
+        ])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .extend_redactions([("[OLD]", old.clone()), ("[NEW]", new.clone())])
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+[NEW]	nightly             
+
+"#]])
+        .with_stderr(snapbox::str![[""]]);
+
+    // The symlink leads to the same directory, so this removes that override.
+    cx.config
+        .expect([
+            "rustup",
+            "override",
+            "unset",
+            "--path",
+            old.to_str().unwrap(),
+        ])
+        .await
+        .extend_redactions([("[OLD]", old.clone())])
+        .is_ok()
+        .with_stdout(snapbox::str![[""]])
+        .with_stderr(snapbox::str![[r#"
+info: override toolchain for '[OLD]' removed
+
+"#]]);
+    cx.config
+        .expect(["rustup", "override", "list"])
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+no overrides
 
 "#]])
         .with_stderr(snapbox::str![[""]]);
