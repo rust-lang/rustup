@@ -1,12 +1,13 @@
 use std::{
     cell::RefCell,
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt,
     path::{Path, PathBuf},
     str::FromStr,
 };
 
 use anyhow::Context;
+use same_file::Handle;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -104,21 +105,26 @@ pub struct Settings {
 }
 
 impl Settings {
-    fn path_to_key(path: &Path) -> String {
-        if path.exists() {
-            utils::canonicalize_path(path).display().to_string()
-        } else {
-            path.display().to_string()
-        }
-    }
-
     pub(crate) fn remove_override(&mut self, path: &Path) -> bool {
-        let key = Self::path_to_key(path);
-        self.overrides.remove(&key).is_some()
+        let key = path.display().to_string();
+        if self.overrides.remove(&key).is_some() {
+            return true;
+        }
+        // The directory may be stored under another path that leads to it.
+        let Ok(dir) = Handle::from_path(path) else {
+            return false;
+        };
+        let count = self.overrides.len();
+        self.overrides.retain(|stored, _| !leads_to(stored, &dir));
+        self.overrides.len() < count
     }
 
     pub(crate) fn add_override(&mut self, path: &Path, toolchain: String) {
-        let key = Self::path_to_key(path);
+        let key = path.display().to_string();
+        // Keep a single override per directory, whichever path it was stored under.
+        if let Ok(dir) = Handle::from_path(path) {
+            self.overrides.retain(|stored, _| !leads_to(stored, &dir));
+        }
         info!(
             "override toolchain for {} set to {toolchain}",
             path.display(),
@@ -126,9 +132,16 @@ impl Settings {
         self.overrides.insert(key, toolchain);
     }
 
-    pub(crate) fn dir_override(&self, dir: &Path) -> Option<String> {
-        let key = Self::path_to_key(dir);
-        self.overrides.get(&key).cloned()
+    /// Indexes the overrides by the directories they refer to, for a series of lookups.
+    pub(crate) fn override_lookup(&self) -> OverrideLookup<'_> {
+        let mut by_dir = HashMap::new();
+        for (path, toolchain) in &self.overrides {
+            // A directory that cannot be opened cannot be the current one either.
+            if let Ok(dir) = Handle::from_path(path) {
+                by_dir.entry(dir).or_insert(toolchain.as_str());
+            }
+        }
+        OverrideLookup { by_dir }
     }
 
     pub(crate) fn parse(data: &str) -> anyhow::Result<Self> {
@@ -137,6 +150,27 @@ impl Settings {
 
     fn stringify(&self) -> anyhow::Result<String> {
         Ok(toml::to_string(self)?)
+    }
+}
+
+/// Whether `path` leads to the directory behind `dir`.
+fn leads_to(path: &str, dir: &Handle) -> bool {
+    Handle::from_path(path).is_ok_and(|other| other == *dir)
+}
+
+/// Overrides keyed by the identity of their directories rather than by their
+/// paths, so that an override applies however its directory is reached.
+pub(crate) struct OverrideLookup<'a> {
+    by_dir: HashMap<Handle, &'a str>,
+}
+
+impl OverrideLookup<'_> {
+    pub(crate) fn get(&self, dir: &Path) -> Option<&str> {
+        if self.by_dir.is_empty() {
+            return None;
+        }
+        let dir = Handle::from_path(dir).ok()?;
+        self.by_dir.get(&dir).copied()
     }
 }
 
