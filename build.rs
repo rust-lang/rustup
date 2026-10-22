@@ -70,6 +70,16 @@ fn main() {
     for dll in delay_load_dlls {
         println!("cargo::rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
     }
+    // Also delay load system DLLs that the proxies never call. Every `cargo`,
+    // `rustc` etc. started through rustup is a separate process on Windows, and
+    // each of these DLLs (with what it pulls in, such as gdi32 for user32) costs
+    // start-up time when it is loaded eagerly.
+    let delay_load_for_startup = [
+        "user32", "shell32", "ole32", "oleaut32", "crypt32", "secur32", "ws2_32",
+    ];
+    for dll in delay_load_for_startup {
+        println!("cargo::rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
+    }
     // When using delayload, it's necessary to also link delayimp.lib
     // https://learn.microsoft.com/en-us/cpp/build/reference/dependentloadflag?view=msvc-170
     println!("cargo::rustc-link-arg-bin=rustup-init=delayimp.lib");
