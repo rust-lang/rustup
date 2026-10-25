@@ -1677,7 +1677,7 @@ jobs:
           git ls-files -- '*.sh' | xargs shellcheck -x -s dash
           git ls-files -- '*.bash' | xargs shellcheck -x -s bash
       - name: Install external formatters
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
           tool: taplo,oxfmt
           fallback: none
