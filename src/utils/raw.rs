@@ -62,7 +62,7 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 
 pub(crate) fn read_locked_file(path: &Path) -> io::Result<String> {
     let mut file = File::open(path)?;
-    file.lock_shared()?;
+    lock_shared(&file)?;
 
     let size = file
         .metadata()
@@ -106,7 +106,7 @@ pub(crate) fn write_locked_file(path: &Path, contents: &str) -> io::Result<()> {
         .truncate(false)
         .open(path)?;
 
-    file.lock()?;
+    lock(&file)?;
     file.set_len(0)?;
     file.seek(SeekFrom::Start(0))?;
     Write::write_all(&mut file, contents.as_bytes())?;
@@ -381,6 +381,108 @@ pub(crate) mod windows {
             Ok(maybe_result)
         }
         inner(s.as_ref())
+    }
+}
+
+/// File-locking support.
+///
+/// On most platforms this is a thin wrapper around `File::lock` and `File::lock_shared`.
+/// However, this isn't supported on Solaris[^1] so we instead implement it ourselves
+/// using `fcntl`.
+///
+/// [^1]: See [rust-lang/rust#157390](https://github.com/rust-lang/rust/issues/157390) for more
+pub use flock::{lock, lock_shared, try_lock};
+
+#[cfg(not(target_os = "solaris"))]
+mod flock {
+    use std::{
+        fs::{File, TryLockError},
+        io,
+    };
+
+    pub fn lock(file: &File) -> io::Result<()> {
+        #[expect(clippy::disallowed_methods)]
+        file.lock()
+    }
+
+    pub fn lock_shared(file: &File) -> io::Result<()> {
+        #[expect(clippy::disallowed_methods)]
+        file.lock_shared()
+    }
+
+    pub fn try_lock(file: &File) -> Result<(), TryLockError> {
+        #[expect(clippy::disallowed_methods)]
+        file.try_lock()
+    }
+}
+
+#[cfg(target_os = "solaris")]
+mod flock {
+    // Code adapted from Cargo:
+    // https://github.com/rust-lang/cargo/blob/b57863321f8d0a0f76fcf9ad636b6e39b024d0c0/src/util/flock.rs
+    use std::{
+        fs::{File, TryLockError},
+        io, mem,
+        os::unix::io::AsRawFd,
+    };
+
+    pub fn lock(file: &File) -> io::Result<()> {
+        fcntl_lock(file, libc::F_WRLCK, FcntlCmd::F_SETLKW)
+    }
+
+    pub fn lock_shared(file: &File) -> io::Result<()> {
+        fcntl_lock(file, libc::F_RDLCK, FcntlCmd::F_SETLKW)
+    }
+
+    pub fn try_lock(file: &File) -> Result<(), TryLockError> {
+        match fcntl_lock(file, libc::F_WRLCK, FcntlCmd::F_SETLK) {
+            Ok(()) => Ok(()),
+            Err(e) if is_would_block(&e) => Err(TryLockError::WouldBlock),
+            Err(e) => Err(TryLockError::Error(e)),
+        }
+    }
+
+    fn fcntl_lock(file: &File, lock_type: libc::c_short, cmd: FcntlCmd) -> io::Result<()> {
+        let mut lock = flock_for_whole_file(lock_type);
+        loop {
+            // SAFETY:
+            // fcntl takes a variable number of additonal arguments depending on `cmd`.
+            // In our case `cmd` is either F_SETLK or F_SETLKW which takes a single
+            // argument, which is a pointer to a mutable `flock`.
+            // We have exclusive ownership of `lock` so it's safe to pass.
+            let result = unsafe { libc::fcntl(file.as_raw_fd(), cmd as libc::c_int, &mut lock) };
+            if result != -1 {
+                return Ok(());
+            }
+            let error = io::Error::last_os_error();
+            if cmd == FcntlCmd::F_SETLKW && error.kind() == io::ErrorKind::Interrupted {
+                continue;
+            }
+            return Err(error);
+        }
+    }
+
+    #[repr(i32)]
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[expect(nonstandard_style)]
+    enum FcntlCmd {
+        F_SETLK = libc::F_SETLK,
+        F_SETLKW = libc::F_SETLKW,
+    }
+
+    fn flock_for_whole_file(lock_type: libc::c_short) -> libc::flock {
+        // SAFETY: libc::flock is a plain C data structure, so can be zeroed.
+        let mut lock = unsafe { mem::zeroed::<libc::flock>() };
+        lock.l_type = lock_type;
+        lock.l_whence = libc::SEEK_SET as libc::c_short;
+        lock.l_start = 0;
+        lock.l_len = 0;
+        lock
+    }
+
+    fn is_would_block(error: &io::Error) -> bool {
+        matches!(error.raw_os_error(), Some(libc::EACCES | libc::EAGAIN))
+            || error.kind() == io::ErrorKind::WouldBlock
     }
 }
 
