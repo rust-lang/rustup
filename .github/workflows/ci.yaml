@@ -1876,7 +1876,7 @@ jobs:
     needs: doc
     runs-on: ubuntu-latest
     permissions:
-      pages: write
+      pages: write # Required by `actions/deploy-pages` to deploy to Pages
       id-token: write # Required by `actions/deploy-pages` to verify the deployment originates from an appropriate source
     environment:
       name: github-pages
