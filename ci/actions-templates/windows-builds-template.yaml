@@ -87,7 +87,7 @@ jobs: # skip-main skip-pr skip-stable
       - name: Install llvm-mingw
         if: matrix.llvm_mingw_version != ''
         run: |
-          $version = "${{ matrix.llvm_mingw_version }}"
+          $version = "${env:LLVM_MINGW_VERSION}"
           $archive = "llvm-mingw-$version-ucrt-${env:RUSTUP_ARCH}.zip"
           $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/$archive"
           $destination = Join-Path $env:RUNNER_TEMP $archive
@@ -105,6 +105,7 @@ jobs: # skip-main skip-pr skip-stable
           "CC_${targetEnvUpper}=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         env:
+          LLVM_MINGW_VERSION: ${{ matrix.llvm_mingw_version }}
           RUSTUP_ARCH: ${{ matrix.rustup_arch }}
           TARGET: ${{ matrix.target }}
           GCC: ${{ matrix.gcc }}
