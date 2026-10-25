@@ -99,11 +99,13 @@ jobs: # skip-main skip-pr skip-stable
           Write-Host "Extracting $archive with 7-Zip"
           & 7z x "$destination" "-o$env:RUNNER_TEMP" -y
 
-          $targetEnvUpper = "${{ matrix.target }}".Replace('-', '_').ToUpperInvariant()
+          $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
@@ -112,7 +114,9 @@ jobs: # skip-main skip-pr skip-stable
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          echo "TARGET=${env:TARGET}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -159,8 +163,10 @@ jobs: # skip-main skip-pr skip-stable
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-
       - name: Install the target
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target install ${env:TARGET}
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
