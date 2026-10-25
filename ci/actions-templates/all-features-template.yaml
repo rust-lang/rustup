@@ -42,15 +42,20 @@ jobs: # skip-all
         shell: bash
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Cache Cargo
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Install cargo-all-features
         shell: bash
         run: which cargo-check-all-features || cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
       - name: Ensure we have our goal target installed
+        shell: bash
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target install ${TARGET}
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Build every combination
         env:
           RUSTFLAGS: -D warnings

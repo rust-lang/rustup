@@ -115,11 +115,13 @@ jobs:
           Write-Host "Extracting $archive with 7-Zip"
           & 7z x "$destination" "-o$env:RUNNER_TEMP" -y
 
-          $targetEnvUpper = "${{ matrix.target }}".Replace('-', '_').ToUpperInvariant()
+          $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
@@ -128,7 +130,9 @@ jobs:
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          echo "TARGET=${env:TARGET}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -175,8 +179,10 @@ jobs:
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-
       - name: Install the target
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target install ${env:TARGET}
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
@@ -325,11 +331,13 @@ jobs:
           Write-Host "Extracting $archive with 7-Zip"
           & 7z x "$destination" "-o$env:RUNNER_TEMP" -y
 
-          $targetEnvUpper = "${{ matrix.target }}".Replace('-', '_').ToUpperInvariant()
+          $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
@@ -338,7 +346,9 @@ jobs:
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          echo "TARGET=${env:TARGET}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -385,8 +395,10 @@ jobs:
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-
       - name: Install the target
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target install ${env:TARGET}
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
@@ -541,11 +553,13 @@ jobs:
           Write-Host "Extracting $archive with 7-Zip"
           & 7z x "$destination" "-o$env:RUNNER_TEMP" -y
 
-          $targetEnvUpper = "${{ matrix.target }}".Replace('-', '_').ToUpperInvariant()
+          $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
@@ -554,7 +568,9 @@ jobs:
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          echo "TARGET=${env:TARGET}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -601,8 +617,10 @@ jobs:
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-
             ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-
       - name: Install the target
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target install ${env:TARGET}
       - name: Run a full build
         env:
           TARGET: ${{ matrix.target }}
@@ -716,7 +734,9 @@ jobs:
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -905,7 +925,9 @@ jobs:
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -1121,7 +1143,9 @@ jobs:
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -1288,9 +1312,11 @@ jobs:
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
           echo "SKIP_TESTS=" >> $GITHUB_ENV
           echo "LZMA_API_STATIC=1" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -1435,9 +1461,11 @@ jobs:
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
           echo "SKIP_TESTS=" >> $GITHUB_ENV
           echo "LZMA_API_STATIC=1" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Skip tests
         if: matrix.mode == 'release'
         run: |
@@ -1749,15 +1777,20 @@ jobs:
         shell: bash
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "TARGET=${TARGET}" >> $GITHUB_ENV
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Cache Cargo
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Install cargo-all-features
         shell: bash
         run: which cargo-check-all-features || cargo install cargo-all-features --git https://github.com/rbtcollins/cargo-all-features.git
       - name: Ensure we have our goal target installed
+        shell: bash
         run: |
-          rustup target install ${{ matrix.target }}
+          rustup target install ${TARGET}
+        env:
+          TARGET: ${{ matrix.target }}
       - name: Build every combination
         env:
           RUSTFLAGS: -D warnings
