@@ -16,7 +16,7 @@ jobs: # skip-main skip-pr skip-stable
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false

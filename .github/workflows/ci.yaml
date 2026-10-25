@@ -38,7 +38,7 @@ jobs:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
@@ -260,7 +260,7 @@ jobs:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
@@ -482,7 +482,7 @@ jobs:
       RUSTFLAGS: -Ctarget-feature=+crt-static
       RUST_MIN_STACK: 16777216
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
@@ -703,7 +703,7 @@ jobs:
     runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     if: ${{ contains(fromJSON('["pull_request", "merge_group"]'), github.event_name) }} # skip-main skip-stable
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
@@ -893,7 +893,7 @@ jobs:
     runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }} # skip-pr skip-stable
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
@@ -1085,7 +1085,7 @@ jobs:
     runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' || contains(fromJSON('["schedule", "workflow_dispatch"]'), github.event_name)  }} # skip-pr skip-main
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
@@ -1305,7 +1305,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 10.12 # skip-aarch64
     runs-on: macos-15-intel # skip-aarch64
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       matrix:
@@ -1455,7 +1455,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 11.0 # skip-x86_64
     runs-on: macos-latest # skip-x86_64
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       matrix:
@@ -1877,7 +1877,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pages: write
-      id-token: write
+      id-token: write # Required by `actions/deploy-pages` to verify the deployment originates from an appropriate source
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

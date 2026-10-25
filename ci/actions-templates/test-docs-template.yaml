@@ -57,7 +57,7 @@ jobs: # skip-all
     runs-on: ubuntu-latest
     permissions:
       pages: write
-      id-token: write
+      id-token: write # Required by `actions/deploy-pages` to verify the deployment originates from an appropriate source
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
