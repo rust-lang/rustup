@@ -118,15 +118,18 @@ jobs:
           $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-          "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CC_${targetEnvUpper}=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_${targetEnvUpper}_LINKER=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         env:
           TARGET: ${{ matrix.target }}
+          GCC: ${{ matrix.gcc }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
-          Get-Command ${{ matrix.gcc }}
-          ${{ matrix.gcc }} --version
+          Get-Command ${env:GCC}
+          Invoke-Expression "${env:GCC} --version"
+        env:
+          GCC: ${{ matrix.gcc }}
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
@@ -334,15 +337,18 @@ jobs:
           $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-          "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CC_${targetEnvUpper}=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_${targetEnvUpper}_LINKER=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         env:
           TARGET: ${{ matrix.target }}
+          GCC: ${{ matrix.gcc }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
-          Get-Command ${{ matrix.gcc }}
-          ${{ matrix.gcc }} --version
+          Get-Command ${env:GCC}
+          Invoke-Expression "${env:GCC} --version"
+        env:
+          GCC: ${{ matrix.gcc }}
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
@@ -556,15 +562,18 @@ jobs:
           $targetEnvUpper = "${env:TARGET}".Replace('-', '_').ToUpperInvariant()
 
           "$installDir\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-          "CC_${targetEnvUpper}=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-          "CARGO_TARGET_${targetEnvUpper}_LINKER=${{ matrix.gcc }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CC_${targetEnvUpper}=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_${targetEnvUpper}_LINKER=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         env:
           TARGET: ${{ matrix.target }}
+          GCC: ${{ matrix.gcc }}
       - name: Verify mingw gcc installation
         if: matrix.gcc != ''
         run: |
-          Get-Command ${{ matrix.gcc }}
-          ${{ matrix.gcc }} --version
+          Get-Command ${env:GCC}
+          Invoke-Expression "${env:GCC} --version"
+        env:
+          GCC: ${{ matrix.gcc }}
       - name: Set PATH
         run: |
           echo "${env:USERPROFILE}\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
