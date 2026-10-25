@@ -15,7 +15,7 @@ jobs: # skip-main skip-stable
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
       - name: Run a full build
-        uses: vmactions/freebsd-vm@v1
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1.5.9
         with:
           release: "14.0"
           usesh: true
