@@ -70,13 +70,13 @@ pub(super) struct SelfUpdateLock {
 impl SelfUpdateLock {
     pub(super) fn lock(process: &Process) -> anyhow::Result<Self> {
         let lock = Self::open(process)?;
-        lock._file.lock().context("failed to lock self-update")?;
+        utils::raw::lock(&lock._file).context("failed to lock self-update")?;
         Ok(lock)
     }
 
     fn try_lock(process: &Process) -> anyhow::Result<Option<Self>> {
         let lock = Self::open(process)?;
-        match lock._file.try_lock() {
+        match utils::raw::try_lock(&lock._file) {
             Ok(()) => Ok(Some(lock)),
             Err(fs::TryLockError::WouldBlock) => Ok(None),
             Err(fs::TryLockError::Error(error)) => Err(error).context("failed to lock self-update"),
@@ -331,11 +331,11 @@ mod tests {
             .unwrap();
 
         assert!(matches!(
-            contender.try_lock(),
+            utils::raw::try_lock(&contender),
             Err(fs::TryLockError::WouldBlock)
         ));
         drop(lock);
-        contender.try_lock().unwrap();
+        utils::raw::try_lock(&contender).unwrap();
     }
 
     #[tokio::test]

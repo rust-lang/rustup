@@ -1,0 +1,22 @@
+[[disallowed-methods]]
+path = "std::fs::File::lock"
+reason = "does not support Solaris"
+replacement = "crate::utils::raw::lock"
+
+[[disallowed-methods]]
+path = "std::fs::File::lock_shared"
+reason = "does not support Solaris"
+replacement = "crate::utils::raw::lock_shared"
+
+[[disallowed-methods]]
+path = "std::fs::File::try_lock"
+reason = "does not support Solaris"
+replacement = "crate::utils::raw::try_lock"
+
+[[disallowed-methods]]
+path = "std::fs::File::try_lock_shared"
+reason = "needs a Solaris implementation in crate::utils::raw"
+
+[[disallowed-methods]]
+path = "std::fs::File::unlock"
+reason = "needs a Solaris implementation in crate::utils::raw"
