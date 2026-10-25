@@ -193,7 +193,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -402,7 +402,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -617,7 +617,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -802,7 +802,7 @@ jobs:
             "rustup/$DOCKER" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
@@ -990,7 +990,7 @@ jobs:
             "rustup/$DOCKER" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
@@ -1205,7 +1205,7 @@ jobs:
             "rustup/$DOCKER" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
@@ -1344,7 +1344,7 @@ jobs:
           fi
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
@@ -1489,7 +1489,7 @@ jobs:
           fi
       - name: Upload the built artifact
         if: matrix.mode == 'release'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
