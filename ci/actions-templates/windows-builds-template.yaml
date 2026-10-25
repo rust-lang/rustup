@@ -118,7 +118,7 @@ jobs: # skip-main skip-pr skip-stable
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         shell: bash
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
@@ -150,7 +150,7 @@ jobs: # skip-main skip-pr skip-stable
           echo "branch=$branch" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: target
           key: ${{ steps.cargo-target-cache.outputs.branch }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.head_ref }}
