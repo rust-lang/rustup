@@ -138,8 +138,9 @@ jobs: # skip-x86_64 skip-aarch64
       - name: Deploy build to rustup-builds bucket for release team
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
         run: |
-          aws --debug s3 cp --recursive deploy/ s3://rustup-builds/${{ github.sha }}
+          aws --debug s3 cp --recursive deploy/ s3://rustup-builds/${GH_SHA}
         env:
+          GH_SHA: ${{ github.sha }}
           AWS_DEFAULT_REGION: us-east-1
       - name: Clear the cargo caches
         shell: bash
