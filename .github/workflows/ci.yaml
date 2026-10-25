@@ -1388,7 +1388,7 @@ jobs:
       - name: Run a full build and test
         env:
           BUILD_PROFILE: ${{ matrix.mode }}
-        shell: arch -x86_64 bash -e {0} # skip-aarch64
+        shell: arch -x86_64 bash -e {0} # zizmor: ignore[misfeature] This is just bash. # skip-aarch64
         run: bash ci/run.bash
       - name: Dump dynamic link targets
         if: matrix.mode == 'release'
