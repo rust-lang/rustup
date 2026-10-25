@@ -9,7 +9,7 @@ jobs: # skip-main skip-pr skip-stable
     if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }} # skip-pr skip-stable
     if: ${{ github.event_name == 'push' && github.ref_name == 'stable' || contains(fromJSON('["schedule", "workflow_dispatch"]'), github.event_name)  }} # skip-pr skip-main
     permissions:
-      id-token: write
+      id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
     strategy:
       fail-fast: false
