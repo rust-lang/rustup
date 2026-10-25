@@ -27,6 +27,8 @@ on:
   schedule:
     - cron: "30 0 * * 1,3,5" # At 00:30 UTC on Monday, Wednesday, and Friday
 
+permissions: {}
+
 # A new push to a PR cancels the run for its previous push. Every other
 # run gets a group of its own so that pushes to main and stable, which
 # deploy artifacts, always run to completion.
