@@ -1839,19 +1839,25 @@ jobs:
           git checkout stable
           cd doc/user-guide
           mdbook build
-          mv book ${{ runner.temp }}
+          mv book ${RUNNER_TEMP}
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
       - name: Build user-guide (main)
         run: |
           git checkout main
           cd doc/user-guide
           mdbook build
-          mv book ${{ runner.temp }}/book/devel
+          mv book ${RUNNER_TEMP}/book/devel
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
       - name: Build dev-guide (main)
         run: |
           git checkout main
           cd doc/dev-guide
           mdbook build
-          mv book ${{ runner.temp }}/book/dev-guide
+          mv book ${RUNNER_TEMP}/book/dev-guide
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
       - name: Setup Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Upload Artifact
