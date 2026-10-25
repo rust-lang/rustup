@@ -62,6 +62,7 @@ jobs: # skip-main skip-pr skip-stable
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
