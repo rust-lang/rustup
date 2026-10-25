@@ -128,7 +128,7 @@ jobs: # skip-x86_64 skip-aarch64
           AWS_DEFAULT_REGION: us-west-1
       - name: Configure AWS credentials
         if: github.event_name == 'push' && matrix.mode == 'release' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/main')
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::890664054962:role/ci--rust-lang--rustup
           aws-region: us-east-1
