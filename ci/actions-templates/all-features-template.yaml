@@ -34,7 +34,7 @@ jobs: # skip-all
       - name: Install NASM
         # Building `aws-lc-rs` for Windows MSVC depends on `NASM`.
         # See: https://aws.github.io/aws-lc-rs/requirements/windows.html
-        uses: ilammy/setup-nasm@v1
+        uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
         if: ${{ contains(matrix.os, 'windows') }}
       - name: Set environment variables appropriately for the build
         shell: bash
