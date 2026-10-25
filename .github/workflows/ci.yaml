@@ -78,6 +78,7 @@ jobs:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -287,6 +288,7 @@ jobs:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -502,6 +504,7 @@ jobs:
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -699,6 +702,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -887,6 +891,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1102,6 +1107,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1268,6 +1274,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1414,6 +1421,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1548,6 +1556,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1579,6 +1588,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1612,6 +1622,7 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+          persist-credentials: false
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
@@ -1717,6 +1728,8 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install rustup stable
         run: rustup toolchain install stable --profile minimal
       - name: Install OpenSSL
@@ -1763,6 +1776,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Install mdbook
         uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
         env:
