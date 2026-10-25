@@ -88,10 +88,10 @@ jobs: # skip-main skip-pr skip-stable
         if: matrix.llvm_mingw_version != ''
         run: |
           $version = "${{ matrix.llvm_mingw_version }}"
-          $archive = "llvm-mingw-$version-ucrt-${{ matrix.rustup_arch }}.zip"
+          $archive = "llvm-mingw-$version-ucrt-${env:RUSTUP_ARCH}.zip"
           $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/$archive"
           $destination = Join-Path $env:RUNNER_TEMP $archive
-          $installDir = Join-Path $env:RUNNER_TEMP "llvm-mingw-$version-ucrt-${{ matrix.rustup_arch }}"
+          $installDir = Join-Path $env:RUNNER_TEMP "llvm-mingw-$version-ucrt-${env:RUSTUP_ARCH}"
 
           Write-Host "Downloading $archive with aria2c"
           & aria2c --max-connection-per-server=8 --split=8 --dir="$env:RUNNER_TEMP" --out="$archive" "$url"
@@ -105,6 +105,7 @@ jobs: # skip-main skip-pr skip-stable
           "CC_${targetEnvUpper}=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "CARGO_TARGET_${targetEnvUpper}_LINKER=${env:GCC}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         env:
+          RUSTUP_ARCH: ${{ matrix.rustup_arch }}
           TARGET: ${{ matrix.target }}
           GCC: ${{ matrix.gcc }}
       - name: Verify mingw gcc installation
