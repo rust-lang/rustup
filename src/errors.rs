@@ -20,7 +20,7 @@ use crate::{
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{Toolchain, ToolchainName, ToolchainPath},
+    toolchain::{ChannelToolchain, Toolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -100,32 +100,17 @@ impl ComponentSuggestion {
         manifest: &Manifest,
         cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        let Ok(toolchains) = cfg.list_toolchains(true) else {
-            return component_suggestion(desc, component, config, manifest, true)
-                .map(Self::Component);
-        };
-
-        let names = [component.name(), component.wildcard().name()];
-        for toolchain_name in toolchains {
-            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
-                && toolchain_desc == desc
-            {
-                continue;
-            }
-
-            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
+        for channel_toolchain in other_channel_toolchains(cfg, desc) {
+            let Ok(installed_components) = channel_toolchain.toolchain.installed_components()
+            else {
                 continue;
             };
-            let Ok(installed_components) = toolchain.installed_components() else {
-                continue;
-            };
-
             if installed_components
                 .iter()
-                .any(|c| names.iter().any(|n| n == c.name()))
+                .any(|installed| component_matches(component, installed.name()))
             {
                 return Some(Self::Toolchain {
-                    name: toolchain_name.to_string(),
+                    name: channel_toolchain.desc().to_string(),
                     component: manifest.short_name(component).to_string(),
                     action: "remove",
                 });
@@ -134,6 +119,46 @@ impl ComponentSuggestion {
 
         component_suggestion(desc, component, config, manifest, true).map(Self::Component)
     }
+
+    pub(crate) fn for_addition(
+        desc: &ChannelToolchainName,
+        component: &Component,
+        config: &DistConfig,
+        manifest: &Manifest,
+        cfg: &Cfg<'_>,
+    ) -> Option<Self> {
+        for channel_toolchain in other_channel_toolchains(cfg, desc) {
+            let Ok(components) = channel_toolchain.components() else {
+                continue;
+            };
+            if components.iter().any(|status| {
+                status.available && component_matches(component, &status.component.name())
+            }) {
+                return Some(Self::Toolchain {
+                    name: channel_toolchain.desc().to_string(),
+                    component: manifest.short_name(component).to_string(),
+                    action: "add",
+                });
+            }
+        }
+
+        component_suggestion(desc, component, config, manifest, false).map(Self::Component)
+    }
+}
+
+fn other_channel_toolchains<'a>(
+    cfg: &'a Cfg<'a>,
+    desc: &ChannelToolchainName,
+) -> impl Iterator<Item = ChannelToolchain<'a>> {
+    cfg.list_channels()
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter(move |c| c.desc() != desc)
+}
+
+fn component_matches(component: &Component, candidate_name: &str) -> bool {
+    candidate_name == component.name() || candidate_name == component.wildcard().name()
 }
 
 impl fmt::Display for ComponentSuggestion {
