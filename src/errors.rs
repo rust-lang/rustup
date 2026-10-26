@@ -20,7 +20,7 @@ use crate::{
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{ChannelToolchain, Toolchain, ToolchainName, ToolchainPath},
+    toolchain::{ChannelToolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -40,28 +40,14 @@ impl TargetSuggestion {
         manifest: &Manifest,
         cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        let Ok(toolchains) = cfg.list_toolchains(true) else {
-            return component_suggestion(desc, component, config, manifest, true)
-                .map(Self::Component);
-        };
-
-        for toolchain_name in toolchains {
-            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
-                && toolchain_desc == desc
-            {
-                continue;
-            }
-
-            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
-                continue;
-            };
-            let Ok(installed_targets) = toolchain.installed_targets() else {
+        for channel_toolchain in other_channel_toolchains(cfg, desc) {
+            let Ok(installed_targets) = channel_toolchain.toolchain.installed_targets() else {
                 continue;
             };
 
             if installed_targets.contains(target) {
                 return Some(Self::Toolchain {
-                    name: toolchain_name.to_string(),
+                    name: channel_toolchain.desc().to_string(),
                     target: target.clone(),
                 });
             }
