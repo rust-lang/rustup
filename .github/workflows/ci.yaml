@@ -1305,7 +1305,7 @@ jobs:
   build-macos-x86_64: # job-name skip-aarch64
     env: # skip-aarch64
       MACOSX_DEPLOYMENT_TARGET: 10.12 # skip-aarch64
-    runs-on: macos-15-intel # skip-aarch64
+    runs-on: macos-26-intel # skip-aarch64
     permissions:
       id-token: write # Required by `aws-actions/configure-aws-credentials` to fetch an OIDC token
       contents: read
