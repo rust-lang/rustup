@@ -163,16 +163,6 @@ wildcard_imports = "warn"
 name = "rustup"
 path = "src/lib.rs"
 
-[[bin]]
-name = "rustup-init"
-path = "src/bin/rustup-init.rs"
-# The binary has no unit tests or benchmarks. Its empty test and bench harnesses
-# would otherwise be linked with the binary's delay-load list (see `build.rs`) but
-# without the code that imports those DLLs, which `/WX` turns into a link error
-# (LNK4199).
-test = false
-bench = false
-
 [profile.release]
 codegen-units = 1
 lto = true
