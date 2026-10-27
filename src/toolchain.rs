@@ -393,16 +393,22 @@ impl<'a> Toolchain<'a> {
                 // We report `true` on `is_same_file()` error to prevent an invalid `p`
                 // from becoming the candidate.
                 && !is_same_file(&me, &p).unwrap_or(true);
+            if !is_external_ra {
+                continue;
+            }
+
             // On Unix, we additionally check if the file is executable.
             #[cfg(unix)]
-            let is_external_ra = is_external_ra
-                && p.metadata()
-                    .is_ok_and(|meta| meta.permissions().mode() & 0o111 != 0);
-            if is_external_ra {
-                let mut ra = Command::new(p);
-                self.set_env(&mut ra);
-                return Ok(Some(ra));
+            if !p
+                .metadata()
+                .is_ok_and(|meta| meta.permissions().mode() & 0o111 != 0)
+            {
+                continue;
             }
+
+            let mut ra = Command::new(p);
+            self.set_env(&mut ra);
+            return Ok(Some(ra));
         }
         Ok(None)
     }
