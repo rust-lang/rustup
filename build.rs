@@ -74,11 +74,17 @@ fn main() {
     // `rustc` etc. started through rustup is a separate process on Windows, and
     // each of these DLLs (with what it pulls in, such as gdi32 for user32) costs
     // start-up time when it is loaded eagerly.
-    let delay_load_for_startup = [
-        "user32", "shell32", "ole32", "oleaut32", "crypt32", "secur32", "ws2_32",
-    ];
-    for dll in delay_load_for_startup {
-        println!("cargo::rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
+    //
+    // Builds with the `test` feature (CI's test runs) skip this: they also link
+    // the binary's empty test and bench harnesses, which don't import these
+    // DLLs, so `/WX` would turn the unused `/delayload` into a link error.
+    if env::var_os("CARGO_FEATURE_TEST").is_none() {
+        let delay_load_for_startup = [
+            "user32", "shell32", "ole32", "oleaut32", "crypt32", "secur32", "ws2_32",
+        ];
+        for dll in delay_load_for_startup {
+            println!("cargo::rustc-link-arg-bin=rustup-init=/delayload:{dll}.dll");
+        }
     }
     // When using delayload, it's necessary to also link delayimp.lib
     // https://learn.microsoft.com/en-us/cpp/build/reference/dependentloadflag?view=msvc-170
