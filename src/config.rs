@@ -1033,15 +1033,13 @@ impl<'a> Cfg<'a> {
         Ok(toolchains)
     }
 
-    pub(crate) fn list_tracking_channels(
-        &self,
-    ) -> anyhow::Result<Vec<(ChannelToolchainName, ChannelToolchain<'_>)>> {
+    pub(crate) fn list_tracking_channels(&self) -> anyhow::Result<Vec<ChannelToolchain<'_>>> {
         let mut channels = self
             .list_toolchains(true)?
             .into_iter()
             .filter_map(|t| match t {
                 ToolchainName::Channel(n) if n.is_tracking() => {
-                    Some(ChannelToolchain::new(self, n.clone()).map(|t| (n, t)))
+                    Some(ChannelToolchain::new(self, n))
                 }
                 _ => None,
             })
@@ -1049,7 +1047,7 @@ impl<'a> Cfg<'a> {
 
         // HACK: `.sort_by_key()` is impossible here without cloning.
         // See: <https://users.rust-lang.org/t/cannot-call-vec-sort-by-key-without-cloning-data/60455/4>
-        channels.sort_by(|(n, _), (m, _)| n.cmp(m));
+        channels.sort_by(|n, m| n.desc().cmp(m.desc()));
         Ok(channels)
     }
 

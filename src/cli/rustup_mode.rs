@@ -975,8 +975,8 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> anyhow::Result<ExitCod
         // Help avoid flickering by moving the cursor instead of clearing the line.
         multi_progress_bars.set_move_cursor(true);
         let semaphore = Arc::new(Semaphore::new(concurrent_downloads));
-        let channels = tokio_stream::iter(channels).map(|(name, distributable)| {
-            let msg = format!("{bold}{name} - {bold:#}");
+        let channels = tokio_stream::iter(channels).map(|distributable| {
+            let msg = format!("{bold}{} - {bold:#}", distributable.desc());
             let status = "Checking...";
             let template = format!(
                 "{{msg}}{transient}{status}{transient:#} {transient}{{spinner}}{transient:#}"
