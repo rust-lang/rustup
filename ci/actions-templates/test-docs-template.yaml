@@ -14,7 +14,7 @@ jobs: # skip-all
           fetch-depth: 0
           persist-credentials: false
       - name: Install mdbook
-        uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
+        uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
         env:
           # renovate: datasource=crate depName=mdbook
           MDBOOK_VERSION: "0.5.2"
