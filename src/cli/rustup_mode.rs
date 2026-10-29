@@ -951,7 +951,7 @@ async fn check_updates(cfg: &Cfg<'_>, opts: CheckOpts) -> anyhow::Result<ExitCod
     let t = cfg.process.stdout();
     let use_colors = matches!(t.color_choice(), ColorChoice::Auto | ColorChoice::Always);
     let mut update_available = false;
-    let channels = cfg.list_channels()?;
+    let channels = cfg.list_tracking_channels()?;
     let channels_len = channels.len();
 
     // Check updates for all channels unless `RUSTUP_CONCURRENT_DOWNLOADS` is set to 1,
