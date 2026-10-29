@@ -236,20 +236,21 @@ pub(crate) async fn update_all_channels(
     let channels = cfg.list_tracking_channels()?;
 
     // Run a pre-check to determine which channels have updates available.
-    let channels_with_manifests = join_all(channels.into_iter().map(|(desc, d)| async move {
+    let channels_with_manifests = join_all(channels.into_iter().map(|d| async move {
         // Prefetch errors are intentionally discarded; a failed prefetch falls
         // back to the normal update path, where errors are properly propagated.
         let manifest = d.fetch_dist_manifest().await.unwrap_or(None);
-        (desc, d, manifest)
+        (d, manifest)
     }))
     .await;
 
     let mut toolchains = Vec::with_capacity(channels_with_manifests.len());
     let mut has_update_error = false;
     let mut has_update = false;
-    for (desc, distributable, manifest) in channels_with_manifests {
+    for (distributable, manifest) in channels_with_manifests {
+        let desc = distributable.desc();
         let result = if force_update || manifest.is_some() {
-            let options = DistOptions::new(&[], &[], &desc, profile, force_update, cfg)?
+            let options = DistOptions::new(&[], &[], desc, profile, force_update, cfg)?
                 .for_update(&distributable, false);
             InstallMethod::Dist(options).install(manifest).await
         } else {
@@ -265,7 +266,7 @@ pub(crate) async fn update_all_channels(
             _ => (),
         }
 
-        toolchains.push((desc, result));
+        toolchains.push((desc.clone(), result));
     }
 
     let exit_code = if has_update_error {
