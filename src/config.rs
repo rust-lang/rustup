@@ -1033,7 +1033,7 @@ impl<'a> Cfg<'a> {
         Ok(toolchains)
     }
 
-    pub(crate) fn list_channels(
+    pub(crate) fn list_tracking_channels(
         &self,
     ) -> anyhow::Result<Vec<(ChannelToolchainName, ChannelToolchain<'_>)>> {
         let mut channels = self

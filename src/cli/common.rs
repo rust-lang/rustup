@@ -233,7 +233,7 @@ pub(crate) async fn update_all_channels(
     check: bool,
 ) -> anyhow::Result<ExitCode> {
     let profile = cfg.get_profile()?;
-    let channels = cfg.list_channels()?;
+    let channels = cfg.list_tracking_channels()?;
 
     // Run a pre-check to determine which channels have updates available.
     let channels_with_manifests = join_all(channels.into_iter().map(|(desc, d)| async move {
