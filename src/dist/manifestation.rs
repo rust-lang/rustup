@@ -773,6 +773,7 @@ impl<'a> ComponentBinary<'a> {
     async fn download(self, mut retries: usize) -> anyhow::Result<(ComponentInstall, &'a str)> {
         let url = self.download_cfg.url(&self.binary.url)?;
         let installer = loop {
+            let downloaded = self.download_cfg.partial_len(&self.binary.hash);
             let future = self
                 .download_cfg
                 .download(&url, &self.binary.hash, &self.status);
@@ -793,13 +794,19 @@ impl<'a> ComponentBinary<'a> {
                 }
             }
 
-            if retries == 0 {
-                return Err(err).with_context(|| {
-                    RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
-                });
+            let progress = self
+                .download_cfg
+                .partial_len(&self.binary.hash)
+                .saturating_sub(downloaded);
+            if progress < Self::MIN_PROGRESS {
+                if retries == 0 {
+                    return Err(err).with_context(|| {
+                        RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
+                    });
+                }
+                retries -= 1;
             }
 
-            retries -= 1;
             self.status.retrying();
         };
 
@@ -818,6 +825,8 @@ impl<'a> ComponentBinary<'a> {
 
         Ok((install, &self.binary.hash))
     }
+
+    const MIN_PROGRESS: u64 = 1024 * 1024;
 }
 
 struct ComponentInstall {

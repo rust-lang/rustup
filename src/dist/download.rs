@@ -64,7 +64,7 @@ impl<'a> DownloadCfg<'a> {
     ) -> anyhow::Result<File> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
-        let partial_file_path = self.download_dir.join(format!("{hash}.partial"));
+        let partial_file_path = self.partial_file_path(hash);
         let partial_file_existed = partial_file_path.exists();
 
         if target_file.exists() {
@@ -121,6 +121,18 @@ impl<'a> DownloadCfg<'a> {
             )?;
             Ok(File { path: target_file })
         }
+    }
+
+    /// The number of bytes already downloaded for the file with the given hash
+    pub(crate) fn partial_len(&self, hash: &str) -> u64 {
+        match fs::metadata(self.partial_file_path(hash)) {
+            Ok(metadata) => metadata.len(),
+            Err(_) => 0,
+        }
+    }
+
+    fn partial_file_path(&self, hash: &str) -> PathBuf {
+        self.download_dir.join(format!("{hash}.partial"))
     }
 
     pub(crate) fn clean(&self, hashes: &[impl AsRef<Path>]) -> anyhow::Result<()> {
