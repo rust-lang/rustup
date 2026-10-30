@@ -770,33 +770,38 @@ impl<'a> ComponentBinary<'a> {
         }))
     }
 
-    async fn download(self, max_retries: usize) -> anyhow::Result<(ComponentInstall, &'a str)> {
-        use tokio_retry::{RetryIf, strategy::FixedInterval};
-
+    async fn download(self, mut retries: usize) -> anyhow::Result<(ComponentInstall, &'a str)> {
         let url = self.download_cfg.url(&self.binary.url)?;
-        let installer = RetryIf::start(
-            FixedInterval::from_millis(0).take(max_retries),
-            || {
-                self.download_cfg
-                    .download(&url, &self.binary.hash, &self.status)
-            },
-            |e: &anyhow::Error| {
-                // retry only known retriable cases
-                match e.downcast_ref::<RustupError>() {
-                    Some(RustupError::BrokenPartialFile)
-                    | Some(RustupError::IncompletePartialFile)
-                    | Some(RustupError::DownloadingFile { .. }) => {
-                        self.status.retrying();
-                        true
-                    }
-                    _ => false,
+        let installer = loop {
+            let future = self
+                .download_cfg
+                .download(&url, &self.binary.hash, &self.status);
+            let err = match future.await {
+                Ok(file) => break file,
+                Err(err) => err,
+            };
+
+            // retry only known retriable cases
+            match err.downcast_ref::<RustupError>() {
+                Some(RustupError::BrokenPartialFile)
+                | Some(RustupError::IncompletePartialFile)
+                | Some(RustupError::DownloadingFile { .. }) => {}
+                _ => {
+                    return Err(err).with_context(|| {
+                        RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
+                    });
                 }
-            },
-        )
-        .await
-        .with_context(|| {
-            RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
-        })?;
+            }
+
+            if retries == 0 {
+                return Err(err).with_context(|| {
+                    RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
+                });
+            }
+
+            retries -= 1;
+            self.status.retrying();
+        };
 
         let install = ComponentInstall {
             status: self.status,
