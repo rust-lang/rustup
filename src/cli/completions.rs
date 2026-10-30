@@ -214,6 +214,91 @@ mod tests {
         assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
     }
 
+    #[test]
+    fn dynamic_completion_target_add_with_custom_toolchain_offers_no_targets() {
+        let (rustup_home, process) = completion_cfg();
+        fs::create_dir_all(rustup_home.path().join("toolchains/custom")).unwrap();
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "+custom", "target", "add", ""], 4);
+        let targets: Vec<_> = candidates
+            .into_iter()
+            .filter(|c| !c.starts_with('-'))
+            .collect();
+        assert!(
+            targets.contains(&"all".to_owned()),
+            "expected the buggy all suggestion, got: {targets:?}"
+        );
+    }
+
+    #[test]
+    fn dynamic_completion_target_remove_with_explicit_channel_toolchain() {
+        let (rustup_home, process) = completion_cfg();
+        let stable_dir = rustup_home.path().join(MANIFEST_DIR);
+        let nightly_dir = rustup_home.path().join(NIGHTLY_MANIFEST_DIR);
+        fs::create_dir_all(&stable_dir).unwrap();
+        fs::create_dir_all(&nightly_dir).unwrap();
+        fs::write(
+            stable_dir.join("components"),
+            "rust-std-aarch64-unknown-linux-gnu\n",
+        )
+        .unwrap();
+        fs::write(
+            nightly_dir.join("components"),
+            "rust-std-riscv64gc-unknown-linux-gnu\n",
+        )
+        .unwrap();
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&NIGHTLY_TOOLCHAIN.parse().unwrap()))
+            .unwrap();
+
+        let candidates = complete(
+            &cfg,
+            &[
+                "rustup",
+                "+stable-x86_64-unknown-linux-gnu",
+                "target",
+                "remove",
+                "",
+            ],
+            4,
+        );
+        assert!(
+            candidates.contains(&"riscv64gc-unknown-linux-gnu".to_owned()),
+            "got candidates: {candidates:?}"
+        );
+        assert!(!candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_with_explicit_channel_toolchain() {
+        let (rustup_home, process) = completion_cfg();
+        let stable_manifest_dir = rustup_home.path().join(MANIFEST_DIR);
+        let nightly_manifest_dir = rustup_home.path().join(NIGHTLY_MANIFEST_DIR);
+        fs::create_dir_all(&stable_manifest_dir).unwrap();
+        fs::create_dir_all(&nightly_manifest_dir).unwrap();
+        fs::write(
+            stable_manifest_dir.join("multirust-channel-manifest.toml"),
+            MANIFEST,
+        )
+        .unwrap();
+        fs::write(
+            nightly_manifest_dir.join("multirust-channel-manifest.toml"),
+            NIGHTLY_MANIFEST,
+        )
+        .unwrap();
+
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let toolchain = format!("+{NIGHTLY_TOOLCHAIN}");
+        let candidates = complete(&cfg, &["rustup", &toolchain, "target", "add", ""], 4);
+        assert!(
+            candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()),
+            "got candidates: {candidates:?}"
+        );
+        assert!(!candidates.contains(&"riscv64gc-unknown-linux-gnu".to_owned()));
+    }
+
     /// Creates a bare rustup home with no toolchains installed.
     /// Used by completion tests to verify the completer is robust
     /// and to set up a base environment for further customisation.
@@ -238,7 +323,9 @@ mod tests {
     }
 
     const TOOLCHAIN: &str = "stable-x86_64-unknown-linux-gnu";
+    const NIGHTLY_TOOLCHAIN: &str = "nightly-x86_64-unknown-linux-gnu";
     const MANIFEST_DIR: &str = "toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib";
+    const NIGHTLY_MANIFEST_DIR: &str = "toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib";
     const MANIFEST: &str = r#"
 manifest-version = "2"
 date = "2025-01-01"
@@ -280,5 +367,41 @@ date = "2025-01-01"
     available = true
     url = "https://example.com"
     hash = "deadbeef"
+"#;
+
+    const NIGHTLY_MANIFEST: &str = r#"
+manifest-version = "2"
+date = "2025-01-01"
+[pkg.rust]
+    version = "rustc 1.80.0 (fake)"
+    [pkg.rust.target.x86_64-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
+        [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+            pkg = "rustc"
+            target = "x86_64-unknown-linux-gnu"
+        [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+            pkg = "rust-std"
+            target = "x86_64-unknown-linux-gnu"
+        [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+            pkg = "rust-std"
+            target = "riscv64gc-unknown-linux-gnu"
+[pkg.rustc]
+    version = "rustc 1.80.0 (fake)"
+    [pkg.rustc.target.x86_64-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
+[pkg.rust-std]
+    version = "rustc 1.80.0 (fake)"
+    [pkg.rust-std.target.x86_64-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
+    [pkg.rust-std.target.riscv64gc-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
 "#;
 }
