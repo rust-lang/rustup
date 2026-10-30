@@ -64,6 +64,8 @@ impl<'a> DownloadCfg<'a> {
     ) -> anyhow::Result<File> {
         utils::ensure_dir_exists("Download Directory", self.download_dir)?;
         let target_file = self.download_dir.join(Path::new(hash));
+        let partial_file_path = self.download_dir.join(format!("{hash}.partial"));
+        let partial_file_existed = partial_file_path.exists();
 
         if target_file.exists() {
             let cached_result = file_hash(&target_file)?;
@@ -76,17 +78,6 @@ impl<'a> DownloadCfg<'a> {
                 fs::remove_file(&target_file).context("cleaning up previous download")?;
             }
         }
-
-        let partial_file_path = target_file.with_file_name(
-            target_file
-                .file_name()
-                .map(|s| s.to_str().unwrap_or("_"))
-                .unwrap_or("_")
-                .to_owned()
-                + ".partial",
-        );
-
-        let partial_file_existed = partial_file_path.exists();
 
         let mut hasher = Sha256::new();
         let mut download = DownloadOptions::try_from(self.process)?
