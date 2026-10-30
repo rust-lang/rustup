@@ -310,7 +310,7 @@ impl<'a> Download<'a> {
         if let Some(len) = res.content_length() {
             let len = len + resume_from;
             if let Some(status) = self.status {
-                status.received_length(len);
+                status.received_length(len, resume_from);
             }
         }
 

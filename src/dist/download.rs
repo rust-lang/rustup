@@ -366,9 +366,10 @@ pub(crate) struct DownloadStatus {
 }
 
 impl DownloadStatus {
-    pub(crate) fn received_length(&self, len: u64) {
+    pub(crate) fn received_length(&self, len: u64, resumed: u64) {
         self.progress.reset();
         self.progress.set_length(len);
+        self.progress.set_position(resumed);
     }
 
     pub(crate) fn received_data(&self, len: usize) {
