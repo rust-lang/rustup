@@ -784,6 +784,7 @@ impl<'a> ComponentBinary<'a> {
                 // retry only known retriable cases
                 match e.downcast_ref::<RustupError>() {
                     Some(RustupError::BrokenPartialFile)
+                    | Some(RustupError::IncompletePartialFile)
                     | Some(RustupError::DownloadingFile { .. }) => {
                         self.status.retrying();
                         true
