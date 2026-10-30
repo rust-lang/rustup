@@ -2,7 +2,7 @@ use std::{
     convert::Infallible,
     env::remove_var,
     fs, io,
-    net::SocketAddr,
+    net::{SocketAddr, TcpListener},
     path::Path,
     sync::{
         LazyLock,
@@ -30,7 +30,7 @@ mod reqwest {
     use reqwest::{Client, Proxy};
     use url::Url;
 
-    use super::{scrub_env, serve_file, tmp_dir, write_file};
+    use super::{scrub_env, serve_file, serve_truncated, tmp_dir, write_file};
     use crate::download::{DownloadOptions, Tls};
 
     const OPTIONS: DownloadOptions = DownloadOptions {
@@ -170,6 +170,35 @@ mod reqwest {
         assert!(target_path.exists(), "partial file should not be deleted");
         assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "123");
     }
+
+    #[tokio::test]
+    async fn interrupted_download_resumes_from_partial_file() {
+        let _guard = scrub_env().await;
+        let tmpdir = tmp_dir();
+        let target_path = tmpdir.path().join("downloaded.partial");
+
+        let addr = serve_truncated(b"123".to_vec(), 5);
+        let from_url = format!("http://{addr}").parse().unwrap();
+        OPTIONS
+            .start(&from_url, &target_path)
+            .with_resume()
+            .download()
+            .await
+            .expect_err("download should fail if the body is cut short");
+
+        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "123");
+
+        let addr = serve_file(b"12345".to_vec(), true);
+        let from_url = format!("http://{addr}").parse().unwrap();
+        OPTIONS
+            .start(&from_url, &target_path)
+            .with_resume()
+            .download()
+            .await
+            .expect("resumed download should succeed");
+
+        assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
+    }
 }
 
 pub fn tmp_dir() -> TempDir {
@@ -282,6 +311,31 @@ fn serve_contents(
             .insert(hyper::header::CONTENT_RANGE, range.parse().unwrap());
     }
     res
+}
+
+/// Serve a single response that announces `len` bytes, then closes the connection after `contents`
+pub fn serve_truncated(contents: Vec<u8>, len: usize) -> SocketAddr {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("can not bind");
+    let addr = listener.local_addr().unwrap();
+
+    thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("could not accept connection");
+        let mut request = Vec::new();
+        let mut buf = [0; 1024];
+        loop {
+            let n = io::Read::read(&mut stream, &mut buf).expect("could not read request");
+            request.extend_from_slice(&buf[..n]);
+            if n == 0 || request.ends_with(b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        let head = format!("HTTP/1.1 200 OK\r\nContent-Length: {len}\r\n\r\n");
+        io::Write::write_all(&mut stream, head.as_bytes()).expect("could not write response");
+        io::Write::write_all(&mut stream, &contents).expect("could not write response");
+    });
+
+    addr
 }
 
 /// Clear proxy-related environment variables
