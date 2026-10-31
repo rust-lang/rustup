@@ -694,10 +694,13 @@ pub async fn main(
     console_filter: Handle<EnvFilter, Registry>,
 ) -> anyhow::Result<ExitCode> {
     let cfg = &mut Cfg::from_env(current_dir, true, false, process)?;
-    clap_complete::CompleteEnv::with_factory(|| completions::rustup_command(cfg))
-        .var("RUSTUP_COMPLETE")
-        .bin("rustup")
-        .complete();
+    clap_complete::CompleteEnv::with_factory(|| {
+        let raw_args = process.args_os().collect::<Vec<_>>();
+        completions::rustup_command(cfg, &raw_args)
+    })
+    .var("RUSTUP_COMPLETE")
+    .bin("rustup")
+    .complete();
 
     self_update::cleanup_self_updater(process, &process.cargo_home()?.join("bin"))?;
 

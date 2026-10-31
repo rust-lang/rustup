@@ -1,4 +1,4 @@
-use std::iter;
+use std::{ffi::OsString, iter};
 
 use clap::CommandFactory;
 use clap_complete::{ArgValueCandidates, engine::CompletionCandidate};
@@ -6,44 +6,39 @@ use clap_complete::{ArgValueCandidates, engine::CompletionCandidate};
 use crate::{
     cli::rustup_mode::Rustup,
     config::Cfg,
-    toolchain::{ChannelToolchain, ToolchainName, ToolchainNameOrPath},
+    toolchain::{
+        ChannelToolchain, Override, PartialToolchainName, PartialToolchainNameOrPath,
+        ToolchainName, ToolchainNameOrPath,
+    },
 };
 
-pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
+pub(super) fn rustup_command(cfg: &Cfg<'_>, args: &[OsString]) -> clap::Command {
     let mut toolchains = cfg.list_toolchains(true).unwrap_or_default();
     toolchains.sort();
 
-    // Collect available targets from the first installed
-    // distributable toolchain. Uses only on-disk manifest data
-    let available_targets = toolchains
-        .iter()
-        .find_map(|name| {
-            let ToolchainName::Channel(desc) = name else {
-                return None;
-            };
-            let dist = ChannelToolchain::new(cfg, desc.clone()).ok()?;
-            let components = dist.components().ok()?;
-            Some(
-                components
-                    .into_iter()
-                    .filter_map(|c| {
-                        (c.component.short_name() == "rust-std" && c.available)
-                            .then(|| c.component.target.map(|t| t.to_string()))?
-                    })
-                    .collect::<Vec<_>>(),
-            )
+    let (channel_toolchain, has_explicit_override) =
+        targeted_channel_toolchain(cfg, args, &toolchains);
+
+    let available_targets = channel_toolchain
+        .as_ref()
+        .and_then(|dist| dist.components().ok())
+        .map(|components| {
+            components
+                .into_iter()
+                .filter_map(|c| {
+                    (c.component.short_name() == "rust-std" && c.available)
+                        .then(|| c.component.target.map(|t| t.to_string()))?
+                })
+                .collect::<Vec<_>>()
         })
         .unwrap_or_default();
 
-    let active_channel_toolchain = match cfg.active_toolchain() {
-        Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
-            ChannelToolchain::new(cfg, desc).ok()
-        }
-        _ => None,
-    };
-    let installed_targets = active_channel_toolchain
+    let installed_targets = channel_toolchain
+        .as_ref()
         .and_then(|dist| dist.toolchain.installed_targets().ok())
         .unwrap_or_default();
+
+    let should_offer_targets = channel_toolchain.is_some() || !has_explicit_override;
 
     Rustup::command()
         .mut_arg("+toolchain", move |arg| {
@@ -59,11 +54,15 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
                 .mut_subcommand("add", move |add_cmd| {
                     add_cmd.mut_arg("target", move |arg| {
                         arg.add(ArgValueCandidates::new(move || {
-                            // "all" is a special keyword that installs every available target
-                            iter::once("all")
-                                .chain(available_targets.iter().map(AsRef::as_ref))
-                                .map(CompletionCandidate::new)
-                                .collect()
+                            if should_offer_targets {
+                                // "all" is a special keyword that installs every available target
+                                iter::once("all")
+                                    .chain(available_targets.iter().map(AsRef::as_ref))
+                                    .map(CompletionCandidate::new)
+                                    .collect()
+                            } else {
+                                Vec::new()
+                            }
                         }))
                     })
                 })
@@ -80,6 +79,56 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
         })
 }
 
+fn targeted_channel_toolchain<'a>(
+    cfg: &'a Cfg<'a>,
+    args: &[OsString],
+    toolchains: &[ToolchainName],
+) -> (Option<ChannelToolchain<'a>>, bool) {
+    match extract_toolchain_override(args) {
+        Some(override_desc) => {
+            let channel = match override_desc.resolve(cfg).ok() {
+                Some(PartialToolchainNameOrPath::Named(PartialToolchainName::Channel(desc))) => {
+                    let host = cfg.default_host_tuple().ok();
+                    let channel_name = host.and_then(|h| desc.complete(&h).ok());
+                    channel_name.and_then(|name| ChannelToolchain::new(cfg, name).ok())
+                }
+                _ => None,
+            };
+            (channel, true)
+        }
+        None => {
+            let channel = match cfg.active_toolchain().ok().flatten() {
+                Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _)) => {
+                    ChannelToolchain::new(cfg, desc).ok()
+                }
+                _ => toolchains.iter().find_map(|name| {
+                    let ToolchainName::Channel(desc) = name else {
+                        return None;
+                    };
+                    ChannelToolchain::new(cfg, desc.clone()).ok()
+                }),
+            };
+            (channel, false)
+        }
+    }
+}
+
+fn extract_toolchain_override(args: &[OsString]) -> Option<Override<PartialToolchainNameOrPath>> {
+    let cmd_args = match args.iter().position(|a| a == "--") {
+        Some(pos) => &args[pos + 1..],
+        None => args,
+    };
+
+    Rustup::command()
+        .ignore_errors(true)
+        .try_get_matches_from(cmd_args)
+        .ok()
+        .and_then(|m| {
+            m.get_one::<Override<PartialToolchainNameOrPath>>("+toolchain")
+                .cloned()
+        })
+}
+
 #[cfg(all(test, feature = "test"))]
 mod tests {
     use std::{
@@ -92,17 +141,13 @@ mod tests {
     use crate::{config::Cfg, process::TestProcess};
 
     fn complete(cfg: &Cfg<'_>, args: &[&str], index: usize) -> Vec<String> {
-        let mut command = rustup_command(cfg);
-        clap_complete::engine::complete(
-            &mut command,
-            args.iter().map(OsString::from).collect(),
-            index,
-            Some(&cfg.current_dir),
-        )
-        .unwrap()
-        .into_iter()
-        .map(|candidate| candidate.get_value().to_string_lossy().into_owned())
-        .collect()
+        let raw_args: Vec<OsString> = args.iter().map(OsString::from).collect();
+        let mut command = rustup_command(cfg, &raw_args);
+        clap_complete::engine::complete(&mut command, raw_args, index, Some(&cfg.current_dir))
+            .unwrap()
+            .into_iter()
+            .map(|candidate| candidate.get_value().to_string_lossy().into_owned())
+            .collect()
     }
 
     #[test]
@@ -225,10 +270,7 @@ mod tests {
             .into_iter()
             .filter(|c| !c.starts_with('-'))
             .collect();
-        assert!(
-            targets.contains(&"all".to_owned()),
-            "expected the buggy all suggestion, got: {targets:?}"
-        );
+        assert!(targets.is_empty(), "expected no targets, got: {targets:?}");
     }
 
     #[test]
@@ -263,11 +305,8 @@ mod tests {
             ],
             4,
         );
-        assert!(
-            candidates.contains(&"riscv64gc-unknown-linux-gnu".to_owned()),
-            "got candidates: {candidates:?}"
-        );
-        assert!(!candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
+        assert!(!candidates.contains(&"riscv64gc-unknown-linux-gnu".to_owned()));
     }
 
     #[test]
@@ -292,11 +331,8 @@ mod tests {
 
         let toolchain = format!("+{NIGHTLY_TOOLCHAIN}");
         let candidates = complete(&cfg, &["rustup", &toolchain, "target", "add", ""], 4);
-        assert!(
-            candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()),
-            "got candidates: {candidates:?}"
-        );
-        assert!(!candidates.contains(&"riscv64gc-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"riscv64gc-unknown-linux-gnu".to_owned()));
+        assert!(!candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
     }
 
     /// Creates a bare rustup home with no toolchains installed.
