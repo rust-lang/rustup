@@ -1,0 +1,53 @@
+name: bench
+
+on:
+  pull_request:
+    branches:
+      - "**"
+  push:
+    branches:
+      - main
+      - release/*
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  bench:
+    permissions:
+      contents: read
+      id-token: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      - name: Install cargo-codspeed
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-codspeed
+          fallback: cargo-binstall
+
+      - name: Build benchmarks
+        run: cargo codspeed build --features=__bench_codspeed
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v5.2.1
+        env:
+          # HACK: Codspeed copies the benchmark executable into another path
+          # and run it there. Thus, we are explicitly specify the path of
+          # `rustup-init` here to make everything work again.
+          RUSTUP_TEST_RUSTUP_INIT: ${{ github.workspace }}/target/release/rustup-init
+        with:
+          run: cargo codspeed run
+          mode: simulation
+          simulation-track-subprocess: true
