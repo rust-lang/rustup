@@ -12,7 +12,7 @@ use tracing::{info, warn};
 #[cfg(any(test, feature = "test"))]
 use windows_registry::Value;
 use windows_registry::{CURRENT_USER, HSTRING, Key};
-use windows_result::HRESULT;
+use windows_result::WIN32_ERROR;
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_INVALID_DATA};
 
 use super::super::errors::CliError;
@@ -495,14 +495,16 @@ fn get_windows_path_var(process: &Process) -> Result<Option<HSTRING>> {
     let reg_value = environment.get_hstring("PATH");
     match reg_value {
         Ok(val) => Ok(Some(val)),
-        Err(e) if e.code() == HRESULT::from_win32(ERROR_INVALID_DATA) => {
+        Err(e) if e.code() == WIN32_ERROR(ERROR_INVALID_DATA).to_hresult() => {
             warn!(
                 "the registry key HKEY_CURRENT_USER\\Environment\\PATH is not a string. \
                    Not modifying the PATH variable"
             );
             Ok(None)
         }
-        Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(Some(HSTRING::new())),
+        Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {
+            Ok(Some(HSTRING::new()))
+        }
         Err(e) => Err(e).context(CliError::WindowsUninstallMadness),
     }
 }
@@ -642,7 +644,7 @@ pub(crate) fn add_uninstall_registry_entry(process: &Process) -> Result<()> {
 pub(crate) fn remove_uninstall_registry_entry(process: &Process) -> Result<()> {
     match CURRENT_USER.remove_tree(process.registry_sub_key_path(RUSTUP_UNINSTALL_ENTRY)) {
         Ok(()) => Ok(()),
-        Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
+        Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => Ok(()),
         Err(e) => Err(anyhow!(e)),
     }
 }
@@ -803,7 +805,7 @@ impl RegistryValueId {
         let sub_key = options.open(format!(r"RustupTest-{test_id}\{}", self.sub_key))?;
         match sub_key.get_value(self.value_name) {
             Ok(val) => Ok(Some(val)),
-            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(None),
+            Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => Ok(None),
             Err(e) => Err(e.into()),
         }
     }
@@ -816,7 +818,7 @@ impl RegistryValueId {
             Some(new) => Ok(sub_key.set_value(self.value_name, new)?),
             None => match sub_key.remove_value(self.value_name) {
                 Ok(()) => Ok(()),
-                Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => Ok(()),
+                Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => Ok(()),
                 Err(e) => Err(e.into()),
             },
         }
@@ -847,7 +849,7 @@ mod tests {
     fn clear_path(environment: &Key) {
         match environment.remove_value("PATH") {
             Ok(()) => {}
-            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+            Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
         }
     }
@@ -990,7 +992,7 @@ mod tests {
         let reg_value = environment.get_value("PATH");
         match reg_value {
             Ok(_) => panic!("key not deleted"),
-            Err(e) if e.code() == HRESULT::from_win32(ERROR_FILE_NOT_FOUND) => {}
+            Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("error {e}"),
         }
     }
