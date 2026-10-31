@@ -1035,20 +1035,24 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn list_tracking_channels(&self) -> anyhow::Result<Vec<ChannelToolchain<'_>>> {
         let mut channels = self
-            .list_toolchains(true)?
-            .into_iter()
-            .filter_map(|t| match t {
-                ToolchainName::Channel(n) if n.is_tracking() => {
-                    Some(ChannelToolchain::new(self, n))
-                }
-                _ => None,
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+            .list_channels()?
+            .filter(|c| c.desc().is_tracking())
+            .collect::<Vec<_>>();
 
         // HACK: `.sort_by_key()` is impossible here without cloning.
         // See: <https://users.rust-lang.org/t/cannot-call-vec-sort-by-key-without-cloning-data/60455/4>
         channels.sort_by(|n, m| n.desc().cmp(m.desc()));
         Ok(channels)
+    }
+
+    pub(crate) fn list_channels(
+        &self,
+    ) -> anyhow::Result<impl Iterator<Item = ChannelToolchain<'_>>> {
+        let toolchains = self.list_toolchains(true)?;
+        Ok(toolchains.into_iter().filter_map(|t| match t {
+            ToolchainName::Channel(n) => ChannelToolchain::new(self, n).ok(),
+            _ => None,
+        }))
     }
 
     /// Create an override for a toolchain
