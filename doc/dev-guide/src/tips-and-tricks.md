@@ -52,7 +52,9 @@ should one arise with the backtrack limits.
 When downloading a file, rustup will retry the download a number of times. The
 default is 3 times, but if this variable is set to a valid usize then it is the
 max retry count. A value of `0` means no retries, thus the default of `3` will
-mean a download is tried a total of four times before failing out.
+mean a download is tried a total of four times before failing out. Attempts
+that download at least 1 MiB of the file before failing are resumed by the
+next attempt and don't count towards this limit.
 
 ## `RUSTUP_BACKTRACE`
 
