@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.29.3] - 2026-11-03
+
+This new patch release has fixed some minor regressions over the previous one:
+
+- Fixed "Illegal instruction" error on certain x86_64 CPUs without SSE4.1.
+  [pr#5162]
+
+- Fixed "`lock()` not supported" error on Solaris. [pr#5167]
+
+[1.29.3]: https://github.com/rust-lang/rustup/releases/tag/1.29.3
+[pr#5162]: https://github.com/rust-lang/rustup/pull/5162
+[pr#5167]: https://github.com/rust-lang/rustup/pull/5167
+
 ## [1.29.2] - 2026-10-20
 
 This is a small release which only updates the rustls-webpki and
