@@ -21,7 +21,7 @@ use crate::{
         manifest::{Manifest, ManifestWithHash},
         temp,
     },
-    download::{DownloadOptions, is_network_failure},
+    download::{DownloadOptions, should_keep_partial},
     errors::RustupError,
     process::Process,
     utils,
@@ -87,9 +87,9 @@ impl<'a> DownloadCfg<'a> {
             .with_resume();
 
         if let Err(e) = download.download().await {
-            let is_network_failure = is_network_failure(&e);
+            let should_keep_partial = should_keep_partial(&e);
             let err = Err(e);
-            return match (partial_file_existed, is_network_failure) {
+            return match (partial_file_existed, should_keep_partial) {
                 (true, true) => err.context(RustupError::IncompletePartialFile),
                 (true, false) => err.context(RustupError::BrokenPartialFile),
                 (false, _) => err,

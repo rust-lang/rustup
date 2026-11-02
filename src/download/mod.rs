@@ -143,10 +143,7 @@ impl<'a> Download<'a> {
             status.failed();
         }
 
-        // TODO: Currently, we only refrain from removing the cached download
-        // if there was a network failure from the client side.
-        // It may be worth looking for other cases where removal is also not desired.
-        let e = if !(self.resume && is_network_failure(&err))
+        let e = if !(self.resume && should_keep_partial(&err))
             && let Err(file_err) = remove_file(self.path).context("cleaning up cached downloads")
         {
             file_err.context(err)
@@ -334,7 +331,12 @@ impl<'a> Download<'a> {
     }
 }
 
-pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
+/// Returns whether the partial download should be kept for resumption.
+///
+/// This is true for errors that are likely to be transient, such as network timeouts or connection
+/// interruptions. For other errors, the partial download is deleted to avoid leaving a corrupted
+/// file on disk.
+pub(crate) fn should_keep_partial(err: &anyhow::Error) -> bool {
     match err.downcast_ref::<DownloadError>() {
         #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
         Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
