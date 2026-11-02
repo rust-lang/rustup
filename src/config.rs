@@ -71,10 +71,19 @@ pub(crate) struct ToolchainSection {
 
 impl ToolchainSection {
     fn is_empty(&self) -> bool {
-        self.channel.is_none()
-            && self.components.is_none()
-            && self.targets.is_none()
-            && self.path.is_none()
+        let Self {
+            channel,
+            path,
+            components,
+            targets,
+            profile,
+        } = self;
+
+        channel.is_none()
+            && path.is_none()
+            && components.is_none()
+            && targets.is_none()
+            && profile.is_none()
     }
 }
 
@@ -1384,6 +1393,27 @@ path = "foobar"
                     components: None,
                     targets: None,
                     profile: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_only_profile() {
+        let contents = r#"[toolchain]
+profile = "minimal"
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::OnlyToml);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: None,
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: Some("minimal".into()),
                 }
             }
         );
