@@ -316,7 +316,7 @@ impl<'a> Download<'a> {
 
         let mut stream = res.bytes_stream();
         while let Some(item) = stream.next().await {
-            let bytes = item.map_err(DownloadError::Interrupted)?;
+            let bytes = item.map_err(|_| DownloadError::Interrupted)?;
             file.write_all(&bytes)
                 .context("unable to write download to disk")?;
             self.data_received(&bytes);
@@ -339,7 +339,7 @@ pub(crate) fn is_network_failure(err: &anyhow::Error) -> bool {
         #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
         Some(DownloadError::Reqwest(e)) => e.is_timeout() || e.is_connect(),
         #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-        Some(DownloadError::Interrupted(_)) => true,
+        Some(DownloadError::Interrupted) => true,
         _ => false,
     }
 }
@@ -450,8 +450,8 @@ enum DownloadError {
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[cfg(any(feature = "reqwest-rustls-tls", feature = "reqwest-native-tls"))]
-    #[error(transparent)]
-    Interrupted(reqwest::Error),
+    #[error("connection interrupted by server")]
+    Interrupted,
     #[cfg(feature = "reqwest-rustls-tls")]
     #[error("failed to initialize platform verifier")]
     PlatformVerifierInit(#[source] rustls::Error),
