@@ -52,6 +52,45 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
+    /// Same as [`DownloadCfg::download()`], but also retries the download if it fails.
+    ///
+    /// Only certain errors are considered retriable, and the download will be retried up to
+    /// `retries` times. The error from the latest retry is returned if all retries are exhausted.
+    pub(crate) async fn download_with_retry(
+        &self,
+        url: &Url,
+        hash: &str,
+        status: &DownloadStatus,
+        mut retries: usize,
+    ) -> anyhow::Result<File> {
+        loop {
+            let downloaded = self.partial_len(hash);
+            let future = self.download(url, hash, status);
+            let err = match future.await {
+                Err(err) => err,
+                Ok(file) => break Ok(file),
+            };
+
+            // retry only known retriable cases
+            match err.downcast_ref::<RustupError>() {
+                Some(RustupError::BrokenPartialFile)
+                | Some(RustupError::IncompletePartialFile)
+                | Some(RustupError::DownloadingFile { .. }) => {}
+                _ => return Err(err),
+            }
+
+            let progress = self.partial_len(hash).saturating_sub(downloaded);
+            if progress < Self::MIN_PROGRESS {
+                if retries == 0 {
+                    return Err(err);
+                }
+                retries -= 1;
+            }
+
+            status.retrying();
+        }
+    }
+
     /// Downloads a file and validates its hash. Resumes interrupted downloads.
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
@@ -331,6 +370,8 @@ impl<'a> DownloadCfg<'a> {
             _ => utils::parse_url(url),
         }
     }
+
+    const MIN_PROGRESS: u64 = 1024 * 1024;
 }
 
 /// Tracks download progress and displays information about it to a terminal.
