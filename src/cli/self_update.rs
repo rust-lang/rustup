@@ -1258,17 +1258,16 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     // Get download path
     let download_url = utils::parse_url(&url)?;
     let prepared_updater = PreparedUpdater::try_from(self_update_lock)?;
-    let setup_path: &Path = &prepared_updater;
 
     // Download new version
     info!("downloading self-update (new version: {available_version})");
     DownloadOptions::try_from(dl_cfg.process)?
-        .start(&download_url, setup_path)
+        .start(&download_url, &prepared_updater)
         .download()
         .await?;
 
     // Mark as executable
-    utils::make_executable(setup_path)?;
+    utils::make_executable(&prepared_updater)?;
 
     #[cfg(feature = "test")]
     dl_cfg.process.checkpoint(CHECKPOINT_SELF_UPDATE_PREPARED);
