@@ -196,14 +196,6 @@ impl Manifestation {
             .concurrent_downloads()
             .unwrap_or(DEFAULT_CONCURRENT_DOWNLOADS);
 
-        const DEFAULT_MAX_RETRIES: usize = 3;
-        let max_retries: usize = download_cfg
-            .process
-            .var("RUSTUP_MAX_RETRIES")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(DEFAULT_MAX_RETRIES);
-
         // Begin transaction
         let mut tx = Transaction::new(
             prefix.clone(),
@@ -268,7 +260,9 @@ impl Manifestation {
                 // Must live outside of `InstallEvents` because we can't write the type of future
                 while stream.components.len() > 0 && stream.downloads.len() < concurrent_downloads {
                     if let Some(bin) = stream.components.next() {
-                        stream.downloads.push(bin.download(max_retries));
+                        stream
+                            .downloads
+                            .push(bin.download(download_cfg.max_retries()));
                     }
                 }
 

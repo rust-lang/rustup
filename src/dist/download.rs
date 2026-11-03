@@ -362,6 +362,15 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
+    pub(crate) fn max_retries(&self) -> usize {
+        const DEFAULT_MAX_RETRIES: usize = 3;
+
+        match self.process.var("RUSTUP_MAX_RETRIES") {
+            Ok(s) if let Ok(n) = s.parse() => n,
+            Ok(_) | Err(_) => DEFAULT_MAX_RETRIES,
+        }
+    }
+
     pub(crate) fn url(&self, url: &str) -> anyhow::Result<Url> {
         match &*self.tmp_cx.dist_server {
             server if server != DEFAULT_DIST_SERVER => utils::parse_url(
