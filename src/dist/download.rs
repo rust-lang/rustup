@@ -33,7 +33,7 @@ pub struct DownloadCfg<'a> {
     pub tmp_cx: Arc<temp::Context>,
     pub download_dir: &'a PathBuf,
     pub(super) tracker: DownloadTracker,
-    pub(super) permit_copy_rename: bool,
+    pub permit_copy_rename: bool,
     pub process: &'a Process,
 }
 
@@ -184,7 +184,7 @@ impl<'a> DownloadCfg<'a> {
         Ok(())
     }
 
-    async fn download_hash(&self, url: &str) -> anyhow::Result<String> {
+    pub(crate) async fn download_hash(&self, url: &str) -> anyhow::Result<String> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.tmp_cx.new_file()?;
         DownloadOptions::try_from(self.process)?

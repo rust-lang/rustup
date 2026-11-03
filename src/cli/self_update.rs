@@ -63,7 +63,7 @@ use crate::{
         ChannelToolchainName, DistOptions, PartialChannelToolchainName, Profile, TargetTuple,
         download::DownloadCfg,
     },
-    download::DownloadOptions,
+    download::{DownloadError, DownloadOptions},
     errors::RustupError,
     install::{InstallMethod, UpdateStatus},
     process::Process,
@@ -1259,12 +1259,40 @@ async fn prepare_update(dl_cfg: &DownloadCfg<'_>) -> anyhow::Result<Option<Prepa
     let download_url = utils::parse_url(&url)?;
     let prepared_updater = PreparedUpdater::try_from(self_update_lock)?;
 
-    // Download new version
+    // Download the new rustup executable
     info!("downloading self-update (new version: {available_version})");
-    DownloadOptions::try_from(dl_cfg.process)?
-        .start(&download_url, &prepared_updater)
-        .download()
-        .await?;
+    match dl_cfg.download_hash(download_url.as_str()).await {
+        Ok(hash) => {
+            let name = "rustup";
+            let status = dl_cfg.status_for(name, name.len());
+
+            let installer = dl_cfg
+                .download_with_retry(&download_url, &hash, &status, dl_cfg.max_retries())
+                .await?;
+
+            utils::rename(
+                name,
+                &installer,
+                &prepared_updater,
+                dl_cfg.permit_copy_rename,
+            )?;
+        }
+        // If the corresponding `.sha256` file is not found, skip hash check and use simple download
+        // as a fallback.
+        Err(e)
+            if matches!(
+                e.downcast_ref::<DownloadError>(),
+                Some(DownloadError::HttpStatus(404) | DownloadError::FileNotFound)
+            ) =>
+        {
+            warn!(url = %download_url, "`.sha256` checksum not found, skipping hash check");
+            DownloadOptions::try_from(dl_cfg.process)?
+                .start(&download_url, &prepared_updater)
+                .download()
+                .await?;
+        }
+        Err(e) => return Err(e),
+    };
 
     // Mark as executable
     utils::make_executable(&prepared_updater)?;

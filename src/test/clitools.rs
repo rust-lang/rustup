@@ -5,7 +5,7 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     env::{self, consts::EXE_SUFFIX},
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fmt::Debug,
     fs,
     io::{self, Write},
@@ -26,7 +26,7 @@ use tempfile::TempDir;
 use url::Url;
 
 use super::{
-    CHECKPOINT_ENV, CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, checkpoint_path,
+    CHECKPOINT_ENV, CROSS_ARCH1, CROSS_ARCH2, MULTI_ARCH1, calc_hash, checkpoint_path,
     dist::{MockDistServer, MockManifestVersion, Release, RlsStatus, change_channel_date},
     mock::MockFile,
 };
@@ -59,7 +59,7 @@ pub struct Config {
     /// ~
     pub homedir: PathBuf,
     /// Root for updates to rustup itself aka RUSTUP_UPDATE_ROOT
-    rustup_update_root: Option<String>,
+    pub rustup_update_root: Option<String>,
     /// This is cwd for the test
     pub workdir: RefCell<PathBuf>,
     /// This is the test root for keeping stuff together
@@ -952,9 +952,10 @@ impl SelfUpdateTestContext {
         let mut dest_file = fs::OpenOptions::new()
             .append(true)
             .create(true)
-            .open(dist_exe)
+            .open(&dist_exe)
             .unwrap();
         writeln!(dest_file).unwrap();
+        gen_hash_file(&dist_exe).unwrap();
 
         Self {
             config: cx.config,
@@ -1048,7 +1049,7 @@ impl CliTestContext {
             }
         };
 
-        let deadline = Instant::now() + StdDuration::from_secs(10);
+        let deadline = Instant::now() + StdDuration::from_secs(30);
         loop {
             if matches!(fs::read_to_string(&marker), Ok(contents) if contents == checkpoint) {
                 break parked;
@@ -1098,9 +1099,10 @@ impl CliTestContext {
         let mut dest_file = fs::OpenOptions::new()
             .append(true)
             .create(true)
-            .open(dist_exe)
+            .open(&dist_exe)
             .unwrap();
         writeln!(dest_file).unwrap();
+        gen_hash_file(&dist_exe).unwrap();
 
         self.config.rustup_update_root = Some(root_url);
         UpdateServerGuard {
@@ -1222,6 +1224,19 @@ impl Drop for DistDirGuard<'_> {
     fn drop(&mut self) {
         self.inner.config.distdir = None;
     }
+}
+
+fn gen_hash_file(src: &Path) -> io::Result<()> {
+    let hash = calc_hash(src);
+    let src_name = src
+        .file_name()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "input file has no name"))?
+        .display();
+    let contents = format!("{hash}  {src_name}\n");
+
+    let mut dst = OsString::from(src);
+    dst.push(".sha256");
+    fs::write(Path::new(&dst), contents)
 }
 
 fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) -> String {

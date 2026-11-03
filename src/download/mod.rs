@@ -439,7 +439,7 @@ fn native_tls_client(timeout: Duration) -> Result<&'static Client, DownloadError
 static CLIENT_NATIVE_TLS: OnceLock<Client> = OnceLock::new();
 
 #[derive(Debug, Error)]
-enum DownloadError {
+pub enum DownloadError {
     #[error("http request returned an unsuccessful status code: {0}")]
     HttpStatus(u32),
     #[error("file not found")]

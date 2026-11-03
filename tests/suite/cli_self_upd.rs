@@ -21,6 +21,7 @@ use rustup::{
     cli::self_update::{
         CHECKPOINT_SELF_UPDATE_PREPARED, Marker, SELF_UPDATE_DIRECTORY, updater_path,
     },
+    for_host,
     test::{
         CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash,
         output_release_file, this_host_tuple,
@@ -446,6 +447,44 @@ async fn update_exact() {
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn update_with_missing_hash_file_exact() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    cx.config
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+
+    // Remove the hash file so that the update falls back to simple download without hash check.
+    let update_root = cx
+        .config
+        .rustup_update_root
+        .as_ref()
+        .and_then(|url| url.strip_prefix("file://"))
+        .unwrap();
+    fs::remove_file(for_host!(
+        "{update_root}/archive/{TEST_VERSION}/{}/rustup-init{EXE_SUFFIX}.sha256"
+    ))
+    .unwrap();
+
+    cx.config
+        .expect(["rustup", "self", "update"])
+        .await
+        .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
+        .with_stdout(snapbox::str![[r#"
+  rustup updated - [CURRENT_VERSION] (from [CURRENT_VERSION])
+
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: checking for self-update (current version: [CURRENT_VERSION])
+info: downloading self-update (new version: [TEST_VERSION])
+warn: `.sha256` checksum not found, skipping hash check url=[..]
 
 "#]])
         .is_ok();
