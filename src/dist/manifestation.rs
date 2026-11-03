@@ -770,45 +770,15 @@ impl<'a> ComponentBinary<'a> {
         }))
     }
 
-    async fn download(self, mut retries: usize) -> anyhow::Result<(ComponentInstall, &'a str)> {
+    async fn download(self, retries: usize) -> anyhow::Result<(ComponentInstall, &'a str)> {
         let url = self.download_cfg.url(&self.binary.url)?;
-        let installer = loop {
-            let downloaded = self.download_cfg.partial_len(&self.binary.hash);
-            let future = self
-                .download_cfg
-                .download(&url, &self.binary.hash, &self.status);
-            let err = match future.await {
-                Ok(file) => break file,
-                Err(err) => err,
-            };
-
-            // retry only known retriable cases
-            match err.downcast_ref::<RustupError>() {
-                Some(RustupError::BrokenPartialFile)
-                | Some(RustupError::IncompletePartialFile)
-                | Some(RustupError::DownloadingFile { .. }) => {}
-                _ => {
-                    return Err(err).with_context(|| {
-                        RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
-                    });
-                }
-            }
-
-            let progress = self
-                .download_cfg
-                .partial_len(&self.binary.hash)
-                .saturating_sub(downloaded);
-            if progress < Self::MIN_PROGRESS {
-                if retries == 0 {
-                    return Err(err).with_context(|| {
-                        RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
-                    });
-                }
-                retries -= 1;
-            }
-
-            self.status.retrying();
-        };
+        let installer = self
+            .download_cfg
+            .download_with_retry(&url, &self.binary.hash, &self.status, retries)
+            .await
+            .with_context(|| {
+                RustupError::ComponentDownloadFailed(self.manifest.name(&self.component))
+            })?;
 
         let install = ComponentInstall {
             status: self.status,
@@ -825,8 +795,6 @@ impl<'a> ComponentBinary<'a> {
 
         Ok((install, &self.binary.hash))
     }
-
-    const MIN_PROGRESS: u64 = 1024 * 1024;
 }
 
 struct ComponentInstall {
