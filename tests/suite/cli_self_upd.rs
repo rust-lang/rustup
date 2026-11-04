@@ -2,7 +2,8 @@
 
 use std::{
     env::consts::EXE_SUFFIX,
-    fs,
+    fs::{self, File},
+    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -450,6 +451,82 @@ info: downloading self-update (new version: [TEST_VERSION])
 
 "#]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn update_with_non_hex_hash_file_exact() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    cx.config
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+
+    // Write a bad hash file so that the check fails.
+    let update_root = cx
+        .config
+        .rustup_update_root
+        .as_ref()
+        .and_then(|url| url.strip_prefix("file://"))
+        .unwrap();
+    let hash_file = File::create(for_host!(
+        "{update_root}/archive/{TEST_VERSION}/{}/rustup-init{EXE_SUFFIX}.sha256"
+    ))
+    .unwrap();
+    write!(&hash_file, "really bad hash").unwrap();
+    drop(hash_file);
+
+    cx.config
+        .expect(["rustup", "self", "update"])
+        .await
+        .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
+        .with_stdout(snapbox::str![""])
+        .with_stderr(snapbox::str![[r#"
+info: checking for self-update (current version: [CURRENT_VERSION])
+info: downloading self-update (new version: [TEST_VERSION])
+...
+end byte index 64 is out of bounds for string of length 15
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn update_with_short_hash_file_exact() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    cx.config
+        .expect(["rustup-init", "-y", "--no-modify-path"])
+        .await
+        .is_ok();
+
+    // Truncate the hash file so that the check fails.
+    let update_root = cx
+        .config
+        .rustup_update_root
+        .as_ref()
+        .and_then(|url| url.strip_prefix("file://"))
+        .unwrap();
+    let hash_file = File::options()
+        .write(true)
+        .open(for_host!(
+            "{update_root}/archive/{TEST_VERSION}/{}/rustup-init{EXE_SUFFIX}.sha256"
+        ))
+        .unwrap();
+    hash_file.set_len(15).unwrap();
+    drop(hash_file);
+
+    cx.config
+        .expect(["rustup", "self", "update"])
+        .await
+        .extend_redactions([("[TEST_VERSION]", TEST_VERSION)])
+        .with_stdout(snapbox::str![""])
+        .with_stderr(snapbox::str![[r#"
+info: checking for self-update (current version: [CURRENT_VERSION])
+info: downloading self-update (new version: [TEST_VERSION])
+...
+end byte index 64 is out of bounds for string of length 15
+...
+"#]])
+        .is_err();
 }
 
 #[tokio::test]
