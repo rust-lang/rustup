@@ -191,7 +191,21 @@ impl<'a> DownloadCfg<'a> {
             .start(&hash_url, &hash_file)
             .download()
             .await?;
-        utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
+
+        let mut contents = utils::read_file("hash", &hash_file)?;
+        // NOTE: According to <https://www.gnu.org/software/coreutils/manual/html_node/md5sum-invocation.html>,
+        // the first column of a `.sha256` file must be a SHA256 sum in hex characters.
+        let hash_len = 64;
+        if let Some(hash) = contents.split_whitespace().next()
+            && hash.len() == hash_len
+            && hash.chars().all(|c| c.is_ascii_hexdigit())
+        {
+            contents.truncate(hash_len);
+            return Ok(contents);
+        }
+        Err(anyhow!(
+            "illegal hash file found at `{hash_url}`, expected a checksum in {hash_len} hex characters"
+        ))
     }
 
     pub(crate) async fn dl_v2_manifest(

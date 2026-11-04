@@ -483,9 +483,8 @@ async fn update_with_non_hex_hash_file_exact() {
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
-...
-end byte index 64 is out of bounds for string of length 15
-...
+error: illegal hash file found at `[..]`, expected a checksum in 64 hex characters
+
 "#]])
         .is_err();
 }
@@ -522,9 +521,8 @@ async fn update_with_short_hash_file_exact() {
         .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
 info: downloading self-update (new version: [TEST_VERSION])
-...
-end byte index 64 is out of bounds for string of length 15
-...
+error: illegal hash file found at `[..]`, expected a checksum in 64 hex characters
+
 "#]])
         .is_err();
 }
