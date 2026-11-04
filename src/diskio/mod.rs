@@ -488,43 +488,33 @@ fn effective_thread_count(ram_budget: usize, thread_count: IoThreadCount) -> usi
 }
 
 pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
+    const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
+    let minimum_ram = io_chunk_size.saturating_mul(2);
+
+    let memory_limit = effective_limits::memory_limit();
     #[cfg(target_os = "linux")]
     let available_memory = linux_available_memory(Path::new("/proc/meminfo"));
     #[cfg(not(target_os = "linux"))]
     let available_memory = None;
 
-    unpack_ram_with_limits(
-        io_chunk_size,
-        budget,
-        effective_limits::memory_limit(),
-        available_memory,
-    )
-}
+    #[cfg(test)]
+    let (memory_limit, available_memory) = test::MEMORY_LIMITS
+        .take()
+        .unwrap_or((memory_limit, available_memory));
 
-fn unpack_ram_with_limits(
-    io_chunk_size: usize,
-    budget: Option<usize>,
-    memory_limit: effective_limits::Result<u64>,
-    available_memory: Option<u64>,
-) -> usize {
-    const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
-    let minimum_ram = io_chunk_size.saturating_mul(2);
-
-    let default_max_unpack_ram = match memory_limit {
-        Ok(effective) => {
-            // Physical memory and process limits don't account for other applications.
-            // Keep those limits, but also cap the budget by current availability.
-            let effective = effective.min(available_memory.unwrap_or(effective));
-            usize::try_from(effective)
-                .unwrap_or(usize::MAX)
-                .saturating_sub(RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS)
-                .max(minimum_ram)
-        }
-        Err(e) => {
+    // Physical memory and process limits don't account for other applications.
+    // Honor both sources when present, or use whichever is available.
+    let effective = match (memory_limit, available_memory) {
+        (Ok(effective), available) => effective.min(available.unwrap_or(effective)),
+        (Err(e), available) => {
             error!("{:#}", anyhow!(e).context("can't determine memory limit"));
-            minimum_ram
+            available.unwrap_or(0)
         }
     };
+    let default_max_unpack_ram = usize::try_from(effective)
+        .unwrap_or(usize::MAX)
+        .saturating_sub(RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS)
+        .max(minimum_ram);
 
     let unpack_ram = match budget {
         Some(budget) => {
