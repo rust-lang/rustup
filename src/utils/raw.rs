@@ -4,7 +4,7 @@ use std::{
     fs,
     fs::File,
     io,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{Read, Write},
     path::Path,
     str,
 };
@@ -106,14 +106,13 @@ pub(crate) fn write_locked_file(path: &Path, contents: &str) -> io::Result<()> {
         .read(true)
         .write(true)
         .create(true)
-        // Truncation must happen after the exclusive lock is held.
+        // Truncate only after writing successfully under the exclusive lock.
         .truncate(false)
         .open(path)?;
 
     lock(&file)?;
-    file.set_len(0)?;
-    file.seek(SeekFrom::Start(0))?;
     Write::write_all(&mut file, contents.as_bytes())?;
+    file.set_len(contents.len() as u64)?;
     file.sync_data()?;
 
     Ok(())
