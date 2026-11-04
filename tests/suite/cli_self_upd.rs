@@ -452,7 +452,7 @@ info: downloading self-update (new version: [TEST_VERSION])
 }
 
 #[tokio::test]
-async fn update_precise() {
+async fn update_with_version_override_exact() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
@@ -774,7 +774,7 @@ info: checking for self-update (current version: [CURRENT_VERSION])
 }
 
 #[tokio::test]
-async fn rustup_self_updates_trivial() {
+async fn update_on_rustup_update_trivial() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
         .expect(["rustup", "set", "auto-self-update", "enable"])
@@ -796,7 +796,7 @@ async fn rustup_self_updates_trivial() {
 }
 
 #[tokio::test]
-async fn rustup_self_updates_with_specified_toolchain() {
+async fn update_on_rustup_update_with_specified_toolchain() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
         .expect(["rustup", "set", "auto-self-update", "enable"])
@@ -821,7 +821,7 @@ async fn rustup_self_updates_with_specified_toolchain() {
 }
 
 #[tokio::test]
-async fn rustup_no_self_update_with_specified_toolchain() {
+async fn update_disabled_on_rustup_update_with_specified_toolchain() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
@@ -842,7 +842,7 @@ async fn rustup_no_self_update_with_specified_toolchain() {
 }
 
 #[tokio::test]
-async fn rustup_self_update_exact() {
+async fn update_on_rustup_update_exact() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
         .expect(["rustup", "set", "auto-self-update", "enable"])
