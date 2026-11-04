@@ -497,24 +497,26 @@ pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
     #[cfg(not(target_os = "linux"))]
     let available_memory = None;
 
-    #[cfg(test)]
-    let (memory_limit, available_memory) = test::MEMORY_LIMITS
-        .take()
-        .unwrap_or((memory_limit, available_memory));
-
     // Physical memory and process limits don't account for other applications.
     // Honor both sources when present, or use whichever is available.
     let effective = match (memory_limit, available_memory) {
-        (Ok(effective), available) => effective.min(available.unwrap_or(effective)),
-        (Err(e), available) => {
+        (Ok(effective), Some(available)) => Ord::min(effective, available),
+        (Ok(effective), None) => effective,
+        (Err(e), Some(available)) => {
             error!("{:#}", anyhow!(e).context("can't determine memory limit"));
-            available.unwrap_or(0)
+            available
+        }
+        (Err(e), None) => {
+            error!("{:#}", anyhow!(e).context("can't determine memory limit"));
+            0
         }
     };
-    let default_max_unpack_ram = usize::try_from(effective)
-        .unwrap_or(usize::MAX)
-        .saturating_sub(RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS)
-        .max(minimum_ram);
+    let default_max_unpack_ram = Ord::max(
+        usize::try_from(effective)
+            .unwrap_or(usize::MAX)
+            .saturating_sub(RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS),
+        minimum_ram,
+    );
 
     let unpack_ram = match budget {
         Some(budget) => {

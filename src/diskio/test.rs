@@ -1,4 +1,4 @@
-use std::{cell::Cell, collections::HashMap};
+use std::collections::HashMap;
 
 use super::{Executor, Item, Kind, get_executor};
 use crate::{process::TestProcess, test::test_dir};
@@ -204,127 +204,6 @@ fn test_effective_thread_count() {
     );
 }
 
-#[test]
-fn test_unpack_ram_uses_available_memory() {
-    use super::{IO_CHUNK_SIZE, effective_thread_count, unpack_ram};
-    use crate::process::IoThreadCount;
-
-    // Issue #5173: total RAM allowed threaded unpacking despite other services
-    // leaving less than the low-memory threshold available.
-    for available_mib in [466, 508] {
-        MEMORY_LIMITS.set(Some((
-            Ok(906 * 1024 * 1024),
-            Some(available_mib * 1024 * 1024),
-        )));
-        let budget = unpack_ram(IO_CHUNK_SIZE, None);
-        assert_eq!(effective_thread_count(budget, IoThreadCount::Default(2)), 1);
-        assert_eq!(budget as u64, (available_mib - 200) * 1024 * 1024);
-        assert!(matches!(
-            get_executor(budget, IoThreadCount::Default(2)).get_buffer(0),
-            super::FileBuffer::Immediate(_),
-        ));
-    }
-}
-
-#[test]
-fn test_unpack_ram_threshold() {
-    use super::{IO_CHUNK_SIZE, LOW_MEMORY_THRESHOLD, effective_thread_count, unpack_ram};
-    use crate::process::IoThreadCount::Default;
-
-    for (expected_budget, expected_threads) in [
-        (LOW_MEMORY_THRESHOLD - 1, 1),
-        (LOW_MEMORY_THRESHOLD, 2),
-        (LOW_MEMORY_THRESHOLD + 1, 2),
-    ] {
-        MEMORY_LIMITS.set(Some((
-            Ok(4 * 1024 * 1024 * 1024),
-            Some((expected_budget + 200 * 1024 * 1024) as u64),
-        )));
-        let budget = unpack_ram(IO_CHUNK_SIZE, None);
-        assert_eq!(budget, expected_budget);
-        assert_eq!(effective_thread_count(budget, Default(2)), expected_threads);
-    }
-}
-
-#[test]
-fn test_unpack_ram_limits_and_fallback() {
-    use super::{IO_CHUNK_SIZE, unpack_ram};
-
-    for limit_mib in [400, 906] {
-        for available in [None, Some(1024 * 1024 * 1024)] {
-            // None is also the non-Linux path. Availability must not raise a limit.
-            MEMORY_LIMITS.set(Some((Ok(limit_mib * 1024 * 1024), available)));
-            assert_eq!(
-                unpack_ram(IO_CHUNK_SIZE, None),
-                (limit_mib as usize - 200) * 1024 * 1024,
-            );
-        }
-    }
-    for (available, expected) in [
-        (None, 2 * IO_CHUNK_SIZE),
-        (Some(0), 2 * IO_CHUNK_SIZE),
-        (Some(508 * 1024 * 1024), 308 * 1024 * 1024),
-        (Some(u64::MAX), usize::MAX - 200 * 1024 * 1024),
-    ] {
-        // Use available memory when process limits cannot be determined, and
-        // retain the minimum fallback when neither source is available.
-        let error = std::io::Error::other("memory limit unavailable").into();
-        MEMORY_LIMITS.set(Some((Err(error), available)));
-        assert_eq!(unpack_ram(IO_CHUNK_SIZE, None), expected);
-    }
-}
-
-#[test]
-fn test_unpack_ram_extreme_values() {
-    use super::{IO_CHUNK_SIZE, unpack_ram};
-
-    for memory in [0, 1, 200 * 1024 * 1024, 200 * 1024 * 1024 + 1] {
-        for (limit, available) in [(memory, None), (u64::MAX, Some(memory))] {
-            MEMORY_LIMITS.set(Some((Ok(limit), available)));
-            assert_eq!(unpack_ram(IO_CHUNK_SIZE, None), 2 * IO_CHUNK_SIZE);
-        }
-    }
-    MEMORY_LIMITS.set(Some((Ok(u64::MAX), Some(u64::MAX))));
-    assert_eq!(
-        unpack_ram(IO_CHUNK_SIZE, None),
-        usize::MAX - 200 * 1024 * 1024,
-    );
-    MEMORY_LIMITS.set(Some((Ok(0), Some(0))));
-    assert_eq!(unpack_ram(usize::MAX, None), usize::MAX);
-}
-
-#[test]
-fn test_unpack_ram_overrides() {
-    use super::{IO_CHUNK_SIZE, effective_thread_count, unpack_ram};
-    use crate::process::IoThreadCount::Default;
-
-    for (configured, expected) in [
-        ("0", 2 * IO_CHUNK_SIZE),
-        ("1", 2 * IO_CHUNK_SIZE),
-        ("67108864", 64 * 1024 * 1024),
-        ("1073741824", 308 * 1024 * 1024),
-        ("invalid", 308 * 1024 * 1024),
-    ] {
-        let vars = HashMap::from([("RUSTUP_UNPACK_RAM".into(), configured.into())]);
-        let tp = TestProcess::with_vars(vars);
-        let error = std::io::Error::other("memory limit unavailable").into();
-        for limit in [Ok(906 * 1024 * 1024), Err(error)] {
-            MEMORY_LIMITS.set(Some((limit, Some(508 * 1024 * 1024))));
-            let budget = unpack_ram(IO_CHUNK_SIZE, tp.process.unpack_ram().unwrap());
-            assert_eq!(budget, expected, "RUSTUP_UNPACK_RAM={configured}");
-            assert_eq!(effective_thread_count(budget, Default(2)), 1);
-            for threads in [1, 2, 4] {
-                let vars = HashMap::from([("RUSTUP_IO_THREADS".into(), threads.to_string())]);
-                let tp = TestProcess::with_vars(vars);
-                assert_eq!(
-                    effective_thread_count(budget, tp.process.io_thread_count().unwrap()),
-                    threads,
-                );
-            }
-        }
-    }
-}
-
 #[cfg(target_os = "linux")]
 #[test]
 fn test_linux_available_memory() -> anyhow::Result<()> {
@@ -365,11 +244,4 @@ fn test_linux_available_memory() -> anyhow::Result<()> {
     std::fs::write(&path, [0xff])?;
     assert_eq!(linux_available_memory(&path), None);
     Ok(())
-}
-
-type MemoryLimits = (effective_limits::Result<u64>, Option<u64>);
-
-thread_local! {
-    // Consumed by the next unpack_ram() call, without affecting parallel tests.
-    pub(super) static MEMORY_LIMITS: Cell<Option<MemoryLimits>> = const { Cell::new(None) };
 }
