@@ -152,6 +152,8 @@ impl<'a> DownloadCfg<'a> {
             }
         } else {
             debug!(url = url.as_ref(), "checksum passed");
+            #[cfg(feature = "test")]
+            self.process.checkpoint(CHECKPOINT_DOWNLOAD_BEFORE_RENAME);
             utils::rename(
                 "downloaded",
                 &partial_file_path,
@@ -543,3 +545,6 @@ impl ops::Deref for File {
         self.path.as_path()
     }
 }
+
+#[cfg(feature = "test")]
+pub const CHECKPOINT_DOWNLOAD_BEFORE_RENAME: &str = "download-before-rename";
