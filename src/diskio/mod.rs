@@ -492,10 +492,10 @@ pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
     let minimum_ram = io_chunk_size.saturating_mul(2);
 
     let memory_limit = effective_limits::memory_limit();
-    #[cfg(target_os = "linux")]
-    let available_memory = linux_available_memory(Path::new("/proc/meminfo"));
-    #[cfg(not(target_os = "linux"))]
-    let available_memory = None;
+    let available_memory = cfg_select! {
+        target_os = "linux" => linux_available_memory(Path::new("/proc/meminfo")),
+        _ => None,
+    };
 
     // Physical memory and process limits don't account for other applications.
     // Honor both sources when present, or use whichever is available.
