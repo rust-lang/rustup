@@ -1167,13 +1167,13 @@ impl ParkedChild {
         let status = child
             .wait()
             .expect("failed to reap command after checkpoint");
-        remove_checkpoint_marker(&self.marker);
+        ensure_removed("checkpoint marker", &self.marker);
         status
     }
 
     /// Resume the parked command and wait for it to finish.
     pub fn resume(mut self) -> ExitStatus {
-        remove_checkpoint_marker(&self.marker);
+        ensure_removed("checkpoint marker", &self.marker);
         self.child
             .take()
             .unwrap()
@@ -1189,15 +1189,15 @@ impl Drop for ParkedChild {
         };
         let _ = child.kill();
         let _ = child.wait();
-        remove_checkpoint_marker(&self.marker);
+        ensure_removed("checkpoint marker", &self.marker);
     }
 }
 
-fn remove_checkpoint_marker(marker: &Path) {
-    if let Err(error) = fs::remove_file(marker)
+fn ensure_removed(name: &str, path: &Path) {
+    if let Err(error) = fs::remove_file(path)
         && error.kind() != io::ErrorKind::NotFound
     {
-        panic!("failed to remove checkpoint marker: {error}");
+        panic!("failed to remove {name}: {error}");
     }
 }
 
