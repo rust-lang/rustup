@@ -6,11 +6,11 @@ use rustup::{
 #[tokio::test]
 async fn interrupted_install_can_be_retried() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let status = cx.kill_at(
+    cx.kill_at(
         CHECKPOINT_UPDATE_BEFORE_METADATA,
         ["rustup", "toolchain", "install", "nightly"],
-    );
-    assert!(!status.success());
+    )
+    .is_err();
 
     cx.config
         .expect(["rustup", "toolchain", "install", "nightly"])
