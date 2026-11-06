@@ -7,12 +7,12 @@ use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
     fmt::Debug,
-    fs,
+    fs::{self, File},
     io::{self, Write},
     mem,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus},
+    process::{Child, Command, ExitStatus, Stdio},
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     thread,
@@ -1001,7 +1001,7 @@ impl CliTestContext {
     }
 
     /// Run a rustup command until it reaches `checkpoint` and terminate it.
-    pub fn kill_at<S: AsRef<OsStr>>(&self, checkpoint: &str, args: impl AsRef<[S]>) -> ExitStatus {
+    pub fn kill_at<S: AsRef<OsStr>>(&self, checkpoint: &str, args: impl AsRef<[S]>) -> Assert {
         self.spawn_at(checkpoint, args).kill()
     }
 
@@ -1033,6 +1033,17 @@ impl CliTestContext {
             args,
         );
         cmd.env(CHECKPOINT_ENV, checkpoint);
+
+        // Here we are using files instead of pipes, so that a lingering grandchild cannot block us
+        // from collecting the output once the command is gone.
+        cmd.stdout(Stdio::from(
+            File::create(ParkedChild::output_path(&marker, "stdout"))
+                .expect("failed to create stdout file for checkpoint test"),
+        ));
+        cmd.stderr(Stdio::from(
+            File::create(ParkedChild::output_path(&marker, "stderr"))
+                .expect("failed to create stderr file for checkpoint test"),
+        ));
 
         let mut parked = {
             // The lock covers the spawn itself. It must not be held while the
@@ -1159,7 +1170,7 @@ pub struct ParkedChild {
 
 impl ParkedChild {
     /// Terminate and reap the parked command immediately.
-    pub fn kill(mut self) -> ExitStatus {
+    pub fn kill(mut self) -> Assert {
         let mut child = self.child.take().unwrap();
         child
             .kill()
@@ -1168,17 +1179,43 @@ impl ParkedChild {
             .wait()
             .expect("failed to reap command after checkpoint");
         ensure_removed("checkpoint marker", &self.marker);
-        status
+        self.finish(status)
     }
 
     /// Resume the parked command and wait for it to finish.
-    pub fn resume(mut self) -> ExitStatus {
+    pub fn resume(mut self) -> Assert {
         ensure_removed("checkpoint marker", &self.marker);
-        self.child
+        let status = self
+            .child
             .take()
             .unwrap()
             .wait()
-            .expect("failed to reap resumed checkpoint command")
+            .expect("failed to reap resumed checkpoint command");
+        self.finish(status)
+    }
+
+    /// Reaps the command and collects what it printed so far into an [`Assert`].
+    fn finish(self, status: ExitStatus) -> Assert {
+        let marker = &self.marker;
+        let output = SanitizedOutput::try_from(Output {
+            status: status.code(),
+            stdout: fs::read(Self::output_path(marker, "stdout"))
+                .expect("failed to read stdout of parked command"),
+            stderr: fs::read(Self::output_path(marker, "stderr"))
+                .expect("failed to read stderr of parked command"),
+        })
+        .unwrap();
+
+        println!("parked command finished");
+        println!("status: {:?}", output.status);
+        println!("stdout:\n====\n{}\n====\n", output.stdout);
+        println!("stderr:\n====\n{}\n====\n", output.stderr);
+
+        Assert::new(output)
+    }
+
+    fn output_path(marker: &Path, name: &str) -> PathBuf {
+        marker.with_extension(name)
     }
 }
 
@@ -1189,7 +1226,16 @@ impl Drop for ParkedChild {
         };
         let _ = child.kill();
         let _ = child.wait();
-        ensure_removed("checkpoint marker", &self.marker);
+        let marker = &self.marker;
+        ensure_removed("checkpoint marker", marker);
+        ensure_removed(
+            "stdout of parked command",
+            &Self::output_path(marker, "stdout"),
+        );
+        ensure_removed(
+            "stderr of parked command",
+            &Self::output_path(marker, "stderr"),
+        );
     }
 }
 
