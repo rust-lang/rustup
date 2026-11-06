@@ -65,7 +65,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use tracing::{error, trace, warn};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     diskio::immediate::{FileState, IncrementalFileWriter},
@@ -474,12 +474,10 @@ pub(super) fn get_executor<'a>(
 fn effective_thread_count(ram_budget: usize, thread_count: IoThreadCount) -> usize {
     match thread_count {
         IoThreadCount::Default(n) if n > 1 && ram_budget < LOW_MEMORY_THRESHOLD => {
-            warn!(
-                "using single-threaded unpacking due to low memory \
-                 (ram budget: {} < {} threshold), \
-                 set RUSTUP_IO_THREADS to override",
+            debug!(
+                "using single-threaded unpacking due to low memory (ram budget: {} < {} threshold), set RUSTUP_IO_THREADS to override",
                 Size::new(ram_budget),
-                Size::new(LOW_MEMORY_THRESHOLD)
+                Size::new(LOW_MEMORY_THRESHOLD),
             );
             1
         }
