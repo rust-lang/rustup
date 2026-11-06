@@ -738,7 +738,7 @@ async fn managed_updater_survives_concurrent_proxy_cleanup() {
     cx.config.expect(["rustc", "--version"]).await.is_ok();
 
     assert!(updater.exists());
-    assert!(parked.resume().success());
+    parked.resume().is_ok();
     wait_for_completed_update(&cx.config.rustupdir.rustupdir);
     assert_ne!(before_hash, calc_hash(&rustup));
 }
@@ -759,12 +759,13 @@ async fn self_update_replacement_survives_proxy_cleanup() {
 
     cx.config.expect(["rustc", "--version"]).await.is_ok();
 
-    let status = parked.resume();
+    let resumed = parked.resume();
     assert!(
         rustup.exists(),
-        "concurrent proxy removed the installed rustup during self-update ({status})"
+        "concurrent proxy removed the installed rustup during self-update (status {:?})",
+        resumed.output.status,
     );
-    assert!(status.success(), "self-update failed: {status}");
+    resumed.is_ok();
     assert_ne!(before_hash, calc_hash(&rustup));
 }
 

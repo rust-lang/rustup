@@ -7,12 +7,12 @@ use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
     fmt::Debug,
-    fs,
+    fs::{self, File},
     io::{self, Write},
     mem,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus},
+    process::{Child, Command, ExitStatus, Stdio},
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     thread,
@@ -1001,7 +1001,7 @@ impl CliTestContext {
     }
 
     /// Run a rustup command until it reaches `checkpoint` and terminate it.
-    pub fn kill_at<S: AsRef<OsStr>>(&self, checkpoint: &str, args: impl AsRef<[S]>) -> ExitStatus {
+    pub fn kill_at<S: AsRef<OsStr>>(&self, checkpoint: &str, args: impl AsRef<[S]>) -> Assert {
         self.spawn_at(checkpoint, args).kill()
     }
 
@@ -1034,20 +1034,30 @@ impl CliTestContext {
         );
         cmd.env(CHECKPOINT_ENV, checkpoint);
 
-        let mut parked = {
+        let mut parked = ParkedChild {
+            marker: marker.clone(),
+            child: None,
+        };
+        parked.child = Some({
+            // Here we are using files instead of pipes, so that a lingering grandchild cannot block us
+            // from collecting the output once the command is gone.
+            cmd.stdout(Stdio::from(
+                File::create(parked.output_path("stdout"))
+                    .expect("failed to create stdout file for checkpoint test"),
+            ));
+            cmd.stderr(Stdio::from(
+                File::create(parked.output_path("stderr"))
+                    .expect("failed to create stderr file for checkpoint test"),
+            ));
+
             // The lock covers the spawn itself. It must not be held while the
             // child stays parked: a writer queued behind it would then block
             // every command spawned in the meantime, including the ones a test
             // wants to run against the parked process.
             let _lock = CMD_LOCK.read().unwrap();
-            ParkedChild {
-                child: Some({
-                    cmd.spawn()
-                        .expect("failed to start command for checkpoint test")
-                }),
-                marker: marker.clone(),
-            }
-        };
+            cmd.spawn()
+                .expect("failed to start command for checkpoint test")
+        });
 
         let deadline = Instant::now() + StdDuration::from_secs(30);
         loop {
@@ -1150,7 +1160,7 @@ impl Drop for WorkDirGuard<'_> {
 /// A spawned rustup command parked at a checkpoint.
 ///
 /// The spawned command is created by [`CliTestContext::spawn_at`] and killed on drop unless
-/// [`ParkedChild::kill`] was called first.
+/// [`ParkedChild::kill`] or [`ParkedChild::resume`] was called first.
 #[must_use]
 pub struct ParkedChild {
     child: Option<Child>,
@@ -1159,7 +1169,7 @@ pub struct ParkedChild {
 
 impl ParkedChild {
     /// Terminate and reap the parked command immediately.
-    pub fn kill(mut self) -> ExitStatus {
+    pub fn kill(mut self) -> Assert {
         let mut child = self.child.take().unwrap();
         child
             .kill()
@@ -1168,17 +1178,42 @@ impl ParkedChild {
             .wait()
             .expect("failed to reap command after checkpoint");
         ensure_removed("checkpoint marker", &self.marker);
-        status
+        self.finish(status)
     }
 
     /// Resume the parked command and wait for it to finish.
-    pub fn resume(mut self) -> ExitStatus {
+    pub fn resume(mut self) -> Assert {
         ensure_removed("checkpoint marker", &self.marker);
-        self.child
+        let status = self
+            .child
             .take()
             .unwrap()
             .wait()
-            .expect("failed to reap resumed checkpoint command")
+            .expect("failed to reap resumed checkpoint command");
+        self.finish(status)
+    }
+
+    /// Reaps the command and collects what it printed so far into an [`Assert`].
+    fn finish(self, status: ExitStatus) -> Assert {
+        let output = SanitizedOutput::try_from(Output {
+            status: status.code(),
+            stdout: fs::read(self.output_path("stdout"))
+                .expect("failed to read stdout of parked command"),
+            stderr: fs::read(self.output_path("stderr"))
+                .expect("failed to read stderr of parked command"),
+        })
+        .unwrap();
+
+        println!("parked command finished");
+        println!("status: {:?}", output.status);
+        println!("stdout:\n====\n{}\n====\n", output.stdout);
+        println!("stderr:\n====\n{}\n====\n", output.stderr);
+
+        Assert::new(output)
+    }
+
+    fn output_path(&self, name: &str) -> PathBuf {
+        self.marker.with_extension(name)
     }
 }
 
@@ -1190,6 +1225,8 @@ impl Drop for ParkedChild {
         let _ = child.kill();
         let _ = child.wait();
         ensure_removed("checkpoint marker", &self.marker);
+        ensure_removed("stdout of parked command", &self.output_path("stdout"));
+        ensure_removed("stderr of parked command", &self.output_path("stderr"));
     }
 }
 
