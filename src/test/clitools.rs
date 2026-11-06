@@ -1150,7 +1150,7 @@ impl Drop for WorkDirGuard<'_> {
 /// A spawned rustup command parked at a checkpoint.
 ///
 /// The spawned command is created by [`CliTestContext::spawn_at`] and killed on drop unless
-/// [`ParkedChild::kill`] was called first.
+/// [`ParkedChild::kill`] or [`ParkedChild::resume`] was called first.
 #[must_use]
 pub struct ParkedChild {
     child: Option<Child>,
