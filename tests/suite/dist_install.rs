@@ -145,6 +145,32 @@ fn multiple_component_install() {
 }
 
 #[test]
+fn components_file_is_independent_of_install_order() {
+    // Deliberately not in sorted order.
+    let names = ["rustc", "cargo", "rust-std"];
+    let mock = MockInstallerBuilder {
+        components: names
+            .iter()
+            .map(|name| MockComponentBuilder {
+                name: name.to_string(),
+                files: vec![MockFile::new(format!("bin/{name}"), b"data")],
+            })
+            .collect(),
+    };
+
+    let cx = DistContext::new(Some(mock)).unwrap();
+    let (mut tx, components, pkg) = cx.start().unwrap();
+    for name in names {
+        tx = pkg.install(&components, name, None, tx).unwrap();
+    }
+    tx.commit();
+
+    let components_path = cx.prefix.manifest_file("components");
+    let contents = utils::read_file("components", &components_path).unwrap();
+    assert_eq!(contents, "cargo\nrust-std\nrustc\n");
+}
+
+#[test]
 fn uninstall() {
     let mock = MockInstallerBuilder {
         components: vec![

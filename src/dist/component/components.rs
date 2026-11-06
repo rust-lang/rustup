@@ -147,11 +147,18 @@ impl ComponentBuilder {
             utils::write_line("component", &mut file, &abs_path, &part.encode())?;
         }
 
-        // Add component to components file
+        // Add component to components file, sorting it to avoid depending
+        // on the order components were installed in.
+        let names = self.components.list()?;
+        let mut names: Vec<_> = names.into_iter().map(|c| c.name).collect();
+        names.push(self.name.clone());
+        names.sort();
+        let mut contents = names.join("\n");
+        contents.push('\n');
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
         self.tx.modify_file(path)?;
-        utils::append_file("components", &abs_path, &self.name)?;
+        utils::write_file("components", &abs_path, &contents)?;
 
         // Drop in the version file for future use
         self.components.write_version(&mut self.tx)?;
