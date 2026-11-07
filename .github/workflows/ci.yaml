@@ -720,6 +720,7 @@ jobs:
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu
+          - aarch64-unknown-freebsd # skip-main
         include:
           - mode: dev
             target: x86_64-unknown-linux-gnu
@@ -728,6 +729,8 @@ jobs:
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: aarch64-unknown-freebsd
             os: ubuntu-24.04-arm
           - mode: dev
             target: aarch64-unknown-linux-gnu
@@ -921,6 +924,8 @@ jobs:
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
+          - target: aarch64-unknown-freebsd
+            os: ubuntu-24.04-arm
           - mode: dev
             target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
@@ -1103,6 +1108,7 @@ jobs:
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl # skip-pr skip-main
+          - aarch64-unknown-freebsd # skip-main
           - powerpc64-unknown-linux-gnu # skip-pr
           - x86_64-unknown-linux-musl # skip-pr
           - i686-unknown-linux-gnu # skip-pr skip-main
@@ -1135,6 +1141,8 @@ jobs:
             # We need to do that because rust's CI uses ARM-based runners
             # to generate their Dockerfiles.
           - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: aarch64-unknown-freebsd
             os: ubuntu-24.04-arm
           - mode: dev
             target: aarch64-unknown-linux-gnu
