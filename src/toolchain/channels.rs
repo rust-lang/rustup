@@ -226,7 +226,7 @@ impl<'a> ChannelToolchain<'a> {
         // the documentation for the lpCommandLine argument of CreateProcess.
         #[cfg(windows)]
         let exe_path = {
-            let fallback_dir = self.toolchain.cfg.rustup_dir.join("fallback");
+            let fallback_dir = self.toolchain.cfg.data_dir.join("fallback");
             fs::create_dir_all(&fallback_dir)
                 .context("unable to create dir to hold fallback exe")?;
             let fallback_file = fallback_dir.join("cargo.exe");
