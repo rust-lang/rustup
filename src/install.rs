@@ -39,12 +39,6 @@ impl InstallMethod<'_, '_> {
             Self::Link { cfg, .. } | Self::Dist(DistOptions { cfg, .. }) => cfg,
         };
 
-        // Initialize rayon for use by the remove_dir_all crate limiting the number of threads.
-        // This will error if rayon is already initialized but it's fine to ignore that.
-        let _ = rayon::ThreadPoolBuilder::new()
-            .num_threads(cfg.process.io_thread_count()?.into())
-            .build_global();
-
         let toolchain = match &self {
             Self::Link { toolchain, .. } => {
                 let toolchain = ToolchainNameOrPath::from((*toolchain).clone());
