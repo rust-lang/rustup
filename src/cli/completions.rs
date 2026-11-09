@@ -161,16 +161,16 @@ mod tests {
     #[test]
     fn dynamic_completion_target_add_offers_real_targets() {
         let (rustup_home, process) = completion_cfg();
-        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
-        fs::create_dir_all(&manifest_dir).unwrap();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
         fs::write(
-            manifest_dir.join("multirust-channel-manifest.toml"),
-            MANIFEST,
+            rustlib.join("multirust-channel-manifest.toml"),
+            STABLE_MANIFEST,
         )
         .unwrap();
 
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
-        cfg.set_default(Some(&TOOLCHAIN.parse().unwrap())).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
 
@@ -221,10 +221,10 @@ mod tests {
     #[test]
     fn dynamic_completion_target_remove() {
         let (rustup_home, process) = completion_cfg();
-        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
-        fs::create_dir_all(&manifest_dir).unwrap();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
         fs::write(
-            manifest_dir.join("components"),
+            rustlib.join("components"),
             "rustc-x86_64-unknown-linux-gnu\n\
              rust-std-x86_64-unknown-linux-gnu\n\
              rust-std-x86_64-unknown-linux-musl\n",
@@ -232,7 +232,7 @@ mod tests {
         .unwrap();
 
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
-        cfg.set_default(Some(&TOOLCHAIN.parse().unwrap())).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         assert_eq!(
             complete(&cfg, &["rustup", "target", "remove", "x86_64"], 3),
@@ -263,9 +263,9 @@ mod tests {
         (rustup_home, process)
     }
 
-    const TOOLCHAIN: &str = "stable-x86_64-unknown-linux-gnu";
-    const MANIFEST_DIR: &str = "toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib";
-    const MANIFEST: &str = r#"
+    const STABLE: &str = "stable-x86_64-unknown-linux-gnu";
+    const STABLE_RUSTLIB: &str = "toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib";
+    const STABLE_MANIFEST: &str = r#"
 manifest-version = "2"
 date = "2025-01-01"
 [pkg.rust]
