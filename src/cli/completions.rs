@@ -35,7 +35,7 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
         })
         .unwrap_or_default();
 
-    let active_channel_toolchain = match cfg.active_toolchain() {
+    let active_channel_toolchain = match cfg.active_toolchain(cfg.toolchain_override.as_ref()) {
         Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
             ChannelToolchain::new(cfg, desc).ok()
         }
