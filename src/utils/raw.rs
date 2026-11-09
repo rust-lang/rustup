@@ -315,6 +315,29 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
     }
 }
 
+/// Deletes everything in the directory at `path`, following `path` itself if it is a symlink.
+pub(crate) fn remove_dir_contents(path: &Path) -> io::Result<()> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let path = entry.path();
+        if file_type.is_dir() {
+            fs::remove_dir_all(&path)?;
+            continue;
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::FileTypeExt;
+            if file_type.is_symlink_dir() {
+                fs::remove_dir(&path)?;
+                continue;
+            }
+        }
+        fs::remove_file(&path)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
     fs::create_dir(dest)?;
     for entry in src.read_dir()? {
