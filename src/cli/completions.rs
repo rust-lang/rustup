@@ -89,7 +89,10 @@ mod tests {
     };
 
     use super::rustup_command;
-    use crate::{config::Cfg, process::TestProcess};
+    use crate::{
+        config::Cfg,
+        process::{Process, TestProcess},
+    };
 
     fn complete(cfg: &Cfg<'_>, args: &[&str], index: usize) -> Vec<String> {
         let mut command = rustup_command(cfg);
@@ -240,7 +243,7 @@ mod tests {
     /// Creates a bare rustup home with no toolchains installed.
     /// Used by completion tests to verify the completer is robust
     /// and to set up a base environment for further customisation.
-    fn completion_cfg() -> (tempfile::TempDir, crate::process::Process) {
+    fn completion_cfg() -> (tempfile::TempDir, Process) {
         let rustup_home = tempfile::tempdir().unwrap();
         let vars = HashMap::from([
             (
