@@ -458,7 +458,7 @@ fn copy_and_delete(name: &'static str, src: &Path, dest: &Path) -> anyhow::Resul
     // avoid cross-device link errors.
     if src.is_dir() {
         copy_dir(src, dest).and_then(|()| {
-            remove_dir_all::remove_dir_all(src).with_context(|| RustupError::RemovingDirectory {
+            fs::remove_dir_all(src).with_context(|| RustupError::RemovingDirectory {
                 name,
                 path: PathBuf::from(src),
             })
