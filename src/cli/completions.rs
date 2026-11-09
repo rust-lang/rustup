@@ -152,7 +152,7 @@ mod tests {
         cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
-        assert!(candidates.contains(&"all".to_owned()));
+        assert!(candidates.iter().any(|c| c == "all"));
     }
 
     #[test]
@@ -171,10 +171,14 @@ mod tests {
 
         let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
 
-        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"all".to_owned()));
+        assert!(
+            HashSet::from_iter(candidates.iter().map(AsRef::as_ref)).is_superset(&HashSet::from([
+                "aarch64-unknown-linux-gnu",
+                "x86_64-unknown-linux-musl",
+                "x86_64-unknown-linux-gnu",
+                "all",
+            ]))
+        );
 
         let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
         assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
@@ -199,7 +203,7 @@ mod tests {
         assert_eq!(candidates, ["all"]);
 
         let candidates = complete(&cfg, &["rustup", "target", "add", "x86"], 3);
-        assert!(!candidates.contains(&"all".to_owned()));
+        assert!(!candidates.iter().any(|c| c == "all"));
     }
 
     #[test]
@@ -208,7 +212,7 @@ mod tests {
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "remove", ""], 3);
-        assert!(!candidates.contains(&"all".to_owned()));
+        assert!(!candidates.iter().any(|c| c == "all"));
     }
 
     #[test]
