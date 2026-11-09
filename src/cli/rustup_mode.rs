@@ -1679,32 +1679,33 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<
 fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     let default_host = cfg.default_host_tuple()?;
 
-    let (mut r#override, backfill_components) = match cfg.find_override_config()? {
-        Some((o, _)) => (o, None),
-        None => {
-            let default = cfg
-                .get_default_resolvable()?
-                .context("no default toolchain to pin")?;
-            let components = match &default {
-                PartialToolchainName::Channel(desc) => {
-                    let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
-                    let manifest = tc.get_manifest()?;
+    let (mut r#override, backfill_components) =
+        match cfg.find_override_config(cfg.toolchain_override.as_ref())? {
+            Some((o, _)) => (o, None),
+            None => {
+                let default = cfg
+                    .get_default_resolvable()?
+                    .context("no default toolchain to pin")?;
+                let components = match &default {
+                    PartialToolchainName::Channel(desc) => {
+                        let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
+                        let manifest = tc.get_manifest()?;
 
-                    Some(
-                        tc.components()?
-                            .into_iter()
-                            .filter_map(|c| {
-                                (c.available && c.installed)
-                                    .then(|| manifest.display_name(&c.component, &default_host))
-                            })
-                            .collect(),
-                    )
-                }
-                PartialToolchainName::Custom(_) => None,
-            };
-            (OverrideCfg::from(default), components)
-        }
-    };
+                        Some(
+                            tc.components()?
+                                .into_iter()
+                                .filter_map(|c| {
+                                    (c.available && c.installed)
+                                        .then(|| manifest.display_name(&c.component, &default_host))
+                                })
+                                .collect(),
+                        )
+                    }
+                    PartialToolchainName::Custom(_) => None,
+                };
+                (OverrideCfg::from(default), components)
+            }
+        };
     if qualified {
         r#override.qualify(&default_host);
     }
