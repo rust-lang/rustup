@@ -1103,6 +1103,7 @@ jobs:
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl # skip-pr skip-main
+          - aarch64-unknown-freebsd # skip-pr skip-main
           - powerpc64-unknown-linux-gnu # skip-pr
           - x86_64-unknown-linux-musl # skip-pr
           - i686-unknown-linux-gnu # skip-pr skip-main
@@ -1139,6 +1140,8 @@ jobs:
           - mode: dev
             target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
+          - target: aarch64-unknown-freebsd # skip-pr skip-main
+            os: ubuntu-24.04-arm # skip-pr skip-main
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
           - target: powerpc64le-unknown-linux-gnu # skip-pr skip-main
