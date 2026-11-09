@@ -8,7 +8,6 @@ use std::{
     process::Command,
 };
 
-use remove_dir_all::remove_dir_all;
 use retry::{
     delay::{Fibonacci, jitter},
     retry,
@@ -157,7 +156,7 @@ async fn install_twice() {
 #[tokio::test]
 async fn install_creates_cargo_home() {
     let cx = CliTestContext::new(Scenario::Empty).await;
-    remove_dir_all(&cx.config.cargodir).unwrap();
+    fs::remove_dir_all(&cx.config.cargodir).unwrap();
     cx.config.rustupdir.remove().unwrap();
     cx.config
         .expect([

@@ -235,7 +235,7 @@ impl RustupHome {
     }
 
     pub fn remove(&self) -> io::Result<()> {
-        remove_dir_all::remove_dir_all(&self.rustupdir)
+        fs::remove_dir_all(&self.rustupdir)
     }
 }
 
