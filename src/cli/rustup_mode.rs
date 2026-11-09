@@ -709,8 +709,9 @@ pub async fn main(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
 ) -> anyhow::Result<ExitCode> {
+    let args = process.args_os().collect::<Vec<_>>();
     let cfg = &mut Cfg::from_env(current_dir, true, false, process)?;
-    clap_complete::CompleteEnv::with_factory(|| completions::rustup_command(cfg))
+    clap_complete::CompleteEnv::with_factory(|| completions::rustup_command(cfg, &args))
         .var("RUSTUP_COMPLETE")
         .bin("rustup")
         .complete();
@@ -718,7 +719,7 @@ pub async fn main(
     self_update::cleanup_self_updater(process, &process.cargo_home()?.join("bin"))?;
 
     use clap::error::ErrorKind::*;
-    let matches = match Rustup::try_parse_from(process.args_os()) {
+    let matches = match Rustup::try_parse_from(&args) {
         Ok(matches) => matches,
         Err(err) if err.kind() == DisplayHelp => {
             write!(process.stdout().lock(), "{}", err.render().ansi())?;

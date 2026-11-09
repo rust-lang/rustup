@@ -1,4 +1,4 @@
-use std::iter;
+use std::ffi::OsStr;
 
 use clap::CommandFactory;
 use clap_complete::{ArgValueCandidates, engine::CompletionCandidate};
@@ -6,25 +6,35 @@ use clap_complete::{ArgValueCandidates, engine::CompletionCandidate};
 use crate::{
     cli::rustup_mode::Rustup,
     config::Cfg,
-    toolchain::{ChannelToolchain, ToolchainName, ToolchainNameOrPath},
+    toolchain::{
+        ChannelToolchain, Override, PartialToolchainNameOrPath, ToolchainName, ToolchainNameOrPath,
+    },
 };
 
-pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
+pub(super) fn rustup_command(cfg: &Cfg<'_>, args: &[impl AsRef<OsStr>]) -> clap::Command {
     let mut toolchains = cfg.list_toolchains(true).unwrap_or_default();
     toolchains.sort();
 
-    // Collect available targets from the first installed
-    // distributable toolchain. Uses only on-disk manifest data
-    let available_targets = toolchains
-        .iter()
-        .find_map(|name| {
-            let ToolchainName::Channel(desc) = name else {
-                return None;
-            };
-            let dist = ChannelToolchain::new(cfg, desc.clone()).ok()?;
-            let components = dist.components().ok()?;
+    let mut cmd = Rustup::command().ignore_errors(true);
+    let maybe_matches = cmd.try_get_matches_from_mut(args).ok();
+    let toolchain_override = maybe_matches
+        .as_ref()
+        .and_then(|m| m.get_one::<Override<PartialToolchainNameOrPath>>("+toolchain"));
+
+    let active_channel_toolchain = match cfg.active_toolchain_with_override(toolchain_override) {
+        Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
+            ChannelToolchain::new(cfg, desc).ok()
+        }
+        _ => None,
+    };
+    let has_active_channel_toolchain = active_channel_toolchain.is_some();
+
+    let available_targets = active_channel_toolchain
+        .as_ref()
+        .and_then(|dist| {
             Some(
-                components
+                dist.components()
+                    .ok()?
                     .into_iter()
                     .filter_map(|c| {
                         (c.component.short_name() == "rust-std" && c.available)
@@ -35,17 +45,11 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
         })
         .unwrap_or_default();
 
-    let active_channel_toolchain = match cfg.active_toolchain() {
-        Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
-            ChannelToolchain::new(cfg, desc).ok()
-        }
-        _ => None,
-    };
     let installed_targets = active_channel_toolchain
         .and_then(|dist| dist.toolchain.installed_targets().ok())
         .unwrap_or_default();
 
-    Rustup::command()
+    cmd.ignore_errors(false)
         .mut_arg("+toolchain", move |arg| {
             arg.add(ArgValueCandidates::new(move || {
                 toolchains
@@ -59,8 +63,10 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
                 .mut_subcommand("add", move |add_cmd| {
                     add_cmd.mut_arg("target", move |arg| {
                         arg.add(ArgValueCandidates::new(move || {
-                            // "all" is a special keyword that installs every available target
-                            iter::once("all")
+                            has_active_channel_toolchain
+                                // "all" is a special keyword that installs every available target
+                                .then_some("all")
+                                .into_iter()
                                 .chain(available_targets.iter().map(AsRef::as_ref))
                                 .map(CompletionCandidate::new)
                                 .collect()
@@ -95,7 +101,7 @@ mod tests {
     };
 
     fn complete(cfg: &Cfg<'_>, args: &[&str], index: usize) -> Vec<String> {
-        let mut command = rustup_command(cfg);
+        let mut command = rustup_command(cfg, args);
         clap_complete::engine::complete(
             &mut command,
             args.iter().map(OsString::from).collect(),
@@ -227,8 +233,8 @@ mod tests {
         let mut candidates = complete(&cfg, &["rustup", "+custom", "target", "add", ""], 4);
         candidates.retain(|c| !c.starts_with('-'));
         assert!(
-            candidates.iter().any(|t| t == "all"),
-            "expected the buggy all suggestion, got: {candidates:?}"
+            candidates.is_empty(),
+            "expected an empty list of suggestions, got: {candidates:?}"
         );
     }
 
@@ -250,8 +256,8 @@ mod tests {
         let mut candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
         candidates.retain(|c| !c.starts_with('-'));
         assert!(
-            !candidates.is_empty(),
-            "expected a non-empty list of irrelevant suggestions",
+            candidates.is_empty(),
+            "expected an empty list of suggestions, got: {candidates:?}",
         );
 
         let candidates = complete(
@@ -259,9 +265,9 @@ mod tests {
             &["rustup", &format!("+{NIGHTLY}"), "target", "add", ""],
             4,
         );
-        assert!(candidates.iter().any(|c| c == "aarch64-unknown-linux-gnu"));
+        assert!(!candidates.iter().any(|c| c == "aarch64-unknown-linux-gnu"));
         assert!(
-            !candidates
+            candidates
                 .iter()
                 .any(|c| c == "riscv64gc-unknown-linux-gnu")
         );
@@ -315,9 +321,9 @@ mod tests {
             ],
             4,
         );
-        assert!(!candidates.iter().any(|c| c == "aarch64-unknown-linux-gnu"));
+        assert!(candidates.iter().any(|c| c == "aarch64-unknown-linux-gnu"));
         assert!(
-            candidates
+            !candidates
                 .iter()
                 .any(|c| c == "riscv64gc-unknown-linux-gnu"),
         );
