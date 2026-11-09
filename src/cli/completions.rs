@@ -147,6 +147,30 @@ mod tests {
     }
 
     #[test]
+    fn dynamic_completion_target_add_offers_real_targets() {
+        let (rustup_home, process) = completion_cfg();
+        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
+        fs::create_dir_all(&manifest_dir).unwrap();
+        fs::write(
+            manifest_dir.join("multirust-channel-manifest.toml"),
+            MANIFEST,
+        )
+        .unwrap();
+
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
+
+        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
+        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
+        assert!(candidates.contains(&"all".to_owned()));
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
+        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
+    }
+
+    #[test]
     fn dynamic_completion_target_add_prefix_filters_all() {
         let (rustup_home, process) = completion_cfg();
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
@@ -188,30 +212,6 @@ mod tests {
             complete(&cfg, &["rustup", "target", "remove", "x86_64"], 3),
             ["x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl"]
         );
-    }
-
-    #[test]
-    fn dynamic_completion_target_add_offers_real_targets() {
-        let (rustup_home, process) = completion_cfg();
-        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
-        fs::create_dir_all(&manifest_dir).unwrap();
-        fs::write(
-            manifest_dir.join("multirust-channel-manifest.toml"),
-            MANIFEST,
-        )
-        .unwrap();
-
-        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
-
-        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
-
-        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"all".to_owned()));
-
-        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
-        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
     }
 
     /// Creates a bare rustup home with no toolchains installed.
