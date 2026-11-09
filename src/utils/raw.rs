@@ -292,17 +292,15 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
             fs::remove_file(path)
         }
     } else {
-        let result = retry(Fibonacci::from_millis(10).map(jitter).take(10), || {
-            // Again because remove_dir all doesn't delete write-only files on windows,
-            // this is a custom implementation, more-or-less copied from cargo.
-            // cc rust-lang/rust#31944
-            // cc https://github.com/rust-lang/cargo/blob/master/tests/support/paths.rs#L52
-            match remove_dir_all::remove_dir_all(path) {
-                Ok(()) => OperationResult::Ok(()),
-                Err(e) if is_retryable_dir_error(&e) => OperationResult::Retry(e),
-                Err(e) => OperationResult::Err(e),
-            }
-        });
+        let result =
+            retry(
+                Fibonacci::from_millis(10).map(jitter).take(10),
+                || match fs::remove_dir_all(path) {
+                    Ok(()) => OperationResult::Ok(()),
+                    Err(e) if is_retryable_dir_error(&e) => OperationResult::Retry(e),
+                    Err(e) => OperationResult::Err(e),
+                },
+            );
 
         // Best-effort sync of parent directory to ensure filesystem metadata consistency
         // after parallel deletion. Helps prevent "Directory not empty" errors on subsequent

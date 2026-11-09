@@ -35,7 +35,7 @@ impl ops::Deref for Dir {
 impl Drop for Dir {
     fn drop(&mut self) {
         if raw::is_directory(&self.path) {
-            match remove_dir_all::remove_dir_all(&self.path) {
+            match fs::remove_dir_all(&self.path) {
                 Ok(()) => debug!(path = %self.path.display(), "deleted temp directory"),
                 Err(e) => {
                     warn!(
