@@ -140,7 +140,16 @@ mod tests {
     #[test]
     fn dynamic_completion_target_add_offers_all_keyword() {
         let (rustup_home, process) = completion_cfg();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
+        fs::write(
+            rustlib.join("multirust-channel-manifest.toml"),
+            STABLE_MANIFEST,
+        )
+        .unwrap();
+
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
         assert!(candidates.contains(&"all".to_owned()));
@@ -158,6 +167,7 @@ mod tests {
         .unwrap();
 
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&TOOLCHAIN.parse().unwrap())).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
 
@@ -173,7 +183,16 @@ mod tests {
     #[test]
     fn dynamic_completion_target_add_prefix_filters_all() {
         let (rustup_home, process) = completion_cfg();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
+        fs::write(
+            rustlib.join("multirust-channel-manifest.toml"),
+            STABLE_MANIFEST,
+        )
+        .unwrap();
+
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         // "al" prefix matches only "all"
         let candidates = complete(&cfg, &["rustup", "target", "add", "al"], 3);
