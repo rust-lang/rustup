@@ -132,6 +132,7 @@ pub static LIST_OSES: &[&str] = &[
     "unknown-helenos",
     "unknown-hermit",
     "unknown-hurd",
+    "unknown-hyperlight",
     "unknown-illumos",
     "unknown-l4re",
     "unknown-linux",
@@ -143,6 +144,7 @@ pub static LIST_OSES: &[&str] = &[
     "unknown-nuttx",
     "unknown-openbsd",
     "unknown-qnx",
+    "unknown-qtee",
     "unknown-qurt",
     "unknown-redox",
     "unknown-teeos",
@@ -163,6 +165,7 @@ pub static LIST_OSES: &[&str] = &[
 pub static LIST_ENVS: &[&str] = &[
     "android",
     "androideabi",
+    "component",
     "eabi",
     "eabihf",
     "elf",
