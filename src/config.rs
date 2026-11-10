@@ -1133,8 +1133,10 @@ impl<'a> Cfg<'a> {
             .unwrap_or_default()
             .date_naive();
 
-        let release_date = NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d")
-            .map_err(|e| anyhow!(e).context("could not parse release date '{release_date_str}'"))?;
+        let release_date =
+            NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d").map_err(|e| {
+                anyhow!(e).context(format!("could not parse release date '{release_date_str}'"))
+            })?;
 
         // Skip the hint if fewer than 6 weeks have passed since the last known release.
         if (today - release_date).num_days() < RELEASE_CYCLE_DAYS {
