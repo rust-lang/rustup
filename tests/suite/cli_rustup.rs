@@ -1089,6 +1089,45 @@ hint: a new stable Rust release is available, run `rustup update stable` to inst
 }
 
 #[tokio::test]
+async fn notify_release_hint_error_includes_invalid_date() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "set", "release-hint", "enable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "update", "stable"])
+        .await
+        .is_ok();
+
+    let manifest_path = cx
+        .config
+        .rustupdir
+        .join("toolchains")
+        .join(format!("stable-{}", this_host_tuple()))
+        .join("lib")
+        .join("rustlib")
+        .join("multirust-channel-manifest.toml");
+    let manifest = fs::read_to_string(&manifest_path).unwrap();
+    let valid_date = r#"date = "2015-01-02""#;
+    assert!(manifest.contains(valid_date));
+    fs::write(
+        manifest_path,
+        manifest.replacen(valid_date, r#"date = "not-a-date""#, 1),
+    )
+    .unwrap();
+
+    cx.config
+        .expect(["rustup", "toolchain", "list"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+warn: could not check if there is a new Rust release: could not parse release date 'not-a-date'
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn notify_release_hint_skipped_for_recent_release() {
     let cx = CliTestContext::new(Scenario::RecentStable).await;
     cx.config
