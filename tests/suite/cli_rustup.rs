@@ -15,6 +15,7 @@ use rustup::{
     },
     utils::raw,
 };
+use snapbox::IntoData;
 
 #[tokio::test]
 async fn update_check_no_updates() {
@@ -1113,7 +1114,7 @@ async fn notify_release_hint_error_includes_invalid_date() {
     assert!(manifest.contains(valid_date));
     fs::write(
         manifest_path,
-        manifest.replacen(valid_date, r#"date = "not-a-date""#, 1),
+        manifest.replacen(valid_date, r#"date = "\nwarn: fake warning and more""#, 1),
     )
     .unwrap();
 
@@ -1121,9 +1122,9 @@ async fn notify_release_hint_error_includes_invalid_date() {
         .expect(["rustup", "toolchain", "list"])
         .await
         .with_stderr(snapbox::str![[r#"
-warn: could not check if there is a new Rust release: could not parse release date 'not-a-date'
+warn: could not check if there is a new Rust release: could not parse release date '\nwarn: fake war'
 
-"#]])
+"#]].raw())
         .is_ok();
 }
 
