@@ -769,7 +769,7 @@ custom
 async fn fallback_cargo_calls_correct_rustc() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     // Hm, this is the _only_ test that assumes that toolchain proxies
-    // exist in CARGO_HOME. Adding that proxy here.
+    // exist in bin home. Adding that proxy here.
     let rustup_path = cx.config.exedir.join(format!("rustup{EXE_SUFFIX}"));
     let cargo_bin_path = cx.config.cargodir.join("bin");
     fs::create_dir_all(&cargo_bin_path).unwrap();
@@ -822,6 +822,76 @@ async fn fallback_cargo_calls_correct_rustc() {
 
 "#]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn fallback_cargo_calls_correct_rustc_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let data_home = cx.config.current_dir().join("relative/data");
+    let data_home_env = data_home.to_str().unwrap();
+    let data_env = [
+        ("RUSTUP_DATA_HOME", data_home_env),
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+    ];
+    // Hm, this is the _only_ test that assumes that toolchain proxies
+    // exist in bin home. Adding that proxy here.
+    let rustup_path = cx.config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+    let cargo_bin_path = cx.config.cargodir.join("bin");
+    fs::create_dir_all(&cargo_bin_path).unwrap();
+    let rustc_path = cargo_bin_path.join(format!("rustc{EXE_SUFFIX}"));
+    fs::hard_link(rustup_path, &rustc_path).unwrap();
+
+    // Install a custom toolchain and a nightly toolchain for the cargo fallback
+    let path = cx.config.customdir.join("custom-1");
+    let path = path.to_string_lossy();
+    cx.config
+        .expect_with_env(["rustup", "toolchain", "link", "custom", &path], data_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "default", "custom"], data_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "update", "nightly"], data_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustc", "--version"], data_env)
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.0.0 (hash-c-1)
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect_with_env(["cargo", "--version"], data_env)
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+
+    assert!(rustc_path.exists());
+
+    // Here --call-rustc tells the mock cargo bin to exec `rustc --version`.
+    // We should be ultimately calling the custom rustc, according to the
+    // RUSTUP_TOOLCHAIN variable set by the original "cargo" proxy, and
+    // interpreted by the nested "rustc" proxy.
+    cx.config
+        .expect_with_env(["cargo", "--call-rustc"], data_env)
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.0.0 (hash-c-1)
+
+"#]])
+        .is_ok();
+
+    #[cfg(windows)]
+    {
+        assert!(data_home.join("fallback/cargo.exe").is_file());
+    }
 }
 
 // Checks that cargo can recursively invoke itself with rustup shorthand (via
@@ -889,6 +959,144 @@ error: infinite recursion detected
 ...
 "#]])
         .is_err();
+}
+
+#[tokio::test]
+async fn recursive_cargo_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::ArchivesV2).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "default", "nightly"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .is_ok();
+
+    // We need an intermediary to run cargo itself.
+    // The "mock" cargo can't do that because on Windows it will check
+    // for a `cargo.exe` in the current directory before checking PATH.
+    //
+    // The solution here is to copy from the "mock" `cargo.exe` into
+    // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
+    // needing to build another executable just for this test.
+    let which_cargo = cx
+        .config
+        .expect_with_env(
+            ["rustup", "which", "cargo"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await;
+    let real_mock_cargo = which_cargo.output.stdout.trim();
+    let cargo_bin_path = cx.config.cargodir.join("bin");
+    let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{EXE_SUFFIX}"));
+    fs::create_dir_all(&cargo_bin_path).unwrap();
+    fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["cargo", "--recursive-cargo-subcommand"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1")],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.3.0 (hash-nightly-2)
+
+"#]])
+        .is_ok();
+
+    // If we have set the current recursion count to the maximum while doing
+    // another recursion, then rustup should bail out warning about it.
+    cx.config
+        .expect_with_env(
+            ["cargo", "--recursive-cargo-subcommand"],
+            [
+                (
+                    "RUST_RECURSION_COUNT",
+                    &*RUST_RECURSION_COUNT_MAX.to_string(),
+                ),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: infinite recursion detected
+...
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn show_category_homes() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    let config_home = cx.config.homedir.join("config home");
+    let state_home = cx.config.homedir.join("state home");
+    let data_home = cx.config.homedir.join("data home");
+    let cache_home = cx.config.homedir.join("cache home");
+    let bin_home = cx.config.homedir.join("bin home");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(["rustup", "show", "home"], env)
+        .await
+        .extend_redactions([("[HOME]", &cx.config.homedir)])
+        .with_stdout(snapbox::str![[r#"
+config: [HOME]/config home
+state: [HOME]/state home
+data: [HOME]/data home
+cache: [HOME]/cache home
+
+"#]])
+        .is_ok();
+
+    cx.config
+        .expect_with_env(["rustup", "show"], env)
+        .await
+        .extend_redactions([("[HOME]", &cx.config.homedir)])
+        .with_stdout(snapbox::str![[r#"
+Default host: [HOST_TUPLE]
+rustup homes:
+  config: [HOME]/config home
+  state: [HOME]/state home
+  data: [HOME]/data home
+  cache: [HOME]/cache home
+  bin: [HOME]/bin home
+
+installed toolchains
+--------------------
+
+active toolchain
+----------------
+no active toolchain
+
+"#]])
+        .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn show_category_platform_defaults() {
+    let cx = CliTestContext::new(Scenario::None).await;
+    cx.config
+        .expect_with_env(
+            ["rustup", "show", "home"],
+            [("RUSTUP_USE_CATEGORY_HOME", "1"), ("RUSTUP_HOME", "")],
+        )
+        .await
+        .extend_redactions([("[HOME]", &cx.config.homedir)])
+        .with_stdout(snapbox::str![[r#"
+config: [HOME]/.config/rustup
+state: [HOME]/.local/state/rustup
+data: [HOME]/.local/share/rustup
+cache: [HOME]/.cache/rustup
+
+"#]])
+        .is_ok();
 }
 
 #[tokio::test]
@@ -1086,6 +1294,39 @@ hint: a new stable Rust release is available, run `rustup update stable` to inst
         .await
         .with_stderr(snapbox::str![[""]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn notify_release_hint_at_most_once_per_day_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let state_home = cx.config.current_dir().join("relative/state");
+    let state_home_env = state_home.to_str().unwrap();
+    let state_env = [
+        ("RUSTUP_STATE_HOME", state_home_env),
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+    ];
+    cx.config
+        .expect_with_env(["rustup", "set", "release-hint", "enable"], state_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "update", "stable"], state_env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "show"], state_env)
+        .await
+        .with_stderr(snapbox::str![[r#"
+hint: a new stable Rust release is available, run `rustup update stable` to install it
+
+"#]])
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "show"], state_env)
+        .await
+        .with_stderr(snapbox::str![[""]])
+        .is_ok();
+    assert!(state_home.join("state.toml").is_file());
 }
 
 #[tokio::test]

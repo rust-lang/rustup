@@ -51,22 +51,25 @@ pub(crate) fn anti_sudo_check(
 }
 
 pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+    let env_home = process.env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(&env_home, home_dir.as_deref())?;
         // Check more files for cleanup than normally are updated.
         remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
     }
 
-    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())
+    if !process.use_category_home() {
+        remove_legacy_paths(process, &env_home, home_dir.as_deref())?;
+    }
+    Ok(())
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+    let env_home = process.env_home()?;
     let home_dir = process.home_dir();
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(&env_home, home_dir.as_deref())?;
         let source_cmd_with_newline = format!("\n{source_cmd}");
 
         for rc in sh.rcs(process) {
@@ -88,22 +91,25 @@ pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
         }
     }
 
-    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())?;
+    if !process.use_category_home() {
+        remove_legacy_paths(process, &env_home, home_dir.as_deref())?;
+    }
 
     Ok(())
 }
 
 pub(crate) fn write_env_files(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
-    let bin_dir = cargo_home.join("bin");
+    let env_home = process.env_home()?;
+    let bin_dir = process.bin_home()?;
     let home_dir = process.home_dir();
+    utils::ensure_dir_exists("env", &env_home)?;
     let mut written = vec![];
 
     for sh in shell::get_available_shells(process) {
         let script = sh.env_script();
         // Only write each possible script once.
         if !written.contains(&script) {
-            sh.write_script(&script, &cargo_home, &bin_dir, home_dir.as_deref())?;
+            sh.write_script(&script, &env_home, &bin_dir, home_dir.as_deref())?;
             written.push(script);
         }
     }
@@ -129,16 +135,19 @@ pub(super) fn run_update(
     Ok(utils::ExitCode(0))
 }
 
-/// This function is as the final step of a self-upgrade. It replaces
-/// `$CARGO_HOME/bin/rustup` with the running exe, and updates the
-/// links to it.
+/// This function is the final step of a self-upgrade. It replaces Rustup in
+/// the Rustup bin home and updates the proxy links.
 pub(crate) fn self_replace(process: &Process) -> anyhow::Result<utils::ExitCode> {
     let self_update_lock = SelfUpdateLock::lock(process)?;
     #[cfg(feature = "test")]
     process.checkpoint(super::CHECKPOINT_SELF_REPLACE_READY);
-    let result = process.cargo_home().and_then(|cargo_home| {
-        self_update_lock.install_bins(&cargo_home.join("bin"), super::force_hard_links(process))
-    });
+
+    let result = process
+        .bin_home()
+        .map_err(anyhow::Error::from)
+        .and_then(|bin_home| {
+            self_update_lock.install_bins(&bin_home, super::force_hard_links(process))
+        });
     stage::mark_result(result.is_ok(), process);
     result?;
 
