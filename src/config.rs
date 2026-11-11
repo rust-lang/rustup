@@ -1135,6 +1135,11 @@ impl<'a> Cfg<'a> {
 
         let release_date =
             NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d").map_err(|e| {
+                let release_date_str = release_date_str
+                    .chars()
+                    .take(15)
+                    .flat_map(char::escape_default)
+                    .collect::<String>();
                 anyhow!(e).context(format!("could not parse release date '{release_date_str}'"))
             })?;
 
