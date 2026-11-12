@@ -104,9 +104,15 @@ new [b]eta release or an official [r]elease:
    `$VER_NUM` already exists in `$BRANCH`'s `Cargo.toml` file. Then in a new PR
    targeting `$BRANCH`:
    1. Update `CHANGELOG.md` accordingly if necessary.
-   2. Update `rustup-init.sh` so that:
-      - The version number matches `$VER_NUM`.
-      - The commit shasum matches the latest commit on `$BRANCH`.
+   2. From the repository root, update `rustup-init.sh` using a freshly fetched
+      remote-tracking `$BRANCH` (replace `upstream` with
+      your remote for `rust-lang/rustup`):
+      ```console
+      $ git fetch upstream
+      $ cargo run --manifest-path xtask/Cargo.toml -- upstream/$BRANCH
+      ```
+      This reads the version from that commit's `Cargo.toml` and its SHA and
+      commit date, even when the current branch contains release preparation changes.
    3. Update the test snapshot of `rustup-init.sh --help`.
       At the moment of writing, this is done by running:
       ```console
