@@ -8,6 +8,9 @@ keywords = ["rustup", "multirust", "install", "proxy"]
 repository = "https://github.com/rust-lang/rustup"
 build = "build.rs"
 
+[workspace]
+members = ["xtask"]
+
 [features]
 default = ["reqwest-native-tls", "reqwest-rustls-tls"]
 
