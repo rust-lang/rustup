@@ -32,8 +32,8 @@ use super::{
 };
 use crate::{
     cli::rustup_mode,
-    process, test as rustup_test,
-    test::{const_dist_dir, tempdir_in_with_prefix, this_host_tuple},
+    process,
+    test::{self as rustup_test, const_dist_dir, tempdir_in_with_prefix, this_host_tuple},
     utils,
 };
 #[cfg(windows)]
