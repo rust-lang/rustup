@@ -19,11 +19,11 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-use crate::{dist::TargetTuple, process::TestProcess};
+use crate::{dist::TargetTuple, process::TestProcess, utils::raw};
 
 #[cfg(all(windows, any(test, feature = "test")))]
 pub(crate) fn test_id() -> String {
-    crate::utils::raw::random_string(8)
+    raw::random_string(8)
 }
 
 #[cfg(windows)]
@@ -77,8 +77,26 @@ impl Env for HashMap<String, String> {
 fn exe_test_dir() -> io::Result<PathBuf> {
     let curr_exe = env::current_exe().unwrap();
     let curr_exe_dir = curr_exe.parent().unwrap();
-    let mut comps = curr_exe_dir.components().collect::<Vec<_>>();
 
+    // Make an empty dir and try to rename it to under the OS' tmp dir to check if they are on the
+    // same device. If they are, we can conveniently use the renamed dir as the base for our test
+    // directories. If not, we try to put the base dir in `./target/` as before.
+    let probe_dir = curr_exe_dir.join(format!("rustup-test-{}", raw::random_string(8)));
+    raw::ensure_dir_exists(&probe_dir, |_| ())?;
+    let tmp_test_dir = env::temp_dir().join("rustup-test");
+
+    let Err(e) = fs::rename(&probe_dir, &tmp_test_dir) else {
+        return Ok(tmp_test_dir);
+    };
+
+    fs::remove_dir(&probe_dir)?;
+    match e.kind() {
+        io::ErrorKind::DirectoryNotEmpty => return Ok(tmp_test_dir),
+        io::ErrorKind::CrossesDevices => (),
+        _ => return Err(e),
+    }
+
+    let mut comps = curr_exe_dir.components().collect::<Vec<_>>();
     let retained_comps = match &comps[..] {
         // New `cargo` output directory layout since Rust v1.100.0:
         // <base>/(debug|release)/build/rustup/<unit-hash>/out/<current_exe>
