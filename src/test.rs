@@ -75,12 +75,33 @@ impl Env for HashMap<String, String> {
 
 /// The path to a dir for this test binaries state
 fn exe_test_dir() -> io::Result<PathBuf> {
-    let current_exe_path = env::current_exe().unwrap();
-    let mut exe_dir = current_exe_path.parent().unwrap();
-    if exe_dir.ends_with("deps") {
-        exe_dir = exe_dir.parent().unwrap();
-    }
-    Ok(exe_dir.parent().unwrap().to_owned())
+    let curr_exe = env::current_exe().unwrap();
+    let curr_exe_dir = curr_exe.parent().unwrap();
+    let mut comps = curr_exe_dir.components().collect::<Vec<_>>();
+
+    let retained_comps = match &comps[..] {
+        // New `cargo` output directory layout since Rust v1.100.0:
+        // <base>/(debug|release)/build/rustup/<unit-hash>/out/<current_exe>
+        [base @ .., _profile, build, rustup, _hash, out]
+            if build.as_os_str() == "build"
+                && rustup.as_os_str() == "rustup"
+                && out.as_os_str() == "out" =>
+        {
+            base.len()
+        }
+        // Legacy layout before Rust v1.100.0:
+        // <base>/(debug|release)/deps/<current_exe>
+        [base @ .., _profile, deps] if deps.as_os_str() == "deps" => base.len(),
+        _ => {
+            return Err(io::Error::other(format!(
+                "unexpected current exe path format: {}",
+                curr_exe.display()
+            )));
+        }
+    };
+
+    comps.truncate(retained_comps);
+    Ok(PathBuf::from_iter(comps))
 }
 
 /// Returns a tempdir for running tests in
