@@ -4315,10 +4315,9 @@ async fn only_toml_in_rust_toolchain_toml() {
     cx.config
         .expect(["rustc", "--version"])
         .await
-        .extend_redactions([("[CWD]", &cwd)])
         .with_stderr(snapbox::str![[r#"
 ...
-error: could not parse override file: '[CWD]/rust-toolchain.toml'[..]
+error: could not parse override file: '[..]/rust-toolchain.toml'[..]
 ...
 "#]])
         .is_err();

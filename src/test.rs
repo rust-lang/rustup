@@ -19,11 +19,11 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-use crate::{dist::TargetTuple, process::TestProcess};
+use crate::{dist::TargetTuple, process::TestProcess, utils::raw};
 
 #[cfg(all(windows, any(test, feature = "test")))]
 pub(crate) fn test_id() -> String {
-    crate::utils::raw::random_string(8)
+    raw::random_string(8)
 }
 
 #[cfg(windows)]
@@ -75,12 +75,51 @@ impl Env for HashMap<String, String> {
 
 /// The path to a dir for this test binaries state
 fn exe_test_dir() -> io::Result<PathBuf> {
-    let current_exe_path = env::current_exe().unwrap();
-    let mut exe_dir = current_exe_path.parent().unwrap();
-    if exe_dir.ends_with("deps") {
-        exe_dir = exe_dir.parent().unwrap();
+    let curr_exe = env::current_exe().unwrap();
+    let curr_exe_dir = curr_exe.parent().unwrap();
+
+    // Make an empty dir and try to rename it to under the OS' tmp dir to check if they are on the
+    // same device. If they are, we can conveniently use the renamed dir as the base for our test
+    // directories. If not, we try to put the base dir in `./target/` as before.
+    let probe_dir = curr_exe_dir.join(format!("rustup-test-{}", raw::random_string(8)));
+    raw::ensure_dir_exists(&probe_dir, |_| ())?;
+    let tmp_test_dir = env::temp_dir().join("rustup-test");
+
+    let Err(e) = fs::rename(&probe_dir, &tmp_test_dir) else {
+        return Ok(tmp_test_dir);
+    };
+
+    fs::remove_dir(&probe_dir)?;
+    match e.kind() {
+        io::ErrorKind::DirectoryNotEmpty => return Ok(tmp_test_dir),
+        io::ErrorKind::CrossesDevices => (),
+        _ => return Err(e),
     }
-    Ok(exe_dir.parent().unwrap().to_owned())
+
+    let mut comps = curr_exe_dir.components().collect::<Vec<_>>();
+    let retained_comps = match &comps[..] {
+        // New `cargo` output directory layout since Rust v1.100.0:
+        // <base>/(debug|release)/build/rustup/<unit-hash>/out/<current_exe>
+        [base @ .., _profile, build, rustup, _hash, out]
+            if build.as_os_str() == "build"
+                && rustup.as_os_str() == "rustup"
+                && out.as_os_str() == "out" =>
+        {
+            base.len()
+        }
+        // Legacy layout before Rust v1.100.0:
+        // <base>/(debug|release)/deps/<current_exe>
+        [base @ .., _profile, deps] if deps.as_os_str() == "deps" => base.len(),
+        _ => {
+            return Err(io::Error::other(format!(
+                "unexpected current exe path format: {}",
+                curr_exe.display()
+            )));
+        }
+    };
+
+    comps.truncate(retained_comps);
+    Ok(PathBuf::from_iter(comps))
 }
 
 /// Returns a tempdir for running tests in
