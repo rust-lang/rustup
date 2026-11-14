@@ -1924,6 +1924,45 @@ error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rust-analysis
 }
 
 #[tokio::test]
+async fn add_component_not_available_with_suggestion() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "install", "nightly"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "component", "add", "rls-preview"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rls-preview' for target '[HOST_TUPLE]'
+help: try `rustup +nightly-[HOST_TUPLE] component add rls-preview`
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
+async fn add_component_not_available_no_alternative() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "component", "add", "rls-preview"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+error: toolchain 'stable-[HOST_TUPLE]' does not contain component 'rls-preview' for target '[HOST_TUPLE]'
+
+"#]])
+        .is_err();
+}
+
+#[tokio::test]
 async fn remove_target_no_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     cx.config

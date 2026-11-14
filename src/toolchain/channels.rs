@@ -96,24 +96,31 @@ impl<'a> ChannelToolchain<'a> {
             }
 
             let config = manifestation.read_config()?.unwrap_or_default();
-            let suggestion = component_suggestion(desc, &component, &config, &manifest, false);
 
             if targ_pkg
                 .components
                 .iter()
                 .any(|c| c.target() == component.target())
             {
+                let suggestion = ComponentSuggestion::for_addition(
+                    desc,
+                    &component,
+                    &config,
+                    &manifest,
+                    self.toolchain.cfg,
+                );
                 return Err(RustupError::UnknownComponents {
                     desc: desc.clone(),
                     components: vec![UnknownComponentInfo {
                         name: manifest.short_name(&component).to_string(),
                         description: manifest.description(&component),
-                        suggestion: suggestion.map(ComponentSuggestion::Component),
+                        suggestion,
                     }],
                 }
                 .into());
             }
 
+            let suggestion = component_suggestion(desc, &component, &config, &manifest, false);
             let target = component.target.expect("component target should be known");
             if let Some(platform) = Platform::find(&target) {
                 return Err(RustupError::UnavailableTarget {
