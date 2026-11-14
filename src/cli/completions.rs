@@ -1,4 +1,4 @@
-use std::iter;
+use std::ffi::OsStr;
 
 use clap::CommandFactory;
 use clap_complete::{ArgValueCandidates, engine::CompletionCandidate};
@@ -6,25 +6,37 @@ use clap_complete::{ArgValueCandidates, engine::CompletionCandidate};
 use crate::{
     cli::rustup_mode::Rustup,
     config::Cfg,
-    toolchain::{ChannelToolchain, ToolchainName, ToolchainNameOrPath},
+    toolchain::{
+        ChannelToolchain, Override, PartialToolchainNameOrPath, ToolchainName, ToolchainNameOrPath,
+    },
 };
 
-pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
+pub(super) fn rustup_command(cfg: &Cfg<'_>, args_os: &[impl AsRef<OsStr>]) -> clap::Command {
     let mut toolchains = cfg.list_toolchains(true).unwrap_or_default();
     toolchains.sort();
 
-    // Collect available targets from the first installed
-    // distributable toolchain. Uses only on-disk manifest data
-    let available_targets = toolchains
-        .iter()
-        .find_map(|name| {
-            let ToolchainName::Channel(desc) = name else {
-                return None;
-            };
-            let dist = ChannelToolchain::new(cfg, desc.clone()).ok()?;
-            let components = dist.components().ok()?;
+    let maybe_matches = Rustup::command()
+        .ignore_errors(true)
+        .try_get_matches_from(args_os)
+        .ok();
+    let toolchain_override = maybe_matches
+        .as_ref()
+        .and_then(|m| m.get_one::<Override<PartialToolchainNameOrPath>>("+toolchain"));
+
+    let active_channel_toolchain = match cfg.active_toolchain(toolchain_override) {
+        Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
+            ChannelToolchain::new(cfg, desc).ok()
+        }
+        _ => None,
+    };
+    let has_active_channel_toolchain = active_channel_toolchain.is_some();
+
+    let available_targets = active_channel_toolchain
+        .as_ref()
+        .and_then(|dist| {
             Some(
-                components
+                dist.components()
+                    .ok()?
                     .into_iter()
                     .filter_map(|c| {
                         (c.component.short_name() == "rust-std" && c.available)
@@ -35,12 +47,6 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
         })
         .unwrap_or_default();
 
-    let active_channel_toolchain = match cfg.active_toolchain() {
-        Ok(Some((ToolchainNameOrPath::Named(ToolchainName::Channel(desc)), _))) => {
-            ChannelToolchain::new(cfg, desc).ok()
-        }
-        _ => None,
-    };
     let installed_targets = active_channel_toolchain
         .and_then(|dist| dist.toolchain.installed_targets().ok())
         .unwrap_or_default();
@@ -59,8 +65,10 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>) -> clap::Command {
                 .mut_subcommand("add", move |add_cmd| {
                     add_cmd.mut_arg("target", move |arg| {
                         arg.add(ArgValueCandidates::new(move || {
-                            // "all" is a special keyword that installs every available target
-                            iter::once("all")
+                            has_active_channel_toolchain
+                                // "all" is a special keyword that installs every available target
+                                .then_some("all")
+                                .into_iter()
                                 .chain(available_targets.iter().map(AsRef::as_ref))
                                 .map(CompletionCandidate::new)
                                 .collect()
@@ -89,10 +97,13 @@ mod tests {
     };
 
     use super::rustup_command;
-    use crate::{config::Cfg, process::TestProcess};
+    use crate::{
+        config::Cfg,
+        process::{Process, TestProcess},
+    };
 
     fn complete(cfg: &Cfg<'_>, args: &[&str], index: usize) -> Vec<String> {
-        let mut command = rustup_command(cfg);
+        let mut command = rustup_command(cfg, args);
         clap_complete::engine::complete(
             &mut command,
             args.iter().map(OsString::from).collect(),
@@ -140,23 +151,70 @@ mod tests {
     #[test]
     fn dynamic_completion_target_add_offers_all_keyword() {
         let (rustup_home, process) = completion_cfg();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
+        fs::write(
+            rustlib.join("multirust-channel-manifest.toml"),
+            STABLE_MANIFEST,
+        )
+        .unwrap();
+
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
-        assert!(candidates.contains(&"all".to_owned()));
+        assert!(candidates.iter().any(|c| c == "all"));
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_offers_real_targets() {
+        let (rustup_home, process) = completion_cfg();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
+        fs::write(
+            rustlib.join("multirust-channel-manifest.toml"),
+            STABLE_MANIFEST,
+        )
+        .unwrap();
+
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
+
+        assert!(
+            HashSet::from_iter(candidates.iter().map(AsRef::as_ref)).is_superset(&HashSet::from([
+                "aarch64-unknown-linux-gnu",
+                "x86_64-unknown-linux-musl",
+                "x86_64-unknown-linux-gnu",
+                "all",
+            ]))
+        );
+
+        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
+        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
     }
 
     #[test]
     fn dynamic_completion_target_add_prefix_filters_all() {
         let (rustup_home, process) = completion_cfg();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
+        fs::write(
+            rustlib.join("multirust-channel-manifest.toml"),
+            STABLE_MANIFEST,
+        )
+        .unwrap();
+
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         // "al" prefix matches only "all"
         let candidates = complete(&cfg, &["rustup", "target", "add", "al"], 3);
         assert_eq!(candidates, ["all"]);
 
         let candidates = complete(&cfg, &["rustup", "target", "add", "x86"], 3);
-        assert!(!candidates.contains(&"all".to_owned()));
+        assert!(!candidates.iter().any(|c| c == "all"));
     }
 
     #[test]
@@ -165,16 +223,58 @@ mod tests {
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
 
         let candidates = complete(&cfg, &["rustup", "target", "remove", ""], 3);
-        assert!(!candidates.contains(&"all".to_owned()));
+        assert!(!candidates.iter().any(|c| c == "all"));
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_with_custom_toolchain() {
+        let (rustup_home, process) = completion_cfg();
+        fs::create_dir_all(rustup_home.path().join("toolchains/custom")).unwrap();
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let mut candidates = complete(&cfg, &["rustup", "+custom", "target", "add", ""], 4);
+        candidates.retain(|c| !c.starts_with('-'));
+        assert!(
+            candidates.is_empty(),
+            "expected an empty list of suggestions, got: {candidates:?}"
+        );
+    }
+
+    #[test]
+    fn dynamic_completion_target_add_with_explicit_channel_toolchain() {
+        let (rustup_home, process) = completion_cfg();
+
+        for (rustlib, manifest) in [
+            (STABLE_RUSTLIB, STABLE_MANIFEST),
+            (NIGHTLY_RUSTLIB, NIGHTLY_MANIFEST),
+        ] {
+            let rustlib = rustup_home.path().join(rustlib);
+            fs::create_dir_all(&rustlib).unwrap();
+            fs::write(rustlib.join("multirust-channel-manifest.toml"), manifest).unwrap();
+        }
+
+        let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+
+        let candidates = complete(
+            &cfg,
+            &["rustup", &format!("+{NIGHTLY}"), "target", "add", ""],
+            4,
+        );
+        assert!(!candidates.iter().any(|c| c == "aarch64-unknown-linux-gnu"));
+        assert!(
+            candidates
+                .iter()
+                .any(|c| c == "riscv64gc-unknown-linux-gnu")
+        );
     }
 
     #[test]
     fn dynamic_completion_target_remove() {
         let (rustup_home, process) = completion_cfg();
-        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
-        fs::create_dir_all(&manifest_dir).unwrap();
+        let rustlib = rustup_home.path().join(STABLE_RUSTLIB);
+        fs::create_dir_all(&rustlib).unwrap();
         fs::write(
-            manifest_dir.join("components"),
+            rustlib.join("components"),
             "rustc-x86_64-unknown-linux-gnu\n\
              rust-std-x86_64-unknown-linux-gnu\n\
              rust-std-x86_64-unknown-linux-musl\n",
@@ -182,7 +282,7 @@ mod tests {
         .unwrap();
 
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
-        cfg.set_default(Some(&TOOLCHAIN.parse().unwrap())).unwrap();
+        cfg.set_default(Some(&STABLE.parse().unwrap())).unwrap();
 
         assert_eq!(
             complete(&cfg, &["rustup", "target", "remove", "x86_64"], 3),
@@ -191,33 +291,43 @@ mod tests {
     }
 
     #[test]
-    fn dynamic_completion_target_add_offers_real_targets() {
+    fn dynamic_completion_target_remove_with_explicit_channel_toolchain() {
         let (rustup_home, process) = completion_cfg();
-        let manifest_dir = rustup_home.path().join(MANIFEST_DIR);
-        fs::create_dir_all(&manifest_dir).unwrap();
-        fs::write(
-            manifest_dir.join("multirust-channel-manifest.toml"),
-            MANIFEST,
-        )
-        .unwrap();
+        for (rustlib, components) in [
+            (STABLE_RUSTLIB, "rust-std-aarch64-unknown-linux-gnu\n"),
+            (NIGHTLY_RUSTLIB, "rust-std-riscv64gc-unknown-linux-gnu\n"),
+        ] {
+            let rustlib = rustup_home.path().join(rustlib);
+            fs::create_dir_all(&rustlib).unwrap();
+            fs::write(rustlib.join("components"), components).unwrap();
+        }
 
         let cfg = Cfg::from_env(rustup_home.path().to_owned(), true, false, &process).unwrap();
+        cfg.set_default(Some(&NIGHTLY.parse().unwrap())).unwrap();
 
-        let candidates = complete(&cfg, &["rustup", "target", "add", ""], 3);
-
-        assert!(candidates.contains(&"aarch64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-musl".to_owned()));
-        assert!(candidates.contains(&"x86_64-unknown-linux-gnu".to_owned()));
-        assert!(candidates.contains(&"all".to_owned()));
-
-        let candidates = complete(&cfg, &["rustup", "target", "add", "aarch64"], 3);
-        assert_eq!(candidates, ["aarch64-unknown-linux-gnu"]);
+        let candidates = complete(
+            &cfg,
+            &[
+                "rustup",
+                "+stable-x86_64-unknown-linux-gnu",
+                "target",
+                "remove",
+                "",
+            ],
+            4,
+        );
+        assert!(candidates.iter().any(|c| c == "aarch64-unknown-linux-gnu"));
+        assert!(
+            !candidates
+                .iter()
+                .any(|c| c == "riscv64gc-unknown-linux-gnu"),
+        );
     }
 
     /// Creates a bare rustup home with no toolchains installed.
     /// Used by completion tests to verify the completer is robust
     /// and to set up a base environment for further customisation.
-    fn completion_cfg() -> (tempfile::TempDir, crate::process::Process) {
+    fn completion_cfg() -> (tempfile::TempDir, Process) {
         let rustup_home = tempfile::tempdir().unwrap();
         let vars = HashMap::from([
             (
@@ -237,9 +347,9 @@ mod tests {
         (rustup_home, process)
     }
 
-    const TOOLCHAIN: &str = "stable-x86_64-unknown-linux-gnu";
-    const MANIFEST_DIR: &str = "toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib";
-    const MANIFEST: &str = r#"
+    const STABLE: &str = "stable-x86_64-unknown-linux-gnu";
+    const STABLE_RUSTLIB: &str = "toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib";
+    const STABLE_MANIFEST: &str = r#"
 manifest-version = "2"
 date = "2025-01-01"
 [pkg.rust]
@@ -280,5 +390,43 @@ date = "2025-01-01"
     available = true
     url = "https://example.com"
     hash = "deadbeef"
+"#;
+
+    const NIGHTLY: &str = "nightly-x86_64-unknown-linux-gnu";
+    const NIGHTLY_RUSTLIB: &str = "toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib";
+    const NIGHTLY_MANIFEST: &str = r#"
+manifest-version = "2"
+date = "2025-01-01"
+[pkg.rust]
+    version = "rustc 1.80.0 (fake)"
+    [pkg.rust.target.x86_64-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
+        [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+            pkg = "rustc"
+            target = "x86_64-unknown-linux-gnu"
+        [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+            pkg = "rust-std"
+            target = "x86_64-unknown-linux-gnu"
+        [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+            pkg = "rust-std"
+            target = "riscv64gc-unknown-linux-gnu"
+[pkg.rustc]
+    version = "rustc 1.80.0 (fake)"
+    [pkg.rustc.target.x86_64-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
+[pkg.rust-std]
+    version = "rustc 1.80.0 (fake)"
+    [pkg.rust-std.target.x86_64-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
+    [pkg.rust-std.target.riscv64gc-unknown-linux-gnu]
+        available = true
+        url = "https://example.com"
+        hash = "deadbeef"
 "#;
 }

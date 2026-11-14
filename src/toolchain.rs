@@ -110,7 +110,7 @@ impl<'a> Toolchain<'a> {
         if !name.exists(cfg)? {
             return Err(match name {
                 ToolchainNameOrPath::Named(name) => {
-                    let is_active = matches!(cfg.active_toolchain(), Ok(Some((t, _))) if t == name);
+                    let is_active = matches!(cfg.active_toolchain(cfg.toolchain_override.as_ref()), Ok(Some((t, _))) if t == name);
                     RustupError::ToolchainNotInstalled { name, is_active }
                 }
                 ToolchainNameOrPath::Path(name) => RustupError::PathToolchainNotInstalled(name),

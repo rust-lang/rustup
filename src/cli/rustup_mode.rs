@@ -693,8 +693,9 @@ pub async fn main(
     process: &Process,
     console_filter: Handle<EnvFilter, Registry>,
 ) -> anyhow::Result<ExitCode> {
+    let args_os = process.args_os().collect::<Vec<_>>();
     let cfg = &mut Cfg::from_env(current_dir, true, false, process)?;
-    clap_complete::CompleteEnv::with_factory(|| completions::rustup_command(cfg))
+    clap_complete::CompleteEnv::with_factory(|| completions::rustup_command(cfg, &args_os))
         .var("RUSTUP_COMPLETE")
         .bin("rustup")
         .complete();
@@ -702,7 +703,7 @@ pub async fn main(
     self_update::cleanup_self_updater(process, &process.cargo_home()?.join("bin"))?;
 
     use clap::error::ErrorKind::*;
-    let matches = match Rustup::try_parse_from(process.args_os()) {
+    let matches = match Rustup::try_parse_from(&args_os) {
         Ok(matches) => matches,
         Err(err) if err.kind() == DisplayHelp => {
             write!(process.stdout().lock(), "{}", err.render().ansi())?;
@@ -929,7 +930,7 @@ async fn default_(
             }
         };
 
-        if let Some((toolchain, source)) = cfg.active_toolchain()?
+        if let Some((toolchain, source)) = cfg.active_toolchain(cfg.toolchain_override.as_ref())?
             && !matches!(source, ActiveSource::Default)
         {
             info!(
@@ -1223,7 +1224,7 @@ async fn which(
         ));
     };
 
-    let selector = match cfg.active_toolchain() {
+    let selector = match cfg.active_toolchain(cfg.toolchain_override.as_ref()) {
         Ok(Some((t, _))) if &t == toolchain_name => String::new(),
         _ => format!("--toolchain {} ", toolchain.name()),
     };
@@ -1663,32 +1664,33 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<
 fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     let default_host = cfg.default_host_tuple()?;
 
-    let (mut r#override, backfill_components) = match cfg.find_override_config()? {
-        Some((o, _)) => (o, None),
-        None => {
-            let default = cfg
-                .get_default_resolvable()?
-                .context("no default toolchain to pin")?;
-            let components = match &default {
-                PartialToolchainName::Channel(desc) => {
-                    let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
-                    let manifest = tc.get_manifest()?;
+    let (mut r#override, backfill_components) =
+        match cfg.find_override_config(cfg.toolchain_override.as_ref())? {
+            Some((o, _)) => (o, None),
+            None => {
+                let default = cfg
+                    .get_default_resolvable()?
+                    .context("no default toolchain to pin")?;
+                let components = match &default {
+                    PartialToolchainName::Channel(desc) => {
+                        let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
+                        let manifest = tc.get_manifest()?;
 
-                    Some(
-                        tc.components()?
-                            .into_iter()
-                            .filter_map(|c| {
-                                (c.available && c.installed)
-                                    .then(|| manifest.display_name(&c.component, &default_host))
-                            })
-                            .collect(),
-                    )
-                }
-                PartialToolchainName::Custom(_) => None,
-            };
-            (OverrideCfg::from(default), components)
-        }
-    };
+                        Some(
+                            tc.components()?
+                                .into_iter()
+                                .filter_map(|c| {
+                                    (c.available && c.installed)
+                                        .then(|| manifest.display_name(&c.component, &default_host))
+                                })
+                                .collect(),
+                        )
+                    }
+                    PartialToolchainName::Custom(_) => None,
+                };
+                (OverrideCfg::from(default), components)
+            }
+        };
     if qualified {
         r#override.qualify(&default_host);
     }

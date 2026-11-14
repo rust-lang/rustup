@@ -618,7 +618,7 @@ impl<'a> Cfg<'a> {
             self.should_auto_install()?
         };
         if !should_ensure {
-            return self.active_toolchain();
+            return self.active_toolchain(self.toolchain_override.as_ref());
         }
 
         match self.ensure_active_toolchain(true, false).await {
@@ -636,9 +636,12 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn active_toolchain(
         &self,
+        toolchain_override: Option<&Override<PartialToolchainNameOrPath>>,
     ) -> anyhow::Result<Option<(ToolchainNameOrPath, ActiveSource)>> {
         Ok(
-            if let Some((override_config, source)) = self.find_override_config()? {
+            if let Some((override_config, source)) =
+                self.find_override_config(toolchain_override)?
+            {
                 Some((
                     override_config.into_local_toolchain_name(&self.default_host_tuple()?)?,
                     source,
@@ -652,10 +655,11 @@ impl<'a> Cfg<'a> {
 
     pub(crate) fn find_override_config(
         &self,
+        toolchain_override: Option<&Override<PartialToolchainNameOrPath>>,
     ) -> anyhow::Result<Option<(OverrideCfg, ActiveSource)>> {
         let override_config: Option<(OverrideCfg, ActiveSource)> =
             // First check +toolchain override from the command line
-            if let Some(name) = &self.toolchain_override {
+            if let Some(name) = toolchain_override {
                 Some((name.clone().resolve(self)?.into(), ActiveSource::CommandLine))
             }
             // Then check the RUSTUP_TOOLCHAIN environment variable
@@ -858,7 +862,9 @@ impl<'a> Cfg<'a> {
         force_non_host: bool,
         verbose: bool,
     ) -> anyhow::Result<(EnsureInstalled<ToolchainNameOrPath>, ActiveSource)> {
-        if let Some((override_config, source)) = self.find_override_config()? {
+        if let Some((override_config, source)) =
+            self.find_override_config(self.toolchain_override.as_ref())?
+        {
             let default_host = self.default_host_tuple()?;
             let toolchain = override_config
                 .clone()
