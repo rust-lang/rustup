@@ -6,6 +6,8 @@ mod tests;
 
 use std::{
     collections::VecDeque,
+    fs,
+    io::{BufRead, BufReader, Read},
     path::Path,
     pin::Pin,
     sync::Arc,
@@ -376,6 +378,26 @@ impl Manifestation {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
+    pub(crate) fn load_manifest_date(&self) -> anyhow::Result<Option<String>> {
+        let prefix = self.installation.prefix();
+        if let Some(manifest_path) = prefix.dist_manifest() {
+            let date = fs::File::open(&manifest_path)
+                .map_err(anyhow::Error::from)
+                .and_then(read_manifest_date);
+            match date {
+                Ok(date) => return Ok(Some(date)),
+                Err(error) => debug!(
+                    path = %manifest_path.display(),
+                    %error,
+                    "failed to read manifest date from header; falling back to full manifest parsing"
+                ),
+            }
+        }
+
+        Ok(self.load_manifest()?.map(|manifest| manifest.date))
+    }
+
     /// Installation using the legacy v1 manifest format
     pub(crate) async fn update_v1(
         &self,
@@ -467,6 +489,26 @@ impl Manifestation {
 
         Ok(tx)
     }
+}
+
+/// Parses the manifest date from the root-level fields before the first line
+/// whose first non-whitespace character is `[`, reading at most
+/// `MANIFEST_HEADER_SIZE_LIMIT` bytes.
+fn read_manifest_date(reader: impl Read) -> anyhow::Result<String> {
+    let mut reader = BufReader::new(reader.take(MANIFEST_HEADER_SIZE_LIMIT));
+    let mut header = String::new();
+    loop {
+        let line_start = header.len();
+        if reader.read_line(&mut header)? == 0 {
+            break;
+        }
+        if header[line_start..].trim_start().starts_with('[') {
+            header.truncate(line_start);
+            break;
+        }
+    }
+
+    Manifest::parse_date(&header)
 }
 
 struct InstallEvents<'a, F> {
@@ -838,6 +880,11 @@ impl ComponentInstall {
 }
 
 pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
+
+// The serialized manifest currently places `date` within the first 64 bytes.
+// Leave some headroom for reordered or additional root keys; if the header
+// exceeds this limit, loading falls back to parsing the full manifest.
+const MANIFEST_HEADER_SIZE_LIMIT: u64 = 128;
 
 #[cfg(feature = "test")]
 pub const CHECKPOINT_UPDATE_BEFORE_METADATA: &str = "update-before-metadata";
