@@ -1122,8 +1122,8 @@ impl<'a> Cfg<'a> {
             Err(e) => return Err(anyhow!(e).context("while looking for local stable toolchain")),
         };
         let release_date_str = match stable.get_manifestation() {
-            Ok(manifestation) => match manifestation.load_manifest() {
-                Ok(Some(manifest)) => manifest.date,
+            Ok(manifestation) => match manifestation.load_manifest_date() {
+                Ok(Some(date)) => date,
                 Ok(None) | Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
             },
             Err(_) => FALLBACK_RELEASE_DATE.to_owned(),

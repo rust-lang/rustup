@@ -332,6 +332,10 @@ impl Manifest {
         Ok(manifest)
     }
 
+    pub(crate) fn parse_date(header: &str) -> anyhow::Result<String> {
+        Ok(toml::from_str::<Self>(header)?.date)
+    }
+
     pub fn stringify(self) -> anyhow::Result<String> {
         Ok(toml::to_string(&self)?)
     }
