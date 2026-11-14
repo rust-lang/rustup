@@ -36,8 +36,6 @@ use crate::{
     utils,
 };
 
-pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
-
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
@@ -838,6 +836,8 @@ impl ComponentInstall {
         tx
     }
 }
+
+pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 
 #[cfg(feature = "test")]
 pub const CHECKPOINT_UPDATE_BEFORE_METADATA: &str = "update-before-metadata";
