@@ -100,32 +100,17 @@ impl ComponentSuggestion {
         manifest: &Manifest,
         cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        let Ok(toolchains) = cfg.list_toolchains(true) else {
-            return component_suggestion(desc, component, config, manifest, true)
-                .map(Self::Component);
-        };
-
-        let names = [component.name(), component.wildcard().name()];
-        for toolchain_name in toolchains {
-            if let ToolchainName::Channel(toolchain_desc) = &toolchain_name
-                && toolchain_desc == desc
-            {
-                continue;
-            }
-
-            let Ok(toolchain) = Toolchain::new(cfg, toolchain_name.clone().into()) else {
+        for channel_toolchain in other_channel_toolchains(desc, cfg) {
+            let Ok(installed_components) = channel_toolchain.toolchain.installed_components()
+            else {
                 continue;
             };
-            let Ok(installed_components) = toolchain.installed_components() else {
-                continue;
-            };
-
-            if installed_components
-                .iter()
-                .any(|c| names.iter().any(|n| n == c.name()))
-            {
+            if installed_components.iter().any(|installed| {
+                component.name() == installed.name()
+                    || component.wildcard().name() == installed.name()
+            }) {
                 return Some(Self::Toolchain {
-                    name: toolchain_name.to_string(),
+                    name: channel_toolchain.desc().to_string(),
                     component: manifest.short_name(component).to_string(),
                     action: "remove",
                 });
