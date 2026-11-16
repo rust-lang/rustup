@@ -512,7 +512,10 @@ mod windows {
         delay::{Fibonacci, jitter},
         retry,
     };
-    use rustup::test::{CliTestContext, Scenario, USER_PATH, get_path};
+    use rustup::{
+        cli::self_update::{USER_PATH, get_path},
+        test::{CliTestContext, Scenario},
+    };
     use windows_registry::{CURRENT_USER, HSTRING, Value};
 
     use super::INIT_NONE;

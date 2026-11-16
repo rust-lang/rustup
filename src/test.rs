@@ -19,25 +19,26 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-use crate::{dist::TargetTuple, process::TestProcess};
-
 #[cfg(all(windows, any(test, feature = "test")))]
-pub(crate) fn test_id() -> String {
-    crate::utils::raw::random_string(8)
-}
-
-#[cfg(windows)]
-pub use crate::cli::self_update::{RUSTUP_REGISTRY_TEST_ID, RegistryValueId, USER_PATH, get_path};
+use crate::utils::raw;
+use crate::{dist::TargetTuple, process::TestProcess};
 
 mod clitools;
 pub use clitools::{
     Assert, CliTestContext, Config, ParkedChild, SanitizedOutput, Scenario, SelfUpdateTestContext,
     output_release_file, print_command, print_indented,
 };
+
 pub(super) mod dist;
 pub use dist::DistContext;
+
 pub(super) mod mock;
 pub use mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+
+#[cfg(all(windows, any(test, feature = "test")))]
+pub(crate) fn test_id() -> String {
+    raw::random_string(8)
+}
 
 pub fn checkpoint_path(test_root: &Path, name: &str) -> PathBuf {
     test_root.join(format!("rustup-checkpoint-{name}"))
