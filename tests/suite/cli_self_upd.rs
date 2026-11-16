@@ -15,7 +15,7 @@ use retry::{
 #[cfg(unix)]
 use rustup::cli::self_update::CHECKPOINT_SELF_REPLACE_READY;
 #[cfg(windows)]
-use rustup::test::RegistryValueId;
+use rustup::cli::self_update::RegistryValueId;
 use rustup::{
     DUP_TOOLS, TOOLS,
     cli::self_update::{
