@@ -4308,17 +4308,15 @@ async fn rust_toolchain_toml_default_uses_configured_default() {
 #[tokio::test]
 async fn only_toml_in_rust_toolchain_toml() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
-    let cwd = cx.config.current_dir();
-    let toolchain_file = cwd.join("rust-toolchain.toml");
+    let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
     raw::write_file(&toolchain_file, "nightly").unwrap();
 
     cx.config
         .expect(["rustc", "--version"])
         .await
-        .extend_redactions([("[CWD]", &cwd)])
         .with_stderr(snapbox::str![[r#"
 ...
-error: could not parse override file: '[CWD]/rust-toolchain.toml'[..]
+error: could not parse override file: '[..]/rust-toolchain.toml'[..]
 ...
 "#]])
         .is_err();
