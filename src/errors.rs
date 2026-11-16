@@ -134,6 +134,16 @@ impl ComponentSuggestion {
 
         component_suggestion(desc, component, config, manifest, true).map(Self::Component)
     }
+
+    pub(crate) fn for_addition(
+        desc: &ChannelToolchainName,
+        component: &Component,
+        config: &DistConfig,
+        manifest: &Manifest,
+    ) -> Option<Self> {
+        component_suggestion(desc, component, config, manifest, false)
+            .map(Self::Component)
+    }
 }
 
 impl fmt::Display for ComponentSuggestion {
