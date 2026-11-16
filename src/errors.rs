@@ -20,7 +20,7 @@ use crate::{
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{Toolchain, ToolchainName, ToolchainPath},
+    toolchain::{ChannelToolchain, Toolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -140,10 +140,39 @@ impl ComponentSuggestion {
         component: &Component,
         config: &DistConfig,
         manifest: &Manifest,
+        cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        component_suggestion(desc, component, config, manifest, false)
-            .map(Self::Component)
+        for channel_toolchain in other_channel_toolchains(desc, cfg) {
+            let Ok(components) = channel_toolchain.components() else {
+                continue;
+            };
+
+            if components.iter().any(|status| {
+                status.available
+                    && (component.name() == status.component.name()
+                        || component.wildcard().name() == status.component.name())
+            }) {
+                return Some(Self::Toolchain {
+                    name: channel_toolchain.desc().to_string(),
+                    component: manifest.short_name(component).to_string(),
+                    action: "add",
+                });
+            }
+        }
+
+        component_suggestion(desc, component, config, manifest, false).map(Self::Component)
     }
+}
+
+fn other_channel_toolchains<'a>(
+    desc: &ChannelToolchainName,
+    cfg: &'a Cfg<'a>,
+) -> impl Iterator<Item = ChannelToolchain<'a>> {
+    cfg.list_channels()
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter(move |c| c.desc() != desc)
 }
 
 impl fmt::Display for ComponentSuggestion {
