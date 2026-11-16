@@ -19,9 +19,7 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-#[cfg(all(windows, any(test, feature = "test")))]
-use crate::utils::raw;
-use crate::{dist::TargetTuple, process::TestProcess};
+use crate::{dist::TargetTuple, process::TestProcess, utils::raw};
 
 mod clitools;
 pub use clitools::{
@@ -76,12 +74,33 @@ impl Env for HashMap<String, String> {
 
 /// The path to a dir for this test binaries state
 fn exe_test_dir() -> io::Result<PathBuf> {
-    let current_exe_path = env::current_exe().unwrap();
-    let mut exe_dir = current_exe_path.parent().unwrap();
-    if exe_dir.ends_with("deps") {
-        exe_dir = exe_dir.parent().unwrap();
+    let rustup_test = "rustup-test";
+    let tmp_test_dir = env::temp_dir().join(rustup_test);
+
+    let Some(mut cargo_tmp) = env::var_os("CARGO_BIN_EXE_rustup-init").map(PathBuf::from) else {
+        // We are in unit tests, so we are probably not calling the rustup subprocess. It is thus
+        // safe to use the OS' tmp dir, because no hardlinks to `rustup-init[EXE]` is required.
+        return Ok(tmp_test_dir);
+    };
+    cargo_tmp.pop(); // Remove the `(debug|release)` part, a.k.a. "profile".
+    cargo_tmp.push(rustup_test);
+
+    // Make an empty dir and try to rename it to under the OS' tmp dir to check if they are on the
+    // same device. If they are, we can conveniently use the renamed dir as the base for our test
+    // directories. If not, we try to put the base dir in `./target/` as before.
+    let probe_dir = cargo_tmp.join(raw::random_string(8));
+    raw::ensure_dir_exists(&probe_dir, |_| ())?;
+
+    let Err(e) = fs::rename(&probe_dir, &tmp_test_dir) else {
+        return Ok(tmp_test_dir);
+    };
+
+    fs::remove_dir(&probe_dir)?;
+    match e.kind() {
+        io::ErrorKind::DirectoryNotEmpty => Ok(tmp_test_dir),
+        io::ErrorKind::CrossesDevices => Ok(cargo_tmp),
+        _ => Err(e),
     }
-    Ok(exe_dir.parent().unwrap().to_owned())
 }
 
 /// Returns a tempdir for running tests in
