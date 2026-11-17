@@ -106,7 +106,7 @@ use windows::{
     run_update,
 };
 
-pub(crate) struct InstallOpts<'a> {
+pub(super) struct InstallOpts<'a> {
     pub default_host_tuple: Option<String>,
     pub default_toolchain: Option<MaybeChannelToolchainName>,
     pub profile: Profile,
