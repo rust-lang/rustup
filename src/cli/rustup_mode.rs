@@ -905,45 +905,43 @@ async fn default_(
 ) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
 
-    if let Some(toolchain) = toolchain {
-        match toolchain.resolve(cfg)? {
-            MaybePartialToolchainName::None => {
-                cfg.set_default(None)?;
-            }
-            MaybePartialToolchainName::Some(PartialToolchainName::Custom(toolchain_name)) => {
-                Toolchain::new(cfg, toolchain_name.clone().into())?;
-                cfg.set_default(Some(&toolchain_name.into()))?;
-            }
-            MaybePartialToolchainName::Some(PartialToolchainName::Channel(toolchain)) => {
-                let desc = toolchain.clone().complete(&cfg.default_host_tuple()?)?;
-                let status = cfg
-                    .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
-                    .await?
-                    .status;
-
-                cfg.set_default(Some(&toolchain.into()))?;
-
-                writeln!(cfg.process.stdout().lock())?;
-
-                common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
-            }
-        };
-
-        if let Some((toolchain, source)) = cfg.active_toolchain()?
-            && !matches!(source, ActiveSource::Default)
-        {
-            info!(
-                "note that the toolchain '{toolchain}' is currently in use ({})",
-                source.to_reason()
-            );
-        }
-    } else {
+    let Some(toolchain) = toolchain else {
         let default_toolchain = cfg
             .get_default()?
             .ok_or_else(|| anyhow!("no default toolchain is configured"))?;
         writeln!(cfg.process.stdout().lock(), "{default_toolchain} (default)")?;
+        return Ok(ExitCode::SUCCESS);
+    };
+
+    match toolchain.resolve(cfg)? {
+        MaybePartialToolchainName::None => cfg.set_default(None)?,
+        MaybePartialToolchainName::Some(PartialToolchainName::Custom(toolchain_name)) => {
+            Toolchain::new(cfg, toolchain_name.clone().into())?;
+            cfg.set_default(Some(&toolchain_name.into()))?;
+        }
+        MaybePartialToolchainName::Some(PartialToolchainName::Channel(toolchain)) => {
+            let desc = toolchain.clone().complete(&cfg.default_host_tuple()?)?;
+            let status = cfg
+                .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
+                .await?
+                .status;
+
+            cfg.set_default(Some(&toolchain.into()))?;
+
+            writeln!(cfg.process.stdout().lock())?;
+
+            common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
+        }
     }
 
+    if let Some((toolchain, source)) = cfg.active_toolchain()?
+        && !matches!(source, ActiveSource::Default)
+    {
+        info!(
+            "note that the toolchain '{toolchain}' is currently in use ({})",
+            source.to_reason()
+        );
+    }
     Ok(ExitCode::SUCCESS)
 }
 
