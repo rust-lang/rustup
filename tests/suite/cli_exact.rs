@@ -841,14 +841,11 @@ async fn update_missing_undated_nightly_manifest() {
     cx.config
         .expect(["rustup", "update", "nightly"])
         .await
-        .has_code(101)
+        .has_code(1)
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for nightly-[HOST_TUPLE]
-
-thread 'main' ([..]) panicked at src/dist/mod.rs:[..]:
-manifest date not found for toolchain `nightly-[HOST_TUPLE]`
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: manifest date not found for toolchain `nightly-[HOST_TUPLE]`
 
 "#]]);
 }
