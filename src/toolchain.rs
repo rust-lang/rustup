@@ -303,7 +303,8 @@ impl<'a> Toolchain<'a> {
                     }
                 }
             }
-            Ok(Some(_)) | Err(_) => generic_error.to_owned(),
+            Ok(Some(status)) => format!("(error reading rustc version: rustc quit with {status})"),
+            Err(_) => generic_error.to_owned(),
         }
     }
 
