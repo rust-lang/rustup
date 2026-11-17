@@ -1937,7 +1937,7 @@ async fn show_active_toolchain_with_verbose_rustc_permission_denied() {
         .with_stdout(snapbox::str![[r#"
 custom
 active because: it's the default toolchain
-compiler: (error reading rustc version)
+compiler: (error reading rustc version: Permission denied (os error 13))
 path: [RUSTUP_DIR]/toolchains/custom
 
 "#]])
