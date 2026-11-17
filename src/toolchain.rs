@@ -3,7 +3,7 @@ use std::{
     ffi::{OsStr, OsString},
     fmt::Debug,
     fs,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     str::FromStr,
@@ -289,20 +289,12 @@ impl<'a> Toolchain<'a> {
                 let _ = child.kill();
                 "(timeout reading rustc version)".to_owned()
             }
-            Ok(Some(status)) if status.success() => {
-                let out = child
+            Ok(Some(status)) if status.success() => read_first_line(
+                child
                     .stdout
-                    .expect("Child::stdout requested but not present");
-                let mut line = String::new();
-                match BufReader::new(out).read_line(&mut line) {
-                    Err(_) => generic_error.to_owned(),
-                    Ok(_) => {
-                        let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
-                        line.truncate(lineend);
-                        line
-                    }
-                }
-            }
+                    .expect("Child::stdout requested but not present"),
+            )
+            .unwrap_or_else(|| generic_error.to_owned()),
             Ok(Some(status)) => format!("(error reading rustc version: rustc quit with {status})"),
             Err(_) => generic_error.to_owned(),
         }
@@ -604,4 +596,13 @@ impl<'a> Toolchain<'a> {
             })
             .collect())
     }
+}
+
+fn read_first_line(reader: impl Read) -> Option<String> {
+    let mut line = String::new();
+    BufReader::new(reader).read_line(&mut line).ok()?;
+
+    let len_trimmed = line.trim_end_matches(&['\r', '\n'][..]).len();
+    line.truncate(len_trimmed);
+    Some(line)
 }
