@@ -278,8 +278,9 @@ impl<'a> Toolchain<'a> {
         // may fail to launch but also to timely terminate.
         // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
         // we guard against such cases by enforcing a reasonable timeout to read.
-        let Ok(mut child) = cmd.spawn() else {
-            return "(error reading rustc version)".to_owned();
+        let mut child = match cmd.spawn() {
+            Ok(child) => child,
+            Err(e) => return format!("(error reading rustc version: {e})"),
         };
 
         let generic_error = "(error reading rustc version)";
