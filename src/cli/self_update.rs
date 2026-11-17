@@ -31,9 +31,8 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-#[cfg(unix)]
-use std::borrow::Cow;
 use std::{
+    borrow::Cow,
     env::{self, consts::EXE_SUFFIX},
     fmt, fs,
     io::{self, Write},
@@ -404,8 +403,8 @@ impl InstallOpts<'_> {
         self.default_toolchain = Some(MaybeChannelToolchainName::from_str(&common::question_str(
             "Default toolchain? (stable/beta/nightly/none)",
             &match &self.default_toolchain {
-                Some(name) => name.to_string(),
-                None => "stable".to_owned(),
+                Some(name) => Cow::Owned(name.to_string()),
+                None => Cow::Borrowed("stable"),
             },
             process,
         )?)?);
@@ -458,8 +457,8 @@ impl InstallOpts<'_> {
                 TargetTuple::new,
             ),
             match &self.default_toolchain {
-                Some(name) => name.to_string(),
-                None => "stable (default)".to_owned(),
+                Some(name) => Cow::Owned(name.to_string()),
+                None => Cow::Borrowed("stable (default)"),
             },
             self.profile,
             if !self.no_modify_path { "yes" } else { "no" }
