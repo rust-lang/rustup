@@ -207,37 +207,6 @@ impl Display for PartialToolchainName {
     }
 }
 
-/// PartialToolchainName + none, for overriding default-has-a-value
-/// situations in the CLI with an official toolchain name or none
-#[derive(Debug, Clone)]
-pub(crate) enum MaybeChannelToolchainName {
-    None,
-    Some(PartialChannelToolchainName),
-}
-
-impl FromStr for MaybeChannelToolchainName {
-    type Err = InvalidName;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Ok(match validate_name(value)? {
-            "none" => Self::None,
-            candidate => Self::Some(
-                PartialChannelToolchainName::from_str(candidate)
-                    .map_err(|_| InvalidName::OfficialName(candidate.into()))?,
-            ),
-        })
-    }
-}
-
-impl Display for MaybeChannelToolchainName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::None => write!(f, "none"),
-            Self::Some(t) => write!(f, "{t}"),
-        }
-    }
-}
-
 /// ToolchainName can be used in calls to Cfg that alter configuration,
 /// like setting overrides, or that depend on configuration, like calculating
 /// the toolchain directory.
