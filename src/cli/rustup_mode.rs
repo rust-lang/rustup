@@ -32,12 +32,11 @@ use crate::{
         completions, docs,
         errors::CliError,
         help::{
-            check_help, completions_help, default_help, doc_help, install_help,
-            maybe_resolvable_toolchain_arg_help, official_toolchain_arg_help, override_help,
-            override_unset_help, resolvable_local_toolchain_arg_help,
-            resolvable_toolchain_arg_help, run_help, rustup_help, show_active_toolchain_help,
-            show_help, toolchain_help, toolchain_install_help, toolchain_link_help, topic_arg_help,
-            update_help,
+            check_help, completions_help, default_help, default_toolchain_arg_help, doc_help,
+            install_help, official_toolchain_arg_help, override_help, override_unset_help,
+            resolvable_local_toolchain_arg_help, resolvable_toolchain_arg_help, run_help,
+            rustup_help, show_active_toolchain_help, show_help, toolchain_help,
+            toolchain_install_help, toolchain_link_help, topic_arg_help, update_help,
         },
         self_update::{self, SelfUpdateMode, check_rustup_update},
     },
@@ -154,7 +153,7 @@ enum RustupSubcmd {
     /// Set the default toolchain
     #[command(after_help = default_help())]
     Default {
-        #[arg(help = maybe_resolvable_toolchain_arg_help())]
+        #[arg(help = default_toolchain_arg_help())]
         toolchain: Option<DefaultToolchain>,
 
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains

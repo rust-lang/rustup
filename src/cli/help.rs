@@ -383,7 +383,7 @@ pub(crate) fn resolvable_toolchain_arg_help() -> &'static str {
                                        '1.8.0', or a custom toolchain name. For more information see `rustup \
                                        help toolchain`"
 }
-pub(crate) fn maybe_resolvable_toolchain_arg_help() -> &'static str {
+pub(crate) fn default_toolchain_arg_help() -> &'static str {
     "'none', a toolchain name, such as 'stable', 'nightly', \
                                        '1.8.0', or a custom toolchain name. For more information see `rustup \
                                        help toolchain`"
