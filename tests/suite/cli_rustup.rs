@@ -1,5 +1,7 @@
 //! Test cases for new rustup UI
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::{
     env::consts::EXE_SUFFIX,
     fs,
@@ -1811,6 +1813,134 @@ path: [RUSTUP_DIR]/toolchains/nightly-[HOST_TUPLE]
 
 "#]])
         .with_stderr(snapbox::str![[""]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn show_active_toolchain_with_verbose_rustc_missing() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+    fs::remove_file(path.join(format!("bin/rustc{EXE_SUFFIX}"))).unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(snapbox::str![[r#"
+custom
+active because: it's the default toolchain
+compiler: (error reading rustc version)
+path: [RUSTUP_DIR]/toolchains/custom
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
+async fn show_active_toolchain_with_verbose_recursion_limit() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+    fs::remove_file(path.join(format!("bin/rustc{EXE_SUFFIX}"))).unwrap();
+    cx.config
+        .expect_with_env(
+            ["rustup", "show", "active-toolchain", "--verbose"],
+            [(
+                "RUST_RECURSION_COUNT",
+                &*RUST_RECURSION_COUNT_MAX.to_string(),
+            )],
+        )
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(snapbox::str![[r#"
+custom
+active because: it's the default toolchain
+compiler: (rustc does not exist)
+path: [RUSTUP_DIR]/toolchains/custom
+
+"#]])
+        .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn show_active_toolchain_with_verbose_rustc_error() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+    // Replace mock rustc with a shell script that exits 1
+    let rustc_path = path.join(format!("bin/rustc{EXE_SUFFIX}"));
+    fs::write(&rustc_path, "#!/bin/sh\nexit 1\n").unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(snapbox::str![[r#"
+custom
+active because: it's the default toolchain
+compiler: (error reading rustc version)
+path: [RUSTUP_DIR]/toolchains/custom
+
+"#]])
+        .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn show_active_toolchain_with_verbose_rustc_permission_denied() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+    // Remove the executable bit so that spawn() fails with a permission error.
+    let rustc_path = path.join(format!("bin/rustc{EXE_SUFFIX}"));
+    let mut perms = fs::metadata(&rustc_path).unwrap().permissions();
+    perms.set_mode(0o644);
+    fs::set_permissions(&rustc_path, perms).unwrap();
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(snapbox::str![[r#"
+custom
+active because: it's the default toolchain
+compiler: (error reading rustc version)
+path: [RUSTUP_DIR]/toolchains/custom
+
+"#]])
         .is_ok();
 }
 
