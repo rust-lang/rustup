@@ -52,9 +52,8 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::{ColorableTerminal, Process},
     toolchain::{
-        ChannelToolchain, CustomToolchainName, MaybePartialToolchainName, Override,
-        PartialToolchainName, PartialToolchainNameOrPath, Toolchain, ToolchainName,
-        ToolchainNameOrPath,
+        ChannelToolchain, CustomToolchainName, Override, PartialToolchainName,
+        PartialToolchainNameOrPath, Toolchain, ToolchainName, ToolchainNameOrPath,
     },
     utils::{self, ExitCode},
 };
@@ -156,7 +155,7 @@ enum RustupSubcmd {
     #[command(after_help = default_help())]
     Default {
         #[arg(help = maybe_resolvable_toolchain_arg_help())]
-        toolchain: Option<Override<MaybePartialToolchainName>>,
+        toolchain: Option<DefaultToolchain>,
 
         /// Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
         #[arg(long)]
@@ -314,6 +313,24 @@ fn update_toolchain_value_parser(s: &str) -> anyhow::Result<PartialChannelToolch
             info!("if you meant to update rustup itself, use `rustup self update`");
         }
     })
+}
+
+/// User input to be set as the default toolchain.
+///
+/// A value of "none" will be parsed into `Self(None)` which means that the user has requested to
+/// unset the default toolchain.
+#[derive(Debug, Clone)]
+struct DefaultToolchain(Option<Override<PartialToolchainName>>);
+
+impl FromStr for DefaultToolchain {
+    type Err = Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(Self(match value.trim_end_matches('/') {
+            "none" => None,
+            _ => Some(Override::from_str(value)?),
+        }))
+    }
 }
 
 impl RustupSubcmd {
@@ -900,7 +917,7 @@ pub async fn main(
 
 async fn default_(
     cfg: &Cfg<'_>,
-    toolchain: Option<Override<MaybePartialToolchainName>>,
+    toolchain: Option<DefaultToolchain>,
     force_non_host: bool,
 ) -> anyhow::Result<ExitCode> {
     common::warn_if_host_is_emulated(cfg.process);
@@ -913,25 +930,27 @@ async fn default_(
         return Ok(ExitCode::SUCCESS);
     };
 
-    match toolchain.resolve(cfg)? {
-        MaybePartialToolchainName::None => cfg.set_default(None)?,
-        MaybePartialToolchainName::Some(PartialToolchainName::Custom(toolchain_name)) => {
-            Toolchain::new(cfg, toolchain_name.clone().into())?;
-            cfg.set_default(Some(&toolchain_name.into()))?;
-        }
-        MaybePartialToolchainName::Some(PartialToolchainName::Channel(toolchain)) => {
-            let desc = toolchain.clone().complete(&cfg.default_host_tuple()?)?;
-            let status = cfg
-                .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
-                .await?
-                .status;
+    match toolchain.0 {
+        None => cfg.set_default(None)?,
+        Some(toolchain) => match toolchain.resolve(cfg)? {
+            PartialToolchainName::Custom(toolchain_name) => {
+                Toolchain::new(cfg, toolchain_name.clone().into())?;
+                cfg.set_default(Some(&toolchain_name.into()))?;
+            }
+            PartialToolchainName::Channel(toolchain) => {
+                let desc = toolchain.clone().complete(&cfg.default_host_tuple()?)?;
+                let status = cfg
+                    .ensure_installed(&desc, vec![], vec![], None, force_non_host, true)
+                    .await?
+                    .status;
 
-            cfg.set_default(Some(&toolchain.into()))?;
+                cfg.set_default(Some(&toolchain.into()))?;
 
-            writeln!(cfg.process.stdout().lock())?;
+                writeln!(cfg.process.stdout().lock())?;
 
-            common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
-        }
+                common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
+            }
+        },
     }
 
     if let Some((toolchain, source)) = cfg.active_toolchain()?
