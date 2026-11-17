@@ -1070,10 +1070,10 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             // the components that the user currently has installed. Let's try the previous
             // nightlies in reverse chronological order until we find a nightly that does,
             // starting at one date earlier than the current manifest's date.
-            let try_next = try_date
-                .unwrap_or_else(|e| panic!("{e}"))
-                .pred_opt()
-                .unwrap();
+            let try_next = match try_date {
+                Ok(date) => date.pred_opt().unwrap(),
+                Err(e) => break Err(anyhow!(e)),
+            };
             toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
         };
 
