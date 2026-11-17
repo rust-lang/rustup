@@ -8,11 +8,10 @@ use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 use crate::{
     cli::{
         common::{self, update_console_filter},
-        self_update::{self, InstallOpts},
+        self_update::{self, DefaultChannelToolchain, InstallOpts},
     },
     dist::Profile,
     process::Process,
-    toolchain::MaybeChannelToolchainName,
     utils,
 };
 
@@ -44,7 +43,7 @@ struct RustupInit {
 
     /// Choose a default toolchain to install. Use 'none' to not install any toolchains at all
     #[arg(long)]
-    default_toolchain: Option<MaybeChannelToolchainName>,
+    default_toolchain: Option<DefaultChannelToolchain>,
 
     #[arg(long, value_enum, default_value_t)]
     profile: Profile,

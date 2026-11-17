@@ -67,10 +67,7 @@ use crate::{
     install::{InstallMethod, UpdateStatus},
     process::Process,
     settings::SettingsFile,
-    toolchain::{
-        ChannelToolchain, MaybeChannelToolchainName, PartialToolchainName, Toolchain,
-        ToolchainNameExt as _,
-    },
+    toolchain::{ChannelToolchain, PartialToolchainName, Toolchain, ToolchainNameExt as _},
     utils::{self, ExitCode},
 };
 
@@ -108,7 +105,7 @@ use windows::{
 
 pub(super) struct InstallOpts<'a> {
     pub default_host_tuple: Option<String>,
-    pub default_toolchain: Option<MaybeChannelToolchainName>,
+    pub default_toolchain: Option<DefaultChannelToolchain>,
     pub profile: Profile,
     pub no_modify_path: bool,
     pub no_update_toolchain: bool,
@@ -337,7 +334,7 @@ impl InstallOpts<'_> {
         // a toolchain (updating if it's already present) and then if neither of
         // those are true, we have a user who doesn't mind, and already has an
         // install, so we leave their setup alone.
-        if matches!(default_toolchain, Some(MaybeChannelToolchainName::None)) {
+        if matches!(default_toolchain, Some(DefaultChannelToolchain(None))) {
             info!("skipping toolchain installation");
             if !components.is_empty() {
                 warn!(
@@ -359,13 +356,7 @@ impl InstallOpts<'_> {
             || (!no_update_toolchain && cfg.find_default()?.is_none())
         {
             Ok(match default_toolchain {
-                Some(s) => {
-                    let toolchain_name = match s {
-                        MaybeChannelToolchainName::None => unreachable!(),
-                        MaybeChannelToolchainName::Some(n) => n,
-                    };
-                    Some(toolchain_name)
-                }
+                Some(s) => Some(s.0.unwrap()),
                 None => match cfg.get_default_resolvable()? {
                     // Default is installable
                     Some(PartialToolchainName::Channel(t)) => Some(t),
@@ -400,10 +391,11 @@ impl InstallOpts<'_> {
             process,
         )?);
 
-        self.default_toolchain = Some(MaybeChannelToolchainName::from_str(&common::question_str(
+        self.default_toolchain = Some(DefaultChannelToolchain::from_str(&common::question_str(
             "Default toolchain? (stable/beta/nightly/none)",
             &match &self.default_toolchain {
-                Some(name) => Cow::Owned(name.to_string()),
+                Some(DefaultChannelToolchain(Some(t))) => Cow::Owned(t.to_string()),
+                Some(DefaultChannelToolchain(None)) => Cow::Borrowed("none"),
                 None => Cow::Borrowed("stable"),
             },
             process,
@@ -432,11 +424,9 @@ impl InstallOpts<'_> {
             .as_ref()
             .map(TargetTuple::new)
             .unwrap_or_else(|| TargetTuple::from_host_or_build(process));
-        let partial_channel = match &self.default_toolchain {
-            None | Some(MaybeChannelToolchainName::None) => {
-                PartialToolchainName::from_str("stable")?
-            }
-            Some(MaybeChannelToolchainName::Some(s)) => s.into(),
+        let partial_channel = match self.default_toolchain.as_ref().and_then(|t| t.0.as_ref()) {
+            None => PartialToolchainName::from_str("stable")?,
+            Some(s) => s.into(),
         };
         let resolved = partial_channel.complete(&host_tuple)?;
         trace!("Successfully resolved installation toolchain as: {resolved}");
@@ -457,12 +447,31 @@ impl InstallOpts<'_> {
                 TargetTuple::new,
             ),
             match &self.default_toolchain {
-                Some(name) => Cow::Owned(name.to_string()),
+                Some(DefaultChannelToolchain(Some(name))) => Cow::Owned(name.to_string()),
+                Some(DefaultChannelToolchain(None)) => Cow::Borrowed("none"),
                 None => Cow::Borrowed("stable (default)"),
             },
             self.profile,
             if !self.no_modify_path { "yes" } else { "no" }
         )
+    }
+}
+
+/// User input to be set as the default channel toolchain.
+///
+/// A value of "none" will be parsed into `Self(None)` which means that the user has requested to
+/// unset the default toolchain.
+#[derive(Debug, Clone)]
+pub(super) struct DefaultChannelToolchain(Option<PartialChannelToolchainName>);
+
+impl FromStr for DefaultChannelToolchain {
+    type Err = anyhow::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(Self(match value.trim_end_matches('/') {
+            "none" => None,
+            _ => Some(PartialChannelToolchainName::from_str(value)?),
+        }))
     }
 }
 
