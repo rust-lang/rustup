@@ -1873,7 +1873,7 @@ async fn show_active_toolchain_with_verbose_recursion_limit() {
         .with_stdout(snapbox::str![[r#"
 custom
 active because: it's the default toolchain
-compiler: (rustc does not exist)
+compiler: (could not create proxy command to rustc: 'rustc[EXE]' is not installed for the custom toolchain 'custom')
 path: [RUSTUP_DIR]/toolchains/custom
 
 "#]])

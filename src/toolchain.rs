@@ -257,8 +257,15 @@ impl<'a> Toolchain<'a> {
     /// Infallible function that describes the version of rustc in an installed distribution
     #[tracing::instrument(level = "trace")]
     pub fn rustc_version(&self) -> String {
-        let Ok(mut cmd) = self.create_command("rustc") else {
-            return "(rustc does not exist)".to_owned();
+        let mut cmd = match self.create_command("rustc") {
+            Ok(cmd) => cmd,
+            Err(e) => {
+                let e = format!("{e:#}");
+                return format!(
+                    "(could not create proxy command to rustc: {})",
+                    e.lines().next().unwrap_or_default(),
+                );
+            }
         };
 
         cmd.arg("--version");
@@ -466,7 +473,7 @@ impl<'a> Toolchain<'a> {
                 } else {
                     let t = &self.name;
                     return Err(anyhow!(
-                        "'{binary_lossy}' is not installed for the custom toolchain '{t}'.\nnote: this is a custom toolchain, which cannot use `rustup component add`\n\
+                        "'{binary_lossy}' is not installed for the custom toolchain '{t}'\nnote: this is a custom toolchain, which cannot use `rustup component add`\n\
                         help: if you built this toolchain from source, and used `rustup toolchain link`, then you may be able to build the component with `x.py`"
                     ));
                 }
