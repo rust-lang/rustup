@@ -207,43 +207,6 @@ impl Display for PartialToolchainName {
     }
 }
 
-/// A toolchain name from user input. MaybeToolchainName accepts 'none' or a
-/// custom or resolvable official name. Possibly this should be an Option with a
-/// local trait for our needs.
-#[derive(Debug, Clone)]
-pub(crate) enum MaybePartialToolchainName {
-    Some(PartialToolchainName),
-    None,
-}
-
-impl FromStr for MaybePartialToolchainName {
-    type Err = InvalidName;
-
-    // If value could be resolved, return a ready to resolve version of it.
-    // Otherwise error.
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Ok(match normalize_name(value)? {
-            "none" => Self::None,
-            candidate => Self::Some(PartialToolchainName::from_str(candidate)?),
-        })
-    }
-}
-
-impl Display for MaybePartialToolchainName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Some(t) => write!(f, "{t}"),
-            Self::None => write!(f, "none"),
-        }
-    }
-}
-
-impl From<PartialToolchainName> for MaybePartialToolchainName {
-    fn from(value: PartialToolchainName) -> Self {
-        Self::Some(value)
-    }
-}
-
 /// PartialToolchainName + none, for overriding default-has-a-value
 /// situations in the CLI with an official toolchain name or none
 #[derive(Debug, Clone)]

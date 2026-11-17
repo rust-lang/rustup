@@ -34,9 +34,9 @@ pub(crate) use channels::ChannelToolchain;
 
 mod names;
 pub(crate) use names::{
-    CustomToolchainName, MaybeChannelToolchainName, MaybePartialToolchainName, Override,
-    PartialToolchainName, PartialToolchainNameOrPath, ToolchainName, ToolchainNameExt,
-    ToolchainNameOrPath, ToolchainPath,
+    CustomToolchainName, MaybeChannelToolchainName, Override, PartialToolchainName,
+    PartialToolchainNameOrPath, ToolchainName, ToolchainNameExt, ToolchainNameOrPath,
+    ToolchainPath,
 };
 
 /// A toolchain installed on the local disk
