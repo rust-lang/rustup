@@ -1744,7 +1744,7 @@ jobs:
           git ls-files -- '*.sh' | xargs shellcheck -x -s dash
           git ls-files -- '*.bash' | xargs shellcheck -x -s bash
       - name: Install external formatters
-        uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        uses: taiki-e/install-action@ab49d3c64680143e184118bed66a46419fc15519 # v2.90.5
         with:
           tool: taplo,oxfmt
           fallback: none
@@ -1839,7 +1839,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install mdbook
-        uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        uses: taiki-e/install-action@ab49d3c64680143e184118bed66a46419fc15519 # v2.90.5
         env:
           # renovate: datasource=crate depName=mdbook
           MDBOOK_VERSION: "0.5.2"
