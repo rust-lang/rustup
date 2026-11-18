@@ -172,7 +172,7 @@ fn show_channel_updates(
 
         let (previous_version, version) = match &pkg {
             PackageUpdate::Rustup => {
-                let previous_version: Option<String> = match result {
+                let previous_version = match result {
                     Ok(UpdateStatus::Installed) | Ok(UpdateStatus::Unchanged) | Err(_) => None,
                     _ => Some(env!("CARGO_PKG_VERSION").into()),
                 };
@@ -192,7 +192,7 @@ fn show_channel_updates(
                     Ok(t) => t.rustc_version(),
                     Err(_) => String::from("(toolchain not installed)"),
                 };
-                let previous_version: Option<String> = match result {
+                let previous_version = match result {
                     Ok(UpdateStatus::Installed) | Ok(UpdateStatus::Unchanged) | Err(_) => None,
                     Ok(UpdateStatus::Updated(v)) => Some(v),
                 };
