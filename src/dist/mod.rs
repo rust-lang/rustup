@@ -6,9 +6,9 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
-use chrono::NaiveDate;
 use clap::{ValueEnum, builder::PossibleValue};
 use itertools::Itertools;
+use jiff::civil::Date;
 use regex::{Match, Regex};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
@@ -1071,10 +1071,10 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             // nightlies in reverse chronological order until we find a nightly that does,
             // starting at one date earlier than the current manifest's date.
             let try_next = match try_date {
-                Ok(date) => date.pred_opt().unwrap(),
+                Ok(date) => date.yesterday().unwrap(),
                 Err(e) => break Err(anyhow!(e)),
             };
-            toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
+            toolchain.date = Some(try_next.strftime("%Y-%m-%d").to_string());
         };
 
         // Don't leave behind an empty / broken installation directory
@@ -1247,8 +1247,8 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     }
 }
 
-fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {
-    NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
+fn date_from_manifest_date(date_str: &str) -> Option<Date> {
+    Date::strptime("%Y-%m-%d", date_str).ok()
 }
 
 #[cfg(test)]

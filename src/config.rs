@@ -4,11 +4,10 @@ use std::{
     ops::Deref,
     path::{Path, PathBuf},
     str::FromStr,
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, anyhow, bail};
-use chrono::{DateTime, NaiveDate};
+use jiff::{Timestamp, ToSpan as _, civil::Date, tz::TimeZone};
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 use tracing::{debug, info, trace, warn};
@@ -1098,17 +1097,16 @@ impl<'a> Cfg<'a> {
             return Ok(());
         }
 
-        let time_now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
+        let time_now = Timestamp::now();
 
         // Limit notifications to at most once per day.
         // This is checked before loading the manifest to avoid unnecessary disk I/O.
-        let last_notified = self
-            .state_file
-            .with(|s| Ok(s.last_release_notified_secs.unwrap_or(0)))?;
-        if time_now.saturating_sub(last_notified) < NOTIFY_INTERVAL_SECS {
+        let last_notified = self.state_file.with(|s| {
+            Ok(Timestamp::from_second(
+                s.last_release_notified_secs.unwrap_or(0),
+            )?)
+        })?;
+        if time_now.saturating_sub(NOTIFY_INTERVAL_SECS.seconds())? < last_notified {
             return Ok(());
         }
 
@@ -1129,27 +1127,23 @@ impl<'a> Cfg<'a> {
             Err(_) => FALLBACK_RELEASE_DATE.to_owned(),
         };
 
-        let today = DateTime::from_timestamp(time_now as i64, 0)
-            .unwrap_or_default()
-            .date_naive();
-
-        let release_date =
-            NaiveDate::parse_from_str(&release_date_str, "%Y-%m-%d").map_err(|e| {
-                let release_date_str = release_date_str
-                    .chars()
-                    .take(15)
-                    .flat_map(char::escape_default)
-                    .collect::<String>();
-                anyhow!(e).context(format!("could not parse release date '{release_date_str}'"))
-            })?;
+        let today = time_now.to_zoned_datetime(TimeZone::UTC).date();
+        let release_date = Date::strptime("%Y-%m-%d", &release_date_str).map_err(|e| {
+            let release_date_str = release_date_str
+                .chars()
+                .take(15)
+                .flat_map(char::escape_default)
+                .collect::<String>();
+            anyhow!(e).context(format!("could not parse release date '{release_date_str}'"))
+        })?;
 
         // Skip the hint if fewer than 6 weeks have passed since the last known release.
-        if (today - release_date).num_days() < RELEASE_CYCLE_DAYS {
+        if (today - release_date).get_days() < RELEASE_CYCLE_DAYS {
             return Ok(());
         }
 
         self.state_file.with_mut(|s| {
-            s.last_release_notified_secs = Some(time_now);
+            s.last_release_notified_secs = Some((time_now - Timestamp::UNIX_EPOCH).as_secs());
             Ok(())
         })?;
 
@@ -1266,7 +1260,7 @@ impl StateFile {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 struct State {
     #[serde(skip_serializing_if = "Option::is_none")]
-    last_release_notified_secs: Option<u64>,
+    last_release_notified_secs: Option<i64>,
 }
 
 impl State {
@@ -1310,8 +1304,8 @@ pub(crate) enum InstalledPath<'a> {
     Dir { path: &'a Path },
 }
 
-const RELEASE_CYCLE_DAYS: i64 = 42;
-const NOTIFY_INTERVAL_SECS: u64 = 24 * 60 * 60;
+const RELEASE_CYCLE_DAYS: i32 = 42;
+const NOTIFY_INTERVAL_SECS: i64 = 24 * 60 * 60;
 const FALLBACK_RELEASE_DATE: &str = "2026-04-17";
 
 #[cfg(test)]

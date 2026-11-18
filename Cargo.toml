@@ -42,7 +42,6 @@ anstream = "1"
 anstyle = "1.0.11"
 anyhow = "1.0.69"
 cc = "1"
-chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4", features = ["derive", "wrap_help", "string"] }
 clap-cargo = "0.19.0"
 clap_complete = { version = "4", features = ["unstable-dynamic"] }
@@ -61,6 +60,7 @@ hyper = { version = "1.0", default-features = false, features = ["server", "http
 hyper-util = { version = "0.1.1", features = ["tokio"] }
 indicatif = "0.18"
 itertools = "0.15"
+jiff = { version = "1", default-features = false, features = ["std"] }
 libc = "0.2"
 opener = "0.9.0"
 # `openssl` is used by the `reqwest` backend although it isn't imported by
