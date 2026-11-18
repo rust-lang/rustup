@@ -16,11 +16,11 @@ use std::{
     string::FromUtf8Error,
     sync::{Arc, LazyLock, RwLock, RwLockWriteGuard},
     thread,
-    time::{Duration as StdDuration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration as StdDuration, Instant},
 };
 
-use chrono::{DateTime, Duration};
 use enum_map::{Enum, EnumMap, enum_map};
+use jiff::{Timestamp, ToSpan, tz::TimeZone};
 use snapbox::{IntoData, RedactedValue, Redactions, assert_data_eq};
 use tempfile::TempDir;
 use url::Url;
@@ -664,12 +664,8 @@ impl Scenario {
                     .with_rls(RlsStatus::Unavailable),
             ],
             Self::RecentStable => {
-                let now = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                let recent = (DateTime::from_timestamp(now as i64, 0).unwrap() - Duration::days(7))
-                    .format("%Y-%m-%d")
+                let recent = (Timestamp::now().to_zoned_datetime(TimeZone::UTC) - 7.days())
+                    .strftime("%Y-%m-%d")
                     .to_string();
                 vec![Release::stable("1.1.0", &recent)]
             }
