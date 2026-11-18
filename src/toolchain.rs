@@ -269,7 +269,7 @@ impl<'a> Toolchain<'a> {
                 // may fail to launch but also to timely terminate.
                 // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
                 // we guard against such cases by enforcing a reasonable timeout to read.
-                let mut line1 = None;
+                let generic_error = "(error reading rustc version)";
                 if let Ok(mut child) = cmd.spawn() {
                     let timeout = Duration::new(10, 0);
                     match child.wait_timeout(timeout) {
@@ -278,27 +278,26 @@ impl<'a> Toolchain<'a> {
                                 .stdout
                                 .expect("Child::stdout requested but not present");
                             let mut line = String::new();
-                            if BufReader::new(out).read_line(&mut line).is_ok() {
-                                let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
-                                line.truncate(lineend);
-                                line1 = Some(line);
+                            match BufReader::new(out).read_line(&mut line) {
+                                Err(_) => generic_error.to_owned(),
+                                Ok(_) => {
+                                    let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
+                                    line.truncate(lineend);
+                                    line
+                                }
                             }
                         }
                         Ok(None) => {
                             let _ = child.kill();
-                            return String::from("(timeout reading rustc version)");
+                            "(timeout reading rustc version)".to_owned()
                         }
-                        Ok(Some(_)) | Err(_) => {}
+                        Ok(Some(_)) | Err(_) => generic_error.to_owned(),
                     }
-                }
-
-                if let Some(line1) = line1 {
-                    line1
                 } else {
-                    String::from("(error reading rustc version)")
+                    generic_error.to_owned()
                 }
             }
-            Err(_) => String::from("(rustc does not exist)"),
+            Err(_) => "(rustc does not exist)".to_owned(),
         }
     }
 
