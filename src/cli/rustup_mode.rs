@@ -1736,6 +1736,11 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
             "# Check the docs at https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file\n\n{toml_buf}",
         ),
     )?;
+    if path.with_file_name("rust-toolchain").is_file() {
+        warn!(
+            "existing 'rust-toolchain' takes precedence; newly created 'rust-toolchain.toml' will be ignored"
+        );
+    }
     Ok(ExitCode::SUCCESS)
 }
 
