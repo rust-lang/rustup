@@ -313,7 +313,25 @@ impl<'a> Toolchain<'a> {
                     Ok(Some(line)) => line,
                 }
             }
-            Ok(Ok(status)) => format!("(error reading rustc version: rustc quit with {status})"),
+            Ok(Ok(status)) => match read_first_line(
+                child
+                    .stderr
+                    .expect("Child::stderr requested but not present"),
+                deadline,
+            )
+            .await
+            {
+                Ok(None) => timeout_error.to_owned(),
+                Ok(Some(line)) if !line.trim().is_empty() => format!(
+                    "(error reading rustc version: '{}')",
+                    line.chars()
+                        .flat_map(char::escape_default)
+                        .collect::<String>()
+                ),
+                Ok(Some(_)) | Err(_) => {
+                    format!("(error reading rustc version: rustc quit with {status})")
+                }
+            },
             Ok(Err(_)) => generic_error.to_owned(),
         }
     }

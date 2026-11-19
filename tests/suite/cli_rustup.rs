@@ -1839,7 +1839,7 @@ async fn show_active_toolchain_with_verbose_rustc_missing() {
         .with_stdout(snapbox::str![[r#"
 custom
 active because: it's the default toolchain
-compiler: (error reading rustc version: rustc quit with [STATUS]: 1)
+compiler: (error reading rustc version: 'error: /'rustc[EXE]/' is not installed for the custom toolchain /'custom/'')
 path: [RUSTUP_DIR]/toolchains/custom
 
 "#]])
