@@ -290,7 +290,7 @@ impl InstallOpts<'_> {
 
             cfg.set_default(Some(&partial_desc.into()))?;
             writeln!(cfg.process.stdout().lock())?;
-            common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
+            common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc), Ok(status)).await?;
         }
         Ok(())
     }
@@ -1176,7 +1176,8 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
                 cfg,
                 PackageUpdate::Rustup,
                 Ok(UpdateStatus::Updated(version)),
-            );
+            )
+            .await;
             return run_update(prepared_updater, cfg.process);
         }
         None => {
@@ -1184,7 +1185,8 @@ pub(crate) async fn update(cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
                 cfg,
                 PackageUpdate::Rustup,
                 Ok(UpdateStatus::Unchanged),
-            );
+            )
+            .await;
             // Try again in case we emitted "tool `{}` is already installed" last time.
             install_proxies(cfg.process)?
         }

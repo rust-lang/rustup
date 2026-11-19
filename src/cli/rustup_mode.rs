@@ -948,7 +948,8 @@ async fn default_(
 
                 writeln!(cfg.process.stdout().lock())?;
 
-                common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
+                common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))
+                    .await?;
             }
         },
     }
@@ -1170,7 +1171,8 @@ async fn update(
                 cfg,
                 PackageUpdate::Toolchain(desc.clone()),
                 Ok(status.clone()),
-            )?;
+            )
+            .await?;
 
             if opts.r#override {
                 cfg.make_override(&cfg.current_dir, &name)?;
@@ -1315,7 +1317,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
             writeln!(
                 t,
                 "  {}\n  path: {}",
-                toolchain.rustc_version(),
+                toolchain.rustc_version().await,
                 toolchain.path().display()
             )?;
             if n != last_index {
@@ -1349,7 +1351,11 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     };
 
     if verbose {
-        writeln!(t.lock(), "compiler: {}", active_toolchain.rustc_version())?;
+        writeln!(
+            t.lock(),
+            "compiler: {}",
+            active_toolchain.rustc_version().await
+        )?;
         writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
     }
 
@@ -1396,7 +1402,7 @@ async fn show_active_toolchain(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<E
                     "{}\nactive because: {}\ncompiler: {}\npath: {}",
                     toolchain.name(),
                     source.to_reason(),
-                    toolchain.rustc_version(),
+                    toolchain.rustc_version().await,
                     toolchain.path().display()
                 )?;
             } else {
@@ -1767,7 +1773,8 @@ async fn override_add(
                     cfg,
                     PackageUpdate::Toolchain(desc.clone()),
                     Ok(status),
-                )?;
+                )
+                .await?;
             }
         },
         Err(e) => Err(e)?,
@@ -1928,7 +1935,7 @@ async fn display_version(cfg: &mut Cfg<'_>) -> anyhow::Result<()> {
         Ok(Some((name, _))) => match Toolchain::new(cfg, name) {
             Ok(tc) => info!(
                 "the currently active `rustc` version is `{}`",
-                tc.rustc_version()
+                tc.rustc_version().await,
             ),
             Err(RustupError::ToolchainNotInstalled {
                 name,

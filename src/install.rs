@@ -54,7 +54,11 @@ impl InstallMethod<'_, '_> {
                 let prev_ver = match old_manifest_date {
                     Some(_) => {
                         debug!("updating existing install for `{toolchain}`");
-                        Some(Toolchain::new(cfg, toolchain.clone().into())?.rustc_version())
+                        Some(
+                            Toolchain::new(cfg, toolchain.clone().into())?
+                                .rustc_version()
+                                .await,
+                        )
                     }
                     // A missing manifest may probably indicates an incomplete install, so don't
                     // report an old rustc version in this case.
