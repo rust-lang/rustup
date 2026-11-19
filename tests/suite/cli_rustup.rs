@@ -1995,7 +1995,7 @@ exit 0
         .with_stdout(snapbox::str![[r#"
 custom
 active because: it's the default toolchain
-compiler: rustc 1.999.0 (you have already timed out!)
+compiler: (timeout reading rustc version)
 path: [RUSTUP_DIR]/toolchains/custom
 
 "#]])
