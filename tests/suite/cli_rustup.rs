@@ -4983,6 +4983,43 @@ error: invalid toolchain name 'none'
 }
 
 #[tokio::test]
+async fn pin_existing_legacy_toolchain_file() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+
+    let cwd = cx.config.current_dir();
+    fs::write(cwd.join("rust-toolchain"), "stable\n").unwrap();
+
+    cx.config
+        .expect(["rustup", "+nightly", "toolchain", "pin"])
+        .await
+        .is_ok()
+        .with_stderr(snapbox::str![[""]]);
+
+    snapbox::assert_data_eq!(
+        fs::read_to_string(cwd.join("rust-toolchain.toml")).unwrap(),
+        snapbox::str![[r#"
+...
+[toolchain]
+channel = "nightly"
+
+"#]],
+    );
+
+    cx.config
+        .expect(["rustup", "show", "active-toolchain"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+stable-[HOST_TUPLE] (overridden by '[..]/rust-toolchain')
+
+"#]])
+        .is_ok();
+}
+
+#[tokio::test]
 async fn pin_existing_toolchain_toml() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
