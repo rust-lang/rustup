@@ -1915,6 +1915,95 @@ path: [RUSTUP_DIR]/toolchains/custom
 
 #[cfg(unix)]
 #[tokio::test]
+async fn show_active_toolchain_with_verbose_rustc_timeout_waiting() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+
+    // Start a process that sleeps until beyond the timeout and exits successfully.
+    let rustc_path = path.join(format!("bin/rustc{EXE_SUFFIX}"));
+    fs::write(
+        &rustc_path,
+        r#"#!/bin/sh
+printf 'rustc 1.999.0 (you have already timed out!)'
+sleep 20
+exit 0
+"#,
+    )
+    .unwrap();
+
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(snapbox::str![[r#"
+custom
+active because: it's the default toolchain
+compiler: (timeout reading rustc version)
+path: [RUSTUP_DIR]/toolchains/custom
+
+"#]])
+        .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn show_active_toolchain_with_verbose_rustc_timeout_reading_stdout() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let path = cx.config.customdir.join("custom-1");
+    let path_str = path.to_string_lossy();
+
+    cx.config
+        .expect(["rustup", "toolchain", "link", "custom", &path_str])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "default", "custom"])
+        .await
+        .is_ok();
+
+    // Start a background process that inherits stdout, then exit successfully.
+    // This keeps the stdout pipe open even after the wrapper has exited.
+    let rustc_path = path.join(format!("bin/rustc{EXE_SUFFIX}"));
+    fs::write(
+        &rustc_path,
+        r#"#!/bin/sh
+printf 'rustc 1.999.0 (you have already timed out!)'
+sleep 20 &
+exit 0
+"#,
+    )
+    .unwrap();
+
+    cx.config
+        .expect(["rustup", "show", "active-toolchain", "--verbose"])
+        .await
+        .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
+        .with_stdout(snapbox::str![[r#"
+custom
+active because: it's the default toolchain
+compiler: rustc 1.999.0 (you have already timed out!)
+path: [RUSTUP_DIR]/toolchains/custom
+
+"#]])
+        .is_ok();
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn show_active_toolchain_with_verbose_rustc_permission_denied() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     let path = cx.config.customdir.join("custom-1");
