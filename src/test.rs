@@ -28,7 +28,7 @@ use crate::{
 mod clitools;
 pub use clitools::{
     Assert, CliTestContext, Config, ParkedChild, SanitizedOutput, Scenario, SelfUpdateTestContext,
-    output_release_file, print_command, print_indented,
+    mock_bin, output_release_file, print_command, print_indented,
 };
 
 pub(super) mod dist;

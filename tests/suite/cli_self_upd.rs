@@ -1308,7 +1308,7 @@ async fn rls_proxy_set_up_after_update() {
 }
 
 #[tokio::test]
-async fn update_does_not_overwrite_rustfmt() {
+async fn update_does_not_overwrite_dup_tools() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
@@ -1317,42 +1317,38 @@ async fn update_does_not_overwrite_rustfmt() {
     let version = env!("CARGO_PKG_VERSION");
     output_release_file(cx.path(), "1", version);
 
-    // Since we just did a fresh install rustfmt will exist. Let's emulate
-    // it not existing in this test though by removing it just after our
-    // installation.
-    let rustfmt_path = cx.config.cargodir.join(format!("bin/rustfmt{EXE_SUFFIX}"));
-    assert!(rustfmt_path.exists());
-    fs::remove_file(&rustfmt_path).unwrap();
-    raw::write_file(&rustfmt_path, "").unwrap();
-    assert_eq!(utils::file_size(&rustfmt_path).unwrap(), 0);
+    for tool in DUP_TOOLS {
+        // Replace the installed proxy with a file that is not managed by rustup.
+        let tool_path = cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
+        assert!(tool_path.exists());
+        fs::remove_file(&tool_path).unwrap();
+        raw::write_file(&tool_path, "").unwrap();
+        assert_eq!(utils::file_size(&tool_path).unwrap(), 0);
 
-    // Ok, now a self-update should complain about `rustfmt` not looking
-    // like rustup and the user should take some action.
-    cx.config
-        .expect(["rustup", "self", "update"])
-        .await
-        .with_stderr(snapbox::str![[r#"
+        // Updating must preserve the user's tool and explain how to replace it.
+        cx.config
+            .expect(["rustup", "self", "update"])
+            .await
+            .extend_redactions([("[TOOL]", *tool)])
+            .with_stderr(snapbox::str![[r#"
 info: checking for self-update (current version: [CURRENT_VERSION])
-warn: tool `rustfmt` is already installed, remove it from `[..]`, then run `rustup update` to have rustup manage this tool.
+warn: tool `[TOOL]` is already installed, remove it from `[..]`, then run `rustup update` to have rustup manage this tool.
 
 "#]])
-        .is_ok();
-    assert!(rustfmt_path.exists());
-    assert_eq!(utils::file_size(&rustfmt_path).unwrap(), 0);
+            .is_ok();
+        assert!(tool_path.exists());
+        assert_eq!(utils::file_size(&tool_path).unwrap(), 0);
 
-    // Now simulate us removing the rustfmt executable and rerunning a self
-    // update, this should install the rustup shim. Note that we don't run
-    // `rustup` here but rather the rustup we've actually installed, this'll
-    // help reproduce bugs related to having that file being opened by the
-    // current process.
-    fs::remove_file(&rustfmt_path).unwrap();
-    let installed_rustup = cx.config.cargodir.join("bin/rustup");
-    cx.config
-        .expect([installed_rustup.to_str().unwrap(), "self", "update"])
-        .await
-        .is_ok();
-    assert!(rustfmt_path.exists());
-    assert!(utils::file_size(&rustfmt_path).unwrap() > 0);
+        // Once the user removes the tool, updating installs its proxy. Use the
+        // installed rustup to also exercise updating while that file is open.
+        fs::remove_file(&tool_path).unwrap();
+        let installed_rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+        cx.config
+            .expect([installed_rustup.to_str().unwrap(), "self", "update"])
+            .await
+            .is_ok();
+        assert!(same_file::is_same_file(&tool_path, &installed_rustup).unwrap());
+    }
 }
 
 #[tokio::test]
