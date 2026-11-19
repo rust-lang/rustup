@@ -4997,7 +4997,10 @@ async fn pin_existing_legacy_toolchain_file() {
         .expect(["rustup", "+nightly", "toolchain", "pin"])
         .await
         .is_ok()
-        .with_stderr(snapbox::str![[""]]);
+        .with_stderr(snapbox::str![[r#"
+warn: existing 'rust-toolchain' takes precedence; newly created 'rust-toolchain.toml' will be ignored
+
+"#]]);
 
     snapbox::assert_data_eq!(
         fs::read_to_string(cwd.join("rust-toolchain.toml")).unwrap(),
