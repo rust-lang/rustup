@@ -201,3 +201,45 @@ fn test_effective_thread_count() {
         8
     );
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn test_linux_available_memory() -> anyhow::Result<()> {
+    use super::linux_available_memory;
+
+    let dir = test_dir()?;
+    let path = dir.path().join("meminfo");
+    // An absent file and an unreadable file (a directory) both retain fallback.
+    assert_eq!(linux_available_memory(&path), None);
+    assert_eq!(linux_available_memory(dir.path()), None);
+
+    for (contents, expected) in [
+        (
+            "MemTotal: 928456 kB\nMemAvailable: 520192 kB\n",
+            Some(508 * 1024 * 1024),
+        ),
+        ("MemAvailable:\t  1 kB\n", Some(1024)),
+        ("MemAvailable: 0 kB\n", Some(0)),
+        (
+            "MemAvailable: 18014398509481983 kB\n",
+            Some(u64::MAX - 1023),
+        ),
+        ("MemAvailable: 18014398509481984 kB\n", None),
+        ("MemAvailable: 18446744073709551616 kB\n", None),
+        ("MemAvailable: -1 kB\n", None),
+        ("MemAvailable: invalid kB\n", None),
+        ("MemAvailable: 512 MB\n", None),
+        ("MemAvailable: 512\n", None),
+        ("MemAvailable: 512 kB extra\n", None),
+        ("MemAvailable:\n", None),
+        ("MemTotal: 928456 kB\nMemFree: 100 kB\n", None),
+        ("OtherMemAvailable: 512 kB\n", None),
+        ("", None),
+    ] {
+        std::fs::write(&path, contents)?;
+        assert_eq!(linux_available_memory(&path), expected, "{contents:?}");
+    }
+    std::fs::write(&path, [0xff])?;
+    assert_eq!(linux_available_memory(&path), None);
+    Ok(())
+}
