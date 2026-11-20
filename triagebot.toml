@@ -1,5 +1,9 @@
-[relabel]
+## See <https://forge.rust-lang.org/triagebot/index.html> for documentation
+## of these options.
+##
+## Org-wide config at: https://github.com/rust-lang/triagebot/blob/HEAD/rust-lang.triagebot.toml
 
+[relabel]
 allow-unauthenticated = [
   "bug",
   "duplicate",
@@ -14,10 +18,23 @@ allow-unauthenticated = [
   "A-*",
 ]
 
+# Enables assigning users to issues and PRs (via r?).
+# Documentation at: https://forge.rust-lang.org/triagebot/pr-assignment.html
 [assign]
+warn_non_default_branch = true
 contributing_url = "https://rust-lang.github.io/rustup/dev-guide"
 llm_policy_url = "https://rust-lang.github.io/rustup/dev-guide/#ai-policy"
 
-# Enable issue transfers within the org
-# Documentation at: https://forge.rust-lang.org/triagebot/transfer.html
-[transfer]
+[assign.custom_messages] # Required to attach `llm_policy_url` and `contributing_url` for new contributors
+auto-assign-no-one-welcome = """
+Welcome, and thank you for contributing to rustup! A reviewer will take a look at your PR, typically within a week or two.
+"""
+
+# Enables merge commit warnings
+# Documentation at: https://forge.rust-lang.org/triagebot/no-merge.html
+[no-merges]
+
+# Allow the use of 'rustbot merge' and `rustbot delegate`
+# Documentation at: https://forge.rust-lang.org/triagebot/merge.html
+[merge]
+type = "merge-queue"
