@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt,
     path::{Path, PathBuf},
     str::FromStr,
@@ -130,16 +130,19 @@ impl Settings {
         self.overrides.insert(key, toolchain);
     }
 
-    /// Indexes the overrides by the directories they refer to, for a series of lookups.
-    pub(crate) fn overrides_by_dir(&self) -> OverridesByDir<'_> {
-        let mut by_dir = HashMap::new();
-        for (path, toolchain) in &self.overrides {
-            // A directory that cannot be opened cannot be the current one either.
-            if let Ok(dir) = Handle::from_path(path) {
-                by_dir.entry(dir).or_insert_with(|| toolchain.as_str());
-            }
+    /// Finds the override for `path` by directory identity.
+    pub(crate) fn override_for_dir(&self, path: &Path) -> Option<&str> {
+        if self.overrides.is_empty() {
+            return None;
         }
-        OverridesByDir { by_dir }
+
+        let dir = Handle::from_path(path).ok()?;
+        // Keep only the queried directory and one override open at a time.
+        self.overrides.iter().find_map(|(path, toolchain)| {
+            Handle::from_path(path)
+                .is_ok_and(|other| other == dir)
+                .then_some(toolchain.as_str())
+        })
     }
 
     pub(crate) fn parse(data: &str) -> anyhow::Result<Self> {
@@ -154,22 +157,6 @@ impl Settings {
 /// Whether `path` leads to the directory behind `dir`.
 fn leads_to(path: &str, dir: &Handle) -> bool {
     Handle::from_path(path).is_ok_and(|other| other == *dir)
-}
-
-/// Overrides keyed by the identity of their directories rather than by their
-/// paths, so that an override applies however its directory is reached.
-pub(crate) struct OverridesByDir<'a> {
-    by_dir: HashMap<Handle, &'a str>,
-}
-
-impl OverridesByDir<'_> {
-    pub(crate) fn get(&self, dir: &Path) -> Option<&str> {
-        if self.by_dir.is_empty() {
-            return None;
-        }
-        let dir = Handle::from_path(dir).ok()?;
-        self.by_dir.get(&dir).copied()
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

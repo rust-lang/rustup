@@ -3,7 +3,7 @@
 
 use std::fs;
 #[cfg(unix)]
-use std::path::PathBuf;
+use std::{io, os::unix::process::CommandExt, path::PathBuf};
 
 use rustup::{
     test::{CROSS_ARCH1, CROSS_ARCH2, CliTestContext, MULTI_ARCH1, Scenario, this_host_tuple},
@@ -587,6 +587,87 @@ async fn override_applies_to_dir_moved_behind_symlink() {
 1.3.0 (hash-nightly-2)
 
 "#]]);
+}
+
+#[tokio::test]
+#[cfg(unix)]
+async fn directory_override_lookup_stays_within_open_file_limit() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", "stable"])
+        .await
+        .is_ok();
+    let special_path = cx.config.customdir.join("custom-1");
+    cx.config
+        .expect([
+            "rustup",
+            "toolchain",
+            "link",
+            "special",
+            special_path.to_str().unwrap(),
+        ])
+        .await
+        .is_ok();
+
+    let settings_path = cx.config.rustupdir.join("settings.toml");
+    let mut settings: toml::Table =
+        toml::from_str(&fs::read_to_string(&settings_path).unwrap()).unwrap();
+    let overrides = settings["overrides"].as_table_mut().unwrap();
+    let mut selected = None;
+    // Exceed the child limit on both axes: valid override paths and ancestors.
+    for index in 0..160 {
+        let mut dir = cx.config.current_dir().join(format!("override-{index:03}"));
+        let toolchain = if index == 150 {
+            for _ in 0..300 {
+                dir.push("d");
+            }
+            selected = Some(dir.clone());
+            "special"
+        } else {
+            "stable"
+        };
+        fs::create_dir_all(&dir).unwrap();
+        overrides.insert(
+            dir.into_os_string().into_string().unwrap(),
+            toolchain.into(),
+        );
+    }
+    fs::write(settings_path, toml::to_string(&settings).unwrap()).unwrap();
+
+    let selected = selected.unwrap();
+    let cx = cx.change_dir(&selected);
+    let mut cmd = cx.config.cmd("rustup", ["show", "active-toolchain"]);
+    // SAFETY: the closure only invokes resource-limit system calls and changes
+    // the child process before it executes rustup.
+    unsafe {
+        cmd.pre_exec(|| {
+            let mut limit = libc::rlimit {
+                rlim_cur: 0,
+                rlim_max: 0,
+            };
+            if libc::getrlimit(libc::RLIMIT_NOFILE, &mut limit) != 0 {
+                return Err(io::Error::last_os_error());
+            }
+            limit.rlim_cur = limit.rlim_max.min(128);
+            if libc::setrlimit(libc::RLIMIT_NOFILE, &limit) != 0 {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+
+    let output = cmd.output().unwrap();
+    assert!(
+        output.status.success(),
+        "rustup failed with {}: {}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .starts_with("special ")
+    );
 }
 
 #[tokio::test]
