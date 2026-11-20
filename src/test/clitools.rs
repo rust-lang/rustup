@@ -1411,7 +1411,7 @@ where
 /// To avoid compiling tons of files we globally cache one compiled executable
 /// and then we store some associated files next to it which indicate
 /// the version/version hash information.
-pub(super) fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
+pub fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
     static MOCK_BIN: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
         // Create a temp directory to hold the source and the output
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
