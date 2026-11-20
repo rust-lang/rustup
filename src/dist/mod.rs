@@ -852,8 +852,8 @@ pub(crate) struct DistOptions<'cfg, 'a> {
     pub(super) allow_downgrade: bool,
     /// toolchain already exists
     pub(super) exists: bool,
-    /// currently installed date and version
-    pub(super) old_date_version: Option<(String, String)>,
+    /// Currently installed date as shown in the manifest, if any
+    pub(super) old_manifest_date: Option<String>,
     /// Extra components to install from dist
     components: &'a [&'a str],
     /// Extra targets to install from dist
@@ -878,7 +878,7 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
             force,
             allow_downgrade: false,
             exists: false,
-            old_date_version: None,
+            old_manifest_date: None,
             components,
             targets,
         })
@@ -891,20 +891,9 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
     ) -> Self {
         self.allow_downgrade = allow_downgrade;
         self.exists = true;
-        self.old_date_version =
-            // Ignore a missing manifest: we can't report the old version
-            // correctly, and it probably indicates an incomplete install, so do
-            // not report an old rustc version either.
-            toolchain.get_manifest()
-                .map(|m| {
-                    (
-                        m.date,
-                        // should rustc_version be a free function on a trait?
-                        // note that prev_version can be junk if the rustc component is missing ...
-                        toolchain.toolchain.rustc_version(),
-                    )
-                })
-                .ok();
+
+        // Ignore a missing manifest: we can't report the old version correctly.
+        self.old_manifest_date = toolchain.get_manifest().ok().map(|m| m.date);
 
         self
     }
@@ -960,9 +949,9 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
         // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
         let first_manifest = date_from_manifest_date("2014-12-20").unwrap();
         let old_manifest = self
-            .old_date_version
+            .old_manifest_date
             .as_ref()
-            .and_then(|(d, _)| date_from_manifest_date(d))
+            .and_then(|d| date_from_manifest_date(d))
             .unwrap_or(first_manifest);
         let last_manifest = if self.allow_downgrade {
             first_manifest
