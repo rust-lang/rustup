@@ -462,3 +462,56 @@ fn unpack_without_first_dir<R: Read>(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+    use crate::{diskio::get_executor, process::IoThreadCount, test::test_dir};
+
+    /// Unpack one file below and one above `IO_CHUNK_SIZE`, so that both the
+    /// whole-file and the streaming paths are taken, and check their contents.
+    fn unpack_small_and_streamed_files(io_threads: usize) -> anyhow::Result<()> {
+        let small = b"small file contents".to_vec();
+        // Not all zeros, since a broken stream used to produce NUL bytes
+        // (#2754), and with a period that doesn't divide the chunk size.
+        let large = (0..IO_CHUNK_SIZE + 1)
+            .map(|i| (i % 251) as u8)
+            .collect::<Vec<_>>();
+
+        let mut builder = tar::Builder::new(Vec::new());
+        for (path, contents) in [("pkg/small", &small), ("pkg/large", &large)] {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(contents.len() as u64);
+            header.set_mode(0o644);
+            builder.append_data(&mut header, path, &contents[..])?;
+        }
+        let archive = builder.into_inner()?;
+
+        let work_dir = test_dir()?;
+        unpack_without_first_dir(
+            &mut tar::Archive::new(&archive[..]),
+            work_dir.path(),
+            get_executor(2 * IO_CHUNK_SIZE, IoThreadCount::UserSpecified(io_threads)),
+        )?;
+
+        assert_eq!(fs::read(work_dir.path().join("small"))?, small);
+        // Avoid `assert_eq!` here: on failure it would print every byte.
+        assert!(
+            fs::read(work_dir.path().join("large"))? == large,
+            "streamed file contents differ"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn unpack_small_and_streamed_files_immediate() {
+        unpack_small_and_streamed_files(1).unwrap();
+    }
+
+    #[test]
+    fn unpack_small_and_streamed_files_threaded() {
+        unpack_small_and_streamed_files(2).unwrap();
+    }
+}
