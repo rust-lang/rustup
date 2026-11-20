@@ -2,8 +2,7 @@ use std::{
     env::{self, consts::EXE_SUFFIX},
     ffi::{OsStr, OsString},
     fmt::Debug,
-    fs,
-    io::{BufRead, BufReader},
+    fs, io,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     str::FromStr,
@@ -12,6 +11,11 @@ use std::{
 
 use anyhow::{Context, anyhow, bail};
 use same_file::is_same_file;
+use tokio::{
+    io::{AsyncBufReadExt as _, AsyncRead, BufReader},
+    process::Command as TokioCommand,
+    time::{Instant, timeout_at},
+};
 use tracing::info;
 use url::Url;
 use wait_timeout::ChildExt;
@@ -256,7 +260,7 @@ impl<'a> Toolchain<'a> {
 
     /// Infallible function that describes the version of rustc in an installed distribution
     #[tracing::instrument(level = "trace")]
-    pub fn rustc_version(&self) -> String {
+    pub async fn rustc_version(&self) -> String {
         let mut cmd = match self.create_command("rustc") {
             Ok(cmd) => cmd,
             Err(e) => {
@@ -274,6 +278,9 @@ impl<'a> Toolchain<'a> {
         cmd.stderr(Stdio::piped());
         self.set_ldpath(&mut cmd);
 
+        let mut cmd = TokioCommand::from(cmd);
+        cmd.kill_on_drop(true);
+
         // some toolchains are faulty with some combinations of platforms and
         // may fail to launch but also to timely terminate.
         // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
@@ -284,27 +291,48 @@ impl<'a> Toolchain<'a> {
         };
 
         let generic_error = "(error reading rustc version)";
-        match child.wait_timeout(Duration::from_secs(10)) {
-            Ok(None) => {
-                let _ = child.kill();
-                "(timeout reading rustc version)".to_owned()
+        let timeout_error = "(timeout reading rustc version)";
+
+        let deadline = Instant::now() + Duration::from_secs(10);
+        match timeout_at(deadline, child.wait()).await {
+            Err(_) => {
+                let _ = child.kill().await;
+                timeout_error.to_owned()
             }
-            Ok(Some(status)) if status.success() => {
-                let out = child
-                    .stdout
-                    .expect("Child::stdout requested but not present");
-                let mut line = String::new();
-                match BufReader::new(out).read_line(&mut line) {
+            Ok(Ok(status)) if status.success() => {
+                match read_first_line(
+                    child
+                        .stdout
+                        .expect("Child::stdout requested but not present"),
+                    deadline,
+                )
+                .await
+                {
                     Err(_) => generic_error.to_owned(),
-                    Ok(_) => {
-                        let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
-                        line.truncate(lineend);
-                        line
-                    }
+                    Ok(None) => timeout_error.to_owned(),
+                    Ok(Some(line)) => line,
                 }
             }
-            Ok(Some(status)) => format!("(error reading rustc version: rustc quit with {status})"),
-            Err(_) => generic_error.to_owned(),
+            Ok(Ok(status)) => match read_first_line(
+                child
+                    .stderr
+                    .expect("Child::stderr requested but not present"),
+                deadline,
+            )
+            .await
+            {
+                Ok(None) => timeout_error.to_owned(),
+                Ok(Some(line)) if !line.trim().is_empty() => format!(
+                    "(error reading rustc version: '{}')",
+                    line.chars()
+                        .flat_map(char::escape_default)
+                        .collect::<String>()
+                ),
+                Ok(Some(_)) | Err(_) => {
+                    format!("(error reading rustc version: rustc quit with {status})")
+                }
+            },
+            Ok(Err(_)) => generic_error.to_owned(),
         }
     }
 
@@ -604,4 +632,24 @@ impl<'a> Toolchain<'a> {
             })
             .collect())
     }
+}
+
+/// Returns the first line from the reader before the deadline, if any.
+///
+/// This functions returns `Ok(None)` if the reader did not produce a line before the
+/// deadline, or `Err(_)` if an error is produced while reading.
+async fn read_first_line(
+    reader: impl AsyncRead + Unpin,
+    deadline: Instant,
+) -> io::Result<Option<String>> {
+    let mut line = String::new();
+    let len_trimmed = match timeout_at(deadline, BufReader::new(reader).read_line(&mut line)).await
+    {
+        Err(_) => return Ok(None),
+        Ok(Err(e)) => return Err(e),
+        Ok(Ok(_)) => line.trim_end_matches(&['\r', '\n'][..]).len(),
+    };
+
+    line.truncate(len_trimmed);
+    Ok(Some(line))
 }

@@ -14,6 +14,7 @@ use anyhow::{Context, anyhow};
 use clap_cargo::style::{CONTEXT, ERROR, UPDATE_ADDED, UPDATE_UNCHANGED, UPDATE_UPGRADED};
 use futures_util::future::join_all;
 use git_testament::{git_testament, render_testament};
+use tokio_stream::StreamExt as _;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
@@ -136,12 +137,12 @@ pub(crate) fn read_line(process: &Process) -> anyhow::Result<String> {
     .context("unable to read from stdin for confirmation")
 }
 
-pub(crate) fn show_channel_update(
+pub(crate) async fn show_channel_update(
     cfg: &Cfg<'_>,
     name: PackageUpdate,
     updated: anyhow::Result<UpdateStatus>,
 ) -> anyhow::Result<()> {
-    show_channel_updates(cfg, vec![(name, updated)])
+    show_channel_updates(cfg, vec![(name, updated)]).await
 }
 
 pub(crate) enum PackageUpdate {
@@ -158,11 +159,11 @@ impl Display for PackageUpdate {
     }
 }
 
-fn show_channel_updates(
+async fn show_channel_updates(
     cfg: &Cfg<'_>,
     updates: Vec<(PackageUpdate, anyhow::Result<UpdateStatus>)>,
 ) -> anyhow::Result<()> {
-    let data = updates.into_iter().map(|(pkg, result)| {
+    let data = tokio_stream::iter(updates).then(|(pkg, result)| async {
         let (banner, style) = match &result {
             Ok(UpdateStatus::Installed) => ("installed", UPDATE_ADDED),
             Ok(UpdateStatus::Updated(_)) => ("updated", UPDATE_UPGRADED),
@@ -189,7 +190,7 @@ fn show_channel_updates(
                 // presumably had (for Installed and Unchanged), so we query it
                 // again. Perhaps we can do better.
                 let version = match Toolchain::new(cfg, name.clone().into()) {
-                    Ok(t) => t.rustc_version(),
+                    Ok(t) => t.rustc_version().await,
                     Err(_) => String::from("(toolchain not installed)"),
                 };
                 let previous_version = match result {
@@ -208,7 +209,7 @@ fn show_channel_updates(
     let t = cfg.process.stdout();
     let mut t = t.lock();
 
-    let data = data.collect::<anyhow::Result<Vec<_>>>()?;
+    let data = data.collect::<anyhow::Result<Vec<_>>>().await?;
     let max_width = data
         .iter()
         .fold(0, |a, &(_, _, width, _, _, _)| cmp::max(a, width));
@@ -288,7 +289,7 @@ pub(crate) async fn update_all_channels(
             .into_iter()
             .map(|(p, s)| (PackageUpdate::Toolchain(p), s))
             .collect();
-        show_channel_updates(cfg, t)?;
+        show_channel_updates(cfg, t).await?;
     }
 
     Ok(exit_code)

@@ -8,7 +8,7 @@ use crate::{
     config::Cfg,
     dist::{DistOptions, manifest::ManifestWithHash, prefix::InstallPrefix},
     errors::RustupError,
-    toolchain::{CustomToolchainName, ToolchainNameExt as _, ToolchainNameOrPath},
+    toolchain::{CustomToolchainName, Toolchain, ToolchainNameExt as _, ToolchainNameOrPath},
     utils,
 };
 
@@ -39,23 +39,35 @@ impl InstallMethod<'_, '_> {
             Self::Link { cfg, .. } | Self::Dist(DistOptions { cfg, .. }) => cfg,
         };
 
-        let toolchain = match &self {
+        let (toolchain, prev_ver) = match &self {
             Self::Link { toolchain, .. } => {
                 let toolchain = ToolchainNameOrPath::from((*toolchain).clone());
                 debug!("linking toolchain `{toolchain}`");
-                toolchain
+                (toolchain, None)
             }
             Self::Dist(DistOptions {
                 toolchain,
-                old_date_version,
+                old_manifest_date,
                 ..
             }) => {
-                let toolchain = ToolchainNameOrPath::from((*toolchain).clone());
-                match old_date_version {
-                    Some(_) => debug!("updating existing install for `{toolchain}`"),
-                    None => debug!("installing toolchain `{toolchain}`"),
-                }
-                toolchain
+                let toolchain = (*toolchain).clone();
+                let prev_ver = match old_manifest_date {
+                    Some(_) => {
+                        debug!("updating existing install for `{toolchain}`");
+                        Some(
+                            Toolchain::new(cfg, toolchain.clone().into())?
+                                .rustc_version()
+                                .await,
+                        )
+                    }
+                    // A missing manifest may probably indicates an incomplete install, so don't
+                    // report an old rustc version in this case.
+                    None => {
+                        debug!("installing toolchain `{toolchain}`");
+                        None
+                    }
+                };
+                (ToolchainNameOrPath::from(toolchain), prev_ver)
             }
         };
 
@@ -77,12 +89,9 @@ impl InstallMethod<'_, '_> {
                 None => UpdateStatus::Unchanged,
                 Some(hash) => {
                     utils::write_file("update hash", &opts.update_hash, &hash)?;
-                    match opts {
-                        DistOptions {
-                            old_date_version: Some((_, v)),
-                            ..
-                        } => UpdateStatus::Updated(v.clone()),
-                        _ => UpdateStatus::Installed,
+                    match prev_ver {
+                        None => UpdateStatus::Installed,
+                        Some(v) => UpdateStatus::Updated(v),
                     }
                 }
             },
