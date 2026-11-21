@@ -42,7 +42,7 @@ downgraded to tier 3, its CI workflows should be dropped accordingly.
 If a platform is directly supported by GitHub Action's free runners, we should always
 build for it natively with the full test suite activated.
 Otherwise, we might consider performing a cross-build, in which case we won't run the
-tests for the the target.
+tests for the target.
 
 ## Useful notes about how we run builds
 
