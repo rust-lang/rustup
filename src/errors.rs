@@ -111,9 +111,27 @@ impl ComponentSuggestion {
         component: &Component,
         config: &DistConfig,
         manifest: &Manifest,
+        cfg: &Cfg<'_>,
     ) -> Option<Self> {
-        component_suggestion(desc, component, config, manifest, false)
-            .map(Self::Component)
+        for channel_toolchain in other_channel_toolchains(desc, cfg) {
+            let Ok(components) = channel_toolchain.components() else {
+                continue;
+            };
+
+            if components.iter().any(|status| {
+                status.available
+                    && (component.name() == status.component.name()
+                        || component.wildcard().name() == status.component.name())
+            }) {
+                return Some(Self::Toolchain {
+                    name: channel_toolchain.desc().to_string(),
+                    component: manifest.short_name(component).to_string(),
+                    action: "add",
+                });
+            }
+        }
+
+        component_suggestion(desc, component, config, manifest, false).map(Self::Component)
     }
 }
 
