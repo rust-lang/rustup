@@ -20,7 +20,7 @@ use crate::{
         config::Config as DistConfig,
         manifest::{Component, Manifest},
     },
-    toolchain::{Toolchain, ToolchainName, ToolchainPath},
+    toolchain::{ChannelToolchain, Toolchain, ToolchainName, ToolchainPath},
 };
 
 pub(crate) const DEFAULT_STABLE_HINT: &str = "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.";
@@ -144,6 +144,17 @@ impl ComponentSuggestion {
         component_suggestion(desc, component, config, manifest, false)
             .map(Self::Component)
     }
+}
+
+fn other_channel_toolchains<'a>(
+    except: &ChannelToolchainName,
+    cfg: &'a Cfg<'a>,
+) -> impl Iterator<Item = ChannelToolchain<'a>> {
+    cfg.list_channels()
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter(move |c| c.desc() != except)
 }
 
 impl fmt::Display for ComponentSuggestion {
