@@ -88,15 +88,17 @@ async fn update_propagates_prefetch_errors() {
             .await
             .with_stdout(snapbox::str![[r#"
 
-  stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+  stable-[HOST_TUPLE] update failed - 1.1.0 (hash-stable-1.1.0)
 
 
 "#]])
             .with_stderr(snapbox::str![[r#"
+info: syncing channel updates for stable-[HOST_TUPLE]
+error: no release found for 'stable'
 info: cleaning up downloads & tmp directories
 
 "#]])
-            .is_ok();
+            .is_err();
     }
 }
 
