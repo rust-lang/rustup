@@ -15,7 +15,7 @@ use clap_cargo::style::{CONTEXT, ERROR, UPDATE_ADDED, UPDATE_UNCHANGED, UPDATE_U
 use futures_util::future::join_all;
 use git_testament::{git_testament, render_testament};
 use tokio_stream::StreamExt as _;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{EnvFilter, Registry, reload::Handle};
 
 use crate::{
@@ -238,9 +238,7 @@ pub(crate) async fn update_all_channels(
 
     // Run a pre-check to determine which channels have updates available.
     let channels_with_manifests = join_all(channels.into_iter().map(|d| async move {
-        // Prefetch errors are intentionally discarded; a failed prefetch falls
-        // back to the normal update path, where errors are properly propagated.
-        let manifest = d.fetch_dist_manifest().await.unwrap_or(None);
+        let manifest = d.fetch_dist_manifest().await;
         (d, manifest)
     }))
     .await;
@@ -250,7 +248,18 @@ pub(crate) async fn update_all_channels(
     let mut has_update = false;
     for (distributable, manifest) in channels_with_manifests {
         let desc = distributable.desc();
-        let result = if force_update || manifest.is_some() {
+        let (should_update, manifest) = match manifest {
+            Ok(manifest) => (force_update || manifest.is_some(), manifest),
+            // Prefetch errors are intentionally discarded; a failed prefetch falls
+            // back to the normal update path, where errors are properly propagated.
+            Err(e) => {
+                debug!(
+                    "manifest prefetch failed for `{desc}`; falling back to normal update: {e:#}"
+                );
+                (true, None)
+            }
+        };
+        let result = if should_update {
             let options = DistOptions::new(&[], &[], desc, profile, force_update, cfg)?
                 .for_update(&distributable, false);
             InstallMethod::Dist(options).install(manifest).await
