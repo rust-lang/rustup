@@ -1105,6 +1105,17 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                     rust_package.get_target(Some(&toolchain.target.clone()))?;
 
                 for &component in self.components {
+                    // If the component is already present in the manifest, we can fetch it directly
+                    // from there.
+                    if let Some(component) = rust_target_package
+                        .components
+                        .iter()
+                        .find(|c| component == c.name() || component == m.name(c))
+                    {
+                        all_components.insert(component.clone());
+                        continue;
+                    }
+
                     let mut component = Component::new(
                         component.to_string(),
                         Some(toolchain.target.clone()),
@@ -1112,17 +1123,6 @@ impl<'cfg, 'a> DistOptions<'cfg, 'a> {
                     );
                     if let Some(renamed) = m.rename_component(&component) {
                         component = renamed;
-                    }
-                    // Look up the newly constructed/renamed component and ensure that
-                    // if it's a wildcard component we note such, otherwise we end up
-                    // exacerbating the problem we thought we'd fixed with #2087 and #2115
-                    if let Some(c) = rust_target_package
-                        .components
-                        .iter()
-                        .find(|c| c.short_name() == component.short_name())
-                        && c.target.is_none()
-                    {
-                        component = component.wildcard();
                     }
                     all_components.insert(component);
                 }

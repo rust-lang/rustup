@@ -182,12 +182,14 @@ impl<'a> ChannelToolchain<'a> {
         let config = manifestation.read_config()?.unwrap_or_default();
         let installed_components = manifest.query_components(self.desc(), &config)?;
         // check if all the components we want are installed
-        let wanted_components = components.iter().all(|name| {
+        let wanted_components = components.iter().all(|&name| {
             installed_components.iter().any(|status| {
-                let cname = manifest.short_name(&status.component);
-                let cnameim = status.component.short_name();
-                let cnameim = cnameim.as_str();
-                (cname == *name || cnameim == *name) && status.installed
+                let c = &status.component;
+                status.installed
+                    && (name == status.name
+                        || name == c.name()
+                        || name == c.short_name()
+                        || name == manifest.short_name(c))
             })
         });
         // And that all the targets we want are installed

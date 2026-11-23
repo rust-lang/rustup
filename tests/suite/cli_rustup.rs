@@ -4580,10 +4580,33 @@ components = ["rls-{}", "rust-std-{CROSS_ARCH1}"]"#,
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-error: some components are unavailable for download for channel 'stable-[HOST_TUPLE]': 'rls-[HOST_TUPLE]' for target '[HOST_TUPLE]', 'rust-std-[CROSS_ARCH_I]' for target '[HOST_TUPLE]'
+info: the active toolchain `stable-[HOST_TUPLE]` has been installed
 ...
 "#]])
-        .is_err();
+        .is_ok();
+    cx.config
+        .expect(["rustup", "component", "list", "--installed"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+rls-[HOST_TUPLE]
+...
+rust-std-[CROSS_ARCH_I]
+...
+"#]])
+        .is_ok();
+
+    // Perform the installation again to make sure that `ChannelToolchain::components_exist()`
+    // returns correctly for `rust-toolchain.toml` components with full names.
+    cx.config
+        .expect(["rustup", "toolchain", "install"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+info: using existing install for stable-[HOST_TUPLE]
+info: the active toolchain `stable-[HOST_TUPLE]` has been installed
+...
+"#]])
+        .is_ok();
 }
 
 /// Ensures that `rust-toolchain.toml` files (with `.toml` extension) only allow TOML contents
