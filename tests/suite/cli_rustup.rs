@@ -436,6 +436,41 @@ async fn proxy_default_alias_uses_configured_default() {
 }
 
 #[tokio::test]
+async fn default_alias_toolchain_file_uses_qualified_default() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "default", &format!("beta-{}", this_host_tuple())])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustc", "+default", "--version"])
+        .await
+        .with_stdout(snapbox::str![[r#"
+1.2.0 (hash-beta-1.2.0)
+
+"#]])
+        .is_ok();
+
+    for (file, contents) in [
+        ("rust-toolchain", "default"),
+        ("rust-toolchain.toml", r#"toolchain.channel = "default""#),
+    ] {
+        let path = cx.config.current_dir().join(file);
+        raw::write_file(&path, contents).unwrap();
+        cx.config
+            .expect(["rustc", "--version"])
+            .await
+            .with_stdout(snapbox::str![""])
+            .with_stderr(snapbox::str![[r#"
+error: target tuple in channel name 'beta-[HOST_TUPLE]'
+
+"#]])
+            .is_err();
+        fs::remove_file(path).unwrap();
+    }
+}
+
+#[tokio::test]
 async fn default_alias_directory_override_follows_default() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
