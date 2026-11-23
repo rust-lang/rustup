@@ -1685,32 +1685,39 @@ async fn toolchain_remove(cfg: &Cfg<'_>, opts: UninstallOpts) -> anyhow::Result<
 fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCode> {
     let default_host = cfg.default_host_tuple()?;
 
-    let (mut r#override, backfill_components) =
+    let (mut r#override, backfill_components_and_targets) =
         match cfg.find_override_config(cfg.toolchain_override.as_ref())? {
             Some((o, _)) => (o, None),
             None => {
                 let default = cfg
                     .get_default_resolvable()?
                     .context("no default toolchain to pin")?;
-                let components = match &default {
+                let components_and_targets = match &default {
                     PartialToolchainName::Channel(desc) => {
                         let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
                         let host = &tc.desc().target;
                         let manifest = tc.get_manifest()?;
 
-                        let mut components = vec![];
+                        let (mut components, mut targets) = (vec![], vec![]);
                         for c in tc.components()? {
                             if !(c.available && c.installed) {
                                 continue;
                             }
 
-                            components.push(manifest.display_name(&c.component, host));
+                            match c.component.target {
+                                Some(t) if c.component.is_std() && t != *host => {
+                                    targets.push(t.to_string())
+                                }
+                                Some(_) | None => {
+                                    components.push(manifest.display_name(&c.component, host));
+                                }
+                            }
                         }
-                        Some(components)
+                        Some((components, targets))
                     }
                     PartialToolchainName::Custom(_) => None,
                 };
-                (OverrideCfg::from(default), components)
+                (OverrideCfg::from(default), components_and_targets)
             }
         };
     if qualified {
@@ -1718,8 +1725,9 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
     }
 
     let mut r#override = OverrideFile::from(r#override);
-    if backfill_components.is_some() {
-        r#override.toolchain.components = backfill_components;
+    if let Some((components, targets)) = backfill_components_and_targets {
+        r#override.toolchain.components = Some(components);
+        r#override.toolchain.targets = Some(targets);
     }
 
     let rel_path = "rust-toolchain.toml";

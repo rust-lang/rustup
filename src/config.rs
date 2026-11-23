@@ -63,7 +63,7 @@ pub(crate) struct ToolchainSection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub components: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    targets: Option<Vec<String>>,
+    pub targets: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     profile: Option<String>,
 }

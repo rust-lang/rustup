@@ -5124,6 +5124,7 @@ async fn pin_default() {
 [toolchain]
 channel = "beta"
 components = ["cargo", "rust-docs", "rust-std", "rustc"]
+targets = []
 
 "#]],
     );
@@ -5140,6 +5141,7 @@ components = ["cargo", "rust-docs", "rust-std", "rustc"]
 [toolchain]
 channel = "beta-[HOST_TUPLE]"
 components = ["cargo", "rust-docs", "rust-std", "rustc"]
+targets = []
 
 "#]],
     );
@@ -5178,7 +5180,8 @@ async fn pin_default_with_extra_target() {
 ...
 [toolchain]
 channel = "beta"
-components = ["cargo", "rust-docs", "rust-std", "rust-std-[CROSS_ARCH_I]", "rustc"]
+components = ["cargo", "rust-docs", "rust-std", "rustc"]
+targets = ["[CROSS_ARCH_I]"]
 
 "#]],
     );
@@ -5190,12 +5193,14 @@ components = ["cargo", "rust-docs", "rust-std", "rust-std-[CROSS_ARCH_I]", "rust
     cx.config
         .expect(["rustup", "toolchain", "install"])
         .await
-        .is_err()
+        .is_ok()
         .with_stderr(snapbox::str![[r#"
 info: syncing channel updates for beta-[HOST_TUPLE]
 info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
-error: component 'rust-std-[CROSS_ARCH_I]' for target '[HOST_TUPLE]' is unavailable for download for channel 'beta-[HOST_TUPLE]'
-...
+info: downloading 5 components
+info: the active toolchain `beta-[HOST_TUPLE]` has been installed
+info: it's active because: overridden by '[..]/rust-toolchain.toml'
+
 "#]]);
 }
 
@@ -5454,6 +5459,7 @@ error: found existing override file at 'rust-toolchain.toml', refusing to overwr
 [toolchain]
 channel = "stable"
 components = ["cargo", "rust-docs", "rust-std", "rustc"]
+targets = []
 
 "#]],
     );
