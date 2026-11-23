@@ -147,6 +147,7 @@ pub static LIST_OSES: &[&str] = &[
     "unknown-qtee",
     "unknown-qurt",
     "unknown-redox",
+    "unknown-serenity",
     "unknown-teeos",
     "unknown-trusty",
     "unknown-uefi",
