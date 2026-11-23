@@ -37,7 +37,7 @@ pub(super) fn rustup_command(cfg: &Cfg<'_>, args: &[impl AsRef<OsStr>]) -> clap:
                     .ok()?
                     .into_iter()
                     .filter_map(|c| {
-                        (c.component.short_name() == "rust-std" && c.available)
+                        (c.component.is_std() && c.available)
                             .then(|| c.component.target.map(|t| t.to_string()))?
                     })
                     .collect::<Vec<_>>(),

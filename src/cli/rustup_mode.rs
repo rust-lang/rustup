@@ -1367,7 +1367,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
             .components()?
             .into_iter()
             .filter_map(|c| {
-                (c.installed && c.component.short_name() == "rust-std")
+                (c.installed && c.component.is_std())
                     .then(|| c.component.target.expect("rust-std should have a target"))
             })
             .collect(),
@@ -1442,7 +1442,7 @@ async fn target_list(
     if let Ok(distributable) = ChannelToolchain::from_partial(toolchain.clone(), cfg).await {
         common::list_items(
             distributable.components()?.into_iter().filter_map(|c| {
-                if c.component.short_name() == "rust-std" && c.available {
+                if c.component.is_std() && c.available {
                     c.component.target.map(|target| (target, c.installed))
                 } else {
                     None
@@ -1490,8 +1490,7 @@ async fn target_add(
     if all {
         distributable
             .add_components(distributable.components()?.into_iter().filter_map(|c| {
-                (c.available && !c.installed && c.component.short_name() == "rust-std")
-                    .then_some(Ok(c.component))
+                (c.available && !c.installed && c.component.is_std()).then_some(Ok(c.component))
             }))
             .await?;
 
