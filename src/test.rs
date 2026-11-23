@@ -19,7 +19,11 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-use crate::{dist::TargetTuple, process::TestProcess, utils::raw};
+use crate::{
+    dist::TargetTuple,
+    process::TestProcess,
+    utils::{self, raw},
+};
 
 mod clitools;
 pub use clitools::{
@@ -334,7 +338,7 @@ pub fn calc_hash(src: &Path) -> String {
     File::open(src).unwrap().read_to_end(&mut buf).unwrap();
     let mut hasher = Sha256::new();
     hasher.update(buf);
-    faster_hex::hex_string(&hasher.finalize())
+    utils::hex_string(&hasher.finalize())
 }
 
 pub fn create_hash(src: &Path, dst: &Path) -> String {
