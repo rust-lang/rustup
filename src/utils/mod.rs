@@ -536,6 +536,16 @@ pub(crate) fn buffered(path: &Path) -> anyhow::Result<BufReader<File>> {
     }
 }
 
+pub(crate) fn hex_string(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut hex = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        hex.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        hex.push(char::from(DIGITS[usize::from(byte & 0xf)]));
+    }
+    hex
+}
+
 // search user database to get home dir of euid user
 #[cfg(unix)]
 pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
@@ -573,6 +583,8 @@ pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use sha2::{Digest, Sha256};
+
     use super::*;
 
     #[test]
@@ -608,5 +620,15 @@ mod tests {
 
         assert!(!f_path.exists());
         assert!(ensure_file_removed("f", &f_path).is_ok());
+    }
+
+    #[test]
+    fn test_hex_string() {
+        assert_eq!(hex_string(&[]), "");
+        assert_eq!(hex_string(&[0x00, 0x0f, 0xa5, 0xff]), "000fa5ff");
+        assert_eq!(
+            hex_string(&Sha256::digest(b"abc")),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 }

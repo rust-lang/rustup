@@ -135,7 +135,7 @@ impl<'a> DownloadCfg<'a> {
             };
         };
 
-        let actual_hash = faster_hex::hex_string(&hasher.finalize());
+        let actual_hash = utils::hex_string(&hasher.finalize());
 
         if hash != actual_hash {
             // Incorrect hash
@@ -336,7 +336,7 @@ impl<'a> DownloadCfg<'a> {
         };
 
         download.download().await?;
-        let actual_hash = faster_hex::hex_string(&hasher.finalize());
+        let actual_hash = utils::hex_string(&hasher.finalize());
 
         if hash != actual_hash {
             // Incorrect hash
@@ -529,7 +529,7 @@ fn file_hash(path: &Path) -> anyhow::Result<String> {
         hasher.update(&buf[..n]);
     }
 
-    Ok(faster_hex::hex_string(&hasher.finalize()))
+    Ok(utils::hex_string(&hasher.finalize()))
 }
 
 pub(crate) struct File {
