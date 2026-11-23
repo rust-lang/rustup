@@ -6,7 +6,7 @@ available at this time are `minimal`, `default`, and `complete`:
 
 - The **minimal** profile includes as few components as possible to get a
   working compiler (`rustc`, `rust-std`, and `cargo`). It's recommended to use
-  this component on Windows systems if you don't use local documentation (the
+  this profile on Windows systems if you don't use local documentation (the
   large number of files can cause issues with some Antivirus systems), and in
   CI.
 - The **default** profile includes all of components in the **minimal**
