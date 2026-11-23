@@ -5146,6 +5146,60 @@ components = ["cargo", "rust-docs", "rust-std", "rustc"]
 }
 
 #[tokio::test]
+async fn pin_default_with_extra_target() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+
+    let mut toml_redactions = snapbox::Redactions::new();
+    toml_redactions
+        .insert("[CROSS_ARCH_I]", CROSS_ARCH1)
+        .unwrap();
+    let toml_assert = snapbox::Assert::new()
+        .action_env(snapbox::assert::DEFAULT_ACTION_ENV)
+        .redact_with(toml_redactions);
+
+    cx.config
+        .expect(["rustup", "default", "beta"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "target", "add", CROSS_ARCH1])
+        .await
+        .is_ok();
+
+    cx.config
+        .expect(["rustup", "toolchain", "pin"])
+        .await
+        .is_ok();
+
+    let toolchain_file = &cx.config.current_dir().join("rust-toolchain.toml");
+    toml_assert.eq(
+        fs::read_to_string(toolchain_file).unwrap(),
+        snapbox::str![[r#"
+...
+[toolchain]
+channel = "beta"
+components = ["cargo", "rust-docs", "rust-std", "rust-std-[CROSS_ARCH_I]", "rustc"]
+
+"#]],
+    );
+
+    cx.config
+        .expect(["rustup", "toolchain", "uninstall", "beta"])
+        .await
+        .is_ok();
+    cx.config
+        .expect(["rustup", "toolchain", "install"])
+        .await
+        .is_err()
+        .with_stderr(snapbox::str![[r#"
+info: syncing channel updates for beta-[HOST_TUPLE]
+info: latest update on 2015-01-02 for version 1.2.0 (hash-beta-1.2.0)
+error: component 'rust-std-[CROSS_ARCH_I]' for target '[HOST_TUPLE]' is unavailable for download for channel 'beta-[HOST_TUPLE]'
+...
+"#]]);
+}
+
+#[tokio::test]
 async fn pin_dir_override() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
 
