@@ -1,10 +1,10 @@
-use std::{collections::BTreeSet, io::Write};
+use std::{collections::BTreeSet, io::Write, path::Path};
 
 use platforms::Platform;
 
 #[test]
 fn gen_known_target_tuples() {
-    let out_path = "src/dist/target_tuple/known.rs";
+    let out_path = Path::new("src/dist/target_tuple/known.rs");
     let existing = std::fs::read_to_string(out_path).unwrap();
 
     let (mut archs, mut oses, mut envs) = (BTreeSet::new(), BTreeSet::new(), BTreeSet::new());
@@ -44,11 +44,12 @@ fn gen_known_target_tuples() {
     };
 
     if expected != existing {
-        let mut tmp_file = tempfile::NamedTempFile::new().unwrap();
+        let mut tmp_file = tempfile::NamedTempFile::new_in(out_path.parent().unwrap()).unwrap();
         tmp_file.write_all(expected.as_bytes()).unwrap();
         std::fs::rename(tmp_file.path(), out_path).unwrap();
         panic!(
-            "outdated generated code detected at `{out_path}`, the file has been updated in place"
+            "outdated generated code detected at `{}`, the file has been updated in place",
+            out_path.display(),
         );
     }
 }
