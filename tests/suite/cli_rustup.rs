@@ -560,6 +560,10 @@ async fn add_target() {
     cx.config
         .expect(["rustup", "target", "add", CROSS_ARCH1])
         .await
+        .with_stderr(snapbox::str![[r#"
+info: downloading component rust-std
+
+"#]])
         .is_ok();
     assert!(cx.config.rustupdir.has(path));
 }
