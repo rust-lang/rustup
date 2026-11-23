@@ -248,7 +248,7 @@ impl Manifestation {
             match &components[..] {
                 [c] => info!(
                     "downloading component {}",
-                    c.manifest.short_name(&c.component),
+                    c.manifest.display_name(&c.component, &toolchain.target)
                 ),
                 _ => info!("downloading {} components", components.len()),
             };
