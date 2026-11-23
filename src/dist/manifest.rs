@@ -593,6 +593,11 @@ impl Component {
         &self.pkg
     }
 
+    /// Returns whether this component is a Rust standard library component.
+    pub fn is_std(&self) -> bool {
+        self.short_name() == "rust-std"
+    }
+
     /// Returns the [`Component`]'s name **after** renaming, including the target if present.
     /// For the short name before renaming, see [`Manifest::name()`].
     pub(crate) fn name(&self) -> String {

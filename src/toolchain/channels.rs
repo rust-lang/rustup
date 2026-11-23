@@ -196,7 +196,7 @@ impl<'a> ChannelToolchain<'a> {
         let wanted_targets = targets.iter().all(|name| {
             installed_components
                 .iter()
-                .filter(|c| c.component.short_name() == "rust-std")
+                .filter(|c| c.component.is_std())
                 .any(|status| {
                     let ctarg = status.component.target();
                     (ctarg == *name) && status.installed
