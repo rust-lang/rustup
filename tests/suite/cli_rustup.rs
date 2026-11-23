@@ -561,7 +561,7 @@ async fn add_target() {
         .expect(["rustup", "target", "add", CROSS_ARCH1])
         .await
         .with_stderr(snapbox::str![[r#"
-info: downloading component rust-std
+info: downloading component rust-std-[CROSS_ARCH_I]
 
 "#]])
         .is_ok();
