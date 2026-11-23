@@ -4561,6 +4561,31 @@ async fn rust_toolchain_toml_default_uses_configured_default() {
         .is_ok();
 }
 
+#[tokio::test]
+async fn rust_toolchain_toml_with_full_component_names() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let toolchain_file = cx.config.current_dir().join("rust-toolchain.toml");
+    raw::write_file(
+        &toolchain_file,
+        for_host!(
+            r#"[toolchain]
+channel = "stable"
+components = ["rls-{}", "rust-std-{CROSS_ARCH1}"]"#,
+        ),
+    )
+    .unwrap();
+
+    cx.config
+        .expect(["rustup", "toolchain", "install"])
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+error: some components are unavailable for download for channel 'stable-[HOST_TUPLE]': 'rls-[HOST_TUPLE]' for target '[HOST_TUPLE]', 'rust-std-[CROSS_ARCH_I]' for target '[HOST_TUPLE]'
+...
+"#]])
+        .is_err();
+}
+
 /// Ensures that `rust-toolchain.toml` files (with `.toml` extension) only allow TOML contents
 #[tokio::test]
 async fn only_toml_in_rust_toolchain_toml() {
