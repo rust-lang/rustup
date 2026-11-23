@@ -71,6 +71,36 @@ async fn update_check_with_partial_updates() {
 }
 
 #[tokio::test]
+async fn update_propagates_prefetch_errors() {
+    let mut cx = CliTestContext::new(Scenario::SimpleV2).await;
+    cx.config
+        .expect(["rustup", "toolchain", "add", "stable"])
+        .await
+        .is_ok();
+
+    let cx = cx.with_dist_dir(Scenario::Empty);
+    for args in [
+        &["rustup", "update"][..],
+        &["rustup", "update", "--check"][..],
+    ] {
+        cx.config
+            .expect(args)
+            .await
+            .with_stdout(snapbox::str![[r#"
+
+  stable-[HOST_TUPLE] unchanged - 1.1.0 (hash-stable-1.1.0)
+
+
+"#]])
+            .with_stderr(snapbox::str![[r#"
+info: cleaning up downloads & tmp directories
+
+"#]])
+            .is_ok();
+    }
+}
+
+#[tokio::test]
 async fn rustup_stable() {
     let mut cx = CliTestContext::new(Scenario::None).await;
 
