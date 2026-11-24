@@ -91,8 +91,8 @@ $ rustup completions powershell >> $PROFILE.CurrentUserCurrentHost
 $ rustup completions powershell | Out-String | Invoke-Expression
 ```
 
-**Note**: you may need to restart your shell in order for the changes to take
-effect.
+> [!NOTE]
+> You may need to restart your shell in order for the changes to take effect.
 
 For `zsh`, you must then add the following line in your `~/.zshrc` before
 `compinit`:

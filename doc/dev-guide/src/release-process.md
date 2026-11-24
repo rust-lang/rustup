@@ -29,7 +29,8 @@ _minor_ number unless:
 
 ### Minor version bumps
 
-> NOTE: Rustup hasn't been doing major version bumps since a long time ago, but
+> [!NOTE]
+> Rustup hasn't been doing major version bumps since a long time ago, but
 > if we ever do, the procedure for it should be similar to that of a minor one.
 
 A minor version bump should be performed immediately after the latest `X.Y.0`

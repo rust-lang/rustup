@@ -67,6 +67,7 @@ doc --help` for more options.
 
 ### Previous components
 
+> [!NOTE]
 > See [here](https://rust-lang.github.io/rustup/devel/concepts/components.html#previous-components)
 > for the latest version of this section.
 

@@ -33,6 +33,7 @@ $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile
 
 ## Using a package manager
 
+> [!NOTE]
 > Please note that the rustup project is not maintaining any package mentioned in this section.
 > If you have encountered any problems installing `rustup` with a package manager,
 > please contact the package maintainer(s) for further information.

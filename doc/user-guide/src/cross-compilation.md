@@ -27,7 +27,8 @@ _targets_, such as:
 For this to work, you will need to install these targets to your toolchain, as
 explained in the next section.
 
-> NOTE: For this reason, it is generally recommended to rely on a single host
+> [!TIP]
+> For this reason, it is generally recommended to rely on a single host
 > tuple of your choice and compile to other targets as needed. For example, you
 > don't need a `i686-pc-windows-msvc` host toolchain on your `x86_64` Windows
 > machine to compile and test `i686-msvc` projects. Instead, you may want to
