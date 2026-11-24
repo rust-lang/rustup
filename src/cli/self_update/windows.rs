@@ -83,11 +83,11 @@ fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
 pub(crate) fn choose_vs_install(process: &Process) -> anyhow::Result<Option<VsInstallPlan>> {
     writeln!(
         process.stdout().lock(),
-        "\n1) Quick install via the Visual Studio Community installer"
+        "\n1) Quick install via the Build Tools for Visual Studio installer"
     )?;
     writeln!(
         process.stdout().lock(),
-        "   (free for individuals, academic uses, and open source)."
+        "   (installs only the MSVC build tools and Windows SDK)."
     )?;
     writeln!(
         process.stdout().lock(),
@@ -200,14 +200,46 @@ static MSVC_AUTO_INSTALL_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
 Rust requires a linker and Windows API libraries but they don't seem to be available.
 
-These components can be acquired through a Visual Studio installer.
+These components can be acquired through the Build Tools for Visual Studio installer.
+
+Installing the MSVC build tools requires a Visual Studio license. Visual Studio
+Community is free for individuals, open-source projects and small teams.
+
+    https://visualstudio.microsoft.com/license-terms/vs2026-ga-diagnostic-buildtools/
 
 "#;
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum VsInstallPlan {
     Automatic,
     Manual,
+}
+
+fn host_tuple(opts: &InstallOpts<'_>, process: &Process) -> String {
+    match opts.default_host_tuple.as_ref() {
+        Some(tuple) => tuple.to_owned(),
+        None => TargetTuple::from_host_or_build(process).to_string(),
+    }
+}
+
+/// The Visual Studio component providing the MSVC tools for `host_tuple`,
+/// or `None` if the host isn't supported by the automatic install.
+fn msvc_tools_component(host_tuple: &str) -> Option<&'static str> {
+    match host_tuple.split('-').next()? {
+        "x86_64" | "i686" => Some("Microsoft.VisualStudio.Component.VC.Tools.x86.x64"),
+        "aarch64" => Some("Microsoft.VisualStudio.Component.VC.Tools.ARM64"),
+        _ => None,
+    }
+}
+
+fn vs_install_plan(host_tuple: &str, has_any_vs: bool) -> VsInstallPlan {
+    // Only try an automatic install if no Visual Studio is installed at all
+    // and we know which MSVC tools component to install for this host.
+    if !has_any_vs && msvc_tools_component(host_tuple).is_some() {
+        VsInstallPlan::Automatic
+    } else {
+        VsInstallPlan::Manual
+    }
 }
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
@@ -218,25 +250,13 @@ pub(crate) fn msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option<Vs
         return None;
     }
 
-    let host_tuple = if let Some(tuple) = opts.default_host_tuple.as_ref() {
-        tuple.to_owned()
-    } else {
-        TargetTuple::from_host_or_build(process).to_string()
-    };
+    let host_tuple = host_tuple(opts, process);
     let installing_msvc = host_tuple.contains("msvc");
     let have_msvc = find_tool(&host_tuple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
         // Visual Studio build tools are required.
-        // If the user does not have Visual Studio installed and their host
-        // machine is i686 or x86_64 then it's OK to try an auto install.
-        // Otherwise a manual install will be required.
         let has_any_vs = find_vs_version().is_ok();
-        let is_x86 = host_tuple.contains("i686") || host_tuple.contains("x86_64");
-        if is_x86 && !has_any_vs {
-            Some(VsInstallPlan::Automatic)
-        } else {
-            Some(VsInstallPlan::Manual)
-        }
+        Some(vs_install_plan(&host_tuple, has_any_vs))
     } else {
         None
     }
@@ -293,8 +313,12 @@ pub(crate) async fn try_install_msvc(
     opts: &InstallOpts<'_>,
     process: &Process,
 ) -> anyhow::Result<ContinueInstall> {
+    let host_tuple = host_tuple(opts, process);
+    let msvc_tools = msvc_tools_component(&host_tuple)
+        .with_context(|| format!("no MSVC build tools component known for host {host_tuple}"))?;
+
     // download the installer
-    let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
+    let visual_studio_url = utils::parse_url("https://aka.ms/vs/18/stable/vs_buildtools.exe")?;
 
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-visualstudio")
@@ -303,7 +327,7 @@ pub(crate) async fn try_install_msvc(
 
     let visual_studio = tempdir.path().join("vs_setup.exe");
 
-    info!("downloading Visual Studio installer");
+    info!("downloading the Build Tools for Visual Studio installer");
     DownloadOptions::try_from(process)?
         .start(&visual_studio_url, &visual_studio)
         .download()
@@ -317,8 +341,8 @@ pub(crate) async fn try_install_msvc(
         .arg("--focusedUi")
         // Add the English language pack
         .args(["--addProductLang", "En-us"])
-        // Add the linker and C runtime libraries.
-        .args(["--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]);
+        // Add the linker and C runtime libraries for the host architecture.
+        .args(["--add", msvc_tools]);
 
     // It's possible an earlier or later version of the Windows SDK has been
     // installed separately from Visual Studio so installing it can be skipped.
@@ -328,8 +352,8 @@ pub(crate) async fn try_install_msvc(
             "Microsoft.VisualStudio.Component.Windows11SDK.26100",
         ]);
     }
-    info!("running the Visual Studio install");
-    info!("rustup will continue once Visual Studio installation is complete\n");
+    info!("running the Build Tools for Visual Studio install");
+    info!("rustup will continue once the Build Tools for Visual Studio installation is complete\n");
     let exit_status = cmd
         .spawn()
         .and_then(|mut child| child.wait())
@@ -870,6 +894,33 @@ mod tests {
             Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
         }
+    }
+
+    #[test]
+    fn msvc_tools_component_matches_host_arch() {
+        let x64 = Some("Microsoft.VisualStudio.Component.VC.Tools.x86.x64");
+        let arm64 = Some("Microsoft.VisualStudio.Component.VC.Tools.ARM64");
+        assert_eq!(msvc_tools_component("x86_64-pc-windows-msvc"), x64);
+        assert_eq!(msvc_tools_component("i686-pc-windows-msvc"), x64);
+        assert_eq!(msvc_tools_component("aarch64-pc-windows-msvc"), arm64);
+        assert_eq!(msvc_tools_component("i586-pc-windows-msvc"), None);
+        assert_eq!(msvc_tools_component("thumbv7a-pc-windows-msvc"), None);
+    }
+
+    #[test]
+    fn vs_install_plan_is_automatic_on_x86_and_aarch64_without_vs() {
+        for host in [
+            "x86_64-pc-windows-msvc",
+            "i686-pc-windows-msvc",
+            "aarch64-pc-windows-msvc",
+        ] {
+            assert_eq!(vs_install_plan(host, false), VsInstallPlan::Automatic);
+            assert_eq!(vs_install_plan(host, true), VsInstallPlan::Manual);
+        }
+        assert_eq!(
+            vs_install_plan("thumbv7a-pc-windows-msvc", false),
+            VsInstallPlan::Manual
+        );
     }
 
     #[test]
