@@ -1296,6 +1296,7 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     print_header(&t, "installed toolchains")?;
 
     let default_toolchain_name = cfg.get_default()?;
+    let mut active_toolchain_version = None;
     let last_index = installed_toolchains.len().wrapping_sub(1);
     for (n, toolchain_name) in installed_toolchains.into_iter().enumerate() {
         let is_default_toolchain = default_toolchain_name.as_ref() == Some(&toolchain_name);
@@ -1314,12 +1315,15 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
 
         if verbose {
             let toolchain = Toolchain::new(cfg, toolchain_name.into())?;
+            let rustc_version = toolchain.rustc_version().await;
             writeln!(
                 t,
-                "  {}\n  path: {}",
-                toolchain.rustc_version().await,
+                "  {rustc_version}\n  path: {}",
                 toolchain.path().display()
             )?;
+            if is_active_toolchain {
+                active_toolchain_version = Some(rustc_version);
+            }
             if n != last_index {
                 writeln!(t)?;
             }
@@ -1351,11 +1355,11 @@ async fn show(cfg: &Cfg<'_>, verbose: bool) -> anyhow::Result<ExitCode> {
     };
 
     if verbose {
-        writeln!(
-            t.lock(),
-            "compiler: {}",
-            active_toolchain.rustc_version().await
-        )?;
+        let rustc_version = match active_toolchain_version {
+            Some(version) => version,
+            None => active_toolchain.rustc_version().await,
+        };
+        writeln!(t.lock(), "compiler: {rustc_version}")?;
         writeln!(t.lock(), "path: {}", active_toolchain.path().display())?;
     }
 
