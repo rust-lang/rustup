@@ -100,6 +100,17 @@ You might want to add `$(brew --prefix rustup)/bin` to `$PATH` to make them easi
     This is not to be confused with the `rust` package,
     which is a `brew`-managed `rust` toolchain installation.
 
+### WinGet
+
+```console
+winget install -e --id Microsoft.VisualStudio.BuildTools --interactive --custom "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --addProductLang En-us"
+winget install -e --id Rustlang.Rustup
+```
+
+The first line installs the [MSVC prerequisites](windows-msvc.md).
+The second runs `rustup-init -y`, which installs the stable toolchain but skips the Visual Studio prompt, so install the prerequisites first.
+Open a new terminal afterwards.
+
 ## Manual installation
 
 You can manually download `rustup-init` for a given target from
