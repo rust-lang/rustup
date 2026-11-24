@@ -10,7 +10,7 @@ use std::{
         fs::OpenOptionsExt,
         io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle},
     },
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     ptr, thread,
     time::Duration,
@@ -381,15 +381,28 @@ fn has_windows_sdk_libs(process: &Process) -> bool {
     false
 }
 
-/// Run by rustup-gc-$num.exe to delete CARGO_HOME
+/// Run by rustup-gc-$num.exe to finish uninstalling after the parent exits.
 #[tracing::instrument(level = "trace")]
 pub fn complete_windows_uninstall(process: &Process) -> anyhow::Result<utils::ExitCode> {
     let uninstall = wait_for_parent(process).and_then(|()| {
         let no_modify_path = process.var_os(GC_MODIFY_PATH).as_deref() != Some(OsStr::new("1"));
-
-        // Now that the parent has exited there are hopefully no more files open in CARGO_HOME.
         let cargo_home = process.cargo_home()?;
-        super::clean_cargo_home(no_modify_path, process, &cargo_home)
+
+        remove_uninstall_registry_entry(process)?;
+        let rustup_bin = process.bin_home()?;
+        let cargo_bin = cargo_home.join("bin");
+        for bin_home in [&rustup_bin, &cargo_bin].into_iter().dedup() {
+            super::clean_bin_home(bin_home)?;
+            if !no_modify_path && !bin_home.try_exists()? {
+                remove_from_path(bin_home, process)?;
+            }
+        }
+
+        if !process.use_category_home() {
+            super::clean_cargo_home(&cargo_home)?;
+        }
+
+        Ok(())
     });
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
@@ -608,11 +621,10 @@ where
     Ok(windows_path.and_then(|old_path| f(old_path, HSTRING::from(path_str.as_path()))))
 }
 
-pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
+fn remove_from_path(bin_home: &Path, process: &Process) -> anyhow::Result<()> {
     let windows_path = get_windows_path_var(process)?;
-    let path_str = process.cargo_home()?.join("bin");
-    let new_path = windows_path
-        .and_then(|old_path| _remove_from_path(old_path, HSTRING::from(path_str.as_path())));
+    let new_path =
+        windows_path.and_then(|old_path| _remove_from_path(old_path, HSTRING::from(bin_home)));
     _apply_new_path(new_path, process)
 }
 

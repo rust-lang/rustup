@@ -364,6 +364,131 @@ error: could not amend shell profile[..]
     }
 
     #[tokio::test]
+    async fn category_uninstall_removes_source_from_rcs() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let rcs: Vec<PathBuf> = [
+            ".bashrc",
+            ".bash_profile",
+            ".bash_login",
+            ".profile",
+            // This requires zsh to be installed, so we test it on macOS only.
+            #[cfg(target_os = "macos")]
+            ".zshenv",
+        ]
+        .iter()
+        .map(|rc| cx.config.homedir.join(rc))
+        .collect();
+
+        for rc in &rcs {
+            raw::write_file(rc, FAKE_RC).unwrap();
+        }
+        let bin_home = cx.config.homedir.join("bin");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+
+        cx.config.expect_with_env(&INIT_NONE, &env).await.is_ok();
+        for rc in &rcs {
+            assert_ne!(fs::read_to_string(rc).unwrap(), FAKE_RC);
+        }
+        cx.config
+            .expect_with_env(&["rustup", "self", "uninstall", "-y"], &env)
+            .await
+            .is_ok();
+
+        for rc in &rcs {
+            assert_eq!(fs::read_to_string(rc).unwrap(), FAKE_RC);
+        }
+    }
+
+    #[tokio::test]
+    async fn category_uninstall_keeps_source_in_rcs_when_bin_home_is_non_empty() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let rcs: Vec<PathBuf> = [
+            ".bashrc",
+            ".bash_profile",
+            ".bash_login",
+            ".profile",
+            // This requires zsh to be installed, so we test it on macOS only.
+            #[cfg(target_os = "macos")]
+            ".zshenv",
+        ]
+        .iter()
+        .map(|rc| cx.config.homedir.join(rc))
+        .collect();
+
+        for rc in &rcs {
+            raw::write_file(rc, FAKE_RC).unwrap();
+        }
+        let bin_home = cx.config.homedir.join("bin");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+
+        cx.config.expect_with_env(&INIT_NONE, &env).await.is_ok();
+        let installed_rcs: Vec<String> = rcs
+            .iter()
+            .map(|rc| fs::read_to_string(rc).unwrap())
+            .collect();
+        fs::write(bin_home.join("custom-tool"), "").unwrap();
+        cx.config
+            .expect_with_env(&["rustup", "self", "uninstall", "-y"], &env)
+            .await
+            .is_ok();
+
+        for (rc, installed_rc) in rcs.iter().zip(&installed_rcs) {
+            assert_ne!(installed_rc, FAKE_RC);
+            assert_eq!(&fs::read_to_string(rc).unwrap(), installed_rc);
+        }
+    }
+
+    #[tokio::test]
+    async fn category_uninstall_doesnt_modify_rcs_with_no_modify_path() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let rcs: Vec<PathBuf> = [
+            ".bashrc",
+            ".bash_profile",
+            ".bash_login",
+            ".profile",
+            // This requires zsh to be installed, so we test it on macOS only.
+            #[cfg(target_os = "macos")]
+            ".zshenv",
+        ]
+        .iter()
+        .map(|rc| cx.config.homedir.join(rc))
+        .collect();
+
+        for rc in &rcs {
+            raw::write_file(rc, FAKE_RC).unwrap();
+        }
+        let bin_home = cx.config.homedir.join("bin");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+
+        cx.config.expect_with_env(&INIT_NONE, &env).await.is_ok();
+        let installed_rcs: Vec<String> = rcs
+            .iter()
+            .map(|rc| fs::read_to_string(rc).unwrap())
+            .collect();
+        cx.config
+            .expect_with_env(
+                &["rustup", "self", "uninstall", "-y", "--no-modify-path"],
+                &env,
+            )
+            .await
+            .is_ok();
+
+        for (rc, installed_rc) in rcs.iter().zip(&installed_rcs) {
+            assert_ne!(installed_rc, FAKE_RC);
+            assert_eq!(&fs::read_to_string(rc).unwrap(), installed_rc);
+        }
+    }
+
+    #[tokio::test]
     async fn install_adds_sources_while_removing_legacy_paths() {
         let cx = CliTestContext::new(Scenario::Empty).await;
         let zdotdir = tempfile::Builder::new()
@@ -661,6 +786,79 @@ mod windows {
             .await
             .is_ok();
         assert_eq!(get_path(test_id).unwrap().unwrap(), reg_value);
+    }
+
+    #[tokio::test]
+    async fn category_install_uninstall_affect_path() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let test_id = &cx.config.test_registry_id;
+        let bin_home = cx.config.homedir.join("bin");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+        let bin_path = bin_home.as_os_str();
+        let path_contains_bin = || {
+            let path = get_path(test_id)
+                .unwrap()
+                .map(|path| HSTRING::try_from(path).unwrap().to_os_string())
+                .unwrap_or_default();
+            os_str_contains(&path, bin_path)
+        };
+
+        cx.config.expect_with_env(&INIT_NONE, env).await.is_ok();
+        assert!(path_contains_bin());
+
+        cx.config
+            .expect_with_env(&["rustup", "self", "uninstall", "-y"], env)
+            .await
+            .is_ok();
+        // The PATH is cleaned by a helper after Rustup exits.
+        retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+            if path_contains_bin() {
+                OperationResult::Retry(())
+            } else {
+                OperationResult::Ok(())
+            }
+        })
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn category_uninstall_keeps_path_when_bin_home_is_non_empty() {
+        let cx = CliTestContext::new(Scenario::Empty).await;
+        let test_id = &cx.config.test_registry_id;
+        let bin_home = cx.config.homedir.join("bin");
+        let env = [
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ];
+        let rustup = bin_home.join("rustup.exe");
+
+        cx.config.expect_with_env(&INIT_NONE, env).await.is_ok();
+        std::fs::write(bin_home.join("custom-tool"), "").unwrap();
+        cx.config
+            .expect_with_env(&["rustup", "self", "uninstall", "-y"], env)
+            .await
+            .is_ok();
+        // Wait for the helper to finish cleaning the bin home after Rustup exits.
+        retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+            if rustup.exists() {
+                OperationResult::Retry(())
+            } else {
+                OperationResult::Ok(())
+            }
+        })
+        .unwrap();
+
+        let path = HSTRING::try_from(get_path(test_id).unwrap().unwrap())
+            .unwrap()
+            .to_os_string();
+        let bin_path = bin_home.into_os_string();
+        assert!(
+            os_str_contains(&path, &bin_path),
+            "`{bin_path:?}` not in `{path:?}`",
+        );
     }
 
     // HACK: Below is a low-efficiency stand-in of `OsStr::contains` which should be replaced

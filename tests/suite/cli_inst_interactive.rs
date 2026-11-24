@@ -1062,3 +1062,258 @@ active because: it's the default toolchain
 
 "#]]);
 }
+
+#[tokio::test]
+async fn uninstall_prompt_with_category_mode_enabled() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    let [config_home, state_home, data_home, cache_home, bin_home] =
+        ["config", "state", "data", "cache", "bin"].map(|dir| cx.config.homedir.join(dir));
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    run_input_with_env(&cx.config, &["rustup", "self", "uninstall"], "n\n", &env)
+        // `%USERPROFILE%` is longer than `$HOME`, so the bin directories wrap on Windows.
+        .with_stdout(cfg_select! {
+            windows => snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    config: [HOME_VAR]/config
+    state:  [HOME_VAR]/state
+    data:   [HOME_VAR]/data
+    cache:  [HOME_VAR]/cache
+    rustup: [HOME_VAR]/.rustup
+
+Rustup and its proxies will be removed from [HOME_VAR]/bin and[..]
+[HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Rustup's shell PATH setup will be removed.
+
+Continue? (y/N) 
+
+"#]],
+            _ => snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    config: [HOME_VAR]/config
+    state:  [HOME_VAR]/state
+    data:   [HOME_VAR]/data
+    cache:  [HOME_VAR]/cache
+    rustup: [HOME_VAR]/.rustup
+
+Rustup and its proxies will be removed from [HOME_VAR]/bin and [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Rustup's shell PATH setup will be removed.
+
+Continue? (y/N) 
+
+"#]],
+        })
+        .with_stderr(snapbox::str![[r#"
+info: aborting uninstallation
+
+"#]])
+        .is_ok();
+
+    for home in [config_home, state_home, data_home, cache_home] {
+        assert!(home.exists(), "{} was removed", home.display());
+    }
+    assert!(bin_home.join(format!("rustup{EXE_SUFFIX}")).exists());
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_category_bin_home_in_cargo_home() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    let env = [("RUSTUP_USE_CATEGORY_HOME", "1")];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    run_input_with_env(
+        &cx.config,
+        &["rustup", "self", "uninstall", "--no-modify-path"],
+        "n\n",
+        &env,
+    )
+    .with_stdout(snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    config: [HOME_VAR]/.rustup
+    state:  [HOME_VAR]/.rustup
+    data:   [HOME_VAR]/.rustup
+    cache:  [HOME_VAR]/.rustup
+    rustup: [HOME_VAR]/.rustup
+
+Rustup and its proxies will be removed from [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Your PATH environment variable will not be touched.
+
+Continue? (y/N) 
+
+"#]])
+    .is_ok();
+
+    assert!(cx.config.rustupdir.has("."));
+    assert!(
+        cx.config
+            .cargodir
+            .join(format!("bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_category_mode_disabled() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ])
+        .await
+        .is_ok();
+
+    run_input(&cx.config, &["rustup", "self", "uninstall"], "n\n")
+        .with_stdout(snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    rustup: [HOME_VAR]/.rustup
+    cargo:  [HOME_VAR]/.cargo
+
+Rustup and its proxies will be removed from [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Rustup's shell PATH setup will be removed.
+
+Continue? (y/N) 
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: aborting uninstallation
+
+"#]])
+        .is_ok();
+
+    assert!(cx.config.rustupdir.has("."));
+    assert!(
+        cx.config
+            .cargodir
+            .join(format!("bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_no_modify_path() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ])
+        .await
+        .is_ok();
+
+    run_input(
+        &cx.config,
+        &["rustup", "self", "uninstall", "--no-modify-path"],
+        "n\n",
+    )
+    .with_stdout(snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    rustup: [HOME_VAR]/.rustup
+    cargo:  [HOME_VAR]/.cargo
+
+Rustup and its proxies will be removed from [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Your PATH environment variable will not be touched.
+
+Continue? (y/N) 
+
+"#]])
+    .is_ok();
+
+    assert!(cx.config.rustupdir.has("."));
+    assert!(
+        cx.config
+            .cargodir
+            .join(format!("bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
+}

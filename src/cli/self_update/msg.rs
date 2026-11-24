@@ -1,5 +1,5 @@
-//! The big installation messages. These are macros because the first
-//! argument of format! needs to be a literal.
+//! Installation and uninstallation messages. These are macros because the
+//! first argument of format! needs to be a literal.
 
 macro_rules! pre_install_msg_template {
     ($platform_msg:literal) => {
@@ -101,24 +101,42 @@ Consider running the right command for your shell (note the leading DOT):
     };
 }
 
-macro_rules! pre_uninstall_msg {
+// `md` wraps paragraphs at a fixed width and also keeps their source line
+// breaks, so home paths go in indented code blocks, and paragraphs containing a
+// path are kept on one source line.
+macro_rules! pre_uninstall_msg_category_mode {
     () => {
         r"# Thanks for hacking in Rust!
 
-This will uninstall all Rust toolchains and data, and remove
-`{cargo_bin_dir}` from your `PATH` environment variable.
+This will uninstall all Rust toolchains and clean these homes:
 
-"
+      config: {config_home}
+      state:  {state_home}
+      data:   {data_home}
+      cache:  {cache_home}
+      rustup: {rustup_home}
+
+Rustup and its proxies will be removed from {bin_dirs}.
+
+Other programs there will be kept.
+
+{path_message}"
     };
 }
 
-macro_rules! pre_uninstall_msg_no_modify_path {
+macro_rules! pre_uninstall_msg_legacy {
     () => {
         r"# Thanks for hacking in Rust!
 
-This will uninstall all Rust toolchains and data.
-Your `PATH` environment variable will not be touched.
+This will uninstall all Rust toolchains and clean these homes:
 
-"
+      rustup: {rustup_home}
+      cargo:  {cargo_home}
+
+Rustup and its proxies will be removed from {bin_dirs}.
+
+Other programs there will be kept.
+
+{path_message}"
     };
 }

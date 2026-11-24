@@ -50,16 +50,16 @@ pub(crate) fn anti_sudo_check(
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn remove_from_path(process: &Process) -> anyhow::Result<()> {
-    let cargo_home = process.cargo_home()?;
+pub(super) fn remove_from_path(env_home: &Path, process: &Process) -> anyhow::Result<()> {
     let home_dir = process.home_dir();
+    // Shell commands contain the exact path spelling, not a normalized path.
     for sh in shell::get_available_shells(process) {
-        let source_cmd = sh.source_string(&cargo_home, home_dir.as_deref())?;
+        let source_cmd = sh.source_string(env_home, home_dir.as_deref())?;
         // Check more files for cleanup than normally are updated.
         remove_source_command(&source_cmd, &sh.rc_candidates(process))?;
     }
 
-    remove_legacy_paths(process, &cargo_home, home_dir.as_deref())
+    Ok(())
 }
 
 pub(crate) fn add_to_path(process: &Process) -> anyhow::Result<()> {
@@ -179,7 +179,7 @@ fn find_exact_line(file: &[u8], line: &[u8]) -> Option<usize> {
         })
 }
 
-fn remove_legacy_paths(
+pub(super) fn remove_legacy_paths(
     process: &Process,
     cargo_home: &Path,
     home_dir: Option<&Path>,
