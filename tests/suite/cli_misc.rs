@@ -711,9 +711,13 @@ async fn proxies_select_toolchain_and_forward_args() {
         let proxy = cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
         for (toolchain, override_arg) in [("custom-1", None), ("custom-2", Some("+custom-2"))] {
             let mut args = vec![proxy.to_str().unwrap()];
-            args.extend(override_arg);
+            if let Some(override_arg) = override_arg {
+                args.push(override_arg);
+            }
             // Cargo passes the subcommand name to cargo-* executables.
-            args.extend(tool.strip_prefix("cargo-"));
+            if let Some(subcommand) = tool.strip_prefix("cargo-") {
+                args.push(subcommand);
+            }
             let mut exe_args = args.clone();
             exe_args.push("--echo-current-exe");
             let output = cx.config.expect(exe_args).await;
