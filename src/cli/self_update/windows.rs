@@ -282,7 +282,7 @@ impl fmt::Display for VsInstallError {
             5004 => "operation was canceled",
             5005 => "bootstrapper command-line parse error",
             5007 => "operation was blocked - the computer does not meet the requirements",
-            8001 => "arm machine check failure",
+            8001 => "Visual Studio on ARM64 requires Windows 11",
             8002 => "background download precheck failure",
             8003 => "out of support selectable failure",
             8004 => "target directory failure",
