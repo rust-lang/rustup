@@ -37,6 +37,9 @@ pub struct ManifestWithHash {
 /// Used by the `installed_components` function
 pub(crate) struct ComponentStatus {
     pub component: Component,
+    /// The [`Component`]'s name **before** renaming, including the target if present.
+    ///
+    /// This is essentially the same as [`Manifest::name()`], but stored here to avoid recomputing.
     pub name: String,
     pub installed: bool,
     pub available: bool,
@@ -589,6 +592,7 @@ impl Component {
     pub fn short_name(&self) -> &String {
         &self.pkg
     }
+
     /// Returns the [`Component`]'s name **after** renaming, including the target if present.
     /// For the short name before renaming, see [`Manifest::name()`].
     pub(crate) fn name(&self) -> String {
