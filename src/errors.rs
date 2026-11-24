@@ -529,3 +529,16 @@ fn unknown_components_msg(
 
     buf
 }
+
+#[cfg(test)]
+mod tests {
+    use super::maybe_suggest_toolchain;
+
+    #[test]
+    fn toolchain_suggestion_for_stab() {
+        assert_eq!(
+            maybe_suggest_toolchain("stab").as_ref(),
+            "\nhelp: did you mean 'beta'?"
+        );
+    }
+}
