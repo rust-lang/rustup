@@ -413,7 +413,7 @@ fn maybe_suggest_toolchain(bad_name: &str) -> Cow<'static, str> {
             let distance = damerau_levenshtein(bad_name, s);
             (distance <= MAX_DISTANCE).then_some((distance, s))
         })
-        .max();
+        .min_by_key(|t| t.0);
 
     match suggestion {
         Some((_, s)) => Cow::Owned(format!("\nhelp: did you mean '{s}'?")),
@@ -538,7 +538,7 @@ mod tests {
     fn toolchain_suggestion_for_stab() {
         assert_eq!(
             maybe_suggest_toolchain("stab").as_ref(),
-            "\nhelp: did you mean 'beta'?"
+            "\nhelp: did you mean 'stable'?"
         );
     }
 }
