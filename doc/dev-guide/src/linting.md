@@ -62,7 +62,8 @@ features = "all"
 You can lint Windows-specific code (`#[cfg(windows)]`) without a Windows VM
 with `cargo clippy` targeting `x86_64-pc-windows-gnu`.
 
-> **Note**: This is for linting and diagnosis only. For building
+> [!NOTE]
+> This is for linting and diagnosis only. For building
 > distributable Windows binaries, prefer relying on our CI.
 
 ### Prerequisites

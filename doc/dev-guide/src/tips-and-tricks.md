@@ -63,8 +63,9 @@ break our testing (like `RUSTUP_TOOLCHAIN`, `SHELL`, `ZDOTDIR`, `RUST_BACKTRACE`
 But if you want to debug locally, you may need backtrace. `RUSTUP_BACKTRACE`
 is used like `RUST_BACKTRACE` to enable backtraces of failed tests.
 
-**NOTE**: This is a backtrace for the test, not for any subprocess invocation of
-rustup process running in the test
+> [!NOTE]
+> This is a backtrace for the test, not for any subprocess invocation of
+> rustup process running in the test.
 
 ```bash
 $ RUSTUP_BACKTRACE=1 cargo test --release --test cli-v1 -- remove_toolchain_then_add_again

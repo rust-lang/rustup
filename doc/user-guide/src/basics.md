@@ -55,9 +55,9 @@ info: downloading self-update
 
 ### Disabling self updates on a per-invocation basis
 
-> Self updates can also be suppressed on individual invocations of `rustup` by
-> passing the argument `--no-self-update` when running `rustup update` or
-> `rustup toolchain install`.
+Self updates can also be suppressed on individual invocations of `rustup` by
+passing the argument `--no-self-update` when running `rustup update` or
+`rustup toolchain install`.
 
 ## Help system
 
