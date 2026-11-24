@@ -8,9 +8,11 @@ on Rust's train release model. The release schedule is posted to the [Rust
 Forge]. `rustup` assists with installing different channels, keeping them
 up-to-date, and easily switching between them.
 
-After a release channel has been installed, `rustup` can be used to update the
-installed version to the latest release on that channel. See the [Keeping rust
-up to date] section for more information.
+When installing from a channel, `rustup` installs the latest release from that
+channel at that point of time. Once installed, `rustup` does not automatically
+update the channel when new releases become available. Instead,
+`rustup update` can be used to update to the latest release of that channel,
+see the [Keeping Rust up to date] section for more information.
 
 `rustup` can also install specific versions of Rust, such as `1.45.2` or
 `nightly-2020-07-27`. See the [Toolchains] chapter for more information on
@@ -19,7 +21,7 @@ details on switching between toolchains and pinning your project to a specific
 toolchain.
 
 [channels]: https://doc.rust-lang.org/book/appendix-07-nightly-rust.html
-[Keeping rust up to date]: ../basics.md#keeping-rust-up-to-date
+[Keeping Rust up to date]: ../basics.md#keeping-rust-up-to-date
 [rust forge]: https://forge.rust-lang.org/
 [toolchains]: toolchains.md
 
