@@ -1697,15 +1697,15 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                         let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
                         let manifest = tc.get_manifest()?;
 
-                        Some(
-                            tc.components()?
-                                .into_iter()
-                                .filter_map(|c| {
-                                    (c.available && c.installed)
-                                        .then(|| manifest.display_name(&c.component, &default_host))
-                                })
-                                .collect(),
-                        )
+                        let mut components = vec![];
+                        for c in tc.components()? {
+                            if !(c.available && c.installed) {
+                                continue;
+                            }
+
+                            components.push(manifest.display_name(&c.component, &default_host));
+                        }
+                        Some(components)
                     }
                     PartialToolchainName::Custom(_) => None,
                 };
