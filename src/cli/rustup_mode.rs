@@ -1695,6 +1695,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                 let components = match &default {
                     PartialToolchainName::Channel(desc) => {
                         let tc = ChannelToolchain::new(cfg, desc.clone().complete(&default_host)?)?;
+                        let host = &tc.desc().target;
                         let manifest = tc.get_manifest()?;
 
                         let mut components = vec![];
@@ -1703,7 +1704,7 @@ fn pin_active_toolchain(qualified: bool, cfg: &Cfg<'_>) -> anyhow::Result<ExitCo
                                 continue;
                             }
 
-                            components.push(manifest.display_name(&c.component, &default_host));
+                            components.push(manifest.display_name(&c.component, host));
                         }
                         Some(components)
                     }
