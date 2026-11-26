@@ -26,6 +26,32 @@ Any recent Windows SDK works for Rust code; 26100 is the one `rustup-init` uses.
 `Microsoft.VisualStudio.BuildTools` installs the latest Build Tools (currently 2026). For 2022, use `Microsoft.VisualStudio.2022.BuildTools`; the component IDs are the same.
 The `Rustlang.Rust.MSVC` WinGet package installs Rust itself, not these prerequisites.
 
+### Missing Windows SDK
+
+If after running the above command the Windows 11 SDK is missing then you may need to manually install it, which can also be done via WinGet.
+First search for the available versions:
+
+```
+winget search --source winget --id Microsoft.WindowsSDK.
+```
+
+This should display a table of results. that will look like this:
+
+```
+Name                                                       Id                              Version
+----------------------------------------------------------------------------------------------------------
+Windows Software Development Kit                           Microsoft.WindowsSDK.10.0.22000 10.0.22000.832
+Windows Software Development Kit - Windows 10.0.22621.2428 Microsoft.WindowsSDK.10.0.22621 10.0.22621.2428
+Windows Software Development Kit - Windows 10.0.26100.4188 Microsoft.WindowsSDK.10.0.26100 10.0.26100.4188
+```
+
+Pick the Id with the latest version and install that via `winget install`.
+For example, to install `Microsoft.WindowsSDK.10.0.26100` run:
+
+```
+winget install --source winget --id Microsoft.WindowsSDK.10.0.26100
+```
+
 ## Licensing
 
 Installing the MSVC build tools requires a Visual Studio license.
