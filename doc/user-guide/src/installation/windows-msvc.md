@@ -1,113 +1,85 @@
 # MSVC prerequisites
 
-To compile programs into an exe file, Rust requires a linker, libraries and Windows API import libraries.
-For `msvc` targets these can be acquired through Visual Studio.
+Rust's `msvc` targets need the MSVC linker and a Windows SDK.
+Install both, then Rust, with [WinGet] in PowerShell or Command Prompt:
 
-## Automatic install
-
-If you don't have Visual Studio already installed then [rustup-init] will offer to automatically install the prerequisites.
-Doing so means you can skip the rest of this page.
-However, it installs Visual Studio Community edition which may not be appropriate for all users.
-It is free for individuals, academic and open source use, but not for other uses, such as in proprietary enterprise software.
-Users should ask their organisation which edition is right for them.
-See [licensing terms][vs licences] for more details.
-
-## WinGet
-
-Alternatively Visual Studio can be installed via the [WinGet] package manager, which should be available by default on recent versions of Windows.
-Run the following command in powershell or the command prompt:
-
-```
-winget install --id Microsoft.VisualStudio.Community --source winget --force --override "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --addProductLang En-us"
+```console
+winget install -e --id Microsoft.VisualStudio.BuildTools --interactive --custom "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --addProductLang En-us"
+winget install -e --id Rustlang.Rustup
 ```
 
-You can replace "Community" with "BuildTools" in the above command if you already have a Visual Studio license.
+The Visual Studio Installer opens so you can review and confirm, and it needs administrator permission. When it finishes, open a new terminal.
 
-### Missing Windows SDK
+You don't need this for the GNU toolchain (`*-pc-windows-gnu`) or WSL. See [Windows].
 
-If after running the above command the Windows 11 SDK is missing then you may need to manually install it, which can also be done via WinGet.
-First search for the available versions:
+## What the command installs
 
-```
-winget search --source winget --id Microsoft.WindowsSDK.
-```
+| Component | Why Rust needs it |
+| --- | --- |
+| `VC.Tools.x86.x64` | Linker (`link.exe`) and C runtime for x64 and x86 |
+| `VC.Tools.ARM64` | Linker and C runtime for ARM64 |
+| `Windows11SDK.26100` | Windows import libraries, such as `kernel32.lib` |
+| English language pack | English linker messages, which `rustc` requests |
 
-This should display a table of results. that will look like this:
+If you only build for one architecture, remove the other `VC.Tools` component to save disk space.
+Any recent Windows SDK works for Rust code; 26100 is the one `rustup-init` uses. If you also build C or C++ code, use the SDK that code needs.
+`Microsoft.VisualStudio.BuildTools` installs the latest Build Tools (currently 2026). For 2022, use `Microsoft.VisualStudio.2022.BuildTools`; the component IDs are the same.
+The `Rustlang.Rust.MSVC` WinGet package installs Rust itself, not these prerequisites.
 
-```
-Name                                                       Id                              Version
-----------------------------------------------------------------------------------------------------------
-Windows Software Development Kit                           Microsoft.WindowsSDK.10.0.22000 10.0.22000.832
-Windows Software Development Kit - Windows 10.0.22621.2428 Microsoft.WindowsSDK.10.0.22621 10.0.22621.2428
-Windows Software Development Kit - Windows 10.0.26100.4188 Microsoft.WindowsSDK.10.0.26100 10.0.26100.4188
-```
+## Licensing
 
-Pick the Id with the latest version and install that via `winget install`.
-For example, to install `Microsoft.WindowsSDK.10.0.26100` run:
+Installing the MSVC build tools requires a Visual Studio license.
+Visual Studio Community is free for individuals, open-source projects and small teams.
+See the [Build Tools license terms][vs buildtools licence] for details.
 
-```
-winget install --source winget --id Microsoft.WindowsSDK.10.0.26100
-```
+## If you already have Visual Studio
 
-[WinGet]: https://learn.microsoft.com/en-us/windows/package-manager/winget/
+WinGet won't add components to an existing install. Open **Visual Studio Installer**, choose **Modify**, and add the [components above](#what-the-command-installs).
+
+## Installing with rustup-init
+
+On x64 and x86 Windows with no Visual Studio, [rustup-init] offers to install Visual Studio 2022 Community with the x64/x86 tools, SDK 26100 and the English language pack. Community [licensing](#licensing) applies.
+It doesn't offer this on ARM64, when Visual Studio is already installed, or when run with `-y` (which `winget install Rustlang.Rustup` does). Use the command at the top instead.
 
 ## Manual install
 
-[Download Visual Studio][vs downloads].
-Rust supports Visual Studio 2017 and later, including Visual Studio 2022 and Visual Studio 2026. For new projects, Visual Studio 2022 or later is recommended.
-You can opt to download only the Build Tools for Visual Studio, which does not include the IDE.
-However this requires you already have a license to the Community, Professional or Enterprise edition.
+Download [Visual Studio or Build Tools][vs downloads], select **Desktop development with C++** (or only the [components above](#what-the-command-installs)), add the English language pack, and install.
+The screenshots show Visual Studio 2022; 2026 works the same way.
 
-Once you've downloaded and started the installer, the easiest way to get everything installed is to select "Desktop Development with C++".
-This will include the necessary components.
-On the "Language Packs" tab, make sure the English language pack is installed in addition to your preferred language.
-
-If you want more details on the installation process or want to further customize the install then follow the walkthrough below.
-Otherwise complete the Visual Studio install and continue with installing Rust.
-
-## Walkthrough: Installing Visual Studio
-
-This walkthrough uses the Community edition of Visual Studio 2022, but Visual Studio 2026 and the Professional, Enterprise, and Build Tools editions all work the same way.
-
-The installer will start by linking to the [license][vs licences] and for your edition of Visual Studio and then preparing the installer.
+Accept the license:
 
 ![Accept the license](images/step1.png)
 ![Installing the installer](images/step2.png)
 
-Once this finishes, you can then select the components to be installed.
-Here we use the "Workload" tab to select the "Desktop Development with C++" workload.
-This will includes all needed components for Rust:
+Select **Desktop development with C++**:
+
 ![Select the C++ Workload](images/step3.png)
 
-### Installing only the required components (optional)
-
-If you'd like a more minimal install (and won't be doing C++ development) then you can use the "Individual Components" tab to select just the essentials, which are:
-
-- MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
-- Windows 11 SDK (10.0.22621.0)
-
-Note that the specific version of the Windows SDK doesn't matter for pure Rust code but if using C++ as well you'll likely want either the latest or whichever version is required by the C++ project (or both).
+Or, for a smaller install, select only the MSVC build tools and a Windows SDK under **Individual components**:
 
 ![Select the latest MSVC component](images/component-msvc.png)
 ![Select the Windows 11 SDK component](images/component-sdk.png)
 
-### Adding Language Packs (optional)
-
-After choosing the components, you may also want to select the language packs to install.
-Switch to the "Language Packs" tab and add the languages.
-It is recommended that you add the English language pack in addition to your preferred language.
-This will provide English language error messages, which may help when reporting errors.
+Add English under **Language packs**:
 
 ![Add the English language](images/step4.png)
 
-### Completing the install
-
-Finally click the install button and wait for everything to be installed.
+Install:
 
 ![Wait for the install to complete](images/step5.png)
 
-Once finished, you can continue on to installing Rust.
+## Troubleshooting
 
+- **``linker `link.exe` not found``**: the MSVC build tools for your architecture aren't installed.
+  Add the matching component from the [table above](#what-the-command-installs).
+- **`LNK1181: cannot open input file 'kernel32.lib'`** (or another Windows `.lib`): the Windows SDK is missing. Add a Windows SDK component, or run `winget install -e --id Microsoft.WindowsSDK.10.0.26100`.
+- **`link: extra operand`** or other unexpected `link` errors: a different `link.exe`, such as the one from Git for Windows, was found on your `PATH` instead of the MSVC linker.
+  This usually means the MSVC build tools aren't installed.
+- If you installed the prerequisites after installing Rust, open a new terminal and try again.
+  You don't need to reinstall Rust.
+
+[Windows]: windows.md
+[WinGet]: https://learn.microsoft.com/windows/package-manager/winget/
 [rustup-init]: https://rustup.rs
 [vs downloads]: https://visualstudio.microsoft.com/downloads/
-[vs licences]: https://visualstudio.microsoft.com/license-terms/
+[vs buildtools licence]: https://visualstudio.microsoft.com/license-terms/vs2026-ga-diagnostic-buildtools/

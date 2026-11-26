@@ -9,8 +9,9 @@ libraries you want to interoperate with: for interop with software produced by
 Visual Studio use the MSVC build of Rust; for interop with GNU software built
 using the [MinGW/MSYS2 toolchain][MSYS2] use the GNU build.
 
-When targeting the MSVC ABI, Rust additionally requires an [installation of
-Visual Studio][msvc install] so `rustc` can use its linker and libraries.
+When targeting the MSVC ABI, Rust additionally requires the [MSVC build tools
+and a Windows SDK][msvc install], from Visual Studio or Build Tools for Visual
+Studio, so `rustc` can use their linker and libraries.
 
 When targeting the GNU ABI, no additional software is strictly required for basic use.
 However, many library crates will not be able to compile until the full [MSYS2] with MinGW has been installed.
