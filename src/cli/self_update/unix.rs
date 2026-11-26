@@ -188,6 +188,10 @@ fn remove_legacy_paths(
     // which, while widely supported, isn't actually POSIX, so we also
     // clean that up here.  This issue was filed as #2623.
     remove_source_command(&format!("source \"{cargo_home}/env\""), &rcfiles)?;
+    // The original source command did not guard against the env file being
+    // removed by `rustup self uninstall --no-modify-path`.
+    remove_source_command(&format!(". \"{cargo_home}/env\""), &rcfiles)?;
+    remove_source_command(&format!("source \"{cargo_home}/env.fish\""), &rcfiles)?;
 
     Ok(())
 }

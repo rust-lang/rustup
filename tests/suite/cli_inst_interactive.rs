@@ -121,7 +121,7 @@ corresponding env file under $HOME/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
 
-  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+  if [ -r "$HOME/.cargo/env" ]; then . "$HOME/.cargo/env"; fi # For sh/ash/dash/pdksh
 ...
 "#]],
     })
@@ -173,7 +173,7 @@ corresponding env file under $HOME/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
 
-  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+  if [ -r "$HOME/.cargo/env" ]; then . "$HOME/.cargo/env"; fi # For sh/ash/dash/pdksh
 ...
 "#]],
     });
