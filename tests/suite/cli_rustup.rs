@@ -460,12 +460,12 @@ async fn default_alias_toolchain_file_uses_qualified_default() {
         cx.config
             .expect(["rustc", "--version"])
             .await
-            .with_stdout(snapbox::str![""])
-            .with_stderr(snapbox::str![[r#"
-error: target tuple in channel name 'beta-[HOST_TUPLE]'
+            .with_stdout(snapbox::str![[r#"
+1.2.0 (hash-beta-1.2.0)
 
 "#]])
-            .is_err();
+            .with_stderr(snapbox::str![""])
+            .is_ok();
         fs::remove_file(path).unwrap();
     }
 }
@@ -4200,9 +4200,7 @@ async fn valid_override_settings() {
 }
 
 #[tokio::test]
-async fn file_override_with_target_info() {
-    // Target info is not portable between machines, so we reject toolchain
-    // files that include it.
+async fn file_override_with_uninstalled_qualified_toolchain() {
     let cx = CliTestContext::new(Scenario::None).await;
     let cwd = cx.config.current_dir();
     let toolchain_file = cwd.join("rust-toolchain");
@@ -4214,7 +4212,8 @@ async fn file_override_with_target_info() {
         .remove_redactions(["[HOST_TUPLE]"])
         .with_stderr(snapbox::str![[r#"
 ...
-error: target tuple in channel name 'nightly-x86_64-unknown-linux-gnu'
+error: toolchain 'nightly-x86_64-unknown-linux-gnu' specified in override file '[..]/rust-toolchain' is not installed
+help: run `rustup toolchain install nightly-x86_64-unknown-linux-gnu` to install it
 ...
 "#]])
         .is_err();

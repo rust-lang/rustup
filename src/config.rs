@@ -766,21 +766,21 @@ impl<'a> Cfg<'a> {
                             })?;
                     let toolchain_name = toolchain_override.resolve(self)?;
                     let default_host = default_host_tuple(settings, self.process);
-                    // Do not permit architecture/os selection in channels as
-                    // these are host specific and toolchain files are portable.
                     if let PartialToolchainName::Channel(name) = &toolchain_name
                         && !name.target.is_empty()
                     {
-                        // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
-                        // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
-                        // the base name in the error to help users)
-                        let resolved_name = &ToolchainName::from_str(toolchain_name_str)?;
+                        // A qualified toolchain must already be installed.
+                        let resolved_name = &ToolchainName::from_str(&name.to_string())?;
                         if !self
                             .list_toolchains(true)?
                             .iter()
                             .any(|s| s == resolved_name)
                         {
-                            return Err(anyhow!(format!("target tuple in channel name '{name}'")));
+                            return Err(anyhow!(
+                                "toolchain '{name}' specified in override file '{}' is not installed\n\
+                                help: run `rustup toolchain install {name}` to install it",
+                                toolchain_file.display()
+                            ));
                         }
                     }
 
