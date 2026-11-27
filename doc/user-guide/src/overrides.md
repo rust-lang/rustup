@@ -128,7 +128,24 @@ string in the following form:
 <date>          = YYYY-MM-DD
 ```
 
+> [!NOTE]
+> When specifying unversioned channels such as `stable` (instead of `1.99.1`)
+> or `nightly` (instead of `nightly-2021-01-21`) and that channel is already
+> installed locally, `rustup` will use that existing installed release, even
+> if a newer release for that channel might be available online.
+>
+> When collaborating with other people on a project or when running Continuous
+> Integration on a separate machine this can lead to different Rust versions
+> being used. This is usually not a problem though due to Rust's stability
+> guarantees (and its features such as [Editions] and [Cargo `rust-version`]).\
+> However, there are cases where mismatches between Rust versions can lead to
+> unexpected build failures, for example when using nightly features or when
+> running Continuous Integration with [`build.warnings = "deny"`].
+
 [toolchain]: concepts/toolchains.md
+[Editions]: https://doc.rust-lang.org/edition-guide/editions/
+[Cargo `rust-version`]: https://doc.rust-lang.org/cargo/reference/rust-version.html
+[`build.warnings = "deny"`]: https://doc.rust-lang.org/cargo/reference/config.html#buildwarnings
 
 #### path
 
