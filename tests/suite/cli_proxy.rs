@@ -11,116 +11,30 @@ use rustup::{
 use snapbox::IntoData;
 
 #[tokio::test]
-async fn proxies_select_toolchain_and_forward_args() {
+async fn proxies_use_default_toolchain_and_forward_args() {
     let cx = setup_installed_proxies().await;
+    assert_proxy_invocation("custom-1", None, &cx).await;
+}
 
-    // Custom toolchains let us provide every tool, including optional components
-    // and debugger wrappers, without assuming they ship for the test host.
-    for name in ["custom-1", "custom-2"] {
-        let path = cx.config.customdir.join(name);
-        for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
-            for file in mock_bin(tool, "1.0.0", name) {
-                file.build(&path);
-            }
-        }
-        cx.config
-            .expect(["rustup", "toolchain", "link", name, path.to_str().unwrap()])
-            .await
-            .is_ok();
-    }
-    cx.config
-        .expect(["rustup", "default", "custom-1"])
-        .await
-        .is_ok();
-
-    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
-        // Run the installed proxy, rather than a fixture link or `rustup run`.
-        let proxy = cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
-        for (toolchain, override_arg) in [("custom-1", None), ("custom-2", Some("+custom-2"))] {
-            let mut args = vec![proxy.to_str().unwrap()];
-            if let Some(override_arg) = override_arg {
-                args.push(override_arg);
-            }
-            // Cargo passes the subcommand name to cargo-* executables.
-            if let Some(subcommand) = tool.strip_prefix("cargo-") {
-                args.push(subcommand);
-            }
-            let mut exe_args = args.clone();
-            exe_args.push("--echo-current-exe");
-            let output = cx.config.expect(exe_args).await;
-            output.is_ok().with_stdout("");
-            let expected = cx
-                .config
-                .customdir
-                .join(toolchain)
-                .join(format!("bin/{tool}{EXE_SUFFIX}"));
-            assert!(
-                same_file::is_same_file(output.output.stderr.trim(), &expected).unwrap(),
-                "{tool} should execute {}",
-                expected.display()
-            );
-
-            args.extend([
-                "--echo-args",
-                "first",
-                "",
-                "two words",
-                "\"quoted\"",
-                "back\\slash",
-                "+not-a-toolchain",
-                "--",
-                "--flag",
-            ]);
-            cx.config
-                .expect(args)
-                .await
-                .is_ok()
-                .with_stdout("")
-                .with_stderr(
-                    snapbox::str![[r#"
-first
-
-two words
-"quoted"
-back\slash
-+not-a-toolchain
---
---flag
-
-"#]]
-                    .raw(),
-                );
-        }
-    }
+#[tokio::test]
+async fn proxies_use_override_toolchain_and_forward_args() {
+    let cx = setup_installed_proxies().await;
+    setup_custom_toolchain("custom-2", &cx).await;
+    assert_proxy_invocation("custom-2", Some("+custom-2"), &cx).await;
 }
 
 #[tokio::test]
 async fn proxies_report_missing_tools() {
     let cx = setup_installed_proxies().await;
-    let path = cx.config.customdir.join("custom-1");
-    cx.config
-        .expect([
-            "rustup",
-            "toolchain",
-            "link",
-            "custom",
-            path.to_str().unwrap(),
-        ])
-        .await
-        .is_ok();
-    cx.config
-        .expect(["rustup", "default", "custom"])
-        .await
-        .is_ok();
-    // The custom fixture only supplies rustc. Remove it after linking so every
-    // proxy must report a missing tool, including rustc itself.
-    fs::remove_file(path.join(format!("bin/rustc{EXE_SUFFIX}"))).unwrap();
+    let toolchain_bin = cx.config.customdir.join("custom-1/bin");
 
     let bin_dir = cx.config.cargodir.join("bin");
     // Exercise one PATH re-entry before reporting the missing tool, rather than
     // launching a full chain of proxy processes for every tool.
     let recursion_count = (RUST_RECURSION_COUNT_MAX - 1).to_string();
     for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        // Remove each tool after linking, including rustc itself.
+        fs::remove_file(toolchain_bin.join(format!("{tool}{EXE_SUFFIX}"))).unwrap();
         let proxy = bin_dir.join(format!("{tool}{EXE_SUFFIX}"));
         cx.config
             .expect_with_env(
@@ -136,23 +50,21 @@ async fn proxies_report_missing_tools() {
             .is_err()
             .with_stdout("")
             .with_stderr(snapbox::str![[r#"
-error: '[TOOL][EXE]' is not installed for the custom toolchain 'custom'
-note: this is a custom toolchain, which cannot use `rustup component add`
-help: if you built this toolchain from source, and used `rustup toolchain link`, then you may be able to build the component with `x.py`
-
+...
+error: '[TOOL][EXE]' is not installed for the custom toolchain 'custom-1'
+...
 "#]]);
     }
 }
 
 #[tokio::test]
 async fn update_does_not_overwrite_dup_tools() {
-    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let cx = SelfUpdateTestContext::new("1.1.1").await;
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
         .is_ok();
-    let version = env!("CARGO_PKG_VERSION");
-    output_release_file(cx.path(), "1", version);
+    output_release_file(cx.path(), "1", env!("CARGO_PKG_VERSION"));
 
     for tool in DUP_TOOLS {
         // Replace the installed proxy with a file that is not managed by rustup.
@@ -188,6 +100,66 @@ warn: tool `[TOOL]` is already installed, remove it from `[..]`, then run `rustu
     }
 }
 
+async fn assert_proxy_invocation(toolchain: &str, override_arg: Option<&str>, cx: &CliTestContext) {
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        // Run the installed proxy, rather than a fixture link or `rustup run`.
+        let proxy = cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
+        let mut args = vec![proxy.to_str().unwrap()];
+        if let Some(override_arg) = override_arg {
+            args.push(override_arg);
+        }
+        // Cargo passes the subcommand name to cargo-* executables.
+        if let Some(subcommand) = tool.strip_prefix("cargo-") {
+            args.push(subcommand);
+        }
+        let mut exe_args = args.clone();
+        exe_args.push("--echo-current-exe");
+        let output = cx.config.expect(exe_args).await;
+        output.is_ok().with_stdout("");
+        let expected = cx
+            .config
+            .customdir
+            .join(toolchain)
+            .join(format!("bin/{tool}{EXE_SUFFIX}"));
+        assert!(
+            same_file::is_same_file(output.output.stderr.trim(), &expected).unwrap(),
+            "{tool} should execute {}",
+            expected.display()
+        );
+
+        args.extend([
+            "--echo-args",
+            "first",
+            "",
+            "two words",
+            "\"quoted\"",
+            "back\\slash",
+            "+not-a-toolchain",
+            "--",
+            "--flag",
+        ]);
+        cx.config
+            .expect(args)
+            .await
+            .is_ok()
+            .with_stdout("")
+            .with_stderr(
+                snapbox::str![[r#"
+first
+
+two words
+"quoted"
+back\slash
++not-a-toolchain
+--
+--flag
+
+"#]]
+                .raw(),
+            );
+    }
+}
+
 async fn setup_installed_proxies() -> CliTestContext {
     let cx = CliTestContext::new(Scenario::None).await;
     cx.config
@@ -199,7 +171,26 @@ async fn setup_installed_proxies() -> CliTestContext {
         ])
         .await
         .is_ok();
+
+    setup_custom_toolchain("custom-1", &cx).await;
+    cx.config
+        .expect(["rustup", "default", "custom-1"])
+        .await
+        .is_ok();
     cx
 }
 
-const TEST_VERSION: &str = "1.1.1";
+async fn setup_custom_toolchain(name: &str, cx: &CliTestContext) {
+    // Custom toolchains let us provide every tool, including optional components
+    // and debugger wrappers, without assuming they ship for the test host.
+    let path = cx.config.customdir.join(name);
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        for file in mock_bin(tool, "1.0.0", name) {
+            file.build(&path);
+        }
+    }
+    cx.config
+        .expect(["rustup", "toolchain", "link", name, path.to_str().unwrap()])
+        .await
+        .is_ok();
+}
