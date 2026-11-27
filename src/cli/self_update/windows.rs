@@ -294,7 +294,7 @@ pub(crate) async fn try_install_msvc(
     process: &Process,
 ) -> anyhow::Result<ContinueInstall> {
     // download the installer
-    let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
+    let visual_studio_url = utils::parse_url("https://aka.ms/vs/18/stable/vs_community.exe")?;
 
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-visualstudio")

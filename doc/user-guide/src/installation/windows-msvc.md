@@ -7,7 +7,7 @@ For `msvc` targets these can be acquired through Visual Studio.
 
 If you don't have Visual Studio already installed then [rustup-init] will offer to automatically install the prerequisites.
 Doing so means you can skip the rest of this page.
-However, it installs Visual Studio Community edition which may not be appropriate for all users.
+However, it installs Visual Studio 2026 Community edition which may not be appropriate for all users.
 It is free for individuals, academic and open source use, but not for other uses, such as in proprietary enterprise software.
 Users should ask their organisation which edition is right for them.
 See [licensing terms][vs licences] for more details.
@@ -54,7 +54,7 @@ winget install --source winget --id Microsoft.WindowsSDK.10.0.26100
 ## Manual install
 
 [Download Visual Studio][vs downloads].
-Rust supports Visual Studio 2017 and later, including Visual Studio 2022 and Visual Studio 2026. For new projects, Visual Studio 2022 or later is recommended.
+Rust supports Visual Studio 2017 or later. For new projects, the latest supported version (currently Visual Studio 2026) is recommended.
 You can opt to download only the Build Tools for Visual Studio, which does not include the IDE.
 However this requires you already have a license to the Community, Professional or Enterprise edition.
 
@@ -83,7 +83,7 @@ This will includes all needed components for Rust:
 
 If you'd like a more minimal install (and won't be doing C++ development) then you can use the "Individual Components" tab to select just the essentials, which are:
 
-- MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
+- MSVC Build Tools for x64/x86 (Latest) (in Visual Studio 2022: MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest))
 - Windows 11 SDK (10.0.22621.0)
 
 Note that the specific version of the Windows SDK doesn't matter for pure Rust code but if using C++ as well you'll likely want either the latest or whichever version is required by the C++ project (or both).
