@@ -137,7 +137,7 @@ string in the following form:
 > When collaborating with other people on a project or when running Continuous
 > Integration on a separate machine this can lead to different Rust versions
 > being used. This is usually not a problem though due to Rust's stability
-> guarnatees (and its features such as [Editions] and [Cargo `rust-version`]).\
+> guarantees (and its features such as [Editions] and [Cargo `rust-version`]).\
 > However, there are cases where mismatches between Rust versions can lead to
 > unexpected build failures, for example when using nightly features or when
 > running Continuous Integration with [`build.warnings = "deny"`].
