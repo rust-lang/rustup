@@ -420,7 +420,7 @@ impl Display for CustomToolchainName {
 /// code execution in a rust dir, so as a partial mitigation is limited to
 /// absolute paths.
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct ToolchainPath(PathBuf, String);
+pub struct ToolchainPath(PathBuf);
 
 impl From<ToolchainPath> for PathBuf {
     fn from(value: ToolchainPath) -> Self {
@@ -452,7 +452,7 @@ impl TryFrom<&Path> for ToolchainPath {
             } else if !value.join("bin").is_dir() {
                 Err(InvalidName::ToolchainPath(as_str))
             } else {
-                Ok(Self(value.into(), as_str))
+                Ok(Self(value.into()))
             }
         }
     }
