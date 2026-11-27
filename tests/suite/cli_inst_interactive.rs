@@ -70,7 +70,15 @@ async fn smoke_case_install_no_modify_path() {
             ("SHELL", "/bin/sh"),
         ],
     )
+    .extend_redactions([("[RUSTUP_DIR]", &cx.config.rustupdir.to_string())])
     .with_stdout(snapbox::str![[r#"
+...
+Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+  [RUSTUP_DIR]
+
+This can be modified with the RUSTUP_HOME environment variable.
 ...
 This path needs to be in your PATH environment variable,
 but will not be added automatically.
@@ -102,7 +110,7 @@ Rust is installed now. Great!
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (%USERPROFILE%/.cargo/bin) in[..]
+To get started you need the bin home directory ([HOME_VAR]/.cargo/bin) in[..]
 your PATH
 environment variable. This has not been done automatically.
 
@@ -113,15 +121,15 @@ Press the Enter key to continue.
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ($HOME/.cargo/bin) in your PATH
+To get started you need the bin home directory ([HOME_VAR]/.cargo/bin) in your PATH
 environment variable. This has not been done automatically.
 
 To configure your current shell, you need to source the
-corresponding env file under $HOME/.cargo.
+corresponding env file under [HOME_VAR]/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
 
-  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+  . "[HOME_VAR]/.cargo/env" # For sh/ash/dash/pdksh
 ...
 "#]],
     })
@@ -155,7 +163,7 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory (%USERPROFILE%/.cargo/bin).
+the bin home directory ([HOME_VAR]/.cargo/bin).
 
 Press the Enter key to continue.
 
@@ -166,17 +174,84 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory ($HOME/.cargo/bin).
+the bin home directory ([HOME_VAR]/.cargo/bin).
 
 To configure your current shell, you need to source the
-corresponding env file under $HOME/.cargo.
+corresponding env file under [HOME_VAR]/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
 
-  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+  . "[HOME_VAR]/.cargo/env" # For sh/ash/dash/pdksh
 ...
 "#]],
     });
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn category_install_displays_shell_setup() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let data_home = cx.config.homedir.join("data");
+    let bin_home = cx.config.homedir.join("test-bin-home");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ("PATH", cx.config.exedir.to_str().unwrap()),
+        ("SHELL", "/bin/sh"),
+    ];
+
+    cx.config
+        .expect_with_env(["rustup-init", "-y", "--default-toolchain", "none"], env)
+        .await
+        .is_ok()
+        .with_stdout(snapbox::str![[r#"
+...
+the bin home directory ([HOME_VAR]/test-bin-home).
+...
+corresponding env file under [HOME_VAR]/data.
+...
+  . "[HOME_VAR]/data/env" # For sh/ash/dash/pdksh
+...
+"#]]);
+}
+
+#[tokio::test]
+async fn reinstall_ignores_own_bin_in_path_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let bin_home = cx.config.homedir.join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+        ("PATH", bin_home.to_str().unwrap()),
+        ("RUSTUP_INIT_SKIP_PATH_CHECK", ""),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--default-toolchain",
+                "none",
+                "--no-modify-path",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+    run_input_with_env(
+        &cx.config,
+        &[
+            "rustup-init",
+            "--default-toolchain",
+            "none",
+            "--no-modify-path",
+        ],
+        "\n\n",
+        &env,
+    )
+    .is_ok()
+    .without_stderr("It looks like you have an existing installation of Rust");
 }
 
 #[tokio::test]
@@ -331,6 +406,102 @@ no active toolchain
 ...
 "#]])
         .is_ok();
+}
+
+#[tokio::test]
+async fn install_initializes_homes_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let state_home = cx.config.current_dir().join("relative/state");
+    let data_home = cx.config.current_dir().join("relative/data");
+    let cache_home = cx.config.current_dir().join("relative/cache");
+    let mut cmd = cx.config.cmd(
+        "rustup-init",
+        ["-y", "--no-modify-path", "--default-toolchain", "none"],
+    );
+    cmd.env_remove("RUSTUP_HOME");
+    cmd.env("RUSTUP_CONFIG_HOME", "relative/config");
+    cmd.env("RUSTUP_STATE_HOME", "relative/state");
+    cmd.env("RUSTUP_DATA_HOME", "relative/data");
+    cmd.env("RUSTUP_CACHE_HOME", "relative/cache");
+    cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+    assert!(cmd.output().unwrap().status.success());
+
+    assert!(!cx.config.homedir.join(".rustup").exists());
+    assert!(config_home.is_dir());
+    assert!(state_home.is_dir());
+    assert!(data_home.is_dir());
+    assert!(cache_home.is_dir());
+}
+
+#[tokio::test]
+async fn install_displays_homes_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.homedir.join("config");
+    let state_home = cx.config.homedir.join("state");
+    let data_home = cx.config.homedir.join("data");
+    let cache_home = cx.config.homedir.join("cache");
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+            ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+            ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+            ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ],
+    )
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [HOME_VAR]/config
+    state:  [HOME_VAR]/state
+    data:   [HOME_VAR]/data
+    cache:  [HOME_VAR]/cache
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
+}
+
+#[tokio::test]
+async fn install_displays_category_homes_when_paths_match_legacy() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let home = cx.config.rustupdir.to_string();
+    run_input_with_env(
+        &cx.config,
+        &["rustup-init", "--no-modify-path"],
+        "3\n",
+        &[
+            ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ("RUSTUP_CONFIG_HOME", &home),
+            ("RUSTUP_STATE_HOME", &home),
+            ("RUSTUP_DATA_HOME", &home),
+            ("RUSTUP_CACHE_HOME", &home),
+        ],
+    )
+    .extend_redactions([("[RUSTUP_DIR]", &home)])
+    .with_stdout(snapbox::str![[r#"
+...
+Rustup will use these directories:
+
+    config: [RUSTUP_DIR]
+    state:  [RUSTUP_DIR]
+    data:   [RUSTUP_DIR]
+    cache:  [RUSTUP_DIR]
+
+They can be modified individually with
+RUSTUP_CONFIG_HOME, RUSTUP_STATE_HOME, RUSTUP_DATA_HOME, and
+RUSTUP_CACHE_HOME.
+...
+"#]])
+    .is_ok();
 }
 
 #[tokio::test]
@@ -718,9 +889,41 @@ version = "12""#,
     cx.config
         .expect_with_env(
             ["rustup-init", "-y", "--no-modify-path"],
+            [("RUSTUP_HOME", temp_dir_path)],
+        )
+        .await
+        .is_ok()
+        .with_stderr(snapbox::str![[r#"
+...
+warn: it looks like you have an existing rustup settings file at:
+...
+"#]]);
+}
+
+#[tokio::test]
+async fn install_warns_about_existing_settings_file_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let config_home = cx.config.current_dir().join("relative/config");
+    let config_home_env = config_home.to_str().unwrap();
+    let settings_file = config_home.join("settings.toml");
+    fs::create_dir_all(settings_file.parent().unwrap()).unwrap();
+    raw::write_file(
+        &settings_file,
+        &format!(
+            r#"default_toolchain = "{}"
+profile = "default"
+version = "12""#,
+            this_host_tuple()
+        ),
+    )
+    .unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["rustup-init", "-y", "--no-modify-path"],
             [
-                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-                ("RUSTUP_HOME", temp_dir_path),
+                ("RUSTUP_CONFIG_HOME", config_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
             ],
         )
         .await
@@ -858,4 +1061,259 @@ name: beta-[CROSS_ARCH_I]
 active because: it's the default toolchain
 
 "#]]);
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_category_mode_enabled() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    let [config_home, state_home, data_home, cache_home, bin_home] =
+        ["config", "state", "data", "cache", "bin"].map(|dir| cx.config.homedir.join(dir));
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    run_input_with_env(&cx.config, &["rustup", "self", "uninstall"], "n\n", &env)
+        // `%USERPROFILE%` is longer than `$HOME`, so the bin directories wrap on Windows.
+        .with_stdout(cfg_select! {
+            windows => snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    config: [HOME_VAR]/config
+    state:  [HOME_VAR]/state
+    data:   [HOME_VAR]/data
+    cache:  [HOME_VAR]/cache
+    rustup: [HOME_VAR]/.rustup
+
+Rustup and its proxies will be removed from [HOME_VAR]/bin and[..]
+[HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Rustup's shell PATH setup will be removed.
+
+Continue? (y/N) 
+
+"#]],
+            _ => snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    config: [HOME_VAR]/config
+    state:  [HOME_VAR]/state
+    data:   [HOME_VAR]/data
+    cache:  [HOME_VAR]/cache
+    rustup: [HOME_VAR]/.rustup
+
+Rustup and its proxies will be removed from [HOME_VAR]/bin and [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Rustup's shell PATH setup will be removed.
+
+Continue? (y/N) 
+
+"#]],
+        })
+        .with_stderr(snapbox::str![[r#"
+info: aborting uninstallation
+
+"#]])
+        .is_ok();
+
+    for home in [config_home, state_home, data_home, cache_home] {
+        assert!(home.exists(), "{} was removed", home.display());
+    }
+    assert!(bin_home.join(format!("rustup{EXE_SUFFIX}")).exists());
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_category_bin_home_in_cargo_home() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    let env = [("RUSTUP_USE_CATEGORY_HOME", "1")];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    run_input_with_env(
+        &cx.config,
+        &["rustup", "self", "uninstall", "--no-modify-path"],
+        "n\n",
+        &env,
+    )
+    .with_stdout(snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    config: [HOME_VAR]/.rustup
+    state:  [HOME_VAR]/.rustup
+    data:   [HOME_VAR]/.rustup
+    cache:  [HOME_VAR]/.rustup
+    rustup: [HOME_VAR]/.rustup
+
+Rustup and its proxies will be removed from [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Your PATH environment variable will not be touched.
+
+Continue? (y/N) 
+
+"#]])
+    .is_ok();
+
+    assert!(cx.config.rustupdir.has("."));
+    assert!(
+        cx.config
+            .cargodir
+            .join(format!("bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_category_mode_disabled() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ])
+        .await
+        .is_ok();
+
+    run_input(&cx.config, &["rustup", "self", "uninstall"], "n\n")
+        .with_stdout(snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    rustup: [HOME_VAR]/.rustup
+    cargo:  [HOME_VAR]/.cargo
+
+Rustup and its proxies will be removed from [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Rustup's shell PATH setup will be removed.
+
+Continue? (y/N) 
+
+"#]])
+        .with_stderr(snapbox::str![[r#"
+info: aborting uninstallation
+
+"#]])
+        .is_ok();
+
+    assert!(cx.config.rustupdir.has("."));
+    assert!(
+        cx.config
+            .cargodir
+            .join(format!("bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
+}
+
+#[tokio::test]
+async fn uninstall_prompt_with_no_modify_path() {
+    let mut cx = CliTestContext::new(Scenario::Empty).await;
+    // Show the Rustup and Cargo homes relative to the user's home directory.
+    cx.config.rustupdir.rustupdir = cx.config.homedir.join(".rustup");
+    cx.config.cargodir = cx.config.homedir.join(".cargo");
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ])
+        .await
+        .is_ok();
+
+    run_input(
+        &cx.config,
+        &["rustup", "self", "uninstall", "--no-modify-path"],
+        "n\n",
+    )
+    .with_stdout(snapbox::str![[r#"
+
+
+Thanks for hacking in Rust!
+
+This will uninstall all Rust toolchains and clean these homes:
+
+    rustup: [HOME_VAR]/.rustup
+    cargo:  [HOME_VAR]/.cargo
+
+Rustup and its proxies will be removed from [HOME_VAR]/.cargo/bin.
+
+Other programs there will be kept.
+
+Your PATH environment variable will not be touched.
+
+Continue? (y/N) 
+
+"#]])
+    .is_ok();
+
+    assert!(cx.config.rustupdir.has("."));
+    assert!(
+        cx.config
+            .cargodir
+            .join(format!("bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
 }

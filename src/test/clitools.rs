@@ -112,6 +112,8 @@ pub struct Config {
 /// - `[CROSS_ARCH_I]`: The value of [`CROSS_ARCH1`].
 /// - `[CROSS_ARCH_II]`: The value of [`CROSS_ARCH2`].
 /// - `[MULTI_ARCH_I]`: The value of [`MULTI_ARCH1`].
+/// - `[HOME_VAR]`: The user's home directory as shown in displayed paths,
+///   i.e. `$HOME` or `%USERPROFILE%`.
 ///
 /// When updating snapshots, the filters are automatically applied.
 /// To redact some remaining part of the snapshot, you can use the
@@ -138,6 +140,10 @@ impl Assert {
                 ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
                 ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
                 ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
+                (
+                    "[HOME_VAR]",
+                    Cow::Borrowed(crate::cli::self_update::HOME_PREFIX),
+                ),
                 ("[CC_TOOL]", Cow::Borrowed("`cc`")),
                 ("[CC_TOOL]", Cow::Borrowed("`gcc`")),
                 ("[CC_TOOL]", Cow::Borrowed("`clang`")),
@@ -798,6 +804,12 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::remove_var("CARGO");
         env::remove_var("RUSTUP_AUTO_INSTALL");
         env::remove_var("RUSTUP_UPDATE_ROOT");
+        env::remove_var("RUSTUP_CACHE_HOME");
+        env::remove_var("RUSTUP_CONFIG_HOME");
+        env::remove_var("RUSTUP_DATA_HOME");
+        env::remove_var("RUSTUP_STATE_HOME");
+        env::remove_var("RUSTUP_BIN_HOME");
+        env::remove_var("RUSTUP_USE_CATEGORY_HOME");
         env::remove_var("RUSTUP_TOOLCHAIN");
         env::remove_var("SHELL");
         env::remove_var("ZDOTDIR");
@@ -807,6 +819,9 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
         env::set_var("TERM", "dumb");
         // Removed to avoid leaking the developer's environment into the test
         env::remove_var("XDG_CONFIG_HOME");
+        env::remove_var("XDG_CACHE_HOME");
+        env::remove_var("XDG_DATA_HOME");
+        env::remove_var("XDG_STATE_HOME");
 
         match env::var("RUSTUP_BACKTRACE") {
             Ok(val) => env::set_var("RUST_BACKTRACE", val),

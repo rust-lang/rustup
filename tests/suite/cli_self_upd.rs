@@ -47,6 +47,19 @@ async fn setup_empty_installed() -> CliTestContext {
     cx
 }
 
+/// Asserts that a path is gone once uninstallation finishes.
+///
+/// On Windows, the bin directories are cleaned by a helper after Rustup exits.
+fn assert_removed_after_uninstall(path: &Path) {
+    retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
+        if path.exists() {
+            return Err(format!("{} still exists", path.display()));
+        }
+        Ok(())
+    })
+    .unwrap()
+}
+
 /// SimpleV3 dist server, rustup installed with default toolchain
 async fn setup_installed() -> CliTestContext {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
@@ -85,7 +98,7 @@ info: default toolchain set to stable
     fn check(path: &Path) {
         assert!(path.exists());
     }
-    #[cfg(not(windows))]
+    #[cfg(unix)]
     fn check(path: &Path) {
         fn is_exe(path: &Path) -> bool {
             use std::os::unix::fs::MetadataExt;
@@ -98,6 +111,46 @@ info: default toolchain set to stable
     for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
         let path = &cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
         check(path);
+    }
+}
+
+#[tokio::test]
+async fn install_bins_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    let bin_home = cx.config.current_dir().join("relative/bin");
+    let bin_home_env = bin_home.to_str().unwrap();
+
+    cx.config
+        .expect_with_env(
+            ["rustup-init", "-y"],
+            [
+                ("RUSTUP_BIN_HOME", bin_home_env),
+                ("RUSTUP_USE_CATEGORY_HOME", "1"),
+            ],
+        )
+        .await
+        .with_stdout(snapbox::str![[r#"
+...
+  stable-[HOST_TUPLE] installed - 1.1.0 (hash-stable-1.1.0)
+...
+"#]])
+        .with_stderr(snapbox::str![[r#"
+...
+info: syncing channel updates for stable-[HOST_TUPLE]
+info: latest update on 2015-01-02 for version 1.1.0 (hash-stable-1.1.0)
+info: downloading 4 components
+info: default toolchain set to stable
+
+"#]])
+        .is_ok();
+    for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+        let path = &bin_home.join(format!("{tool}{EXE_SUFFIX}"));
+        assert!(path.is_file());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(path.metadata().unwrap().permissions().mode() & 0o777, 0o755);
+        }
     }
 }
 
@@ -325,7 +378,7 @@ async fn complete_uninstall_keeps_non_empty_cargo_bin() {
         .await
         .with_stderr(snapbox::str![[r#"
 ...
-warn: keeping non-empty cargo bin directory `[..]`
+warn: keeping non-empty bin directory `[..]`
 ...
 "#]])
         .is_ok();
@@ -388,33 +441,32 @@ async fn uninstall_self_delete_works() {
 }
 
 // On windows rustup self uninstall temporarily puts a rustup-gc-$randomnumber.exe
-// file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
+// file in the system temporary directory; check that it is cleaned up.
 #[tokio::test]
 #[cfg(windows)]
 async fn uninstall_doesnt_leave_gc_file() {
     let cx = setup_empty_installed().await;
+    let gc_dir = tempfile::tempdir().unwrap();
+    let gc_path = gc_dir.path().to_str().unwrap();
+    // std::env::temp_dir() uses TMP, or SystemTemp for SYSTEM processes:
+    // https://doc.rust-lang.org/std/env/fn.temp_dir.html
+    // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-gettemppath2w
     cx.config
-        .expect(["rustup", "self", "uninstall", "-y"])
+        .expect_with_env(
+            ["rustup", "self", "uninstall", "-y"],
+            [("SystemTemp", gc_path), ("TMP", gc_path)],
+        )
         .await
         .is_ok();
-    let parent = cx.config.cargodir.parent().unwrap();
 
     // The gc removal happens after rustup terminates. Typically under
     // 100ms, but during the contention of test suites can be substantially
     // longer while still succeeding.
 
     let check = || {
-        let garbage = fs::read_dir(parent)
+        let garbage = fs::read_dir(gc_dir.path())
             .unwrap()
-            .filter_map(|entry| {
-                let path = entry.unwrap().path();
-                let name = path.file_name()?.to_str()?;
-                // On Windows, this binary is cleaned up on exit
-                if !(name.starts_with("rustup-gc-") && name.ends_with(EXE_SUFFIX)) {
-                    return None;
-                }
-                Some(path.to_string_lossy().to_string())
-            })
+            .map(|entry| entry.unwrap().path())
             .collect::<Vec<_>>();
         if garbage.is_empty() {
             Ok(())
@@ -426,6 +478,276 @@ async fn uninstall_doesnt_leave_gc_file() {
         Ok(_) => (),
         Err(e) => panic!("{e}"),
     }
+}
+
+#[tokio::test]
+async fn uninstall_removes_category_homes() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let [config_home, state_home, data_home, cache_home, bin_home] =
+        ["config", "state", "data", "cache", "bin"].map(|dir| cx.config.homedir.join(dir));
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+    let toolchain = cx.config.customdir.join("custom-1");
+    cx.config
+        .expect_with_env(
+            [
+                "rustup",
+                "toolchain",
+                "link",
+                "custom",
+                toolchain.to_str().unwrap(),
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    cx.config
+        .expect_with_env(["rustup", "self", "uninstall", "-y"], env)
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+info: uninstalling toolchain custom
+info: toolchain custom uninstalled
+...
+"#]])
+        .is_ok();
+
+    for home in [&config_home, &state_home, &data_home, &cache_home] {
+        assert!(!home.exists(), "{} still exists", home.display());
+    }
+    assert!(!cx.config.rustupdir.has("."));
+    assert_removed_after_uninstall(&bin_home);
+}
+
+#[tokio::test]
+async fn uninstall_keeps_cargo_home_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let bin_home = cx.config.homedir.join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+    let cargo_files = [
+        cx.config.cargodir.join("registry/cache/foo.crate"),
+        cx.config.cargodir.join("config.toml"),
+        cx.config
+            .cargodir
+            .join(format!("bin/cargo-foo{EXE_SUFFIX}")),
+    ];
+    for file in &cargo_files {
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, "").unwrap();
+    }
+
+    cx.config
+        .expect_with_env(["rustup", "self", "uninstall", "-y"], env)
+        .await
+        .is_ok();
+
+    assert_removed_after_uninstall(&bin_home);
+    for file in &cargo_files {
+        assert!(file.exists(), "{} was removed", file.display());
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn uninstall_removes_default_homes_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let home = &cx.config.homedir;
+    let bin_home = home.join(".local/bin");
+    let run = |args: &[&str]| {
+        let mut cmd = cx.config.cmd(args[0], &args[1..]);
+        cmd.env_remove("RUSTUP_HOME");
+        cmd.env_remove("CARGO_HOME");
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1");
+        let out = cmd.output().unwrap();
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(out.status.success(), "{args:?} failed: {stderr}");
+        stderr
+    };
+    run(&[
+        "rustup-init",
+        "-y",
+        "--no-modify-path",
+        "--default-toolchain",
+        "none",
+    ]);
+    // The default bin home is shared with other programs.
+    let other_program = bin_home.join("other-program");
+    fs::write(&other_program, "").unwrap();
+
+    let stderr = run(&["rustup", "self", "uninstall", "-y"]);
+
+    assert!(
+        stderr.contains("warn: keeping non-empty bin directory"),
+        "{stderr}"
+    );
+    for dir in [
+        ".config/rustup",
+        ".local/state/rustup",
+        ".local/share/rustup",
+        ".cache/rustup",
+    ] {
+        assert!(!home.join(dir).exists(), "~/{dir} still exists");
+    }
+    for tool in ["rustup"].iter().chain(TOOLS).chain(DUP_TOOLS) {
+        let path = bin_home.join(format!("{tool}{EXE_SUFFIX}"));
+        assert!(!path.exists(), "{} still exists", path.display());
+    }
+    assert!(other_program.exists());
+}
+
+#[tokio::test]
+async fn uninstall_works_with_coinciding_category_homes() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    // Without overrides, every category home resolves to RUSTUP_HOME and the
+    // bin home resolves to $CARGO_HOME/bin.
+    let env = [("RUSTUP_USE_CATEGORY_HOME", "1")];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    cx.config
+        .expect_with_env(["rustup", "self", "uninstall", "-y"], env)
+        .await
+        .with_stderr(snapbox::str![[r#"
+...
+warn: state home might be already removed, or doesn't exist.
+...
+"#]])
+        .is_ok();
+
+    assert!(!cx.config.rustupdir.has("."));
+    assert_removed_after_uninstall(&cx.config.cargodir.join("bin"));
+}
+
+#[tokio::test]
+async fn uninstall_removes_relative_category_homes() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let homes = [
+        ("RUSTUP_CONFIG_HOME", "relative/config"),
+        ("RUSTUP_STATE_HOME", "relative/state"),
+        ("RUSTUP_DATA_HOME", "relative/data"),
+        ("RUSTUP_CACHE_HOME", "relative/cache"),
+        ("RUSTUP_BIN_HOME", "relative/bin"),
+    ];
+    // Relative homes resolve against the process working directory, so run
+    // Rustup in a subprocess whose working directory is the test's.
+    let run = |args: &[&str]| {
+        let mut cmd = cx.config.cmd(args[0], &args[1..]);
+        cmd.env("RUSTUP_USE_CATEGORY_HOME", "1").envs(homes);
+        let out = cmd.output().unwrap();
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(out.status.success(), "{args:?} failed: {stderr}");
+    };
+    run(&[
+        "rustup-init",
+        "-y",
+        "--no-modify-path",
+        "--default-toolchain",
+        "none",
+    ]);
+    let current_dir = cx.config.current_dir();
+    assert!(
+        current_dir
+            .join(format!("relative/bin/rustup{EXE_SUFFIX}"))
+            .exists()
+    );
+
+    run(&["rustup", "self", "uninstall", "-y"]);
+
+    for (_, home) in homes {
+        assert_removed_after_uninstall(&current_dir.join(home));
+    }
+}
+
+// Like `uninstall_self_delete_works`, but the installed binary must find its
+// category homes again to finish the uninstall.
+#[tokio::test]
+#[cfg_attr(target_os = "macos", ignore)] // FIXME #1515
+async fn uninstall_self_delete_works_with_category_mode_enabled() {
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let [config_home, state_home, data_home, cache_home, bin_home] =
+        ["config", "state", "data", "cache", "bin"].map(|dir| cx.config.homedir.join(dir));
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_CONFIG_HOME", config_home.to_str().unwrap()),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_DATA_HOME", data_home.to_str().unwrap()),
+        ("RUSTUP_CACHE_HOME", cache_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    let mut cmd = Command::new(bin_home.join(format!("rustup{EXE_SUFFIX}")));
+    cmd.args(["self", "uninstall", "-y"]);
+    cx.config.env(&mut cmd);
+    cmd.envs(env);
+    let out = cmd.output().unwrap();
+    println!("out: {}", String::from_utf8(out.stdout).unwrap());
+    println!("err: {}", String::from_utf8(out.stderr).unwrap());
+
+    assert!(out.status.success());
+    for home in [&config_home, &state_home, &data_home, &cache_home] {
+        assert!(!home.exists(), "{} still exists", home.display());
+    }
+    assert_removed_after_uninstall(&bin_home);
 }
 
 #[tokio::test]
@@ -683,11 +1005,11 @@ async fn update_but_not_installed() {
     cx.config
         .expect(["rustup", "self", "update"])
         .await
-        .extend_redactions([("[CARGO_DIR]", cx.config.cargodir)])
+        .extend_redactions([("[BIN_HOME]", cx.config.cargodir.join("bin"))])
         .is_err()
         .with_stdout(snapbox::str![[""]])
         .with_stderr(snapbox::str![[r#"
-error: rustup is not installed at '[CARGO_DIR]'
+error: rustup is not installed at '[BIN_HOME]'
 
 "#]]);
 }
@@ -840,6 +1162,45 @@ async fn update_updates_rustup_bin() {
     let after_hash = calc_hash(&bin);
 
     assert_ne!(before_hash, after_hash);
+}
+
+#[tokio::test]
+async fn update_updates_rustup_bin_with_category_mode_enabled() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let state_home = cx.config.homedir.join("state");
+    let bin_home = cx.config.homedir.join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(
+            [
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+            env,
+        )
+        .await
+        .is_ok();
+
+    let bin = bin_home.join(format!("rustup{EXE_SUFFIX}"));
+    let before_hash = calc_hash(&bin);
+    let mut cmd = Command::new(&bin);
+    cx.config.env(&mut cmd);
+    cmd.envs(env).args(["self", "update"]);
+    let out = cmd.output().unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    wait_for_completed_update(&state_home);
+    assert_ne!(before_hash, calc_hash(&bin));
 }
 
 #[tokio::test]
@@ -1044,6 +1405,40 @@ async fn updater_is_deleted_after_running_rustc() {
     cx.config.expect(["rustc", "--version"]).await.is_ok();
 
     assert!(!managed_updater(&cx.config.rustupdir.rustupdir).exists());
+}
+
+#[tokio::test]
+async fn updater_is_deleted_after_running_rustc_with_category_mode_enabled() {
+    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    let state_home = cx.config.current_dir().join("state");
+    let bin_home = cx.config.current_dir().join("bin");
+    let env = [
+        ("RUSTUP_USE_CATEGORY_HOME", "1"),
+        ("RUSTUP_STATE_HOME", state_home.to_str().unwrap()),
+        ("RUSTUP_BIN_HOME", bin_home.to_str().unwrap()),
+    ];
+    cx.config
+        .expect_with_env(["rustup-init", "-y", "--no-modify-path"], env)
+        .await
+        .is_ok();
+    cx.config
+        .expect_with_env(["rustup", "default", "nightly"], env)
+        .await
+        .is_ok();
+    let rustup = bin_home.join(format!("rustup{EXE_SUFFIX}"));
+    cx.config
+        .expect_with_env([rustup.to_str().unwrap(), "self", "update"], env)
+        .await
+        .is_ok();
+    wait_for_completed_update(&state_home);
+    assert!(managed_updater(&state_home).is_file());
+
+    let rustc = bin_home.join(format!("rustc{EXE_SUFFIX}"));
+    cx.config
+        .expect_with_env([rustc.to_str().unwrap(), "--version"], env)
+        .await
+        .is_ok();
+    assert!(!managed_updater(&state_home).exists());
 }
 
 #[tokio::test]
@@ -1428,8 +1823,8 @@ async fn install_minimal_profile() {
     cx.config.expect_component_not_executable("cargo").await;
 }
 
-fn wait_for_completed_update(rustup_home: &Path) {
-    let stage = rustup_home.join(SELF_UPDATE_DIRECTORY);
+fn wait_for_completed_update(state_home: &Path) {
+    let stage = state_home.join(SELF_UPDATE_DIRECTORY);
     retry(Fibonacci::from_millis(1).map(jitter).take(23), || {
         if Marker::Complete.path(&stage).is_file() {
             Ok(())
@@ -1442,8 +1837,8 @@ fn wait_for_completed_update(rustup_home: &Path) {
     .unwrap();
 }
 
-fn managed_updater(rustup_home: &Path) -> PathBuf {
-    updater_path(&rustup_home.join(SELF_UPDATE_DIRECTORY))
+fn managed_updater(state_home: &Path) -> PathBuf {
+    updater_path(&state_home.join(SELF_UPDATE_DIRECTORY))
 }
 
 const TEST_VERSION: &str = "1.1.1";
