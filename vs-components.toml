@@ -1,0 +1,12 @@
+schema-version = "1"
+installer = "https://aka.ms/vs/17/release/vs_community.exe"
+
+# Component names are listed at
+# https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-build-tools?view=vs-2022
+[components]
+x86_64 = ["Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]
+aarch64 = [
+  "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
+  "Microsoft.VisualStudio.Component.VC.Tools.ARM64EC",
+]
+sdk = "Microsoft.VisualStudio.Component.Windows11SDK.26100"
