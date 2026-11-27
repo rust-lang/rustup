@@ -487,20 +487,34 @@ fn effective_thread_count(ram_budget: usize, thread_count: IoThreadCount) -> usi
 
 pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
     const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 200 * 1024 * 1024;
-    let minimum_ram = io_chunk_size * 2;
+    let minimum_ram = io_chunk_size.saturating_mul(2);
 
-    let default_max_unpack_ram = match effective_limits::memory_limit() {
-        Ok(effective)
-            if effective as usize > minimum_ram + RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS =>
-        {
-            effective as usize - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS
-        }
-        Ok(_) => minimum_ram,
-        Err(e) => {
+    let memory_limit = effective_limits::memory_limit();
+    let available_memory = cfg_select! {
+        target_os = "linux" => linux_available_memory(Path::new("/proc/meminfo")),
+        _ => None,
+    };
+
+    // Physical memory and process limits don't account for other applications.
+    // Honor both sources when present, or use whichever is available.
+    let effective = match (memory_limit, available_memory) {
+        (Ok(effective), Some(available)) => Ord::min(effective, available),
+        (Ok(effective), None) => effective,
+        (Err(e), Some(available)) => {
             error!("{:#}", anyhow!(e).context("can't determine memory limit"));
-            minimum_ram
+            available
+        }
+        (Err(e), None) => {
+            error!("{:#}", anyhow!(e).context("can't determine memory limit"));
+            0
         }
     };
+    let default_max_unpack_ram = Ord::max(
+        usize::try_from(effective)
+            .unwrap_or(usize::MAX)
+            .saturating_sub(RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS),
+        minimum_ram,
+    );
 
     let unpack_ram = match budget {
         Some(budget) => {
@@ -533,6 +547,22 @@ pub(super) fn unpack_ram(io_chunk_size: usize, budget: Option<usize>) -> usize {
     } else {
         unpack_ram
     }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_available_memory(path: &Path) -> Option<u64> {
+    let meminfo = std::fs::read_to_string(path).ok()?;
+    let available = meminfo
+        .lines()
+        .find_map(|line| line.strip_prefix("MemAvailable:"))?;
+    let mut fields = available.split_whitespace();
+    let kib = fields.next()?.parse::<u64>().ok()?;
+    if fields.next()? != "kB" || fields.next().is_some() {
+        return None;
+    }
+    // MemAvailable includes reclaimable caches, unlike MemFree. Older kernels
+    // may omit it; in that case retain the effective-limits fallback.
+    kib.checked_mul(1024)
 }
 
 static RAM_NOTICE_SHOWN: OnceLock<()> = OnceLock::new();
