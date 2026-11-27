@@ -143,10 +143,8 @@ pub(crate) trait UnixShell {
     }
 
     fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#". "{}/env""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+        let env = format!(r#"{}/env"#, self.env_dir_str(env_dir, home_dir)?);
+        Ok(format!(r#"if [ -r "{env}" ]; then . "{env}"; fi"#))
     }
 
     fn write_script(
@@ -320,10 +318,8 @@ impl UnixShell for Fish {
     }
 
     fn source_string(&self, env_dir: &Path, home_dir: Option<&Path>) -> anyhow::Result<String> {
-        Ok(format!(
-            r#"source "{}/env.fish""#,
-            self.env_dir_str(env_dir, home_dir)?
-        ))
+        let env = format!(r#"{}/env.fish"#, self.env_dir_str(env_dir, home_dir)?);
+        Ok(format!(r#"if test -r "{env}"; source "{env}"; end"#))
     }
 }
 
@@ -587,9 +583,16 @@ pub(crate) fn legacy_paths<'a>(
         .into_iter()
         .map(|dir| dir.join(".zprofile"))
         .chain(home_dir.map(|dir| dir.join(".zprofile")));
-    let profiles = [".bash_profile", ".profile"]
-        .into_iter()
-        .filter_map(move |rc| home_dir.map(|dir| dir.join(rc)));
+    let profiles = [
+        ".bash_profile",
+        ".bash_login",
+        ".bashrc",
+        ".profile",
+        ".zshenv",
+    ]
+    .into_iter()
+    .filter_map(move |rc| home_dir.map(|dir| dir.join(rc)));
+    let fish_configs = Fish.rc_candidates(process).into_iter();
 
-    profiles.chain(zprofiles)
+    profiles.chain(zprofiles).chain(fish_configs)
 }

@@ -7,7 +7,7 @@ const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"
 
 #[cfg(unix)]
 mod unix {
-    use std::{fmt::Display, fs, path::PathBuf};
+    use std::{fmt::Display, fs, path::PathBuf, process::Command};
 
     use rustup::{
         test::{CliTestContext, Scenario},
@@ -28,6 +28,10 @@ export PATH="$HOME/apple/bin"
     const POSIX_SH: &str = "env";
 
     fn source(dir: impl Display, sh: impl Display) -> String {
+        format!("if [ -r \"{dir}/{sh}\" ]; then . \"{dir}/{sh}\"; fi\n")
+    }
+
+    fn legacy_source(dir: impl Display, sh: impl Display) -> String {
         format!(". \"{dir}/{sh}\"\n")
     }
 
@@ -149,12 +153,7 @@ error: could not amend shell profile[..]
     #[tokio::test]
     async fn install_with_zdotdir_from_calling_zsh() {
         // This test requires that zsh is callable.
-        if std::process::Command::new("zsh")
-            .arg("-c")
-            .arg("true")
-            .status()
-            .is_err()
-        {
+        if Command::new("zsh").arg("-c").arg("true").status().is_err() {
             return;
         }
 
@@ -319,10 +318,10 @@ error: could not amend shell profile[..]
         .map(|rc| cx.config.homedir.join(rc));
 
         for rc in &rcs {
-            raw::write_file(rc, FAKE_RC).unwrap();
+            raw::write_file(rc, "").unwrap();
         }
 
-        let expected = FAKE_RC.to_owned() + &source(cx.config.cargodir.display(), POSIX_SH);
+        let expected = format!("\n{}", source(cx.config.cargodir.display(), POSIX_SH));
 
         cx.config.expect(&INIT_NONE).await.is_ok();
         // sanity check
@@ -333,6 +332,21 @@ error: could not amend shell profile[..]
                 "Rc file {rc:?} does not contain a source after rustup-init",
             );
         }
+
+        let check_startup = || {
+            let output = Command::new("sh")
+                .env("HOME", &cx.config.homedir)
+                .args(["-c", ". \"$HOME/.profile\""])
+                .output()
+                .unwrap();
+            assert!(output.status.success());
+            assert!(
+                output.stderr.is_empty(),
+                "shell startup emitted diagnostics: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        };
+        check_startup();
 
         cx.config
             .expect(&["rustup", "self", "uninstall", "-y", "--no-modify-path"])
@@ -345,6 +359,8 @@ error: could not amend shell profile[..]
                 "Rc file {rc:?} does not contain a source after uninstall",
             );
         }
+
+        check_startup();
     }
 
     #[tokio::test]
@@ -362,8 +378,10 @@ error: could not amend shell profile[..]
             cx.config.homedir.join(".zprofile"),
             zdotdir.path().join(".zprofile"),
         ];
-        let old_rc =
-            FAKE_RC.to_owned() + DEFAULT_EXPORT + &non_posix_source("$HOME/.cargo", POSIX_SH);
+        let old_rc = FAKE_RC.to_owned()
+            + DEFAULT_EXPORT
+            + &non_posix_source("$HOME/.cargo", POSIX_SH)
+            + &legacy_source("$HOME/.cargo", POSIX_SH);
         for rc in rcs.iter().chain(zprofiles.iter()) {
             raw::write_file(rc, &old_rc).unwrap();
         }
@@ -439,8 +457,10 @@ error: could not amend shell profile[..]
             .map(|rc| cx.config.homedir.join(rc))
             .collect();
         rcs.push(zdotdir.path().join(".zprofile"));
-        let old_rc =
-            FAKE_RC.to_owned() + DEFAULT_EXPORT + &non_posix_source("$HOME/.cargo", POSIX_SH);
+        let old_rc = FAKE_RC.to_owned()
+            + DEFAULT_EXPORT
+            + &non_posix_source("$HOME/.cargo", POSIX_SH)
+            + &legacy_source("$HOME/.cargo", POSIX_SH);
         for rc in &rcs {
             raw::write_file(rc, &old_rc).unwrap();
         }
@@ -474,7 +494,7 @@ error: could not amend shell profile[..]
         assert!(cmd.output().unwrap().status.success());
 
         let new_profile = fs::read_to_string(&profile).unwrap();
-        let expected = format!("{FAKE_RC}. \"$HOME/.cargo/env\"\n");
+        let expected = FAKE_RC.to_owned() + &source("$HOME/.cargo", POSIX_SH);
         assert_eq!(new_profile, expected);
 
         let mut cmd = cx.config.cmd("rustup", ["self", "uninstall", "-y"]);
