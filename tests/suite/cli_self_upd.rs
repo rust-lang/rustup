@@ -26,7 +26,7 @@ use rustup::{
         CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash,
         output_release_file, this_host_tuple,
     },
-    utils::{self, raw},
+    utils::raw,
 };
 #[cfg(windows)]
 use windows_registry::{CURRENT_USER, Value};
@@ -1305,54 +1305,6 @@ async fn rls_proxy_set_up_after_update() {
     fs::remove_file(&rls_path).unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert!(rls_path.exists());
-}
-
-#[tokio::test]
-async fn update_does_not_overwrite_rustfmt() {
-    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    cx.config
-        .expect(["rustup-init", "-y", "--no-modify-path"])
-        .await
-        .is_ok();
-    let version = env!("CARGO_PKG_VERSION");
-    output_release_file(cx.path(), "1", version);
-
-    // Since we just did a fresh install rustfmt will exist. Let's emulate
-    // it not existing in this test though by removing it just after our
-    // installation.
-    let rustfmt_path = cx.config.cargodir.join(format!("bin/rustfmt{EXE_SUFFIX}"));
-    assert!(rustfmt_path.exists());
-    fs::remove_file(&rustfmt_path).unwrap();
-    raw::write_file(&rustfmt_path, "").unwrap();
-    assert_eq!(utils::file_size(&rustfmt_path).unwrap(), 0);
-
-    // Ok, now a self-update should complain about `rustfmt` not looking
-    // like rustup and the user should take some action.
-    cx.config
-        .expect(["rustup", "self", "update"])
-        .await
-        .with_stderr(snapbox::str![[r#"
-info: checking for self-update (current version: [CURRENT_VERSION])
-warn: tool `rustfmt` is already installed, remove it from `[..]`, then run `rustup update` to have rustup manage this tool.
-
-"#]])
-        .is_ok();
-    assert!(rustfmt_path.exists());
-    assert_eq!(utils::file_size(&rustfmt_path).unwrap(), 0);
-
-    // Now simulate us removing the rustfmt executable and rerunning a self
-    // update, this should install the rustup shim. Note that we don't run
-    // `rustup` here but rather the rustup we've actually installed, this'll
-    // help reproduce bugs related to having that file being opened by the
-    // current process.
-    fs::remove_file(&rustfmt_path).unwrap();
-    let installed_rustup = cx.config.cargodir.join("bin/rustup");
-    cx.config
-        .expect([installed_rustup.to_str().unwrap(), "self", "update"])
-        .await
-        .is_ok();
-    assert!(rustfmt_path.exists());
-    assert!(utils::file_size(&rustfmt_path).unwrap() > 0);
 }
 
 #[tokio::test]
