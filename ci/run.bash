@@ -84,10 +84,10 @@ build_test() {
   esac
 
   if [ "build" = "${cmd}" ]; then
-    target_cargo "${cmd}" --workspace --all-targets "${features[@]}" --features test
+    target_cargo "${cmd}" --all-targets "${features[@]}" --features test
   else
-    target_cargo "${cmd}" --workspace "${features[@]}" --features test --tests
-    target_cargo "${cmd}" --doc --workspace "${features[@]}" --features test
+    target_cargo "${cmd}" "${features[@]}" --features test --tests
+    target_cargo "${cmd}" --doc "${features[@]}" --features test
   fi
 }
 

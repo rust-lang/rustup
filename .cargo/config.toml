@@ -2,3 +2,4 @@
 dev-install = "run -- --no-modify-path -y"
 run-rustup = ["run", "--config", "env.RUSTUP_FORCE_ARG0='rustup'"]
 xfmt = ["fmt", "--all", "--", "--config-path=.rustfmt.unstable.toml"]
+xtask = "run --manifest-path xtask/Cargo.toml --"
