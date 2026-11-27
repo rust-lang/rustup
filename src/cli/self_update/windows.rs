@@ -80,7 +80,10 @@ fn choice(max: u8, process: &Process) -> anyhow::Result<Option<u8>> {
     Ok(r)
 }
 
-pub(crate) fn choose_vs_install(process: &Process) -> anyhow::Result<Option<VsInstallPlan>> {
+pub(crate) fn choose_vs_install(
+    plan: VsInstallPlan,
+    process: &Process,
+) -> anyhow::Result<Option<VsInstallPlan>> {
     writeln!(
         process.stdout().lock(),
         "\n1) Quick install via the Visual Studio Community installer"
@@ -113,7 +116,7 @@ pub(crate) fn choose_vs_install(process: &Process) -> anyhow::Result<Option<VsIn
         writeln!(process.stdout().lock(), "Select option 1, 2 or 3")?;
     };
     let plan = match choice {
-        1 => Some(VsInstallPlan::Automatic),
+        1 => Some(plan),
         2 => Some(VsInstallPlan::Manual),
         _ => None,
     };
@@ -133,11 +136,11 @@ pub(super) async fn maybe_install_msvc(
 
     if no_prompt {
         warn!("installing msvc toolchain without its prerequisites");
-    } else if !quiet && plan == VsInstallPlan::Automatic {
+    } else if !quiet && matches!(plan, VsInstallPlan::Automatic { .. }) {
         md(term, MSVC_AUTO_INSTALL_MESSAGE);
-        match choose_vs_install(process)? {
-            Some(VsInstallPlan::Automatic) => {
-                match try_install_msvc(opts, process).await {
+        match choose_vs_install(plan, process)? {
+            Some(plan @ VsInstallPlan::Automatic { .. }) => {
+                match plan.install(opts, process).await {
                     Err(e) => {
                         // Make sure the console doesn't exit before the user can
                         // see the error and give the option to continue anyway.
@@ -204,10 +207,37 @@ These components can be acquired through a Visual Studio installer.
 
 "#;
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum VsInstallPlan {
-    Automatic,
+    Automatic { msvc_tools: &'static str },
     Manual,
+}
+
+impl VsInstallPlan {
+    pub(crate) fn new(host_tuple: &str, has_any_vs: bool) -> Self {
+        // Only try an automatic install if no Visual Studio is installed at all
+        // and we know which MSVC tools component to install for this host.
+        if has_any_vs {
+            return Self::Manual;
+        }
+        let msvc_tools = match host_tuple.split('-').next() {
+            Some("x86_64" | "i686") => "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+            Some("aarch64") => "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
+            _ => return Self::Manual,
+        };
+        Self::Automatic { msvc_tools }
+    }
+
+    pub(crate) async fn install(
+        &self,
+        opts: &InstallOpts<'_>,
+        process: &Process,
+    ) -> anyhow::Result<ContinueInstall> {
+        let Self::Automatic { msvc_tools } = *self else {
+            unreachable!("only an automatic plan can be installed");
+        };
+        try_install_msvc(msvc_tools, opts, process).await
+    }
 }
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
@@ -227,16 +257,8 @@ pub(crate) fn msvc_check(opts: &InstallOpts<'_>, process: &Process) -> Option<Vs
     let have_msvc = find_tool(&host_tuple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
         // Visual Studio build tools are required.
-        // If the user does not have Visual Studio installed and their host
-        // machine is i686 or x86_64 then it's OK to try an auto install.
-        // Otherwise a manual install will be required.
         let has_any_vs = find_vs_version().is_ok();
-        let is_x86 = host_tuple.contains("i686") || host_tuple.contains("x86_64");
-        if is_x86 && !has_any_vs {
-            Some(VsInstallPlan::Automatic)
-        } else {
-            Some(VsInstallPlan::Manual)
-        }
+        Some(VsInstallPlan::new(&host_tuple, has_any_vs))
     } else {
         None
     }
@@ -290,6 +312,7 @@ pub(crate) enum ContinueInstall {
 /// Returns `Ok(ContinueInstall::No)` if installing Visual Studio was successful
 /// but the rustup install should not be continued at this time.
 pub(crate) async fn try_install_msvc(
+    msvc_tools: &str,
     opts: &InstallOpts<'_>,
     process: &Process,
 ) -> anyhow::Result<ContinueInstall> {
@@ -317,8 +340,8 @@ pub(crate) async fn try_install_msvc(
         .arg("--focusedUi")
         // Add the English language pack
         .args(["--addProductLang", "En-us"])
-        // Add the linker and C runtime libraries.
-        .args(["--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]);
+        // Add the linker and C runtime libraries for the host architecture.
+        .args(["--add", msvc_tools]);
 
     // It's possible an earlier or later version of the Windows SDK has been
     // installed separately from Visual Studio so installing it can be skipped.
@@ -869,6 +892,28 @@ mod tests {
             Ok(()) => {}
             Err(e) if e.code() == WIN32_ERROR(ERROR_FILE_NOT_FOUND).to_hresult() => {}
             Err(e) => panic!("failed to clear PATH: {e}"),
+        }
+    }
+
+    #[test]
+    fn vs_install_plan_new() {
+        const X64: VsInstallPlan = VsInstallPlan::Automatic {
+            msvc_tools: "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+        };
+        const ARM64: VsInstallPlan = VsInstallPlan::Automatic {
+            msvc_tools: "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
+        };
+        for (host, has_any_vs, expected) in [
+            ("x86_64-pc-windows-msvc", false, X64),
+            ("x86_64-pc-windows-msvc", true, VsInstallPlan::Manual),
+            ("i686-pc-windows-msvc", false, X64),
+            ("i686-pc-windows-msvc", true, VsInstallPlan::Manual),
+            ("aarch64-pc-windows-msvc", false, ARM64),
+            ("aarch64-pc-windows-msvc", true, VsInstallPlan::Manual),
+            ("i586-pc-windows-msvc", false, VsInstallPlan::Manual),
+            ("thumbv7a-pc-windows-msvc", false, VsInstallPlan::Manual),
+        ] {
+            assert_eq!(VsInstallPlan::new(host, has_any_vs), expected, "{host}");
         }
     }
 
