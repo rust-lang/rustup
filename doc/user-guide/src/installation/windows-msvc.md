@@ -6,11 +6,13 @@ For `msvc` targets these can be acquired through Visual Studio.
 ## Automatic install
 
 If you don't have Visual Studio already installed then [rustup-init] will offer to automatically install the prerequisites.
+This works on x64, x86 and ARM64 Windows, and installs the build tools for your machine's architecture.
 Doing so means you can skip the rest of this page.
 However, it installs Visual Studio Community edition which may not be appropriate for all users.
 It is free for individuals, academic and open source use, but not for other uses, such as in proprietary enterprise software.
 Users should ask their organisation which edition is right for them.
 See [licensing terms][vs licences] for more details.
+To cross-compile for another architecture, add its build tools later in Visual Studio Installer > Modify.
 
 ## WinGet
 
@@ -85,6 +87,7 @@ If you'd like a more minimal install (and won't be doing C++ development) then y
 
 - MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
 - Windows 11 SDK (10.0.22621.0)
+- On ARM64 Windows: MSVC v143 - VS 2022 C++ ARM64/ARM64EC build tools (Latest)
 
 Note that the specific version of the Windows SDK doesn't matter for pure Rust code but if using C++ as well you'll likely want either the latest or whichever version is required by the C++ project (or both).
 
