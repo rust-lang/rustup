@@ -601,6 +601,12 @@ fn update_root(process: &Process) -> String {
         .unwrap_or_else(|_| String::from(DEFAULT_UPDATE_ROOT))
 }
 
+/// The platform-specific abbreviation of the user's home directory in displayed paths.
+pub(crate) const HOME_PREFIX: &str = cfg_select! {
+    windows => "%USERPROFILE%",
+    _ => "$HOME",
+};
+
 /// Displays an installation path with a platform-specific home abbreviation.
 struct HomeDisplay<'a> {
     path: &'a Path,
@@ -612,10 +618,7 @@ impl<'a> HomeDisplay<'a> {
         match home_dir.and_then(|home| path.strip_prefix(home).ok()) {
             Some(relative) => Self {
                 path: relative,
-                home_prefix: Some(cfg_select! {
-                    windows => "%USERPROFILE%",
-                    _ => "$HOME",
-                }),
+                home_prefix: Some(HOME_PREFIX),
             },
             None => Self {
                 path,

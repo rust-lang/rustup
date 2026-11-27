@@ -112,6 +112,8 @@ pub struct Config {
 /// - `[CROSS_ARCH_I]`: The value of [`CROSS_ARCH1`].
 /// - `[CROSS_ARCH_II]`: The value of [`CROSS_ARCH2`].
 /// - `[MULTI_ARCH_I]`: The value of [`MULTI_ARCH1`].
+/// - `[HOME_VAR]`: The user's home directory as shown in displayed paths,
+///   i.e. `$HOME` or `%USERPROFILE%`.
 ///
 /// When updating snapshots, the filters are automatically applied.
 /// To redact some remaining part of the snapshot, you can use the
@@ -138,6 +140,10 @@ impl Assert {
                 ("[CROSS_ARCH_I]", Cow::Borrowed(CROSS_ARCH1)),
                 ("[CROSS_ARCH_II]", Cow::Borrowed(CROSS_ARCH2)),
                 ("[MULTI_ARCH_I]", Cow::Borrowed(MULTI_ARCH1)),
+                (
+                    "[HOME_VAR]",
+                    Cow::Borrowed(crate::cli::self_update::HOME_PREFIX),
+                ),
                 ("[CC_TOOL]", Cow::Borrowed("`cc`")),
                 ("[CC_TOOL]", Cow::Borrowed("`gcc`")),
                 ("[CC_TOOL]", Cow::Borrowed("`clang`")),

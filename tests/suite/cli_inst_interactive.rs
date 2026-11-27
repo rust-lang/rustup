@@ -102,7 +102,7 @@ Rust is installed now. Great!
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory (%USERPROFILE%/.cargo/bin) in[..]
+To get started you need Cargo's bin directory ([HOME_VAR]/.cargo/bin) in[..]
 your PATH
 environment variable. This has not been done automatically.
 
@@ -113,15 +113,15 @@ Press the Enter key to continue.
 ...
 Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ($HOME/.cargo/bin) in your PATH
+To get started you need Cargo's bin directory ([HOME_VAR]/.cargo/bin) in your PATH
 environment variable. This has not been done automatically.
 
 To configure your current shell, you need to source the
-corresponding env file under $HOME/.cargo.
+corresponding env file under [HOME_VAR]/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
 
-  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+  . "[HOME_VAR]/.cargo/env" # For sh/ash/dash/pdksh
 ...
 "#]],
     })
@@ -155,7 +155,7 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory (%USERPROFILE%/.cargo/bin).
+Cargo's bin directory ([HOME_VAR]/.cargo/bin).
 
 Press the Enter key to continue.
 
@@ -166,14 +166,14 @@ Rust is installed now. Great!
 
 To get started you may need to restart your current shell.
 This would reload your PATH environment variable to include
-Cargo's bin directory ($HOME/.cargo/bin).
+Cargo's bin directory ([HOME_VAR]/.cargo/bin).
 
 To configure your current shell, you need to source the
-corresponding env file under $HOME/.cargo.
+corresponding env file under [HOME_VAR]/.cargo.
 
 Consider running the right command for your shell (note the leading DOT):
 
-  . "$HOME/.cargo/env" # For sh/ash/dash/pdksh
+  . "[HOME_VAR]/.cargo/env" # For sh/ash/dash/pdksh
 ...
 "#]],
     });
