@@ -3,6 +3,7 @@ mod cli_exact;
 mod cli_inst_interactive;
 mod cli_misc;
 mod cli_paths;
+mod cli_proxy;
 mod cli_rustup;
 mod cli_rustup_init_ui;
 mod cli_rustup_ui;

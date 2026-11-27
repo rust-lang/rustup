@@ -26,7 +26,7 @@ use rustup::{
         CROSS_ARCH1, CliTestContext, Scenario, SelfUpdateTestContext, calc_hash,
         output_release_file, this_host_tuple,
     },
-    utils::{self, raw},
+    utils::raw,
 };
 #[cfg(windows)]
 use windows_registry::{CURRENT_USER, Value};
@@ -1305,50 +1305,6 @@ async fn rls_proxy_set_up_after_update() {
     fs::remove_file(&rls_path).unwrap();
     cx.config.expect(["rustup", "self", "update"]).await.is_ok();
     assert!(rls_path.exists());
-}
-
-#[tokio::test]
-async fn update_does_not_overwrite_dup_tools() {
-    let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    cx.config
-        .expect(["rustup-init", "-y", "--no-modify-path"])
-        .await
-        .is_ok();
-    let version = env!("CARGO_PKG_VERSION");
-    output_release_file(cx.path(), "1", version);
-
-    for tool in DUP_TOOLS {
-        // Replace the installed proxy with a file that is not managed by rustup.
-        let tool_path = cx.config.cargodir.join(format!("bin/{tool}{EXE_SUFFIX}"));
-        assert!(tool_path.exists());
-        fs::remove_file(&tool_path).unwrap();
-        raw::write_file(&tool_path, "").unwrap();
-        assert_eq!(utils::file_size(&tool_path).unwrap(), 0);
-
-        // Updating must preserve the user's tool and explain how to replace it.
-        cx.config
-            .expect(["rustup", "self", "update"])
-            .await
-            .extend_redactions([("[TOOL]", *tool)])
-            .with_stderr(snapbox::str![[r#"
-info: checking for self-update (current version: [CURRENT_VERSION])
-warn: tool `[TOOL]` is already installed, remove it from `[..]`, then run `rustup update` to have rustup manage this tool.
-
-"#]])
-            .is_ok();
-        assert!(tool_path.exists());
-        assert_eq!(utils::file_size(&tool_path).unwrap(), 0);
-
-        // Once the user removes the tool, updating installs its proxy. Use the
-        // installed rustup to also exercise updating while that file is open.
-        fs::remove_file(&tool_path).unwrap();
-        let installed_rustup = cx.config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
-        cx.config
-            .expect([installed_rustup.to_str().unwrap(), "self", "update"])
-            .await
-            .is_ok();
-        assert!(same_file::is_same_file(&tool_path, &installed_rustup).unwrap());
-    }
 }
 
 #[tokio::test]
